@@ -12,12 +12,7 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
 export interface ComponentProps {
@@ -34,22 +29,6 @@ interface PolicyOverview {
   teamNames: Array<string>;
   userNames: Array<string>;
   levelsWithNoResponders: number;
-}
-
-/*
- * A single node in the compact "at a glance" escalation path strip. The strip is
- * a lightweight timing visual built purely from the aggregate overview data — it
- * is NOT a per-level timeline (we have no per-level responder data here). Each
- * node also carries the label for the connector that leads into it.
- */
-interface EscalationPathNode {
-  icon: IconProp;
-  circleClassName: string;
-  iconClassName: string;
-  title: string;
-  caption: string;
-  connectorLabel: string;
-  connectorAccent: boolean;
 }
 
 // Compact human duration, e.g. "immediately", "5 min", "1 hr 30 min".
@@ -240,7 +219,8 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
     await loadData();
   }, []);
 
-  const getStatTile: (params: {
+  // A single quiet metric cell in the supporting stat strip.
+  const getMetric: (params: {
     icon: IconProp;
     label: string;
     value: string;
@@ -250,20 +230,19 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
     value: string;
   }): ReactElement => {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-          <Icon icon={params.icon} className="h-4 w-4 text-indigo-600" />
+      <div className="bg-white px-4 py-3.5">
+        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <Icon icon={params.icon} className="h-3.5 w-3.5 text-gray-400" />
+          <span className="truncate">{params.label}</span>
         </div>
-        <div className="min-w-0">
-          <div className="truncate text-lg font-semibold leading-tight text-gray-900">
-            {params.value}
-          </div>
-          <div className="truncate text-xs text-gray-500">{params.label}</div>
+        <div className="mt-2 truncate text-xl font-semibold leading-none text-gray-900">
+          {params.value}
         </div>
       </div>
     );
   };
 
+  // One responder category (schedules / teams / users) with its chips.
   const getResponderGroup: (params: {
     icon: IconProp;
     iconColor: string;
@@ -276,140 +255,27 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
     names: Array<string>;
   }): ReactElement => {
     return (
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
+        <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 sm:w-40 sm:pt-0.5">
           <Icon
             icon={params.icon}
             className={`h-3.5 w-3.5 ${params.iconColor}`}
           />
           {params.label}
+          <span className="text-gray-300">·</span>
+          <span className="tabular-nums text-gray-500">
+            {params.names.length}
+          </span>
         </span>
-        {params.names.map((name: string, i: number) => {
-          return (
-            <span
-              key={`${params.label}-${i}`}
-              className="inline-flex items-center rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-            >
-              {name}
-            </span>
-          );
-        })}
-      </div>
-    );
-  };
-
-  /*
-   * The "escalation path forward" strip: a compact, horizontally-scrolling row of
-   * nodes that traces how an unacknowledged alert climbs over time — Trigger ->
-   * first level (immediately) -> final level (after timeToFinalLevelMinutes) ->
-   * repeats / stops. Built only from aggregate overview data, so no per-level
-   * responder detail is implied.
-   */
-  const getEscalationPath: (params: {
-    overview: PolicyOverview;
-    totalResponders: number;
-  }) => ReactElement = (params: {
-    overview: PolicyOverview;
-    totalResponders: number;
-  }): ReactElement => {
-    const data: PolicyOverview = params.overview;
-    const repeats: boolean = data.repeatEnabled && data.repeatCount > 0;
-
-    const nodes: Array<EscalationPathNode> = [];
-
-    // 1. The incident fires.
-    nodes.push({
-      icon: IconProp.Alert,
-      circleClassName: "bg-amber-50 ring-amber-200",
-      iconClassName: "text-amber-500",
-      title: "Triggered",
-      caption: "Alert fires",
-      connectorLabel: "",
-      connectorAccent: false,
-    });
-
-    // 2. The first level is paged the instant the policy runs.
-    nodes.push({
-      icon: IconProp.Bell,
-      circleClassName: "bg-indigo-50 ring-indigo-200",
-      iconClassName: "text-indigo-600",
-      title: data.levels === 1 ? "Only level" : "Level 1",
-      caption: params.totalResponders > 0 ? "Paged now" : "No responders",
-      connectorLabel: "Immediately",
-      connectorAccent: false,
-    });
-
-    /*
-     * 3. The final level, but only when there is more than one — otherwise the
-     * first level is already the final one and this node would be redundant.
-     */
-    if (data.levels > 1) {
-      nodes.push({
-        icon: IconProp.ArrowUp,
-        circleClassName: "bg-indigo-50 ring-indigo-200",
-        iconClassName: "text-indigo-600",
-        title: `Level ${data.levels}`,
-        caption: "Final level",
-        connectorLabel:
-          data.timeToFinalLevelMinutes > 0
-            ? `After ${formatDuration(data.timeToFinalLevelMinutes)}`
-            : "Right away",
-        connectorAccent: data.timeToFinalLevelMinutes > 0,
-      });
-    }
-
-    // 4. What happens once every level has been exhausted.
-    nodes.push({
-      icon: repeats ? IconProp.Reload : IconProp.CheckCircle,
-      circleClassName: repeats
-        ? "bg-indigo-50 ring-indigo-200"
-        : "bg-gray-100 ring-gray-200",
-      iconClassName: repeats ? "text-indigo-600" : "text-gray-500",
-      title: repeats ? "Repeats" : "Ends",
-      caption: repeats
-        ? `${data.repeatCount}× more`
-        : "Escalation stops",
-      connectorLabel: "If unacked",
-      connectorAccent: false,
-    });
-
-    return (
-      <div className="overflow-x-auto">
-        <div className="flex items-start">
-          {nodes.map((node: EscalationPathNode, index: number) => {
+        <div className="flex flex-1 flex-wrap gap-1.5">
+          {params.names.map((name: string, i: number) => {
             return (
-              <Fragment key={`path-${index}`}>
-                {index > 0 ? (
-                  <div className="relative flex h-10 min-w-[64px] flex-1 items-center px-1.5">
-                    <div className="h-0.5 w-full rounded-full bg-gray-200" />
-                    <span
-                      className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] ${
-                        node.connectorAccent
-                          ? "bg-indigo-50 font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200"
-                          : "border border-gray-200 bg-white font-medium text-gray-500"
-                      }`}
-                    >
-                      {node.connectorLabel}
-                    </span>
-                  </div>
-                ) : null}
-                <div className="flex w-[92px] flex-shrink-0 flex-col items-center text-center">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-full ring-1 ring-inset ${node.circleClassName}`}
-                  >
-                    <Icon
-                      icon={node.icon}
-                      className={`h-4 w-4 ${node.iconClassName}`}
-                    />
-                  </div>
-                  <div className="mt-2 text-[13px] font-semibold leading-tight text-gray-900">
-                    {node.title}
-                  </div>
-                  <div className="mt-0.5 text-[11px] leading-tight text-gray-500">
-                    {node.caption}
-                  </div>
-                </div>
-              </Fragment>
+              <span
+                key={`${params.label}-${i}`}
+                className="inline-flex items-center rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+              >
+                {name}
+              </span>
             );
           })}
         </div>
@@ -434,15 +300,10 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    const totalResponders: number =
-      overview.scheduleNames.length +
-      overview.teamNames.length +
-      overview.userNames.length;
-
     if (overview.levels === 0) {
       return (
-        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center">
-          <p className="text-sm text-gray-600">
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-8 text-center">
+          <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
             This policy has no escalation rules yet, so triggering it will not
             page anyone. Open the{" "}
             <span className="font-semibold text-gray-900">Escalation</span> tab
@@ -452,58 +313,103 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       );
     }
 
+    const totalResponders: number =
+      overview.scheduleNames.length +
+      overview.teamNames.length +
+      overview.userNames.length;
+    const hasResponders: boolean = totalResponders > 0;
+    const timeToFinalValue: string =
+      overview.levels <= 1
+        ? "—"
+        : overview.timeToFinalLevelMinutes > 0
+          ? formatDuration(overview.timeToFinalLevelMinutes)
+          : "Instant";
+
     return (
       <div>
-        {/* One-line framing; the path strip below owns the timing story. */}
-        <p className="mb-5 text-sm leading-relaxed text-gray-600">
-          When this policy is triggered, the first level is paged{" "}
-          <span className="font-semibold text-gray-900">immediately</span>,
-          reaching{" "}
-          <span className="font-semibold text-gray-900">
-            {totalResponders}{" "}
-            {totalResponders === 1 ? "responder" : "responders"}
-          </span>{" "}
-          across{" "}
+        {/* Hero narrative — the confident, read-it-in-five-seconds summary. */}
+        <p className="mb-6 text-base leading-relaxed text-gray-600">
+          When this policy is triggered, it works through{" "}
           <span className="font-semibold text-gray-900">
             {overview.levels}{" "}
-            {overview.levels === 1 ? "level" : "levels"}
+            {overview.levels === 1 ? "escalation level" : "escalation levels"}
           </span>
-          . The path below traces how an unacknowledged alert climbs over time.
+          {hasResponders ? (
+            <>
+              {" "}
+              and can page up to{" "}
+              <span className="font-semibold text-gray-900">
+                {totalResponders}{" "}
+                {totalResponders === 1 ? "responder" : "responders"}
+              </span>
+              .{" "}
+            </>
+          ) : (
+            <>
+              , but{" "}
+              <span className="font-semibold text-amber-700">
+                no responders are assigned yet
+              </span>
+              .{" "}
+            </>
+          )}
+          The first level is notified immediately;{" "}
+          {overview.levels > 1 ? (
+            overview.timeToFinalLevelMinutes > 0 ? (
+              <>
+                if no one acknowledges, the alert climbs to the final level
+                after{" "}
+                <span className="font-semibold text-gray-900">
+                  {formatDuration(overview.timeToFinalLevelMinutes)}
+                </span>
+                .{" "}
+              </>
+            ) : (
+              <>
+                if no one acknowledges, every remaining level is engaged{" "}
+                <span className="font-semibold text-gray-900">right away</span>.{" "}
+              </>
+            )
+          ) : (
+            <>there are no further levels to escalate to. </>
+          )}
+          {overview.repeatEnabled && overview.repeatCount > 0 ? (
+            <>
+              If it is still unacknowledged, the whole policy repeats up to{" "}
+              <span className="font-semibold text-gray-900">
+                {overview.repeatCount} more{" "}
+                {overview.repeatCount === 1 ? "time" : "times"}
+              </span>{" "}
+              before stopping.
+            </>
+          ) : (
+            <>
+              If it is still unacknowledged after the final level, escalation
+              stops.
+            </>
+          )}
         </p>
 
-        {/* Escalation path forward — compact "at a glance" timing strip */}
-        <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-          <div className="mb-4 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 text-gray-400" />
-            Escalation path
-          </div>
-          {getEscalationPath({ overview, totalResponders })}
-        </div>
-
-        {/* Stat tiles */}
-        <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {getStatTile({
+        {/* Supporting metrics — a quiet, segmented stat strip. */}
+        <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-4">
+          {getMetric({
             icon: IconProp.List,
-            label:
-              overview.levels === 1 ? "Escalation level" : "Escalation levels",
+            label: "Levels",
             value: `${overview.levels}`,
           })}
-          {getStatTile({
+          {getMetric({
             icon: IconProp.User,
-            label: totalResponders === 1 ? "Responder" : "Responders",
+            label: "Responders",
             value: `${totalResponders}`,
           })}
-          {getStatTile({
+          {getMetric({
             icon: IconProp.Clock,
             label: "To final level",
-            value:
-              overview.timeToFinalLevelMinutes > 0
-                ? formatDuration(overview.timeToFinalLevelMinutes)
-                : "Instant",
+            value: timeToFinalValue,
           })}
-          {getStatTile({
+          {getMetric({
             icon: IconProp.Reload,
-            label: "Repeats if unacked",
+            label: "Repeats",
             value:
               overview.repeatEnabled && overview.repeatCount > 0
                 ? `${overview.repeatCount}×`
@@ -511,61 +417,78 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           })}
         </div>
 
-        {/* Responder breakdown */}
-        {totalResponders > 0 ? (
-          <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-            {overview.scheduleNames.length > 0 &&
-              getResponderGroup({
-                icon: IconProp.Calendar,
-                iconColor: "text-indigo-500",
-                label: "On-call schedules",
-                names: overview.scheduleNames,
-              })}
-            {overview.teamNames.length > 0 &&
-              getResponderGroup({
-                icon: IconProp.Team,
-                iconColor: "text-violet-500",
-                label: "Teams",
-                names: overview.teamNames,
-              })}
-            {overview.userNames.length > 0 &&
-              getResponderGroup({
-                icon: IconProp.User,
-                iconColor: "text-gray-500",
-                label: "Users",
-                names: overview.userNames,
-              })}
+        {/* Responders — a refined, well-grouped list with integrated coverage note. */}
+        {hasResponders ? (
+          <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+            <div className="mb-3.5 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Who gets paged
+              </span>
+              <span className="text-xs font-medium tabular-nums text-gray-500">
+                {totalResponders} total
+              </span>
+            </div>
+            <div className="space-y-3.5">
+              {overview.scheduleNames.length > 0 &&
+                getResponderGroup({
+                  icon: IconProp.Calendar,
+                  iconColor: "text-indigo-500",
+                  label: "On-call",
+                  names: overview.scheduleNames,
+                })}
+              {overview.teamNames.length > 0 &&
+                getResponderGroup({
+                  icon: IconProp.Team,
+                  iconColor: "text-violet-500",
+                  label: "Teams",
+                  names: overview.teamNames,
+                })}
+              {overview.userNames.length > 0 &&
+                getResponderGroup({
+                  icon: IconProp.User,
+                  iconColor: "text-gray-500",
+                  label: "Users",
+                  names: overview.userNames,
+                })}
+            </div>
+            {overview.levelsWithNoResponders > 0 ? (
+              <div className="mt-4 flex items-start gap-2 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-700">
+                <Icon
+                  icon={IconProp.Alert}
+                  className="mt-px h-3.5 w-3.5 flex-shrink-0 text-amber-500"
+                />
+                <span>
+                  <span className="font-semibold">
+                    {overview.levelsWithNoResponders}{" "}
+                    {overview.levelsWithNoResponders === 1 ? "level" : "levels"}
+                  </span>{" "}
+                  along the way{" "}
+                  {overview.levelsWithNoResponders === 1 ? "has" : "have"} no
+                  responders and will notify no one when reached.
+                </span>
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            <Icon
-              icon={IconProp.Alert}
-              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
-            />
-            <span>
-              No responders are assigned to any level, so this policy will not
-              page anyone. Add responders on the Escalation tab.
-            </span>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start gap-2.5">
+              <Icon
+                icon={IconProp.Alert}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
+              />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">
+                  No responders are assigned
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-amber-700">
+                  This policy will not page anyone when it is triggered. Add
+                  on-call schedules, teams, or users on the Escalation tab.
+                </p>
+              </div>
+            </div>
           </div>
-        )}
-
-        {/* Coverage warning for levels with nobody assigned */}
-        {overview.levelsWithNoResponders > 0 && totalResponders > 0 ? (
-          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <Icon
-              icon={IconProp.Alert}
-              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
-            />
-            <span>
-              <span className="font-semibold">
-                {overview.levelsWithNoResponders}{" "}
-                {overview.levelsWithNoResponders === 1 ? "level" : "levels"}
-              </span>{" "}
-              have no responders and will notify no one when reached.
-            </span>
-          </div>
-        ) : (
-          <></>
         )}
       </div>
     );
@@ -573,7 +496,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
-      {/* Header — plain title, no icon box (matches the standard Card style) */}
+      {/* Header — plain title, no icon box (matches the standard Card). */}
       <div className="border-b border-gray-100 px-6 py-5">
         <h2 className="text-lg font-semibold text-gray-900">
           Policy at a glance
