@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import DayOfWeek from "Common/Types/Day/DayOfWeek";
 import EventInterval from "Common/Types/Events/EventInterval";
 import Recurring from "Common/Types/Events/Recurring";
 import RestrictionTimes, {
@@ -76,6 +77,14 @@ export function summarizeHandOff(handOffTime: Date | undefined): string | null {
 
 export function summarizeRestriction(
   restrictionTimes: RestrictionTimes | undefined,
+  /*
+   * The schedule's timezone. Restriction wall-clock hours are ENFORCED by the
+   * engine in this zone, so the summary must render them in it too — otherwise
+   * the chip shows the viewer's browser-zone hours and contradicts both the
+   * schedule-timezone preview on the same screen and who actually gets paged
+   * (audit F10). Omitted => viewer local time (legacy behavior).
+   */
+  timezone?: string | undefined,
 ): string {
   if (!restrictionTimes) {
     return "On call 24/7";
@@ -88,13 +97,20 @@ export function summarizeRestriction(
     return "On call 24/7";
   }
 
+  // A short "(<tz>)" suffix so it is unambiguous which zone the hours are in.
+  const tzSuffix: string = timezone ? ` (${timezone})` : "";
+
   if (restrictionType === RestrictionType.Daily) {
     const day: { startTime: Date; endTime: Date } | null =
       restrictionTimes.dayRestrictionTimes;
     if (day && day.startTime && day.endTime) {
-      return `Daily ${OneUptimeDate.getLocalHourAndMinuteFromDate(
+      return `Daily ${OneUptimeDate.getHourAndMinuteInTimezoneString(
         day.startTime,
-      )} – ${OneUptimeDate.getLocalHourAndMinuteFromDate(day.endTime)}`;
+        timezone,
+      )} – ${OneUptimeDate.getHourAndMinuteInTimezoneString(
+        day.endTime,
+        timezone,
+      )}${tzSuffix}`;
     }
     return "Restricted to specific hours daily";
   }
@@ -109,9 +125,26 @@ export function summarizeRestriction(
 
   if (weekly.length === 1) {
     const w: WeeklyResctriction = weekly[0]!;
-    return `${w.startDay} ${OneUptimeDate.getLocalHourAndMinuteFromDate(
+    /*
+     * Derive the day-of-week from the stored timestamps (in the schedule
+     * timezone), NOT from the startDay/endDay enum. The engine resolves coverage
+     * from the timestamp's weekday and ignores the enum, so a raw-API payload
+     * whose enum disagrees with its timestamp would otherwise show a day here
+     * that contradicts who is actually paged. Using the timestamp keeps the
+     * summary consistent with the engine and the preview.
+     */
+    const startDay: DayOfWeek = OneUptimeDate.getDayOfWeek(
       w.startTime,
-    )} – ${w.endDay} ${OneUptimeDate.getLocalHourAndMinuteFromDate(w.endTime)}`;
+      timezone,
+    );
+    const endDay: DayOfWeek = OneUptimeDate.getDayOfWeek(w.endTime, timezone);
+    return `${startDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
+      w.startTime,
+      timezone,
+    )} – ${endDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
+      w.endTime,
+      timezone,
+    )}${tzSuffix}`;
   }
 
   return `${weekly.length} weekly time windows`;

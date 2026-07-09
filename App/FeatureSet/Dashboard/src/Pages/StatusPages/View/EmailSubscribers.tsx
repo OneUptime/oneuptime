@@ -325,7 +325,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         title: "Send Subscription Email",
         stepId: "subscriber-info",
         description:
-          "Send Email with the confrimation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.",
+          "Send Email with the confirmation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         doNotShowWhenEditing: true,

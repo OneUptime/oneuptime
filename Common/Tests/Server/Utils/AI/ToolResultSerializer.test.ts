@@ -153,3 +153,71 @@ describe("ToolResultSerializer.serializeRows", () => {
     expect(result.redactionCount).toBe(1);
   });
 });
+
+describe("ToolResultSerializer.redact — additional credential formats", () => {
+  test("redacts PEM private key blocks", () => {
+    const key: string = `-----BEGIN RSA PRIVATE KEY-----
+MIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Qu
+KUpRKfFLfRYC9AIKjbJTWit+CqvjWYzvQwECAwEAAQ==
+-----END RSA PRIVATE KEY-----`;
+    const result: { text: string; count: number } = ToolResultSerializer.redact(
+      `key:\n${key}`,
+    );
+    expect(result.text).toContain("[redacted-private-key]");
+    expect(result.text).not.toContain("MIIBOgIBAAJBAKj34");
+  });
+
+  test("redacts AWS access key ids", () => {
+    const result: { text: string; count: number } = ToolResultSerializer.redact(
+      "aws_key=AKIAIOSFODNN7EXAMPLE region=us-east-1",
+    );
+    expect(result.text).toContain("[redacted-aws-key]");
+    expect(result.text).not.toContain("AKIAIOSFODNN7EXAMPLE");
+  });
+
+  test("redacts GitHub tokens", () => {
+    const token: string = `ghp_${"a".repeat(36)}`;
+    const result: { text: string; count: number } = ToolResultSerializer.redact(
+      `remote https://${token}@github.com/x/y`,
+    );
+    expect(result.text).toContain("[redacted-github-token]");
+    expect(result.text).not.toContain(token);
+  });
+
+  test("redacts Slack tokens", () => {
+    const result: { text: string; count: number } = ToolResultSerializer.redact(
+      "SLACK_TOKEN=xoxb-1234567890-abcdefghijklmnop",
+    );
+    expect(result.text).toContain("[redacted-slack-token]");
+    expect(result.text).not.toContain("xoxb-1234567890-abcdefghijklmnop");
+  });
+
+  test("redacts Google API keys", () => {
+    const apiKey: string = `AIza${"a".repeat(35)}`;
+    const result: { text: string; count: number } = ToolResultSerializer.redact(
+      `key=${apiKey}`,
+    );
+    expect(result.text).toContain("[redacted-google-api-key]");
+    expect(result.text).not.toContain(apiKey);
+  });
+
+  test("redacts grouped payment card numbers", () => {
+    const result: { text: string; count: number } = ToolResultSerializer.redact(
+      "charge 4111 1111 1111 1111 ok",
+    );
+    expect(result.text).toContain("[redacted-card]");
+    expect(result.text).not.toContain("4111 1111 1111 1111");
+  });
+
+  test("does not redact a bare 16-digit number (span-id collision guard)", () => {
+    /*
+     * An all-numeric 16-char span id must survive; only the space/dash-grouped
+     * card form is redacted, so a bare 16-digit run stays intact.
+     */
+    const numeric: string = "1234567890123456";
+    const result: { text: string; count: number } = ToolResultSerializer.redact(
+      `value=${numeric}`,
+    );
+    expect(result.text).toContain(numeric);
+  });
+});

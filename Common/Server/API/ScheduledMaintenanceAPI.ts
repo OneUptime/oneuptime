@@ -147,7 +147,7 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
       scheduledMaintenanceId: scheduledMaintenanceId,
       messages: aiContext.messages,
       maxTokens: 4096,
-      temperature: 0.7,
+      temperature: 0.2,
     };
 
     if (props.userId) {

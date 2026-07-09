@@ -263,9 +263,22 @@ export default class OpenCodeAgent implements CodeAgent {
     }
 
     const provider: string = this.getProviderName();
-    const smallModel: string = this.getDefaultSmallModel();
 
-    return `${provider}/${smallModel}`;
+    // An explicitly configured small model always wins.
+    if (this.config.smallModelName) {
+      return `${provider}/${this.config.smallModelName}`;
+    }
+
+    /*
+     * Ollama deployments usually have a single model pulled, so pointing the
+     * small model at a different hardcoded default (e.g. llama2) tends to
+     * 404. Reuse the configured/main model instead.
+     */
+    if (this.config.llmType === LlmType.Ollama) {
+      return this.getModelString();
+    }
+
+    return `${provider}/${this.getDefaultSmallModel()}`;
   }
 
   // Get provider name for OpenCode config

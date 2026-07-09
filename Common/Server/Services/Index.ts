@@ -12,6 +12,7 @@ import BillingService from "./BillingService";
 import CallLogService from "./CallLogService";
 import CallService from "./CallService";
 import DataMigrationService from "./DataMigrationService";
+import MigrationFailureService from "./MigrationFailureService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -273,6 +274,7 @@ const services: Array<BaseService> = [
   CallService,
 
   DataMigrationService,
+  MigrationFailureService,
   DomainService,
 
   EmailLogService,

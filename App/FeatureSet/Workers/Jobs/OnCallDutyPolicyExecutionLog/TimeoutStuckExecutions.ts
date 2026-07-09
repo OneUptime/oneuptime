@@ -50,16 +50,52 @@ RunCron(
         },
       });
 
-    const totalStuckExecutions: Array<OnCallDutyPolicyExecutionLog> = [
-      ...stuckExecutions,
-    ];
+    /*
+     * A log is created in "Scheduled" and advanced to "Started" inside the
+     * create-success hook. If the worker crashes (or a create-hook await throws)
+     * after the row is committed but before the status flips, the log stays
+     * "Scheduled" forever: ExecutePendingExecutions only processes "Executing"
+     * and the reaper above only covers "Started", so the escalation would never
+     * run and no error would ever surface (audit F14). Time these out too so the
+     * stuck state becomes a visible Error instead of silently swallowing the
+     * page. Once a healthy log leaves Scheduled within seconds it drops out of
+     * this set, so the 5-minute cutoff only ever catches genuinely stuck rows.
+     */
+    const scheduledStuckExecutions: Array<OnCallDutyPolicyExecutionLog> =
+      await OnCallDutyPolicyExecutionLogService.findAllBy({
+        query: {
+          status: OnCallDutyPolicyStatus.Scheduled,
+          createdAt: QueryHelper.lessThan(fiveMinsAgo),
+        },
+        select: {
+          _id: true,
+          createdAt: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
-    for (const executionLog of totalStuckExecutions) {
+    for (const executionLog of stuckExecutions) {
       await OnCallDutyPolicyExecutionLogService.updateOneById({
         id: executionLog.id!,
         data: {
           status: OnCallDutyPolicyStatus.Error,
           statusMessage: "Policy Execution timed out.",
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    for (const executionLog of scheduledStuckExecutions) {
+      await OnCallDutyPolicyExecutionLogService.updateOneById({
+        id: executionLog.id!,
+        data: {
+          status: OnCallDutyPolicyStatus.Error,
+          statusMessage:
+            "Policy Execution never started (stuck in Scheduled) and was timed out.",
         },
         props: {
           isRoot: true,

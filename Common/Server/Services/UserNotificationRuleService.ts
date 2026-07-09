@@ -24,7 +24,6 @@ import URL from "../../Types/API/URL";
 import CallRequest from "../../Types/Call/CallRequest";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
-import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import Email from "../../Types/Email";
 import EmailMessage from "../../Types/Email/EmailMessage";
@@ -109,51 +108,23 @@ export class Service extends DatabaseService<Model> {
       onCallScheduleId?: ObjectID | undefined;
     },
   ): Promise<void> {
-    // get user notification log and see if this rule has already been executed. If so then skip.
-
-    const userOnCallLog: UserOnCallLog | null =
-      await UserOnCallLogService.findOneById({
-        id: options.userNotificationLogId,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          _id: true,
-          executedNotificationRules: true,
-        },
+    /*
+     * Atomically claim this rule for this on-call log BEFORE sending, so two
+     * overlapping cron runs cannot both mark the rule un-executed and both
+     * notify — double-paging the responder for one escalation (audit F7). The
+     * previous read-check-then-blind-save was a non-atomic TOCTOU. If the claim
+     * was already taken (or the log is gone), skip.
+     */
+    const claimedRuleExecution: boolean =
+      await UserOnCallLogService.claimNotificationRuleExecution({
+        userOnCallLogId: options.userNotificationLogId,
+        userNotificationRuleId: userNotificationRuleId,
       });
 
-    if (!userOnCallLog) {
-      throw new BadDataException("User notification log not found.");
-    }
-
-    if (
-      Object.keys(userOnCallLog.executedNotificationRules || {}).includes(
-        userNotificationRuleId.toString(),
-      )
-    ) {
-      // already executed.
+    if (!claimedRuleExecution) {
+      // already executed by this or a concurrent run.
       return;
     }
-
-    if (!userOnCallLog.executedNotificationRules) {
-      userOnCallLog.executedNotificationRules = {};
-    }
-
-    userOnCallLog.executedNotificationRules[userNotificationRuleId.toString()] =
-      OneUptimeDate.getCurrentDate();
-
-    await UserOnCallLogService.updateOneById({
-      id: userOnCallLog.id!,
-      data: {
-        executedNotificationRules: {
-          ...userOnCallLog.executedNotificationRules,
-        },
-      } as any,
-      props: {
-        isRoot: true,
-      },
-    });
 
     // find notification rule item.
     const notificationRuleItem: Model | null = await this.findOneById({

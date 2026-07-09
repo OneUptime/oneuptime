@@ -722,6 +722,65 @@ function distinctNames(names: Array<string>): Array<string> {
   return Array.from(new Set(names));
 }
 
+// Most-recent failed attempts we surface per migration runner.
+const MAX_MIGRATION_FAILURES: number = 25;
+
+/*
+ * Read the persisted failed-migration attempts for one runner
+ * ("PostgresSchema" or "DataMigration"). This is what lets the status card
+ * answer WHY a migration is pending — the error and when it last ran — instead
+ * of only that it is behind. The table is written by the migration runners
+ * (see Common/Server/Utils/Database/MigrationFailureLog). Guarded: on an
+ * instance whose schema predates the MigrationFailure table (its own migration
+ * still pending) the query throws and we simply report no failures. Error text
+ * is re-scrubbed here with the fuller support-bundle scrubber even though it is
+ * masked at write time.
+ */
+async function getMigrationFailures(
+  dataSource: NonNullable<ReturnType<typeof PostgresAppInstance.getDataSource>>,
+  migrationType: string,
+): Promise<JSONArray> {
+  try {
+    const rows: Array<{
+      migrationName: string;
+      errorMessage: string | null;
+      errorStack: string | null;
+      attemptedAt: Date | string | null;
+      hostName: string | null;
+      appVersion: string | null;
+    }> = await dataSource.query(
+      `SELECT "migrationName", "errorMessage", "errorStack", "attemptedAt", "hostName", "appVersion"
+       FROM "MigrationFailure"
+       WHERE "migrationType" = $1 AND "deletedAt" IS NULL
+       ORDER BY "attemptedAt" DESC
+       LIMIT $2`,
+      [migrationType, MAX_MIGRATION_FAILURES],
+    );
+
+    return rows.map((row: (typeof rows)[number]): JSONObject => {
+      return {
+        migrationName: String(row.migrationName),
+        errorMessage: scrubSecretsFromText(String(row.errorMessage || "")),
+        errorStack: row.errorStack
+          ? scrubSecretsFromText(String(row.errorStack))
+          : null,
+        attemptedAt: toIsoOrNull(row.attemptedAt),
+        hostName: row.hostName ? String(row.hostName) : null,
+        appVersion: row.appVersion ? String(row.appVersion) : null,
+      };
+    });
+  } catch {
+    /*
+     * Table absent (its migration is itself pending) or unreadable — the
+     * status payload should still render, just without failure detail.
+     */
+    logger.debug(
+      "AdminHealth: MigrationFailure table not readable (may be pending); reporting no failures",
+    );
+    return [];
+  }
+}
+
 /*
  * Postgres (TypeORM) schema migration status: compare the migrations shipped
  * in this build against the rows recorded in the `migrations` table so an
@@ -737,6 +796,8 @@ async function getPostgresMigrationStatus(): Promise<JSONObject> {
     latestDefinedMigration: null,
     latestAppliedMigration: null,
     pendingMigrations: [],
+    recentFailures: [],
+    lastFailedAt: null,
   };
 
   try {
@@ -807,6 +868,15 @@ async function getPostgresMigrationStatus(): Promise<JSONObject> {
         timestamp: toNumberOrNull(lastRow.timestamp),
       };
     }
+
+    // Why any of the above are pending: persisted failed attempts + last try.
+    const failures: JSONArray = await getMigrationFailures(
+      dataSource,
+      "PostgresSchema",
+    );
+    result["recentFailures"] = failures;
+    result["lastFailedAt"] =
+      failures.length > 0 ? (failures[0] as JSONObject)["attemptedAt"] : null;
   } catch (err) {
     logger.error("AdminHealth: failed to read Postgres migration status");
     logger.error(err);
@@ -832,6 +902,8 @@ async function getDataMigrationStatus(): Promise<JSONObject> {
     lastExecutedMigration: null,
     nextPendingMigration: null,
     pendingMigrations: [],
+    recentFailures: [],
+    lastFailedAt: null,
   };
 
   try {
@@ -908,6 +980,15 @@ async function getDataMigrationStatus(): Promise<JSONObject> {
         executedAt: lastExecuted.executedAt,
       };
     }
+
+    // Persisted failed attempts so the card can explain a halted chain.
+    const failures: JSONArray = await getMigrationFailures(
+      dataSource,
+      "DataMigration",
+    );
+    result["recentFailures"] = failures;
+    result["lastFailedAt"] =
+      failures.length > 0 ? (failures[0] as JSONObject)["attemptedAt"] : null;
   } catch (err) {
     logger.error("AdminHealth: failed to read data migration status");
     logger.error(err);

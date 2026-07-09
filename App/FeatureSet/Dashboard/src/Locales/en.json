@@ -4663,7 +4663,7 @@
   "Send a notification to the Teams channel confirming the subscription.": "Send a notification to the Teams channel confirming the subscription.",
   "Send a webhook notification confirming the subscription.": "Send a webhook notification confirming the subscription.",
   "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.": "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.",
-  "Send Email with the confrimation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "Send Email with the confrimation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.",
+  "Send Email with the confirmation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "Send Email with the confirmation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.",
   "Send First Report At": "Send First Report At",
   "Send First Report On": "Send First Report On",
   "Send incoming OneUptime notifications to your own HTTPS endpoints as JSON POST requests.": "Send incoming OneUptime notifications to your own HTTPS endpoints as JSON POST requests.",

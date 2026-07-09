@@ -7,6 +7,11 @@ export interface CodeAgentLLMConfig {
   apiKey?: string;
   baseUrl?: string;
   modelName?: string;
+  /*
+   * Optional model used for quick/cheap sub-steps. Falls back to a
+   * provider-appropriate default (see OpenCodeAgent.getSmallModelString).
+   */
+  smallModelName?: string;
 }
 
 // The task to be executed by the code agent

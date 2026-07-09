@@ -235,7 +235,12 @@ The note should:
 4. Be detailed enough to help team members understand the situation
 5. Use technical language appropriate for the engineering team
 
-Write in markdown format for better readability. Be thorough and technical.`;
+Write in markdown format for better readability. Be thorough and technical.
+
+Grounding rules (important):
+- Use ONLY facts that appear in the provided alert data. Do NOT invent causes, metrics, impact, or actions the data does not support.
+- If something a section needs is not in the data, write "Not available in the alert record" instead of guessing.
+- Never fabricate numbers or state confidence levels.`;
     }
 
     // Build user message

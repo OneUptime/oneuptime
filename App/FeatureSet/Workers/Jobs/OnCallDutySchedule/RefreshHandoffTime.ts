@@ -105,11 +105,29 @@ RunCron(
       `Fetched ${schedulesWithNoRoster.length} schedules with no resolved roster.`,
     );
 
-    const totalSchedules: Array<OnCallDutyPolicySchedule> = [
+    const combinedSchedules: Array<OnCallDutyPolicySchedule> = [
       ...onCallScheduleWithHandoffTimeInPast,
       ...nextRosterStartTimeInPastSchedules,
       ...schedulesWithNoRoster,
     ];
+
+    /*
+     * Dedup by id: a single schedule can satisfy more than one of the three
+     * predicate sets above, so the concatenation can list it multiple times.
+     * Refreshing the same schedule twice in one tick re-diffs its roster and
+     * could emit duplicate handoff notifications and duplicate on-call
+     * time-log rows. Process each schedule at most once per tick.
+     */
+    const seenScheduleIds: Set<string> = new Set<string>();
+    const totalSchedules: Array<OnCallDutyPolicySchedule> = [];
+    for (const schedule of combinedSchedules) {
+      const scheduleId: string | undefined = schedule.id?.toString();
+      if (!scheduleId || seenScheduleIds.has(scheduleId)) {
+        continue;
+      }
+      seenScheduleIds.add(scheduleId);
+      totalSchedules.push(schedule);
+    }
 
     logger.debug(`Total schedules to process: ${totalSchedules.length}`);
 

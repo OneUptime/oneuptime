@@ -2,6 +2,10 @@ import DataMigrations from "../DataMigrations/Index";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DataMigrationService from "Common/Server/Services/DataMigrationService";
+import {
+  MigrationFailureType,
+  recordMigrationFailure,
+} from "Common/Server/Utils/Database/MigrationFailureLog";
 import logger from "Common/Server/Utils/Logger";
 import DataMigration from "Common/Models/DatabaseModels/DataMigration";
 import PostgresDatabase, {
@@ -134,6 +138,18 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
           service: "workers",
         });
         logger.error(err, { service: "workers" });
+
+        /*
+         * Persist the failure so the admin health page can explain why this
+         * (and every migration after it) is pending. Best-effort — the helper
+         * never throws — so it can't stop us from halting the chain below.
+         */
+        await recordMigrationFailure(dataSource, {
+          migrationName: migration.name,
+          migrationType: MigrationFailureType.DataMigration,
+          error: err,
+        });
+
         logger.debug("Rolling back Database Migration:" + migration.name, {
           service: "workers",
         });

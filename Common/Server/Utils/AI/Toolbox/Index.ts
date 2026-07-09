@@ -13,11 +13,12 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
-import { QueryIncidentsTool } from "./IncidentTools";
+import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
 import { QueryAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
+import { RecentChangesTool } from "./RecentChangesTools";
 import { QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
 import { LookupContextTool } from "./ContextTools";
@@ -53,6 +54,7 @@ export default class AIToolbox {
   private static readonly tools: Array<ObservabilityTool> = [
     LookupContextTool,
     QueryIncidentsTool,
+    SearchIncidentsTool,
     QueryAlertsTool,
     QueryMonitorsTool,
     TopExceptionsTool,
@@ -61,6 +63,7 @@ export default class AIToolbox {
     QueryMetricsTool,
     QueryTracesTool,
     GetTraceTool,
+    RecentChangesTool,
     // Write tools (mutations). Gated by conversation permission mode.
     CreateIncidentTool,
     AcknowledgeIncidentTool,

@@ -26,6 +26,7 @@ import IncidentService from "./IncidentService";
 import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+import { IsNull, UpdateResult } from "typeorm";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -33,6 +34,44 @@ export class Service extends DatabaseService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 30);
     }
+  }
+
+  /**
+   * Atomically claim the right to advance this execution to its next escalation
+   * rule on the current tick. Implemented as a single conditional
+   * `UPDATE ... WHERE lastEscalationRuleExecutedAt = <the value just read>`
+   * (via TypeORM's repository.update, which emits one atomic statement and
+   * returns the affected-row count), so that when two overlapping cron runs read
+   * the same lastEscalationRuleExecutedAt, exactly one wins — the loser sees
+   * `affected === 0` and bows out instead of double-paging responders (audit
+   * F13). `updateOneBy` could NOT provide this: it does a non-locking SELECT and
+   * then `save()` keyed only on `_id`, and returns the SELECT match count, so
+   * both overlapping runs would "win".
+   */
+  @CaptureSpan()
+  public async claimEscalationAdvance(data: {
+    executionLogId: ObjectID;
+    previousLastEscalationRuleExecutedAt: Date | null;
+    newLastEscalationRuleExecutedAt: Date;
+  }): Promise<boolean> {
+    const whereClause: Record<string, unknown> = {
+      _id: data.executionLogId.toString(),
+      status: OnCallDutyPolicyStatus.Executing,
+      lastEscalationRuleExecutedAt: data.previousLastEscalationRuleExecutedAt
+        ? data.previousLastEscalationRuleExecutedAt
+        : IsNull(),
+    };
+
+    const result: UpdateResult = await this.getRepository().update(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      whereClause as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {
+        lastEscalationRuleExecutedAt: data.newLastEscalationRuleExecutedAt,
+      } as any,
+    );
+
+    return (result.affected || 0) > 0;
   }
 
   @CaptureSpan()

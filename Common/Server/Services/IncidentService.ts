@@ -3479,7 +3479,7 @@ ${incidentSeverity.name}
     const response: LLMCompletionResponse = await LLMService.getCompletion({
       llmProviderConfig: llmConfig,
       messages: aiContext.messages,
-      temperature: 0.7,
+      temperature: 0.2,
     });
 
     return response.content;

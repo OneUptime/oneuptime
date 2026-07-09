@@ -23,12 +23,102 @@ import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+import OneUptimeDate from "../../Types/Date";
+import { JSONObject } from "../../Types/JSON";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 30);
+    }
+  }
+
+  /**
+   * Atomically claim the right to execute ONE notification rule for this on-call
+   * log. Overlapping UserOnCallLog:ExecutePendingExecutions runs (a tick that
+   * exceeds the 1-minute cadence, a stalled-job re-delivery, or a burst release
+   * across worker replicas) could both read executedNotificationRules without a
+   * given delayed rule's key, both write it, and both send — double-paging the
+   * responder for a single escalation (audit F7). This mirrors
+   * OnCallDutyPolicyExecutionLogService.claimEscalationAdvance: a single
+   * conditional UPDATE that sets executedNotificationRules[ruleId] only when the
+   * key is absent and RETURNs the affected row, so exactly one concurrent run
+   * wins and the loser skips.
+   *
+   * Fail-safe: if the atomic statement errors for any reason, fall back to the
+   * previous non-atomic read-modify-write so the rule is still marked and sent.
+   * For an on-call system a rare duplicate page (the pre-fix behavior) is far
+   * better than a missed page, so this never makes paging less reliable.
+   *
+   * Returns true when THIS call claimed the rule (caller should send), false when
+   * it was already executed/claimed (caller should skip) or the log is missing.
+   */
+  @CaptureSpan()
+  public async claimNotificationRuleExecution(data: {
+    userOnCallLogId: ObjectID;
+    userNotificationRuleId: ObjectID;
+  }): Promise<boolean> {
+    const ruleKey: string = data.userNotificationRuleId.toString();
+
+    try {
+      const nowIso: string = OneUptimeDate.getCurrentDate().toISOString();
+
+      const rows: Array<{ _id: string }> =
+        await this.getRepository().manager.query(
+          `UPDATE "UserOnCallLog"
+             SET "executedNotificationRules" = jsonb_set(
+                   COALESCE("executedNotificationRules", '{}')::jsonb,
+                   ARRAY[$2::text],
+                   to_jsonb($3::text),
+                   true
+                 )::json
+           WHERE "_id" = $1::uuid
+             AND NOT (COALESCE("executedNotificationRules", '{}')::jsonb ? $2::text)
+           RETURNING "_id"`,
+          [data.userOnCallLogId.toString(), ruleKey, nowIso],
+        );
+
+      return Array.isArray(rows) && rows.length > 0;
+    } catch (err) {
+      logger.error(
+        "claimNotificationRuleExecution atomic claim failed; falling back to non-atomic marking.",
+      );
+      logger.error(err);
+
+      // Fallback: previous non-atomic read-modify-write (reliable marking).
+      const log: Model | null = await this.findOneById({
+        id: data.userOnCallLogId,
+        props: { isRoot: true },
+        select: {
+          _id: true,
+          executedNotificationRules: true,
+        },
+      });
+
+      if (!log) {
+        return false;
+      }
+
+      const executed: JSONObject = log.executedNotificationRules || {};
+
+      if (Object.keys(executed).includes(ruleKey)) {
+        return false;
+      }
+
+      executed[ruleKey] = OneUptimeDate.getCurrentDate();
+
+      await this.updateOneById({
+        id: log.id!,
+        data: {
+          executedNotificationRules: { ...executed },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        props: { isRoot: true },
+      });
+
+      return true;
     }
   }
 

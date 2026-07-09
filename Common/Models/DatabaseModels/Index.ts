@@ -58,6 +58,7 @@ import BillingPaymentMethods from "./BillingPaymentMethod";
 import CallLog from "./CallLog";
 // Date migration
 import DataMigration from "./DataMigration";
+import MigrationFailure from "./MigrationFailure";
 import Domain from "./Domain";
 import EmailLog from "./EmailLog";
 import EmailVerificationToken from "./EmailVerificationToken";
@@ -649,6 +650,8 @@ const AllModelTypes: Array<{
   UserNotificationSetting,
 
   DataMigration,
+
+  MigrationFailure,
 
   ShortLink,
 

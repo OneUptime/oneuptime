@@ -49,6 +49,13 @@ export interface LLMUsage {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+  /*
+   * Prompt-caching breakdown, when the provider reports it. cachedInputTokens
+   * are input tokens served from cache (billed at a large discount);
+   * cacheCreationTokens are input tokens written to the cache on this call.
+   */
+  cachedInputTokens?: number | undefined;
+  cacheCreationTokens?: number | undefined;
 }
 
 export interface LLMCompletionResponse {
@@ -237,6 +244,17 @@ export default class LLMService {
     const toolCalls: Array<LLMToolCall> | undefined =
       this.parseOpenAIToolCalls(message);
 
+    /*
+     * OpenAI (and Azure OpenAI) automatically cache a stable prompt prefix
+     * once it is long enough and report the cache hit under
+     * prompt_tokens_details.cached_tokens — surface it for cost visibility.
+     */
+    const cachedTokens: number | undefined = usage
+      ? ((usage["prompt_tokens_details"] as JSONObject | undefined)?.[
+          "cached_tokens"
+        ] as number | undefined)
+      : undefined;
+
     return {
       content: (message["content"] as string) || "",
       toolCalls: toolCalls,
@@ -246,6 +264,7 @@ export default class LLMService {
             promptTokens: usage["prompt_tokens"] as number,
             completionTokens: usage["completion_tokens"] as number,
             totalTokens: usage["total_tokens"] as number,
+            cachedInputTokens: cachedTokens || undefined,
           }
         : undefined,
     };
@@ -565,6 +584,32 @@ export default class LLMService {
         continue;
       }
 
+      /*
+       * Anthropic requires strictly alternating user/assistant turns and
+       * returns a 400 on two consecutive same-role messages. The agent loop
+       * can legitimately emit back-to-back user turns (e.g. a tool_result
+       * user message immediately followed by the "budget exhausted, answer
+       * now" nudge), so coalesce a run of same-role messages into one instead
+       * of failing the whole request.
+       */
+      const previousMessage: JSONObject | undefined =
+        anthropicMessages[anthropicMessages.length - 1];
+
+      if (previousMessage && previousMessage["role"] === msg.role) {
+        if (typeof previousMessage["content"] === "string") {
+          previousMessage["content"] =
+            `${previousMessage["content"] as string}\n\n${msg.content}`;
+          continue;
+        }
+        if (Array.isArray(previousMessage["content"])) {
+          (previousMessage["content"] as Array<JSONObject>).push({
+            type: "text",
+            text: msg.content,
+          });
+          continue;
+        }
+      }
+
       anthropicMessages.push({
         role: msg.role,
         content: msg.content,
@@ -602,18 +647,43 @@ export default class LLMService {
       max_tokens: request.maxTokens || LLMService.ANTHROPIC_DEFAULT_MAX_TOKENS,
     };
 
+    /*
+     * Prompt caching. The system prompt and tool definitions are the large,
+     * stable prefix re-sent on every turn of the agent loop, so caching them is
+     * the biggest single cost + latency lever (cached input is billed at ~10%).
+     * An ephemeral cache_control breakpoint on the system block and on the LAST
+     * tool caches the whole system + tools prefix. cache_control is GA under
+     * anthropic-version 2023-06-01, so no beta header is required.
+     */
     if (systemMessage) {
-      requestData["system"] = systemMessage;
+      requestData["system"] = [
+        {
+          type: "text",
+          text: systemMessage,
+          cache_control: { type: "ephemeral" },
+        },
+      ];
     }
 
     if (request.tools && request.tools.length > 0) {
-      requestData["tools"] = request.tools.map((tool: LLMToolDefinition) => {
-        return {
-          name: tool.name,
-          description: tool.description,
-          input_schema: tool.inputSchema,
-        };
-      });
+      const anthropicTools: Array<JSONObject> = request.tools.map(
+        (tool: LLMToolDefinition) => {
+          return {
+            name: tool.name,
+            description: tool.description,
+            input_schema: tool.inputSchema,
+          };
+        },
+      );
+
+      // A breakpoint on the last tool caches the entire tools block before it.
+      const lastTool: JSONObject | undefined =
+        anthropicTools[anthropicTools.length - 1];
+      if (lastTool) {
+        lastTool["cache_control"] = { type: "ephemeral" };
+      }
+
+      requestData["tools"] = anthropicTools;
     }
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
@@ -685,10 +755,21 @@ export default class LLMService {
       stopReason: jsonData["stop_reason"] === "tool_use" ? "tool_use" : "stop",
       usage: usage
         ? {
-            promptTokens: usage["input_tokens"] as number,
-            completionTokens: usage["output_tokens"] as number,
+            promptTokens: (usage["input_tokens"] as number) || 0,
+            completionTokens: (usage["output_tokens"] as number) || 0,
+            /*
+             * Anthropic reports cache-read and cache-creation input tokens
+             * separately from input_tokens. Surface them and fold them into
+             * totalTokens so the logged total reflects the full billable input.
+             */
+            cachedInputTokens:
+              (usage["cache_read_input_tokens"] as number) || undefined,
+            cacheCreationTokens:
+              (usage["cache_creation_input_tokens"] as number) || undefined,
             totalTokens:
               ((usage["input_tokens"] as number) || 0) +
+              ((usage["cache_read_input_tokens"] as number) || 0) +
+              ((usage["cache_creation_input_tokens"] as number) || 0) +
               ((usage["output_tokens"] as number) || 0),
           }
         : undefined,
@@ -812,11 +893,29 @@ export default class LLMService {
       });
     }
 
+    /*
+     * Ollama reports token counts on the final /api/chat response as
+     * prompt_eval_count (input) and eval_count (output). Populate usage from
+     * them so LlmLog, the AI dashboards and (costed self-hosted Ollama)
+     * billing are not silently blind to token spend.
+     */
+    const ollamaPromptTokens: number =
+      (jsonData["prompt_eval_count"] as number) || 0;
+    const ollamaCompletionTokens: number =
+      (jsonData["eval_count"] as number) || 0;
+
     return {
       content: (message["content"] as string) || "",
       toolCalls: toolCalls,
       stopReason: toolCalls && toolCalls.length > 0 ? "tool_use" : "stop",
-      usage: undefined, // Ollama doesn't provide token usage in the same way
+      usage:
+        ollamaPromptTokens || ollamaCompletionTokens
+          ? {
+              promptTokens: ollamaPromptTokens,
+              completionTokens: ollamaCompletionTokens,
+              totalTokens: ollamaPromptTokens + ollamaCompletionTokens,
+            }
+          : undefined,
     };
   }
 }

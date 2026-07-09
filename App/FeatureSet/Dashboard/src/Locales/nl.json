@@ -4663,7 +4663,7 @@
   "Send a notification to the Teams channel confirming the subscription.": "Stuur een melding naar het Teams-kanaal ter bevestiging van het abonnement.",
   "Send a webhook notification confirming the subscription.": "Stuur een webhookmelding ter bevestiging van het abonnement.",
   "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.": "Stuur een e-mail met de bevestigingslink naar de abonnees. De abonnees moeten op de link klikken om het abonnement te bevestigen.",
-  "Send Email with the confrimation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "Stuur een e-mail met de bevestigingslink naar de abonnee. De abonnee moet op de link klikken om het abonnement te bevestigen.",
+  "Send Email with the confirmation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "Stuur een e-mail met de bevestigingslink naar de abonnee. De abonnee moet op de link klikken om het abonnement te bevestigen.",
   "Send First Report At": "Eerste rapport verzenden om",
   "Send First Report On": "Eerste rapport verzenden op",
   "Send incoming OneUptime notifications to your own HTTPS endpoints as JSON POST requests.": "Stuur inkomende OneUptime-meldingen naar uw eigen HTTPS-eindpunten als JSON POST-verzoeken.",

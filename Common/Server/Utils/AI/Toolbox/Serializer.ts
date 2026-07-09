@@ -33,6 +33,37 @@ const REDACTION_RULES: Array<RedactionRule> = [
     replacement: "Bearer [redacted-token]",
   },
   {
+    /*
+     * PEM private key blocks (RSA/EC/OPENSSH/PGP…). Match the whole
+     * BEGIN…END block, including newlines, so no key material leaks.
+     */
+    name: "private-key",
+    regex:
+      /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/g,
+    replacement: "[redacted-private-key]",
+  },
+  {
+    name: "aws-access-key-id",
+    regex: /\b(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASCA)[0-9A-Z]{16}\b/g,
+    replacement: "[redacted-aws-key]",
+  },
+  {
+    name: "github-token",
+    regex:
+      /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}\b|\bgithub_pat_[A-Za-z0-9_]{22,}\b/g,
+    replacement: "[redacted-github-token]",
+  },
+  {
+    name: "slack-token",
+    regex: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g,
+    replacement: "[redacted-slack-token]",
+  },
+  {
+    name: "google-api-key",
+    regex: /\bAIza[0-9A-Za-z_-]{35}\b/g,
+    replacement: "[redacted-google-api-key]",
+  },
+  {
     name: "email",
     regex: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
     replacement: "[redacted-email]",
@@ -41,6 +72,17 @@ const REDACTION_RULES: Array<RedactionRule> = [
     name: "ipv4",
     regex: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
     replacement: "[redacted-ip]",
+  },
+  {
+    /*
+     * Payment card numbers in the classic space/dash-separated grouping
+     * (e.g. "4111 1111 1111 1111"). Deliberately NOT matching bare 16-digit
+     * runs: an all-numeric 16-char OTel span id would collide with those and
+     * break the search_logs → get_trace pivot.
+     */
+    name: "credit-card",
+    regex: /\b\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}\b/g,
+    replacement: "[redacted-card]",
   },
   {
     /*

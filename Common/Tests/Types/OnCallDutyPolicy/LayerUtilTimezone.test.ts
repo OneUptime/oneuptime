@@ -93,8 +93,10 @@ describe("LayerUtil HIGH-5: daily restriction resolves in the schedule timezone"
     const util: LayerUtil = new LayerUtil();
     const tzIST: string = "Asia/Kolkata"; // UTC+5:30, no DST
 
-    // Author and resolve entirely in Kolkata, with the layer start aligned to
-    // local midnight (as a real schedule created in that zone would be).
+    /*
+     * Author and resolve entirely in Kolkata, with the layer start aligned to
+     * local midnight (as a real schedule created in that zone would be).
+     */
     const layerStart: Date = tzInstant("2026-02-16 00:00", tzIST);
     const restrictionTimes: RestrictionTimes = new RestrictionTimes();
     restrictionTimes.restictionType = RestrictionType.Daily;
@@ -192,7 +194,9 @@ describe("LayerUtil HIGH-5: weekly restriction resolves day-of-week in the sched
 
     const covered: (t: Date) => boolean = (t: Date): boolean => {
       return events.some((e: CalendarEvent) => {
-        return t.getTime() >= e.start.getTime() && t.getTime() < e.end.getTime();
+        return (
+          t.getTime() >= e.start.getTime() && t.getTime() < e.end.getTime()
+        );
       });
     };
 

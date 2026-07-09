@@ -365,7 +365,12 @@ The postmortem should:
 
 Use a standard incident postmortem format with sections for: Executive Summary, Timeline, Root Cause Analysis, Impact, Action Items, and Lessons Learned.
 
-Write in a professional, clear, and concise manner. Use markdown formatting for better readability.`;
+Write in a professional, clear, and concise manner. Use markdown formatting for better readability.
+
+Grounding rules (important):
+- Use ONLY facts that appear in the provided incident data. Do NOT invent root causes, timelines, metrics, customer impact, or actions the data does not support.
+- If a section needs information the data does not contain, write "Not available in the incident record" instead of guessing.
+- Never fabricate numbers or state confidence levels.`;
     }
 
     // Build user message based on whether template is provided
@@ -549,7 +554,12 @@ DO NOT include:
 - Confidential information
 - Excessive jargon
 
-Write in markdown format for better readability.`;
+Write in markdown format for better readability.
+
+Grounding rules (important):
+- Use ONLY facts that appear in the provided incident data; never invent impact, causes, timing, or status.
+- If something is not known from the data, say it is still being investigated rather than guessing.
+- Never fabricate numbers or specific timings the data does not support.`;
       }
     } else if (template) {
       // Internal note with template
@@ -577,7 +587,12 @@ The note should:
 4. Be detailed enough to help team members understand the situation
 5. Use technical language appropriate for the engineering team
 
-Write in markdown format for better readability. Be thorough and technical.`;
+Write in markdown format for better readability. Be thorough and technical.
+
+Grounding rules (important):
+- Use ONLY facts that appear in the provided incident data. Do NOT invent root causes, metrics, impact, or actions the data does not support.
+- If something a section needs is not in the data, write "Not available in the incident record" instead of guessing.
+- Never fabricate numbers or state confidence levels.`;
     }
 
     // Build user message

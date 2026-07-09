@@ -1,6 +1,8 @@
 import RestrictionTimesFieldElement from "./RestrictionTimesFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
-import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
+import RestrictionTimes, {
+  RestrictionType,
+} from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import RecurringFieldElement from "Common/UI/Components/Events/RecurringFieldElement";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
@@ -13,6 +15,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
+  // Schedule timezone — restriction times are entered/enforced in it (audit F1).
+  timezone?: string | undefined;
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
 }
 
@@ -123,6 +127,7 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
               <RestrictionTimesFieldElement
                 {...fieldProps}
                 value={value.restrictionTimes as RestrictionTimes}
+                timezone={props.timezone}
               />
             );
           },
@@ -152,6 +157,41 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
           if (OneUptimeDate.isBefore(handoff, start)) {
             errors["handOffTime"] =
               "The first hand-off time must be at or after the rotation start.";
+          }
+        }
+
+        /*
+         * Reject a zero-length Daily restriction window (From == To). Such a
+         * window is active 0 seconds/day, so the layer produces no on-call
+         * events and silently pages nobody for its coverage — with no error at
+         * save time (audit F22). Weekly windows are intentionally NOT validated
+         * here (a start day/time after the end is a supported wrap-around).
+         */
+        const restrictionTimes: RestrictionTimes | undefined =
+          values.restrictionTimes as RestrictionTimes | undefined;
+
+        if (
+          restrictionTimes &&
+          restrictionTimes.restictionType === RestrictionType.Daily &&
+          restrictionTimes.dayRestrictionTimes &&
+          restrictionTimes.dayRestrictionTimes.startTime &&
+          restrictionTimes.dayRestrictionTimes.endTime
+        ) {
+          const restrictionStart: Date = OneUptimeDate.fromString(
+            restrictionTimes.dayRestrictionTimes.startTime as any,
+          );
+          const restrictionEnd: Date = OneUptimeDate.fromString(
+            restrictionTimes.dayRestrictionTimes.endTime as any,
+          );
+
+          // Compare time-of-day; a matching From/To is a zero-length window.
+          if (
+            restrictionStart.getHours() === restrictionEnd.getHours() &&
+            restrictionStart.getMinutes() === restrictionEnd.getMinutes() &&
+            restrictionStart.getSeconds() === restrictionEnd.getSeconds()
+          ) {
+            errors["restrictionTimes"] =
+              "The restriction 'From' and 'To' times cannot be the same. Choose a window with a positive duration (or set the restriction to None for 24/7 coverage).";
           }
         }
 

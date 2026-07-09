@@ -52,11 +52,17 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
     Permission.DeleteOnCallDutyPolicyScheduleLayer,
   ],
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.OnCallAdmin,
+    Permission.OnCallMember,
     Permission.EditOnCallDutyPolicyScheduleLayer,
   ],
 })

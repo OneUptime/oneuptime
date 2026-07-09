@@ -4663,7 +4663,7 @@
   "Send a notification to the Teams channel confirming the subscription.": "구독을 확인하는 알림을 Teams 채널로 보냅니다.",
   "Send a webhook notification confirming the subscription.": "구독을 확인하는 웹훅 알림을 보냅니다.",
   "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.": "확인 링크가 포함된 이메일을 구독자에게 보냅니다. 구독자는 구독을 확인하려면 링크를 클릭해야 합니다.",
-  "Send Email with the confrimation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "확인 링크가 포함된 이메일을 구독자에게 보냅니다. 구독자는 구독을 확인하려면 링크를 클릭해야 합니다.",
+  "Send Email with the confirmation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "확인 링크가 포함된 이메일을 구독자에게 보냅니다. 구독자는 구독을 확인하려면 링크를 클릭해야 합니다.",
   "Send First Report At": "첫 보고서 전송 시각",
   "Send First Report On": "첫 보고서 전송 날짜",
   "Send incoming OneUptime notifications to your own HTTPS endpoints as JSON POST requests.": "수신되는 OneUptime 알림을 JSON POST 요청으로 사용자 자신의 HTTPS 엔드포인트에 보냅니다.",

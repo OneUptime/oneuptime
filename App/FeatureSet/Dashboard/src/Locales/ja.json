@@ -4663,7 +4663,7 @@
   "Send a notification to the Teams channel confirming the subscription.": "購読を確認する通知を Teams チャンネルに送信します。",
   "Send a webhook notification confirming the subscription.": "購読を確認する Webhook 通知を送信します。",
   "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.": "確認リンクを記載したメールを購読者に送信します。購読者は購読を確認するためにリンクをクリックする必要があります。",
-  "Send Email with the confrimation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "確認リンクを記載したメールを購読者に送信します。購読者は購読を確認するためにリンクをクリックする必要があります。",
+  "Send Email with the confirmation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.": "確認リンクを記載したメールを購読者に送信します。購読者は購読を確認するためにリンクをクリックする必要があります。",
   "Send First Report At": "最初のレポートの送信時刻",
   "Send First Report On": "最初のレポートの送信日",
   "Send incoming OneUptime notifications to your own HTTPS endpoints as JSON POST requests.": "OneUptime の受信通知を、JSON の POST リクエストとして独自の HTTPS エンドポイントに送信します。",
