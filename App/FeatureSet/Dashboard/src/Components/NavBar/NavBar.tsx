@@ -460,6 +460,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       moreMenuNoResultsText={t("navbar.search.noResults")}
       moreMenuKeyboardHint={t("navbar.search.hint")}
       moreMenuRecentLabel={t("navbar.search.recent")}
+      className="hidden items-center bg-transparent py-1 text-center text-slate-600 md:flex"
     />
   );
 };

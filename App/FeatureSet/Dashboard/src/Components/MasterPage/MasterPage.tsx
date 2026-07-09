@@ -116,7 +116,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         }
         isLoading={props.isLoading}
         error={error}
-        className="flex flex-col h-screen"
+        className="flex min-h-screen flex-col bg-slate-50/60 text-slate-900 antialiased"
+        topSectionClassName="border-b border-slate-200/80 bg-white/90 text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur-xl [&>div>div>nav]:!mt-0 [&>div>div>nav]:!bg-transparent"
       >
         {props.children}
       </MasterPage>

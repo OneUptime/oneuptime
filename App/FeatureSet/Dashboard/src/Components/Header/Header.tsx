@@ -852,6 +852,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         <></>
       )}
       <Header
+        className="relative flex h-14 items-center justify-between bg-transparent px-4 text-slate-700"
         leftComponents={
           <>
             <Logo onClick={() => {}} />
