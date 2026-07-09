@@ -219,15 +219,22 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
     await loadData();
   }, []);
 
-  // A single quiet metric cell in the supporting stat strip.
+  /*
+   * A single quiet metric cell in the supporting stat strip. valueClassName lets
+   * a cell recolor its figure to reflect state — amber to flag a coverage gap,
+   * or a dimmed grey when a capability (repeats) is switched off — so the strip
+   * reads as a status row, not just four equal-weight numbers.
+   */
   const getMetric: (params: {
     icon: IconProp;
     label: string;
     value: string;
+    valueClassName?: string;
   }) => ReactElement = (params: {
     icon: IconProp;
     label: string;
     value: string;
+    valueClassName?: string;
   }): ReactElement => {
     return (
       <div className="bg-white px-4 py-3.5">
@@ -235,7 +242,11 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           <Icon icon={params.icon} className="h-3.5 w-3.5 text-gray-400" />
           <span className="truncate">{params.label}</span>
         </div>
-        <div className="mt-2 truncate text-xl font-semibold leading-none text-gray-900">
+        <div
+          className={`mt-2 truncate text-xl font-semibold leading-none ${
+            params.valueClassName || "text-gray-900"
+          }`}
+        >
           {params.value}
         </div>
       </div>
@@ -318,6 +329,8 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       overview.teamNames.length +
       overview.userNames.length;
     const hasResponders: boolean = totalResponders > 0;
+    const repeatsEnabled: boolean =
+      overview.repeatEnabled && overview.repeatCount > 0;
     const timeToFinalValue: string =
       overview.levels <= 1
         ? "—"
@@ -373,7 +386,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           ) : (
             <>there are no further levels to escalate to. </>
           )}
-          {overview.repeatEnabled && overview.repeatCount > 0 ? (
+          {repeatsEnabled ? (
             <>
               If it is still unacknowledged, the whole policy repeats up to{" "}
               <span className="font-semibold text-gray-900">
@@ -401,6 +414,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
             icon: IconProp.User,
             label: "Responders",
             value: `${totalResponders}`,
+            valueClassName: hasResponders ? "text-gray-900" : "text-amber-600",
           })}
           {getMetric({
             icon: IconProp.Clock,
@@ -410,10 +424,8 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           {getMetric({
             icon: IconProp.Reload,
             label: "Repeats",
-            value:
-              overview.repeatEnabled && overview.repeatCount > 0
-                ? `${overview.repeatCount}×`
-                : "None",
+            value: repeatsEnabled ? `${overview.repeatCount}×` : "None",
+            valueClassName: repeatsEnabled ? "text-gray-900" : "text-gray-400",
           })}
         </div>
 
