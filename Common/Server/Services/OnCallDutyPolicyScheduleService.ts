@@ -8,6 +8,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import LayerUtil, { LayerProps } from "../../Types/OnCallDutyPolicy/Layer";
+import { RestrictionType } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
 import Recurring from "../../Types/Events/Recurring";
 import UserOverrideUtil, {
   UserOverrideRecord,
@@ -35,6 +36,7 @@ import NotificationSettingEventType from "../../Types/NotificationSetting/Notifi
 import BadDataException from "../../Types/Exception/BadDataException";
 import Timezone from "../../Types/Timezone";
 import logger, { LogAttributes } from "../Utils/Logger";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Green500 } from "../../Types/BrandColors";
@@ -707,6 +709,62 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     rosterStartAt: Date | null;
     nextRosterStartAt: Date | null;
   }> {
+    /*
+     * Serialize per-schedule refreshes across processes (audit L2). This method
+     * reads the persisted roster, diffs it, SENDS the handoff notification
+     * bundle + feed items, and only THEN persists — notifying before persisting
+     * is deliberate (audit F11). Without a lock the override-triggered refresh
+     * (API process) and the EVERY_MINUTE RefreshHandoffTime cron (Workers
+     * process) can both read the same stale roster and both send the full page
+     * before either persists, double-paging the incoming user. A blocking
+     * per-schedule mutex makes the second caller wait, then read the
+     * already-persisted new roster and diff to "no change" -> no duplicate page.
+     * Best-effort: if the lock cannot be acquired (Redis unavailable, or the
+     * acquire window is exceeded) we proceed unlocked — no worse than before.
+     */
+    let mutex: SemaphoreMutex | null = null;
+    try {
+      mutex = await Semaphore.lock({
+        key: scheduleId.toString(),
+        namespace: "OnCallDutyPolicyScheduleService.refreshRoster",
+        lockTimeout: 60000,
+        acquireTimeout: 15000,
+        retryInterval: 200,
+        acquireAttemptsLimit: 100,
+      });
+    } catch (err) {
+      logger.debug(
+        "Proceeding with roster refresh without a per-schedule lock (could not acquire) for scheduleId: " +
+          scheduleId.toString(),
+      );
+      logger.debug(err);
+    }
+
+    try {
+      return await this.refreshCurrentUserIdAndHandoffTimeInScheduleInternal(
+        scheduleId,
+      );
+    } finally {
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.error(err);
+        }
+      }
+    }
+  }
+
+  private async refreshCurrentUserIdAndHandoffTimeInScheduleInternal(
+    scheduleId: ObjectID,
+  ): Promise<{
+    currentUserId: ObjectID | null;
+    handOffTimeAt: Date | null;
+    nextUserId: ObjectID | null;
+    nextHandOffTimeAt: Date | null;
+    rosterStartAt: Date | null;
+    nextRosterStartAt: Date | null;
+  }> {
     logger.debug(
       "refreshCurrentUserIdAndHandoffTimeInSchedule called with scheduleId: " +
         scheduleId.toString(),
@@ -1323,11 +1381,16 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
     from: Date,
     getNumberOfEvents: number,
   ): Date {
-    let windowEnd: Date = OneUptimeDate.addRemoveYears(from, 1);
-
     const periodsNeeded: number = Math.max(2, getNumberOfEvents + 1);
 
+    let windowEnd: Date = from;
+    let anyLayerRestricted: boolean = false;
+
     for (const layer of layerProps) {
+      if (this.isLayerRestricted(layer)) {
+        anyLayerRestricted = true;
+      }
+
       if (!layer.rotation) {
         continue;
       }
@@ -1352,7 +1415,50 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
       }
     }
 
+    /*
+     * Floor the window. Restricted layers can have long coverage gaps (a
+     * weekend-only or business-hours restriction), so the next COVERED event may
+     * be far past the naive (getNumberOfEvents + 1)-period horizon — keep a
+     * generous 1-year floor for them so a current/next user is still found.
+     * UNRESTRICTED layers produce exactly one event per rotation period, so the
+     * per-layer candidate above already spans the events we need; flooring those
+     * at a full year forced a fast (hourly/daily) rotation to materialize
+     * thousands of events on every resolution, and getMultiLayerEvents then ran
+     * an O(n^2) overlap merge over them — a real worker stall (audit H2). For
+     * unrestricted layers a small 1-day floor is ample margin.
+     */
+    const floor: Date = anyLayerRestricted
+      ? OneUptimeDate.addRemoveYears(from, 1)
+      : OneUptimeDate.addRemoveDays(from, 1);
+
+    if (OneUptimeDate.isBefore(windowEnd, floor)) {
+      windowEnd = floor;
+    }
+
     return windowEnd;
+  }
+
+  /*
+   * True when the layer carries an active (non-None) restriction. Handles both a
+   * hydrated RestrictionTimes instance (exposes `restictionType`) and the raw
+   * serialized JSON form ({ _type, value: { restictionType } }) so it is safe
+   * regardless of where the LayerProps came from.
+   */
+  private isLayerRestricted(layer: LayerProps): boolean {
+    const rt: unknown = layer.restrictionTimes;
+    if (!rt) {
+      return false;
+    }
+    const anyRt: {
+      restictionType?: RestrictionType | string;
+      value?: { restictionType?: RestrictionType | string };
+    } = rt as {
+      restictionType?: RestrictionType | string;
+      value?: { restictionType?: RestrictionType | string };
+    };
+    const type: RestrictionType | string | undefined =
+      anyRt.restictionType || anyRt.value?.restictionType;
+    return Boolean(type) && type !== RestrictionType.None;
   }
 
   /*

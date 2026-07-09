@@ -165,6 +165,52 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Build a default weekly restriction whose timestamps are anchored to the
+   * named weekday IN THE SCHEDULE TIMEZONE. The engine enforces the weekday from
+   * getDayOfWeek(startTime, tz); the Common default alone lands the timestamp on
+   * the right weekday only in the server/browser zone, so near the midnight
+   * boundary a differing schedule zone would still enforce the wrong day. We
+   * interpret the default 00:00 / 01:00 as schedule-tz wall-clock (mirroring the
+   * TimePicker onChange handlers) and move to the target weekday, so the enforced
+   * day/time exactly match the dropdown (audit M4). A no-op beyond the Common
+   * default when no schedule timezone is set.
+   */
+  const buildDefaultWeeklyRestriction: () => WeeklyResctriction =
+    (): WeeklyResctriction => {
+      const startDay: DayOfWeek = DayOfWeek.Sunday;
+      const endDay: DayOfWeek = DayOfWeek.Monday;
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      const startTime: Date = OneUptimeDate.moveDateToTheDayOfWeek(
+        timePickerValueToStoredDate(
+          OneUptimeDate.getDateWithCustomTime({
+            hours: 0,
+            minutes: 0,
+            seconds: 0,
+          }),
+        ),
+        now,
+        startDay,
+        props.timezone,
+      );
+
+      const endTime: Date = OneUptimeDate.moveDateToTheDayOfWeek(
+        timePickerValueToStoredDate(
+          OneUptimeDate.getDateWithCustomTime({
+            hours: 1,
+            minutes: 0,
+            seconds: 0,
+          }),
+        ),
+        now,
+        endDay,
+        props.timezone,
+      );
+
+      return { startDay, endDay, startTime, endTime };
+    };
+
   const getWeeklyTimeRestrictions: GetReactElementFunction =
     (): ReactElement => {
       return (
@@ -244,7 +290,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                 }
 
                 tempRestrictionTimes.weeklyRestrictionTimes.push(
-                  RestrictionTimes.getDefaultWeeklyRestrictionTIme(),
+                  buildDefaultWeeklyRestriction(),
                 );
 
                 updateRestrictionTimes(tempRestrictionTimes);
@@ -429,8 +475,17 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           } else if (value === RestrictionType.Weekly) {
             // remove all restrictions
             tempRestrictionTimes.removeAllRestrictions();
-            // add weekly restriction
-            tempRestrictionTimes.addDefaultWeeklyRestriction();
+            /*
+             * Add a weekly restriction whose default day is reconciled to the
+             * schedule timezone (audit M4). Using addDefaultWeeklyRestriction()
+             * would stamp the Common default whose weekday only matches in the
+             * server/browser zone.
+             */
+            tempRestrictionTimes.restictionType = RestrictionType.Weekly;
+            tempRestrictionTimes.dayRestrictionTimes = null;
+            tempRestrictionTimes.weeklyRestrictionTimes = [
+              buildDefaultWeeklyRestriction(),
+            ];
             updateRestrictionTimes(tempRestrictionTimes);
           }
         }}

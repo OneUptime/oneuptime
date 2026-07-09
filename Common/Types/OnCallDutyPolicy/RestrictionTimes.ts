@@ -158,19 +158,38 @@ export default class RestrictionTimes extends DatabaseProperty {
   }
 
   public static getDefaultWeeklyRestrictionTIme(): WeeklyResctriction {
+    const startDay: DayOfWeek = DayOfWeek.Sunday;
+    const endDay: DayOfWeek = DayOfWeek.Monday;
+
+    /*
+     * Build the timestamps ON the named weekday. The rotation engine derives the
+     * ENFORCED weekday purely from the timestamp (getDayOfWeek(startTime)), NOT
+     * from startDay/endDay — so stamping TODAY's date (getDateWithCustomTime uses
+     * the current date) made an untouched default enforce coverage on TODAY's
+     * weekday while the dropdown still displayed Sunday -> Monday, i.e. the
+     * displayed config never matched who was actually on call (audit M4).
+     * moveDateToTheDayOfWeek keeps the time-of-day and moves to the target
+     * weekday, so timestamp, dropdown enum, preview and summary all agree.
+     */
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const startTime: Date = OneUptimeDate.moveDateToTheDayOfWeek(
+      OneUptimeDate.getDateWithCustomTime({ hours: 0, minutes: 0, seconds: 0 }),
+      now,
+      startDay,
+    );
+
+    const endTime: Date = OneUptimeDate.moveDateToTheDayOfWeek(
+      OneUptimeDate.getDateWithCustomTime({ hours: 1, minutes: 0, seconds: 0 }),
+      now,
+      endDay,
+    );
+
     return {
-      startDay: DayOfWeek.Sunday,
-      endDay: DayOfWeek.Monday,
-      startTime: OneUptimeDate.getDateWithCustomTime({
-        hours: 0,
-        minutes: 0,
-        seconds: 0,
-      }),
-      endTime: OneUptimeDate.getDateWithCustomTime({
-        hours: 1,
-        minutes: 0,
-        seconds: 0,
-      }),
+      startDay,
+      endDay,
+      startTime,
+      endTime,
     };
   }
 

@@ -40,8 +40,18 @@ export class Service extends DatabaseService<Model> {
         onCallDutyPolicyId,
         onCallDutyPolicyEscalationRuleId: data.onCallDutyPolicyEscalationRuleId,
         userId,
-        ...(teamId && { teamId }),
-        ...(onCallDutyPolicyScheduleId && { onCallDutyPolicyScheduleId }),
+        /*
+         * Scope the context columns explicitly so a direct-user log dedups only
+         * against other direct logs, a team log only against team logs, and a
+         * schedule log only against schedule logs. The old `...(x && {x})`
+         * OMITTED the column when absent, so an absent column matched ANY value:
+         * a direct-user start then deduped against an already-open schedule/team
+         * log and never created the direct log, leaving the user with zero open
+         * logs once that schedule/team log closed (audit L4).
+         */
+        teamId: teamId ?? QueryHelper.isNull(),
+        onCallDutyPolicyScheduleId:
+          onCallDutyPolicyScheduleId ?? QueryHelper.isNull(),
         endsAt: QueryHelper.isNull(),
       },
       props: {
@@ -179,8 +189,17 @@ export class Service extends DatabaseService<Model> {
         onCallDutyPolicyId,
         onCallDutyPolicyEscalationRuleId: data.onCallDutyPolicyEscalationRuleId,
         userId,
-        ...(teamId && { teamId }),
-        ...(onCallDutyPolicyScheduleId && { onCallDutyPolicyScheduleId }),
+        /*
+         * Constrain the context columns to IS NULL when not supplied so each
+         * context closes ONLY its own stint. The old `...(x && {x})` omitted the
+         * column, so ending a direct-user assignment (no teamId/scheduleId)
+         * matched — and closed — that user's still-open SCHEDULE and TEAM logs
+         * for the same rule too, leaving a permanent hole in the "who is on call
+         * now" view until the next roster change (audit M3).
+         */
+        teamId: teamId ?? QueryHelper.isNull(),
+        onCallDutyPolicyScheduleId:
+          onCallDutyPolicyScheduleId ?? QueryHelper.isNull(),
         endsAt: QueryHelper.isNull(),
       },
       limit: LIMIT_PER_PROJECT,

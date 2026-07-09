@@ -4,6 +4,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -193,15 +194,102 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   }
 
   @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<OnCallDutyPolicyUserOverride>,
+  ): Promise<OnUpdate<OnCallDutyPolicyUserOverride>> {
+    /*
+     * Capture each affected override's PRE-update project + overrideUserId so
+     * onUpdateSuccess can also refresh the OLD user's schedules. onUpdateSuccess
+     * otherwise only sees the post-update overrideUserId; when an edit changes
+     * overrideUserId from A to A2, schedules that contained A (but not A2) would
+     * keep showing the substitute forever — until the next natural handoff the
+     * cron happens to re-select — because refreshRostersForUserInProject selects
+     * schedules by the NEW user only (audit M2). Mirrors the onBeforeDelete
+     * carry-forward pattern used by the delete path.
+     */
+    const previous: Array<{
+      projectId: ObjectID;
+      overrideUserId: ObjectID;
+    }> = [];
+
+    try {
+      const rows: Array<OnCallDutyPolicyUserOverride> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          projectId: true,
+          overrideUserId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      });
+
+      for (const row of rows) {
+        const projectId: ObjectID | undefined | null =
+          row.projectId || row.project?.id;
+        const overrideUserId: ObjectID | undefined | null =
+          row.overrideUserId || row.overrideUser?.id;
+        if (projectId && overrideUserId) {
+          previous.push({ projectId, overrideUserId });
+        }
+      }
+    } catch (err) {
+      logger.error(err);
+    }
+
+    return {
+      updateBy,
+      carryForward: previous,
+    };
+  }
+
+  @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<OnCallDutyPolicyUserOverride>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<OnCallDutyPolicyUserOverride>> {
     /*
-     * An override edit (times, route target, or the override user) must also be
+     * An override edit (times, route target, or the override user) must be
      * reflected in the persisted roster (audit F4). Refresh the schedules of
-     * each edited override's current override user.
+     * BOTH the NEW override user (post-update) and the OLD override user captured
+     * in onBeforeUpdate, so a change of overrideUserId also restores the roster
+     * of schedules that only contained the previous user (audit M2). Deduped so
+     * an unchanged overrideUserId refreshes each schedule set only once.
      */
+    const refreshed: Set<string> = new Set<string>();
+
+    const refreshPair: (
+      projectId: ObjectID | null | undefined,
+      overrideUserId: ObjectID | null | undefined,
+    ) => Promise<void> = async (
+      projectId: ObjectID | null | undefined,
+      overrideUserId: ObjectID | null | undefined,
+    ): Promise<void> => {
+      if (!projectId || !overrideUserId) {
+        return;
+      }
+      const key: string = `${projectId.toString()}:${overrideUserId.toString()}`;
+      if (refreshed.has(key)) {
+        return;
+      }
+      refreshed.add(key);
+      await this.refreshRostersForOverrideUser({ projectId, overrideUserId });
+    };
+
+    // OLD override users captured before the update.
+    const previous: Array<{ projectId: ObjectID; overrideUserId: ObjectID }> =
+      (onUpdate.carryForward as Array<{
+        projectId: ObjectID;
+        overrideUserId: ObjectID;
+      }>) || [];
+
+    for (const entry of previous) {
+      await refreshPair(entry.projectId, entry.overrideUserId);
+    }
+
+    // NEW override users (post-update).
     for (const id of updatedItemIds) {
       const item: OnCallDutyPolicyUserOverride | null = await this.findOneById({
         id: id,
@@ -218,10 +306,10 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
         continue;
       }
 
-      await this.refreshRostersForOverrideUser({
-        projectId: item.projectId || item.project?.id,
-        overrideUserId: item.overrideUserId || item.overrideUser?.id,
-      });
+      await refreshPair(
+        item.projectId || item.project?.id,
+        item.overrideUserId || item.overrideUser?.id,
+      );
     }
 
     return onUpdate;

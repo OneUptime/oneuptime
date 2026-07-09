@@ -89,6 +89,39 @@ export class Service extends DatabaseService<Model> {
       return createdItem;
     }
 
+    /*
+     * Open the roster user's on-call time log for this schedule/rule/policy.
+     * Mirrors onDeleteSuccess's endTimeLogForUser (detaching a schedule closes
+     * the log, so attaching must open it). Without this, attaching a schedule
+     * whose roster user is ALREADY established never opened a log — the roster
+     * refresh only opens one when the current user CHANGES — so the whole stint
+     * went unrecorded in on-call reporting and the later detach's
+     * endTimeLogForUser was a no-op (audit M1). startTimeLogForUser is idempotent
+     * (open-log dedup), so a later natural handoff re-opening the same log is a
+     * no-op.
+     */
+    if (
+      createdModel.onCallDutyPolicy?.id &&
+      createdModel.onCallDutyPolicyEscalationRule?.id &&
+      createdModel.projectId &&
+      createdModel.onCallDutyPolicyScheduleId
+    ) {
+      OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+        projectId: createdModel.projectId,
+        onCallDutyPolicyId: createdModel.onCallDutyPolicy.id,
+        onCallDutyPolicyEscalationRuleId:
+          createdModel.onCallDutyPolicyEscalationRule.id,
+        userId: userOnSchedule,
+        onCallDutyPolicyScheduleId: createdModel.onCallDutyPolicyScheduleId,
+        startsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((error: Error) => {
+        logger.error(error, {
+          projectId: createdModel.projectId?.toString(),
+          userId: userOnSchedule?.toString(),
+        } as LogAttributes);
+      });
+    }
+
     const scheduleName: string =
       createdModel.onCallDutyPolicySchedule?.name || "No name provided";
 
