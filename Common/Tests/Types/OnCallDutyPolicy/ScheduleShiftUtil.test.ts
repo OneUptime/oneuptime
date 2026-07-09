@@ -32,8 +32,10 @@ const at: (iso: string) => Date = (iso: string): Date => {
   return OneUptimeDate.fromString(iso);
 };
 
-// Build an OnCallShift literal for the resolver/gap tests (coverageSeconds is
-// irrelevant to those, so default it to the wall-clock span).
+/*
+ * Build an OnCallShift literal for the resolver/gap tests (coverageSeconds is
+ * irrelevant to those, so default it to the wall-clock span).
+ */
 const mkShift: (userId: string, start: Date, end: Date) => OnCallShift = (
   userId: string,
   start: Date,
@@ -64,7 +66,11 @@ describe("ScheduleShiftUtil", () => {
         ScheduleShiftUtil.groupEventsIntoShifts(events);
 
       expect(shifts).toHaveLength(3);
-      expect(shifts.map((s: OnCallShift) => s.userId)).toEqual(["A", "B", "A"]);
+      expect(
+        shifts.map((s: OnCallShift) => {
+          return s.userId;
+        }),
+      ).toEqual(["A", "B", "A"]);
       expect(shifts[0]!.end).toEqual(at("2024-01-02T09:00:00Z"));
     });
 
@@ -133,9 +139,17 @@ describe("ScheduleShiftUtil", () => {
       const shifts: Array<OnCallShift> =
         ScheduleShiftUtil.groupEventsIntoShifts(events);
 
-      expect(shifts.map((s: OnCallShift) => s.userId)).toEqual(["A", "B"]);
+      expect(
+        shifts.map((s: OnCallShift) => {
+          return s.userId;
+        }),
+      ).toEqual(["A", "B"]);
       // input order preserved (we copy before sorting)
-      expect(events.map((e: CalendarEvent) => e.title)).toEqual(snapshot);
+      expect(
+        events.map((e: CalendarEvent) => {
+          return e.title;
+        }),
+      ).toEqual(snapshot);
     });
   });
 

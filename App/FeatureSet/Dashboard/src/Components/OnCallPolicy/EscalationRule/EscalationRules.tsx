@@ -360,8 +360,10 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
           },
         });
 
-      // Repeat behavior, so the summary can describe what happens after the
-      // final level with no acknowledgement.
+      /*
+       * Repeat behavior, so the summary can describe what happens after the
+       * final level with no acknowledgement.
+       */
       const policy: OnCallDutyPolicy | null =
         await ModelAPI.getItem<OnCallDutyPolicy>({
           modelType: OnCallDutyPolicy,
@@ -1098,19 +1100,14 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         {/* Header */}
         <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-inset ring-indigo-200">
-              <Icon icon={IconProp.Bell} className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Escalation Rules
-              </h2>
-              <p className="mt-0.5 text-sm text-gray-500">
-                Who gets notified when an incident is triggered, and how it
-                climbs the ladder if no one responds.
-              </p>
-            </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Escalation Rules
+            </h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
+              Who gets notified when an incident is triggered, and how it climbs
+              the ladder if no one responds.
+            </p>
           </div>
           <div className="flex items-center gap-2 sm:shrink-0">
             <Button

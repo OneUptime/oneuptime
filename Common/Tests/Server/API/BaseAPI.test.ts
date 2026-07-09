@@ -103,6 +103,7 @@ jest.mock("../../../Server/Services/ProjectService", () => {
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
+    ...jest.requireActual("../../../Server/EnvironmentConfig"),
     IsBillingEnabled: true,
     LogLevel: "INFO", // Use string literal instead of ConfigLogLevel.INFO
     DisableTelemetry: true,

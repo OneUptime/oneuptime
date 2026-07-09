@@ -129,9 +129,11 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         }),
       ]);
 
-      // Time from trigger until the final level is engaged: the sum of the wait
-      // times of every level except the last (the last level's wait governs the
-      // repeat, not another level).
+      /*
+       * Time from trigger until the final level is engaged: the sum of the wait
+       * times of every level except the last (the last level's wait governs the
+       * repeat, not another level).
+       */
       const orderedRules: Array<OnCallDutyPolicyEscalationRule> =
         rulesResult.data;
       let timeToFinalLevelMinutes: number = 0;
@@ -142,8 +144,10 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         );
       }
 
-      // Distinct responders per type, plus the set of rules that have at least
-      // one responder (to flag levels that would notify no one).
+      /*
+       * Distinct responders per type, plus the set of rules that have at least
+       * one responder (to flag levels that would notify no one).
+       */
       const scheduleNamesById: Record<string, string> = {};
       const teamNamesById: Record<string, string> = {};
       const userNamesById: Record<string, string> = {};
