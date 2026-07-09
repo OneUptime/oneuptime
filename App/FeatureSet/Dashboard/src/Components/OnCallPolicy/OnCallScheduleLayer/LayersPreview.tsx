@@ -18,9 +18,14 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Calendar from "Common/UI/Components/Calendar/Calendar";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import TimezoneUtil from "Common/UI/Utils/Timezone";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
@@ -40,6 +45,13 @@ import React, {
  * that happen to fall in the calendar's currently-visible range.
  */
 const SUMMARY_WINDOW_DAYS: number = 42;
+
+/*
+ * Timezone options are static and expensive to sort (every IANA zone by GMT
+ * offset), so compute them once at module load rather than per render.
+ */
+const timezoneDropdownOptions: Array<DropdownOption> =
+  TimezoneUtil.getTimezoneDropdownOptions();
 
 export interface ComponentProps {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
@@ -108,6 +120,26 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   const [calendarEvents, setCalendarEvents] = useState<Array<CalendarEvent>>(
     [],
   );
+
+  /*
+   * The timezone the preview is DISPLAYED in. Distinct from props.timezone,
+   * which is the schedule's operating zone used to COMPUTE shift boundaries and
+   * must never change here. "View as" defaults to the schedule zone (so the grid
+   * and summary show the zone people are actually paged in) but lets a viewer —
+   * e.g. a US operator who configured an India schedule — re-render everything
+   * in their own zone to see how the rotation lands for them. Display only: it
+   * never affects who is on call or when.
+   */
+  const [viewAsTimezone, setViewAsTimezone] = useState<string>(
+    props.timezone || OneUptimeDate.getCurrentTimezone().toString(),
+  );
+
+  // Follow the schedule zone when it changes (e.g. edited on the layers page).
+  useEffect(() => {
+    setViewAsTimezone(
+      props.timezone || OneUptimeDate.getCurrentTimezone().toString(),
+    );
+  }, [props.timezone]);
 
   const [overrides, setOverrides] = useState<
     Array<OnCallDutyPolicyUserOverride>
@@ -430,6 +462,54 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     scheduleUsersById,
   ]);
 
+  /*
+   * Shift each computed instant into the VIEW timezone for the grid. The
+   * calendar (react-big-calendar, browser-local localizer) has no timezone
+   * concept, so we hand it Dates whose browser-local wall-clock equals the
+   * instant's wall-clock in viewAsTimezone — the same trick the datetime input
+   * uses (getLocalDateFromWallClockInTimezone). Computation stays in real UTC
+   * anchored to props.timezone; only the display Dates move.
+   */
+  const displayEvents: Array<CalendarEvent> = useMemo(() => {
+    return calendarEvents.map((event: CalendarEvent) => {
+      return {
+        ...event,
+        start: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+          event.start,
+          viewAsTimezone,
+        ),
+        end: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+          event.end,
+          viewAsTimezone,
+        ),
+      };
+    });
+  }, [calendarEvents, viewAsTimezone]);
+
+  // "now" shifted into the view zone so the grid opens on that zone's today.
+  const displayDefaultDate: Date = useMemo(() => {
+    return OneUptimeDate.getLocalDateFromWallClockInTimezone(
+      OneUptimeDate.getCurrentDate(),
+      viewAsTimezone,
+    );
+  }, [viewAsTimezone]);
+
+  const selectedViewOption: DropdownOption | undefined =
+    timezoneDropdownOptions.find((option: DropdownOption) => {
+      return option.value === viewAsTimezone;
+    });
+
+  /*
+   * Explain which zone the grid/summary below are rendered in, and — when the
+   * viewer has switched away from the schedule's own zone — that these times are
+   * for reference only and not the zone people are actually paged in.
+   */
+  const viewNote: string = props.timezone
+    ? viewAsTimezone === props.timezone
+      ? `Times below are shown in the schedule's timezone (${props.timezone}) — the zone people are actually paged in.`
+      : `Viewing in ${viewAsTimezone}. This schedule is configured and paged in ${props.timezone}, so the times below are for your reference only.`
+    : `Viewing in ${viewAsTimezone}. This schedule has no timezone set, so it is paged in the server's local time.`;
+
   const hasActiveOverrides: boolean = overrides.length > 0;
 
   return (
@@ -457,7 +537,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           shifts={summaryData.shifts}
           now={summaryData.now}
           windowEnd={summaryData.windowEnd}
-          timezone={props.timezone}
+          timezone={viewAsTimezone}
           userById={{ ...scheduleUsersById, ...overrideUserInfo }}
         />
       )}
@@ -505,11 +585,51 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         person actually paged by a given policy may differ.
       </div>
 
+      {/* View-as timezone control + note above the calendar grid. */}
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="w-full sm:w-72">
+          <FieldLabelElement title="View as timezone" />
+          <Dropdown
+            options={timezoneDropdownOptions}
+            value={selectedViewOption}
+            placeholder="Select timezone"
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              const timezone: string | undefined =
+                value && !Array.isArray(value) ? value.toString() : undefined;
+
+              if (timezone) {
+                setViewAsTimezone(timezone);
+              }
+            }}
+          />
+        </div>
+        <p className="text-xs text-gray-500 sm:max-w-md sm:text-right">
+          {viewNote}
+        </p>
+      </div>
+
       <Calendar
-        events={calendarEvents}
+        events={displayEvents}
+        defaultDate={displayDefaultDate}
         onRangeChange={(startEndTime: StartAndEndTime) => {
-          setStartTime(startEndTime.startTime);
-          setEndTime(startEndTime.endTime);
+          /*
+           * react-big-calendar reports the visible range in the grid's
+           * (view-zone) wall-clock rendered as browser-local Dates. Convert it
+           * back to real instants — the inverse of the display shift — so event
+           * computation and the override fetch stay in true UTC.
+           */
+          setStartTime(
+            OneUptimeDate.getInstantFromLocalWallClockInTimezone(
+              startEndTime.startTime,
+              viewAsTimezone,
+            ),
+          );
+          setEndTime(
+            OneUptimeDate.getInstantFromLocalWallClockInTimezone(
+              startEndTime.endTime,
+              viewAsTimezone,
+            ),
+          );
         }}
       />
     </div>
