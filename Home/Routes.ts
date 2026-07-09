@@ -2,7 +2,10 @@
 import "./API/BlogAPI";
 import { StaticPath, ViewsPath } from "./Utils/Config";
 import NotFoundUtil from "./Utils/NotFound";
-import ProductCompare, { Product } from "./Utils/ProductCompare";
+import ProductCompare, {
+  Product,
+  getProductCompareSlugs,
+} from "./Utils/ProductCompare";
 import {
   generateSitemapIndexXml,
   generatePagesSitemapXml,
@@ -1580,6 +1583,165 @@ const HomeFeatureSet: FeatureSet = {
         cta: true,
         blackLogo: false,
         requestDemoCta: false,
+        seo,
+      });
+    });
+
+    // Compare index / landing page
+    app.get("/compare", (_req: ExpressRequest, res: ExpressResponse) => {
+      const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+        "/compare",
+        res.locals["homeUrl"] as string,
+      );
+
+      // Curated grouping of comparisons. Any slug not listed here is appended
+      // to a final "More comparisons" group so new entries never disappear.
+      const groupDefinitions: Array<{ title: string; slugs: Array<string> }> = [
+        {
+          title: "Incident Response & On-Call",
+          slugs: [
+            "pagerduty",
+            "incident.io",
+            "opsgenie",
+            "squadcast",
+            "firehydrant",
+            "rootly",
+            "xmatters",
+          ],
+        },
+        {
+          title: "Monitoring & Observability",
+          slugs: [
+            "datadog",
+            "newrelic",
+            "signoz",
+            "grafana",
+            "dynatrace",
+            "splunk",
+            "sentry",
+            "appdynamics",
+            "elastic",
+            "prometheus",
+            "zabbix",
+            "nagios",
+          ],
+        },
+        {
+          title: "Uptime & Synthetic Monitoring",
+          slugs: [
+            "pingdom",
+            "uptime-robot",
+            "checkly",
+            "better-uptime",
+            "site24x7",
+            "cronitor",
+            "healthchecks-io",
+            "freshping",
+          ],
+        },
+        {
+          title: "Status Pages",
+          slugs: ["statuspage.io", "instatus"],
+        },
+      ];
+
+      const allSlugs: Array<string> = getProductCompareSlugs();
+      const usedSlugs: Set<string> = new Set<string>();
+
+      const toCard: (slug: string) => {
+        slug: string;
+        productName: string;
+        tagline: string;
+        iconUrl: string;
+      } | null = (slug: string) => {
+        const product: Product = ProductCompare(slug);
+        if (!product) {
+          return null;
+        }
+        usedSlugs.add(slug);
+        return {
+          slug,
+          productName: product.productName,
+          tagline: product.tagline,
+          iconUrl: product.iconUrl,
+        };
+      };
+
+      const compareGroups: Array<{
+        title: string;
+        items: Array<{
+          slug: string;
+          productName: string;
+          tagline: string;
+          iconUrl: string;
+        }>;
+      }> = groupDefinitions
+        .map((group: { title: string; slugs: Array<string> }) => {
+          return {
+            title: group.title,
+            items: group.slugs
+              .filter((slug: string) => {
+                return allSlugs.includes(slug);
+              })
+              .map(toCard)
+              .filter(
+                (
+                  card: {
+                    slug: string;
+                    productName: string;
+                    tagline: string;
+                    iconUrl: string;
+                  } | null,
+                ): card is {
+                  slug: string;
+                  productName: string;
+                  tagline: string;
+                  iconUrl: string;
+                } => {
+                  return card !== null;
+                },
+              ),
+          };
+        })
+        .filter((group: { title: string; items: Array<unknown> }) => {
+          return group.items.length > 0;
+        });
+
+      const remaining: Array<string> = allSlugs.filter((slug: string) => {
+        return !usedSlugs.has(slug);
+      });
+      if (remaining.length > 0) {
+        compareGroups.push({
+          title: "More comparisons",
+          items: remaining.map(toCard).filter(
+            (
+              card: {
+                slug: string;
+                productName: string;
+                tagline: string;
+                iconUrl: string;
+              } | null,
+            ): card is {
+              slug: string;
+              productName: string;
+              tagline: string;
+              iconUrl: string;
+            } => {
+              return card !== null;
+            },
+          ),
+        });
+      }
+
+      res.render(`${ViewsPath}/compare-index.ejs`, {
+        support: false,
+        enableGoogleTagManager: IsBillingEnabled,
+        footerCards: true,
+        cta: true,
+        blackLogo: false,
+        requestDemoCta: false,
+        compareGroups,
+        compareCount: allSlugs.length,
         seo,
       });
     });

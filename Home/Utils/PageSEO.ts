@@ -75,6 +75,21 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     breadcrumbs: [{ name: "Home", url: "/" }],
   },
 
+  // Compare index
+  "/compare": {
+    title:
+      "OneUptime vs Alternatives | Compare Monitoring, On-Call & Status Page Tools",
+    description:
+      "Compare OneUptime with PagerDuty, Datadog, Grafana, Opsgenie, Statuspage and 25+ other tools. See features, pricing, and why teams consolidate monitoring, on-call, incidents, and status pages onto one open-source platform.",
+    canonicalPath: "/compare",
+    twitterCard: "summary_large_image",
+    pageType: "compare",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Compare", url: "/compare" },
+    ],
+  },
+
   // Product Pages
   "/product/status-page": {
     title: "Status Page | Free Public & Private Status Pages | OneUptime",
@@ -1400,7 +1415,7 @@ export const getPageSEO: (path: string) => PageSEOData = (
       pageType: "compare",
       breadcrumbs: [
         { name: "Home", url: "/" },
-        { name: "Compare", url: "/#compare" },
+        { name: "Compare", url: "/compare" },
         { name: `vs ${productName}`, url: path },
       ],
     };

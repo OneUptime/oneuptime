@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+    <title>OneUptime vs Alternatives | Compare Monitoring, On-Call & Status Page Tools</title>
+    <meta name="description"
+        content="Compare OneUptime with PagerDuty, Datadog, Grafana, Opsgenie, Statuspage and 25+ other tools. One open-source platform for monitoring, on-call, incidents, and status pages.">
+    <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+
+  <%- include('nav') -%>
+  <main id="main-content">
+
+  <!-- Hero -->
+  <div class="relative isolate bg-white overflow-hidden">
+    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+    <div class="py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-3xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-1.5 text-sm text-white mb-8">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
+            </svg>
+            <span>Compare</span>
+          </div>
+          <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl lg:leading-[1.1]">
+            OneUptime vs the alternatives
+          </h1>
+          <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+            One open-source platform for monitoring, status pages, on-call, and incident management. See how OneUptime compares against <%= compareCount %>+ tools teams use today.
+          </p>
+          <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/accounts/register" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-800">
+              Start free — no credit card
+              <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+            </a>
+            <a href="/pricing" class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+              View pricing
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparison groups -->
+  <section class="py-24 sm:py-32 bg-gray-50">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8 space-y-16">
+      <% for(var g=0; g<compareGroups.length; g++) { %>
+      <div>
+        <h2 class="text-xl font-semibold tracking-tight text-gray-900 mb-6"><%= compareGroups[g].title %></h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <% for(var i=0; i<compareGroups[g].items.length; i++) { %>
+          <a href="/compare/<%= compareGroups[g].items[i].slug %>" class="group flex flex-col rounded-2xl bg-white p-6 ring-1 ring-gray-200 transition-all duration-300 hover:ring-gray-300 hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                <img src="<%= compareGroups[g].items[i].iconUrl %>" alt="<%= compareGroups[g].items[i].productName %>" class="h-7 w-7 object-contain">
+              </div>
+              <div class="min-w-0">
+                <p class="text-xs text-gray-400">OneUptime vs</p>
+                <h3 class="text-base font-semibold text-gray-900 truncate"><%= compareGroups[g].items[i].productName %></h3>
+              </div>
+            </div>
+            <p class="text-sm text-gray-500 leading-relaxed flex-1"><%= compareGroups[g].items[i].tagline %></p>
+            <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-gray-900">
+              Compare
+              <svg class="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+            </span>
+          </a>
+          <% } %>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <%- include('cta') -%>
+
+  </main>
+  <%- include('footer') -%>
+
+</body>
+
+</html>

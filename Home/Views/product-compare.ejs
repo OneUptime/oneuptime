@@ -100,6 +100,9 @@
           <p class="mt-6 text-sm text-gray-500">
             Self-host for free or use our cloud. No vendor lock-in.
           </p>
+          <% if (typeof productConfig.lastUpdated !== 'undefined' && productConfig.lastUpdated) { %>
+          <p class="mt-2 text-xs text-gray-400">Comparison last updated: <%= productConfig.lastUpdated %></p>
+          <% } %>
         </div>
       </div>
     </div>
@@ -415,6 +418,172 @@
       </div>
     </div>
   </section>
+
+  <!-- Pricing Comparison Section -->
+  <% if (typeof productConfig.competitorPricingTiers !== 'undefined' && productConfig.competitorPricingTiers && productConfig.competitorPricingTiers.length) { %>
+  <section class="py-24 sm:py-32 bg-white">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-1.5 text-sm text-white mb-6">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+          </svg>
+          <span>Pricing</span>
+        </div>
+        <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+          How <%= productConfig.productName %> pricing compares
+        </h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+          <%= productConfig.productName %>'s plans and their trade-offs &mdash; next to OneUptime's simple, predictable pricing.
+        </p>
+      </div>
+
+      <!-- Competitor tiers -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-<%= productConfig.competitorPricingTiers.length >= 4 ? '4' : productConfig.competitorPricingTiers.length %> gap-6">
+        <% for(var p=0; p<productConfig.competitorPricingTiers.length; p++) { %>
+        <div class="flex flex-col rounded-2xl bg-white p-6 ring-1 ring-gray-200">
+          <h3 class="text-sm font-semibold text-gray-900"><%= productConfig.competitorPricingTiers[p].name %></h3>
+          <div class="mt-2 flex items-baseline gap-1">
+            <span class="text-2xl font-semibold tracking-tight text-gray-900"><%= productConfig.competitorPricingTiers[p].price %></span>
+            <span class="text-sm text-gray-500"><%= productConfig.competitorPricingTiers[p].period %></span>
+          </div>
+          <ul class="mt-5 space-y-2.5">
+            <% for(var pf=0; pf<productConfig.competitorPricingTiers[p].features.length; pf++) { %>
+            <li class="flex items-start gap-2.5">
+              <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
+              <span class="text-sm text-gray-600"><%= productConfig.competitorPricingTiers[p].features[pf] %></span>
+            </li>
+            <% } %>
+            <% for(var pl=0; pl<productConfig.competitorPricingTiers[p].limitations.length; pl++) { %>
+            <li class="flex items-start gap-2.5">
+              <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" /></svg>
+              <span class="text-sm text-gray-400"><%= productConfig.competitorPricingTiers[p].limitations[pl] %></span>
+            </li>
+            <% } %>
+          </ul>
+        </div>
+        <% } %>
+      </div>
+
+      <!-- OneUptime pricing highlight -->
+      <div class="mt-8 rounded-2xl bg-gray-900 p-8 sm:p-10 text-white">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+          <div class="max-w-xl">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="h-9 w-9 rounded-lg bg-white overflow-hidden flex-shrink-0">
+                <img src="/img/OneUptimePNG/2.png" alt="OneUptime" class="h-full w-full object-contain">
+              </div>
+              <h3 class="text-xl font-semibold">OneUptime pricing</h3>
+            </div>
+            <p class="text-gray-300 leading-relaxed">One platform, one bill. Start free, self-host for nothing, or scale on predictable pricing &mdash; no per-host, per-seat, or per-check surprises.</p>
+          </div>
+          <div class="grid grid-cols-2 gap-4 lg:gap-6 flex-shrink-0">
+            <div class="rounded-xl bg-white/[0.06] border border-white/10 px-5 py-4">
+              <div class="text-2xl font-semibold">Free</div>
+              <div class="text-xs text-gray-400 mt-1">Forever tier</div>
+            </div>
+            <div class="rounded-xl bg-white/[0.06] border border-white/10 px-5 py-4">
+              <div class="text-2xl font-semibold">$1</div>
+              <div class="text-xs text-gray-400 mt-1">Per active monitor</div>
+            </div>
+            <div class="rounded-xl bg-white/[0.06] border border-white/10 px-5 py-4">
+              <div class="text-2xl font-semibold">Unlimited</div>
+              <div class="text-xs text-gray-400 mt-1">Users & subscribers</div>
+            </div>
+            <div class="rounded-xl bg-white/[0.06] border border-white/10 px-5 py-4">
+              <div class="text-2xl font-semibold">$0</div>
+              <div class="text-xs text-gray-400 mt-1">Self-hosted</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <!-- Real-World Cost / Use Cases Section -->
+  <% if (typeof productConfig.useCases !== 'undefined' && productConfig.useCases && productConfig.useCases.length) { %>
+  <section class="py-24 sm:py-32 bg-gray-50">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+          Real-world cost comparison
+        </h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+          What teams actually pay to cover the same ground &mdash; and what they'd pay with OneUptime instead.
+        </p>
+      </div>
+
+      <div class="space-y-6">
+        <% for(var u=0; u<productConfig.useCases.length; u++) { %>
+        <div class="rounded-2xl bg-white ring-1 ring-gray-200 overflow-hidden">
+          <div class="px-6 py-4 sm:px-8 bg-gray-50 border-b border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-900"><%= productConfig.useCases[u].scenario %></h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+            <div class="p-6 sm:p-8">
+              <p class="text-xs font-medium uppercase tracking-wide text-gray-400 mb-2"><%= productConfig.productName %></p>
+              <p class="text-sm text-gray-600 leading-relaxed mb-4"><%= productConfig.useCases[u].competitorSolution %></p>
+              <p class="text-lg font-semibold text-gray-900"><%= productConfig.useCases[u].competitorCost %></p>
+            </div>
+            <div class="p-6 sm:p-8 bg-emerald-50/40">
+              <p class="text-xs font-medium uppercase tracking-wide text-emerald-600 mb-2">OneUptime</p>
+              <p class="text-sm text-gray-600 leading-relaxed mb-4"><%= productConfig.useCases[u].oneuptimeSolution %></p>
+              <p class="text-lg font-semibold text-emerald-700"><%= productConfig.useCases[u].oneuptimeCost %></p>
+            </div>
+          </div>
+        </div>
+        <% } %>
+      </div>
+      <p class="mt-6 text-center text-xs text-gray-400">Competitor pricing is based on publicly listed plans and is for illustration; your costs may vary.</p>
+    </div>
+  </section>
+  <% } %>
+
+  <!-- Migration Section -->
+  <% if (typeof productConfig.migrationBenefits !== 'undefined' && productConfig.migrationBenefits && productConfig.migrationBenefits.length) { %>
+  <section class="py-24 sm:py-32 bg-white">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-1.5 text-sm text-gray-700 mb-6">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M9 12l3 3m0 0l3-3m-3 3V2.25" />
+            </svg>
+            <span>Migration</span>
+          </div>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            Switching from <%= productConfig.productName %> is simple
+          </h2>
+          <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+            Move at your own pace. Run both in parallel, migrate incrementally, and consolidate your stack without a risky big-bang cutover.
+          </p>
+          <div class="mt-8 flex flex-col sm:flex-row gap-4">
+            <a href="/accounts/register" class="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-800">
+              Start migrating free
+              <svg class="ml-2 h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+            </a>
+            <a href="/enterprise/demo" class="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-all hover:bg-gray-50">
+              Talk to us
+            </a>
+          </div>
+        </div>
+        <div class="rounded-2xl bg-gray-50 ring-1 ring-gray-200 p-8">
+          <ul class="space-y-4">
+            <% for(var m=0; m<productConfig.migrationBenefits.length; m++) { %>
+            <li class="flex items-start gap-3">
+              <span class="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                <svg class="h-3.5 w-3.5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
+              </span>
+              <span class="text-sm text-gray-700 leading-relaxed"><%= productConfig.migrationBenefits[m] %></span>
+            </li>
+            <% } %>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+  <% } %>
 
   <!-- Open Source Section -->
   <section class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
