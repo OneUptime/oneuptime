@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OneUptime Helm Charts</title>
+  <meta name="description" content="Official Helm chart repository for OneUptime — deploy the full OneUptime platform and the Kubernetes monitoring agent on Kubernetes." />
+  <link rel="icon" href="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/1.png" />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111a2b;
+      --panel-2: #0e1728;
+      --border: #1e2b45;
+      --text: #e6edf7;
+      --muted: #9fb0cc;
+      --accent: #0e99e5;
+      --accent-2: #0076b1;
+      --code-bg: #0a1120;
+      --code-text: #d7e6ff;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f5f8fc;
+        --panel: #ffffff;
+        --panel-2: #f0f5fb;
+        --border: #dce6f2;
+        --text: #0f1e33;
+        --muted: #55688a;
+        --accent: #0b6fc4;
+        --accent-2: #0076b1;
+        --code-bg: #0d1a2d;
+        --code-text: #d7e6ff;
+        --shadow: 0 10px 30px rgba(15, 30, 51, 0.08);
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 48px 20px 64px; }
+    header { text-align: center; margin-bottom: 40px; }
+    header img { width: 72px; height: 72px; }
+    h1 { font-size: 2rem; margin: 16px 0 8px; letter-spacing: -0.02em; }
+    .tagline { color: var(--muted); font-size: 1.05rem; max-width: 620px; margin: 0 auto; }
+    .links { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 22px; }
+    .btn {
+      display: inline-block; padding: 9px 16px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--panel);
+      color: var(--text); font-size: 0.92rem; font-weight: 500;
+    }
+    .btn:hover { border-color: var(--accent); text-decoration: none; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+    section {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px 26px; margin-top: 22px; box-shadow: var(--shadow);
+    }
+    section h2 { margin: 0 0 6px; font-size: 1.2rem; letter-spacing: -0.01em; }
+    section p.sub { margin: 0 0 16px; color: var(--muted); }
+    pre {
+      background: var(--code-bg); color: var(--code-text); border-radius: 10px;
+      padding: 16px 18px; overflow-x: auto; margin: 0; font-size: 0.88rem;
+      font-family: "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+    }
+    pre + pre { margin-top: 10px; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .charts { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 20px;
+    }
+    .card h3 { margin: 0 0 6px; font-size: 1.02rem; }
+    .card code { background: var(--code-bg); color: var(--code-text); padding: 2px 6px; border-radius: 5px; font-size: 0.82rem; }
+    .card p { margin: 8px 0 12px; color: var(--muted); font-size: 0.92rem; }
+    footer { text-align: center; color: var(--muted); font-size: 0.88rem; margin-top: 40px; }
+    footer a { color: var(--muted); text-decoration: underline; }
+    .note { color: var(--muted); font-size: 0.86rem; margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/1.png" alt="OneUptime logo" />
+      <h1>OneUptime Helm Charts</h1>
+      <p class="tagline">
+        The official Helm chart repository for OneUptime — deploy the full
+        observability platform and the Kubernetes monitoring agent to your cluster.
+      </p>
+      <div class="links">
+        <a class="btn primary" href="https://oneuptime.com" target="_blank" rel="noopener">Website</a>
+        <a class="btn" href="https://github.com/OneUptime/oneuptime" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn" href="oneuptime/README.md">Chart Docs</a>
+        <a class="btn" href="https://artifacthub.io/packages/search?repo=oneuptime" target="_blank" rel="noopener">Artifact Hub</a>
+      </div>
+    </header>
+
+    <section>
+      <h2>Add the repository</h2>
+      <p class="sub">Register this repo with Helm and pull the latest chart index.</p>
+      <pre>helm repo add oneuptime https://helm-chart.oneuptime.com/
+helm repo update</pre>
+    </section>
+
+    <section>
+      <h2>Available charts</h2>
+      <p class="sub">Two charts are published from this repository.</p>
+      <div class="charts">
+        <div class="card">
+          <h3>oneuptime</h3>
+          <p>Deploys the full OneUptime platform — monitoring, status pages, incident management, on-call, logs, traces, and metrics.</p>
+          <pre>helm install my-oneuptime \
+  oneuptime/oneuptime \
+  -f values.yaml</pre>
+          <p class="note"><a href="oneuptime/README.md">Read the oneuptime chart docs &rarr;</a></p>
+        </div>
+        <div class="card">
+          <h3>kubernetes-agent</h3>
+          <p>Installs the OneUptime Kubernetes monitoring agent into any cluster (standard, GKE Autopilot, EKS Fargate).</p>
+          <pre>helm install my-agent \
+  oneuptime/kubernetes-agent \
+  -f values.yaml</pre>
+          <p class="note"><a href="kubernetes-agent/README.md">Read the kubernetes-agent docs &rarr;</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Next steps</h2>
+      <p class="sub">Configure your <code>values.yaml</code>, then follow the guides for a production-ready deployment.</p>
+      <div class="charts">
+        <div class="card">
+          <h3>Installation &amp; upgrades</h3>
+          <p>Prerequisites, install, upgrade, and uninstall the platform.</p>
+          <p class="note"><a href="oneuptime/docs/installation.md">Installation guide &rarr;</a></p>
+        </div>
+        <div class="card">
+          <h3>Configuration reference</h3>
+          <p>Every <code>values.yaml</code> setting, grouped by topic.</p>
+          <p class="note"><a href="oneuptime/docs/configuration.md">Configuration docs &rarr;</a></p>
+        </div>
+      </div>
+      <p class="note">
+        Raw repository index: <a href="index.yaml">index.yaml</a>
+      </p>
+    </section>
+
+    <footer>
+      Made with care by the OneUptime team &middot;
+      <a href="https://oneuptime.com">oneuptime.com</a> &middot;
+      <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE">Apache-2.0</a>
+    </footer>
+  </div>
+</body>
+</html>
