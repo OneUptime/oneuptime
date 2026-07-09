@@ -75,9 +75,11 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const levels: Array<EscalationLevelSummary> = props.levels;
 
-  // Cumulative minutes from the moment the incident triggers to each level.
-  // Level 1 fires immediately; level i fires after the sum of the wait times of
-  // all preceding levels.
+  /*
+   * Cumulative minutes from the moment the incident triggers to each level.
+   * Level 1 fires immediately; level i fires after the sum of the wait times of
+   * all preceding levels.
+   */
   const cumulativeOffsets: Array<number> = [];
   let runningTotal: number = 0;
   for (let i: number = 0; i < levels.length; i++) {
@@ -157,19 +159,14 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       {/* Header */}
-      <div className="flex items-start gap-3 border-b border-gray-100 px-6 py-5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-inset ring-indigo-200">
-          <Icon icon={IconProp.List} className="h-5 w-5 text-indigo-600" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">
-            Escalation summary
-          </h2>
-          <p className="mt-0.5 text-sm text-gray-500">
-            A plain-english walkthrough of who gets paged, and when, after an
-            incident is triggered.
-          </p>
-        </div>
+      <div className="border-b border-gray-100 px-6 py-5">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Escalation summary
+        </h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
+          A plain-english walkthrough of who gets paged, and when, after an
+          incident is triggered.
+        </p>
       </div>
 
       <div className="p-6">

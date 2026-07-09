@@ -179,8 +179,10 @@ export function formatShiftInstant(
   });
 }
 
-// Compact human duration from a raw seconds count, e.g. "24h", "8h 30m",
-// "5d 12h", "45m".
+/*
+ * Compact human duration from a raw seconds count, e.g. "24h", "8h 30m",
+ * "5d 12h", "45m".
+ */
 export function formatDurationFromSeconds(totalSeconds: number): string {
   if (totalSeconds <= 0) {
     return "0m";

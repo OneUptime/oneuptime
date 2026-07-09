@@ -20,14 +20,18 @@ export interface UserInfo {
 }
 
 export interface ComponentProps {
-  // Coverage shifts of the combined schedule (already override-applied),
-  // sorted by start, computed over [now, windowEnd].
+  /*
+   * Coverage shifts of the combined schedule (already override-applied),
+   * sorted by start, computed over [now, windowEnd].
+   */
   shifts: Array<OnCallShift>;
   now: Date;
   windowEnd: Date;
   timezone?: string | undefined;
-  // userId -> display info for everyone who can appear (schedule users +
-  // override substitutes).
+  /*
+   * userId -> display info for everyone who can appear (schedule users +
+   * override substitutes).
+   */
   userById: Dictionary<UserInfo>;
 }
 
@@ -163,8 +167,10 @@ const FinalScheduleSummary: FunctionComponent<ComponentProps> = (
   };
 
   const getGapWarnings: () => ReactElement = (): ReactElement => {
-    // Show only the nearest couple of gaps so a heavily-restricted schedule
-    // does not produce a wall of warnings.
+    /*
+     * Show only the nearest couple of gaps so a heavily-restricted schedule
+     * does not produce a wall of warnings.
+     */
     const shownGaps: Array<CoverageGap> = gaps.slice(0, 2);
     const remaining: number = gaps.length - shownGaps.length;
 

@@ -1594,8 +1594,10 @@ const HomeFeatureSet: FeatureSet = {
         res.locals["homeUrl"] as string,
       );
 
-      // Curated grouping of comparisons. Any slug not listed here is appended
-      // to a final "More comparisons" group so new entries never disappear.
+      /*
+       * Curated grouping of comparisons. Any slug not listed here is appended
+       * to a final "More comparisons" group so new entries never disappear.
+       */
       const groupDefinitions: Array<{ title: string; slugs: Array<string> }> = [
         {
           title: "Incident Response & On-Call",

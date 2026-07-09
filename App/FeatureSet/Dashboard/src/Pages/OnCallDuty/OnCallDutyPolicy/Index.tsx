@@ -19,12 +19,6 @@ const OnCallDutyPolicyView: FunctionComponent<
 
   return (
     <Fragment>
-      {/* At-a-glance overview of how this policy escalates. */}
-      <OnCallPolicySummary
-        onCallDutyPolicyId={modelId}
-        projectId={ProjectUtil.getCurrentProjectId()!}
-      />
-
       {/* OnCallDutyPolicy View  */}
       <CardModelDetail<OnCallDutyPolicy>
         name="On-Call Policy > On-Call Policy Details"
@@ -125,6 +119,12 @@ const OnCallDutyPolicyView: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+
+      {/* At-a-glance overview of how this policy escalates. */}
+      <OnCallPolicySummary
+        onCallDutyPolicyId={modelId}
+        projectId={ProjectUtil.getCurrentProjectId()!}
       />
 
       <OnCallDutyPolicyFeedElement onCallDutyPolicyId={modelId} />

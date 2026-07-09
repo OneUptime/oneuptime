@@ -129,9 +129,11 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         }),
       ]);
 
-      // Time from trigger until the final level is engaged: the sum of the wait
-      // times of every level except the last (the last level's wait governs the
-      // repeat, not another level).
+      /*
+       * Time from trigger until the final level is engaged: the sum of the wait
+       * times of every level except the last (the last level's wait governs the
+       * repeat, not another level).
+       */
       const orderedRules: Array<OnCallDutyPolicyEscalationRule> =
         rulesResult.data;
       let timeToFinalLevelMinutes: number = 0;
@@ -142,8 +144,10 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         );
       }
 
-      // Distinct responders per type, plus the set of rules that have at least
-      // one responder (to flag levels that would notify no one).
+      /*
+       * Distinct responders per type, plus the set of rules that have at least
+       * one responder (to flag levels that would notify no one).
+       */
       const scheduleNamesById: Record<string, string> = {};
       const teamNamesById: Record<string, string> = {};
       const userNamesById: Record<string, string> = {};
@@ -215,30 +219,41 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
     await loadData();
   }, []);
 
-  const getStatTile: (params: {
+  /*
+   * A single quiet metric cell in the supporting stat strip. valueClassName lets
+   * a cell recolor its figure to reflect state — amber to flag a coverage gap,
+   * or a dimmed grey when a capability (repeats) is switched off — so the strip
+   * reads as a status row, not just four equal-weight numbers.
+   */
+  const getMetric: (params: {
     icon: IconProp;
     label: string;
     value: string;
+    valueClassName?: string;
   }) => ReactElement = (params: {
     icon: IconProp;
     label: string;
     value: string;
+    valueClassName?: string;
   }): ReactElement => {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-          <Icon icon={params.icon} className="h-4 w-4 text-indigo-600" />
+      <div className="bg-white px-4 py-3.5">
+        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+          <Icon icon={params.icon} className="h-3.5 w-3.5 text-gray-400" />
+          <span className="truncate">{params.label}</span>
         </div>
-        <div className="min-w-0">
-          <div className="truncate text-lg font-semibold leading-tight text-gray-900">
-            {params.value}
-          </div>
-          <div className="truncate text-xs text-gray-500">{params.label}</div>
+        <div
+          className={`mt-2 truncate text-xl font-semibold leading-none ${
+            params.valueClassName || "text-gray-900"
+          }`}
+        >
+          {params.value}
         </div>
       </div>
     );
   };
 
+  // One responder category (schedules / teams / users) with its chips.
   const getResponderGroup: (params: {
     icon: IconProp;
     iconColor: string;
@@ -251,24 +266,30 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
     names: Array<string>;
   }): ReactElement => {
     return (
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
+        <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400 sm:w-40 sm:pt-0.5">
           <Icon
             icon={params.icon}
             className={`h-3.5 w-3.5 ${params.iconColor}`}
           />
           {params.label}
+          <span className="text-gray-300">·</span>
+          <span className="tabular-nums text-gray-500">
+            {params.names.length}
+          </span>
         </span>
-        {params.names.map((name: string, i: number) => {
-          return (
-            <span
-              key={`${params.label}-${i}`}
-              className="inline-flex items-center rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
-            >
-              {name}
-            </span>
-          );
-        })}
+        <div className="flex flex-1 flex-wrap gap-1.5">
+          {params.names.map((name: string, i: number) => {
+            return (
+              <span
+                key={`${params.label}-${i}`}
+                className="inline-flex items-center rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
+              >
+                {name}
+              </span>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -290,15 +311,10 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    const totalResponders: number =
-      overview.scheduleNames.length +
-      overview.teamNames.length +
-      overview.userNames.length;
-
     if (overview.levels === 0) {
       return (
-        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 px-4 py-6 text-center">
-          <p className="text-sm text-gray-600">
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-4 py-8 text-center">
+          <p className="mx-auto max-w-md text-sm leading-relaxed text-gray-600">
             This policy has no escalation rules yet, so triggering it will not
             page anyone. Open the{" "}
             <span className="font-semibold text-gray-900">Escalation</span> tab
@@ -308,21 +324,49 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
       );
     }
 
+    const totalResponders: number =
+      overview.scheduleNames.length +
+      overview.teamNames.length +
+      overview.userNames.length;
+    const hasResponders: boolean = totalResponders > 0;
+    const repeatsEnabled: boolean =
+      overview.repeatEnabled && overview.repeatCount > 0;
+    const timeToFinalValue: string =
+      overview.levels <= 1
+        ? "—"
+        : overview.timeToFinalLevelMinutes > 0
+          ? formatDuration(overview.timeToFinalLevelMinutes)
+          : "Instant";
+
     return (
       <div>
-        {/* Narrative */}
-        <p className="mb-5 text-sm leading-relaxed text-gray-600">
+        {/* Hero narrative — the confident, read-it-in-five-seconds summary. */}
+        <p className="mb-6 text-base leading-relaxed text-gray-600">
           When this policy is triggered, it works through{" "}
           <span className="font-semibold text-gray-900">
             {overview.levels}{" "}
             {overview.levels === 1 ? "escalation level" : "escalation levels"}
-          </span>{" "}
-          and can reach{" "}
-          <span className="font-semibold text-gray-900">
-            {totalResponders}{" "}
-            {totalResponders === 1 ? "responder" : "responders"}
           </span>
-          . The first level is paged immediately;{" "}
+          {hasResponders ? (
+            <>
+              {" "}
+              and can page up to{" "}
+              <span className="font-semibold text-gray-900">
+                {totalResponders}{" "}
+                {totalResponders === 1 ? "responder" : "responders"}
+              </span>
+              .{" "}
+            </>
+          ) : (
+            <>
+              , but{" "}
+              <span className="font-semibold text-amber-700">
+                no responders are assigned yet
+              </span>
+              .{" "}
+            </>
+          )}
+          The first level is notified immediately;{" "}
           {overview.levels > 1 ? (
             overview.timeToFinalLevelMinutes > 0 ? (
               <>
@@ -335,113 +379,128 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
               </>
             ) : (
               <>
-                if no one acknowledges, every level is engaged{" "}
+                if no one acknowledges, every remaining level is engaged{" "}
                 <span className="font-semibold text-gray-900">right away</span>.{" "}
               </>
             )
           ) : (
             <>there are no further levels to escalate to. </>
           )}
-          {overview.repeatEnabled && overview.repeatCount > 0 ? (
+          {repeatsEnabled ? (
             <>
               If it is still unacknowledged, the whole policy repeats up to{" "}
               <span className="font-semibold text-gray-900">
                 {overview.repeatCount} more{" "}
                 {overview.repeatCount === 1 ? "time" : "times"}
-              </span>
-              .
+              </span>{" "}
+              before stopping.
             </>
           ) : (
-            <>If it is still unacknowledged after the final level, it stops.</>
+            <>
+              If it is still unacknowledged after the final level, escalation
+              stops.
+            </>
           )}
         </p>
 
-        {/* Stat tiles */}
-        <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {getStatTile({
+        {/* Supporting metrics — a quiet, segmented stat strip. */}
+        <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-4">
+          {getMetric({
             icon: IconProp.List,
-            label:
-              overview.levels === 1 ? "Escalation level" : "Escalation levels",
+            label: "Levels",
             value: `${overview.levels}`,
           })}
-          {getStatTile({
+          {getMetric({
             icon: IconProp.User,
-            label: totalResponders === 1 ? "Responder" : "Responders",
+            label: "Responders",
             value: `${totalResponders}`,
+            valueClassName: hasResponders ? "text-gray-900" : "text-amber-600",
           })}
-          {getStatTile({
+          {getMetric({
             icon: IconProp.Clock,
             label: "To final level",
-            value:
-              overview.timeToFinalLevelMinutes > 0
-                ? formatDuration(overview.timeToFinalLevelMinutes)
-                : "Instant",
+            value: timeToFinalValue,
           })}
-          {getStatTile({
+          {getMetric({
             icon: IconProp.Reload,
-            label: "Repeats if unacked",
-            value:
-              overview.repeatEnabled && overview.repeatCount > 0
-                ? `${overview.repeatCount}×`
-                : "None",
+            label: "Repeats",
+            value: repeatsEnabled ? `${overview.repeatCount}×` : "None",
+            valueClassName: repeatsEnabled ? "text-gray-900" : "text-gray-400",
           })}
         </div>
 
-        {/* Responder breakdown */}
-        {totalResponders > 0 ? (
-          <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-            {overview.scheduleNames.length > 0 &&
-              getResponderGroup({
-                icon: IconProp.Calendar,
-                iconColor: "text-indigo-500",
-                label: "On-call schedules",
-                names: overview.scheduleNames,
-              })}
-            {overview.teamNames.length > 0 &&
-              getResponderGroup({
-                icon: IconProp.Team,
-                iconColor: "text-violet-500",
-                label: "Teams",
-                names: overview.teamNames,
-              })}
-            {overview.userNames.length > 0 &&
-              getResponderGroup({
-                icon: IconProp.User,
-                iconColor: "text-gray-500",
-                label: "Users",
-                names: overview.userNames,
-              })}
+        {/* Responders — a refined, well-grouped list with integrated coverage note. */}
+        {hasResponders ? (
+          <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+            <div className="mb-3.5 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Who gets paged
+              </span>
+              <span className="text-xs font-medium tabular-nums text-gray-500">
+                {totalResponders} total
+              </span>
+            </div>
+            <div className="space-y-3.5">
+              {overview.scheduleNames.length > 0 &&
+                getResponderGroup({
+                  icon: IconProp.Calendar,
+                  iconColor: "text-indigo-500",
+                  label: "On-call",
+                  names: overview.scheduleNames,
+                })}
+              {overview.teamNames.length > 0 &&
+                getResponderGroup({
+                  icon: IconProp.Team,
+                  iconColor: "text-violet-500",
+                  label: "Teams",
+                  names: overview.teamNames,
+                })}
+              {overview.userNames.length > 0 &&
+                getResponderGroup({
+                  icon: IconProp.User,
+                  iconColor: "text-gray-500",
+                  label: "Users",
+                  names: overview.userNames,
+                })}
+            </div>
+            {overview.levelsWithNoResponders > 0 ? (
+              <div className="mt-4 flex items-start gap-2 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-700">
+                <Icon
+                  icon={IconProp.Alert}
+                  className="mt-px h-3.5 w-3.5 flex-shrink-0 text-amber-500"
+                />
+                <span>
+                  <span className="font-semibold">
+                    {overview.levelsWithNoResponders}{" "}
+                    {overview.levelsWithNoResponders === 1 ? "level" : "levels"}
+                  </span>{" "}
+                  along the way{" "}
+                  {overview.levelsWithNoResponders === 1 ? "has" : "have"} no
+                  responders and will notify no one when reached.
+                </span>
+              </div>
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            <Icon
-              icon={IconProp.Alert}
-              className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
-            />
-            <span>
-              No responders are assigned to any level, so this policy will not
-              page anyone. Add responders on the Escalation tab.
-            </span>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start gap-2.5">
+              <Icon
+                icon={IconProp.Alert}
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
+              />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">
+                  No responders are assigned
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-amber-700">
+                  This policy will not page anyone when it is triggered. Add
+                  on-call schedules, teams, or users on the Escalation tab.
+                </p>
+              </div>
+            </div>
           </div>
-        )}
-
-        {/* Coverage warning for levels with nobody assigned */}
-        {overview.levelsWithNoResponders > 0 && totalResponders > 0 ? (
-          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <Icon
-              icon={IconProp.Alert}
-              className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-500"
-            />
-            <span>
-              <span className="font-semibold">
-                {overview.levelsWithNoResponders}{" "}
-                {overview.levelsWithNoResponders === 1 ? "level" : "levels"}
-              </span>{" "}
-              have no responders and will notify no one when reached.
-            </span>
-          </div>
-        ) : (
-          <></>
         )}
       </div>
     );
@@ -449,20 +508,15 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
-      {/* Header */}
-      <div className="flex items-start gap-3 border-b border-gray-100 px-6 py-5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-inset ring-indigo-200">
-          <Icon icon={IconProp.Bell} className="h-5 w-5 text-indigo-600" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">
-            Policy at a glance
-          </h2>
-          <p className="mt-0.5 text-sm text-gray-500">
-            A quick snapshot of how this on-call policy responds when it is
-            triggered.
-          </p>
-        </div>
+      {/* Header — plain title, no icon box (matches the standard Card). */}
+      <div className="border-b border-gray-100 px-6 py-5">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Policy at a glance
+        </h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
+          A quick snapshot of how this on-call policy responds when it is
+          triggered.
+        </p>
       </div>
 
       {/* Body */}

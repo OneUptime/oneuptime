@@ -79,6 +79,9 @@ Write your final answer as a concise incident-response note with exactly these s
 
 Keep it tight and skimmable. You are read-only: never claim to have changed anything.`;
 
+// Which signal an investigation is about — each has its own per-project opt-in.
+export type SentinelSubjectType = "Incident" | "Alert";
+
 export interface InvestigationRequest {
   projectId: ObjectID;
   // Label recorded on LlmLog, e.g. "Sentinel Incident Investigation".
@@ -106,18 +109,22 @@ export interface InvestigationRequest {
 
 export default class SentinelInvestigationEngine {
   /*
-   * Shared gate: AI enabled, the auto-investigation opt-in on, and an LLM
-   * provider configured. Runs before any (subject-specific) context assembly.
+   * Shared gate: AI enabled, the subject's auto-investigation opt-in on, and an
+   * LLM provider configured. Incidents and alerts each have their own opt-in so
+   * they can be enabled independently. Runs before any (subject-specific)
+   * context assembly.
    */
   @CaptureSpan()
   public static async isEnabledForProject(
     projectId: ObjectID,
+    subjectType: SentinelSubjectType,
   ): Promise<boolean> {
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
       select: {
         enableAi: true,
         enableAutomaticIncidentInvestigation: true,
+        enableAutomaticAlertInvestigation: true,
       },
       props: { isRoot: true },
     });
@@ -130,7 +137,12 @@ export default class SentinelInvestigationEngine {
       return false;
     }
 
-    if (project.enableAutomaticIncidentInvestigation !== true) {
+    const isOptedIn: boolean =
+      subjectType === "Alert"
+        ? project.enableAutomaticAlertInvestigation === true
+        : project.enableAutomaticIncidentInvestigation === true;
+
+    if (!isOptedIn) {
       return false;
     }
 

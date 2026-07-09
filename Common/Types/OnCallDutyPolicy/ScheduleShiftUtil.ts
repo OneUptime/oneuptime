@@ -19,9 +19,11 @@ import OneUptimeDate from "../Date";
  * timezone to display those instants in.
  */
 
-// The identity of the on-call person for an event. LayerUtil stores the user id
-// in CalendarEvent.title before the UI relabels it, so callers pass the events
-// straight through from getEvents/getMultiLayerEvents.
+/*
+ * The identity of the on-call person for an event. LayerUtil stores the user id
+ * in CalendarEvent.title before the UI relabels it, so callers pass the events
+ * straight through from getEvents/getMultiLayerEvents.
+ */
 export interface OnCallShift {
   userId: string;
   start: Date;
@@ -196,9 +198,11 @@ export default class ScheduleShiftUtil {
       return gaps;
     }
 
-    // A gap only "counts" when it is longer than the contiguity tolerance, so
-    // the one-second boundaries LayerUtil leaves between segments never show up
-    // as spurious coverage holes.
+    /*
+     * A gap only "counts" when it is longer than the contiguity tolerance, so
+     * the one-second boundaries LayerUtil leaves between segments never show up
+     * as spurious coverage holes.
+     */
     const isRealGap: (start: Date, end: Date) => boolean = (
       start: Date,
       end: Date,
@@ -226,9 +230,11 @@ export default class ScheduleShiftUtil {
       gaps.push({ start: windowStart, end: firstShift.start });
     }
 
-    // `coveredUntil` tracks the furthest point covered so far. Shifts can
-    // overlap (multi-layer merges), so we advance it monotonically and only
-    // record a gap when the next shift starts strictly after it.
+    /*
+     * `coveredUntil` tracks the furthest point covered so far. Shifts can
+     * overlap (multi-layer merges), so we advance it monotonically and only
+     * record a gap when the next shift starts strictly after it.
+     */
     let coveredUntil: Date = firstShift.end;
 
     for (let i: number = 1; i < shifts.length; i++) {

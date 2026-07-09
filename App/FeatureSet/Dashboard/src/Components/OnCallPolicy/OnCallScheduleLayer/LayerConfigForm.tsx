@@ -1,3 +1,4 @@
+import LayerDateTimeFieldElement from "./LayerDateTimeFieldElement";
 import RestrictionTimesFieldElement from "./RestrictionTimesFieldElement";
 import Recurring from "Common/Types/Events/Recurring";
 import RestrictionTimes, {
@@ -15,7 +16,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
-  // Schedule timezone — restriction times are entered/enforced in it (audit F1).
+  /*
+   * Schedule timezone — rotation start, hand-off and restriction times are all
+   * entered/displayed/enforced as wall-clock in it (audit F1). All three route
+   * through the same re-anchoring so "what you type" matches "what the engine
+   * enforces" regardless of the configuring admin's browser zone.
+   */
   timezone?: string | undefined;
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
 }
@@ -75,8 +81,20 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
           title: "Rotation starts at",
           description:
             "The date and time this layer's on-call rotation begins.",
-          fieldType: FormFieldSchemaType.DateTime,
+          fieldType: FormFieldSchemaType.CustomComponent,
           required: true,
+          getCustomElement: (
+            value: FormValues<OnCallDutyPolicyScheduleLayer>,
+            fieldProps: CustomElementProps,
+          ) => {
+            return (
+              <LayerDateTimeFieldElement
+                {...fieldProps}
+                value={value.startsAt as Date}
+                timezone={props.timezone}
+              />
+            );
+          },
         },
         {
           field: {
@@ -106,8 +124,20 @@ const LayerConfigForm: FunctionComponent<ComponentProps> = (
           title: "First hand-off time",
           description:
             "The date and time of the first hand-off to the next user. Hand-offs then repeat every rotation interval.",
-          fieldType: FormFieldSchemaType.DateTime,
+          fieldType: FormFieldSchemaType.CustomComponent,
           required: true,
+          getCustomElement: (
+            value: FormValues<OnCallDutyPolicyScheduleLayer>,
+            fieldProps: CustomElementProps,
+          ) => {
+            return (
+              <LayerDateTimeFieldElement
+                {...fieldProps}
+                value={value.handOffTime as Date}
+                timezone={props.timezone}
+              />
+            );
+          },
         },
         {
           field: {

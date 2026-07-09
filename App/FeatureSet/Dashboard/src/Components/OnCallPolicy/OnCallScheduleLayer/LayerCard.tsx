@@ -99,7 +99,6 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       timezone: props.timezone,
       numberOfShifts: 6,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewKey]);
 
   /*

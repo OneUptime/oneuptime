@@ -372,7 +372,6 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       now,
       windowEnd,
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.layers, props.allLayerUsers, props.timezone, overrideRecords]);
 
   useEffect(() => {
