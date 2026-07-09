@@ -375,11 +375,6 @@ const LayerUser: FunctionComponent<ComponentProps> = (
       {showAddUserModal && (
         <AddLayerUserModal
           layer={props.layer}
-          existingUserIds={users
-            .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
-              return layerUser.user?.id?.toString() || "";
-            })
-            .filter(Boolean)}
           onClose={() => {
             setShowAddUserModal(false);
           }}

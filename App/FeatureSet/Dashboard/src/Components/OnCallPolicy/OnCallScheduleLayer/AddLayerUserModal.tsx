@@ -20,8 +20,6 @@ import React, {
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
-  // User ids already in the layer — excluded from the results.
-  existingUserIds: Array<string>;
   onClose: () => void;
   onUserAdded: () => void;
 }
@@ -84,12 +82,12 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
       });
   }, [debouncedSearch]);
 
-  const existingUserIdSet: Set<string> = new Set<string>(props.existingUserIds);
-  const visibleUsers: Array<ProjectUserResult> = results.filter(
-    (user: ProjectUserResult) => {
-      return !existingUserIdSet.has(user.userId);
-    },
-  );
+  /*
+   * The same user may be added to a layer more than once (e.g. to take more
+   * shifts in the rotation), so results are shown as-is without excluding
+   * members who are already on the layer.
+   */
+  const visibleUsers: Array<ProjectUserResult> = results;
 
   const addUser: () => Promise<void> = async (): Promise<void> => {
     if (!selectedUserId) {
@@ -156,12 +154,12 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
           </span>
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-900">
-              {hasSearch ? "No matching members" : "No members to add"}
+              {hasSearch ? "No matching members" : "No project members"}
             </p>
             <p className="mx-auto max-w-[16rem] text-xs leading-relaxed text-gray-500">
               {hasSearch
                 ? "No members match your search. Try a different name or email."
-                : "Everyone in this project is already on this layer."}
+                : "There are no members in this project to add."}
             </p>
           </div>
         </div>
@@ -245,7 +243,6 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
       isLoading={isAdding}
       disableSubmitButton={!selectedUserId || isAdding}
       error={error}
-      icon={IconProp.User}
       modalWidth={ModalWidth.Normal}
     >
       <div className="pt-1">
