@@ -7,6 +7,7 @@ import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "../IncidentAIContextBuilder";
 import SentinelInvestigationEngine from "./SentinelInvestigationEngine";
+import SentinelMemory from "./SentinelMemory";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -47,10 +48,32 @@ export default class SentinelIncidentInvestigationRunner {
           includeWorkspaceMessages: false,
         });
 
+      /*
+       * Recurrence memory: pull in past resolved incidents that share this
+       * incident's monitors/labels so Sentinel can recognise "I've seen this
+       * before" and reference the prior fix.
+       */
+      const priorCasesContext: string =
+        await SentinelMemory.getPriorSimilarIncidentsContext({
+          projectId,
+          currentIncidentId: incidentId,
+          monitorNames: (contextData.incident.monitors || [])
+            .map((m: { name?: string }) => {
+              return m.name || "";
+            })
+            .filter(Boolean),
+          labelNames: (contextData.incident.labels || [])
+            .map((l: { name?: string }) => {
+              return l.name || "";
+            })
+            .filter(Boolean),
+        });
+
       await SentinelInvestigationEngine.investigate({
         projectId,
         feature: "Sentinel Incident Investigation",
-        contextSummary: this.buildIncidentSummary(contextData),
+        contextSummary:
+          this.buildIncidentSummary(contextData) + priorCasesContext,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           isConfident: boolean;
