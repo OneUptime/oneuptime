@@ -15,6 +15,10 @@ import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -22,10 +26,18 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import TimezoneUtil from "Common/UI/Utils/Timezone";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+
+/*
+ * Timezone options are static and expensive to sort (every IANA zone by GMT
+ * offset), so compute them once at module load rather than per render.
+ */
+const timezoneDropdownOptions: Array<DropdownOption> =
+  TimezoneUtil.getTimezoneDropdownOptions();
 
 export interface ComponentProps {
   onCallDutyPolicyScheduleId: ObjectID;
@@ -55,6 +67,9 @@ const Layers: FunctionComponent<ComponentProps> = (
   const [scheduleTimezone, setScheduleTimezone] = React.useState<
     string | undefined
   >(undefined);
+
+  const [isSavingTimezone, setIsSavingTimezone] =
+    React.useState<boolean>(false);
 
   const [isAddButtonLoading, setIsAddButtonLoading] =
     React.useState<boolean>(false);
@@ -491,6 +506,86 @@ const Layers: FunctionComponent<ComponentProps> = (
     );
   };
 
+  type SaveScheduleTimezoneFunction = (
+    timezone: string | undefined,
+  ) => Promise<void>;
+
+  /*
+   * The schedule's timezone lives on the schedule model but is edited here, next
+   * to the layers whose rotation-start / hand-off / restriction times it governs
+   * — so the zone and the times it interprets are configured in one place. We
+   * update local state optimistically so the layer editors and previews
+   * re-anchor immediately, and roll back if the save fails.
+   */
+  const saveScheduleTimezone: SaveScheduleTimezoneFunction = async (
+    timezone: string | undefined,
+  ): Promise<void> => {
+    const previous: string | undefined = scheduleTimezone;
+
+    if (timezone === previous) {
+      return;
+    }
+
+    setScheduleTimezone(timezone);
+    setIsSavingTimezone(true);
+    setError("");
+
+    try {
+      await ModelAPI.updateById({
+        modelType: OnCallDutyPolicySchedule,
+        id: props.onCallDutyPolicyScheduleId,
+        data: {
+          timezone: timezone || null,
+        },
+      });
+    } catch (err) {
+      setScheduleTimezone(previous);
+      setError(API.getFriendlyMessage(err));
+    }
+
+    setIsSavingTimezone(false);
+  };
+
+  const timezoneCard: GetReactElementFunction = (): ReactElement => {
+    const selectedOption: DropdownOption | undefined = scheduleTimezone
+      ? timezoneDropdownOptions.find((option: DropdownOption) => {
+          return option.value === scheduleTimezone;
+        })
+      : undefined;
+
+    return (
+      <div className="mb-5">
+        <Card
+          title="Schedule timezone"
+          description={
+            "Every layer in this schedule — rotation start, hand-off and active-hour restrictions — is entered and enforced in this timezone. Leave empty to use the server's local timezone."
+          }
+        >
+          <div className="max-w-md">
+            <Dropdown
+              options={timezoneDropdownOptions}
+              value={selectedOption}
+              placeholder="Select timezone"
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                const timezone: string | undefined =
+                  value && !Array.isArray(value) ? value.toString() : undefined;
+
+                saveScheduleTimezone(timezone).catch((err: Error) => {
+                  setError(API.getFriendlyMessage(err));
+                });
+              }}
+            />
+            {isSavingTimezone && (
+              <p className="mt-2 text-xs text-gray-400">Saving timezone…</p>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
   if (isLoading) {
     return <ComponentLoader />;
   }
@@ -502,6 +597,7 @@ const Layers: FunctionComponent<ComponentProps> = (
   if (layers.length === 0) {
     return (
       <div>
+        {timezoneCard()}
         <EmptyState
           footer={addLayerButton()}
           showSolidBackground={false}
@@ -518,6 +614,8 @@ const Layers: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      {timezoneCard()}
+
       {/* Section header */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
