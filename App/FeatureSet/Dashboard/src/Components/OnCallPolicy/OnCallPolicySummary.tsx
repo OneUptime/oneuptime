@@ -12,7 +12,12 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import useAsyncEffect from "use-async-effect";
 
 export interface ComponentProps {
@@ -29,6 +34,22 @@ interface PolicyOverview {
   teamNames: Array<string>;
   userNames: Array<string>;
   levelsWithNoResponders: number;
+}
+
+/*
+ * A single node in the compact "at a glance" escalation path strip. The strip is
+ * a lightweight timing visual built purely from the aggregate overview data — it
+ * is NOT a per-level timeline (we have no per-level responder data here). Each
+ * node also carries the label for the connector that leads into it.
+ */
+interface EscalationPathNode {
+  icon: IconProp;
+  circleClassName: string;
+  iconClassName: string;
+  title: string;
+  caption: string;
+  connectorLabel: string;
+  connectorAccent: boolean;
 }
 
 // Compact human duration, e.g. "immediately", "5 min", "1 hr 30 min".
@@ -277,6 +298,125 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The "escalation path forward" strip: a compact, horizontally-scrolling row of
+   * nodes that traces how an unacknowledged alert climbs over time — Trigger ->
+   * first level (immediately) -> final level (after timeToFinalLevelMinutes) ->
+   * repeats / stops. Built only from aggregate overview data, so no per-level
+   * responder detail is implied.
+   */
+  const getEscalationPath: (params: {
+    overview: PolicyOverview;
+    totalResponders: number;
+  }) => ReactElement = (params: {
+    overview: PolicyOverview;
+    totalResponders: number;
+  }): ReactElement => {
+    const data: PolicyOverview = params.overview;
+    const repeats: boolean = data.repeatEnabled && data.repeatCount > 0;
+
+    const nodes: Array<EscalationPathNode> = [];
+
+    // 1. The incident fires.
+    nodes.push({
+      icon: IconProp.Alert,
+      circleClassName: "bg-amber-50 ring-amber-200",
+      iconClassName: "text-amber-500",
+      title: "Triggered",
+      caption: "Alert fires",
+      connectorLabel: "",
+      connectorAccent: false,
+    });
+
+    // 2. The first level is paged the instant the policy runs.
+    nodes.push({
+      icon: IconProp.Bell,
+      circleClassName: "bg-indigo-50 ring-indigo-200",
+      iconClassName: "text-indigo-600",
+      title: data.levels === 1 ? "Only level" : "Level 1",
+      caption: params.totalResponders > 0 ? "Paged now" : "No responders",
+      connectorLabel: "Immediately",
+      connectorAccent: false,
+    });
+
+    /*
+     * 3. The final level, but only when there is more than one — otherwise the
+     * first level is already the final one and this node would be redundant.
+     */
+    if (data.levels > 1) {
+      nodes.push({
+        icon: IconProp.ArrowUp,
+        circleClassName: "bg-indigo-50 ring-indigo-200",
+        iconClassName: "text-indigo-600",
+        title: `Level ${data.levels}`,
+        caption: "Final level",
+        connectorLabel:
+          data.timeToFinalLevelMinutes > 0
+            ? `After ${formatDuration(data.timeToFinalLevelMinutes)}`
+            : "Right away",
+        connectorAccent: data.timeToFinalLevelMinutes > 0,
+      });
+    }
+
+    // 4. What happens once every level has been exhausted.
+    nodes.push({
+      icon: repeats ? IconProp.Reload : IconProp.CheckCircle,
+      circleClassName: repeats
+        ? "bg-indigo-50 ring-indigo-200"
+        : "bg-gray-100 ring-gray-200",
+      iconClassName: repeats ? "text-indigo-600" : "text-gray-500",
+      title: repeats ? "Repeats" : "Ends",
+      caption: repeats
+        ? `${data.repeatCount}× more`
+        : "Escalation stops",
+      connectorLabel: "If unacked",
+      connectorAccent: false,
+    });
+
+    return (
+      <div className="overflow-x-auto">
+        <div className="flex items-start">
+          {nodes.map((node: EscalationPathNode, index: number) => {
+            return (
+              <Fragment key={`path-${index}`}>
+                {index > 0 ? (
+                  <div className="relative flex h-10 min-w-[64px] flex-1 items-center px-1.5">
+                    <div className="h-0.5 w-full rounded-full bg-gray-200" />
+                    <span
+                      className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] ${
+                        node.connectorAccent
+                          ? "bg-indigo-50 font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200"
+                          : "border border-gray-200 bg-white font-medium text-gray-500"
+                      }`}
+                    >
+                      {node.connectorLabel}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex w-[92px] flex-shrink-0 flex-col items-center text-center">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-full ring-1 ring-inset ${node.circleClassName}`}
+                  >
+                    <Icon
+                      icon={node.icon}
+                      className={`h-4 w-4 ${node.iconClassName}`}
+                    />
+                  </div>
+                  <div className="mt-2 text-[13px] font-semibold leading-tight text-gray-900">
+                    {node.title}
+                  </div>
+                  <div className="mt-0.5 text-[11px] leading-tight text-gray-500">
+                    {node.caption}
+                  </div>
+                </div>
+              </Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
       return (
@@ -314,51 +454,31 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
 
     return (
       <div>
-        {/* Narrative */}
+        {/* One-line framing; the path strip below owns the timing story. */}
         <p className="mb-5 text-sm leading-relaxed text-gray-600">
-          When this policy is triggered, it works through{" "}
-          <span className="font-semibold text-gray-900">
-            {overview.levels}{" "}
-            {overview.levels === 1 ? "escalation level" : "escalation levels"}
-          </span>{" "}
-          and can reach{" "}
+          When this policy is triggered, the first level is paged{" "}
+          <span className="font-semibold text-gray-900">immediately</span>,
+          reaching{" "}
           <span className="font-semibold text-gray-900">
             {totalResponders}{" "}
             {totalResponders === 1 ? "responder" : "responders"}
+          </span>{" "}
+          across{" "}
+          <span className="font-semibold text-gray-900">
+            {overview.levels}{" "}
+            {overview.levels === 1 ? "level" : "levels"}
           </span>
-          . The first level is paged immediately;{" "}
-          {overview.levels > 1 ? (
-            overview.timeToFinalLevelMinutes > 0 ? (
-              <>
-                if no one acknowledges, the alert climbs to the final level
-                after{" "}
-                <span className="font-semibold text-gray-900">
-                  {formatDuration(overview.timeToFinalLevelMinutes)}
-                </span>
-                .{" "}
-              </>
-            ) : (
-              <>
-                if no one acknowledges, every level is engaged{" "}
-                <span className="font-semibold text-gray-900">right away</span>.{" "}
-              </>
-            )
-          ) : (
-            <>there are no further levels to escalate to. </>
-          )}
-          {overview.repeatEnabled && overview.repeatCount > 0 ? (
-            <>
-              If it is still unacknowledged, the whole policy repeats up to{" "}
-              <span className="font-semibold text-gray-900">
-                {overview.repeatCount} more{" "}
-                {overview.repeatCount === 1 ? "time" : "times"}
-              </span>
-              .
-            </>
-          ) : (
-            <>If it is still unacknowledged after the final level, it stops.</>
-          )}
+          . The path below traces how an unacknowledged alert climbs over time.
         </p>
+
+        {/* Escalation path forward — compact "at a glance" timing strip */}
+        <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+          <div className="mb-4 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 text-gray-400" />
+            Escalation path
+          </div>
+          {getEscalationPath({ overview, totalResponders })}
+        </div>
 
         {/* Stat tiles */}
         <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -453,20 +573,15 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
-      {/* Header */}
-      <div className="flex items-start gap-3 border-b border-gray-100 px-6 py-5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-inset ring-indigo-200">
-          <Icon icon={IconProp.Bell} className="h-5 w-5 text-indigo-600" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">
-            Policy at a glance
-          </h2>
-          <p className="mt-0.5 text-sm text-gray-500">
-            A quick snapshot of how this on-call policy responds when it is
-            triggered.
-          </p>
-        </div>
+      {/* Header — plain title, no icon box (matches the standard Card style) */}
+      <div className="border-b border-gray-100 px-6 py-5">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Policy at a glance
+        </h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
+          A quick snapshot of how this on-call policy responds when it is
+          triggered.
+        </p>
       </div>
 
       {/* Body */}

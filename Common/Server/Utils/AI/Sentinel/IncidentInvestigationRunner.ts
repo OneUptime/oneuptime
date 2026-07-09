@@ -38,7 +38,12 @@ export default class SentinelIncidentInvestigationRunner {
     const { incidentId, projectId } = data;
 
     try {
-      if (!(await SentinelInvestigationEngine.isEnabledForProject(projectId))) {
+      if (
+        !(await SentinelInvestigationEngine.isEnabledForProject(
+          projectId,
+          "Incident",
+        ))
+      ) {
         return;
       }
 

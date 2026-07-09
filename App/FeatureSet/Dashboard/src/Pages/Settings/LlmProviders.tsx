@@ -16,6 +16,8 @@ import TestLLMProvider, {
 } from "Common/UI/Utils/TestLLMProvider";
 import Navigation from "Common/UI/Utils/Navigation";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
+import Project from "Common/Models/DatabaseModels/Project";
+import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
 import React, {
   Fragment,
@@ -133,6 +135,62 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             </div>
           </div>
         </Card>
+
+        <CardModelDetail<Project>
+          name="Automatic AI Investigations"
+          cardProps={{
+            title: "Automatic AI Investigations (Sentinel)",
+            description:
+              "When enabled, OneUptime's AI SRE (Sentinel) automatically investigates new incidents and/or alerts and posts a cited root cause analysis to the timeline. Requires an LLM provider to be configured below.",
+          }}
+          isEditable={true}
+          editButtonText={"Edit Settings"}
+          formFields={[
+            {
+              field: {
+                enableAutomaticIncidentInvestigation: true,
+              },
+              title: "Automatically Investigate Incidents",
+              description:
+                "Investigate every new incident and post a cited root cause analysis to the incident timeline.",
+              required: false,
+              fieldType: FormFieldSchemaType.Toggle,
+            },
+            {
+              field: {
+                enableAutomaticAlertInvestigation: true,
+              },
+              title: "Automatically Investigate Alerts",
+              description:
+                "Investigate every new alert and post a cited root cause analysis to the alert timeline. Alerts can be higher-volume than incidents, so enable this with that in mind.",
+              required: false,
+              fieldType: FormFieldSchemaType.Toggle,
+            },
+          ]}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-sentinel-settings",
+            fields: [
+              {
+                field: {
+                  enableAutomaticIncidentInvestigation: true,
+                },
+                title: "Automatically Investigate Incidents",
+                placeholder: "Disabled",
+                fieldType: FieldType.Boolean,
+              },
+              {
+                field: {
+                  enableAutomaticAlertInvestigation: true,
+                },
+                title: "Automatically Investigate Alerts",
+                placeholder: "Disabled",
+                fieldType: FieldType.Boolean,
+              },
+            ],
+            modelId: ProjectUtil.getCurrentProjectId()!,
+          }}
+        />
 
         <ModelTable<LlmProvider>
           modelType={LlmProvider}
