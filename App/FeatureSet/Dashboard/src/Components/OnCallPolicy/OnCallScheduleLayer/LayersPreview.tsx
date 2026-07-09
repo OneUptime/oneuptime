@@ -1,8 +1,12 @@
+import FinalScheduleSummary from "./FinalScheduleSummary";
 import { getColorForUserId } from "./LayerUserColors";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import ScheduleShiftUtil, {
+  OnCallShift,
+} from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
 import UserOverrideUtil, {
   OverrideEventMeta,
   UserOverrideRecord,
@@ -28,6 +32,14 @@ import React, {
   useMemo,
   useState,
 } from "react";
+
+/*
+ * Forward window (from "now") the textual schedule summary looks ahead over.
+ * The user-override fetch is widened to at least this window too, so the summary
+ * reflects the same substitutions the server would page — not just overrides
+ * that happen to fall in the calendar's currently-visible range.
+ */
+const SUMMARY_WINDOW_DAYS: number = 42;
 
 export interface ComponentProps {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
@@ -149,6 +161,26 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
     let isCancelled: boolean = false;
 
+    /*
+     * Fetch overrides overlapping BOTH the visible calendar range AND the
+     * summary's forward window [now, now + SUMMARY_WINDOW_DAYS]. Widening it to
+     * the summary window means a substitution that lands weeks ahead is applied
+     * to the "upcoming hand-offs" summary too, instead of only appearing once
+     * the user navigates the calendar to that week (which previously made the
+     * summary contradict the calendar and the actual paging).
+     */
+    const summaryNow: Date = OneUptimeDate.getCurrentDate();
+    const summaryEnd: Date = OneUptimeDate.addRemoveDays(
+      summaryNow,
+      SUMMARY_WINDOW_DAYS,
+    );
+    const fetchStart: Date = OneUptimeDate.isBefore(startTime, summaryNow)
+      ? startTime
+      : summaryNow;
+    const fetchEnd: Date = OneUptimeDate.isAfter(endTime, summaryEnd)
+      ? endTime
+      : summaryEnd;
+
     const fetchOverrides: () => Promise<void> = async (): Promise<void> => {
       try {
         const result: ListResult<OnCallDutyPolicyUserOverride> =
@@ -156,8 +188,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
             modelType: OnCallDutyPolicyUserOverride,
             query: {
               projectId: ProjectUtil.getCurrentProjectId()!,
-              startsAt: new LessThanOrEqual<Date>(endTime),
-              endsAt: new GreaterThanOrEqual<Date>(startTime),
+              startsAt: new LessThanOrEqual<Date>(fetchEnd),
+              endsAt: new GreaterThanOrEqual<Date>(fetchStart),
               onCallDutyPolicyId: new IsNull(),
             },
             limit: LIMIT_PER_PROJECT,
@@ -263,10 +295,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     return result;
   }, [scheduleUsersById, overrides, overrideUserInfo]);
 
-  useEffect(() => {
-    const layerUtil: LayerUtil = new LayerUtil();
+  /*
+   * Build the LayerProps array once from the current layers/users. Shared by
+   * both the calendar (visible range) and the textual summary (a fixed forward
+   * window), so the two are always computed from identical inputs.
+   */
+  const buildLayerProps: () => Array<LayerProps> = (): Array<LayerProps> => {
     const layerProps: Array<LayerProps> = [];
-
     for (const layer of props.layers) {
       const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
         props.allLayerUsers[layer.id?.toString() || ""] || [];
@@ -284,6 +319,65 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         timezone: props.timezone,
       });
     }
+    return layerProps;
+  };
+
+  const overrideRecords: Array<UserOverrideRecord> = useMemo(() => {
+    return overrides.map(
+      (o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
+        return {
+          overrideUserId: o.overrideUserId?.toString() || "",
+          routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
+          startsAt: o.startsAt!,
+          endsAt: o.endsAt!,
+          onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
+        };
+      },
+    );
+  }, [overrides]);
+
+  /*
+   * The combined-schedule shifts for the summary. Computed over a fixed forward
+   * window from "now" (independent of where the user has navigated the calendar)
+   * so "on call now / up next / upcoming hand-offs" stays stable and meaningful.
+   * Uses the same LayerUtil + override application as the calendar, so the
+   * summary never contradicts the grid below it.
+   */
+  const summaryData: {
+    shifts: Array<OnCallShift>;
+    now: Date;
+    windowEnd: Date;
+  } = useMemo(() => {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const windowEnd: Date = OneUptimeDate.addRemoveDays(
+      now,
+      SUMMARY_WINDOW_DAYS,
+    );
+
+    let events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
+      calendarStartDate: now,
+      calendarEndDate: windowEnd,
+      layers: buildLayerProps(),
+    });
+
+    if (overrideRecords.length > 0) {
+      events = UserOverrideUtil.applyOverridesToEvents({
+        events,
+        overrides: overrideRecords,
+      });
+    }
+
+    return {
+      shifts: ScheduleShiftUtil.groupEventsIntoShifts(events),
+      now,
+      windowEnd,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.layers, props.allLayerUsers, props.timezone, overrideRecords]);
+
+  useEffect(() => {
+    const layerUtil: LayerUtil = new LayerUtil();
+    const layerProps: Array<LayerProps> = buildLayerProps();
 
     let events: Array<CalendarEvent> = layerUtil.getMultiLayerEvents({
       calendarEndDate: endTime,
@@ -291,19 +385,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       layers: layerProps,
     });
 
-    if (overrides.length > 0) {
-      const overrideRecords: Array<UserOverrideRecord> = overrides.map(
-        (o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
-          return {
-            overrideUserId: o.overrideUserId?.toString() || "",
-            routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
-            startsAt: o.startsAt!,
-            endsAt: o.endsAt!,
-            onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
-          };
-        },
-      );
-
+    if (overrideRecords.length > 0) {
       events = UserOverrideUtil.applyOverridesToEvents({
         events,
         overrides: overrideRecords,
@@ -344,7 +426,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     props.timezone,
     startTime,
     endTime,
-    overrides,
+    overrideRecords,
     overrideUserInfo,
     scheduleUsersById,
   ]);
@@ -364,6 +446,20 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
               : "Here is a preview of who is on call and when. This is based on your local timezone - " +
                 OneUptimeDate.getCurrentTimezoneString()
           }
+        />
+      )}
+
+      {/*
+       * Textual "who is on call now / next / upcoming" summary of the combined
+       * schedule, above the calendar grid it is derived from.
+       */}
+      {uniqueUsers.length > 0 && (
+        <FinalScheduleSummary
+          shifts={summaryData.shifts}
+          now={summaryData.now}
+          windowEnd={summaryData.windowEnd}
+          timezone={props.timezone}
+          userById={{ ...scheduleUsersById, ...overrideUserInfo }}
         />
       )}
 

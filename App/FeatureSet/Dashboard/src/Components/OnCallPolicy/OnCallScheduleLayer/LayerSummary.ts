@@ -157,3 +157,87 @@ export function summarizeStartsAt(startsAt: Date | undefined): string {
 
   return `Starts ${OneUptimeDate.getDateAsLocalFormattedString(startsAt, false)}`;
 }
+
+/*
+ * The following helpers format the concrete rotation SHIFTS the summaries list
+ * ("Alice is on call from Mon 9:00 AM to Tue 9:00 AM"). They format the shift's
+ * absolute instants in the schedule's timezone when one is set — the same zone
+ * the engine pages people in — so the summary can never disagree with who is
+ * actually on call. When no timezone is set they fall back to the viewer's
+ * local zone.
+ */
+
+// e.g. "Mon, Jul 7, 2025, 9:00 AM EDT"
+export function formatShiftInstant(
+  date: Date,
+  timezone?: string | undefined,
+): string {
+  return OneUptimeDate.getDateAsFormattedStringInTimezone({
+    date,
+    timezone,
+    showWeekday: true,
+  });
+}
+
+// Compact human duration from a raw seconds count, e.g. "24h", "8h 30m",
+// "5d 12h", "45m".
+export function formatDurationFromSeconds(totalSeconds: number): string {
+  if (totalSeconds <= 0) {
+    return "0m";
+  }
+
+  const days: number = Math.floor(totalSeconds / 86400);
+  const hours: number = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes: number = Math.floor((totalSeconds % 3600) / 60);
+
+  if (days > 0) {
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  }
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  return `${minutes || 1}m`;
+}
+
+// Compact human duration of a shift's wall-clock span (start -> end).
+export function formatShiftDuration(start: Date, end: Date): string {
+  return formatDurationFromSeconds(
+    OneUptimeDate.getDifferenceInSeconds(end, start),
+  );
+}
+
+/*
+ * A short "when does this start relative to now" label for an upcoming shift:
+ * "Now" for a shift already in progress, otherwise "in 45 min" / "in 3 hours" /
+ * "in 2 days" / "in 3 weeks".
+ */
+export function formatRelativeStart(start: Date, now: Date): string {
+  if (OneUptimeDate.isOnOrBefore(start, now)) {
+    return "Now";
+  }
+
+  const seconds: number = OneUptimeDate.getDifferenceInSeconds(start, now);
+  const minutes: number = Math.round(seconds / 60);
+
+  if (minutes < 60) {
+    return `in ${Math.max(1, minutes)} min`;
+  }
+
+  const hours: number = Math.round(minutes / 60);
+  if (hours < 24) {
+    return `in ${hours} ${hours === 1 ? "hour" : "hours"}`;
+  }
+
+  const days: number = Math.round(hours / 24);
+  if (days < 7) {
+    return `in ${days} ${days === 1 ? "day" : "days"}`;
+  }
+
+  const weeks: number = Math.round(days / 7);
+  if (weeks < 5) {
+    return `in ${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+  }
+
+  const months: number = Math.round(days / 30);
+  return `in ${months} ${months === 1 ? "month" : "months"}`;
+}

@@ -1,4 +1,8 @@
 import ProjectUser from "../../../Utils/ProjectUser";
+import EscalationSummary, {
+  EscalationLevelSummary,
+  EscalationResponder,
+} from "./EscalationSummary";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -28,6 +32,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
@@ -309,6 +314,10 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  // Repeat-policy config, surfaced in the escalation summary's terminator node.
+  const [repeatEnabled, setRepeatEnabled] = useState<boolean>(false);
+  const [repeatCount, setRepeatCount] = useState<number>(0);
+
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [ruleToEdit, setRuleToEdit] = useState<OnCallDutyEscalationRule | null>(
     null,
@@ -350,6 +359,20 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             order: SortOrder.Ascending,
           },
         });
+
+      // Repeat behavior, so the summary can describe what happens after the
+      // final level with no acknowledgement.
+      const policy: OnCallDutyPolicy | null =
+        await ModelAPI.getItem<OnCallDutyPolicy>({
+          modelType: OnCallDutyPolicy,
+          id: props.onCallDutyPolicyId,
+          select: {
+            repeatPolicyIfNoOneAcknowledges: true,
+            repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+          },
+        });
+      setRepeatEnabled(Boolean(policy?.repeatPolicyIfNoOneAcknowledges));
+      setRepeatCount(policy?.repeatPolicyIfNoOneAcknowledgesNoOfTimes || 0);
 
       const [userJoins, teamJoins, scheduleJoins]: [
         ListResult<OnCallDutyPolicyEscalationRuleUser>,
@@ -1008,8 +1031,70 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       })()
     : undefined;
 
+  /*
+   * Flatten the loaded rules + join rows into the lightweight shape the
+   * escalation summary renders. Recomputed on every render so the summary stays
+   * in lockstep with add / edit / delete / reorder of the rules below it.
+   */
+  const summaryLevels: Array<EscalationLevelSummary> = rules.map(
+    (rule: OnCallDutyEscalationRule, index: number): EscalationLevelSummary => {
+      const members: RuleMembers =
+        membersByRuleId[rule.id?.toString() || ""] || emptyRuleMembers();
+
+      const responders: Array<EscalationResponder> = [];
+
+      for (const join of members.scheduleJoins) {
+        if (join.onCallDutyPolicySchedule) {
+          responders.push({
+            type: "schedule",
+            label:
+              join.onCallDutyPolicySchedule.name?.toString() ||
+              "On-call schedule",
+          });
+        }
+      }
+      for (const join of members.teamJoins) {
+        if (join.team) {
+          responders.push({
+            type: "team",
+            label: join.team.name?.toString() || "Team",
+          });
+        }
+      }
+      for (const join of members.userJoins) {
+        if (join.user) {
+          responders.push({
+            type: "user",
+            label:
+              join.user.name?.toString() ||
+              join.user.email?.toString() ||
+              "User",
+          });
+        }
+      }
+
+      return {
+        name: rule.name?.toString() || `Escalation Level ${index + 1}`,
+        escalateAfterInMinutes: rule.escalateAfterInMinutes || 0,
+        responders,
+      };
+    },
+  );
+
   return (
     <Fragment>
+      {!isLoading && !error && rules.length > 0 ? (
+        <div className="mb-6">
+          <EscalationSummary
+            levels={summaryLevels}
+            repeatEnabled={repeatEnabled}
+            repeatCount={repeatCount}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
+
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         {/* Header */}
         <div className="flex flex-col gap-4 border-b border-gray-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
