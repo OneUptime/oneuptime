@@ -67,6 +67,7 @@ import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
+import SentinelAlertInvestigationRunner from "../Utils/AI/Sentinel/AlertInvestigationRunner";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
 
@@ -551,6 +552,30 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Reminder scheduling failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Sentinel (AI SRE): automatically investigate the new alert and post a
+         * cited root cause analysis to the alert timeline + Slack/Teams. Runs
+         * last, is gated per project (opt-in) + requires an LLM provider, and is
+         * read-only.
+         */
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            await SentinelAlertInvestigationRunner.investigateNewAlert({
+              alertId: createdItem.id,
+              projectId: createdItem.projectId,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Sentinel alert investigation failed in AlertService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               alertId: createdItem.id?.toString(),
