@@ -417,6 +417,7 @@ import { AddIncomingCallPolicyRoutingPhoneNumberUnique1783470000000 } from "./17
 import { FixNotNullForeignKeysOnDelete1783510935686 } from "./1783510935686-FixNotNullForeignKeysOnDelete";
 import { MigrationName1783515836148 } from "./1783515836148-MigrationName";
 import { AddMigrationFailureTable1783523076215 } from "./1783523076215-AddMigrationFailureTable";
+import { AddEnableAutomaticIncidentInvestigationToProject1783598145111 } from "./1783598145111-AddEnableAutomaticIncidentInvestigationToProject";
 
 export default [
   InitialMigration,
@@ -838,4 +839,5 @@ export default [
   FixNotNullForeignKeysOnDelete1783510935686,
   MigrationName1783515836148,
   AddMigrationFailureTable1783523076215,
+  AddEnableAutomaticIncidentInvestigationToProject1783598145111,
 ];

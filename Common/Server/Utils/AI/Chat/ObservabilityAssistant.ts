@@ -44,6 +44,22 @@ export interface ObservabilityAssistantRequest {
   llmProviderId?: ObjectID | undefined;
   // Label recorded on LlmLog, e.g. "Slack ChatOps".
   feature: string;
+  /*
+   * Extra instructions appended to the base observability system prompt — used
+   * to give an autonomous run (e.g. Sentinel incident investigation) a distinct
+   * persona and task framing while keeping the same hard rules (citations, no
+   * fabrication, read-only). The base prompt's grounding rules always win.
+   */
+  systemInstructions?: string | undefined;
+  /*
+   * Optional budget overrides. Autonomous investigations get more room than an
+   * interactive chat-ops answer, which must return in a single quick message.
+   * Omitted values fall back to the interactive defaults.
+   */
+  maxLlmCalls?: number | undefined;
+  maxToolCalls?: number | undefined;
+  maxWallClockMs?: number | undefined;
+  maxOutputTokens?: number | undefined;
 }
 
 export interface ObservabilityAssistantResult {
@@ -70,19 +86,34 @@ export default class ObservabilityAssistant {
   ): Promise<ObservabilityAssistantResult> {
     const startedAtMs: number = Date.now();
 
+    const maxLlmCalls: number = request.maxLlmCalls ?? MAX_LLM_CALLS;
+    const maxToolCalls: number = request.maxToolCalls ?? MAX_TOOL_CALLS;
+    const maxWallClockMs: number = request.maxWallClockMs ?? MAX_WALL_CLOCK_MS;
+    const maxOutputTokens: number =
+      request.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
+
     const toolContext: ToolContext = {
       projectId: request.projectId,
       props: request.props,
     };
 
+    let systemPromptContent: string = buildObservabilityChatSystemPrompt({
+      currentTime: OneUptimeDate.getCurrentDate(),
+      /*
+       * Slack/Teams and autonomous investigations have no approval UI, so this
+       * surface stays strictly read-only.
+       */
+      permissionMode: AIChatPermissionMode.ReadOnly,
+    });
+
+    if (request.systemInstructions) {
+      systemPromptContent += `\n\n${request.systemInstructions}`;
+    }
+
     const messages: Array<LLMMessage> = [
       {
         role: "system",
-        content: buildObservabilityChatSystemPrompt({
-          currentTime: OneUptimeDate.getCurrentDate(),
-          // Slack/Teams have no approval UI, so this surface stays read-only.
-          permissionMode: AIChatPermissionMode.ReadOnly,
-        }),
+        content: systemPromptContent,
       },
     ];
 
@@ -104,9 +135,9 @@ export default class ObservabilityAssistant {
 
     while (true) {
       const budgetExhausted: boolean =
-        llmCallCount >= MAX_LLM_CALLS - 1 ||
-        toolCallCount >= MAX_TOOL_CALLS ||
-        Date.now() - startedAtMs >= MAX_WALL_CLOCK_MS;
+        llmCallCount >= maxLlmCalls - 1 ||
+        toolCallCount >= maxToolCalls ||
+        Date.now() - startedAtMs >= maxWallClockMs;
 
       if (budgetExhausted) {
         messages.push({
@@ -125,7 +156,7 @@ export default class ObservabilityAssistant {
         tools: budgetExhausted
           ? undefined
           : AIToolbox.getLlmToolDefinitions(AIChatPermissionMode.ReadOnly),
-        maxTokens: MAX_OUTPUT_TOKENS,
+        maxTokens: maxOutputTokens,
         temperature: TEMPERATURE,
         // Chat-ops content is per-user — do not persist previews to LlmLog.
         storeContentPreviews: false,
@@ -152,8 +183,8 @@ export default class ObservabilityAssistant {
 
         for (const toolCall of response.toolCalls) {
           const overBudget: boolean =
-            toolCallCount >= MAX_TOOL_CALLS ||
-            Date.now() - startedAtMs >= MAX_WALL_CLOCK_MS;
+            toolCallCount >= maxToolCalls ||
+            Date.now() - startedAtMs >= maxWallClockMs;
 
           if (overBudget) {
             messages.push({
