@@ -21,6 +21,12 @@ export interface ComponentProps {
   id?: string | undefined;
   events: Array<CalendarEvent>;
   defaultCalendarView?: DefaultCalendarView;
+  /*
+   * Which date the calendar initially opens on. Defaults to "now". Callers that
+   * render events shifted into a display timezone pass the same-shifted "now" so
+   * the grid opens on that zone's current day rather than the browser's.
+   */
+  defaultDate?: Date | undefined;
   onRangeChange: (startAndEndTime: StartAndEndTime) => void;
 }
 
@@ -38,9 +44,9 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { defaultDate } = useMemo(() => {
     return {
-      defaultDate: OneUptimeDate.getCurrentDate(),
+      defaultDate: props.defaultDate || OneUptimeDate.getCurrentDate(),
     };
-  }, []);
+  }, [props.defaultDate]);
 
   const eventStyleGetter: EventPropGetter<any> = (
     event: CalendarEvent,
