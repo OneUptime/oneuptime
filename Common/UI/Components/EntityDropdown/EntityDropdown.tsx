@@ -8,6 +8,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
+import FloatingPortal from "../Floating/FloatingPortal";
 import Icon from "../Icon/Icon";
 import {
   DropdownOption,
@@ -20,6 +21,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -251,6 +253,13 @@ const detectLabelsField: (
 const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   props: EntityDropdownProps,
 ): ReactElement => {
+  const uniqueId: string = useId();
+  const listboxId: string = `entity-dropdown-listbox-${uniqueId}`;
+  const popupId: string = `entity-dropdown-popup-${uniqueId}`;
+  const optionsPanelId: string = `entity-dropdown-options-panel-${uniqueId}`;
+  const labelsPanelId: string = `entity-dropdown-labels-panel-${uniqueId}`;
+  const optionsTabId: string = `entity-dropdown-options-tab-${uniqueId}`;
+  const labelsTabId: string = `entity-dropdown-labels-tab-${uniqueId}`;
   const isMulti: boolean = Boolean(props.isMultiSelect);
   const modelType: { new (): BaseModel } | undefined = props.modelType;
   const labelField: string = props.labelField || "name";
@@ -441,8 +450,14 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
   const containerRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
+  const menuRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
   const inputRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
+  const optionsTabRef: React.MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
+  const labelsTabRef: React.MutableRefObject<HTMLButtonElement | null> =
+    useRef<HTMLButtonElement | null>(null);
   const debounceRef: React.MutableRefObject<number | null> = useRef<
     number | null
   >(null);
@@ -454,7 +469,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (
         containerRef.current &&
         event.target instanceof Node &&
-        !containerRef.current.contains(event.target)
+        !containerRef.current.contains(event.target) &&
+        !menuRef.current?.contains(event.target)
       ) {
         setIsOpen(false);
       }
@@ -1052,6 +1068,57 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   const placeholderText: string = props.placeholder || "Select...";
   const showSingleSelectedText: boolean =
     !isMulti && !isOpen && selectedOptions.length > 0;
+  const activeDescendantId: string | undefined =
+    isOpen &&
+    activeTab === "options" &&
+    highlightedIndex >= 0 &&
+    highlightedIndex < availableOptions.length
+      ? `${listboxId}-option-${highlightedIndex}`
+      : undefined;
+  const shouldFocusInputOnOpenRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect((): void => {
+    if (isOpen && shouldFocusInputOnOpenRef.current) {
+      shouldFocusInputOnOpenRef.current = false;
+      inputRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  const activateTab: (
+    tab: "options" | "labels",
+    moveFocus?: boolean,
+  ) => void = (tab: "options" | "labels", moveFocus?: boolean): void => {
+    setActiveTab(tab);
+    setHighlightedIndex(-1);
+
+    if (moveFocus) {
+      window.setTimeout((): void => {
+        (tab === "options" ? optionsTabRef : labelsTabRef).current?.focus();
+      }, 0);
+    }
+  };
+
+  const handleTabKeyDown: (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+  ) => void = (event: React.KeyboardEvent<HTMLButtonElement>): void => {
+    let nextTab: "options" | "labels" | null = null;
+
+    if (event.key === "Home") {
+      nextTab = "options";
+    } else if (event.key === "End") {
+      nextTab = "labels";
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      nextTab = activeTab === "options" ? "labels" : "options";
+    }
+
+    if (!nextTab) {
+      return;
+    }
+
+    event.preventDefault();
+    activateTab(nextTab, true);
+  };
 
   return (
     <div
@@ -1113,78 +1180,82 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
          * container to start typing.
          */}
         {showSingleSelectedText && (
-          <button
-            type="button"
-            disabled={props.disabled}
-            aria-labelledby={props.ariaLabelledby}
-            onClick={(): void => {
-              if (props.disabled) {
-                return;
-              }
-              setIsOpen(true);
-              inputRef.current?.focus();
-            }}
-            onFocus={() => {
-              props.onFocus?.();
-            }}
-            className={`flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-sm shadow-sm transition-colors ${
-              props.error
-                ? "border-red-400"
-                : "border-gray-300 hover:border-indigo-300"
-            } ${
-              props.disabled
-                ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                : ""
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              {(() => {
-                const colorStr: string | undefined = optionColorString(
-                  selectedOptions[0]!,
-                );
-                if (!colorStr) {
-                  return null;
+          <div className="relative flex items-center">
+            <button
+              type="button"
+              disabled={props.disabled}
+              aria-labelledby={props.ariaLabelledby}
+              aria-haspopup={activeTab === "options" ? "listbox" : "dialog"}
+              aria-expanded="false"
+              onClick={(): void => {
+                if (props.disabled) {
+                  return;
                 }
-                return (
-                  <span
-                    aria-hidden="true"
-                    className="inline-block h-2.5 w-2.5 rounded-full border border-gray-200"
-                    style={{ backgroundColor: colorStr }}
-                  />
-                );
-              })()}
-              <span className="font-medium text-gray-900">
-                {selectedOptions[0]!.label}
-              </span>
-            </span>
-            <div className="flex items-center gap-1 text-gray-400">
-              {!props.disabled && (
-                <button
-                  type="button"
-                  aria-label="Clear selection"
-                  onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
-                    e.stopPropagation();
-                    clearAll();
-                  }}
-                  className="rounded p-0.5 hover:bg-gray-100 hover:text-red-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                >
-                  <svg
-                    className="h-3.5 w-3.5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
+                shouldFocusInputOnOpenRef.current = true;
+                setIsOpen(true);
+              }}
+              onFocus={() => {
+                props.onFocus?.();
+              }}
+              className={`flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2 pr-16 text-left text-sm shadow-sm transition-colors ${
+                props.error
+                  ? "border-red-400"
+                  : "border-gray-300 hover:border-indigo-300"
+              } ${
+                props.disabled
+                  ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                  : ""
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {(() => {
+                  const colorStr: string | undefined = optionColorString(
+                    selectedOptions[0]!,
+                  );
+                  if (!colorStr) {
+                    return null;
+                  }
+                  return (
+                    <span
+                      aria-hidden="true"
+                      className="inline-block h-2.5 w-2.5 rounded-full border border-gray-200"
+                      style={{ backgroundColor: colorStr }}
                     />
-                  </svg>
-                </button>
-              )}
-              <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
-            </div>
-          </button>
+                  );
+                })()}
+                <span className="font-medium text-gray-900">
+                  {selectedOptions[0]!.label}
+                </span>
+              </span>
+              <Icon
+                icon={IconProp.ChevronDown}
+                className="h-4 w-4 text-gray-400"
+              />
+            </button>
+            {!props.disabled && (
+              <button
+                type="button"
+                aria-label="Clear selection"
+                onClick={(): void => {
+                  clearAll();
+                }}
+                className="absolute right-8 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-red-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 010-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         )}
 
         {!showSingleSelectedText && (
@@ -1204,6 +1275,15 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
               disabled={props.disabled}
               tabIndex={props.tabIndex}
               aria-autocomplete="list"
+              aria-activedescendant={activeDescendantId}
+              aria-haspopup={activeTab === "options" ? "listbox" : "dialog"}
+              aria-controls={
+                isOpen
+                  ? activeTab === "options"
+                    ? listboxId
+                    : popupId
+                  : undefined
+              }
               aria-expanded={isOpen}
               aria-label={props.ariaLabel}
               aria-labelledby={props.ariaLabelledby}
@@ -1281,8 +1361,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   return;
                 }
                 if (event.key === "Escape") {
-                  setIsOpen(false);
-                  setHighlightedIndex(-1);
+                  if (isOpen) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setIsOpen(false);
+                    setHighlightedIndex(-1);
+                  }
                   return;
                 }
                 if (
@@ -1328,24 +1412,43 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       </div>
 
       {isOpen && !props.disabled && (
-        <div
-          className="absolute z-20 mt-1 flex max-h-96 w-full flex-col overflow-hidden rounded-md border border-gray-200 bg-white text-sm shadow-lg"
-          role="listbox"
+        <FloatingPortal
+          anchorRef={containerRef}
+          floatingRef={menuRef}
+          id={popupId}
+          matchAnchorWidth={true}
+          maxHeight={384}
+          className="flex flex-col overflow-hidden rounded-md border border-gray-200 bg-white text-sm shadow-lg"
+          role="dialog"
+          ariaLabel="Choose entries"
+          onEscape={(): void => {
+            setIsOpen(false);
+            setHighlightedIndex(-1);
+            inputRef.current?.focus();
+          }}
         >
           {labelsTabEnabled && (
-            <div className="flex flex-shrink-0 items-center gap-1 border-b border-gray-100 bg-gray-50 px-1.5 py-1">
+            <div
+              role="tablist"
+              aria-label="Entry source"
+              className="flex flex-shrink-0 items-center gap-1 border-b border-gray-100 bg-gray-50 px-1.5 py-1"
+            >
               <button
+                ref={optionsTabRef}
+                id={optionsTabId}
                 type="button"
                 role="tab"
                 aria-selected={activeTab === "options"}
+                aria-controls={optionsPanelId}
+                tabIndex={activeTab === "options" ? 0 : -1}
                 onMouseDown={(
                   event: React.MouseEvent<HTMLButtonElement>,
                 ): void => {
                   event.preventDefault();
                 }}
+                onKeyDown={handleTabKeyDown}
                 onClick={(): void => {
-                  setActiveTab("options");
-                  setHighlightedIndex(-1);
+                  activateTab("options");
                 }}
                 className={`rounded px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
                   activeTab === "options"
@@ -1356,17 +1459,21 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 Results
               </button>
               <button
+                ref={labelsTabRef}
+                id={labelsTabId}
                 type="button"
                 role="tab"
                 aria-selected={activeTab === "labels"}
+                aria-controls={labelsPanelId}
+                tabIndex={activeTab === "labels" ? 0 : -1}
                 onMouseDown={(
                   event: React.MouseEvent<HTMLButtonElement>,
                 ): void => {
                   event.preventDefault();
                 }}
+                onKeyDown={handleTabKeyDown}
                 onClick={(): void => {
-                  setActiveTab("labels");
-                  setHighlightedIndex(-1);
+                  activateTab("labels");
                 }}
                 className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
                   activeTab === "labels"
@@ -1391,122 +1498,141 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
           )}
 
           {activeTab === "options" && (
-            <div className="flex-1 overflow-auto py-1">
-              {isLoading && (
-                <div className="flex items-center px-3 py-2 text-gray-500">
-                  <svg
-                    className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    ></path>
-                  </svg>
-                  <span>Searching...</span>
-                </div>
-              )}
-              {!isLoading && availableOptions.length === 0 && (
-                <div className="px-3 py-2 text-gray-500">
-                  {searchQuery.trim() === ""
-                    ? "No options."
-                    : "No matching entries."}
-                </div>
-              )}
-              {!isLoading &&
-                availableOptions.map(
-                  (opt: DropdownOption, idx: number): ReactElement => {
-                    const key: string = valueKey(opt.value);
-                    const isHighlighted: boolean = idx === highlightedIndex;
-                    const isCurrentSelection: boolean =
-                      !isMulti && selectedKeys[0] === key;
-                    const colorStr: string | undefined = optionColorString(opt);
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        role="option"
-                        aria-selected={isCurrentSelection || isHighlighted}
-                        onMouseEnter={(): void => {
-                          setHighlightedIndex(idx);
-                        }}
-                        onMouseDown={(
-                          event: React.MouseEvent<HTMLButtonElement>,
-                        ): void => {
-                          event.preventDefault();
-                        }}
-                        onClick={(): void => {
-                          addOption(opt);
-                        }}
-                        className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
-                          isHighlighted
-                            ? "bg-indigo-600 text-white"
-                            : isCurrentSelection
-                              ? "bg-indigo-50 text-indigo-900"
-                              : "text-gray-700 hover:bg-indigo-50"
-                        }`}
-                      >
-                        {colorStr && (
-                          <span
-                            aria-hidden="true"
-                            className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full border border-gray-200"
-                            style={{ backgroundColor: colorStr }}
-                          />
-                        )}
-                        <span className="truncate">{opt.label}</span>
-                        {opt.description && (
-                          <span
-                            className={`ml-auto truncate text-xs ${
-                              isHighlighted
-                                ? "text-indigo-100"
-                                : "text-gray-500"
-                            }`}
-                          >
-                            {opt.description}
-                          </span>
-                        )}
-                        {/*
-                         * Trailing check for the current single-select value
-                         * — same visual cue react-select uses to flag the
-                         * active option without taking it out of the list.
-                         */}
-                        {isCurrentSelection && (
-                          <svg
-                            className={`ml-auto h-4 w-4 flex-shrink-0 ${
-                              isHighlighted ? "text-white" : "text-indigo-600"
-                            }`}
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            aria-hidden="true"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  },
+            <div
+              id={labelsTabEnabled ? optionsPanelId : undefined}
+              role={labelsTabEnabled ? "tabpanel" : undefined}
+              aria-labelledby={labelsTabEnabled ? optionsTabId : undefined}
+              className="min-h-0 flex-1"
+            >
+              <div
+                id={listboxId}
+                role="listbox"
+                className="h-full overflow-auto py-1"
+              >
+                {isLoading && (
+                  <div className="flex items-center px-3 py-2 text-gray-500">
+                    <svg
+                      className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
+                    </svg>
+                    <span>Searching...</span>
+                  </div>
                 )}
+                {!isLoading && availableOptions.length === 0 && (
+                  <div className="px-3 py-2 text-gray-500">
+                    {searchQuery.trim() === ""
+                      ? "No options."
+                      : "No matching entries."}
+                  </div>
+                )}
+                {!isLoading &&
+                  availableOptions.map(
+                    (opt: DropdownOption, idx: number): ReactElement => {
+                      const key: string = valueKey(opt.value);
+                      const isHighlighted: boolean = idx === highlightedIndex;
+                      const isCurrentSelection: boolean =
+                        !isMulti && selectedKeys[0] === key;
+                      const colorStr: string | undefined =
+                        optionColorString(opt);
+                      return (
+                        <button
+                          key={key}
+                          id={`${listboxId}-option-${idx}`}
+                          type="button"
+                          role="option"
+                          tabIndex={-1}
+                          aria-selected={isCurrentSelection}
+                          onMouseEnter={(): void => {
+                            setHighlightedIndex(idx);
+                          }}
+                          onMouseDown={(
+                            event: React.MouseEvent<HTMLButtonElement>,
+                          ): void => {
+                            event.preventDefault();
+                          }}
+                          onClick={(): void => {
+                            addOption(opt);
+                          }}
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-left ${
+                            isHighlighted
+                              ? "bg-indigo-600 text-white"
+                              : isCurrentSelection
+                                ? "bg-indigo-50 text-indigo-900"
+                                : "text-gray-700 hover:bg-indigo-50"
+                          }`}
+                        >
+                          {colorStr && (
+                            <span
+                              aria-hidden="true"
+                              className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full border border-gray-200"
+                              style={{ backgroundColor: colorStr }}
+                            />
+                          )}
+                          <span className="truncate">{opt.label}</span>
+                          {opt.description && (
+                            <span
+                              className={`ml-auto truncate text-xs ${
+                                isHighlighted
+                                  ? "text-indigo-100"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {opt.description}
+                            </span>
+                          )}
+                          {/*
+                           * Trailing check for the current single-select value
+                           * — same visual cue react-select uses to flag the
+                           * active option without taking it out of the list.
+                           */}
+                          {isCurrentSelection && (
+                            <svg
+                              className={`ml-auto h-4 w-4 flex-shrink-0 ${
+                                isHighlighted ? "text-white" : "text-indigo-600"
+                              }`}
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    },
+                  )}
+              </div>
             </div>
           )}
 
           {activeTab === "labels" && (
-            <div className="flex-1 overflow-auto py-1">
+            <div
+              id={labelsPanelId}
+              role="tabpanel"
+              aria-labelledby={labelsTabId}
+              className="flex-1 overflow-auto py-1"
+            >
               {isLoadingLabels && (
                 <div className="flex items-center px-3 py-2 text-gray-500">
                   <svg
@@ -1609,8 +1735,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                           </button>
                           <button
                             type="button"
-                            role="option"
-                            aria-selected={isChecked}
+                            aria-pressed={isChecked}
                             onMouseDown={(
                               event: React.MouseEvent<HTMLButtonElement>,
                             ): void => {
@@ -1788,7 +1913,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
               </button>
             </div>
           )}
-        </div>
+        </FloatingPortal>
       )}
 
       {props.error && (

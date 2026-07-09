@@ -1,7 +1,7 @@
 import { ButtonStyleType } from "../Button/Button";
 import Modal from "./Modal";
 import useTranslateValue from "../../Utils/Translation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 
 export interface ComponentProps {
   title: string;
@@ -23,9 +23,12 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
   const { translateValue } = useTranslateValue();
   const translatedDescription: string | ReactElement | undefined =
     translateValue(props.description);
+  const descriptionId: string = `confirm-modal-description-${useId()}`;
+
   return (
     <Modal
       title={props.title}
+      ariaDescribedBy={descriptionId}
       isLoading={props.isLoading}
       onSubmit={props.onSubmit}
       onClose={props.onClose ? props.onClose : undefined}
@@ -47,8 +50,9 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
       error={props.error}
     >
       <div
+        id={descriptionId}
         data-testid="confirm-modal-description"
-        className="text-gray-500 mt-5 text-sm whitespace-pre-wrap break-words max-h-96 overflow-y-auto pr-1"
+        className="max-h-96 whitespace-pre-wrap break-words pr-1 text-sm leading-6 text-slate-600"
       >
         {translatedDescription}
       </div>

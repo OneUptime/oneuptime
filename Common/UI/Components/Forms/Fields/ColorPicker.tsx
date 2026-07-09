@@ -1,12 +1,14 @@
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
+import FloatingPortal from "../../Floating/FloatingPortal";
 import Icon from "../../Icon/Icon";
-import Input, { InputType } from "../../Input/Input";
 import Color from "../../../../Types/Color";
 import IconProp from "../../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
+  useRef,
   useState,
 } from "react";
 import { ChromePicker, ColorResult } from "react-color";
@@ -33,6 +35,11 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
   const [color, setColor] = useState<string>("");
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
+  const anchorRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const triggerRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const popoverId: string = `color-picker-${useId()}`;
 
   const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
     useState<boolean>(false);
@@ -44,6 +51,24 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     }
   }, [props.initialValue]);
 
+  useEffect(() => {
+    if (!isComponentVisible) {
+      return;
+    }
+
+    const focusTimeout: number = window.setTimeout((): void => {
+      const initialControl: HTMLElement | null =
+        (ref.current as HTMLElement | null)?.querySelector<HTMLElement>(
+          "input:not([disabled]), button:not([disabled])",
+        ) || null;
+      initialControl?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(focusTimeout);
+    };
+  }, [isComponentVisible]);
+
   type HandleChangeFunction = (color: string) => void;
 
   const handleChange: HandleChangeFunction = (color: string): void => {
@@ -54,61 +79,86 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     props.onChange(new Color(color));
   };
 
+  const closeAndRestoreFocus: () => void = (): void => {
+    setIsComponentVisible(false);
+    window.setTimeout((): void => {
+      triggerRef.current?.focus();
+    }, 0);
+  };
+
   return (
     <div>
-      <div className="flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm">
-        <div
-          onClick={() => {
-            if (!props.readOnly) {
-              setIsComponentVisible(!isComponentVisible);
-            }
-          }}
-          className="rounded h-5 w-5 border border-gray-200 cursor-pointer"
-          style={{ backgroundColor: color.toString() }}
-        ></div>
-
-        <Input
-          onClick={() => {
-            if (!props.readOnly) {
-              setIsComponentVisible(!isComponentVisible);
-            }
-          }}
-          disabled={props.disabled}
-          dataTestId={props.dataTestId}
-          onBlur={props.onBlur}
-          onEnterPress={props.onEnterPress}
-          className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"
-          outerDivClassName='className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"'
-          placeholder={props.placeholder}
-          value={color || props.value}
-          readOnly={true}
-          type={InputType.TEXT}
+      <div
+        ref={anchorRef}
+        onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>): void => {
+          if (event.key === "Escape" && isComponentVisible) {
+            event.preventDefault();
+            event.stopPropagation();
+            closeAndRestoreFocus();
+          }
+        }}
+        className="relative flex w-full items-center rounded-lg border border-gray-300 bg-white text-sm shadow-sm transition-colors hover:border-indigo-300 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100"
+      >
+        <button
+          ref={triggerRef}
+          type="button"
+          disabled={props.disabled || props.readOnly}
           tabIndex={props.tabIndex}
-          ariaLabelledby={props.ariaLabelledby}
-          onChange={(value: string) => {
-            if (!value) {
-              return handleChange("");
+          data-testid={props.dataTestId}
+          aria-labelledby={props.ariaLabelledby}
+          aria-haspopup="dialog"
+          aria-expanded={isComponentVisible}
+          aria-controls={isComponentVisible ? popoverId : undefined}
+          onFocus={props.onFocus}
+          onBlur={props.onBlur}
+          onClick={(): void => {
+            setIsComponentVisible(!isComponentVisible);
+          }}
+          onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>): void => {
+            if (event.key === "Enter") {
+              props.onEnterPress?.();
             }
           }}
-          onFocus={props.onFocus || undefined}
-        />
-        {color && !props.disabled && (
-          <Icon
-            icon={IconProp.Close}
-            className="text-gray-400 h-5 w-5 cursor-pointer hover:text-gray-600"
-            onClick={() => {
-              setColor("#FFFFFF");
-              if (props.onChange) {
-                props.onChange(null);
-              }
-            }}
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-gray-700 outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+        >
+          <span
+            aria-hidden="true"
+            className="h-4 w-4 shrink-0 rounded border border-gray-200"
+            style={{ backgroundColor: color || "transparent" }}
           />
+          <span className="min-w-0 flex-1 truncate">
+            {color || props.value || props.placeholder}
+          </span>
+          <Icon
+            icon={IconProp.ChevronDown}
+            className="h-4 w-4 shrink-0 text-gray-400"
+          />
+        </button>
+        {color && !props.disabled && !props.readOnly && (
+          <button
+            type="button"
+            aria-label="Clear color"
+            className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            onClick={(): void => {
+              setColor("");
+              props.onChange(null);
+            }}
+          >
+            <Icon icon={IconProp.Close} className="h-4 w-4" />
+          </button>
         )}
         {isComponentVisible ? (
-          <div
-            ref={ref}
-            style={{
-              position: "absolute",
+          <FloatingPortal
+            anchorRef={anchorRef}
+            floatingRef={ref}
+            width={227}
+            maxHeight={360}
+            className="overflow-x-hidden overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg"
+            id={popoverId}
+            role="dialog"
+            ariaLabel="Choose a color"
+            onEscape={(): void => {
+              closeAndRestoreFocus();
             }}
           >
             <ChromePicker
@@ -120,7 +170,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                 return handleChange(color.hex);
               }}
             />
-          </div>
+          </FloatingPortal>
         ) : (
           <></>
         )}

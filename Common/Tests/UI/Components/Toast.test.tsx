@@ -1,10 +1,10 @@
 import Toast, { ToastType } from "../../../UI/Components/Toast/Toast";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import * as React from "react";
-import { describe, expect, test } from "@jest/globals";
+import { describe, test } from "@jest/globals";
 
 describe("Test for Toast.tsx", () => {
   test("should render the component", () => {
@@ -12,7 +12,7 @@ describe("Test for Toast.tsx", () => {
       <Toast type={ToastType.SUCCESS} title="Spread" description="Love" />,
     );
     expect(screen.getByTestId("toast")).toHaveClass(
-      "pointer-events-none fixed z-40 top-0 left-0 right-0  flex items-end px-4 py-6 sm:items-start sm:p-6",
+      "pointer-events-none fixed z-[200] top-0 left-0 right-0  flex items-end px-4 py-6 sm:items-start sm:p-6",
     );
   });
 

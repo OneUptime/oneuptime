@@ -2,7 +2,8 @@ import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ConfirmModal, {
   ComponentProps,
 } from "../../../UI/Components/Modal/ConfirmModal";
-import { describe, expect, it, jest, beforeEach } from "@jest/globals";
+import "@testing-library/jest-dom";
+import { describe, it, jest, beforeEach } from "@jest/globals";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 
@@ -46,6 +47,26 @@ describe("ConfirmModal", () => {
       "modal-footer-close-button",
     )?.classList;
     expect(closeButton.contains("bg-white")).toBe(true);
+  });
+
+  it("links the confirmation description to the dialog", () => {
+    render(<ConfirmModal {...mockProps} />);
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Confirmation Title",
+    });
+    const description: HTMLElement = screen.getByTestId(
+      "confirm-modal-description",
+    );
+
+    expect(description.id).not.toBe("");
+    expect(dialog).toHaveAttribute("aria-describedby", description.id);
+  });
+
+  it("initially focuses the non-destructive confirmation action", () => {
+    render(<ConfirmModal {...mockProps} />);
+
+    expect(screen.getByTestId("modal-footer-close-button")).toHaveFocus();
   });
 
   it("closes the comfirm modal when the close button is clicked", () => {

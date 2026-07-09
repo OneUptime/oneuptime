@@ -1,10 +1,12 @@
 import Dropdown, {
   DropdownOption,
 } from "../../../UI/Components/Dropdown/Dropdown";
-import "@testing-library/jest-dom/extend-expect";
-import { fireEvent, render, screen } from "@testing-library/react";
+import EntityDropdown from "../../../UI/Components/EntityDropdown/EntityDropdown";
+import Modal from "../../../UI/Components/Modal/Modal";
+import "@testing-library/jest-dom";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
-import { describe, expect } from "@jest/globals";
+import { describe } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 describe("Dropdown", () => {
   const options: DropdownOption[] = [
@@ -53,6 +55,101 @@ describe("Dropdown", () => {
 
     expect(await screen.findByText("1")).toBeInTheDocument();
     expect(await screen.findByText("2")).toBeInTheDocument();
+  });
+
+  test("renders a portalled menu above its containing modal", async () => {
+    render(
+      <Modal title="Dropdown Modal" onClose={() => {}}>
+        <Dropdown onChange={() => {}} options={options} />
+      </Modal>,
+    );
+    const dropdown: HTMLElement = screen.getByRole("combobox");
+
+    fireEvent.keyDown(dropdown, { key: "ArrowDown", code: "ArrowDown" });
+
+    const option: HTMLElement = await screen.findByText("1");
+    let menuPortal: HTMLElement | null = option.parentElement;
+    while (
+      menuPortal &&
+      menuPortal !== document.body &&
+      window.getComputedStyle(menuPortal).zIndex !== "70"
+    ) {
+      menuPortal = menuPortal.parentElement;
+    }
+
+    expect(menuPortal).not.toBeNull();
+    expect(menuPortal ? window.getComputedStyle(menuPortal).zIndex : "").toBe(
+      "70",
+    );
+  });
+
+  test("closes its menu before Escape reaches the containing modal", async () => {
+    const onModalClose: MockFunction = getJestMockFunction();
+    render(
+      <Modal title="Dropdown Modal" onClose={onModalClose}>
+        <Dropdown onChange={() => {}} options={options} />
+      </Modal>,
+    );
+    const dropdown: HTMLElement = screen.getByRole("combobox");
+
+    fireEvent.keyDown(dropdown, { key: "ArrowDown", code: "ArrowDown" });
+    expect(await screen.findByText("1")).toBeInTheDocument();
+
+    fireEvent.keyDown(dropdown, { key: "Escape", code: "Escape" });
+
+    expect(onModalClose).not.toHaveBeenCalled();
+  });
+
+  test("links an entity listbox and dismisses it before its modal", async () => {
+    const onModalClose: MockFunction = getJestMockFunction();
+    render(
+      <Modal title="Entity Modal" onClose={onModalClose}>
+        <EntityDropdown
+          onChange={() => {}}
+          options={options}
+          dataTestId="entity-dropdown"
+        />
+      </Modal>,
+    );
+    const dropdown: HTMLInputElement = screen.getByTestId("entity-dropdown");
+
+    fireEvent.focus(dropdown);
+    fireEvent.keyDown(dropdown, { key: "ArrowDown", code: "ArrowDown" });
+
+    const listbox: HTMLElement = await screen.findByRole("listbox");
+    const activeOptionId: string | null = dropdown.getAttribute(
+      "aria-activedescendant",
+    );
+    expect(dropdown).toHaveAttribute("aria-controls", listbox.id);
+    expect(activeOptionId).not.toBeNull();
+    expect(document.getElementById(activeOptionId || "")).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
+
+    fireEvent.keyDown(dropdown, { key: "Escape", code: "Escape" });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(onModalClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(dropdown, { key: "Escape", code: "Escape" });
+    expect(onModalClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("moves focus into an entity search opened from a selected value", async () => {
+    render(
+      <EntityDropdown
+        onChange={() => {}}
+        options={options}
+        initialValue={options[0]}
+        dataTestId="selected-entity-dropdown"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "1" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("selected-entity-dropdown")).toHaveFocus();
+    });
   });
 
   test("renders placeholder", async () => {

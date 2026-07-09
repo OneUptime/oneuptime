@@ -64,7 +64,7 @@ const Component: FunctionComponent<ComponentProps> = (
       <div
         data-testid="toast"
         aria-live="assertive"
-        className={`pointer-events-none fixed z-40 top-${top} left-0 right-0  flex items-end px-4 py-6 sm:items-start sm:p-6`}
+        className={`pointer-events-none fixed z-[200] top-${top} left-0 right-0  flex items-end px-4 py-6 sm:items-start sm:p-6`}
       >
         <div className="flex w-full flex-col items-center space-y-4 sm:items-end">
           <div className="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5">

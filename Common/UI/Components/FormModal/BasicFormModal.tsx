@@ -1,7 +1,5 @@
 import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
-import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, {
   BaseComponentProps as BasicFormComponentProps,
 } from "../Forms/BasicForm";
@@ -38,29 +36,22 @@ const BasicFormModal: <T extends GenericObject>(
       {...props}
       submitButtonType={ButtonType.Submit}
       isLoading={isLoading}
+      isBodyLoading={Boolean(props.isLoading)}
       onSubmit={() => {
-        formRef.current.submitForm();
+        formRef.current?.submitForm();
       }}
     >
-      <>
-        {isLoading && <ComponentLoader />}
-
-        {props.error && <ErrorMessage message={props.error} />}
-
-        {!isLoading && (
-          <BasicForm
-            {...props.formProps}
-            hideSubmitButton={true}
-            ref={formRef}
-            onLoadingChange={(isFormLoading: boolean) => {
-              setIsLoading(isFormLoading);
-            }}
-            onSubmit={(data: T) => {
-              props.onSubmit?.(data);
-            }}
-          />
-        )}
-      </>
+      <BasicForm
+        {...props.formProps}
+        hideSubmitButton={true}
+        ref={formRef}
+        onLoadingChange={(isFormLoading: boolean) => {
+          setIsLoading(isFormLoading);
+        }}
+        onSubmit={(data: T) => {
+          props.onSubmit?.(data);
+        }}
+      />
     </Modal>
   );
 };

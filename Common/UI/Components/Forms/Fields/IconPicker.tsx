@@ -1,4 +1,5 @@
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
+import FloatingPortal from "../../Floating/FloatingPortal";
 import Icon from "../../Icon/Icon";
 import Input, { InputType } from "../../Input/Input";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -6,6 +7,8 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
+  useRef,
   useState,
 } from "react";
 
@@ -32,6 +35,11 @@ const IconPicker: FunctionComponent<ComponentProps> = (
   const [searchQuery, setSearchQuery] = useState<string>("");
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
+  const anchorRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const triggerRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const popoverId: string = `icon-picker-${useId()}`;
 
   const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
     useState<boolean>(false);
@@ -43,12 +51,40 @@ const IconPicker: FunctionComponent<ComponentProps> = (
     }
   }, [props.initialValue]);
 
+  useEffect(() => {
+    if (!isComponentVisible) {
+      return;
+    }
+
+    const focusTimeout: number = window.setTimeout((): void => {
+      const initialControl: HTMLElement | null =
+        (ref.current as HTMLElement | null)?.querySelector<HTMLElement>(
+          "input:not([disabled]), button:not([disabled])",
+        ) || null;
+      initialControl?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(focusTimeout);
+    };
+  }, [isComponentVisible]);
+
   type HandleChangeFunction = (icon: IconProp | null) => void;
 
   const handleChange: HandleChangeFunction = (icon: IconProp | null): void => {
     setSelectedIcon(icon);
     props.onChange(icon);
     setIsComponentVisible(false);
+    window.setTimeout((): void => {
+      triggerRef.current?.focus();
+    }, 0);
+  };
+
+  const closeAndRestoreFocus: () => void = (): void => {
+    setIsComponentVisible(false);
+    window.setTimeout((): void => {
+      triggerRef.current?.focus();
+    }, 0);
   };
 
   // Get all icons from IconProp enum
@@ -61,60 +97,80 @@ const IconPicker: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <div className="flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm">
-        <div
-          onClick={() => {
-            if (!props.readOnly && !props.disabled) {
-              setIsComponentVisible(!isComponentVisible);
+      <div
+        ref={anchorRef}
+        onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>): void => {
+          if (event.key === "Escape" && isComponentVisible) {
+            event.preventDefault();
+            event.stopPropagation();
+            closeAndRestoreFocus();
+          }
+        }}
+        className="relative flex w-full items-center rounded-lg border border-gray-300 bg-white text-sm shadow-sm transition-colors hover:border-indigo-300 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100"
+      >
+        <button
+          ref={triggerRef}
+          type="button"
+          disabled={props.disabled || props.readOnly}
+          tabIndex={props.tabIndex}
+          data-testid={props.dataTestId}
+          aria-labelledby={props.ariaLabelledby}
+          aria-haspopup="dialog"
+          aria-expanded={isComponentVisible}
+          aria-controls={isComponentVisible ? popoverId : undefined}
+          onFocus={props.onFocus}
+          onBlur={props.onBlur}
+          onClick={(): void => {
+            setIsComponentVisible(!isComponentVisible);
+          }}
+          onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>): void => {
+            if (event.key === "Enter") {
+              props.onEnterPress?.();
             }
           }}
-          className="flex items-center justify-center h-5 w-5 cursor-pointer"
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-2 text-left text-gray-700 outline-none disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
         >
           {selectedIcon ? (
-            <Icon icon={selectedIcon} className="h-5 w-5 text-gray-600" />
+            <Icon
+              icon={selectedIcon}
+              className="h-4 w-4 shrink-0 text-gray-600"
+            />
           ) : (
-            <div className="h-5 w-5 border border-dashed border-gray-300 rounded"></div>
+            <span className="h-4 w-4 shrink-0 rounded border border-dashed border-gray-300" />
           )}
-        </div>
-
-        <Input
-          onClick={() => {
-            if (!props.readOnly && !props.disabled) {
-              setIsComponentVisible(!isComponentVisible);
-            }
-          }}
-          disabled={props.disabled}
-          dataTestId={props.dataTestId}
-          onBlur={props.onBlur}
-          onEnterPress={props.onEnterPress}
-          className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"
-          outerDivClassName='className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"'
-          placeholder={props.placeholder}
-          value={selectedIcon || props.value || ""}
-          readOnly={true}
-          type={InputType.TEXT}
-          tabIndex={props.tabIndex}
-          ariaLabelledby={props.ariaLabelledby}
-          onChange={() => {}}
-          onFocus={props.onFocus || undefined}
-        />
-        {selectedIcon && !props.disabled && (
+          <span className="min-w-0 flex-1 truncate">
+            {selectedIcon || props.value || props.placeholder}
+          </span>
           <Icon
-            icon={IconProp.Close}
-            className="text-gray-400 h-5 w-5 cursor-pointer hover:text-gray-600"
-            onClick={() => {
+            icon={IconProp.ChevronDown}
+            className="h-4 w-4 shrink-0 text-gray-400"
+          />
+        </button>
+        {selectedIcon && !props.disabled && !props.readOnly && (
+          <button
+            type="button"
+            aria-label="Clear icon"
+            className="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            onClick={(): void => {
               setSelectedIcon(null);
               props.onChange(null);
             }}
-          />
+          >
+            <Icon icon={IconProp.Close} className="h-4 w-4" />
+          </button>
         )}
         {isComponentVisible ? (
-          <div
-            ref={ref}
-            className="absolute z-50 mt-8 bg-white border border-gray-200 rounded-lg shadow-lg p-3"
-            style={{
-              width: "320px",
-              maxHeight: "400px",
+          <FloatingPortal
+            anchorRef={anchorRef}
+            floatingRef={ref}
+            width={320}
+            maxHeight={400}
+            className="overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 shadow-lg"
+            id={popoverId}
+            role="dialog"
+            ariaLabel="Choose an icon"
+            onEscape={(): void => {
+              closeAndRestoreFocus();
             }}
           >
             {/* Search input */}
@@ -137,12 +193,14 @@ const IconPicker: FunctionComponent<ComponentProps> = (
             >
               {filteredIcons.map((icon: IconProp) => {
                 return (
-                  <div
+                  <button
                     key={icon}
-                    onClick={() => {
+                    type="button"
+                    aria-label={icon}
+                    onClick={(): void => {
                       handleChange(icon);
                     }}
-                    className={`flex items-center justify-center p-2 rounded cursor-pointer hover:bg-gray-100 ${
+                    className={`flex items-center justify-center rounded p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                       selectedIcon === icon
                         ? "bg-indigo-100 ring-2 ring-indigo-500"
                         : ""
@@ -150,7 +208,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
                     title={icon}
                   >
                     <Icon icon={icon} className="h-5 w-5 text-gray-600" />
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -160,7 +218,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
                 No icons found
               </div>
             )}
-          </div>
+          </FloatingPortal>
         ) : (
           <></>
         )}

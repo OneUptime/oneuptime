@@ -1,5 +1,6 @@
 import ObjectID from "../../../Types/ObjectID";
 import useTranslateValue from "../../Utils/Translation";
+import { ModalStackValue, useModalStack } from "../Modal/ModalStackContext";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -66,6 +67,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const modalStack: ModalStackValue = useModalStack();
   const tx: (value: string | undefined) => string | undefined = (
     value: string | undefined,
   ): string | undefined => {
@@ -165,6 +167,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   const [value, setValue] = useState<
     DropdownOption | Array<DropdownOption> | undefined
   >(getDropdownOptionFromValue(props.initialValue));
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const [menuPortalTarget, setMenuPortalTarget] = useState<HTMLElement | null>(
+    null,
+  );
 
   const firstUpdate: React.MutableRefObject<boolean> = useRef(true);
 
@@ -511,6 +517,25 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     setValue(value);
   }, [props.value]);
 
+  useLayoutEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const portalTarget: HTMLDivElement = document.createElement("div");
+    portalTarget.dataset["floatingPortal"] = "true";
+    portalTarget.dataset["floatingModalDepth"] = String(modalStack.depth);
+    if (modalStack.ownerId) {
+      portalTarget.dataset["floatingModalOwner"] = modalStack.ownerId;
+    }
+    document.body.appendChild(portalTarget);
+    setMenuPortalTarget(portalTarget);
+
+    return () => {
+      portalTarget.remove();
+    };
+  }, [modalStack.depth, modalStack.ownerId]);
+
   return (
     <div
       id={props.id}
@@ -536,6 +561,17 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         value={value || null}
         onFocus={() => {
           props.onFocus?.();
+        }}
+        onMenuOpen={(): void => {
+          setIsMenuOpen(true);
+        }}
+        onMenuClose={(): void => {
+          setIsMenuOpen(false);
+        }}
+        onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>): void => {
+          if (event.key === "Escape" && isMenuOpen) {
+            event.stopPropagation();
+          }
         }}
         aria-label={props.ariaLabel}
         aria-labelledby={props.ariaLabelledby}
@@ -710,11 +746,15 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           menuPortal: (base: CSSObjectWithLabel): CSSObjectWithLabel => {
             return {
               ...base,
-              zIndex: 50,
+              /*
+               * Keep this body portal above its containing modal but below a
+               * nested dialog. Outside a modal, preserve the legacy z-index.
+               */
+              zIndex: 50 + modalStack.depth * 20,
             };
           },
         }}
-        menuPortalTarget={document.body}
+        menuPortalTarget={menuPortalTarget}
         menuPosition="fixed"
         isClearable={true}
         isSearchable={true}

@@ -19,13 +19,41 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <div className="bg-gray-50 px-4 py-3 flex flex-row gap-3 md:px-6 md:justify-between">
+    <div
+      className="flex shrink-0 flex-col gap-3 border-t border-slate-200/80 bg-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+      data-testid="modal-footer"
+      style={{
+        paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+      }}
+    >
       {props.leftFooterElement ? (
-        <div className="flex flex-row gap-3">{props.leftFooterElement}</div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2 [&_button]:!ml-0 [&_button]:!w-auto">
+          {props.leftFooterElement}
+        </div>
       ) : (
-        <div />
+        <div className="hidden sm:block" />
       )}
-      <div className="flex flex-row gap-3 md:flex-row-reverse">
+
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+        {props.onClose ? (
+          <Button
+            buttonStyle={
+              props.closeButtonStyleType
+                ? props.closeButtonStyleType
+                : ButtonStyleType.NORMAL
+            }
+            title={props.closeButtonText ? props.closeButtonText : "Cancel"}
+            className="!ml-0 sm:!w-auto"
+            data-dismiss="modal"
+            onClick={() => {
+              props.onClose?.();
+            }}
+            dataTestId="modal-footer-close-button"
+          />
+        ) : (
+          <></>
+        )}
+
         {props.onSubmit ? (
           <Button
             buttonStyle={
@@ -36,6 +64,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
             title={
               props.submitButtonText ? props.submitButtonText : "Save Changes"
             }
+            className="!ml-0 sm:!w-auto"
             onClick={() => {
               props.onSubmit?.();
             }}
@@ -47,24 +76,6 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                 : ButtonType.Button
             }
             dataTestId="modal-footer-submit-button"
-          />
-        ) : (
-          <></>
-        )}
-
-        {props.onClose ? (
-          <Button
-            buttonStyle={
-              props.closeButtonStyleType
-                ? props.closeButtonStyleType
-                : ButtonStyleType.NORMAL
-            }
-            title={props.closeButtonText ? props.closeButtonText : "Cancel"}
-            data-dismiss="modal"
-            onClick={() => {
-              props.onClose?.();
-            }}
-            dataTestId="modal-footer-close-button"
           />
         ) : (
           <></>
