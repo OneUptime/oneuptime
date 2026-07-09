@@ -18,6 +18,7 @@ import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import BadDataException from "Common/Types/Exception/BadDataException";
 
 RunCron(
   "UserOnCallLog:ExecutePendingExecutions",
@@ -327,15 +328,33 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
       );
       logger.error(err);
 
-      await UserOnCallLogService.updateOneById({
-        id: pendingNotificationLog.id!,
-        data: {
-          status: UserNotificationExecutionStatus.Error,
-          statusMessage: err.message ? err.message : "Unknown error",
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      /*
+       * Only mark the log Error for PERMANENT failures (bad/missing data a retry
+       * cannot fix). Error is terminal — no worker re-selects an Error
+       * UserOnCallLog (ExecutePendingExecutions queries Executing,
+       * TimeoutStuckExecutions queries Started) — so forcing EVERY error to Error
+       * meant one transient DB blip (connection reset, pool timeout) during a
+       * single tick permanently dropped the user's not-yet-fired escalation
+       * steps, including the loud last-resort "call at N minutes" page (audit
+       * H3). For a transient/unknown error we LEAVE the log Executing (only log
+       * it) so the next EVERY_MINUTE tick retries. Retries are idempotent: the
+       * loop above skips rules already in executedNotificationRules, so no rule
+       * is re-sent. Mirrors the F16 rationale that a delayed retry beats a
+       * dropped page for an on-call system.
+       */
+      if (err instanceof BadDataException) {
+        await UserOnCallLogService.updateOneById({
+          id: pendingNotificationLog.id!,
+          data: {
+            status: UserNotificationExecutionStatus.Error,
+            statusMessage: err.message ? err.message : "Unknown error",
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
     }
   };
+
+export { executePendingNotificationLog };

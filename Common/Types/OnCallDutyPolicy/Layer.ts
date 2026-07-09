@@ -229,14 +229,21 @@ export default class LayerUtil {
           restrictionTimes: data.restrictionTimes,
         });
 
-      events = [
-        ...events,
+      /*
+       * push() instead of rebuilding the array with [...events, ...new] every
+       * iteration. The spread reallocated and copied the whole accumulated array
+       * each period — O(n^2) over the loop — which, combined with a window sized
+       * to a slow layer, made a fast (e.g. hourly) layer's expansion quadratic
+       * (audit H2). Each period contributes only a handful of segments, so the
+       * spread of the small per-period array as push args is safe.
+       */
+      events.push(
         ...this.getCalendarEventsFromStartAndEndDates(
           trimmedStartAndEndTimes,
           data.users,
           currentUserIndex,
         ),
-      ];
+      );
 
       if (options?.getNumberOfEvents !== undefined) {
         if (events.length >= options.getNumberOfEvents) {
@@ -430,9 +437,21 @@ export default class LayerUtil {
       periods = 0;
     }
 
-    let handOffTime: Date = this.addRotationUnits(
+    /*
+     * Compute the boundary `periods` rotation periods after the anchor. For
+     * Month/Year this ITERATES one period at a time (see addRotationPeriods),
+     * because moment end-of-month-clamps a single multiplied add differently
+     * than stepping period-by-period — e.g. Jan-31 + 11 months multiplied =
+     * Dec-31, but eleven iterated +1-month steps = Dec-28. countElapsedRotation
+     * Periods and the main getEvents loop both walk the ITERATED grid, so a
+     * multiplied step here produced handoff boundaries off that grid and paged
+     * the wrong on-call user for Month/Year rotations anchored on day 29-31 (or
+     * Feb-29 for Year) — audit H1.
+     */
+    let handOffTime: Date = this.addRotationPeriods(
       data.handOffTime,
-      periods * rotationInterval,
+      periods,
+      rotationInterval,
       intervalType,
     );
 
@@ -442,15 +461,59 @@ export default class LayerUtil {
       safety < 1000000
     ) {
       periods++;
+      /*
+       * Step exactly ONE rotation period from the PREVIOUS boundary (not a fresh
+       * multiplied add from the anchor), so Month/Year stay on the same iterated,
+       * calendar-clamped grid as the initial jump above.
+       */
       handOffTime = this.addRotationUnits(
-        data.handOffTime,
-        periods * rotationInterval,
+        handOffTime,
+        rotationInterval,
         intervalType,
       );
       safety++;
     }
 
     return handOffTime;
+  }
+
+  /*
+   * Advance `anchor` by `numberOfPeriods` rotation periods (each period =
+   * rotationInterval units of intervalType). Hour/Day/Week have no calendar-
+   * length clamping, so a single multiplied add is exact and O(1). Month/Year
+   * DO clamp (moment: Jan-31 + 1mo = Feb-28, then Feb-28 + 1mo = Mar-28), so a
+   * multiplied add does NOT equal iterating; we step one period at a time to
+   * stay on the same grid the rest of the engine walks (audit H1). The period
+   * count for Month/Year is small even over decades, so iterating is cheap.
+   */
+  private addRotationPeriods(
+    anchor: Date,
+    numberOfPeriods: number,
+    rotationInterval: number,
+    intervalType: EventInterval,
+  ): Date {
+    if (numberOfPeriods <= 0) {
+      return anchor;
+    }
+
+    if (
+      intervalType === EventInterval.Month ||
+      intervalType === EventInterval.Year
+    ) {
+      let result: Date = anchor;
+      let safety: number = 0;
+      while (safety < numberOfPeriods && safety < 1000000) {
+        result = this.addRotationUnits(result, rotationInterval, intervalType);
+        safety++;
+      }
+      return result;
+    }
+
+    return this.addRotationUnits(
+      anchor,
+      numberOfPeriods * rotationInterval,
+      intervalType,
+    );
   }
 
   private getCurrentUserIndexBasedOnHandoffTime(data: {
@@ -1080,6 +1143,7 @@ export default class LayerUtil {
       let currentDayStart: Date = OneUptimeDate.addRemoveDays(
         OneUptimeDate.getStartOfDay(data.eventStartTime, this.timezone),
         -1,
+        this.timezone, // step wall-clock days in the schedule zone (audit L1)
       );
       const absoluteEventEnd: Date = data.eventEndTime;
       let safetyCounter: number = 0;
@@ -1120,6 +1184,7 @@ export default class LayerUtil {
         const nextDayStart: Date = OneUptimeDate.addRemoveDays(
           currentDayStart,
           1,
+          this.timezone, // wall-clock day step; avoids revisiting a day across fall-back DST (audit L1)
         );
         const segmentMorningStart: Date = OneUptimeDate.getStartOfDay(
           nextDayStart,
@@ -1574,10 +1639,19 @@ export default class LayerUtil {
             }
           } else {
             /*
-             * trim the current event based on the final event
-             * start time of the current event will be the end time of the final event + 1 second
+             * Trim the current (lower-priority) event: push its start past this
+             * higher-priority window. Use getGreaterDate (a monotonic max)
+             * instead of a bare assignment so the result does NOT depend on the
+             * order finalEvents are visited. That makes it safe to hoist the
+             * per-iteration finalEvents.sort() out of the loop (audit H2): with
+             * the old in-loop ascending sort, successive overlaps already had
+             * monotonically increasing ends, so max equals the old assignment and
+             * the output is unchanged.
              */
-            event.start = OneUptimeDate.addRemoveSeconds(finalEvent.end, 1);
+            event.start = OneUptimeDate.getGreaterDate(
+              event.start,
+              OneUptimeDate.addRemoveSeconds(finalEvent.end, 1),
+            );
           }
         }
       }
@@ -1587,19 +1661,14 @@ export default class LayerUtil {
         finalEvents.push(event);
       }
 
-      // sort by start times
-
-      finalEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
-        if (OneUptimeDate.isBefore(a.start, b.start)) {
-          return -1;
-        }
-
-        if (OneUptimeDate.isAfter(a.start, b.start)) {
-          return 1;
-        }
-
-        return 0;
-      });
+      /*
+       * The finalEvents.sort() that used to run HERE — inside the per-event
+       * loop — made the merge O(n^2 log n). It is hoisted to a single sort after
+       * the loop (below). Correctness is preserved because overlap detection and
+       * trimming do not depend on finalEvents being sorted (the current-event
+       * trim above now uses a monotonic max), so sorting once at the end yields
+       * the same result. Audit H2.
+       */
 
       // if an event starts and end at the same time, we need to remove it
 
@@ -1624,6 +1693,23 @@ export default class LayerUtil {
         }
       }
     }
+
+    /*
+     * Single final sort by start time (hoisted out of the per-event loop above,
+     * audit H2). Downstream consumers (getEvents id assignment, the schedule
+     * service's current/next selection) expect events in start order.
+     */
+    finalEvents.sort((a: CalendarEvent, b: CalendarEvent) => {
+      if (OneUptimeDate.isBefore(a.start, b.start)) {
+        return -1;
+      }
+
+      if (OneUptimeDate.isAfter(a.start, b.start)) {
+        return 1;
+      }
+
+      return 0;
+    });
 
     // convert PriorityCalendarEvents to CalendarEvents
 

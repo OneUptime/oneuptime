@@ -1037,7 +1037,13 @@ jobs:
           node-version: 26
           registry-url: 'https://registry.npmjs.org'
       - name: Update npm for OIDC support
-        run: npm install -g npm@latest
+        # Pin to the stable npm 11.x line instead of `@latest`. OIDC trusted
+        # publishing is supported since npm 11.5.1, and 11.x correctly bundles
+        # its `sigstore` dependency. `@latest` currently resolves to a broken
+        # npm 12 build whose bundled `sigstore` fails to resolve, causing
+        # `npm publish` to abort with "Cannot find module 'sigstore'" while
+        # generating provenance (auto-enabled under OIDC). See npm/cli#9722.
+        run: npm install -g npm@11
       - name: Preinstall
         run: npm run prerun
       - name: Publish NPM Packages

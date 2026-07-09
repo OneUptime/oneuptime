@@ -247,8 +247,17 @@ export class Service extends DatabaseService<Model> {
         // moving down.
 
         for (const resource of resources) {
-          if (resource.order! <= newOrder) {
-            // increment order.
+          /*
+           * Only shift rows strictly BETWEEN the old and new position. The lower
+           * bound (order > currentOrder) was missing, so every row above the
+           * moved user was also decremented — driving the top row's order to 0
+           * (and negative after repeated down-drags) and opening a gap at 1,
+           * breaking the 1-based contiguous invariant that create-default
+           * (count+1) and delete re-sequencing rely on (audit L3). Mirrors the
+           * double-bounded moving-up branch above.
+           */
+          if (resource.order! <= newOrder && resource.order! > currentOrder) {
+            // decrement order.
             await this.updateOneBy({
               query: {
                 _id: resource._id!,
