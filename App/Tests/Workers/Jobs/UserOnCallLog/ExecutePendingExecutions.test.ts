@@ -1,15 +1,15 @@
-import ObjectID from "../../../Types/ObjectID";
-import BadDataException from "../../../Types/Exception/BadDataException";
-import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
-import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
-import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
-import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
-import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
-import IncidentService from "../../../Server/Services/IncidentService";
-import AlertService from "../../../Server/Services/AlertService";
-import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
-import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
-import logger from "../../../Server/Utils/Logger";
+import ObjectID from "Common/Types/ObjectID";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import UserNotificationExecutionStatus from "Common/Types/UserNotification/UserNotificationExecutionStatus";
+import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
+import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import UserOnCallLogService from "Common/Server/Services/UserOnCallLogService";
+import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
+import IncidentService from "Common/Server/Services/IncidentService";
+import AlertService from "Common/Server/Services/AlertService";
+import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
+import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
+import logger from "Common/Server/Utils/Logger";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -38,8 +38,8 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  *       Completed, proving the catch is not triggered on success.
  */
 
-// Mock the App worker's Cron util so RunCron is a no-op (no queue side effects).
-jest.mock("../../../../App/FeatureSet/Workers/Utils/Cron", () => {
+// Mock the worker's Cron util so RunCron is a no-op (no queue side effects).
+jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: jest.fn(),
@@ -47,7 +47,7 @@ jest.mock("../../../../App/FeatureSet/Workers/Utils/Cron", () => {
 });
 
 // Import AFTER the jest.mock above (hoisted by jest) so RunCron is already a no-op.
-import { executePendingNotificationLog } from "../../../../App/FeatureSet/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions";
+import { executePendingNotificationLog } from "../../../../FeatureSet/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions";
 
 type PendingLog = Parameters<typeof executePendingNotificationLog>[0];
 
