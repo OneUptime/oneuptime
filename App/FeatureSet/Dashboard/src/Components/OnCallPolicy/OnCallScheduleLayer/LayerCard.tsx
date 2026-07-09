@@ -1,14 +1,24 @@
 import LayerConfigForm from "./LayerConfigForm";
+import LayerRotationSummary from "./LayerRotationSummary";
+import { getLayerPreviewEvents, LayerPreviewResult } from "./LayerShiftPreview";
 import LayerUser from "./LayerUser";
 import { getColorForUserId, getUserInitials } from "./LayerUserColors";
-import { summarizeRestriction, summarizeRotation } from "./LayerSummary";
+import {
+  formatRelativeStart,
+  summarizeRestriction,
+  summarizeRotation,
+} from "./LayerSummary";
 import IconProp from "Common/Types/Icon/IconProp";
+import ScheduleShiftUtil, {
+  CurrentAndNextShift,
+  OnCallShift,
+} from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import User from "Common/Models/DatabaseModels/User";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface ComponentProps {
   layer: OnCallDutyPolicyScheduleLayer;
@@ -60,6 +70,58 @@ const LayerCard: FunctionComponent<ComponentProps> = (
     layer.restrictionTimes,
     props.timezone,
   );
+
+  /*
+   * A cheap client-side rotation preview (using the SAME LayerUtil the server
+   * and the calendar use) powers both the collapsed "on call now" line and the
+   * expanded rotation summary. Memoized on the fields that actually affect the
+   * schedule so it does not recompute on unrelated re-renders (expanding a
+   * sibling layer, editing another card). The layer object is mutated in place
+   * on save, so a reference-based dependency would go stale — key on the values.
+   */
+  const previewKey: string = [
+    layer.startsAt?.toString() || "",
+    layer.handOffTime?.toString() || "",
+    JSON.stringify(layer.rotation || null),
+    JSON.stringify(layer.restrictionTimes || null),
+    props.users
+      .map((u: OnCallDutyPolicyScheduleLayerUser) => {
+        return u.user?.id?.toString() || "";
+      })
+      .join(","),
+    props.timezone || "",
+  ].join("|");
+
+  const preview: LayerPreviewResult = useMemo(() => {
+    return getLayerPreviewEvents({
+      layer,
+      users: props.users,
+      timezone: props.timezone,
+      numberOfShifts: 6,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewKey]);
+
+  /*
+   * The person literally on call at this instant (null during off-hours or a
+   * coverage gap) and who is up next. Computed from raw coverage (no across-gap
+   * merging) so the header line is honest for restricted layers.
+   */
+  const coverageShifts: Array<OnCallShift> =
+    ScheduleShiftUtil.groupEventsIntoShifts(preview.events);
+  const currentAndNext: CurrentAndNextShift =
+    ScheduleShiftUtil.getCurrentAndNextShift(coverageShifts, preview.now);
+
+  const nameById: Record<string, string> = {};
+  for (const layerUser of props.users) {
+    const id: string = layerUser.user?.id?.toString() || "";
+    if (id && !nameById[id]) {
+      nameById[id] =
+        layerUser.user?.name?.toString() ||
+        layerUser.user?.email?.toString() ||
+        "Unknown user";
+    }
+  }
 
   const userCount: number = props.users.length;
   const shownUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
@@ -204,6 +266,45 @@ const LayerCard: FunctionComponent<ComponentProps> = (
             <SummaryChip icon={IconProp.Refresh} text={rotationSummary} />
             <SummaryChip icon={IconProp.Clock} text={restrictionSummary} />
           </div>
+
+          {/* Live "who is on call right now" line, derived from the rotation. */}
+          {userCount > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500">
+              <span
+                className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
+                style={{
+                  backgroundColor: currentAndNext.current
+                    ? getColorForUserId(currentAndNext.current.userId)
+                    : "#d1d5db",
+                }}
+              />
+              {currentAndNext.current ? (
+                <span>
+                  <span className="font-semibold text-gray-700">
+                    {nameById[currentAndNext.current.userId] || "Unknown user"}
+                  </span>{" "}
+                  on call now
+                </span>
+              ) : (
+                <span>No one on call in this layer right now</span>
+              )}
+              {currentAndNext.next && (
+                <>
+                  <span className="text-gray-300">&middot;</span>
+                  <span>
+                    Up next{" "}
+                    <span className="font-medium text-gray-700">
+                      {nameById[currentAndNext.next.userId] || "Unknown user"}
+                    </span>{" "}
+                    {formatRelativeStart(
+                      currentAndNext.next.start,
+                      preview.now,
+                    )}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -264,6 +365,18 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       {/* Body */}
       {props.isExpanded && (
         <div className="border-t border-gray-200 px-4 py-5 md:px-5">
+          {userCount > 0 && (
+            <div className="mb-6">
+              <LayerRotationSummary
+                layer={layer}
+                users={props.users}
+                timezone={props.timezone}
+                events={preview.events}
+                now={preview.now}
+              />
+            </div>
+          )}
+
           <div className="mb-6">
             <h4 className="text-sm font-semibold text-gray-900">
               On-call users
