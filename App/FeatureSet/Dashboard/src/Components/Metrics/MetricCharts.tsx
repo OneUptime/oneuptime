@@ -67,6 +67,142 @@ export interface ComponentProps {
  */
 const DEFAULT_TOP_N_SERIES: number = 10;
 
+/*
+ * How the per-series node list (the interactive legend below the chart) is
+ * ranked and ordered. "peak" (the highest value the series reached over the
+ * visible window) is the default so a spiking node — e.g. the one whose RAM
+ * briefly maxed out — surfaces at the top of the list instead of being
+ * buried in alphabetical order. This orders the node list only; the chart's
+ * series keep a stable name order so line colors don't shuffle on refresh.
+ */
+type SeriesSortBy = "peak" | "avg" | "latest" | "name";
+
+interface SeriesSortOption {
+  key: SeriesSortBy;
+  // Label shown in the sort dropdown.
+  label: string;
+  // Short label used in the "· ranked by …" status line.
+  rankedByLabel: string;
+}
+
+const SERIES_SORT_OPTIONS: Array<SeriesSortOption> = [
+  { key: "peak", label: "Peak", rankedByLabel: "peak value" },
+  { key: "avg", label: "Average", rankedByLabel: "average value" },
+  { key: "latest", label: "Latest", rankedByLabel: "latest value" },
+  { key: "name", label: "Name", rankedByLabel: "peak value" },
+];
+
+type SeriesValueStat = "peak" | "avg" | "latest";
+
+/*
+ * Numeric summary of a single series over the visible window. Returns null
+ * when the series has no finite data points so callers can sort it last and
+ * skip rendering a value for it.
+ */
+function computeSeriesStat(
+  series: SeriesPoint,
+  stat: SeriesValueStat,
+): number | null {
+  let sum: number = 0;
+  let count: number = 0;
+  let peak: number = Number.NEGATIVE_INFINITY;
+  let latestValue: number | null = null;
+  let latestX: number = Number.NEGATIVE_INFINITY;
+
+  for (const point of series.data) {
+    const y: number | null = Number.isFinite(point.y) ? point.y : null;
+    if (y === null) {
+      continue;
+    }
+    count++;
+    sum += y;
+    if (y > peak) {
+      peak = y;
+    }
+    const xTime: number = point.x.getTime();
+    if (xTime >= latestX) {
+      latestX = xTime;
+      latestValue = y;
+    }
+  }
+
+  if (count === 0) {
+    return null;
+  }
+
+  if (stat === "avg") {
+    return sum / count;
+  }
+  if (stat === "latest") {
+    return latestValue;
+  }
+  return peak;
+}
+
+// Natural-sort comparator for series names (cpu0 < cpu2 < cpu10).
+function compareSeriesByName(a: SeriesPoint, b: SeriesPoint): number {
+  return a.seriesName.localeCompare(b.seriesName, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+/*
+ * Returns a new array of series ordered for display. Value modes sort
+ * descending (highest first) so the node with the highest RAM/CPU/etc. is
+ * at the top of the node list; series with no finite data sort last. Ties
+ * (and the "name" mode) fall back to natural name order so equal series
+ * keep a stable order between renders.
+ *
+ * Each series' stat is computed exactly once into a lookup map before
+ * sorting (decorate–sort), rather than re-scanning a series' data points
+ * inside the comparator — the comparator runs O(n log n) times and each
+ * scan is O(datapoints), so caching keeps high-cardinality charts snappy.
+ */
+function sortSeriesForDisplay(
+  series: Array<SeriesPoint>,
+  sortBy: SeriesSortBy,
+): Array<SeriesPoint> {
+  if (sortBy === "name") {
+    return series.slice().sort(compareSeriesByName);
+  }
+
+  const valueByName: Map<string, number | null> = new Map<
+    string,
+    number | null
+  >();
+  for (const s of series) {
+    valueByName.set(s.seriesName, computeSeriesStat(s, sortBy));
+  }
+
+  return series.slice().sort((a: SeriesPoint, b: SeriesPoint) => {
+    const aValue: number | null = valueByName.get(a.seriesName) ?? null;
+    const bValue: number | null = valueByName.get(b.seriesName) ?? null;
+    if (aValue === null && bValue === null) {
+      return compareSeriesByName(a, b);
+    }
+    if (aValue === null) {
+      return 1;
+    }
+    if (bValue === null) {
+      return -1;
+    }
+    if (bValue !== aValue) {
+      return bValue - aValue;
+    }
+    return compareSeriesByName(a, b);
+  });
+}
+
+/*
+ * Value stat used to rank series for the Top-N cut. Name sort still ranks
+ * by peak so the most relevant nodes are the ones kept — only the node
+ * list's order changes.
+ */
+function getRankingStat(sortBy: SeriesSortBy): SeriesValueStat {
+  return sortBy === "name" ? "peak" : sortBy;
+}
+
 // Per-chart user controls for high-cardinality series charts.
 interface SeriesControlsState {
   searchQuery: string;
@@ -74,12 +210,15 @@ interface SeriesControlsState {
   hiddenSeries: Set<string>;
   // When true, lift the Top-N cap and render every series.
   showAllSeries: boolean;
+  // How the node list is ranked and ordered (defaults to peak value).
+  sortBy: SeriesSortBy;
 }
 
 const defaultSeriesControlsState: SeriesControlsState = {
   searchQuery: "",
   hiddenSeries: new Set<string>(),
   showAllSeries: false,
+  sortBy: "peak",
 };
 
 /*
@@ -123,6 +262,11 @@ function renderSeriesControls(input: {
   hiddenFromTopN: number;
   needsTopN: boolean;
   chartType: ChartType;
+  /*
+   * Formats a series value (peak/avg/latest) for display next to its name,
+   * using the same unit/precision as the chart's y-axis.
+   */
+  valueFormatter: (value: number) => string;
 }): ReactElement {
   const {
     chartId,
@@ -134,7 +278,20 @@ function renderSeriesControls(input: {
     hiddenFromTopN,
     needsTopN,
     chartType,
+    valueFormatter,
   } = input;
+
+  const sortBy: SeriesSortBy = controls.sortBy;
+  /*
+   * The value shown next to each node reflects the active sort. Name sort
+   * has no value of its own, so we still show peak — the most useful "how
+   * high did this get" number.
+   */
+  const displayStat: SeriesValueStat = getRankingStat(sortBy);
+  const rankedByLabel: string =
+    SERIES_SORT_OPTIONS.find((option: SeriesSortOption) => {
+      return option.key === sortBy;
+    })?.rankedByLabel || "peak value";
 
   /*
    * Map each currently-rendered series to the same palette color the
@@ -164,22 +321,18 @@ function renderSeriesControls(input: {
         });
 
   /*
-   * Top-N is picked from the peak-sorted list, but display ordering
-   * is alphabetical (natural-sort) so cpu0…cpu10 appear in sequence
-   * instead of scrambled by activity.
+   * Top-N is picked from the value-ranked list, then the chips are ordered
+   * by the user's chosen sort (default: peak value, highest first) so the
+   * node with the highest value sits at the top of the list. Ordering the
+   * node list — not the chart series — is what keeps line colors stable
+   * across refreshes (colors are assigned by chart-series position).
    */
-  const visibleForChips: Array<SeriesPoint> = (
+  const visibleForChips: Array<SeriesPoint> = sortSeriesForDisplay(
     controls.showAllSeries
       ? seriesForChips
-      : seriesForChips.slice(0, DEFAULT_TOP_N_SERIES)
-  )
-    .slice()
-    .sort((a: SeriesPoint, b: SeriesPoint) => {
-      return a.seriesName.localeCompare(b.seriesName, undefined, {
-        numeric: true,
-        sensitivity: "base",
-      });
-    });
+      : seriesForChips.slice(0, DEFAULT_TOP_N_SERIES),
+    sortBy,
+  );
 
   const toggleSeries: (seriesName: string) => void = (
     seriesName: string,
@@ -225,6 +378,28 @@ function renderSeriesControls(input: {
           />
         </div>
         <div className="flex items-center gap-1.5">
+          <label htmlFor={`series-sort-${chartId}`} className="sr-only">
+            Sort series by
+          </label>
+          <select
+            id={`series-sort-${chartId}`}
+            value={sortBy}
+            title="Sort the node list by"
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
+              updateControls(chartId, {
+                sortBy: e.target.value as SeriesSortBy,
+              });
+            }}
+            className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          >
+            {SERIES_SORT_OPTIONS.map((option: SeriesSortOption) => {
+              return (
+                <option key={option.key} value={option.key}>
+                  {`Sort: ${option.label}`}
+                </option>
+              );
+            })}
+          </select>
           {needsTopN ? (
             <button
               type="button"
@@ -263,7 +438,7 @@ function renderSeriesControls(input: {
           <span className="font-medium text-gray-700">{totalSeries}</span>
           <span> series shown</span>
           {hiddenFromTopN > 0 ? (
-            <span className="text-gray-400"> · ranked by peak value</span>
+            <span className="text-gray-400"> · ranked by {rankedByLabel}</span>
           ) : null}
           {controls.hiddenSeries.size > 0 ? (
             <span className="text-gray-400">
@@ -288,6 +463,12 @@ function renderSeriesControls(input: {
               series.seriesName,
             );
             const showColor: boolean = Boolean(color) && !isHidden;
+            const statValue: number | null = computeSeriesStat(
+              series,
+              displayStat,
+            );
+            const valueLabel: string | null =
+              statValue === null ? null : valueFormatter(statValue);
             return (
               <button
                 key={series.seriesName}
@@ -320,6 +501,15 @@ function renderSeriesControls(input: {
                 >
                   {series.seriesName}
                 </span>
+                {valueLabel !== null ? (
+                  <span
+                    className={`shrink-0 tabular-nums font-medium ${
+                      isHidden ? "text-gray-300" : "text-gray-500"
+                    }`}
+                  >
+                    {valueLabel}
+                  </span>
+                ) : null}
               </button>
             );
           })
@@ -784,35 +974,24 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const chartId: string = index.toString();
 
       /*
-       * High-cardinality handling: rank series by peak absolute value
-       * so the breaching series surface first, then apply the user's
-       * search filter, hidden set, and Top-N cap. The original
-       * chartSeries length is preserved for the controls panel so
-       * the "Show all N" button can show the true count.
+       * High-cardinality handling: rank series by the active value stat
+       * (default: peak value) so the breaching series surface first and
+       * are always retained by the Top-N cut, then apply the user's search
+       * filter, hidden set, and Top-N cap. The original chartSeries length
+       * is preserved for the controls panel so the "Show all N" button can
+       * show the true count.
        */
       const controls: SeriesControlsState = getControls(chartId);
-      const sortedByPeak: Array<SeriesPoint> = [...chartSeries].sort(
-        (a: SeriesPoint, b: SeriesPoint) => {
-          const peakA: number = Math.max(
-            0,
-            ...a.data.map((p: { y: number | null }) => {
-              return typeof p.y === "number" ? Math.abs(p.y) : 0;
-            }),
-          );
-          const peakB: number = Math.max(
-            0,
-            ...b.data.map((p: { y: number | null }) => {
-              return typeof p.y === "number" ? Math.abs(p.y) : 0;
-            }),
-          );
-          return peakB - peakA;
-        },
+      const rankingStat: SeriesValueStat = getRankingStat(controls.sortBy);
+      const rankedSeries: Array<SeriesPoint> = sortSeriesForDisplay(
+        chartSeries,
+        rankingStat,
       );
 
-      const totalSeries: number = sortedByPeak.length;
+      const totalSeries: number = rankedSeries.length;
       const needsTopN: boolean = totalSeries > DEFAULT_TOP_N_SERIES;
 
-      let displayableSeries: Array<SeriesPoint> = sortedByPeak;
+      let displayableSeries: Array<SeriesPoint> = rankedSeries;
 
       if (controls.searchQuery.trim() !== "") {
         const q: string = controls.searchQuery.toLowerCase();
@@ -832,24 +1011,35 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       }
 
       /*
-       * Top-N selection used peak-value ranking; once the cut is made,
-       * sort the series shown on the chart and in the legend/tooltip
-       * by name (natural sort) so cpu0…cpu10 render in order rather
-       * than scrambled by activity.
+       * The series drawn on the chart keep a stable natural-name order,
+       * regardless of the node-list sort. Line/legend colors are assigned
+       * by chart-series position, so ordering the chart by a live value
+       * (e.g. peak) would reshuffle every node's color whenever the ranking
+       * changed on refresh — making it impossible to track "the red line".
+       * The user-selected sort is applied to the node list (chips) only;
+       * the Top-N cut above still uses the value ranking so the highest
+       * nodes are the ones shown.
        */
-      displayableSeries = displayableSeries
-        .slice()
-        .sort((a: SeriesPoint, b: SeriesPoint) => {
-          return a.seriesName.localeCompare(b.seriesName, undefined, {
-            numeric: true,
-            sensitivity: "base",
-          });
-        });
+      displayableSeries = displayableSeries.slice().sort(compareSeriesByName);
 
       const hiddenFromTopN: number =
         needsTopN && !controls.showAllSeries
           ? Math.max(0, totalSeries - DEFAULT_TOP_N_SERIES)
           : 0;
+
+      /*
+       * Formats a series value for the node list using the same unit and
+       * precision as the chart's y-axis, so "52.75%" in the list matches
+       * the axis and tooltip.
+       */
+      const seriesValueFormatter: (value: number) => string = (
+        value: number,
+      ): string => {
+        if (queryConfig.yAxisValueFormatter) {
+          return queryConfig.yAxisValueFormatter(value);
+        }
+        return ValueFormatter.formatValue(value, unit, formatterOptions);
+      };
 
       // Build the controls panel — only when series cardinality warrants it.
       const seriesControls: ReactElement | undefined =
@@ -858,12 +1048,13 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               chartId,
               controls,
               updateControls,
-              fullSeries: sortedByPeak,
+              fullSeries: rankedSeries,
               displayableSeries,
               totalSeries,
               hiddenFromTopN,
               needsTopN,
               chartType,
+              valueFormatter: seriesValueFormatter,
             })
           : undefined;
 
