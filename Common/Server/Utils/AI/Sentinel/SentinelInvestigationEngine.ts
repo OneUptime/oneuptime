@@ -1,6 +1,10 @@
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
-import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
+import { JSONObject } from "../../../../Types/JSON";
+import {
+  AIChatCitation,
+  AIRunEventResultSummary,
+} from "../../../../Types/AI/AIChatTypes";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
@@ -14,6 +18,8 @@ import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import ObservabilityAssistant, {
   ObservabilityAssistantResult,
+  ObservabilityAssistantStep,
+  ObservabilityAssistantStepType,
 } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -46,6 +52,16 @@ const MAX_OUTPUT_TOKENS: number = 2000;
  * a non-answer should never loudly page the on-call.
  */
 const INCONCLUSIVE_RE: RegExp = /inconclusive[^.\n]*insufficient signal/i;
+
+// Maps a live agent step to the AIRunEvent type persisted for the glass-box trail.
+const STEP_EVENT_TYPE: Record<ObservabilityAssistantStepType, AIRunEventType> =
+  {
+    llm_started: AIRunEventType.LlmCallStarted,
+    llm_completed: AIRunEventType.LlmCallCompleted,
+    tool_started: AIRunEventType.ToolCallStarted,
+    tool_completed: AIRunEventType.ToolCallCompleted,
+    tool_failed: AIRunEventType.ToolCallFailed,
+  };
 
 const INVESTIGATION_PERSONA: string = `You are "Sentinel", OneUptime's autonomous AI Site Reliability Engineer. You have been woken automatically because a NEW signal (an incident or alert) was just declared in this project — no human has asked you a question yet. Investigate it proactively and produce a first-pass root cause analysis that the on-call engineer will read the moment they are paged.
 
@@ -164,6 +180,41 @@ export default class SentinelInvestigationEngine {
       eventType: AIRunEventType.RunStarted,
     });
 
+    /*
+     * Live narration: persist each LLM/tool step as an AIRunEvent so the UI can
+     * "watch it think" by polling the run's events. Best-effort, ordered.
+     */
+    const onStep: (step: ObservabilityAssistantStep) => Promise<void> = async (
+      step: ObservabilityAssistantStep,
+    ): Promise<void> => {
+      const resultSummary: AIRunEventResultSummary | undefined =
+        step.rowCount !== undefined ||
+        step.durationMs !== undefined ||
+        step.errorMessage !== undefined
+          ? {
+              rowCount: step.rowCount,
+              durationInMs: step.durationMs,
+              errorMessage: step.errorMessage,
+            }
+          : undefined;
+
+      await this.emitEvent({
+        projectId,
+        aiRunId,
+        sequence: sequence++,
+        eventType: STEP_EVENT_TYPE[step.type],
+        toolName: step.toolName,
+        toolArguments: step.toolArguments,
+        resultSummary,
+        citationId: step.citationId,
+      });
+
+      // Keep the run visibly alive for the stale-run sweeper + live UI.
+      if (step.type === "llm_started") {
+        await this.touchHeartbeat(aiRunId);
+      }
+    };
+
     try {
       const result: ObservabilityAssistantResult =
         await ObservabilityAssistant.answerQuestion({
@@ -177,6 +228,7 @@ export default class SentinelInvestigationEngine {
           maxToolCalls: MAX_TOOL_CALLS,
           maxWallClockMs: MAX_WALL_CLOCK_MS,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
+          onStep,
         });
 
       await AIRunService.updateOneBy({
@@ -271,11 +323,30 @@ export default class SentinelInvestigationEngine {
     return markdown;
   }
 
+  // Refresh lastHeartbeatAt so a long-running investigation isn't swept as stale.
+  private static async touchHeartbeat(aiRunId: ObjectID): Promise<void> {
+    try {
+      await AIRunService.updateOneBy({
+        query: { _id: aiRunId.toString(), status: AIRunStatus.Running },
+        data: {
+          lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
+        } as never,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      logger.error(`Sentinel: heartbeat update failed: ${error}`);
+    }
+  }
+
   private static async emitEvent(data: {
     projectId: ObjectID;
     aiRunId: ObjectID;
     sequence: number;
     eventType: AIRunEventType;
+    toolName?: string | undefined;
+    toolArguments?: JSONObject | undefined;
+    resultSummary?: AIRunEventResultSummary | undefined;
+    citationId?: string | undefined;
   }): Promise<void> {
     try {
       const event: AIRunEvent = new AIRunEvent();
@@ -283,6 +354,19 @@ export default class SentinelInvestigationEngine {
       event.aiRunId = data.aiRunId;
       event.sequence = data.sequence;
       event.eventType = data.eventType;
+
+      if (data.toolName) {
+        event.toolName = data.toolName;
+      }
+      if (data.toolArguments) {
+        event.toolArguments = data.toolArguments;
+      }
+      if (data.resultSummary) {
+        event.resultSummary = data.resultSummary;
+      }
+      if (data.citationId) {
+        event.citationId = data.citationId;
+      }
 
       await AIRunEventService.create({
         data: event,

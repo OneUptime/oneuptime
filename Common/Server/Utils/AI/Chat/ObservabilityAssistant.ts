@@ -1,6 +1,7 @@
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
+import { JSONObject } from "../../../../Types/JSON";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import logger from "../../Logger";
@@ -32,6 +33,29 @@ export interface ObservabilityAssistantPriorTurn {
   content: string;
 }
 
+/*
+ * A single "thinking step" emitted live as the agent loop runs, so callers can
+ * narrate the investigation in real time ("Reading trace ✓ 0.4s"). This is the
+ * step-level narration the OneUptime UI renders by polling AIRunEvent rows.
+ */
+export type ObservabilityAssistantStepType =
+  | "llm_started"
+  | "llm_completed"
+  | "tool_started"
+  | "tool_completed"
+  | "tool_failed";
+
+export interface ObservabilityAssistantStep {
+  type: ObservabilityAssistantStepType;
+  toolName?: string | undefined;
+  toolArguments?: JSONObject | undefined;
+  rowCount?: number | undefined;
+  durationMs?: number | undefined;
+  citationId?: string | undefined;
+  totalTokens?: number | undefined;
+  errorMessage?: string | undefined;
+}
+
 export interface ObservabilityAssistantRequest {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
@@ -60,6 +84,13 @@ export interface ObservabilityAssistantRequest {
   maxToolCalls?: number | undefined;
   maxWallClockMs?: number | undefined;
   maxOutputTokens?: number | undefined;
+  /*
+   * Optional live-narration hook, fired for each LLM/tool step as the loop runs.
+   * Used by autonomous runs to persist a per-step AIRunEvent trail so the UI can
+   * "watch it think". Best-effort — implementations must not throw; a slow or
+   * failing handler should not break the run.
+   */
+  onStep?: ((step: ObservabilityAssistantStep) => Promise<void>) | undefined;
 }
 
 export interface ObservabilityAssistantResult {
@@ -91,6 +122,22 @@ export default class ObservabilityAssistant {
     const maxWallClockMs: number = request.maxWallClockMs ?? MAX_WALL_CLOCK_MS;
     const maxOutputTokens: number =
       request.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
+
+    // Best-effort live-narration emitter — never throws into the loop.
+    const emitStep: (
+      step: ObservabilityAssistantStep,
+    ) => Promise<void> = async (
+      step: ObservabilityAssistantStep,
+    ): Promise<void> => {
+      if (!request.onStep) {
+        return;
+      }
+      try {
+        await request.onStep(step);
+      } catch (err) {
+        logger.error(`ObservabilityAssistant onStep failed: ${err}`);
+      }
+    };
 
     const toolContext: ToolContext = {
       projectId: request.projectId,
@@ -147,6 +194,8 @@ export default class ObservabilityAssistant {
         });
       }
 
+      await emitStep({ type: "llm_started" });
+
       const response: AILogResponse = await AIService.executeWithLogging({
         projectId: request.projectId,
         userId: request.userId,
@@ -164,6 +213,11 @@ export default class ObservabilityAssistant {
 
       llmCallCount++;
       totalTokens += response.llmLog.totalTokens || 0;
+
+      await emitStep({
+        type: "llm_completed",
+        totalTokens: response.llmLog.totalTokens || 0,
+      });
 
       if (!providerName) {
         providerName = response.llmLog.llmProviderName;
@@ -207,6 +261,14 @@ export default class ObservabilityAssistant {
             continue;
           }
 
+          const toolStartedAtMs: number = Date.now();
+
+          await emitStep({
+            type: "tool_started",
+            toolName: toolCall.name,
+            toolArguments: toolCall.arguments,
+          });
+
           const outcome: ToolCallOutcome = await AIToolbox.executeTool({
             name: toolCall.name,
             args: toolCall.arguments,
@@ -214,6 +276,13 @@ export default class ObservabilityAssistant {
           });
 
           if (!outcome.success || !outcome.result) {
+            await emitStep({
+              type: "tool_failed",
+              toolName: toolCall.name,
+              durationMs: Date.now() - toolStartedAtMs,
+              errorMessage: outcome.errorMessage || outcome.textForLlm,
+            });
+
             messages.push({
               role: "tool",
               toolCallId: toolCall.id,
@@ -231,6 +300,14 @@ export default class ObservabilityAssistant {
             queryArguments: toolCall.arguments,
             rowCount: outcome.result.rowCount,
             target: outcome.result.citationTarget,
+          });
+
+          await emitStep({
+            type: "tool_completed",
+            toolName: toolCall.name,
+            durationMs: Date.now() - toolStartedAtMs,
+            rowCount: outcome.result.rowCount,
+            citationId: citationId,
           });
 
           const escapedText: string = escapeToolResultContent(
