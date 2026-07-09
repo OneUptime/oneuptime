@@ -386,208 +386,68 @@ export default class LayerUtil {
       return data.handOffTime;
     }
 
-    let handOffTime: Date = data.handOffTime;
-
-    let intervalBetweenStartTimeAndHandoffTime: number = 0;
     const rawRotationInterval: number = data.rotation.intervalCount.toNumber();
     /*
      * Defensive clamp: an invalid interval count (0, NaN, negative) would make
-     * the alignment below divide by zero / produce an Invalid Date and spin the
-     * main getEvents loop. Treat any invalid value as a single unit.
+     * the alignment below produce an Invalid Date and spin the main getEvents
+     * loop. Treat any invalid value as a single unit.
      */
     const rotationInterval: number =
       Number.isFinite(rawRotationInterval) && rawRotationInterval >= 1
         ? Math.floor(rawRotationInterval)
         : 1;
 
-    if (data.rotation.intervalType === EventInterval.Day) {
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getDaysBetweenTwoDatesInclusive(
-          handOffTime,
-          data.currentEventStartTime,
-        );
+    const intervalType: EventInterval = data.rotation.intervalType;
 
-      /*
-       * Round the elapsed-period count UP to the next whole multiple of the
-       * rotation interval so the handoff always lands on a real rotation
-       * boundary (anchor + k*intervalCount). The previous behavior added a
-       * single interval when the count was not already a multiple, which
-       * overshot the boundary and caused rotations with intervalCount >= 2 to
-       * drift permanently off their boundaries (e.g. an "every 2 days"
-       * rotation landing on odd-day boundaries and paging the wrong user).
-       */
-      intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
-        rotationInterval;
+    /*
+     * Rotation boundaries are exactly handOffTime + k * rotationInterval units
+     * (k a non-negative integer). Return the SMALLEST such boundary that is
+     * strictly after currentEventStartTime.
+     *
+     * We start from the floor of the whole-period distance and step UP one full
+     * rotation period at a time until strictly after the target. This:
+     *   - stays on the interval grid (multiples of rotationInterval), so
+     *     intervalCount >= 2 rotations never drift onto an off-grid boundary
+     *     (audit HIGH-1); and
+     *   - never OVERSHOOTS by a whole period. The previous
+     *     ceil(getUnitsInclusive / interval) * interval formula used an
+     *     INCLUSIVE unit count, which overshot by a full period for positions in
+     *     the last partial period before a boundary — and a DST offset shift
+     *     could push the inclusive count across an even/odd threshold — yielding
+     *     a first period that spanned two rotations and resolved the wrong
+     *     current/next on-call user for intervalCount >= 2 rotations.
+     * addRotationUnits carries the timezone per interval type (wall-clock across
+     * DST for Day/Week/Month/Year; absolute for Hour), matching the main loop.
+     */
+    const unitsBetween: number = this.getUnitsBetweenDates(
+      data.handOffTime,
+      data.currentEventStartTime,
+      intervalType,
+    );
 
-      // add intervalBetweenStartTimeAndHandoffTime to handoff time
-
-      handOffTime = OneUptimeDate.addRemoveDays(
-        handOffTime,
-        intervalBetweenStartTimeAndHandoffTime,
-        this.timezone,
-      );
-
-      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveDays(
-          handOffTime,
-          1,
-          this.timezone,
-        );
-      }
-
-      return handOffTime;
+    let periods: number = Math.floor(unitsBetween / rotationInterval);
+    if (!Number.isFinite(periods) || periods < 0) {
+      periods = 0;
     }
 
-    if (data.rotation.intervalType === EventInterval.Hour) {
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getHoursBetweenTwoDatesInclusive(
-          handOffTime,
-          data.currentEventStartTime,
-        );
+    let handOffTime: Date = this.addRotationUnits(
+      data.handOffTime,
+      periods * rotationInterval,
+      intervalType,
+    );
 
-      /*
-       * Round the elapsed-period count UP to the next whole multiple of the
-       * rotation interval so the handoff always lands on a real rotation
-       * boundary (anchor + k*intervalCount). The previous behavior added a
-       * single interval when the count was not already a multiple, which
-       * overshot the boundary and caused rotations with intervalCount >= 2 to
-       * drift permanently off their boundaries (e.g. an "every 2 days"
-       * rotation landing on odd-day boundaries and paging the wrong user).
-       */
-      intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
-        rotationInterval;
-
-      // add intervalBetweenStartTimeAndHandoffTime to handoff time
-
-      handOffTime = OneUptimeDate.addRemoveHours(
-        handOffTime,
-        intervalBetweenStartTimeAndHandoffTime,
+    let safety: number = 0;
+    while (
+      OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime) &&
+      safety < 1000000
+    ) {
+      periods++;
+      handOffTime = this.addRotationUnits(
+        data.handOffTime,
+        periods * rotationInterval,
+        intervalType,
       );
-
-      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveHours(handOffTime, 1);
-      }
-
-      return handOffTime;
-    }
-
-    if (data.rotation.intervalType === EventInterval.Week) {
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getWeeksBetweenTwoDatesInclusive(
-          handOffTime,
-          data.currentEventStartTime,
-        );
-
-      /*
-       * Round the elapsed-period count UP to the next whole multiple of the
-       * rotation interval so the handoff always lands on a real rotation
-       * boundary (anchor + k*intervalCount). The previous behavior added a
-       * single interval when the count was not already a multiple, which
-       * overshot the boundary and caused rotations with intervalCount >= 2 to
-       * drift permanently off their boundaries (e.g. an "every 2 days"
-       * rotation landing on odd-day boundaries and paging the wrong user).
-       */
-      intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
-        rotationInterval;
-
-      // add intervalBetweenStartTimeAndHandoffTime to handoff time
-
-      handOffTime = OneUptimeDate.addRemoveWeeks(
-        handOffTime,
-        intervalBetweenStartTimeAndHandoffTime,
-        this.timezone,
-      );
-
-      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveWeeks(
-          handOffTime,
-          1,
-          this.timezone,
-        );
-      }
-
-      return handOffTime;
-    }
-
-    if (data.rotation.intervalType === EventInterval.Month) {
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getMonthsBetweenTwoDatesInclusive(
-          handOffTime,
-          data.currentEventStartTime,
-        );
-
-      /*
-       * Round the elapsed-period count UP to the next whole multiple of the
-       * rotation interval so the handoff always lands on a real rotation
-       * boundary (anchor + k*intervalCount). The previous behavior added a
-       * single interval when the count was not already a multiple, which
-       * overshot the boundary and caused rotations with intervalCount >= 2 to
-       * drift permanently off their boundaries (e.g. an "every 2 days"
-       * rotation landing on odd-day boundaries and paging the wrong user).
-       */
-      intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
-        rotationInterval;
-
-      // add intervalBetweenStartTimeAndHandoffTime to handoff time
-
-      handOffTime = OneUptimeDate.addRemoveMonths(
-        handOffTime,
-        intervalBetweenStartTimeAndHandoffTime,
-        this.timezone,
-      );
-
-      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveMonths(
-          handOffTime,
-          1,
-          this.timezone,
-        );
-      }
-
-      return handOffTime;
-    }
-
-    if (data.rotation.intervalType === EventInterval.Year) {
-      intervalBetweenStartTimeAndHandoffTime =
-        OneUptimeDate.getYearsBetweenTwoDatesInclusive(
-          handOffTime,
-          data.currentEventStartTime,
-        );
-
-      /*
-       * Round the elapsed-period count UP to the next whole multiple of the
-       * rotation interval so the handoff always lands on a real rotation
-       * boundary (anchor + k*intervalCount). The previous behavior added a
-       * single interval when the count was not already a multiple, which
-       * overshot the boundary and caused rotations with intervalCount >= 2 to
-       * drift permanently off their boundaries (e.g. an "every 2 days"
-       * rotation landing on odd-day boundaries and paging the wrong user).
-       */
-      intervalBetweenStartTimeAndHandoffTime =
-        Math.ceil(intervalBetweenStartTimeAndHandoffTime / rotationInterval) *
-        rotationInterval;
-
-      // add intervalBetweenStartTimeAndHandoffTime to handoff time
-
-      handOffTime = OneUptimeDate.addRemoveYears(
-        handOffTime,
-        intervalBetweenStartTimeAndHandoffTime,
-        this.timezone,
-      );
-
-      if (OneUptimeDate.isOnOrBefore(handOffTime, data.currentEventStartTime)) {
-        handOffTime = OneUptimeDate.addRemoveYears(
-          handOffTime,
-          1,
-          this.timezone,
-        );
-      }
-
-      return handOffTime;
+      safety++;
     }
 
     return handOffTime;
@@ -919,25 +779,32 @@ export default class LayerUtil {
       restrictionTimes.restictionType === RestrictionType.Daily &&
       restrictionTimes.dayRestrictionTimes
     ) {
-      // before this we need to make sure restrciton times are moved to the day of the event.
-      restrictionTimes.dayRestrictionTimes.startTime =
-        OneUptimeDate.keepTimeButMoveDay(
+      /*
+       * Move the restriction window to the event's day WITHOUT mutating the
+       * shared RestrictionTimes object. The previous code wrote the moved
+       * start/end back into restrictionTimes.dayRestrictionTimes, corrupting the
+       * caller's object across events/layers/calls and making resolution
+       * order-dependent (a hygiene defect flagged in the audit). keepTimeButMoveDay
+       * preserves the time-of-day regardless of the base day, so working on a
+       * local copy produces identical windows with no shared-state side effects.
+       */
+      const movedDayRestriction: StartAndEndTime = {
+        startTime: OneUptimeDate.keepTimeButMoveDay(
           restrictionTimes.dayRestrictionTimes.startTime,
           data.eventStartTime,
           this.timezone,
-        );
-
-      restrictionTimes.dayRestrictionTimes.endTime =
-        OneUptimeDate.keepTimeButMoveDay(
+        ),
+        endTime: OneUptimeDate.keepTimeButMoveDay(
           restrictionTimes.dayRestrictionTimes.endTime,
           data.eventStartTime,
           this.timezone,
-        );
+        ),
+      };
 
       return this.getEventsByDailyRestriction({
         eventStartTime: data.eventStartTime,
         eventEndTime: data.eventEndTime,
-        restrictionStartAndEndTime: restrictionTimes.dayRestrictionTimes,
+        restrictionStartAndEndTime: movedDayRestriction,
         props: {
           intervalType: EventInterval.Day,
         },

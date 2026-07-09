@@ -21,7 +21,13 @@ import EventInterval from "../../../Types/Events/EventInterval";
 import PositiveNumber from "../../../Types/PositiveNumber";
 
 function user(id: string): User {
-  return { id: { toString: (): string => id } as any } as User;
+  return {
+    id: {
+      toString: (): string => {
+        return id;
+      },
+    } as any,
+  } as User;
 }
 
 function noRestriction(): RestrictionTimes {
@@ -112,7 +118,10 @@ function coveringEvent(
   at: Date,
 ): CalendarEvent | null {
   for (const e of events) {
-    if (OneUptimeDate.isOnOrAfter(at, e.start) && OneUptimeDate.isBefore(at, e.end)) {
+    if (
+      OneUptimeDate.isOnOrAfter(at, e.start) &&
+      OneUptimeDate.isBefore(at, e.end)
+    ) {
       return e;
     }
   }
@@ -242,12 +251,12 @@ describe("DIFFERENTIAL: windowed resolution == full expansion (unrestricted, off
 
 describe("DIFFERENTIAL: restricted daily 09-17 covered-instant agreement", () => {
   const restrictedConfigs: Config[] = [];
-  const intervals: EventInterval[] = [
-    EventInterval.Day,
-    EventInterval.Week,
-  ];
+  const intervals: EventInterval[] = [EventInterval.Day, EventInterval.Week];
   const counts: number[] = [1, 2];
-  const userSets: string[][] = [["A", "B"], ["A", "B", "C"]];
+  const userSets: string[][] = [
+    ["A", "B"],
+    ["A", "B", "C"],
+  ];
   const timezones: (string | undefined)[] = [
     undefined,
     "America/New_York",

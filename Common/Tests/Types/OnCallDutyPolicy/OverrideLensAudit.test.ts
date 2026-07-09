@@ -7,8 +7,18 @@ function at(h: number, m: number = 0, s: number = 0, ms: number = 0): Date {
   return new Date(2026, 0, 1, h, m, s, ms);
 }
 
-function event(title: string, startHour: number, endHour: number): CalendarEvent {
-  return { id: 1, title, allDay: false, start: at(startHour), end: at(endHour) };
+function event(
+  title: string,
+  startHour: number,
+  endHour: number,
+): CalendarEvent {
+  return {
+    id: 1,
+    title,
+    allDay: false,
+    start: at(startHour),
+    end: at(endHour),
+  };
 }
 
 function resolvedAt(events: Array<CalendarEvent>, t: Date): string | null {
@@ -38,14 +48,17 @@ describe("Override lens audit", () => {
       endsAt: at(13),
       onCallDutyPolicyId: null,
     };
-    const result: Array<CalendarEvent> = UserOverrideUtil.applyOverridesToEvents({
-      events: [base],
-      overrides: [aToB, bToC],
-    });
+    const result: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
+        events: [base],
+        overrides: [aToB, bToC],
+      });
     // Non-transitive: schedule resolution (roster + dashboard) reports B, NOT C.
     expect(resolvedAt(result, at(11))).toBe("B");
-    // The escalation paging path would then run getRouteAlertToUserId("B"),
-    // find the B->C override, and page C -> divergence from the roster (B).
+    /*
+     * The escalation paging path would then run getRouteAlertToUserId("B"),
+     * find the B->C override, and page C -> divergence from the roster (B).
+     */
   });
 
   test("REPRO: swap pair A->B and B->A resolves to B (roster), escalation would route B->A", () => {
@@ -64,10 +77,11 @@ describe("Override lens audit", () => {
       endsAt: at(13),
       onCallDutyPolicyId: null,
     };
-    const result: Array<CalendarEvent> = UserOverrideUtil.applyOverridesToEvents({
-      events: [base],
-      overrides: [aToB, bToA],
-    });
+    const result: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
+        events: [base],
+        overrides: [aToB, bToA],
+      });
     // Roster resolves to B. getRouteAlertToUserId("B") would map B->A and page A.
     expect(resolvedAt(result, at(11))).toBe("B");
   });
@@ -88,12 +102,15 @@ describe("Override lens audit", () => {
       endsAt: at(13),
       onCallDutyPolicyId: null,
     };
-    const result: Array<CalendarEvent> = UserOverrideUtil.applyOverridesToEvents({
-      events: [base],
-      overrides: [selfOverride, aToB],
-    });
-    // At 11:00 the real override A->B is expected, but the self-override marked
-    // [10,12] first, so it is skipped and A stays on-call.
+    const result: Array<CalendarEvent> =
+      UserOverrideUtil.applyOverridesToEvents({
+        events: [base],
+        overrides: [selfOverride, aToB],
+      });
+    /*
+     * At 11:00 the real override A->B is expected, but the self-override marked
+     * [10,12] first, so it is skipped and A stays on-call.
+     */
     // eslint-disable-next-line no-console
     console.log("self-override case @11:00 =>", resolvedAt(result, at(11)));
   });

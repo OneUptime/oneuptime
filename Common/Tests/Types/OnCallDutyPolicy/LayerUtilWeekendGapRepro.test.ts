@@ -22,7 +22,13 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import DayOfWeek from "../../../Types/Day/DayOfWeek";
 
 function user(id: string): User {
-  return { id: { toString: (): string => id } as any } as User;
+  return {
+    id: {
+      toString: (): string => {
+        return id;
+      },
+    } as any,
+  } as User;
 }
 
 function makeLayer(): LayerProps {
@@ -94,7 +100,10 @@ describe("Weekly rotation + Mon-Fri restriction: weekend query off-by-one", () =
     // eslint-disable-next-line no-console
     console.log("week1 covered by (full):", week1Cover && fmt(week1Cover));
     // eslint-disable-next-line no-console
-    console.log("WINDOWED next @Sat Jan11 12:00:", windowed[0] && fmt(windowed[0]));
+    console.log(
+      "WINDOWED next @Sat Jan11 12:00:",
+      windowed[0] && fmt(windowed[0]),
+    );
 
     expect(week1Cover?.title).toBe("B");
     // Windowed next on-call should be week1 = B; it is A -> BUG.

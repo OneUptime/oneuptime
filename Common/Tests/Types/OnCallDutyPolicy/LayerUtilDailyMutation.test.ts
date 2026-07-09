@@ -28,8 +28,10 @@ function rotation(t: EventInterval, c: number): Recurring {
   } as any);
 }
 
-// Build a daily restriction whose start/end are specific wall-clock times in a
-// given IANA timezone on an arbitrary reference date.
+/*
+ * Build a daily restriction whose start/end are specific wall-clock times in a
+ * given IANA timezone on an arbitrary reference date.
+ */
 function dailyRestrictionTz(
   startHour: number,
   startMin: number,
@@ -85,8 +87,10 @@ describe("Daily restriction in-place mutation / DST drift", () => {
       );
     }
 
-    // Gather, per day AFTER the transition (Mar 9, 10, 11), the local start-hour of
-    // the first event that day. If the mutation drifted it, it will be 03:30 not 02:30.
+    /*
+     * Gather, per day AFTER the transition (Mar 9, 10, 11), the local start-hour of
+     * the first event that day. If the mutation drifted it, it will be 03:30 not 02:30.
+     */
     const startHoursAfter: Array<string> = [];
     for (const e of events) {
       const localStart: string = startHourET(e.start, tz);
@@ -97,7 +101,10 @@ describe("Daily restriction in-place mutation / DST drift", () => {
       }
     }
     // eslint-disable-next-line no-console
-    console.log("after-transition :30 starts =", JSON.stringify(startHoursAfter));
+    console.log(
+      "after-transition :30 starts =",
+      JSON.stringify(startHoursAfter),
+    );
   });
 });
 

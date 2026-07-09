@@ -20,7 +20,13 @@ import EventInterval from "../../../Types/Events/EventInterval";
 import PositiveNumber from "../../../Types/PositiveNumber";
 
 function user(id: string): User {
-  return { id: { toString: (): string => id } as any } as User;
+  return {
+    id: {
+      toString: (): string => {
+        return id;
+      },
+    } as any,
+  } as User;
 }
 
 function dailyRestriction(sh: number, eh: number): RestrictionTimes {
@@ -73,9 +79,7 @@ describe("Restricted daily rotation: post-window gap query is off-by-one", () =>
     });
 
     // Identify who covers the Jan 7 09:00-17:00 window in the full expansion.
-    const jan7noon: Date = OneUptimeDate.fromString(
-      "2025-01-07T12:00:00.000Z",
-    );
+    const jan7noon: Date = OneUptimeDate.fromString("2025-01-07T12:00:00.000Z");
     const jan7Cover: CalendarEvent | undefined = full.find(
       (e: CalendarEvent) => {
         return (
@@ -112,7 +116,10 @@ describe("Restricted daily rotation: post-window gap query is off-by-one", () =>
     // eslint-disable-next-line no-console
     console.log("Jan7 covered by (full):", jan7Cover && fmt(jan7Cover));
     // eslint-disable-next-line no-console
-    console.log("WINDOWED next @Jan6 20:52:", windowedNext && fmt(windowedNext));
+    console.log(
+      "WINDOWED next @Jan6 20:52:",
+      windowedNext && fmt(windowedNext),
+    );
     // eslint-disable-next-line no-console
     console.log("LIVE next @Jan6 20:52:", live[0] && fmt(live[0]));
 

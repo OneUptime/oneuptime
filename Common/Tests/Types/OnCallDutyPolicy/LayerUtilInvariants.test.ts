@@ -20,7 +20,13 @@ import EventInterval from "../../../Types/Events/EventInterval";
 import PositiveNumber from "../../../Types/PositiveNumber";
 
 function user(id: string): User {
-  return { id: { toString: (): string => id } as any } as User;
+  return {
+    id: {
+      toString: (): string => {
+        return id;
+      },
+    } as any,
+  } as User;
 }
 
 function noRestriction(): RestrictionTimes {
@@ -77,7 +83,10 @@ describe("INVARIANT: 24/7 coverage contiguity (no gap > 2s, no overlap)", () => 
     EventInterval.Week,
   ];
   const counts: number[] = [1, 2, 3];
-  const userSets: string[][] = [["A", "B"], ["A", "B", "C"]];
+  const userSets: string[][] = [
+    ["A", "B"],
+    ["A", "B", "C"],
+  ];
   const timezones: (string | undefined)[] = [
     undefined,
     "America/New_York",
@@ -148,7 +157,10 @@ describe("INVARIANT: rotation order + fairness over many periods", () => {
     EventInterval.Week,
   ];
   const counts: number[] = [1, 2, 3];
-  const userSets: string[][] = [["A", "B", "C"], ["A", "B", "C", "D", "E"]];
+  const userSets: string[][] = [
+    ["A", "B", "C"],
+    ["A", "B", "C", "D", "E"],
+  ];
   const timezones: (string | undefined)[] = [undefined, "America/New_York"];
   for (const it of intervals) {
     for (const count of counts) {

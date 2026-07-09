@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import DayOfWeek from "Common/Types/Day/DayOfWeek";
 import EventInterval from "Common/Types/Events/EventInterval";
 import Recurring from "Common/Types/Events/Recurring";
 import RestrictionTimes, {
@@ -124,10 +125,23 @@ export function summarizeRestriction(
 
   if (weekly.length === 1) {
     const w: WeeklyResctriction = weekly[0]!;
-    return `${w.startDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
+    /*
+     * Derive the day-of-week from the stored timestamps (in the schedule
+     * timezone), NOT from the startDay/endDay enum. The engine resolves coverage
+     * from the timestamp's weekday and ignores the enum, so a raw-API payload
+     * whose enum disagrees with its timestamp would otherwise show a day here
+     * that contradicts who is actually paged. Using the timestamp keeps the
+     * summary consistent with the engine and the preview.
+     */
+    const startDay: DayOfWeek = OneUptimeDate.getDayOfWeek(
       w.startTime,
       timezone,
-    )} – ${w.endDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
+    );
+    const endDay: DayOfWeek = OneUptimeDate.getDayOfWeek(w.endTime, timezone);
+    return `${startDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
+      w.startTime,
+      timezone,
+    )} – ${endDay} ${OneUptimeDate.getHourAndMinuteInTimezoneString(
       w.endTime,
       timezone,
     )}${tzSuffix}`;

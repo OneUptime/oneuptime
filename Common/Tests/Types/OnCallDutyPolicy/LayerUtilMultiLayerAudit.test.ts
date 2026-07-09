@@ -105,8 +105,10 @@ function coveringUser(events: Array<CalendarEvent>, t: Date): string | null {
   return null;
 }
 
-// Oracle: expected on-call user at instant t across layers, resolved by priority
-// (lowest layer index that covers t wins). Uses each layer's own getEvents.
+/*
+ * Oracle: expected on-call user at instant t across layers, resolved by priority
+ * (lowest layer index that covers t wins). Uses each layer's own getEvents.
+ */
 function oracleUser(
   perLayerEvents: Array<Array<CalendarEvent>>,
   t: Date,
@@ -143,8 +145,10 @@ function overlappingPairs(
 describe("Multi-layer priority merge audit (lens: getMultiLayerEvents / removeOverlappingEvents)", () => {
   const util: LayerUtil = new LayerUtil();
 
-  // Runs the merge and compares against the per-layer priority oracle at many
-  // instants. Also asserts no real overlap (no double paging).
+  /*
+   * Runs the merge and compares against the per-layer priority oracle at many
+   * instants. Also asserts no real overlap (no double paging).
+   */
   function checkMerge(
     layers: Array<LayerProps>,
     calStart: Date,

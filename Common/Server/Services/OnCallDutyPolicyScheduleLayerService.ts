@@ -9,6 +9,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Recurring from "../../Types/Events/Recurring";
+import RestrictionTimes, {
+  RestrictionType,
+} from "../../Types/OnCallDutyPolicy/RestrictionTimes";
+import OneUptimeDate from "../../Types/Date";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -41,10 +45,65 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Invalid rotation configuration.");
     }
 
-    if (!Number.isFinite(count) || isNaN(count) || count < 1) {
+    if (
+      !Number.isFinite(count) ||
+      isNaN(count) ||
+      !Number.isInteger(count) ||
+      count < 1
+    ) {
       throw new BadDataException(
         "Rotation interval must be a whole number greater than or equal to 1.",
       );
+    }
+  }
+
+  /*
+   * Reject a zero-length Daily restriction window (From == To time-of-day) at the
+   * persistence boundary. Such a window is active 0 seconds/day, so the layer
+   * silently pages nobody for its coverage. The dashboard already blocks this
+   * (audit F22), but a raw API write bypasses the form — so guard server-side
+   * too. Compares UTC time-of-day, which is stable regardless of server zone.
+   */
+  private validateRestrictionTimes(restrictionTimes: unknown): void {
+    if (!restrictionTimes || typeof restrictionTimes === "function") {
+      return;
+    }
+
+    let parsed: RestrictionTimes;
+    try {
+      parsed =
+        restrictionTimes instanceof RestrictionTimes
+          ? restrictionTimes
+          : RestrictionTimes.fromJSON(restrictionTimes as any);
+    } catch {
+      // Malformed input is handled elsewhere; nothing to validate here.
+      return;
+    }
+
+    if (
+      parsed.restictionType === RestrictionType.Daily &&
+      parsed.dayRestrictionTimes &&
+      parsed.dayRestrictionTimes.startTime &&
+      parsed.dayRestrictionTimes.endTime
+    ) {
+      const start: Date = OneUptimeDate.fromString(
+        parsed.dayRestrictionTimes.startTime as any,
+      );
+      const end: Date = OneUptimeDate.fromString(
+        parsed.dayRestrictionTimes.endTime as any,
+      );
+
+      const timeOfDay: (d: Date) => number = (d: Date): number => {
+        return (
+          d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds()
+        );
+      };
+
+      if (timeOfDay(start) === timeOfDay(end)) {
+        throw new BadDataException(
+          "Daily restriction 'From' and 'To' times cannot be the same. Choose a window with a positive duration, or set restrictions to None for 24/7 coverage.",
+        );
+      }
     }
   }
 
@@ -57,6 +116,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     this.validateRotationInterval(createBy.data.rotation);
+    this.validateRestrictionTimes(createBy.data.restrictionTimes);
 
     if (!createBy.data.order) {
       // count number of users in this layer.
@@ -115,6 +175,7 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     this.validateRotationInterval(updateBy.data.rotation);
+    this.validateRestrictionTimes(updateBy.data.restrictionTimes);
 
     return {
       updateBy,

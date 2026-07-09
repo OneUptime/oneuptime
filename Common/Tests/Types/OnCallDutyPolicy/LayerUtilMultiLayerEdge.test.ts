@@ -104,7 +104,11 @@ describe("Multi-layer edge cases", () => {
     calStart: Date,
     calEnd: Date,
     stepMin: number = 15,
-  ): { mismatches: Array<string>; overlaps: number; merged: Array<CalendarEvent> } {
+  ): {
+    mismatches: Array<string>;
+    overlaps: number;
+    merged: Array<CalendarEvent>;
+  } {
     const merged: Array<CalendarEvent> = util.getMultiLayerEvents({
       layers: layers,
       calendarStartDate: calStart,
@@ -265,8 +269,10 @@ describe("Multi-layer edge cases", () => {
   });
 
   test("K: primary rotation window exactly abuts fallback stitch boundary", () => {
-    // Primary hourly restricted 10-14; fallback 24/7. Check the exact 10:00 and
-    // 14:00 boundaries via the merged output shape (no overlaps, contiguous).
+    /*
+     * Primary hourly restricted 10-14; fallback 24/7. Check the exact 10:00 and
+     * 14:00 boundaries via the merged output shape (no overlaps, contiguous).
+     */
     const calStart: Date = new Date(2026, 0, 5, 0, 0, 0);
     const calEnd: Date = new Date(2026, 0, 7, 0, 0, 0);
 
