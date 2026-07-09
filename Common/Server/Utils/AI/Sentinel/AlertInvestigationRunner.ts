@@ -47,6 +47,7 @@ export default class SentinelAlertInvestigationRunner {
       await SentinelInvestigationEngine.investigate({
         projectId,
         feature: "Sentinel Alert Investigation",
+        subjectAlertId: alertId,
         contextSummary: this.buildAlertSummary(contextData),
         postAnalysis: async (postData: {
           analysisMarkdown: string;

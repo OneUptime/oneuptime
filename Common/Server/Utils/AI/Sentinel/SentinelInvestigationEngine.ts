@@ -86,6 +86,12 @@ export interface InvestigationRequest {
   // A compact markdown summary of the subject that seeds the investigation.
   contextSummary: string;
   /*
+   * The subject that triggered this run — links the AIRun so the live panel can
+   * find "the investigation for this incident/alert". Exactly one is set.
+   */
+  subjectIncidentId?: ObjectID | undefined;
+  subjectAlertId?: ObjectID | undefined;
+  /*
    * Called with the finished, branded, cited analysis so the caller can post it
    * to the subject's timeline. `isConfident` is false when Sentinel reported it
    * could not determine the cause — callers use it to post QUIETLY (no loud
@@ -158,6 +164,13 @@ export default class SentinelInvestigationEngine {
     run.status = AIRunStatus.Running;
     run.startedAt = OneUptimeDate.getCurrentDate();
     run.lastHeartbeatAt = OneUptimeDate.getCurrentDate();
+
+    if (request.subjectIncidentId) {
+      run.triggeredByIncidentId = request.subjectIncidentId;
+    }
+    if (request.subjectAlertId) {
+      run.triggeredByAlertId = request.subjectAlertId;
+    }
 
     let createdRun: AIRun;
     try {

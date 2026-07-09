@@ -72,6 +72,7 @@ export default class SentinelIncidentInvestigationRunner {
       await SentinelInvestigationEngine.investigate({
         projectId,
         feature: "Sentinel Incident Investigation",
+        subjectIncidentId: incidentId,
         contextSummary:
           this.buildIncidentSummary(contextData) + priorCasesContext,
         postAnalysis: async (postData: {
