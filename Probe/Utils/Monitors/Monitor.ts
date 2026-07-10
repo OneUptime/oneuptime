@@ -3,6 +3,7 @@ import ProbeUtil from "../Probe";
 import ProbeAPIRequest from "../ProbeAPIRequest";
 import ApiMonitor, { APIResponse } from "./MonitorTypes/ApiMonitor";
 import CustomCodeMonitor from "./MonitorTypes/CustomCodeMonitor";
+import NetworkPathMonitor from "./MonitorTypes/NetworkPathMonitor";
 import PingMonitor, { PingResponse } from "./MonitorTypes/PingMonitor";
 import PortMonitor, { PortMonitorResponse } from "./MonitorTypes/PortMonitor";
 import SSLMonitor, { SslResponse } from "./MonitorTypes/SslMonitor";
@@ -404,6 +405,7 @@ export default class MonitorUtil {
         result.failureCause = response.failureCause;
         result.probeAttempts = response.probeAttempts;
         result.totalAttempts = response.totalAttempts;
+        result.pingResponse = response.pingResponse;
       }
     }
 
@@ -444,6 +446,35 @@ export default class MonitorUtil {
       result.isTimeout = response.isTimeout;
       result.probeAttempts = response.probeAttempts;
       result.totalAttempts = response.totalAttempts;
+    }
+
+    /*
+     * When a network check fails, capture the path (traceroute + DNS lookup)
+     * at the moment of failure. It is attached to the response as diagnostic
+     * evidence, so whoever gets paged sees where the route broke — not just
+     * that the target is down.
+     */
+    if (
+      (monitorType === MonitorType.Ping ||
+        monitorType === MonitorType.IP ||
+        monitorType === MonitorType.Port) &&
+      result.isOnline === false &&
+      monitorStep.data?.monitorDestination
+    ) {
+      try {
+        result.networkPathTrace = await NetworkPathMonitor.trace(
+          monitorStep.data.monitorDestination,
+          {
+            timeout: 20000,
+            maxHops: 20,
+          },
+        );
+      } catch (err) {
+        // Diagnostics must never turn a completed check into a failed one.
+        logger.error(
+          `Failed to capture network path for monitor ${monitorId.toString()}: ${err}`,
+        );
+      }
     }
 
     if (monitorType === MonitorType.SyntheticMonitor) {
@@ -571,6 +602,7 @@ export default class MonitorUtil {
       result.requestFailedDetails = response.requestFailedDetails;
       result.probeAttempts = response.probeAttempts;
       result.totalAttempts = response.totalAttempts;
+      result.httpTimings = response.httpTimings;
     }
 
     if (monitorType === MonitorType.API) {
@@ -625,6 +657,7 @@ export default class MonitorUtil {
       result.requestFailedDetails = response.requestFailedDetails;
       result.probeAttempts = response.probeAttempts;
       result.totalAttempts = response.totalAttempts;
+      result.httpTimings = response.httpTimings;
     }
 
     if (monitorType === MonitorType.SNMP) {

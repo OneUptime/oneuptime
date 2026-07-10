@@ -88,6 +88,50 @@ export default class APIRequestCriteria {
       });
     }
 
+    // check packet loss (Ping/IP monitors with multi-packet checks)
+    if (input.criteriaFilter.checkOn === CheckOn.PacketLossPercent) {
+      const packetLossPercent: number | undefined = (
+        input.dataToProcess as ProbeMonitorResponse
+      ).pingResponse?.packetLossPercent;
+
+      const value: Array<number> | number | undefined =
+        (overTimeValue as Array<number>) || packetLossPercent;
+
+      if (value === undefined) {
+        return null;
+      }
+
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: value,
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    // check jitter (Ping/IP monitors with multi-packet checks)
+    if (input.criteriaFilter.checkOn === CheckOn.Jitter) {
+      const jitterInMs: number | undefined = (
+        input.dataToProcess as ProbeMonitorResponse
+      ).pingResponse?.jitterInMs;
+
+      const value: Array<number> | number | undefined =
+        (overTimeValue as Array<number>) || jitterInMs;
+
+      if (value === undefined) {
+        return null;
+      }
+
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: value,
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
     //check response code
     if (
       input.criteriaFilter.checkOn === CheckOn.ResponseStatusCode &&
