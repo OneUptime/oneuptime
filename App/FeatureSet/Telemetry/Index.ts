@@ -6,6 +6,7 @@ import PyroscopeAPI from "./API/Pyroscope";
 // ProbeIngest routes
 import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
 import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
+import ProbeIngestDiscoveryScanAPI from "./API/ProbeIngest/DiscoveryScan";
 import ProbeIngestAPI from "./API/ProbeIngest/Probe";
 import IncomingEmailAPI from "./API/ProbeIngest/IncomingEmail";
 // ServerMonitorIngest routes
@@ -55,6 +56,7 @@ const TelemetryFeatureSet: FeatureSet = {
        */
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestRegisterAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestMonitorAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestDiscoveryScanAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
       app.use(["/probe-ingest", "/"], IncomingEmailAPI);
 

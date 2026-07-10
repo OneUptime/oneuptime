@@ -11,6 +11,7 @@ import NetworkDeviceOwnerTeam from "./NetworkDeviceOwnerTeam";
 import NetworkDeviceOwnerUser from "./NetworkDeviceOwnerUser";
 import NetworkDeviceOwnerRule from "./NetworkDeviceOwnerRule";
 import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
+import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkInterface from "./NetworkInterface";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
@@ -779,6 +780,7 @@ const AllModelTypes: Array<{
   NetworkDeviceOwnerUser,
   NetworkDeviceOwnerRule,
   NetworkDeviceLabelRule,
+  NetworkDeviceDiscoveryScan,
   NetworkInterface,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,

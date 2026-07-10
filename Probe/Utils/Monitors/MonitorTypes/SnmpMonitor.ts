@@ -112,15 +112,18 @@ export default class SnmpMonitor {
       }
 
       let interfaces: Array<SnmpInterface> | undefined = undefined;
-      let systemInfo: { sysDescr?: string; sysName?: string } | undefined =
-        undefined;
+      let systemInfo:
+        | { sysDescr?: string | undefined; sysName?: string | undefined }
+        | undefined = undefined;
       let interfaceWalkFailure: string | undefined = undefined;
 
       if (shouldWalkInterfaces) {
         try {
           const walkResult: {
             interfaces: Array<SnmpInterface>;
-            systemInfo?: { sysDescr?: string; sysName?: string } | undefined;
+            systemInfo?:
+              | { sysDescr?: string | undefined; sysName?: string | undefined }
+              | undefined;
           } = await SnmpMonitor.walkInterfaces(config, options);
           interfaces = walkResult.interfaces;
           systemInfo = walkResult.systemInfo;
@@ -252,6 +255,34 @@ export default class SnmpMonitor {
     }
   }
 
+  /*
+   * Single-host system-group probe used by subnet discovery. Returns null
+   * when the host does not answer SNMP within the timeout — the normal
+   * case for most addresses in a swept subnet, so no retries and no logs.
+   */
+  public static async probeSystemInfo(config: MonitorStepSnmpMonitor): Promise<{
+    sysDescr?: string | undefined;
+    sysName?: string | undefined;
+  } | null> {
+    const session: snmp.Session = SnmpMonitor.createSnmpSession(config, {});
+
+    try {
+      const varbinds: Array<snmp.Varbind> = await SnmpMonitor.getOids(session, [
+        "1.3.6.1.2.1.1.1.0",
+        "1.3.6.1.2.1.1.5.0",
+      ]);
+
+      return {
+        sysDescr: SnmpMonitor.toDisplayString(varbinds[0]?.value),
+        sysName: SnmpMonitor.toDisplayString(varbinds[1]?.value),
+      };
+    } catch {
+      return null;
+    } finally {
+      session.close();
+    }
+  }
+
   private static createSnmpSession(
     config: MonitorStepSnmpMonitor,
     options: SnmpQueryOptions,
@@ -291,7 +322,9 @@ export default class SnmpMonitor {
     options: SnmpQueryOptions,
   ): Promise<{
     interfaces: Array<SnmpInterface>;
-    systemInfo?: { sysDescr?: string; sysName?: string } | undefined;
+    systemInfo?:
+      | { sysDescr?: string | undefined; sysName?: string | undefined }
+      | undefined;
   }> {
     const session: snmp.Session = SnmpMonitor.createSnmpSession(
       config,
@@ -300,8 +333,9 @@ export default class SnmpMonitor {
 
     try {
       // Best-effort system identity (sysDescr.0, sysName.0).
-      let systemInfo: { sysDescr?: string; sysName?: string } | undefined =
-        undefined;
+      let systemInfo:
+        | { sysDescr?: string | undefined; sysName?: string | undefined }
+        | undefined = undefined;
       try {
         const systemVarbinds: Array<snmp.Varbind> = await SnmpMonitor.getOids(
           session,

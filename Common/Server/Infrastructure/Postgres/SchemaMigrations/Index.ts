@@ -425,6 +425,7 @@ import { AddAlertInvestigationGating1783701585317 } from "./1783701585317-AddAle
 import { AddAiDailyAutonomousTokenLimitToProject1783702431535 } from "./1783702431535-AddAiDailyAutonomousTokenLimitToProject";
 import { AddNetworkDeviceTables1783720000000 } from "./1783720000000-AddNetworkDeviceTables";
 import { AddNetworkDeviceOwnersAndRules1783730000000 } from "./1783730000000-AddNetworkDeviceOwnersAndRules";
+import { AddNetworkDeviceDiscoveryScan1783740000000 } from "./1783740000000-AddNetworkDeviceDiscoveryScan";
 import { AddAttemptCountToAIRun1783721121260 } from "./1783721121260-AddAttemptCountToAIRun";
 
 export default [
@@ -856,4 +857,5 @@ export default [
   AddNetworkDeviceTables1783720000000,
   AddAttemptCountToAIRun1783721121260,
   AddNetworkDeviceOwnersAndRules1783730000000,
+  AddNetworkDeviceDiscoveryScan1783740000000,
 ];
