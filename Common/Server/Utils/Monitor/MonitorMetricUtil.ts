@@ -17,6 +17,7 @@ import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMet
 import HttpPhaseTimings from "../../../Types/Monitor/HttpPhaseTimings";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
+import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
@@ -887,6 +888,92 @@ export default class MonitorMetricUtil {
       metricType.unit = "ms";
 
       metricNameServiceNameMap[MonitorMetricType.ResponseTime] = metricType;
+    }
+
+    const snmpInterfaces: Array<SnmpInterface> | undefined = (
+      data.dataToProcess as ProbeMonitorResponse
+    ).snmpResponse?.interfaces;
+
+    if (snmpInterfaces && snmpInterfaces.length > 0) {
+      /*
+       * Cap per-check interface series to keep a single check from writing
+       * unbounded rows (large routers can expose thousands of
+       * subinterfaces). Same approach as the custom-metric cap below.
+       */
+      const interfacesToEmit: Array<SnmpInterface> = snmpInterfaces.slice(
+        0,
+        200,
+      );
+
+      if (interfacesToEmit.length < snmpInterfaces.length) {
+        logger.warn(
+          `Monitor ${data.monitorId.toString()}: emitting metrics for first ${interfacesToEmit.length} of ${snmpInterfaces.length} SNMP interfaces`,
+        );
+      }
+
+      for (const snmpInterface of interfacesToEmit) {
+        const extraAttributes: JSONObject = {
+          probeId: (
+            data.dataToProcess as ProbeMonitorResponse
+          ).probeId.toString(),
+          interfaceName: snmpInterface.name,
+          interfaceIndex: snmpInterface.interfaceIndex.toString(),
+        };
+
+        const interfaceMetrics: Array<{
+          metricName: MonitorMetricType;
+          value: number | undefined;
+          description: string;
+          unit: string;
+        }> = [
+          {
+            metricName: MonitorMetricType.SnmpInterfaceOperStatus,
+            value: snmpInterface.isOperationallyUp ? 1 : 0,
+            description: "SNMP interface operational status (1 up, 0 down)",
+            unit: "",
+          },
+          {
+            metricName: MonitorMetricType.SnmpInterfaceInBitsPerSecond,
+            value: snmpInterface.inBitsPerSecond,
+            description: "SNMP interface inbound bandwidth",
+            unit: "bps",
+          },
+          {
+            metricName: MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
+            value: snmpInterface.outBitsPerSecond,
+            description: "SNMP interface outbound bandwidth",
+            unit: "bps",
+          },
+          {
+            metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
+            value: snmpInterface.utilizationPercent,
+            description: "SNMP interface utilization",
+            unit: "%",
+          },
+          {
+            metricName: MonitorMetricType.SnmpInterfaceErrorsPerSecond,
+            value: snmpInterface.errorsPerSecond,
+            description: "SNMP interface errors per second",
+            unit: "errors/s",
+          },
+        ];
+
+        for (const interfaceMetric of interfaceMetrics) {
+          await this.pushMonitorMetric({
+            projectId: data.projectId,
+            monitorId: data.monitorId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            metricName: interfaceMetric.metricName,
+            value: interfaceMetric.value,
+            description: interfaceMetric.description,
+            unit: interfaceMetric.unit,
+            extraAttributes: extraAttributes,
+            metricRows: metricRows,
+            metricNameServiceNameMap: metricNameServiceNameMap,
+          });
+        }
+      }
     }
 
     if ((data.dataToProcess as ProbeMonitorResponse).httpTimings) {

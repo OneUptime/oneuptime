@@ -25,6 +25,16 @@ enum MonitorMetricType {
   DownloadTime = "oneuptime.monitor.http.download.time",
 
   /*
+   * Per-interface SNMP metrics. Emitted when interface monitoring is enabled
+   * on an SNMP monitor; one series per interface (interfaceName attribute).
+   */
+  SnmpInterfaceOperStatus = "oneuptime.monitor.snmp.interface.oper.status",
+  SnmpInterfaceInBitsPerSecond = "oneuptime.monitor.snmp.interface.in.bits.per.second",
+  SnmpInterfaceOutBitsPerSecond = "oneuptime.monitor.snmp.interface.out.bits.per.second",
+  SnmpInterfaceUtilizationPercent = "oneuptime.monitor.snmp.interface.utilization.percent",
+  SnmpInterfaceErrorsPerSecond = "oneuptime.monitor.snmp.interface.errors.per.second",
+
+  /*
    * Extended server/VM metrics. Emitted when the agent payload contains them;
    * absent for older agents, which keeps the pipeline backwards-compatible.
    */

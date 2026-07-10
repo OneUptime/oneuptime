@@ -43,6 +43,14 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.TimeToFirstByte:
       case MonitorMetricType.DownloadTime:
         return AggregationType.Avg;
+      case MonitorMetricType.SnmpInterfaceOperStatus:
+        return AggregationType.Min;
+      case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
+      case MonitorMetricType.SnmpInterfaceOutBitsPerSecond:
+      case MonitorMetricType.SnmpInterfaceErrorsPerSecond:
+        return AggregationType.Avg;
+      case MonitorMetricType.SnmpInterfaceUtilizationPercent:
+        return AggregationType.Max;
 
       /*
        * Extended server/VM metrics. Cumulative counters (bytes/packets/ops since
@@ -197,9 +205,20 @@ class MonitorMetricTypeUtil {
       ];
     }
 
+    if (monitorType === MonitorType.SNMP) {
+      return [
+        MonitorMetricType.IsOnline,
+        MonitorMetricType.ResponseTime,
+        MonitorMetricType.SnmpInterfaceOperStatus,
+        MonitorMetricType.SnmpInterfaceInBitsPerSecond,
+        MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
+        MonitorMetricType.SnmpInterfaceUtilizationPercent,
+        MonitorMetricType.SnmpInterfaceErrorsPerSecond,
+      ];
+    }
+
     if (
       monitorType === MonitorType.Port ||
-      monitorType === MonitorType.SNMP ||
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
@@ -285,6 +304,28 @@ class MonitorMetricTypeUtil {
       ];
     }
 
+    if (monitorType === MonitorType.SNMP) {
+      return [
+        {
+          title: "Availability",
+          description: "Device reachability and SNMP response time.",
+          metrics: [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime],
+        },
+        {
+          title: "Interfaces",
+          description:
+            "Per-interface status, bandwidth, utilization, and errors. One series per interface.",
+          metrics: [
+            MonitorMetricType.SnmpInterfaceOperStatus,
+            MonitorMetricType.SnmpInterfaceInBitsPerSecond,
+            MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
+            MonitorMetricType.SnmpInterfaceUtilizationPercent,
+            MonitorMetricType.SnmpInterfaceErrorsPerSecond,
+          ],
+        },
+      ];
+    }
+
     // Other monitor types keep the single-card layout.
     const metrics: Array<MonitorMetricType> =
       this.getMonitorMetricTypesByMonitorType(monitorType);
@@ -332,6 +373,16 @@ class MonitorMetricTypeUtil {
         return "Time to First Byte";
       case MonitorMetricType.DownloadTime:
         return "Download Time";
+      case MonitorMetricType.SnmpInterfaceOperStatus:
+        return "Interface Status";
+      case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
+        return "Interface Inbound Bandwidth";
+      case MonitorMetricType.SnmpInterfaceOutBitsPerSecond:
+        return "Interface Outbound Bandwidth";
+      case MonitorMetricType.SnmpInterfaceUtilizationPercent:
+        return "Interface Utilization";
+      case MonitorMetricType.SnmpInterfaceErrorsPerSecond:
+        return "Interface Errors";
       case MonitorMetricType.LoadAverage1Min:
         return "Load Average (1 minute)";
       case MonitorMetricType.LoadAverage5Min:
@@ -424,6 +475,15 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.TimeToFirstByte:
       case MonitorMetricType.DownloadTime:
         return "ms";
+      case MonitorMetricType.SnmpInterfaceOperStatus:
+        return "";
+      case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
+      case MonitorMetricType.SnmpInterfaceOutBitsPerSecond:
+        return "bps";
+      case MonitorMetricType.SnmpInterfaceUtilizationPercent:
+        return "%";
+      case MonitorMetricType.SnmpInterfaceErrorsPerSecond:
+        return "errors/s";
       case MonitorMetricType.LoadAverage1Min:
       case MonitorMetricType.LoadAverage5Min:
       case MonitorMetricType.LoadAverage15Min:
@@ -494,6 +554,16 @@ class MonitorMetricTypeUtil {
         return "Time from the end of connection setup until the first byte of the response arrived — the server-side processing time.";
       case MonitorMetricType.DownloadTime:
         return "Time spent receiving the response body after the first byte arrived.";
+      case MonitorMetricType.SnmpInterfaceOperStatus:
+        return "Operational status of each interface: 1 when up, 0 when down. Interfaces that are administratively disabled also report 0.";
+      case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
+        return "Inbound traffic per interface, computed from the delta of IF-MIB octet counters between checks.";
+      case MonitorMetricType.SnmpInterfaceOutBitsPerSecond:
+        return "Outbound traffic per interface, computed from the delta of IF-MIB octet counters between checks.";
+      case MonitorMetricType.SnmpInterfaceUtilizationPercent:
+        return "Traffic in the busiest direction as a percentage of the interface's reported speed. Sustained values above 80% typically mean the link needs an upgrade.";
+      case MonitorMetricType.SnmpInterfaceErrorsPerSecond:
+        return "Combined inbound and outbound errors per second per interface. A non-zero rate usually points to cabling, SFP, or duplex problems.";
       case MonitorMetricType.LoadAverage1Min:
         return "Average number of runnable or uninterruptible processes over the last 1 minute. Values persistently above the number of CPU cores indicate CPU saturation.";
       case MonitorMetricType.LoadAverage5Min:

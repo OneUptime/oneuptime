@@ -5,6 +5,7 @@ import {
   CriteriaFilter,
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
+import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
@@ -86,6 +87,108 @@ export default class SnmpMonitorCriteria {
 
       return CompareCriteria.compareCriteriaNumbers({
         value: currentResponseTime,
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    // Check if any monitored interface is down (admin-up but oper-down)
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceIsDown) {
+      const interfaces: Array<SnmpInterface> | undefined =
+        snmpResponse?.interfaces;
+
+      if (!interfaces || interfaces.length === 0) {
+        return null;
+      }
+
+      /*
+       * Administratively disabled interfaces are intentionally down and
+       * never count as failures.
+       */
+      const downInterfaces: Array<SnmpInterface> = interfaces.filter(
+        (snmpInterface: SnmpInterface) => {
+          return (
+            snmpInterface.isAdministrativelyUp &&
+            !snmpInterface.isOperationallyUp
+          );
+        },
+      );
+
+      const isTrueFilter: boolean =
+        input.criteriaFilter.filterType === FilterType.True;
+      const isFalseFilter: boolean =
+        input.criteriaFilter.filterType === FilterType.False;
+
+      if (downInterfaces.length > 0 && isTrueFilter) {
+        const names: string = downInterfaces
+          .slice(0, 5)
+          .map((snmpInterface: SnmpInterface) => {
+            return snmpInterface.name;
+          })
+          .join(", ");
+        return `${downInterfaces.length} interface(s) down: ${names}${
+          downInterfaces.length > 5 ? ", …" : ""
+        }.`;
+      }
+
+      if (downInterfaces.length === 0 && isFalseFilter) {
+        return "All administratively enabled interfaces are up.";
+      }
+
+      return null;
+    }
+
+    // Check the busiest interface's utilization
+    if (
+      input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceUtilizationPercent
+    ) {
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      if (threshold === null || threshold === undefined) {
+        return null;
+      }
+
+      const utilizations: Array<number> = (snmpResponse?.interfaces || [])
+        .map((snmpInterface: SnmpInterface) => {
+          return snmpInterface.utilizationPercent;
+        })
+        .filter((value: number | undefined): value is number => {
+          return typeof value === "number";
+        });
+
+      if (utilizations.length === 0) {
+        return null;
+      }
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: Math.max(...utilizations),
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    // Check the worst interface's error rate
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceErrorsPerSecond) {
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      if (threshold === null || threshold === undefined) {
+        return null;
+      }
+
+      const errorRates: Array<number> = (snmpResponse?.interfaces || [])
+        .map((snmpInterface: SnmpInterface) => {
+          return snmpInterface.errorsPerSecond;
+        })
+        .filter((value: number | undefined): value is number => {
+          return typeof value === "number";
+        });
+
+      if (errorRates.length === 0) {
+        return null;
+      }
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: Math.max(...errorRates),
         threshold: threshold as number,
         criteriaFilter: input.criteriaFilter,
       });

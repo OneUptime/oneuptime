@@ -673,8 +673,12 @@ export default class MonitorUtil {
         return result;
       }
 
-      if (!snmpConfig.oids || snmpConfig.oids.length === 0) {
-        result.failureCause = "No OIDs configured for SNMP monitor";
+      if (
+        (!snmpConfig.oids || snmpConfig.oids.length === 0) &&
+        !snmpConfig.monitorInterfaces
+      ) {
+        result.failureCause =
+          "No OIDs configured for SNMP monitor. Configure OIDs or enable interface monitoring.";
         return result;
       }
 
