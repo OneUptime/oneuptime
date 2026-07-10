@@ -783,6 +783,33 @@ const MetricsViewer: FunctionComponent<Props> = (
       ...facetServiceIds,
     ];
 
+    /*
+     * `service:<fragment>` search token — resolve to service ids by
+     * case-insensitive substring match against the loaded service names.
+     * When the fragment matches nothing, force empty results instead of
+     * silently ignoring the filter. Skipped when the service list hasn't
+     * loaded (scoped views don't load it and scope services via props).
+     */
+    let serviceFragmentMatchedNothing: boolean = false;
+    if (parsedSearch.serviceFragment && services.length > 0) {
+      const fragment: string = parsedSearch.serviceFragment.toLowerCase();
+      const fragmentServiceIds: Array<ObjectID> = [];
+      for (const service of services) {
+        if (
+          service.id &&
+          service.name &&
+          service.name.toString().toLowerCase().includes(fragment)
+        ) {
+          fragmentServiceIds.push(service.id);
+        }
+      }
+      if (fragmentServiceIds.length === 0) {
+        serviceFragmentMatchedNothing = true;
+      } else {
+        mergedServiceIds.push(...fragmentServiceIds);
+      }
+    }
+
     if (mergedServiceIds.length > 0) {
       (query as Record<string, unknown>)["services"] = new Includes(
         mergedServiceIds,
@@ -793,8 +820,10 @@ const MetricsViewer: FunctionComponent<Props> = (
     const nameQuery: string | null =
       parsedSearch.nameFragment || parsedSearch.freeText;
 
-    // When attribute filters are active, restrict to matched metric names
-    if (attributeMatchedNames !== null) {
+    if (serviceFragmentMatchedNothing) {
+      // No service matched `service:<fragment>` — force empty results
+      (query as Record<string, unknown>)["name"] = "__no_match__";
+    } else if (attributeMatchedNames !== null) {
       if (attributeMatchedNames.length === 0) {
         // No metrics match the attribute filter — force empty results
         (query as Record<string, unknown>)["name"] = "__no_match__";
@@ -825,7 +854,13 @@ const MetricsViewer: FunctionComponent<Props> = (
     }
 
     return query;
-  }, [props.serviceIds, activeFilters, parsedSearch, attributeMatchedNames]);
+  }, [
+    props.serviceIds,
+    activeFilters,
+    parsedSearch,
+    attributeMatchedNames,
+    services,
+  ]);
 
   // Fetch metric list
   const fetchMetrics: () => Promise<void> = useCallback(async () => {
@@ -1317,29 +1352,34 @@ const MetricsViewer: FunctionComponent<Props> = (
       searchValueSuggestions={attributeValueSuggestions}
       searchAttributesLoading={attributesLoading}
       searchValuesLoading={attributeValuesLoading}
-      onSearchFieldValueSelect={(fieldKey: string, value: string) => {
+      onSearchFieldValueSelect={(
+        fieldKey: string,
+        value: string,
+      ): boolean | void => {
         /*
          * `name` and `service` are handled via the typed search path
-         * (substring + service facet), so promote those to the search
-         * string. Unknown keys are telemetry attributes — turn them into
-         * chips with the `attributes.` prefix so they live in
-         * `activeFilters` and are routed through the analytics query.
-         * Known-field detection is case-insensitive; attribute keys keep
-         * their original case (the backend matches map keys case-
-         * insensitively at query time).
+         * (substring + service fragment), so they stay in the search
+         * string — return false so the search bar keeps the token in the
+         * input and submits the search as-is. (Setting the search state
+         * here instead doesn't work: the bar clears the token right after
+         * this callback, which empties the input and resets the submitted
+         * search, silently dropping the filter.)
+         *
+         * Unknown keys are telemetry attributes — turn them into chips
+         * with the `attributes.` prefix so they live in `activeFilters`
+         * and are routed through the analytics query. Known-field
+         * detection is case-insensitive; attribute keys keep their
+         * original case (the backend matches map keys case-insensitively
+         * at query time).
          *
          * For the attribute (chip) branch, strip surrounding quotes so a
          * value like `"my-value"` doesn't get stored literally as a chip.
-         * The known-field branch preserves quotes because the resulting
-         * search string is re-parsed by `parseSearch`, which strips them.
+         * The known-field branch preserves quotes because the search
+         * string is re-parsed by `parseSearch`, which strips them.
          */
         const lowerFieldKey: string = fieldKey.toLowerCase();
         if (KNOWN_FIELD_KEYS.has(lowerFieldKey)) {
-          const newSearch: string = `${lowerFieldKey}:${value}`;
-          setSearchValue(newSearch);
-          setSubmittedSearch(newSearch);
-          setPage(1);
-          return;
+          return false;
         }
         const cleanValue: string =
           value.length >= 2 && value.startsWith('"') && value.endsWith('"')

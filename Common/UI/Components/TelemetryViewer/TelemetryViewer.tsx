@@ -45,8 +45,13 @@ export interface TelemetryViewerProps<T> {
   searchAttributeSuggestions?: Array<string> | undefined;
   searchValueSuggestions?: Record<string, Array<string>> | undefined;
   searchFieldAliasMap?: Record<string, string> | undefined;
+  /*
+   * Return `false` when the field is filtered via the raw search string
+   * rather than a chip — the search bar then keeps the token in the input
+   * and submits the search instead of clearing the token.
+   */
   onSearchFieldValueSelect?:
-    | ((fieldKey: string, value: string) => void)
+    | ((fieldKey: string, value: string) => boolean | void)
     | undefined;
   searchHelpRows?: Array<SearchHelpRow> | undefined;
   searchHelpCombinedExample?: string | undefined;
