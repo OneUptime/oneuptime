@@ -162,6 +162,17 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              additionalParams: true,
+            },
+            title: "Additional Parameters",
+            stepId: "provider-settings",
+            fieldType: FormFieldSchemaType.JSON,
+            required: false,
+            description:
+              'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
+          },
+          {
+            field: {
               isDefault: true,
             },
             title: "Set as Default",
@@ -215,6 +226,14 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
               },
               title: "Base URL",
               placeholder: "Not specified (using default)",
+            },
+            {
+              field: {
+                additionalParams: true,
+              },
+              title: "Additional Parameters",
+              fieldType: FieldType.JSON,
+              placeholder: "None",
             },
             {
               field: {
