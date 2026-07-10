@@ -1,8 +1,18 @@
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import AIRunType from "../../../../Types/AI/AIRunType";
 import { Blue500 } from "../../../../Types/BrandColors";
+import Alert from "../../../../Models/DatabaseModels/Alert";
+import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
+import Project from "../../../../Models/DatabaseModels/Project";
 import { AlertFeedEventType } from "../../../../Models/DatabaseModels/AlertFeed";
+import AlertService from "../../../Services/AlertService";
+import AlertSeverityService from "../../../Services/AlertSeverityService";
+import ProjectService from "../../../Services/ProjectService";
+import AIRunService from "../../../Services/AIRunService";
 import AlertFeedService from "../../../Services/AlertFeedService";
+import QueryHelper from "../../../Types/Database/QueryHelper";
 import AlertAIContextBuilder, {
   AlertContextData,
 } from "../AlertAIContextBuilder";
@@ -19,9 +29,25 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * the alert timeline + Slack/Teams. Symmetric to incident investigation and
  * built on the same shared SentinelInvestigationEngine.
  *
- * Gated by the same per-project opt-in as incidents. Alert volume can be higher
- * than incidents, so severity / rate gating is a deliberate follow-up.
+ * Gated by the same per-project opt-in as incidents, PLUS alert-specific cost
+ * gates (alert volume can be far higher than incidents):
+ *   - severity floor: only alerts at or above the project's configured minimum
+ *     severity are investigated; when unset, the top two severity tiers
+ *     (lowest two `order` values) are the default.
+ *   - per-monitor dedupe window: a monitor that already triggered an
+ *     investigation recently is not re-investigated — the first RCA stands.
  */
+
+const DEDUPE_WINDOW_MINUTES: number = 30;
+
+export interface AlertGateDecision {
+  investigate: boolean;
+  // Human-readable reason recorded in the debug log when skipping.
+  reason: string;
+  // Passed through to the AIRun as the dedupe key for future windows.
+  monitorId?: ObjectID | undefined;
+}
+
 export default class SentinelAlertInvestigationRunner {
   /*
    * Entry point called (fire-and-forget) from AlertService.onCreateSuccess.
@@ -44,6 +70,18 @@ export default class SentinelAlertInvestigationRunner {
         return;
       }
 
+      const gate: AlertGateDecision = await this.shouldInvestigateAlert({
+        alertId,
+        projectId,
+      });
+
+      if (!gate.investigate) {
+        logger.debug(
+          `Sentinel: skipping investigation for alert ${alertId.toString()} — ${gate.reason}.`,
+        );
+        return;
+      }
+
       const contextData: AlertContextData =
         await AlertAIContextBuilder.buildAlertContext({
           alertId,
@@ -53,6 +91,7 @@ export default class SentinelAlertInvestigationRunner {
         projectId,
         feature: "Sentinel Alert Investigation",
         subjectAlertId: alertId,
+        subjectMonitorId: gate.monitorId,
         contextSummary: this.buildAlertSummary(contextData),
         postAnalysis: async (postData: {
           analysisMarkdown: string;
@@ -80,6 +119,132 @@ export default class SentinelAlertInvestigationRunner {
         `Sentinel: unexpected error investigating alert ${alertId.toString()}: ${error}`,
       );
     }
+  }
+
+  /*
+   * The alert-specific cost gates, evaluated BEFORE the expensive context
+   * build. Severity first (cheapest to reason about), then the per-monitor
+   * dedupe window. The severity gate only filters KNOWN-low-severity noise:
+   * an alert whose severity order cannot be determined passes it.
+   */
+  @CaptureSpan()
+  public static async shouldInvestigateAlert(data: {
+    alertId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<AlertGateDecision> {
+    const { alertId, projectId } = data;
+
+    const alert: Alert | null = await AlertService.findOneById({
+      id: alertId,
+      select: {
+        monitorId: true,
+        alertSeverity: {
+          order: true,
+        },
+      },
+      props: { isRoot: true },
+    });
+
+    if (!alert) {
+      return { investigate: false, reason: "alert not found" };
+    }
+
+    // Severity floor.
+    const floorOrder: number | null =
+      await this.getSeverityFloorOrder(projectId);
+    const alertOrder: number | undefined = alert.alertSeverity?.order;
+
+    if (
+      floorOrder !== null &&
+      alertOrder !== undefined &&
+      alertOrder > floorOrder
+    ) {
+      return {
+        investigate: false,
+        reason: `severity order ${alertOrder} is below the investigation floor (order ${floorOrder})`,
+        monitorId: alert.monitorId,
+      };
+    }
+
+    // Per-monitor dedupe window. Alerts without a monitor have no dedupe key.
+    if (alert.monitorId) {
+      const windowStart: Date = OneUptimeDate.getSomeMinutesAgo(
+        DEDUPE_WINDOW_MINUTES,
+      );
+
+      const recentRunCount: number = (
+        await AIRunService.countBy({
+          query: {
+            projectId,
+            monitorId: alert.monitorId,
+            runType: AIRunType.Investigation,
+            createdAt: QueryHelper.greaterThan(windowStart),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (recentRunCount > 0) {
+        return {
+          investigate: false,
+          reason: `monitor ${alert.monitorId.toString()} was already investigated within the last ${DEDUPE_WINDOW_MINUTES} minutes`,
+          monitorId: alert.monitorId,
+        };
+      }
+    }
+
+    return {
+      investigate: true,
+      reason: "passed severity and dedupe gates",
+      monitorId: alert.monitorId,
+    };
+  }
+
+  /*
+   * The severity `order` value that still qualifies for investigation (lower
+   * order = higher severity; an alert qualifies when its order <= floor).
+   * An explicitly configured minimum severity wins; when unset — or when the
+   * configured severity has been deleted — the default is the project's top
+   * two tiers. Returns null when no floor applies (no severities configured).
+   */
+  private static async getSeverityFloorOrder(
+    projectId: ObjectID,
+  ): Promise<number | null> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: { alertInvestigationMinimumSeverityId: true },
+      props: { isRoot: true },
+    });
+
+    if (project?.alertInvestigationMinimumSeverityId) {
+      const floorSeverity: AlertSeverity | null =
+        await AlertSeverityService.findOneById({
+          id: project.alertInvestigationMinimumSeverityId,
+          select: { order: true },
+          props: { isRoot: true },
+        });
+
+      if (floorSeverity && floorSeverity.order !== undefined) {
+        return floorSeverity.order;
+      }
+    }
+
+    // Default: the top two severity tiers (the two lowest order values).
+    const topTiers: Array<AlertSeverity> = await AlertSeverityService.findBy({
+      query: { projectId },
+      select: { order: true },
+      sort: { order: SortOrder.Ascending },
+      limit: 2,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    if (topTiers.length === 0) {
+      return null;
+    }
+
+    const lastTier: AlertSeverity = topTiers[topTiers.length - 1]!;
+    return lastTier.order ?? null;
   }
 
   // Build a compact alert record to seed the investigation.

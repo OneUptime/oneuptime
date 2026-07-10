@@ -34,9 +34,9 @@ Legend: ✅ Shipped · 🟡 Partial · ❌ Not started · 🔪 To be removed/abs
 | Quiet mode v1 — deterministic inconclusive detection suppresses the workspace ping (pulled forward from Phase 2; regex-over-prose, must be replaced — see Safety gate G6) | 🟡 | `SentinelInvestigationEngine.ts` (`INCONCLUSIVE_RE`) |
 | `baseline_anomaly` read tool (wrap `MetricBaselineService.getBaseline`/`sigmaForSensitivity`) | ❌ | — (`Common/Server/Utils/AI/Toolbox/MetricTools.ts` has `QueryMetricsTool` only) |
 | Alert-side investigation API endpoint + dashboard panel | ✅ | `POST /ai-investigation/alert` in `AIInvestigationAPI.ts`; shared `Sentinel/InvestigationPanel.tsx` mounted on the alert view *(shipped as a single POST mirroring the incident route — the checklist's "GET/POST" wording was inaccurate)* |
-| Alert severity/rate gating (deferred per in-file comment) | ❌ | `Common/Server/Utils/AI/Sentinel/AlertInvestigationRunner.ts` |
+| Alert severity/rate gating — severity floor (explicit per-project minimum via `Project.alertInvestigationMinimumSeverityId`, default = top two tiers) + 30-min per-monitor dedupe window (`AIRun.monitorId`) | ✅ | `AlertInvestigationRunner.shouldInvestigateAlert`, settings UI in `AlertAISettings.tsx`, tests in `SentinelAlertGating.test.ts` |
 | RCA also written as incident internal note (currently feed item only) | ❌ | `Sentinel/IncidentInvestigationRunner.ts` |
-| **Cost guardrails — Phase 1 exit blockers, see §3** (storm dedupe, concurrency cap, budget enforcement, kill switch) | ❌ | metering exists (`LlmLog.feature`/`costInUSDCents` via `Common/Server/Services/AIService.ts`); **enforcement does not** |
+| **Cost guardrails — Phase 1 exit blockers, see §3** — storm dedupe ✅ (30-min per-monitor window) + per-project concurrency cap ✅ (3 concurrent) shipped 2026-07-10; daily budget enforcement ❌ still open; kill switch = the default-false opt-in flags | 🟡 | dedupe/cap: `AlertInvestigationRunner.ts`, `SentinelInvestigationEngine.ts`; metering exists (`LlmLog.feature`/`costInUSDCents` via `Common/Server/Services/AIService.ts`), budget **enforcement does not yet** |
 
 ### Pulled forward from later phases (first cuts shipped early)
 
@@ -81,7 +81,7 @@ The vision doc's §6 commitments, tracked honestly. **None of the first four are
 | G1 | Policy gateway (risk tiers, blast-radius limits, remediation-storm circuit breaker, capability-scoped tokens) | ❌ NOT MET | Tool-level `requiredPermissions` RBAC; per-conversation permission modes; per-turn budgets; 45s tool timeout; autonomous runs hardcoded ReadOnly | Any autonomous mutation; any default-on AutoRun; Phase 3 remediation features |
 | G2 | Undo / counterfactual dry-run per mutation | ❌ NOT MET | AskForApproval mode shows the tool call before execution | Phase 2 exit; marketing any "reversible by design" claim |
 | G3 | Accuracy-scored autonomy graduation (eval harness + thresholds) | ❌ NOT MET | AutoRun is a manual, per-conversation, human choice — never a default | Any autonomy expansion; public accuracy scorecard; page-delay pilot |
-| G4 | Cost guardrails: per-project concurrent-investigation cap, per-feature budget **enforcement**, storm dedupe, project kill-switch | ❌ NOT MET | Per-feature cost *metering* exists (`LlmLog`); investigation budgets cap a single run; opt-in flags default false | **Phase 1 closeout**; default-on anywhere; cloud packaging |
+| G4 | Cost guardrails: per-project concurrent-investigation cap, per-feature budget **enforcement**, storm dedupe, project kill-switch | 🟡 PARTIAL | Since 2026-07-10: storm dedupe (30-min per-monitor window) + concurrency cap (3/project) enforced at run start; severity floor gates alert volume. Still missing: daily token-budget enforcement. Kill switch remains the default-false opt-in flags; per-feature cost *metering* exists (`LlmLog`); investigation budgets cap a single run | **Phase 1 closeout**; default-on anywhere; cloud packaging |
 | G5 | Egress manifest on all autonomous runs + documented cloud egress/DPA posture + redaction beyond tool results | 🟡 PARTIAL | `Serializer.ts` redaction on tool results; manifest on chat runs; self-host/BYO-LLM = zero third-party egress | SOC2/enterprise packaging; "no training on your data" claim for cloud tenants |
 | G6 | No control-flow from free-form prose (structured, server-verified confidence signals) | ❌ NOT MET | Quiet mode uses `INCONCLUSIVE_RE` regex over model prose — forgeable by prompt injection via telemetry; today it only gates a workspace ping (fail direction: louder, not silent) | Page-delay (§4.6); hypothesis VALIDATED/INVALIDATED labels; any decision more consequential than a ping |
 | G7 | Page-suppression safety contract (delay-never-cancel, dead-man's switch, per-service opt-in, suppression-precision reporting, mandatory review queue) | ❌ NOT MET (feature not built) | Feature does not exist; do not build without this contract | All of §4.6 |
@@ -99,7 +99,7 @@ Ordering changed from the original roadmap — rationale in the Deviations log. 
 
 - [ ] `baseline_anomaly` read-only tool registered in the Toolbox and exercised in a Sentinel run (wraps `MetricBaselineService.getBaseline`/`sigmaForSensitivity`; also gives `getBandSeries`/`getCoverage` their first callers)
 - [x] `POST /ai-investigation/alert` + alert-side investigation panel merged *(shipped 2026-07-10; panel generalized to `Sentinel/InvestigationPanel.tsx`, failed runs now surface `errorMessage` detail on both subjects — the panel half of the Phase 2 G9 item)*
-- [ ] Alert severity/rate gating: investigations only for alerts meeting a per-project severity floor, with a per-monitor/episode dedupe window
+- [x] Alert severity/rate gating: investigations only for alerts meeting a per-project severity floor, with a per-monitor/episode dedupe window *(shipped 2026-07-10: default floor = top two tiers, per-project override, 30-min per-monitor window — Q2 answered)*
 - [ ] **G4 cost guardrails (exit blocker):** at most one active investigation per monitor/episode per window; per-project concurrent-investigation cap; per-feature daily token/cost budget enforced in `AIService.executeWithLogging`; project-level autonomous-runs kill switch
 - [ ] RCA posted as incident internal note in addition to the feed item (or the Appendix claim formally dropped — decide, don't drift)
 - [x] Persist `cachedInputTokens` to `LlmLog` for cache-hit visibility *(shipped 2026-07-10: `cachedInputTokens` + `cacheCreationTokens` columns, written in `AIService.executeWithLogging`, cached count shown in the AI Logs table)*
@@ -191,7 +191,7 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 | # | Question | Owner | Blocks |
 |---|---|---|---|
 | Q1 | Queue technology: extend `Common/Server/Infrastructure/Queue.ts` (BullMQ) vs DB-claim pattern on `AIRun` rows? | eng | Phase 2 |
-| Q2 | Alert investigation gating defaults: severity floor? per-monitor dedupe window length? | product+eng | Phase 1 closeout |
+| Q2 | ~~Alert investigation gating defaults~~ **Answered 2026-07-10:** severity floor defaults to the top two tiers (per-project override via Alert AI settings); per-monitor dedupe window = 30 min (constant, configurable later if asked for) | product+eng | ~~Phase 1 closeout~~ resolved |
 | Q3 | Structured confidence signal design: second constrained LLM call vs deterministic evidence-count checks (or both)? | eng | G6, Phase 2 |
 | Q4 | Cloud packaging: investigation quota sizes per plan; what happens at quota (pause vs degrade to on-demand)? | product | GTM, default-on |
 | Q5 | Default-on criterion for new projects: which measured precision bar over how many graded runs? | product | activation |
@@ -210,6 +210,7 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 
 ## 8. Changelog
 
+- **2026-07-10** — Shipped alert investigation gating (severity floor defaulting to top two tiers with per-project override; 30-min per-monitor dedupe window via new `AIRun.monitorId`) and the per-project concurrency cap (3) in the shared engine — G4 now partial; Q2 resolved.
 - **2026-07-10** — Shipped the alert-side investigation API (`POST /ai-investigation/alert`) + panel; generalized the incident panel into the shared `Sentinel/InvestigationPanel.tsx`; failed investigations now show `errorMessage` detail in the panel (panel half of the Phase 2 G9 surfacing item). Also persisted `cachedInputTokens`/`cacheCreationTokens` to `LlmLog` with AI Logs table visibility.
 - **2026-07-10** — Shipped the standalone atomic-claim CAS fix for the legacy `get-pending-task` double-processing race (`AIAgentTaskService.claimNextScheduledTask`); checked off the Phase 1 item and updated the legacy AIAgent table.
 - **2026-07-10** — Initial split from `AISentinelReliabilityBrain.md`. Re-baselined all statuses against the tree; added Safety Gates, re-sequenced queue before trigger expansion, pulled topology consumption into Phase 2, split the code-fix track, added GTM lane/packaging, refreshed competitive table (Bits AI GA, incident.io comms, Grafana, Seer, JSM Rovo), corrected the Appendix-era claims (trigger is inline not enqueued; feed-item-only output; two opt-in flags).

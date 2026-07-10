@@ -421,6 +421,7 @@ import { AddEnableAutomaticIncidentInvestigationToProject1783598145111 } from ".
 import { AddInvestigationSubjectToAIRun1783615884106 } from "./1783615884106-AddInvestigationSubjectToAIRun";
 import { AddEnableAutomaticAlertInvestigationToProject1783632447975 } from "./1783632447975-AddEnableAutomaticAlertInvestigationToProject";
 import { AddCacheTokenColumnsToLlmLog1783695782697 } from "./1783695782697-AddCacheTokenColumnsToLlmLog";
+import { AddAlertInvestigationGating1783701585317 } from "./1783701585317-AddAlertInvestigationGating";
 
 export default [
   InitialMigration,
@@ -846,4 +847,5 @@ export default [
   AddInvestigationSubjectToAIRun1783615884106,
   AddEnableAutomaticAlertInvestigationToProject1783632447975,
   AddCacheTokenColumnsToLlmLog1783695782697,
+  AddAlertInvestigationGating1783701585317,
 ];

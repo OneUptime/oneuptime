@@ -1,5 +1,6 @@
 import MetricDownsamplingRetentionDays from "../../Types/Metrics/MetricDownsamplingRetentionDays";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import AlertSeverity from "./AlertSeverity";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
 import User from "./User";
@@ -1481,6 +1482,69 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public enableAutomaticAlertInvestigation?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "alertInvestigationMinimumSeverityId",
+    type: TableColumnType.Entity,
+    modelType: AlertSeverity,
+    title: "Alert Investigation Minimum Severity",
+    description:
+      "Only alerts at or above this severity are investigated automatically by Sentinel. When unset, the top two severity tiers (by order) are investigated by default.",
+  })
+  @ManyToOne(
+    () => {
+      return AlertSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "alertInvestigationMinimumSeverityId" })
+  public alertInvestigationMinimumSeverity?: AlertSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Alert Investigation Minimum Severity ID",
+    description:
+      "ID of the minimum AlertSeverity that triggers automatic investigation.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public alertInvestigationMinimumSeverityId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

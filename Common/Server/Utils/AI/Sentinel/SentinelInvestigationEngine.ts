@@ -47,6 +47,14 @@ const MAX_WALL_CLOCK_MS: number = 150 * 1000;
 const MAX_OUTPUT_TOKENS: number = 2000;
 
 /*
+ * G4 cost guardrail: at most this many investigations may be Running per
+ * project at once. An alert storm then costs at most this many concurrent
+ * runs; the skipped signals still get their normal (non-AI) handling. Stuck
+ * runs can't pin the cap forever — the 12-min stale sweeper releases them.
+ */
+const MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT: number = 3;
+
+/*
  * Sentinel's own contract: it writes exactly this phrase when it cannot
  * determine a cause. We match it deterministically to drive "quiet mode" —
  * a non-answer should never loudly page the on-call.
@@ -94,6 +102,11 @@ export interface InvestigationRequest {
    */
   subjectIncidentId?: ObjectID | undefined;
   subjectAlertId?: ObjectID | undefined;
+  /*
+   * The monitor behind the subject alert, when there is one — recorded on the
+   * AIRun as the dedupe key for the per-monitor investigation window.
+   */
+  subjectMonitorId?: ObjectID | undefined;
   /*
    * Called with the finished, branded, cited analysis so the caller can post it
    * to the subject's timeline. `isConfident` is false when Sentinel reported it
@@ -169,6 +182,36 @@ export default class SentinelInvestigationEngine {
   ): Promise<void> {
     const { projectId } = request;
 
+    /*
+     * G4 concurrency cap. The count-then-create is not atomic, so a burst of
+     * simultaneous triggers can briefly overshoot by a run or two — acceptable
+     * for a cost guardrail; the cap bounds sustained concurrency.
+     */
+    try {
+      const runningCount: number = (
+        await AIRunService.countBy({
+          query: {
+            projectId,
+            runType: AIRunType.Investigation,
+            status: AIRunStatus.Running,
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (runningCount >= MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT) {
+        logger.debug(
+          `Sentinel: skipping investigation for project ${projectId.toString()} — ${runningCount} investigations already running (cap: ${MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT}).`,
+        );
+        return;
+      }
+    } catch (error) {
+      logger.error(
+        `Sentinel: concurrency-cap check failed, skipping investigation: ${error}`,
+      );
+      return;
+    }
+
     // Record the run up front so it is auditable even if it fails.
     const run: AIRun = new AIRun();
     run.projectId = projectId;
@@ -182,6 +225,9 @@ export default class SentinelInvestigationEngine {
     }
     if (request.subjectAlertId) {
       run.triggeredByAlertId = request.subjectAlertId;
+    }
+    if (request.subjectMonitorId) {
+      run.monitorId = request.subjectMonitorId;
     }
 
     let createdRun: AIRun;

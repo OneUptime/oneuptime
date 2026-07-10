@@ -343,6 +343,31 @@ export default class AIRun extends BaseModel {
     ],
     update: [],
   })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Monitor ID",
+    description:
+      "The monitor behind the alert that triggered this run — the dedupe key for per-monitor investigation windows.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public monitorId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
   @TableColumn({
     required: false,
     type: TableColumnType.Date,

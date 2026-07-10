@@ -3,6 +3,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Project from "Common/Models/DatabaseModels/Project";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -33,6 +34,22 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },
+          {
+            field: {
+              alertInvestigationMinimumSeverity: true,
+            },
+            title: "Minimum Severity To Investigate",
+            description:
+              "Only alerts at or above this severity are investigated. When unset, the top two severity tiers are investigated by default. Repeat alerts from the same monitor within 30 minutes are not re-investigated.",
+            required: false,
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: AlertSeverity,
+              labelField: "name",
+              valueField: "_id",
+            },
+            placeholder: "Default (top two severity tiers)",
+          },
         ]}
         modelDetailProps={{
           modelType: Project,
@@ -45,6 +62,16 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               title: "Automatically Investigate Alerts",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                alertInvestigationMinimumSeverity: {
+                  name: true,
+                },
+              },
+              title: "Minimum Severity To Investigate",
+              placeholder: "Default (top two severity tiers)",
+              fieldType: FieldType.Entity,
             },
           ],
           modelId: ProjectUtil.getCurrentProjectId()!,
