@@ -179,15 +179,23 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           <span
             className="inline-flex max-w-[180px] flex-shrink-0 items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium"
             style={{
-              borderColor: serviceColor ? `${serviceColor}33` : "#e5e7eb",
-              backgroundColor: serviceColor ? `${serviceColor}0d` : "#f9fafb",
-              color: serviceColor || "#374151",
+              borderColor: serviceColor
+                ? `color-mix(in srgb, ${serviceColor} 45%, var(--ou-border-default, #e5e7eb))`
+                : "var(--ou-border-default, #e5e7eb)",
+              backgroundColor: serviceColor
+                ? `color-mix(in srgb, ${serviceColor} 12%, var(--ou-surface-primary, #ffffff))`
+                : "var(--ou-surface-secondary, #f9fafb)",
+              color: "var(--ou-text-secondary, #374151)",
             }}
             title={serviceName}
           >
             <span
               className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full"
-              style={{ backgroundColor: serviceColor || "#9ca3af" }}
+              style={{
+                backgroundColor:
+                  serviceColor || "var(--ou-text-subtle, #9ca3af)",
+                boxShadow: "0 0 0 1px var(--ou-surface-primary, #ffffff)",
+              }}
             />
             <span className="truncate">{serviceName}</span>
           </span>

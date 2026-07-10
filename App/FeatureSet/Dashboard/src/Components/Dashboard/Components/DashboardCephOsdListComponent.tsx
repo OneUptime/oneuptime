@@ -136,25 +136,37 @@ function getOsdState(r: CephResource): {
     isIn === null ||
     isIn === undefined
   ) {
-    return { text: "Unknown", color: OSD_COLORS.unknown, textColor: "#9ca3af" };
+    return {
+      text: "Unknown",
+      color: OSD_COLORS.unknown,
+      textColor: "var(--ou-text-muted, #6b7280)",
+    };
   }
   if (isUp && isIn) {
-    return { text: "Up & In", color: OSD_COLORS.upIn, textColor: "#047857" };
+    return {
+      text: "Up & In",
+      color: OSD_COLORS.upIn,
+      textColor: "var(--ou-success-text, #047857)",
+    };
   }
   if (isUp && !isIn) {
-    return { text: "Up & Out", color: OSD_COLORS.upOut, textColor: "#b45309" };
+    return {
+      text: "Up & Out",
+      color: OSD_COLORS.upOut,
+      textColor: "var(--ou-warning-text, #b45309)",
+    };
   }
   if (!isUp && isIn) {
     return {
       text: "Down & In",
       color: OSD_COLORS.downIn,
-      textColor: "#b91c1c",
+      textColor: "var(--ou-danger-text, #b91c1c)",
     };
   }
   return {
     text: "Down & Out",
     color: OSD_COLORS.downOut,
-    textColor: "#4b5563",
+    textColor: "var(--ou-text-secondary, #4b5563)",
   };
 }
 

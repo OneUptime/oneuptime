@@ -49,11 +49,11 @@ const COLUMNS: Array<ResourceListColumn> = [
 ];
 
 const PHASE_COLORS: Record<string, { dot: string; text: string }> = {
-  Running: { dot: "#10b981", text: "#047857" },
-  Pending: { dot: "#f59e0b", text: "#b45309" },
-  Succeeded: { dot: "#3b82f6", text: "#1d4ed8" },
-  Failed: { dot: "#ef4444", text: "#b91c1c" },
-  Unknown: { dot: "#9ca3af", text: "#6b7280" },
+  Running: { dot: "#10b981", text: "var(--ou-success-text, #047857)" },
+  Pending: { dot: "#f59e0b", text: "var(--ou-warning-text, #b45309)" },
+  Succeeded: { dot: "#3b82f6", text: "var(--ou-link, #1d4ed8)" },
+  Failed: { dot: "#ef4444", text: "var(--ou-danger-text, #b91c1c)" },
+  Unknown: { dot: "#9ca3af", text: "var(--ou-text-muted, #6b7280)" },
 };
 
 const POD_LEGEND: Array<HoneycombLegendItem> = [
