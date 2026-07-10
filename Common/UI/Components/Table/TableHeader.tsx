@@ -1,4 +1,8 @@
 import CheckboxElement from "../Checkbox/Checkbox";
+import {
+  SurfaceStyle,
+  useSurfaceStyle,
+} from "../../Contexts/SurfaceStyleContext";
 import Icon, { ThickProp } from "../Icon/Icon";
 import FieldType from "../Types/FieldType";
 import Column from "./Types/Column";
@@ -33,6 +37,8 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const surfaceStyle: SurfaceStyle = useSurfaceStyle();
+  const isQuiet: boolean = surfaceStyle === SurfaceStyle.Quiet;
   // Track mobile view for responsive behavior
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -54,7 +60,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   );
 
   return (
-    <thead className="bg-gray-50" id={props.id}>
+    <thead className={isQuiet ? "bg-slate-50" : "bg-gray-50"} id={props.id}>
       <tr>
         {props.enableDragAndDrop && (
           <th scope="col">
@@ -68,7 +74,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
             <span className="sr-only">
               {translateString("Select all items")}
             </span>
-            <div className="ml-5">
+            <div className={isQuiet ? "ml-4 sm:ml-5" : "ml-5"}>
               <CheckboxElement
                 disabled={!props.hasTableItems}
                 value={selectBulkSelectCheckbox}
@@ -105,9 +111,11 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                 key={i}
                 scope="col"
                 aria-sort={ariaSort}
-                className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
-                  canSort ? "cursor-pointer" : ""
-                }`}
+                className={`text-left ${
+                  isQuiet
+                    ? "px-4 py-2.5 text-xs font-medium text-slate-500 sm:px-5"
+                    : "px-6 py-3 text-sm font-semibold text-gray-900"
+                } ${canSort ? "cursor-pointer" : ""}`}
                 onClick={() => {
                   if (!column.key) {
                     return;
@@ -141,7 +149,11 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                       <Icon
                         icon={IconProp.ChevronUp}
                         thick={ThickProp.Thick}
-                        className="ml-2  p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
+                        className={
+                          isQuiet
+                            ? "ml-1.5 h-3.5 w-3.5 flex-none text-slate-400"
+                            : "ml-2 h-4 w-4 flex-none rounded bg-gray-200 p-1 text-gray-500 group-hover:bg-gray-300"
+                        }
                       />
                     )}
                   {canSort &&
@@ -150,7 +162,11 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                       <Icon
                         icon={IconProp.ChevronDown}
                         thick={ThickProp.Thick}
-                        className="ml-2 p-1 flex-none rounded bg-gray-200 text-gray-500 group-hover:bg-gray-300 h-4 w-4"
+                        className={
+                          isQuiet
+                            ? "ml-1.5 h-3.5 w-3.5 flex-none text-slate-400"
+                            : "ml-2 h-4 w-4 flex-none rounded bg-gray-200 p-1 text-gray-500 group-hover:bg-gray-300"
+                        }
                       />
                     )}
                 </div>

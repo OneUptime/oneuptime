@@ -3,11 +3,15 @@ import Card, {
   CardButtonSchema,
   ComponentProps,
 } from "../../../UI/Components/Card/Card";
-import "@testing-library/jest-dom/extend-expect";
+import {
+  SurfaceStyle,
+  SurfaceStyleProvider,
+} from "../../../UI/Contexts/SurfaceStyleContext";
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement } from "react";
-import { describe, expect, jest } from "@jest/globals";
+import { describe, jest } from "@jest/globals";
 
 describe("Card", () => {
   const props: ComponentProps = {
@@ -105,5 +109,34 @@ describe("Card", () => {
 
     expect(childComponent).toBeInTheDocument();
     expect(childComponent.parentElement).toHaveClass("mt-4");
+  });
+
+  test("should render the quiet dashboard surface without changing card behavior", () => {
+    const childElementText: string = "quiet card content";
+
+    render(
+      <SurfaceStyleProvider style={SurfaceStyle.Quiet}>
+        <Card {...props}>
+          <div>{childElementText}</div>
+        </Card>
+      </SurfaceStyleProvider>,
+    );
+
+    const card: HTMLElement = screen.getByTestId("card");
+    const cardSurface: HTMLElement = card.firstElementChild as HTMLElement;
+    const title: HTMLElement = screen.getByText(props.title as string);
+    const description: HTMLElement = screen.getByText(
+      props.description as string,
+    );
+
+    expect(cardSurface).toHaveClass(
+      "rounded-lg",
+      "border-slate-200",
+      "bg-white",
+    );
+    expect(cardSurface).not.toHaveClass("shadow-sm");
+    expect(title).toHaveClass("text-[15px]", "font-medium", "text-slate-900");
+    expect(description).toHaveClass("text-slate-500");
+    expect(screen.getByText(childElementText)).toBeInTheDocument();
   });
 });

@@ -2,6 +2,10 @@ import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import {
+  SurfaceStyle,
+  useSurfaceStyle,
+} from "../../Contexts/SurfaceStyleContext";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface CardButtonSchema {
@@ -30,6 +34,8 @@ const Card: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
+  const surfaceStyle: SurfaceStyle = useSurfaceStyle();
+  const isQuiet: boolean = surfaceStyle === SurfaceStyle.Quiet;
   const noRightElementsOrButtons: boolean =
     !props.rightElement && (!props.buttons || props.buttons.length === 0);
   const translatedTitle: string | ReactElement | undefined = translateValue(
@@ -37,13 +43,37 @@ const Card: FunctionComponent<ComponentProps> = (
   );
   const translatedDescription: string | ReactElement | undefined =
     translateValue(props.description);
+  const cardClassName: string = isQuiet
+    ? "overflow-visible rounded-lg border border-slate-200 bg-white"
+    : "overflow-visible rounded-xl border border-gray-200 bg-white shadow-sm";
+  const contentClassName: string = isQuiet
+    ? "px-4 py-4 sm:px-5"
+    : "px-5 py-6 md:px-6";
+  const titleClassName: string = isQuiet
+    ? "text-[15px] font-medium leading-6 tracking-[-0.01em] text-slate-900"
+    : "text-lg font-semibold leading-6 text-gray-900";
+  const descriptionClassName: string = isQuiet
+    ? "mt-1 w-full text-sm leading-5 text-slate-500"
+    : "mt-1.5 hidden w-full text-sm leading-relaxed text-gray-500 md:block";
+  const bodyClassName: string =
+    props.bodyClassName || (isQuiet ? "mt-3" : "mt-4");
 
   return (
     <React.Fragment>
-      <div data-testid="card" className={`mb-5 ${props.className || ""}`}>
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-visible">
-          <div className="py-6 px-5 md:px-6">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+      <div
+        data-testid="card"
+        data-surface-style={surfaceStyle}
+        className={`${isQuiet ? "mb-4" : "mb-5"} ${props.className || ""}`}
+      >
+        <div data-testid="card-surface" className={cardClassName}>
+          <div className={contentClassName}>
+            <div
+              className={`flex flex-col ${
+                isQuiet
+                  ? "gap-3 sm:flex-row sm:items-start sm:justify-between"
+                  : "md:flex-row md:items-start md:justify-between"
+              }`}
+            >
               <div
                 className={`${noRightElementsOrButtons ? "w-full" : "flex-1 min-w-0"}`}
               >
@@ -51,7 +81,7 @@ const Card: FunctionComponent<ComponentProps> = (
                   <h2
                     data-testid="card-details-heading"
                     id="card-details-heading"
-                    className="text-lg font-semibold leading-6 text-gray-900"
+                    className={titleClassName}
                   >
                     {translatedTitle}
                   </h2>
@@ -59,7 +89,7 @@ const Card: FunctionComponent<ComponentProps> = (
                 {translatedDescription && (
                   <p
                     data-testid="card-description"
-                    className="mt-1.5 text-sm text-gray-500 w-full hidden md:block leading-relaxed"
+                    className={descriptionClassName}
                   >
                     {translatedDescription}
                   </p>
@@ -67,7 +97,13 @@ const Card: FunctionComponent<ComponentProps> = (
               </div>
               {(props.rightElement ||
                 (props.buttons && props.buttons.length > 0)) && (
-                <div className="flex flex-col md:flex-row md:items-center md:w-fit mt-4 md:mt-0 md:ml-4 gap-2 md:gap-0 flex-shrink-0 items-center">
+                <div
+                  className={`flex flex-shrink-0 flex-col items-center gap-2 md:w-fit md:flex-row md:items-center ${
+                    isQuiet
+                      ? "sm:ml-4 sm:mt-0"
+                      : "mt-4 md:ml-4 md:mt-0 md:gap-0"
+                  }`}
+                >
                   {props.rightElement && (
                     <div className="mb-2 md:mb-0 md:mr-3">
                       {props.rightElement}
@@ -125,9 +161,7 @@ const Card: FunctionComponent<ComponentProps> = (
             </div>
 
             {props.children && (
-              <div className={props.bodyClassName || "mt-4"}>
-                {props.children}
-              </div>
+              <div className={bodyClassName}>{props.children}</div>
             )}
           </div>
         </div>

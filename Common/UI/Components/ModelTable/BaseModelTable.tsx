@@ -5,6 +5,10 @@ import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import {
+  SurfaceStyle,
+  useSurfaceStyle,
+} from "../../Contexts/SurfaceStyleContext";
 
 import Query from "../../../Types/BaseDatabase/Query";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
@@ -301,6 +305,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 ) => ReactElement = <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
+  const surfaceStyle: SurfaceStyle = useSurfaceStyle();
+  const isQuiet: boolean = surfaceStyle === SurfaceStyle.Quiet;
   const { translateValue, translateString } = useTranslateValue();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) ?? value;
@@ -3152,7 +3158,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               buttons={headerButtons}
               bodyClassName={
                 showAs === ShowAs.List
-                  ? "-ml-6 -mr-6 bg-gray-50 border-top"
+                  ? isQuiet
+                    ? "-mx-4 border-t border-slate-200 bg-slate-50 sm:-mx-5"
+                    : "-ml-6 -mr-6 bg-gray-50 border-top"
                   : ""
               }
               title={getCardHeaderTitle(

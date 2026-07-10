@@ -16,6 +16,10 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  SurfaceStyle,
+  SurfaceStyleProvider,
+} from "Common/UI/Contexts/SurfaceStyleContext";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -77,51 +81,53 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div>
-      {BILLING_ENABLED && isSubscriptionInactiveOrOverdue && (
-        <TopAlert
-          alertType={TopAlertType.DANGER}
-          title={
-            isSubscriptionOverdue
-              ? "Your project will become inactive soon because some of the invoices are unpaid"
-              : "Your project is not active because some invoices are unpaid. If left unpaid, your project will be deleted."
-          }
-          description={
-            <AppLink
-              className="underline"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
-              )}
-            >
-              Click here to pay your unpaid invoices.
-            </AppLink>
-          }
-        />
-      )}
-
-      <MasterPage
-        footer={<Footer />}
-        header={
-          <Header
-            projects={props.projects}
-            onProjectSelected={props.onProjectSelected}
-            showProjectModal={props.showProjectModal}
-            onProjectModalClose={props.onProjectModalClose}
-            selectedProject={props.selectedProject || null}
-            paymentMethodsCount={props.paymentMethodsCount}
+    <SurfaceStyleProvider style={SurfaceStyle.Quiet}>
+      <div>
+        {BILLING_ENABLED && isSubscriptionInactiveOrOverdue && (
+          <TopAlert
+            alertType={TopAlertType.DANGER}
+            title={
+              isSubscriptionOverdue
+                ? "Your project will become inactive soon because some of the invoices are unpaid"
+                : "Your project is not active because some invoices are unpaid. If left unpaid, your project will be deleted."
+            }
+            description={
+              <AppLink
+                className="underline"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
+                )}
+              >
+                Click here to pay your unpaid invoices.
+              </AppLink>
+            }
           />
-        }
-        navBar={
-          <NavBar show={props.projects.length > 0 && !isOnHideNavbarPage} />
-        }
-        isLoading={props.isLoading}
-        error={error}
-        className="flex min-h-screen flex-col bg-slate-50/60 text-slate-900 antialiased"
-        topSectionClassName="border-b border-slate-200/80 bg-white/90 text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur-xl [&>div>div>nav]:!mt-0 [&>div>div>nav]:!bg-transparent"
-      >
-        {props.children}
-      </MasterPage>
-    </div>
+        )}
+
+        <MasterPage
+          footer={<Footer />}
+          header={
+            <Header
+              projects={props.projects}
+              onProjectSelected={props.onProjectSelected}
+              showProjectModal={props.showProjectModal}
+              onProjectModalClose={props.onProjectModalClose}
+              selectedProject={props.selectedProject || null}
+              paymentMethodsCount={props.paymentMethodsCount}
+            />
+          }
+          navBar={
+            <NavBar show={props.projects.length > 0 && !isOnHideNavbarPage} />
+          }
+          isLoading={props.isLoading}
+          error={error}
+          className="flex min-h-screen flex-col bg-slate-50/60 text-slate-900 antialiased"
+          topSectionClassName="border-b border-slate-200/80 bg-white/90 text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] backdrop-blur-xl [&>div>div>nav]:!mt-0 [&>div>div>nav]:!bg-transparent"
+        >
+          {props.children}
+        </MasterPage>
+      </div>
+    </SurfaceStyleProvider>
   );
 };
 

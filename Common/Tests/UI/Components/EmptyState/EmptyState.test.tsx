@@ -1,4 +1,8 @@
 import EmptyState from "../../../../UI/Components/EmptyState/EmptyState";
+import {
+  SurfaceStyle,
+  SurfaceStyleProvider,
+} from "../../../../UI/Contexts/SurfaceStyleContext";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import IconProp from "../../../../Types/Icon/IconProp";
@@ -41,5 +45,42 @@ describe("EmptyState", () => {
     const description: HTMLElement = screen.getByText("Description");
     expect(title).toBeInTheDocument();
     expect(description).toBeInTheDocument();
+  });
+
+  test("renders a compact quiet surface with its content intact", () => {
+    render(
+      <SurfaceStyleProvider style={SurfaceStyle.Quiet}>
+        <EmptyState
+          id="quiet-empty-state"
+          icon={IconProp.User}
+          title="Nothing here yet"
+          description="New items will appear here."
+          footer={<button type="button">Create item</button>}
+          showSolidBackground={true}
+        />
+      </SurfaceStyleProvider>,
+    );
+
+    const emptyState: HTMLElement = document.getElementById(
+      "quiet-empty-state",
+    ) as HTMLElement;
+
+    expect(emptyState).toHaveClass(
+      "min-h-64",
+      "px-6",
+      "py-16",
+      "rounded-lg",
+      "border",
+      "border-slate-200",
+      "bg-white",
+    );
+    expect(emptyState).not.toHaveClass("shadow");
+    expect(screen.getByText("Nothing here yet")).toHaveClass("text-slate-900");
+    expect(screen.getByText("New items will appear here.")).toHaveClass(
+      "text-slate-500",
+    );
+    expect(
+      screen.getByRole("button", { name: "Create item" }),
+    ).toBeInTheDocument();
   });
 });

@@ -1,4 +1,8 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import {
+  SurfaceStyle,
+  useSurfaceStyle,
+} from "../../Contexts/SurfaceStyleContext";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import CheckboxElement from "../Checkbox/Checkbox";
 import ColorInput from "../ColorViewer/ColorViewer";
@@ -41,6 +45,8 @@ type TableRowFunction = <T extends GenericObject>(
 const TableRow: TableRowFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const surfaceStyle: SurfaceStyle = useSurfaceStyle();
+  const isQuiet: boolean = surfaceStyle === SurfaceStyle.Quiet;
   // Helper function to get nested property values using dot notation
   const getNestedValue: (obj: any, path: string) => any = (
     obj: any,
@@ -89,7 +95,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           <div
             {...provided?.draggableProps}
             ref={provided?.innerRef}
-            className="p-4 bg-white border-b border-gray-200"
+            className={
+              isQuiet
+                ? "border-b border-slate-100 bg-white px-4 py-3"
+                : "border-b border-gray-200 bg-white p-4"
+            }
+            data-surface-style={surfaceStyle}
           >
             {props.enableDragAndDrop ? (
               <div
@@ -122,7 +133,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               <></>
             )}
 
-            <div className="space-y-3">
+            <div className={isQuiet ? "space-y-2.5" : "space-y-3"}>
               {props.columns.map((column: Column<T>, i: number) => {
                 if (column.type === FieldType.Actions) {
                   return (
@@ -271,17 +282,35 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 return (
                   <div
                     key={i}
-                    className="flex flex-col space-y-1"
+                    className={
+                      isQuiet
+                        ? "flex flex-col space-y-0.5"
+                        : "flex flex-col space-y-1"
+                    }
                     onClick={() => {
                       if (column.tooltipText) {
                         setTooltipModalText(column.tooltipText(props.item));
                       }
                     }}
                   >
-                    <div className="text-sm font-medium text-gray-500">
+                    <div
+                      className={
+                        isQuiet
+                          ? "text-xs font-medium text-slate-500"
+                          : "text-sm font-medium text-gray-500"
+                      }
+                    >
                       {column.title}
                     </div>
-                    <div className="text-sm text-gray-900">{value}</div>
+                    <div
+                      className={
+                        isQuiet
+                          ? "text-sm text-slate-700"
+                          : "text-sm text-gray-900"
+                      }
+                    >
+                      {value}
+                    </div>
                   </div>
                 );
               })}
@@ -305,24 +334,39 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     // Desktop view: render as table row
     return (
       <>
-        <tr {...provided?.draggableProps} ref={provided?.innerRef}>
+        <tr
+          {...provided?.draggableProps}
+          ref={provided?.innerRef}
+          data-surface-style={surfaceStyle}
+          className={
+            isQuiet ? "transition-colors hover:bg-slate-50/70" : undefined
+          }
+        >
           {props.enableDragAndDrop && (
             <td
-              className="ml-5 py-4 w-10 align-top"
+              className={
+                isQuiet ? "w-10 py-3 align-middle" : "ml-5 w-10 py-4 align-top"
+              }
               {...provided?.dragHandleProps}
             >
               <Icon
                 icon={IconProp.ArrowUpDown}
-                className="ml-6 h-5 w-5 text-gray-500 hover:text-indigo-800 m-auto cursor-ns-resize"
+                className={
+                  isQuiet
+                    ? "m-auto h-4 w-4 cursor-ns-resize text-slate-400 hover:text-indigo-700"
+                    : "m-auto ml-6 h-5 w-5 cursor-ns-resize text-gray-500 hover:text-indigo-800"
+                }
               />
             </td>
           )}
           {props.isBulkActionsEnabled && (
             <td
-              className="w-10 py-3.5  align-top"
+              className={
+                isQuiet ? "w-10 py-3 align-middle" : "w-10 py-3.5 align-top"
+              }
               {...provided?.dragHandleProps}
             >
-              <div className="ml-5">
+              <div className={isQuiet ? "ml-4 sm:ml-5" : "ml-5"}>
                 <CheckboxElement
                   value={props.isItemSelected}
                   onChange={(value: boolean) => {
@@ -344,11 +388,13 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 return !(column.hideOnMobile && isMobile);
               })
               .map((column: Column<T>, i: number) => {
-                let className: string =
-                  "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
+                let className: string = isQuiet
+                  ? "whitespace-nowrap px-4 py-3 text-sm font-normal text-slate-600 align-middle sm:px-5"
+                  : "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6 align-top";
                 if (i === props.columns.length - 1) {
-                  className =
-                    "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
+                  className = isQuiet
+                    ? "whitespace-nowrap px-4 py-3 text-sm font-normal text-slate-600 align-middle sm:px-5"
+                    : "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6 align-top";
                 }
 
                 let columnContent: React.ReactNode = null;

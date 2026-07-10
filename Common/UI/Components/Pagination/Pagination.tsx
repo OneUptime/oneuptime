@@ -1,4 +1,8 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
+import {
+  SurfaceStyle,
+  useSurfaceStyle,
+} from "../../Contexts/SurfaceStyleContext";
 import BasicFormModal from "../FormModal/BasicFormModal";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -36,6 +40,8 @@ export interface ComponentProps {
 const Pagination: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const surfaceStyle: SurfaceStyle = useSurfaceStyle();
+  const isQuiet: boolean = surfaceStyle === SurfaceStyle.Quiet;
   const isHasMoreMode: boolean = props.hasMore !== undefined;
 
   const [minPageNumber, setMinPageNumber] = useState<number>(1);
@@ -76,16 +82,59 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
   const [showPaginationModel, setShowPaginationModel] =
     useState<boolean>(false);
+  const navClassName: string = isQuiet
+    ? "flex min-h-12 items-center justify-between border-t border-slate-200 bg-white px-4 sm:px-5"
+    : "flex items-center justify-between border-t border-gray-200 bg-white px-4";
+  const controlGroupClassName: string = isQuiet
+    ? "inline-flex -space-x-px rounded-md shadow-none"
+    : "inline-flex -space-x-px rounded-md shadow-sm";
+  const listClassName: string = isQuiet ? "flex py-2" : "flex py-3";
+  const previousButtonClassName: string = isQuiet
+    ? `inline-flex items-center rounded-l-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+        isPreviousDisabled
+          ? "cursor-not-allowed bg-slate-50 text-slate-300"
+          : "cursor-pointer hover:bg-slate-50"
+      }`
+    : `inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+        isPreviousDisabled
+          ? "cursor-not-allowed bg-gray-100"
+          : "cursor-pointer hover:bg-gray-50"
+      }`;
+  const currentButtonClassName: string = isQuiet
+    ? `z-10 inline-flex items-center border border-x-0 border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+        isCurrentPageButtonDisabled
+          ? "cursor-not-allowed bg-slate-50 text-slate-300"
+          : "cursor-pointer bg-slate-50 hover:bg-slate-100"
+      }`
+    : `z-10 inline-flex cursor-pointer items-center border border-x-0 border-gray-300 px-4 py-2 text-sm font-medium text-text-600 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+        isCurrentPageButtonDisabled ? "bg-gray-100" : ""
+      }`;
+  const nextButtonClassName: string = isQuiet
+    ? `inline-flex items-center rounded-r-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+        isNextDisabled
+          ? "cursor-not-allowed bg-slate-50 text-slate-300"
+          : "cursor-pointer hover:bg-slate-50"
+      }`
+    : `inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+        isNextDisabled
+          ? "cursor-not-allowed bg-gray-100"
+          : "cursor-pointer hover:bg-gray-50"
+      }`;
 
   return (
     <nav
-      className="flex items-center justify-between border-t border-gray-200 bg-white px-4"
+      className={navClassName}
       data-testid={props.dataTestId}
+      data-surface-style={surfaceStyle}
       aria-label={`Pagination for ${props.pluralLabel}`}
     >
       {/* Desktop layout: Description on left, all controls on right */}
       <div className="hidden md:block">
-        <p className="text-sm text-gray-500">
+        <p
+          className={
+            isQuiet ? "text-xs text-slate-500" : "text-sm text-gray-500"
+          }
+        >
           {!props.isLoading && isHasMoreMode && (
             <span>
               {`Showing ${
@@ -118,11 +167,11 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
       {/* Desktop layout: All controls together on right */}
       <div className="hidden md:flex">
-        <div className="inline-flex -space-x-px rounded-md shadow-sm">
-          <div className="my-2">
+        <div className={controlGroupClassName}>
+          <div className={isQuiet ? "my-1" : "my-2"}>
             <Button
               dataTestId="show-pagination-modal-button"
-              className="mx-2 my-2"
+              className={isQuiet ? "mx-1 my-1" : "mx-2 my-2"}
               buttonSize={ButtonSize.ExtraSmall}
               icon={IconProp.AdjustmentHorizontal}
               buttonStyle={ButtonStyleType.ICON_LIGHT}
@@ -133,7 +182,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          <ul className="flex py-3" role="list">
+          <ul className={listClassName} role="list">
             <li className="flex">
               <button
                 type="button"
@@ -153,11 +202,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     );
                   }
                 }}
-                className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500   ${
-                  isPreviousDisabled
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : "hover:bg-gray-50 cursor-pointer"
-                }`}
+                className={previousButtonClassName}
               >
                 <span className="page-link">Previous</span>
               </button>
@@ -169,9 +214,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 aria-current="page"
                 aria-label={`Page ${props.currentPageNumber}, current page. Select to jump to another page.`}
                 data-testid="current-page-link"
-                className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-                  isCurrentPageButtonDisabled ? "bg-gray-100" : ""
-                }`}
+                className={currentButtonClassName}
                 onClick={() => {
                   if (!isHasMoreMode) {
                     setShowPaginationModel(true);
@@ -200,11 +243,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     );
                   }
                 }}
-                className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500  ${
-                  isNextDisabled
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : " hover:bg-gray-50 cursor-pointer"
-                }`}
+                className={nextButtonClassName}
               >
                 <span>Next</span>
               </button>
@@ -214,10 +253,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
       </div>
 
       {/* Mobile layout: Navigate button on left, pagination controls on right */}
-      <div className="md:hidden my-2">
+      <div className={isQuiet ? "my-1 md:hidden" : "my-2 md:hidden"}>
         <Button
           dataTestId="show-pagination-modal-button-mobile"
-          className="my-2"
+          className={isQuiet ? "my-1" : "my-2"}
           buttonSize={ButtonSize.ExtraSmall}
           icon={IconProp.AdjustmentHorizontal}
           buttonStyle={ButtonStyleType.ICON_LIGHT}
@@ -229,7 +268,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="md:hidden">
-        <div className="inline-flex -space-x-px rounded-md shadow-sm">
+        <div className={controlGroupClassName}>
           <ul className="flex" role="list">
             <li className="flex">
               <button
@@ -250,11 +289,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     );
                   }
                 }}
-                className={` inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500   ${
-                  isPreviousDisabled
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : "hover:bg-gray-50 cursor-pointer"
-                }`}
+                className={previousButtonClassName}
               >
                 <span className="page-link">Previous</span>
               </button>
@@ -266,9 +301,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 aria-current="page"
                 aria-label={`Page ${props.currentPageNumber}, current page. Select to jump to another page.`}
                 data-testid="current-page-link-mobile"
-                className={` z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-                  isCurrentPageButtonDisabled ? "bg-gray-100" : ""
-                }`}
+                className={currentButtonClassName}
                 onClick={() => {
                   if (!isHasMoreMode) {
                     setShowPaginationModel(true);
@@ -297,11 +330,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     );
                   }
                 }}
-                className={` inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500  ${
-                  isNextDisabled
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : " hover:bg-gray-50 cursor-pointer"
-                }`}
+                className={nextButtonClassName}
               >
                 <span>Next</span>
               </button>

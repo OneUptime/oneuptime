@@ -1,8 +1,12 @@
 import Pagination, {
   ComponentProps,
 } from "../../../UI/Components/Pagination/Pagination";
-import { describe, expect, jest } from "@jest/globals";
-import "@testing-library/jest-dom/extend-expect";
+import {
+  SurfaceStyle,
+  SurfaceStyleProvider,
+} from "../../../UI/Contexts/SurfaceStyleContext";
+import { describe, jest } from "@jest/globals";
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
@@ -165,6 +169,50 @@ describe("Pagination", () => {
 
     await waitFor(() => {
       expect(mockOnNavigateToPage).toHaveBeenCalledWith(1, 10);
+    });
+  });
+
+  it("renders compact quiet controls and keeps navigation working", async () => {
+    const mockOnNavigateToPage: MockFunction = getJestMockFunction();
+    const props: ComponentProps = {
+      currentPageNumber: 1,
+      totalItemsCount: 19,
+      itemsOnPage: 10,
+      onNavigateToPage: mockOnNavigateToPage,
+      isLoading: false,
+      isError: false,
+      singularLabel: "Item",
+      pluralLabel: "Items",
+    };
+
+    render(
+      <SurfaceStyleProvider style={SurfaceStyle.Quiet}>
+        <Pagination {...props} />
+      </SurfaceStyleProvider>,
+    );
+
+    const pagination: HTMLElement = screen.getByRole("navigation", {
+      name: "Pagination for Items",
+    });
+    const summary: HTMLElement = screen
+      .getByText(/Showing 1 to 10 on this page/i)
+      .closest("p") as HTMLElement;
+    const nextButton: HTMLElement = screen.getAllByRole("button", {
+      name: "Go to next page",
+    })[0]!;
+    const controls: HTMLElement = nextButton.closest(
+      ".shadow-none",
+    ) as HTMLElement;
+
+    expect(pagination).toHaveClass("min-h-12", "border-slate-200", "bg-white");
+    expect(summary).toHaveClass("text-xs", "text-slate-500");
+    expect(controls).toBeInTheDocument();
+    expect(nextButton).toHaveClass("text-xs", "text-slate-600");
+
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(mockOnNavigateToPage).toHaveBeenCalledWith(2, 10);
     });
   });
 });

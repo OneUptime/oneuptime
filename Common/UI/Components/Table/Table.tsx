@@ -1,4 +1,8 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import {
+  SurfaceStyle,
+  useSurfaceStyle,
+} from "../../Contexts/SurfaceStyleContext";
 import useTranslateValue from "../../Utils/Translation";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import BulkUpdateForm, {
@@ -91,6 +95,8 @@ const Table: TableFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const surfaceStyle: SurfaceStyle = useSurfaceStyle();
+  const isQuiet: boolean = surfaceStyle === SurfaceStyle.Quiet;
   const translatedSingularLabel: string =
     translateString(props.singularLabel) ?? props.singularLabel;
   const translatedPluralLabel: string =
@@ -242,7 +248,11 @@ const Table: TableFunction = <T extends GenericObject>(
   });
 
   return (
-    <div className={props.className}>
+    <div
+      className={`${props.className || ""} ${isQuiet ? "min-w-0" : ""}`}
+      data-testid="table"
+      data-surface-style={surfaceStyle}
+    >
       <FilterViewer
         id={`${props.id}-filter`}
         showFilterModal={props.showFilterModal || false}
@@ -289,23 +299,47 @@ const Table: TableFunction = <T extends GenericObject>(
           }
         }}
       >
-        <div className="-my-2 overflow-x-auto md:-mx-6">
-          <div className="inline-block min-w-full py-2 align-middle">
+        <div
+          className={
+            isQuiet
+              ? "-mx-4 -my-1 overflow-x-auto sm:-mx-5"
+              : "-my-2 overflow-x-auto md:-mx-6"
+          }
+        >
+          <div
+            className={
+              isQuiet
+                ? "inline-block min-w-full py-1 align-middle"
+                : "inline-block min-w-full py-2 align-middle"
+            }
+          >
             <div
               className={
                 props.tableContainerClassName
                   ? props.tableContainerClassName
-                  : "overflow-hidden border-t border-gray-200"
+                  : isQuiet
+                    ? `overflow-hidden border-t border-slate-200 ${
+                        props.disablePagination ? "border-b" : ""
+                      }`
+                    : "overflow-hidden border-t border-gray-200"
               }
             >
               {isMobile ? (
                 // Mobile view: render as list
-                <div className="min-w-full divide-y divide-gray-200">
+                <div
+                  className={`min-w-full divide-y ${
+                    isQuiet ? "divide-slate-100" : "divide-gray-200"
+                  }`}
+                >
                   {getTablebody()}
                 </div>
               ) : (
                 // Desktop view: render as table
-                <table className="min-w-full divide-y divide-gray-200">
+                <table
+                  className={`min-w-full divide-y ${
+                    isQuiet ? "divide-slate-200" : "divide-gray-200"
+                  }`}
+                >
                   <TableHeader
                     id={`${props.id}-header`}
                     columns={props.columns}
@@ -332,7 +366,13 @@ const Table: TableFunction = <T extends GenericObject>(
             </div>
           </div>
         </div>
-        <div className="bg-gray-50 text-right md:-mx-6 -mb-6 rounded-b-xl">
+        <div
+          className={
+            isQuiet
+              ? "-mx-4 -mb-4 rounded-b-lg bg-white text-right sm:-mx-5"
+              : "-mb-6 rounded-b-xl bg-gray-50 text-right md:-mx-6"
+          }
+        >
           {!props.disablePagination && (
             <Pagination
               singularLabel={translatedSingularLabel}

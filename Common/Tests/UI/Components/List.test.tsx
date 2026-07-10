@@ -1,4 +1,8 @@
 import List, { ComponentProps } from "../../../UI/Components/List/List";
+import {
+  SurfaceStyle,
+  SurfaceStyleProvider,
+} from "../../../UI/Contexts/SurfaceStyleContext";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
@@ -97,5 +101,23 @@ describe("List", () => {
     fireEvent.click(nextButtons[0]!);
 
     expect(defaultProps.onNavigateToPage).toHaveBeenCalledWith(2, 5);
+  });
+
+  it("uses card-safe spacing for the quiet dashboard surface", () => {
+    render(
+      <SurfaceStyleProvider style={SurfaceStyle.Quiet}>
+        <List {...defaultProps} />
+      </SurfaceStyleProvider>,
+    );
+
+    const listContainer: HTMLElement = screen.getByTestId("list-container");
+    const pagination: HTMLElement = screen.getByTestId("list-pagination");
+    const paginationWrapper: HTMLElement =
+      pagination.parentElement as HTMLElement;
+
+    expect(listContainer).toHaveAttribute("data-surface-style", "quiet");
+    expect(listContainer.firstElementChild).toHaveClass("mt-3");
+    expect(paginationWrapper).toHaveClass("-mb-4", "mt-4");
+    expect(pagination).toHaveClass("border-slate-200");
   });
 });

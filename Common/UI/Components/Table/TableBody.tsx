@@ -1,4 +1,8 @@
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import {
+  SurfaceStyle,
+  useSurfaceStyle,
+} from "../../Contexts/SurfaceStyleContext";
 import TableRow from "./TableRow";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
@@ -33,6 +37,8 @@ type TableBodyFunction = <T extends GenericObject>(
 const TableBody: TableBodyFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const surfaceStyle: SurfaceStyle = useSurfaceStyle();
+  const isQuiet: boolean = surfaceStyle === SurfaceStyle.Quiet;
   type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;
 
   const getBody: GetBodyFunction = (
@@ -45,7 +51,9 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
           id={props.id}
           ref={provided?.innerRef}
           {...provided?.droppableProps}
-          className="divide-y divide-gray-200 bg-white"
+          className={`divide-y bg-white ${
+            isQuiet ? "divide-slate-100" : "divide-gray-200"
+          }`}
         >
           {props.data &&
             props.data.map((item: T, i: number) => {
@@ -91,7 +99,9 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
         id={props.id}
         ref={provided?.innerRef}
         {...provided?.droppableProps}
-        className="divide-y divide-gray-200 bg-white"
+        className={`divide-y bg-white ${
+          isQuiet ? "divide-slate-100" : "divide-gray-200"
+        }`}
       >
         {props.data &&
           props.data.map((item: T, i: number) => {

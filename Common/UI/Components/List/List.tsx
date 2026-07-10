@@ -1,4 +1,8 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import {
+  SurfaceStyle,
+  useSurfaceStyle,
+} from "../../Contexts/SurfaceStyleContext";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import Field from "../Detail/Field";
@@ -60,6 +64,9 @@ type ListFunction = <T extends GenericObject>(
 const List: ListFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const surfaceStyle: SurfaceStyle = useSurfaceStyle();
+  const isQuiet: boolean = surfaceStyle === SurfaceStyle.Quiet;
+
   const getListbody: GetReactElementFunction = (): ReactElement => {
     if (props.isLoading) {
       return <ComponentLoader />;
@@ -107,9 +114,11 @@ const List: ListFunction = <T extends GenericObject>(
   };
 
   return (
-    <div data-testid="list-container">
-      <div className="mt-6">
-        <div className="bg-white pr-6 pl-6">
+    <div data-testid="list-container" data-surface-style={surfaceStyle}>
+      <div className={isQuiet ? "mt-3" : "mt-6"}>
+        <div
+          className={isQuiet ? "bg-white px-4 sm:px-5" : "bg-white pl-6 pr-6"}
+        >
           <FilterViewer
             id={`${props.id}-filter`}
             showFilterModal={props.showFilterModal || false}
@@ -140,7 +149,7 @@ const List: ListFunction = <T extends GenericObject>(
             {getListbody()}
           </DragDropContext>
           {!props.disablePagination && (
-            <div className="mt-5 -mb-6">
+            <div className={isQuiet ? "-mb-4 mt-4" : "-mb-6 mt-5"}>
               <Pagination
                 singularLabel={props.singularLabel}
                 pluralLabel={props.pluralLabel}
