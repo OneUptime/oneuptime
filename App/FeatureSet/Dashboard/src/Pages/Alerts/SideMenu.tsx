@@ -119,6 +119,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
+            title: "AI",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_AI] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
+        },
+        {
+          link: {
             title: "Alert State",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERTS_SETTINGS_STATE] as Route,
@@ -224,15 +233,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Settings,
-        },
-        {
-          link: {
-            title: "AI",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.ALERTS_SETTINGS_AI] as Route,
-            ),
-          },
-          icon: IconProp.Sparkles,
         },
       ],
     },
