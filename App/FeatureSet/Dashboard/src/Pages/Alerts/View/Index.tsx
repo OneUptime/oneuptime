@@ -59,6 +59,7 @@ import HeaderAlert, {
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
+import InvestigationPanel from "../../../Components/Sentinel/InvestigationPanel";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import AlertAffectedResources from "./AffectedResources";
@@ -400,6 +401,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <AlertAffectedResources alertId={modelId} />
 
           <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
+
+          <InvestigationPanel subjectType="alert" subjectId={modelId} />
 
           <AlertFeedElement alertId={modelId} />
         </div>
