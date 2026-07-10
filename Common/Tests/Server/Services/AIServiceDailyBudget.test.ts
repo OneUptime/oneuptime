@@ -2,7 +2,7 @@ import AIService, {
   AUTONOMOUS_AI_FEATURES,
   AutonomousBudgetStatus,
 } from "../../../Server/Services/AIService";
-import SentinelInvestigationEngine from "../../../Server/Utils/AI/Sentinel/SentinelInvestigationEngine";
+import SentinelInvestigationQueue from "../../../Server/Utils/AI/Sentinel/InvestigationQueue";
 import LlmLogService from "../../../Server/Services/LlmLogService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -107,12 +107,42 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
   });
 });
 
-describe("SentinelInvestigationEngine budget skip", () => {
+describe("SentinelInvestigationQueue budget skip", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("skips run creation when the daily budget is exhausted", async () => {
+  test("does not enqueue when the daily budget is exhausted", async () => {
+    jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
+      exhausted: true,
+      limitInTokens: 100_000,
+      usedTokensToday: 120_000,
+    });
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await SentinelInvestigationQueue.enqueue({
+      projectId: ObjectID.generate(),
+      subjectAlertId: ObjectID.generate(),
+    });
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("does not enqueue when the budget check itself fails", async () => {
+    jest
+      .spyOn(AIService, "getAutonomousDailyBudgetStatus")
+      .mockRejectedValue(new Error("db down"));
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await SentinelInvestigationQueue.enqueue({
+      projectId: ObjectID.generate(),
+      subjectAlertId: ObjectID.generate(),
+    });
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("leaves a queued run unclaimed when the budget is exhausted at claim time", async () => {
     // Concurrency cap passes…
     jest
       .spyOn(AIRunService, "countBy")
@@ -123,38 +153,15 @@ describe("SentinelInvestigationEngine budget skip", () => {
       limitInTokens: 100_000,
       usedTokensToday: 120_000,
     });
-    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+    const claim: jest.SpyInstance = jest.spyOn(AIRunService, "updateOneBy");
 
-    await SentinelInvestigationEngine.investigate({
+    await SentinelInvestigationQueue.processRun({
+      id: ObjectID.generate(),
       projectId: ObjectID.generate(),
-      feature: "Sentinel Alert Investigation",
-      contextSummary: "test",
-      postAnalysis: async () => {
-        return;
-      },
+      attemptCount: 0,
+      triggeredByAlertId: ObjectID.generate(),
     });
 
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  test("skips run creation when the budget check itself fails", async () => {
-    jest
-      .spyOn(AIRunService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0));
-    jest
-      .spyOn(AIService, "getAutonomousDailyBudgetStatus")
-      .mockRejectedValue(new Error("db down"));
-    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
-
-    await SentinelInvestigationEngine.investigate({
-      projectId: ObjectID.generate(),
-      feature: "Sentinel Alert Investigation",
-      contextSummary: "test",
-      postAnalysis: async () => {
-        return;
-      },
-    });
-
-    expect(create).not.toHaveBeenCalled();
+    expect(claim).not.toHaveBeenCalled();
   });
 });

@@ -25,8 +25,8 @@ Legend: ✅ Shipped · 🟡 Partial · ❌ Not started · 🔪 To be removed/abs
 | Item | Status | Code entry point |
 |---|---|---|
 | Shared investigation engine: `AIRun(Investigation)` lifecycle, ordered `AIRunEvent` glass-box trail, budgets (8 LLM calls / 12 tool calls / 150s / 2000 output tokens), heartbeats, branded cited output | ✅ | `Common/Server/Utils/AI/Sentinel/SentinelInvestigationEngine.ts` |
-| Wake-on-incident trigger (inline detached promise — see Deviations D2) | ✅ | `Common/Server/Services/IncidentService.ts` (`onCreateSuccess`, call ~line 1254) → `Sentinel/IncidentInvestigationRunner.ts` |
-| Wake-on-alert trigger (inline detached promise; no severity/rate gating yet) | ✅ | `Common/Server/Services/AlertService.ts` (`onCreateSuccess`, call ~line 571) → `Sentinel/AlertInvestigationRunner.ts` |
+| Wake-on-incident trigger — since 2026-07-10 records durable intent (Queued AIRun) via `SentinelInvestigationQueue` before any expensive work; pod restarts can no longer orphan an investigation (D2 closed) | ✅ | `Common/Server/Services/IncidentService.ts` (`onCreateSuccess`) → `Sentinel/IncidentInvestigationRunner.ts` → `Sentinel/InvestigationQueue.ts` |
+| Wake-on-alert trigger — same durable-queue path, after the severity/dedupe gates | ✅ | `Common/Server/Services/AlertService.ts` (`onCreateSuccess`) → `Sentinel/AlertInvestigationRunner.ts` → `Sentinel/InvestigationQueue.ts` |
 | Read-only enforcement for autonomous runs (hardcoded ReadOnly mode; curated toolbox only, MCP tools never wired in) | ✅ | `Common/Server/Utils/AI/Chat/ObservabilityAssistant.ts` |
 | Per-project opt-in: `enableAi` + `enableAutomaticIncidentInvestigation` + `enableAutomaticAlertInvestigation` (two flags, both default **false**) + LLM-provider check | ✅ | `Common/Models/DatabaseModels/Project.ts`, `SentinelInvestigationEngine.isEnabledForProject()` |
 | AI settings pages (incidents, alerts) | ✅ | `App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings.tsx`, `.../Alerts/Settings/AlertAISettings.tsx` |
@@ -53,8 +53,8 @@ Legend: ✅ Shipped · 🟡 Partial · ❌ Not started · 🔪 To be removed/abs
 | Prompt caching (Anthropic `cache_control`; OpenAI/Azure `cached_tokens` accounting) — **contrary to the original roadmap, this is done**; `cachedInputTokens`/`cacheCreationTokens` persisted to `LlmLog` since 2026-07-10 and shown in the AI Logs table | ✅ | `Common/Server/Utils/LLM/LLMService.ts` (~654 and ~247), `AIService.executeWithLogging`, `LlmLogsTable.tsx` |
 | Token streaming (SSE) | ❌ | `LLMService.ts` hardcodes `stream: false` (~818) |
 | Planner/synthesizer model routing | ❌ | one provider/model per call via `LlmProviderService` |
-| Stale-run sweeper: marks `Running` AIRuns with heartbeat older than 12 min as `Stale`; **marks only — never resumes** | ✅ | `App/FeatureSet/Workers/Jobs/AIChat/TimeoutStuckRuns.ts` |
-| Durable claimable AIRun queue + checkpoint/resume | ❌ | `Common/Server/Infrastructure/Queue.ts` has no AI queue; CAS + checkpoint pattern to generalize lives in the chat approval-resume path (`ChatAgentRunner.ts` ~249–264) |
+| Stale-run sweeper: since 2026-07-10 REQUEUES heartbeat-stale investigation runs while retry attempts remain (marks Stale only when out of attempts); chat runs marked Stale as before | ✅ | `App/FeatureSet/Workers/Jobs/AIChat/TimeoutStuckRuns.ts` → `SentinelInvestigationQueue.requeueOrMarkStale` |
+| Durable claimable AIRun queue + checkpoint/resume — shipped 2026-07-10 (DB-claim on AIRun rows: `Queued` status, `attemptCount`, CAS claims, inline kick + every-minute poller `ProcessQueuedInvestigations`, 30-min TTL, G9 retry policy: transient requeues / permanent finalizes) | ✅ | `Common/Server/Utils/AI/Sentinel/InvestigationQueue.ts`, tests in `SentinelInvestigationQueue.test.ts` |
 | Topology graph (product feature): `TelemetryEntityRelationship` model, `DependsOn` edges from span parent/child every 10 min, co-occurrence edges, read-only UI | ✅ | `Common/Models/DatabaseModels/TelemetryEntityRelationship.ts`, `App/FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.ts` |
 | Topology graph consumed by Sentinel (blast radius, causation ordering) | ❌ | nothing under `Common/Server/Utils/AI/` references it |
 | Metric baselines: `MetricBaselineHourly` + `getBaseline`/`sigmaForSensitivity` consumed by anomaly monitors; `getBandSeries`/`getCoverage` currently caller-less | ✅ | `Common/Server/Services/MetricBaselineService.ts`, `Common/Server/Utils/Monitor/Criteria/MetricMonitorCriteria.ts` |
@@ -111,7 +111,7 @@ Ordering changed from the original roadmap — rationale in the Deviations log. 
 
 **Hard rule: the durable queue lands before any new autonomous trigger (predictive sweep, storm collapse, anything).**
 
-- [ ] Durable claimable AIRun queue: atomic claim, checkpoint/resume, restart-safe; replace the detached triggers in `IncidentService.onCreateSuccess` / `AlertService.onCreateSuccess`; generalize the CAS + `pausedState` pattern from the chat approval-resume path; retry policy for transient failures (G9)
+- [x] Durable claimable AIRun queue: atomic claim, checkpoint/resume, restart-safe; replace the detached triggers in `IncidentService.onCreateSuccess` / `AlertService.onCreateSuccess`; generalize the CAS + `pausedState` pattern from the chat approval-resume path; retry policy for transient failures (G9) *(shipped 2026-07-10 as `SentinelInvestigationQueue` — Q1 decided: DB-claim on AIRun rows (new `Queued` status + `attemptCount`), enqueue-before-work + inline kick + every-minute poller + requeue-on-stale + 30-min queue TTL. Checkpointing is at attempt granularity (re-run from top — safe, runs are read-only); mid-run message-level checkpointing deferred until something needs it. D2 residual closed.)*
 - [ ] Measurement plumbing (feeds vision §8 metrics and G3): human verdict field on `AIRun` (confirmed/edited/rejected) captured via one-click control on the investigation panel; on-resolve grading job comparing the top hypothesis to `Incident.rootCause`/postmortem; `time-to-rca` incident metric; `aiInvestigated` dimension on incident metrics; internal before/after MTTR report
 - [ ] Eval harness bootstrap (G3): golden-incident corpus from real resolved incidents (≥50), offline replay from recorded `AIRunEvent` trails, scored on top-hypothesis precision / citation-grounding / tool-selection / inconclusive-recall
 - [ ] Replace `INCONCLUSIVE_RE` with a structured, server-verified confidence signal (G6) — constrained classification call or deterministic checks over cited evidence
@@ -190,7 +190,7 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 
 | # | Question | Owner | Blocks |
 |---|---|---|---|
-| Q1 | Queue technology: extend `Common/Server/Infrastructure/Queue.ts` (BullMQ) vs DB-claim pattern on `AIRun` rows? | eng | Phase 2 |
+| Q1 | ~~Queue technology~~ **Answered 2026-07-10:** DB-claim pattern on `AIRun` rows. The AIRun row was already the source of truth (status/heartbeat/sweeper existed), the CAS pattern was proven twice (chat resume, AIAgent task claim), it adds no Redis dependency, and it works air-gapped. BullMQ remains available if fan-out throughput ever demands it | eng | ~~Phase 2~~ resolved |
 | Q2 | ~~Alert investigation gating defaults~~ **Answered 2026-07-10:** severity floor defaults to the top two tiers (per-project override via Alert AI settings); per-monitor dedupe window = 30 min (constant, configurable later if asked for) | product+eng | ~~Phase 1 closeout~~ resolved |
 | Q3 | Structured confidence signal design: second constrained LLM call vs deterministic evidence-count checks (or both)? | eng | G6, Phase 2 |
 | Q4 | Cloud packaging: investigation quota sizes per plan; what happens at quota (pause vs degrade to on-demand)? | product | GTM, default-on |
@@ -210,6 +210,7 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 
 ## 8. Changelog
 
+- **2026-07-10** — **Phase 2 opened: shipped the durable investigation queue** (`SentinelInvestigationQueue`, Q1 → DB-claim on AIRun rows). Triggers record Queued intent before any expensive work; CAS claims with `attemptCount`; inline kick keeps the 1–3 min latency; every-minute poller drains orphans and expires >30-min queue waits; stale sweeper requeues instead of marking Stale while attempts remain; G9 retry policy (transient requeues, permanent finalizes). D2 residual closed; panel shows the Queued state.
 - **2026-07-10** — Shipped the Sentinel user docs page (`/docs/ai/sentinel`): the flagship is no longer dark. Phase 1 checklist is now complete except the measured exit (≥20 production investigations), which starts when the flags go on for our own project. Q3 GTM docs deliverable met.
 - **2026-07-10** — Shipped the `baseline_anomaly` read tool: hour-of-week baseline band verdicts (mean ± σ·stddev), cold-start-aware, with an expected-range band chart (first callers for `getBandSeries`/`getCoverage`); the investigation persona now points the model at it.
 - **2026-07-10** — RCA now also posted as a bot-authored incident internal note, created with `ignoreHooks` + `isOwnerNotified: true` so the RootCause feed item (quiet-mode gated) stays the single notification source; review caught and reverted an earlier user-less-notes-don't-announce rule that would have silenced SLA note reminders. Also: a daily token limit of 0 now pauses autonomous runs (spend kill-switch) instead of meaning "unlimited".

@@ -9,6 +9,7 @@ import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "../IncidentAIContextBuilder";
 import SentinelInvestigationEngine from "./SentinelInvestigationEngine";
+import SentinelInvestigationQueue from "./InvestigationQueue";
 import SentinelMemory from "./SentinelMemory";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
@@ -19,18 +20,17 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *
  * When a new incident is declared, wakes Sentinel to investigate it (read-only)
  * and post a cited root-cause analysis into the incident timeline + Slack/Teams
- * — before the on-call engineer has finished reading the page. The heavy lifting
- * (run lifecycle, the agent loop, confidence gating) lives in the shared
- * SentinelInvestigationEngine; this file only assembles incident context and
- * posts the result to the incident's feed.
- *
- * Built on the fire-and-forget async pattern already used throughout
- * IncidentService.onCreateSuccess. See Internal/Roadmap/AISentinelExecution.md.
+ * — before the on-call engineer has finished reading the page. The trigger only
+ * records durable intent (a Queued AIRun via SentinelInvestigationQueue), so a
+ * pod restart can no longer orphan an investigation; the heavy lifting (run
+ * lifecycle, the agent loop, confidence gating) lives in the shared
+ * SentinelInvestigationEngine. See Internal/Roadmap/AISentinelExecution.md.
  */
 export default class SentinelIncidentInvestigationRunner {
   /*
    * Entry point called (fire-and-forget) from IncidentService.onCreateSuccess.
-   * Never throws — all failures are logged and recorded on the AIRun.
+   * Cheap: gates + a Queued AIRun row; execution happens via the queue.
+   * Never throws — all failures are logged.
    */
   @CaptureSpan()
   public static async investigateNewIncident(data: {
@@ -49,6 +49,34 @@ export default class SentinelIncidentInvestigationRunner {
         return;
       }
 
+      await SentinelInvestigationQueue.enqueue({
+        projectId,
+        subjectIncidentId: incidentId,
+      });
+    } catch (error) {
+      logger.error(
+        `Sentinel: unexpected error enqueueing investigation for incident ${incidentId.toString()}: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * Execute a claimed run: assemble incident context and hand it to the
+   * engine. Called by SentinelInvestigationQueue after a successful claim.
+   * Never throws — failures are handed to the queue's retry policy so a
+   * claimed run is always finalized or requeued.
+   */
+  @CaptureSpan()
+  public static async executeInvestigation(data: {
+    aiRunId: ObjectID;
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    attemptCount: number;
+  }): Promise<void> {
+    const { aiRunId, projectId, incidentId, attemptCount } = data;
+
+    let contextSummary: string;
+    try {
       const contextData: IncidentContextData =
         await IncidentAIContextBuilder.buildIncidentContext({
           incidentId,
@@ -76,12 +104,31 @@ export default class SentinelIncidentInvestigationRunner {
             .filter(Boolean),
         });
 
-      await SentinelInvestigationEngine.investigate({
-        projectId,
+      contextSummary =
+        this.buildIncidentSummary(contextData) + priorCasesContext;
+    } catch (error) {
+      /*
+       * Context assembly failed — the run is claimed, so hand it to the
+       * retry policy rather than leaving it Running until the sweeper.
+       */
+      await SentinelInvestigationQueue.failOrRequeue({
+        aiRunId,
+        attemptCount,
+        errorMessage: `Failed to build incident context: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        isPermanent: false,
+      });
+      return;
+    }
+
+    await SentinelInvestigationEngine.executeRun({
+      aiRunId,
+      projectId,
+      attemptCount,
+      request: {
         feature: "Sentinel Incident Investigation",
-        subjectIncidentId: incidentId,
-        contextSummary:
-          this.buildIncidentSummary(contextData) + priorCasesContext,
+        contextSummary,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           isConfident: boolean;
@@ -130,12 +177,8 @@ export default class SentinelIncidentInvestigationRunner {
             );
           }
         },
-      });
-    } catch (error) {
-      logger.error(
-        `Sentinel: unexpected error investigating incident ${incidentId.toString()}: ${error}`,
-      );
-    }
+      },
+    });
   }
 
   // Build a compact incident record to seed the investigation.

@@ -117,9 +117,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   }, [fetchData]);
 
   const isRunning: boolean = runStatus === AIRunStatus.Running;
+  const isQueued: boolean = runStatus === AIRunStatus.Queued;
+  // Poll while the run can still make progress (queued runs get claimed).
+  const isActive: boolean = isRunning || isQueued;
 
   useEffect(() => {
-    if (!isRunning) {
+    if (!isActive) {
       return;
     }
 
@@ -132,7 +135,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     return () => {
       return clearInterval(interval);
     };
-  }, [isRunning, fetchData]);
+  }, [isActive, fetchData]);
 
   // Nothing to show until an investigation exists for this subject.
   if (!hasLoadedOnce || !runStatus) {
@@ -159,6 +162,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       icon: IconProp.Sparkles,
     };
     isFailed = false;
+  } else if (runStatus === AIRunStatus.Queued) {
+    statusMeta = {
+      text: "Queued — waiting for a worker…",
+      className: "text-indigo-600",
+      icon: IconProp.Sparkles,
+    };
+    isFailed = false;
   } else if (runStatus === AIRunStatus.Completed) {
     statusMeta = {
       text: "Investigation complete",
@@ -179,7 +189,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         >
           <Icon icon={statusMeta.icon} className="h-4 w-4" />
           <span>{statusMeta.text}</span>
-          {isRunning ? (
+          {isActive ? (
             <span className="ml-1 inline-block h-2 w-2 animate-ping rounded-full bg-indigo-500" />
           ) : (
             <></>
@@ -197,7 +207,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             <ChatActivityFeed events={events} />
           ) : (
             <p className="text-sm text-gray-500">
-              {isRunning
+              {isActive
                 ? "Starting investigation…"
                 : "No investigation steps were recorded."}
             </p>

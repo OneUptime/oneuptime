@@ -369,6 +369,31 @@ export default class AIRun extends BaseModel {
     update: [],
   })
   @TableColumn({
+    required: true,
+    type: TableColumnType.Number,
+    title: "Attempt Count",
+    description:
+      "How many times a worker has claimed this run for execution. Incremented on each claim; the queue stops retrying after the maximum.",
+    isDefaultValueColumn: true,
+    defaultValue: 0,
+  })
+  @Column({
+    nullable: false,
+    default: 0,
+    type: ColumnType.Number,
+  })
+  public attemptCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
     required: false,
     type: TableColumnType.Date,
     title: "Started At",

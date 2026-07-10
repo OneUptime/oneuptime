@@ -132,6 +132,7 @@ import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";
 import "./Jobs/AIAgent/TimeoutStuckTasks";
 import "./Jobs/AIChat/TimeoutStuckRuns";
+import "./Jobs/AIChat/ProcessQueuedInvestigations";
 
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";

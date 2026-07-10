@@ -1,14 +1,13 @@
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import {
   AIChatCitation,
   AIRunEventResultSummary,
 } from "../../../../Types/AI/AIChatTypes";
-import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
-import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import Project from "../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
@@ -16,7 +15,7 @@ import AIRunService from "../../../Services/AIRunService";
 import AIRunEventService from "../../../Services/AIRunEventService";
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
-import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
+import SentinelInvestigationQueue from "./InvestigationQueue";
 import ObservabilityAssistant, {
   ObservabilityAssistantResult,
   ObservabilityAssistantStep,
@@ -46,14 +45,6 @@ const MAX_LLM_CALLS: number = 8;
 const MAX_TOOL_CALLS: number = 12;
 const MAX_WALL_CLOCK_MS: number = 150 * 1000;
 const MAX_OUTPUT_TOKENS: number = 2000;
-
-/*
- * G4 cost guardrail: at most this many investigations may be Running per
- * project at once. An alert storm then costs at most this many concurrent
- * runs; the skipped signals still get their normal (non-AI) handling. Stuck
- * runs can't pin the cap forever — the 12-min stale sweeper releases them.
- */
-const MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT: number = 3;
 
 /*
  * Sentinel's own contract: it writes exactly this phrase when it cannot
@@ -92,22 +83,10 @@ Keep it tight and skimmable. You are read-only: never claim to have changed anyt
 export type SentinelSubjectType = "Incident" | "Alert";
 
 export interface InvestigationRequest {
-  projectId: ObjectID;
   // Label recorded on LlmLog, e.g. "Sentinel Incident Investigation".
   feature: string;
   // A compact markdown summary of the subject that seeds the investigation.
   contextSummary: string;
-  /*
-   * The subject that triggered this run — links the AIRun so the live panel can
-   * find "the investigation for this incident/alert". Exactly one is set.
-   */
-  subjectIncidentId?: ObjectID | undefined;
-  subjectAlertId?: ObjectID | undefined;
-  /*
-   * The monitor behind the subject alert, when there is one — recorded on the
-   * AIRun as the dedupe key for the per-monitor investigation window.
-   */
-  subjectMonitorId?: ObjectID | undefined;
   /*
    * Called with the finished, branded, cited analysis so the caller can post it
    * to the subject's timeline. `isConfident` is false when Sentinel reported it
@@ -174,99 +153,37 @@ export default class SentinelInvestigationEngine {
   }
 
   /*
-   * Run one investigation end-to-end. Never throws — failures are logged and
-   * recorded on the AIRun.
+   * Execute an already-CLAIMED (Running) investigation run end-to-end.
+   * Called by SentinelInvestigationQueue after a successful CAS claim —
+   * cap/budget gating and run creation live in the queue now. Never throws;
+   * failures are handed to the queue's retry policy (failOrRequeue).
    */
   @CaptureSpan()
-  public static async investigate(
-    request: InvestigationRequest,
-  ): Promise<void> {
-    const { projectId } = request;
+  public static async executeRun(data: {
+    aiRunId: ObjectID;
+    projectId: ObjectID;
+    attemptCount: number;
+    request: InvestigationRequest;
+  }): Promise<void> {
+    const { aiRunId, projectId, request } = data;
 
     /*
-     * G4 concurrency cap. The count-then-create is not atomic, so a burst of
-     * simultaneous triggers can briefly overshoot by a run or two — acceptable
-     * for a cost guardrail; the cap bounds sustained concurrency.
+     * Retried runs already have events from earlier attempts; continue the
+     * sequence so the glass-box trail stays ordered and shows every attempt.
      */
+    let sequence: number = 0;
     try {
-      const runningCount: number = (
-        await AIRunService.countBy({
-          query: {
-            projectId,
-            runType: AIRunType.Investigation,
-            status: AIRunStatus.Running,
-          },
+      sequence = (
+        await AIRunEventService.countBy({
+          query: { aiRunId },
           props: { isRoot: true },
         })
       ).toNumber();
-
-      if (runningCount >= MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT) {
-        logger.debug(
-          `Sentinel: skipping investigation for project ${projectId.toString()} — ${runningCount} investigations already running (cap: ${MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT}).`,
-        );
-        return;
-      }
     } catch (error) {
       logger.error(
-        `Sentinel: concurrency-cap check failed, skipping investigation: ${error}`,
+        `Sentinel: failed to read event count for run ${aiRunId.toString()}; starting sequence at 0: ${error}`,
       );
-      return;
     }
-
-    /*
-     * G4 daily budget: skip quietly BEFORE creating the run, so an exhausted
-     * budget produces a debug log instead of a run marked Error. The same
-     * check inside AIService.executeWithLogging is the hard backstop for runs
-     * that cross the limit mid-flight.
-     */
-    try {
-      const budget: AutonomousBudgetStatus =
-        await AIService.getAutonomousDailyBudgetStatus(projectId);
-
-      if (budget.exhausted) {
-        logger.debug(
-          `Sentinel: skipping investigation for project ${projectId.toString()} — daily autonomous token budget exhausted (${budget.usedTokensToday} of ${budget.limitInTokens} tokens used today).`,
-        );
-        return;
-      }
-    } catch (error) {
-      logger.error(
-        `Sentinel: budget check failed, skipping investigation: ${error}`,
-      );
-      return;
-    }
-
-    // Record the run up front so it is auditable even if it fails.
-    const run: AIRun = new AIRun();
-    run.projectId = projectId;
-    run.runType = AIRunType.Investigation;
-    run.status = AIRunStatus.Running;
-    run.startedAt = OneUptimeDate.getCurrentDate();
-    run.lastHeartbeatAt = OneUptimeDate.getCurrentDate();
-
-    if (request.subjectIncidentId) {
-      run.triggeredByIncidentId = request.subjectIncidentId;
-    }
-    if (request.subjectAlertId) {
-      run.triggeredByAlertId = request.subjectAlertId;
-    }
-    if (request.subjectMonitorId) {
-      run.monitorId = request.subjectMonitorId;
-    }
-
-    let createdRun: AIRun;
-    try {
-      createdRun = await AIRunService.create({
-        data: run,
-        props: { isRoot: true },
-      });
-    } catch (error) {
-      logger.error(`Sentinel: failed to create investigation run: ${error}`);
-      return;
-    }
-
-    const aiRunId: ObjectID = createdRun.id!;
-    let sequence: number = 0;
 
     await this.emitEvent({
       projectId,
@@ -370,16 +287,6 @@ export default class SentinelInvestigationEngine {
       const message: string =
         error instanceof Error ? error.message : String(error);
 
-      await AIRunService.updateOneBy({
-        query: { _id: aiRunId.toString(), status: AIRunStatus.Running },
-        data: {
-          status: AIRunStatus.Error,
-          completedAt: OneUptimeDate.getCurrentDate(),
-          errorMessage: message.substring(0, 480),
-        } as never,
-        props: { isRoot: true },
-      });
-
       await this.emitEvent({
         projectId,
         aiRunId,
@@ -387,8 +294,21 @@ export default class SentinelInvestigationEngine {
         eventType: AIRunEventType.RunFailed,
       });
 
+      /*
+       * Hand the failure to the queue's retry policy: transient errors
+       * requeue while attempts remain; permanent ones (bad configuration —
+       * BadDataException: no provider, budget exhausted) finalize as Error
+       * since retrying cannot help.
+       */
+      await SentinelInvestigationQueue.failOrRequeue({
+        aiRunId,
+        attemptCount: data.attemptCount,
+        errorMessage: message,
+        isPermanent: error instanceof BadDataException,
+      });
+
       logger.error(
-        `Sentinel: investigation failed (run ${aiRunId.toString()}): ${message}`,
+        `Sentinel: investigation attempt ${data.attemptCount} failed (run ${aiRunId.toString()}): ${message}`,
       );
     }
   }
