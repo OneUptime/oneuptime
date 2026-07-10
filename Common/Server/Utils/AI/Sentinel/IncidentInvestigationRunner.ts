@@ -23,7 +23,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * posts the result to the incident's feed.
  *
  * Built on the fire-and-forget async pattern already used throughout
- * IncidentService.onCreateSuccess. See Internal/Roadmap/AISentinelReliabilityBrain.md.
+ * IncidentService.onCreateSuccess. See Internal/Roadmap/AISentinelExecution.md.
  */
 export default class SentinelIncidentInvestigationRunner {
   /*

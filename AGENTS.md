@@ -19,3 +19,7 @@ Clickhouse migrations are written manually. Please write the migration code in D
 ### After you make a change.
 
 Please run "npm run fix" in root to fix all the lint issues. Please run "npm run compile" in projects that you made changes to make sure compile works.
+
+### Project docs
+
+Internal roadmaps live in `Internal/Roadmap/` (see its README for the index). If you change AI/Sentinel behavior (`Common/Server/Utils/AI/` or `AIAgent/`), update the status table in `Internal/Roadmap/AISentinelExecution.md` in the same PR.
