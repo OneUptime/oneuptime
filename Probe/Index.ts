@@ -11,6 +11,7 @@ import AliveJob from "./Jobs/Alive";
 import FetchMonitorList from "./Jobs/Monitor/FetchList";
 import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
 import Register from "./Services/Register";
+import SnmpTrapReceiver from "./Services/SnmpTrapReceiver";
 import MetricsAPI from "./API/Metrics";
 import IncomingRequestIngressAPI from "./API/IncomingRequestIngress";
 import ProxyConfig from "./Utils/ProxyConfig";
@@ -112,6 +113,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       AliveJob();
       FetchMonitorList();
       FetchMonitorTestList();
+
+      // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
+      SnmpTrapReceiver.start();
 
       await Register.reportIfOffline();
     } catch (err) {

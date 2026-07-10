@@ -72,6 +72,7 @@ export enum CheckOn {
   SnmpResponseTime = "SNMP Response Time (in ms)",
   SnmpIsOnline = "SNMP Device Is Online",
   SnmpInterfaceIsDown = "SNMP Interface Is Down",
+  SnmpTrapReceived = "SNMP Trap Received (Trap OID)",
   SnmpInterfaceUtilizationPercent = "SNMP Interface Utilization (in %)",
   SnmpInterfaceErrorsPerSecond = "SNMP Interface Errors (per second)",
 

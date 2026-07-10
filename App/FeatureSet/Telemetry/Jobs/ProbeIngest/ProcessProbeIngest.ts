@@ -13,8 +13,15 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
+import MonitorProbe, {
+  MonitorStepProbeResponse,
+} from "Common/Models/DatabaseModels/MonitorProbe";
+import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
@@ -60,6 +67,157 @@ export async function processProbeFromQueue(
   } else {
     throw new BadDataException(`Invalid job type: ${jobData.jobType}`);
   }
+}
+
+/*
+ * Fans an SNMP trap out to the SNMP monitors it belongs to: monitors that
+ * are (a) assigned to the probe that received the trap and (b) configured
+ * with a hostname equal to the trap's source IP address. Each match gets an
+ * event-driven ProbeMonitorResponse carrying only snmpTrapResponse —
+ * MonitorResource evaluates it against trap criteria without touching the
+ * monitor's check state.
+ *
+ * Note: matching is by exact string comparison between the monitor's
+ * configured hostname and the trap source IP. Monitors configured with a
+ * DNS name will not match traps; configure the device's IP to use traps.
+ */
+export async function processSnmpTrapFromQueue(
+  jobData: ProbeIngestJobData,
+): Promise<void> {
+  const requestBody: JSONObject | undefined = jobData.snmpTrap;
+
+  if (!requestBody) {
+    throw new BadDataException("SNMP trap data not found");
+  }
+
+  const snmpTrap: SnmpTrap = JSONFunctions.deserialize(
+    requestBody["snmpTrap"] as JSONObject,
+  ) as unknown as SnmpTrap;
+
+  const probeIdAsString: string | undefined = requestBody["probeId"] as
+    | string
+    | undefined;
+
+  if (!snmpTrap || !snmpTrap.sourceIpAddress || !snmpTrap.trapOid) {
+    throw new BadDataException("SNMP trap is missing source or trap OID");
+  }
+
+  if (!probeIdAsString) {
+    throw new BadDataException("Probe ID not found on SNMP trap request");
+  }
+
+  const probeId: ObjectID = new ObjectID(probeIdAsString);
+
+  // Monitors this probe is assigned to.
+  const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy({
+    query: {
+      probeId: probeId,
+    },
+    select: {
+      monitorId: true,
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  const monitorIds: Array<ObjectID> = monitorProbes
+    .map((monitorProbe: MonitorProbe) => {
+      return monitorProbe.monitorId;
+    })
+    .filter((monitorId: ObjectID | undefined): monitorId is ObjectID => {
+      return Boolean(monitorId);
+    });
+
+  if (monitorIds.length === 0) {
+    logger.debug(
+      `SNMP trap from ${snmpTrap.sourceIpAddress}: probe ${probeId.toString()} has no monitors. Dropping.`,
+    );
+    return;
+  }
+
+  const monitors: Array<Monitor> = await MonitorService.findBy({
+    query: {
+      _id: QueryHelper.any(
+        monitorIds.map((monitorId: ObjectID) => {
+          return monitorId.toString();
+        }),
+      ),
+      monitorType: MonitorType.SNMP,
+    },
+    select: {
+      _id: true,
+      projectId: true,
+      monitorSteps: true,
+      disableActiveMonitoring: true,
+      disableActiveMonitoringBecauseOfManualIncident: true,
+      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  let matchedSteps: number = 0;
+
+  for (const monitor of monitors) {
+    if (
+      monitor.disableActiveMonitoring ||
+      monitor.disableActiveMonitoringBecauseOfManualIncident ||
+      monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+    ) {
+      continue;
+    }
+
+    if (!monitor.id || !monitor.projectId) {
+      continue;
+    }
+
+    const monitorSteps: MonitorSteps | undefined = monitor.monitorSteps;
+
+    for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+      []) {
+      const configuredHostname: string | undefined =
+        monitorStep.data?.snmpMonitor?.hostname;
+
+      if (
+        !configuredHostname ||
+        configuredHostname.trim() !== snmpTrap.sourceIpAddress
+      ) {
+        continue;
+      }
+
+      matchedSteps++;
+
+      const trapResponse: ProbeMonitorResponse = {
+        projectId: monitor.projectId,
+        monitorId: monitor.id,
+        monitorStepId: monitorStep.id,
+        probeId: probeId,
+        snmpTrapResponse: snmpTrap,
+        failureCause: "",
+        monitoredAt: OneUptimeDate.getCurrentDate(),
+        ingestedAt: OneUptimeDate.getCurrentDate(),
+      };
+
+      try {
+        await MonitorResourceUtil.monitorResource(trapResponse);
+      } catch (err) {
+        logger.error(
+          `Error processing SNMP trap for monitor ${monitor.id.toString()}:`,
+        );
+        logger.error(err);
+      }
+    }
+  }
+
+  logger.debug(
+    `SNMP trap ${snmpTrap.trapOid} from ${snmpTrap.sourceIpAddress}: matched ${matchedSteps} monitor step(s) across ${monitors.length} SNMP monitor(s) on probe ${probeId.toString()}.`,
+  );
 }
 
 export async function processIncomingEmailFromQueue(

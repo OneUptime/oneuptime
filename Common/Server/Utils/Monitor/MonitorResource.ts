@@ -239,6 +239,16 @@ export default class MonitorResourceUtil {
       let probeName: string | undefined = undefined;
       const monitorName: string | undefined = monitor.name || undefined;
 
+      /*
+       * SNMP trap responses are event-driven, not check results. They are
+       * evaluated ONLY against trap criteria; they must not overwrite the
+       * last check's counters, participate in probe agreement, or reset the
+       * monitor to its default status when no criteria matches.
+       */
+      const isSnmpTrapEvent: boolean = Boolean(
+        (dataToProcess as ProbeMonitorResponse).snmpTrapResponse,
+      );
+
       // save the last log to MonitorProbe.
 
       // get last log. We do this because there are many monitoring steps and we need to store those.
@@ -294,26 +304,28 @@ export default class MonitorResourceUtil {
             });
           }
 
-          await MonitorProbeService.updateOneBy({
-            query: {
-              monitorId: monitor.id!,
-              probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
-            },
-            data: {
-              lastMonitoringLog: {
-                ...(monitorProbe.lastMonitoringLog || {}),
-                [(
-                  dataToProcess as ProbeMonitorResponse
-                ).monitorStepId.toString()]: {
-                  ...JSON.parse(JSON.stringify(dataToProcess)),
-                  monitoredAt: OneUptimeDate.getCurrentDate(),
-                },
-              } as any,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          if (!isSnmpTrapEvent) {
+            await MonitorProbeService.updateOneBy({
+              query: {
+                monitorId: monitor.id!,
+                probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
+              },
+              data: {
+                lastMonitoringLog: {
+                  ...(monitorProbe.lastMonitoringLog || {}),
+                  [(
+                    dataToProcess as ProbeMonitorResponse
+                  ).monitorStepId.toString()]: {
+                    ...JSON.parse(JSON.stringify(dataToProcess)),
+                    monitoredAt: OneUptimeDate.getCurrentDate(),
+                  },
+                } as any,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          }
         }
       }
 
@@ -622,7 +634,12 @@ export default class MonitorResourceUtil {
       // Check probe agreement for probe-based monitors
       if (
         monitor.monitorType &&
-        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+        MonitorTypeHelper.isProbableMonitor(monitor.monitorType) &&
+        /*
+         * Traps arrive on exactly one probe — other probes' polled state
+         * cannot corroborate them, so agreement would always veto the trap.
+         */
+        !isSnmpTrapEvent
       ) {
         const probeAgreementResult: ProbeAgreementResult =
           await MonitorResourceUtil.checkProbeAgreement({
@@ -893,6 +910,12 @@ export default class MonitorResourceUtil {
         });
       } else if (
         !response.criteriaMetId &&
+        /*
+         * A trap that matches no criteria is simply ignored — it must not
+         * reset the monitor to its default status (the polled checks own
+         * the monitor's state).
+         */
+        !isSnmpTrapEvent &&
         monitorSteps.data.defaultMonitorStatusId &&
         monitor.currentMonitorStatusId?.toString() !==
           monitorSteps.data.defaultMonitorStatusId.toString()

@@ -340,7 +340,8 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpOidExists ||
           i.value === CheckOn.SnmpInterfaceIsDown ||
           i.value === CheckOn.SnmpInterfaceUtilizationPercent ||
-          i.value === CheckOn.SnmpInterfaceErrorsPerSecond
+          i.value === CheckOn.SnmpInterfaceErrorsPerSecond ||
+          i.value === CheckOn.SnmpTrapReceived
         );
       });
     }
@@ -639,6 +640,19 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
           i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.SnmpTrapReceived) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.StartsWith ||
+          i.value === FilterType.EndsWith
         );
       });
     }
@@ -978,6 +992,11 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SnmpInterfaceErrorsPerSecond) {
       return "1";
+    }
+
+    if (checkOn === CheckOn.SnmpTrapReceived) {
+      // linkDown
+      return "1.3.6.1.6.3.1.1.5.3";
     }
 
     if (checkOn === CheckOn.DnsResponseTime) {

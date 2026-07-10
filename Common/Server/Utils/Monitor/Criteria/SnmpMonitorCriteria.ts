@@ -9,6 +9,7 @@ import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime from "./EvaluateOverTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -28,6 +29,63 @@ export default class SnmpMonitorCriteria {
 
     const snmpResponse: SnmpMonitorResponse | undefined =
       dataToProcess.snmpResponse;
+
+    /*
+     * Event/check separation. Trap responses are evaluated ONLY against
+     * trap criteria; polled check responses never match trap criteria.
+     * This keeps a trap from misfiring "is online" style filters (it has
+     * no check data) and keeps every poll from re-firing trap criteria.
+     */
+    const snmpTrap: SnmpTrap | undefined = dataToProcess.snmpTrapResponse;
+
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpTrapReceived) {
+      if (!snmpTrap) {
+        return null;
+      }
+
+      const expectedOid: string = String(threshold || "").trim();
+
+      if (!expectedOid) {
+        return null;
+      }
+
+      const trapOid: string = snmpTrap.trapOid;
+      let isMatch: boolean = false;
+
+      switch (input.criteriaFilter.filterType) {
+        case FilterType.EqualTo:
+          isMatch = trapOid === expectedOid;
+          break;
+        case FilterType.NotEqualTo:
+          isMatch = trapOid !== expectedOid;
+          break;
+        case FilterType.Contains:
+          isMatch = trapOid.includes(expectedOid);
+          break;
+        case FilterType.NotContains:
+          isMatch = !trapOid.includes(expectedOid);
+          break;
+        case FilterType.StartsWith:
+          isMatch = trapOid.startsWith(expectedOid);
+          break;
+        case FilterType.EndsWith:
+          isMatch = trapOid.endsWith(expectedOid);
+          break;
+        default:
+          isMatch = false;
+      }
+
+      if (isMatch) {
+        return `SNMP trap ${trapOid} received from ${snmpTrap.sourceIpAddress}.`;
+      }
+
+      return null;
+    }
+
+    if (snmpTrap) {
+      // Trap events never evaluate check-based criteria.
+      return null;
+    }
 
     let overTimeValue: Array<number | boolean> | number | boolean | undefined =
       undefined;
