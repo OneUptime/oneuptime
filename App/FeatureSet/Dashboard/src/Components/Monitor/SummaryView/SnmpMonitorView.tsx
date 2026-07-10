@@ -7,6 +7,7 @@ import SnmpMonitorResponse, {
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
+import SnmpInterfacesView from "./SnmpInterfacesView";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -70,6 +71,13 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
             value={props.probeMonitorResponse.failureCause?.toString() || "-"}
           />
         </div>
+      )}
+
+      {(snmpResponse?.interfaces || snmpResponse?.interfaceWalkFailure) && (
+        <SnmpInterfacesView
+          interfaces={snmpResponse?.interfaces || []}
+          interfaceWalkFailure={snmpResponse?.interfaceWalkFailure}
+        />
       )}
 
       {/* OID Responses Section */}

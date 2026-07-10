@@ -13,6 +13,7 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import SnmpOidEditor from "./SnmpOidEditor";
 import SnmpV3AuthForm from "./SnmpV3AuthForm";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Link from "Common/UI/Components/Link/Link";
 import URL from "Common/Types/API/URL";
@@ -172,6 +173,23 @@ const SnmpMonitorStepForm: FunctionComponent<ComponentProps> = (
           });
         }}
       />
+
+      <div>
+        <FieldLabelElement
+          title="Monitor Network Interfaces"
+          description="Walk the device's interface tables (IF-MIB) on every check to track per-interface status, bandwidth, utilization, and errors. Works with switches, routers, firewalls, and access points."
+          required={false}
+        />
+        <Toggle
+          value={props.monitorStepSnmpMonitor.monitorInterfaces || false}
+          onChange={(value: boolean) => {
+            props.onChange({
+              ...props.monitorStepSnmpMonitor,
+              monitorInterfaces: value,
+            });
+          }}
+        />
+      </div>
 
       {!showAdvancedOptions && (
         <div className="mt-1 -ml-3">

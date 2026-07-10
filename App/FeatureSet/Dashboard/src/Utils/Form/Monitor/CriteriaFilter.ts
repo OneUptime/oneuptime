@@ -44,7 +44,8 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.SwapUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent ||
-      criteriaFilter?.checkOn === CheckOn.PacketLossPercent;
+      criteriaFilter?.checkOn === CheckOn.PacketLossPercent ||
+      criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent;
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
@@ -336,7 +337,11 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpIsOnline ||
           i.value === CheckOn.SnmpResponseTime ||
           i.value === CheckOn.SnmpOidValue ||
-          i.value === CheckOn.SnmpOidExists
+          i.value === CheckOn.SnmpOidExists ||
+          i.value === CheckOn.SnmpInterfaceIsDown ||
+          i.value === CheckOn.SnmpInterfaceUtilizationPercent ||
+          i.value === CheckOn.SnmpInterfaceErrorsPerSecond ||
+          i.value === CheckOn.SnmpTrapReceived
         );
       });
     }
@@ -615,9 +620,40 @@ export default class CriteriaFilterUtil {
       });
     }
 
-    if (checkOn === CheckOn.SnmpIsOnline || checkOn === CheckOn.SnmpOidExists) {
+    if (
+      checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.SnmpOidExists ||
+      checkOn === CheckOn.SnmpInterfaceIsDown
+    ) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    if (
+      checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
+      checkOn === CheckOn.SnmpInterfaceErrorsPerSecond
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.SnmpTrapReceived) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.StartsWith ||
+          i.value === FilterType.EndsWith
+        );
       });
     }
 
@@ -948,6 +984,19 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SnmpOidValue) {
       return "1";
+    }
+
+    if (checkOn === CheckOn.SnmpInterfaceUtilizationPercent) {
+      return "80";
+    }
+
+    if (checkOn === CheckOn.SnmpInterfaceErrorsPerSecond) {
+      return "1";
+    }
+
+    if (checkOn === CheckOn.SnmpTrapReceived) {
+      // linkDown
+      return "1.3.6.1.6.3.1.1.5.3";
     }
 
     if (checkOn === CheckOn.DnsResponseTime) {

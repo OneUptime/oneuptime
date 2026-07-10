@@ -5,9 +5,11 @@ import {
   CriteriaFilter,
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
+import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime from "./EvaluateOverTime";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -27,6 +29,63 @@ export default class SnmpMonitorCriteria {
 
     const snmpResponse: SnmpMonitorResponse | undefined =
       dataToProcess.snmpResponse;
+
+    /*
+     * Event/check separation. Trap responses are evaluated ONLY against
+     * trap criteria; polled check responses never match trap criteria.
+     * This keeps a trap from misfiring "is online" style filters (it has
+     * no check data) and keeps every poll from re-firing trap criteria.
+     */
+    const snmpTrap: SnmpTrap | undefined = dataToProcess.snmpTrapResponse;
+
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpTrapReceived) {
+      if (!snmpTrap) {
+        return null;
+      }
+
+      const expectedOid: string = String(threshold || "").trim();
+
+      if (!expectedOid) {
+        return null;
+      }
+
+      const trapOid: string = snmpTrap.trapOid;
+      let isMatch: boolean = false;
+
+      switch (input.criteriaFilter.filterType) {
+        case FilterType.EqualTo:
+          isMatch = trapOid === expectedOid;
+          break;
+        case FilterType.NotEqualTo:
+          isMatch = trapOid !== expectedOid;
+          break;
+        case FilterType.Contains:
+          isMatch = trapOid.includes(expectedOid);
+          break;
+        case FilterType.NotContains:
+          isMatch = !trapOid.includes(expectedOid);
+          break;
+        case FilterType.StartsWith:
+          isMatch = trapOid.startsWith(expectedOid);
+          break;
+        case FilterType.EndsWith:
+          isMatch = trapOid.endsWith(expectedOid);
+          break;
+        default:
+          isMatch = false;
+      }
+
+      if (isMatch) {
+        return `SNMP trap ${trapOid} received from ${snmpTrap.sourceIpAddress}.`;
+      }
+
+      return null;
+    }
+
+    if (snmpTrap) {
+      // Trap events never evaluate check-based criteria.
+      return null;
+    }
 
     let overTimeValue: Array<number | boolean> | number | boolean | undefined =
       undefined;
@@ -86,6 +145,108 @@ export default class SnmpMonitorCriteria {
 
       return CompareCriteria.compareCriteriaNumbers({
         value: currentResponseTime,
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    // Check if any monitored interface is down (admin-up but oper-down)
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceIsDown) {
+      const interfaces: Array<SnmpInterface> | undefined =
+        snmpResponse?.interfaces;
+
+      if (!interfaces || interfaces.length === 0) {
+        return null;
+      }
+
+      /*
+       * Administratively disabled interfaces are intentionally down and
+       * never count as failures.
+       */
+      const downInterfaces: Array<SnmpInterface> = interfaces.filter(
+        (snmpInterface: SnmpInterface) => {
+          return (
+            snmpInterface.isAdministrativelyUp &&
+            !snmpInterface.isOperationallyUp
+          );
+        },
+      );
+
+      const isTrueFilter: boolean =
+        input.criteriaFilter.filterType === FilterType.True;
+      const isFalseFilter: boolean =
+        input.criteriaFilter.filterType === FilterType.False;
+
+      if (downInterfaces.length > 0 && isTrueFilter) {
+        const names: string = downInterfaces
+          .slice(0, 5)
+          .map((snmpInterface: SnmpInterface) => {
+            return snmpInterface.name;
+          })
+          .join(", ");
+        return `${downInterfaces.length} interface(s) down: ${names}${
+          downInterfaces.length > 5 ? ", …" : ""
+        }.`;
+      }
+
+      if (downInterfaces.length === 0 && isFalseFilter) {
+        return "All administratively enabled interfaces are up.";
+      }
+
+      return null;
+    }
+
+    // Check the busiest interface's utilization
+    if (
+      input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceUtilizationPercent
+    ) {
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      if (threshold === null || threshold === undefined) {
+        return null;
+      }
+
+      const utilizations: Array<number> = (snmpResponse?.interfaces || [])
+        .map((snmpInterface: SnmpInterface) => {
+          return snmpInterface.utilizationPercent;
+        })
+        .filter((value: number | undefined): value is number => {
+          return typeof value === "number";
+        });
+
+      if (utilizations.length === 0) {
+        return null;
+      }
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: Math.max(...utilizations),
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    // Check the worst interface's error rate
+    if (input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceErrorsPerSecond) {
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      if (threshold === null || threshold === undefined) {
+        return null;
+      }
+
+      const errorRates: Array<number> = (snmpResponse?.interfaces || [])
+        .map((snmpInterface: SnmpInterface) => {
+          return snmpInterface.errorsPerSecond;
+        })
+        .filter((value: number | undefined): value is number => {
+          return typeof value === "number";
+        });
+
+      if (errorRates.length === 0) {
+        return null;
+      }
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: Math.max(...errorRates),
         threshold: threshold as number,
         criteriaFilter: input.criteriaFilter,
       });

@@ -12,9 +12,57 @@ import SnmpDataType from "Common/Types/Monitor/SnmpMonitor/SnmpDataType";
 import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
+import SnmpInterface from "Common/Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import snmp from "net-snmp";
+
+/*
+ * IF-MIB table OIDs and the column numbers walked for interface monitoring.
+ * ifXTable carries the 64-bit HC counters and human-friendly names; it is
+ * optional — very old devices only implement ifTable.
+ */
+const IF_TABLE_OID: string = "1.3.6.1.2.1.2.2";
+const IF_TABLE_COLUMNS: {
+  ifDescr: number;
+  ifSpeed: number;
+  ifAdminStatus: number;
+  ifOperStatus: number;
+  ifInOctets: number;
+  ifInDiscards: number;
+  ifInErrors: number;
+  ifOutOctets: number;
+  ifOutDiscards: number;
+  ifOutErrors: number;
+} = {
+  ifDescr: 2,
+  ifSpeed: 5,
+  ifAdminStatus: 7,
+  ifOperStatus: 8,
+  ifInOctets: 10,
+  ifInDiscards: 13,
+  ifInErrors: 14,
+  ifOutOctets: 16,
+  ifOutDiscards: 19,
+  ifOutErrors: 20,
+};
+
+const IF_X_TABLE_OID: string = "1.3.6.1.2.1.31.1.1";
+const IF_X_TABLE_COLUMNS: {
+  ifName: number;
+  ifHCInOctets: number;
+  ifHCOutOctets: number;
+  ifHighSpeed: number;
+  ifAlias: number;
+} = {
+  ifName: 1,
+  ifHCInOctets: 6,
+  ifHCOutOctets: 10,
+  ifHighSpeed: 15,
+  ifAlias: 18,
+};
+
+type SnmpTableRows = Record<string, Record<string, unknown>>;
 
 export interface SnmpQueryOptions {
   timeout?: number | undefined;
@@ -50,8 +98,42 @@ export default class SnmpMonitor {
     const attemptedAt: Date = new Date();
 
     try {
-      const oidResponses: Array<SnmpOidResponse> =
-        await SnmpMonitor.executeSnmpQuery(config, options);
+      const shouldWalkInterfaces: boolean = Boolean(config.monitorInterfaces);
+
+      /*
+       * The OID GET is skipped when the user configured no OIDs and enabled
+       * interface monitoring — the interface walk is the check then. With
+       * neither configured, executeSnmpQuery keeps its "No OIDs configured"
+       * error.
+       */
+      let oidResponses: Array<SnmpOidResponse> = [];
+      if (config.oids.length > 0 || !shouldWalkInterfaces) {
+        oidResponses = await SnmpMonitor.executeSnmpQuery(config, options);
+      }
+
+      let interfaces: Array<SnmpInterface> | undefined = undefined;
+      let interfaceWalkFailure: string | undefined = undefined;
+
+      if (shouldWalkInterfaces) {
+        try {
+          interfaces = await SnmpMonitor.walkInterfaces(config, options);
+        } catch (err: unknown) {
+          if (config.oids.length === 0) {
+            // The walk was the only check — treat as device unreachable.
+            throw err;
+          }
+
+          /*
+           * OID GET succeeded, so the device is up; record why interface
+           * data is missing without failing the check.
+           */
+          interfaceWalkFailure =
+            (err as Error).message || (err as Error).toString();
+          logger.debug(
+            `SNMP interface walk failed for ${options?.monitorId?.toString()} ${config.hostname}:${config.port}: ${interfaceWalkFailure}`,
+          );
+        }
+      }
 
       const endTime: [number, number] = process.hrtime(startTime);
       const responseTimeInMs: number = Math.ceil(
@@ -78,6 +160,8 @@ export default class SnmpMonitor {
         oidResponses: oidResponses,
         probeAttempts: options.attempts,
         totalAttempts: options.attempts.length,
+        interfaces: interfaces,
+        interfaceWalkFailure: interfaceWalkFailure,
       };
     } catch (err: unknown) {
       logger.debug(
@@ -160,6 +244,222 @@ export default class SnmpMonitor {
     }
   }
 
+  private static createSnmpSession(
+    config: MonitorStepSnmpMonitor,
+    options: SnmpQueryOptions,
+  ): snmp.Session {
+    if (config.snmpVersion === SnmpVersion.V3 && config.snmpV3Auth) {
+      const sessionOptionsV3: snmp.SessionOptionsV3 = {
+        port: config.port || 161,
+        timeout: options.timeout || config.timeout || 5000,
+        retries: 0, // We handle retries ourselves
+        version: snmp.Version3,
+      };
+      const user: snmp.User = SnmpMonitor.buildV3User(config);
+      return snmp.createV3Session(config.hostname, user, sessionOptionsV3);
+    }
+
+    const sessionOptions: snmp.SessionOptions = {
+      port: config.port || 161,
+      timeout: options.timeout || config.timeout || 5000,
+      retries: 0, // We handle retries ourselves
+      version:
+        config.snmpVersion === SnmpVersion.V1 ? snmp.Version1 : snmp.Version2c,
+    };
+    return snmp.createSession(
+      config.hostname,
+      config.communityString || "public",
+      sessionOptions,
+    );
+  }
+
+  /*
+   * Walks the IF-MIB interface tables and returns one entry per interface.
+   * ifXTable (64-bit counters, names, aliases) is best-effort — devices
+   * without it fall back to the 32-bit ifTable counters.
+   */
+  public static async walkInterfaces(
+    config: MonitorStepSnmpMonitor,
+    options: SnmpQueryOptions,
+  ): Promise<Array<SnmpInterface>> {
+    const session: snmp.Session = SnmpMonitor.createSnmpSession(
+      config,
+      options,
+    );
+
+    try {
+      const ifTable: SnmpTableRows = await SnmpMonitor.getTableColumns(
+        session,
+        IF_TABLE_OID,
+        Object.values(IF_TABLE_COLUMNS),
+      );
+
+      let ifXTable: SnmpTableRows = {};
+      try {
+        ifXTable = await SnmpMonitor.getTableColumns(
+          session,
+          IF_X_TABLE_OID,
+          Object.values(IF_X_TABLE_COLUMNS),
+        );
+      } catch (err) {
+        logger.debug(
+          `SNMP ifXTable walk failed for ${config.hostname} (falling back to 32-bit ifTable counters): ${err}`,
+        );
+      }
+
+      const interfaces: Array<SnmpInterface> = [];
+
+      for (const interfaceIndex of Object.keys(ifTable)) {
+        const row: Record<string, unknown> = ifTable[interfaceIndex]!;
+        const extendedRow: Record<string, unknown> =
+          ifXTable[interfaceIndex] || {};
+
+        const column: (columnNumber: number) => unknown = (
+          columnNumber: number,
+        ) => {
+          return row[columnNumber.toString()];
+        };
+        const extendedColumn: (columnNumber: number) => unknown = (
+          columnNumber: number,
+        ) => {
+          return extendedRow[columnNumber.toString()];
+        };
+
+        /*
+         * Speed: ifHighSpeed is in Mbps and required for links >= 4.3 Gbps
+         * where the 32-bit ifSpeed (bps) saturates; 0 means "not reported".
+         */
+        const highSpeedInMbps: number | undefined = SnmpMonitor.toMetricNumber(
+          extendedColumn(IF_X_TABLE_COLUMNS.ifHighSpeed),
+        );
+        const speedInBitsPerSecond: number | undefined =
+          highSpeedInMbps && highSpeedInMbps > 0
+            ? highSpeedInMbps * 1000000
+            : SnmpMonitor.toMetricNumber(column(IF_TABLE_COLUMNS.ifSpeed));
+
+        interfaces.push({
+          interfaceIndex: parseInt(interfaceIndex, 10),
+          name:
+            SnmpMonitor.toDisplayString(
+              extendedColumn(IF_X_TABLE_COLUMNS.ifName),
+            ) ||
+            SnmpMonitor.toDisplayString(column(IF_TABLE_COLUMNS.ifDescr)) ||
+            `Interface ${interfaceIndex}`,
+          alias: SnmpMonitor.toDisplayString(
+            extendedColumn(IF_X_TABLE_COLUMNS.ifAlias),
+          ),
+          isOperationallyUp:
+            SnmpMonitor.toMetricNumber(
+              column(IF_TABLE_COLUMNS.ifOperStatus),
+            ) === 1,
+          isAdministrativelyUp:
+            SnmpMonitor.toMetricNumber(
+              column(IF_TABLE_COLUMNS.ifAdminStatus),
+            ) === 1,
+          speedInBitsPerSecond:
+            speedInBitsPerSecond && speedInBitsPerSecond > 0
+              ? speedInBitsPerSecond
+              : undefined,
+          inOctets:
+            SnmpMonitor.toMetricNumber(
+              extendedColumn(IF_X_TABLE_COLUMNS.ifHCInOctets),
+            ) ??
+            SnmpMonitor.toMetricNumber(column(IF_TABLE_COLUMNS.ifInOctets)),
+          outOctets:
+            SnmpMonitor.toMetricNumber(
+              extendedColumn(IF_X_TABLE_COLUMNS.ifHCOutOctets),
+            ) ??
+            SnmpMonitor.toMetricNumber(column(IF_TABLE_COLUMNS.ifOutOctets)),
+          inErrors: SnmpMonitor.toMetricNumber(
+            column(IF_TABLE_COLUMNS.ifInErrors),
+          ),
+          outErrors: SnmpMonitor.toMetricNumber(
+            column(IF_TABLE_COLUMNS.ifOutErrors),
+          ),
+          inDiscards: SnmpMonitor.toMetricNumber(
+            column(IF_TABLE_COLUMNS.ifInDiscards),
+          ),
+          outDiscards: SnmpMonitor.toMetricNumber(
+            column(IF_TABLE_COLUMNS.ifOutDiscards),
+          ),
+        });
+      }
+
+      interfaces.sort((a: SnmpInterface, b: SnmpInterface) => {
+        return a.interfaceIndex - b.interfaceIndex;
+      });
+
+      return interfaces;
+    } finally {
+      session.close();
+    }
+  }
+
+  private static getTableColumns(
+    session: snmp.Session,
+    tableOid: string,
+    columns: Array<number>,
+  ): Promise<SnmpTableRows> {
+    return new Promise(
+      (
+        resolve: (value: SnmpTableRows) => void,
+        reject: (reason?: Error) => void,
+      ) => {
+        (session as any).tableColumns(
+          tableOid,
+          columns,
+          (error: Error | null, table?: unknown) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+
+            resolve((table as SnmpTableRows) || {});
+          },
+        );
+      },
+    );
+  }
+
+  /*
+   * net-snmp returns Counter64 values as 8-byte big-endian Buffers (there is
+   * no native 64-bit varbind decoding); smaller integer types come through
+   * as plain numbers.
+   */
+  private static toMetricNumber(value: unknown): number | undefined {
+    if (typeof value === "number" && isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === "bigint") {
+      return Number(value);
+    }
+
+    if (Buffer.isBuffer(value)) {
+      if (value.length === 8) {
+        return Number(value.readBigUInt64BE());
+      }
+      if (value.length > 0 && value.length <= 6) {
+        return value.readUIntBE(0, value.length);
+      }
+      return undefined;
+    }
+
+    return undefined;
+  }
+
+  private static toDisplayString(value: unknown): string | undefined {
+    if (Buffer.isBuffer(value)) {
+      return value.toString("utf8").trim() || undefined;
+    }
+
+    if (typeof value === "string") {
+      return value.trim() || undefined;
+    }
+
+    return undefined;
+  }
+
   private static async executeSnmpQuery(
     config: MonitorStepSnmpMonitor,
     options: SnmpQueryOptions,
@@ -172,35 +472,7 @@ export default class SnmpMonitor {
         let session: snmp.Session;
 
         try {
-          if (config.snmpVersion === SnmpVersion.V3 && config.snmpV3Auth) {
-            const sessionOptionsV3: snmp.SessionOptionsV3 = {
-              port: config.port || 161,
-              timeout: options.timeout || config.timeout || 5000,
-              retries: 0, // We handle retries ourselves
-              version: snmp.Version3,
-            };
-            const user: snmp.User = SnmpMonitor.buildV3User(config);
-            session = snmp.createV3Session(
-              config.hostname,
-              user,
-              sessionOptionsV3,
-            );
-          } else {
-            const sessionOptions: snmp.SessionOptions = {
-              port: config.port || 161,
-              timeout: options.timeout || config.timeout || 5000,
-              retries: 0, // We handle retries ourselves
-              version:
-                config.snmpVersion === SnmpVersion.V1
-                  ? snmp.Version1
-                  : snmp.Version2c,
-            };
-            session = snmp.createSession(
-              config.hostname,
-              config.communityString || "public",
-              sessionOptions,
-            );
-          }
+          session = SnmpMonitor.createSnmpSession(config, options);
 
           const oids: Array<string> = config.oids.map((oid: SnmpOid) => {
             return oid.oid;
