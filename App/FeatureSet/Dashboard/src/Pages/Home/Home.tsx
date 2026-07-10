@@ -1,4 +1,6 @@
 import IncidentsTable from "../../Components/Incident/IncidentsTable";
+import GettingStarted from "../../Components/Home/GettingStarted";
+import OverviewStats from "../../Components/Home/OverviewStats";
 import IncidentStateUtil from "../../Utils/IncidentState";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
@@ -6,6 +8,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import DashboardSideMenu from "./SideMenu";
 import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -36,6 +39,8 @@ const Home: FunctionComponent<ComponentProps> = (
   >([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   const fetchIncidentStates: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -70,7 +75,7 @@ const Home: FunctionComponent<ComponentProps> = (
 
   return (
     <Page
-      title={"Active Incidents"}
+      title={"Home"}
       breadcrumbLinks={[
         {
           title: "Project",
@@ -89,20 +94,28 @@ const Home: FunctionComponent<ComponentProps> = (
         {isLoading && <PageLoader isVisible={true} />}
         {error && <ErrorMessage message={error} />}
 
-        {!isLoading && !error && unresolvedIncidentStates.length > 0 && (
-          <IncidentsTable
-            query={{
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              currentIncidentStateId: new Includes(
-                unresolvedIncidentStates.map((state: IncidentState) => {
-                  return state.id!;
-                }),
-              ),
-            }}
-            noItemsMessage="Nice work! No Active Incidents so far."
-            title="Active Incidents"
-            description="Here is a list of all the Active Incidents for this project."
-          />
+        {!isLoading && !error && currentProjectId && (
+          <div>
+            <GettingStarted projectId={currentProjectId} />
+
+            <OverviewStats projectId={currentProjectId} />
+
+            {unresolvedIncidentStates.length > 0 && (
+              <IncidentsTable
+                query={{
+                  projectId: currentProjectId,
+                  currentIncidentStateId: new Includes(
+                    unresolvedIncidentStates.map((state: IncidentState) => {
+                      return state.id!;
+                    }),
+                  ),
+                }}
+                noItemsMessage="Nice work! No Active Incidents so far."
+                title="Active Incidents"
+                description="Here is a list of all the Active Incidents for this project."
+              />
+            )}
+          </div>
         )}
       </div>
     </Page>
