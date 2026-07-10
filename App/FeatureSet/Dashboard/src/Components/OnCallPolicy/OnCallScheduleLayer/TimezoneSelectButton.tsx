@@ -4,6 +4,7 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
@@ -93,8 +94,9 @@ const TimezoneSelectButton: FunctionComponent<ComponentProps> = (
             setIsModalOpen(false);
           }}
         >
-          {/* Give the searchable menu room; it portals to <body> so it never clips. */}
-          <div className="min-h-[16rem]">
+          {/* Standard labeled field; the searchable menu portals to <body> so it never clips. */}
+          <div className="mt-1">
+            <FieldLabelElement title="Timezone" required={true} />
             <Dropdown
               options={timezoneDropdownOptions}
               value={selectedDraftOption}
