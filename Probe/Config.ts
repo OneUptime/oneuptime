@@ -109,16 +109,20 @@ export const PROBE_INGRESS_PORT: Port | null = process.env["PROBE_INGRESS_PORT"]
   : null;
 
 /*
- * Optional SNMP trap receiver. When enabled, the probe listens for SNMP
- * traps/informs (v1 and v2c) on the configured UDP port and forwards them
- * to the OneUptime instance, where they are matched against SNMP monitors
- * by source IP and evaluated against trap criteria — link-down incidents
- * in seconds instead of waiting for the next poll. Point your devices'
- * trap destination at this probe. Port 162 requires the probe to run with
- * privileges to bind low ports (the default Docker image does).
+ * SNMP trap receiver. The probe listens for SNMP traps/informs (v1 and
+ * v2c) on the configured UDP port and forwards them to the OneUptime
+ * instance, where they are matched against SNMP monitors by source IP and
+ * evaluated against trap criteria — link-down incidents in seconds instead
+ * of waiting for the next poll. Point your devices' trap destination at
+ * this probe.
+ *
+ * On by default: inside a container the port is unreachable until the
+ * operator publishes it, and a failed bind (port in use, or no privilege
+ * for ports < 1024 outside Docker) logs an error and leaves polling
+ * untouched. Set PROBE_SNMP_TRAP_RECEIVER_ENABLED=false to opt out.
  */
 export const PROBE_SNMP_TRAP_RECEIVER_ENABLED: boolean =
-  process.env["PROBE_SNMP_TRAP_RECEIVER_ENABLED"] === "true";
+  process.env["PROBE_SNMP_TRAP_RECEIVER_ENABLED"] !== "false";
 
 export const PROBE_SNMP_TRAP_RECEIVER_PORT: number =
   NumberUtil.parseNumberWithDefault({

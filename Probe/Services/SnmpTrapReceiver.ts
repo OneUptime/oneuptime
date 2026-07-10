@@ -38,10 +38,12 @@ export default class SnmpTrapReceiver {
   public static start(): void {
     if (!PROBE_SNMP_TRAP_RECEIVER_ENABLED) {
       logger.debug(
-        "SNMP trap receiver is disabled. Set PROBE_SNMP_TRAP_RECEIVER_ENABLED=true to enable it.",
+        "SNMP trap receiver is disabled (PROBE_SNMP_TRAP_RECEIVER_ENABLED=false).",
       );
       return;
     }
+
+    let hasLoggedBindFailure: boolean = false;
 
     try {
       snmp.createReceiver(
@@ -53,6 +55,29 @@ export default class SnmpTrapReceiver {
         },
         (error: Error | null, notification: JSONObject | null) => {
           if (error) {
+            const errorCode: string | undefined = (
+              error as NodeJS.ErrnoException
+            ).code;
+
+            /*
+             * Socket-level bind failures (no privilege for ports < 1024
+             * outside Docker, or the port is taken) arrive through this
+             * callback. Say clearly — once — that traps are off and how
+             * to fix it; polling is unaffected either way.
+             */
+            if (errorCode === "EACCES" || errorCode === "EADDRINUSE") {
+              if (!hasLoggedBindFailure) {
+                hasLoggedBindFailure = true;
+                logger.error(
+                  `SNMP trap receiver could not bind UDP port ${PROBE_SNMP_TRAP_RECEIVER_PORT} (${errorCode}). ` +
+                    `Traps will not be received; monitoring checks are unaffected. ` +
+                    `Fix: run the probe with privileges for low ports, or set PROBE_SNMP_TRAP_RECEIVER_PORT to a port above 1024, ` +
+                    `or set PROBE_SNMP_TRAP_RECEIVER_ENABLED=false to silence this.`,
+                );
+              }
+              return;
+            }
+
             /*
              * Per-message parse failures are routine on an open UDP port
              * (scanners, malformed agents) — log and keep listening.
@@ -73,8 +98,9 @@ export default class SnmpTrapReceiver {
         },
       );
 
+      // Bind completes asynchronously; failures surface via the callback.
       logger.info(
-        `SNMP trap receiver listening on UDP port ${PROBE_SNMP_TRAP_RECEIVER_PORT}`,
+        `SNMP trap receiver starting on UDP port ${PROBE_SNMP_TRAP_RECEIVER_PORT}`,
       );
     } catch (err) {
       /*
