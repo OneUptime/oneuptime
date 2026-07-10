@@ -126,6 +126,9 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.NETWORK_DEVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.NETWORK_DEVICE_ARCHIVED]: `archived`,
+  [PageMap.NETWORK_DEVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
 };
 
 export const DockerRoutePath: Dictionary<string> = {
@@ -2434,6 +2437,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]
     }`,
   ),
 

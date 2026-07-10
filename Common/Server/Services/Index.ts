@@ -37,6 +37,10 @@ import LabelService from "./LabelService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import DockerHostService from "./DockerHostService";
 import NetworkDeviceService from "./NetworkDeviceService";
+import NetworkDeviceOwnerTeamService from "./NetworkDeviceOwnerTeamService";
+import NetworkDeviceOwnerUserService from "./NetworkDeviceOwnerUserService";
+import NetworkDeviceOwnerRuleService from "./NetworkDeviceOwnerRuleService";
+import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
@@ -304,6 +308,10 @@ const services: Array<BaseService> = [
   KubernetesClusterService,
   DockerHostService,
   NetworkDeviceService,
+  NetworkDeviceOwnerTeamService,
+  NetworkDeviceOwnerUserService,
+  NetworkDeviceOwnerRuleService,
+  NetworkDeviceLabelRuleService,
   NetworkInterfaceService,
   PodmanHostService,
   ProxmoxClusterService,
