@@ -249,6 +249,17 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: resourcesCategory,
     },
     {
+      title: t("navbar.items.networkDevicesTitle"),
+      description: t("navbar.items.networkDevicesDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.NETWORK_DEVICES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.NETWORK_DEVICES],
+      icon: IconProp.Signal,
+      iconColor: "indigo",
+      category: resourcesCategory,
+    },
+    {
       title: t("navbar.items.podmanTitle"),
       description: t("navbar.items.podmanDescription"),
       route: RouteUtil.populateRouteParams(

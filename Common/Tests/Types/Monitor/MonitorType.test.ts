@@ -120,7 +120,7 @@ describe("MonitorTypeHelper", () => {
       MonitorType.SSLCertificate,
       MonitorType.SyntheticMonitor,
       MonitorType.CustomJavaScriptCode,
-      MonitorType.SNMP,
+      MonitorType.NetworkDevice,
       MonitorType.DNS,
       MonitorType.DNSSEC,
       MonitorType.Domain,

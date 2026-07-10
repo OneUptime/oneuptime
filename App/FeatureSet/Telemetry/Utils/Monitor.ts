@@ -195,7 +195,7 @@ export default class MonitorUtil {
       }
     }
 
-    if (monitorType === MonitorType.SNMP) {
+    if (monitorType === MonitorType.NetworkDevice) {
       for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
         []) {
         // Handle SNMP community string secrets

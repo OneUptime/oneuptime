@@ -20,6 +20,8 @@ import MonitorProbe, {
   MonitorStepProbeResponse,
 } from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
@@ -138,6 +140,32 @@ export async function processSnmpTrapFromQueue(
     return;
   }
 
+  /*
+   * Traps are matched through the NetworkDevice inventory: devices polled
+   * by this probe whose hostname equals the trap source IP. Monitors then
+   * match by referencing one of those devices.
+   */
+  const matchingDevices: Array<NetworkDevice> =
+    await NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
+      probeId: probeId,
+      sourceIpAddress: snmpTrap.sourceIpAddress,
+    });
+
+  const matchingDeviceIds: Set<string> = new Set(
+    matchingDevices
+      .map((device: NetworkDevice) => {
+        return device.id?.toString() || "";
+      })
+      .filter(Boolean),
+  );
+
+  if (matchingDeviceIds.size === 0) {
+    logger.debug(
+      `SNMP trap from ${snmpTrap.sourceIpAddress}: no NetworkDevice on probe ${probeId.toString()} matches this source. Dropping.`,
+    );
+    return;
+  }
+
   const monitors: Array<Monitor> = await MonitorService.findBy({
     query: {
       _id: QueryHelper.any(
@@ -145,7 +173,7 @@ export async function processSnmpTrapFromQueue(
           return monitorId.toString();
         }),
       ),
-      monitorType: MonitorType.SNMP,
+      monitorType: MonitorType.NetworkDevice,
     },
     select: {
       _id: true,
@@ -181,13 +209,10 @@ export async function processSnmpTrapFromQueue(
 
     for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
       []) {
-      const configuredHostname: string | undefined =
-        monitorStep.data?.snmpMonitor?.hostname;
+      const referencedDeviceId: string | undefined =
+        monitorStep.data?.networkDeviceMonitor?.networkDeviceId;
 
-      if (
-        !configuredHostname ||
-        configuredHostname.trim() !== snmpTrap.sourceIpAddress
-      ) {
+      if (!referencedDeviceId || !matchingDeviceIds.has(referencedDeviceId)) {
         continue;
       }
 

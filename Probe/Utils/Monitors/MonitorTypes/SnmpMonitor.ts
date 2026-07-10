@@ -112,11 +112,18 @@ export default class SnmpMonitor {
       }
 
       let interfaces: Array<SnmpInterface> | undefined = undefined;
+      let systemInfo: { sysDescr?: string; sysName?: string } | undefined =
+        undefined;
       let interfaceWalkFailure: string | undefined = undefined;
 
       if (shouldWalkInterfaces) {
         try {
-          interfaces = await SnmpMonitor.walkInterfaces(config, options);
+          const walkResult: {
+            interfaces: Array<SnmpInterface>;
+            systemInfo?: { sysDescr?: string; sysName?: string } | undefined;
+          } = await SnmpMonitor.walkInterfaces(config, options);
+          interfaces = walkResult.interfaces;
+          systemInfo = walkResult.systemInfo;
         } catch (err: unknown) {
           if (config.oids.length === 0) {
             // The walk was the only check — treat as device unreachable.
@@ -162,6 +169,7 @@ export default class SnmpMonitor {
         totalAttempts: options.attempts.length,
         interfaces: interfaces,
         interfaceWalkFailure: interfaceWalkFailure,
+        systemInfo: systemInfo,
       };
     } catch (err: unknown) {
       logger.debug(
@@ -281,13 +289,34 @@ export default class SnmpMonitor {
   public static async walkInterfaces(
     config: MonitorStepSnmpMonitor,
     options: SnmpQueryOptions,
-  ): Promise<Array<SnmpInterface>> {
+  ): Promise<{
+    interfaces: Array<SnmpInterface>;
+    systemInfo?: { sysDescr?: string; sysName?: string } | undefined;
+  }> {
     const session: snmp.Session = SnmpMonitor.createSnmpSession(
       config,
       options,
     );
 
     try {
+      // Best-effort system identity (sysDescr.0, sysName.0).
+      let systemInfo: { sysDescr?: string; sysName?: string } | undefined =
+        undefined;
+      try {
+        const systemVarbinds: Array<snmp.Varbind> = await SnmpMonitor.getOids(
+          session,
+          ["1.3.6.1.2.1.1.1.0", "1.3.6.1.2.1.1.5.0"],
+        );
+        systemInfo = {
+          sysDescr: SnmpMonitor.toDisplayString(systemVarbinds[0]?.value),
+          sysName: SnmpMonitor.toDisplayString(systemVarbinds[1]?.value),
+        };
+      } catch (err) {
+        logger.debug(
+          `SNMP system group read failed for ${config.hostname}: ${err}`,
+        );
+      }
+
       const ifTable: SnmpTableRows = await SnmpMonitor.getTableColumns(
         session,
         IF_TABLE_OID,
@@ -389,10 +418,33 @@ export default class SnmpMonitor {
         return a.interfaceIndex - b.interfaceIndex;
       });
 
-      return interfaces;
+      return { interfaces, systemInfo };
     } finally {
       session.close();
     }
+  }
+
+  private static getOids(
+    session: snmp.Session,
+    oids: Array<string>,
+  ): Promise<Array<snmp.Varbind>> {
+    return new Promise(
+      (
+        resolve: (value: Array<snmp.Varbind>) => void,
+        reject: (reason?: Error) => void,
+      ) => {
+        session.get(
+          oids,
+          (error: Error | null, varbinds: Array<snmp.Varbind> | undefined) => {
+            if (error || !varbinds) {
+              reject(error || new Error("No varbinds returned"));
+              return;
+            }
+            resolve(varbinds);
+          },
+        );
+      },
+    );
   }
 
   private static getTableColumns(
