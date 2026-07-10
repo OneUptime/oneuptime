@@ -11,6 +11,7 @@ import FluentLogsIngestService from "../../Services/FluentLogsIngestService";
 import {
   processProbeFromQueue,
   processIncomingEmailFromQueue,
+  processSnmpTrapFromQueue,
 } from "../ProbeIngest/ProcessProbeIngest";
 import { processServerMonitorFromQueue } from "../ServerMonitorIngest/ProcessServerMonitorIngest";
 import { processIncomingRequestFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
@@ -217,6 +218,8 @@ if (DisableQueueWorkers) {
               if (jobData.probeIngest) {
                 if (jobData.probeIngest.jobType === "incoming-email") {
                   await processIncomingEmailFromQueue(jobData.probeIngest);
+                } else if (jobData.probeIngest.jobType === "snmp-trap") {
+                  await processSnmpTrapFromQueue(jobData.probeIngest);
                 } else {
                   await processProbeFromQueue(jobData.probeIngest);
                 }
