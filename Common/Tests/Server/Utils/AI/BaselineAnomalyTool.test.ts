@@ -2,9 +2,10 @@ import { BaselineAnomalyTool } from "../../../../Server/Utils/AI/Toolbox/MetricT
 import { ToolContext } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import MetricBaselineService from "../../../../Server/Services/MetricBaselineService";
 import MetricService from "../../../../Server/Services/MetricService";
+import ModelPermission from "../../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import ObjectID from "../../../../Types/ObjectID";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * baseline_anomaly judges a metric's recent average against its learned
@@ -58,6 +59,13 @@ function mockEmptyBand(): void {
 }
 
 describe("BaselineAnomalyTool", () => {
+  beforeEach(() => {
+    // Default: project-wide telemetry access (null = unrestricted).
+    jest
+      .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
+      .mockResolvedValue(null);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -180,7 +188,7 @@ describe("BaselineAnomalyTool", () => {
     expect(result.dataForLlm).not.toContain("normal — within");
   });
 
-  test("zero-stddev baseline collapses the band to the mean and still classifies", async () => {
+  test("zero-stddev baseline refuses to classify, matching the anomaly monitors", async () => {
     mockBaseline({ mean: 100, stddev: 0 });
     mockCurrentValues([101]);
     mockEmptyBand();
@@ -190,6 +198,56 @@ describe("BaselineAnomalyTool", () => {
       ctx,
     );
 
-    expect(result.dataForLlm).toContain("ANOMALOUS — above");
+    expect(result.dataForLlm).toContain("cannot judge");
+    expect(result.dataForLlm).toContain("zero variance");
+    expect(result.dataForLlm).not.toContain("ANOMALOUS");
+  });
+
+  test("a label-scoped user without entityId is refused (baseline SQL skips the owned-scope filter)", async () => {
+    jest
+      .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
+      .mockResolvedValue([ObjectID.generate()]);
+    const getBaseline: jest.SpyInstance = jest.spyOn(
+      MetricBaselineService,
+      "getBaseline",
+    );
+
+    await expect(
+      BaselineAnomalyTool.execute({ metricName: "cpu.usage" }, ctx),
+    ).rejects.toThrow("scoped to specific services");
+    expect(getBaseline).not.toHaveBeenCalled();
+  });
+
+  test("a label-scoped user asking about another service's entity is refused", async () => {
+    jest
+      .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
+      .mockResolvedValue([ObjectID.generate()]);
+
+    await expect(
+      BaselineAnomalyTool.execute(
+        {
+          metricName: "cpu.usage",
+          entityId: ObjectID.generate().toString(),
+        },
+        ctx,
+      ),
+    ).rejects.toThrow("scoped to specific services");
+  });
+
+  test("a label-scoped user pinned to their own service proceeds", async () => {
+    const ownServiceId: ObjectID = ObjectID.generate();
+    jest
+      .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
+      .mockResolvedValue([ownServiceId]);
+    mockBaseline({ mean: 100, stddev: 10 });
+    mockCurrentValues([120]);
+    mockEmptyBand();
+
+    const result: { dataForLlm: string } = await BaselineAnomalyTool.execute(
+      { metricName: "cpu.usage", entityId: ownServiceId.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("normal — within the expected range");
   });
 });

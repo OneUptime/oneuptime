@@ -1,5 +1,7 @@
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
+import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
+import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -282,6 +284,35 @@ export const BaselineAnomalyTool: ObservabilityTool = {
           return option <= requestedWindowDays;
         }) || MetricBaselineServiceClass.DEFAULT_WINDOW_DAYS;
 
+    /*
+     * The baseline queries are raw ClickHouse SQL scoped only by projectId —
+     * they skip the model layer's owned-scope filter. A label/owned-restricted
+     * user must therefore be pinned to one of THEIR services: project-wide
+     * baselines (no entityId) and other services' baselines are refused, the
+     * same posture as the other raw-SQL tools (see LogTools/TraceTools).
+     */
+    const accessibleServiceIds: Array<ObjectID> | null =
+      await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
+        Metric,
+        ctx.props,
+        DatabaseRequestType.Read,
+      );
+
+    if (accessibleServiceIds !== null) {
+      const isEntityAccessible: boolean = Boolean(
+        entityId &&
+          accessibleServiceIds.some((id: ObjectID) => {
+            return id.toString() === entityId.toString();
+          }),
+      );
+
+      if (!isEntityAccessible) {
+        throw new BadDataException(
+          "Your telemetry access is scoped to specific services, so a project-wide baseline is not available. Pass entityId set to the OneUptime ID of a service you can read (discover them via lookup_context).",
+        );
+      }
+    }
+
     const hourOfWeek: number =
       MetricBaselineServiceClass.computeHourOfWeek(atTime);
 
@@ -393,17 +424,24 @@ export const BaselineAnomalyTool: ObservabilityTool = {
           return sum + value;
         }, 0) / currentValues.length;
 
-      zScore =
-        baseline.stddev > 0
-          ? (currentValue - baseline.mean) / baseline.stddev
-          : null;
-
-      if (currentValue > expectedHigh) {
-        verdict = `ANOMALOUS — above the expected range for this hour of week`;
-      } else if (currentValue < expectedLow) {
-        verdict = `ANOMALOUS — below the expected range for this hour of week`;
+      if (baseline.stddev <= 0) {
+        /*
+         * Zero-variance baseline: the band collapses to a point and
+         * floating-point noise alone would flag every sample. The anomaly
+         * monitors refuse to classify here (MetricMonitorCriteria) — match
+         * them rather than emitting guaranteed-false ANOMALOUS verdicts.
+         */
+        verdict = `cannot judge — the baseline has zero variance (the metric has been constant at ${baseline.mean}), so any band would flag every sample; compare the current value to the baseline mean directly instead`;
       } else {
-        verdict = `normal — within the expected range for this hour of week`;
+        zScore = (currentValue - baseline.mean) / baseline.stddev;
+
+        if (currentValue > expectedHigh) {
+          verdict = `ANOMALOUS — above the expected range for this hour of week`;
+        } else if (currentValue < expectedLow) {
+          verdict = `ANOMALOUS — below the expected range for this hour of week`;
+        } else {
+          verdict = `normal — within the expected range for this hour of week`;
+        }
       }
     }
 
