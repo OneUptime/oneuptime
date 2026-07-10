@@ -331,7 +331,7 @@ export default class CriteriaFilterUtil {
       });
     }
 
-    if (monitorType === MonitorType.SNMP) {
+    if (monitorType === MonitorType.NetworkDevice) {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === CheckOn.SnmpIsOnline ||

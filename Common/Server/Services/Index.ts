@@ -36,6 +36,8 @@ import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import LabelService from "./LabelService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import DockerHostService from "./DockerHostService";
+import NetworkDeviceService from "./NetworkDeviceService";
+import NetworkInterfaceService from "./NetworkInterfaceService";
 import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
@@ -301,6 +303,8 @@ const services: Array<BaseService> = [
   LabelService,
   KubernetesClusterService,
   DockerHostService,
+  NetworkDeviceService,
+  NetworkInterfaceService,
   PodmanHostService,
   ProxmoxClusterService,
   DockerSwarmClusterService,

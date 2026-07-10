@@ -205,7 +205,7 @@ class MonitorMetricTypeUtil {
       ];
     }
 
-    if (monitorType === MonitorType.SNMP) {
+    if (monitorType === MonitorType.NetworkDevice) {
       return [
         MonitorMetricType.IsOnline,
         MonitorMetricType.ResponseTime,
@@ -304,7 +304,7 @@ class MonitorMetricTypeUtil {
       ];
     }
 
-    if (monitorType === MonitorType.SNMP) {
+    if (monitorType === MonitorType.NetworkDevice) {
       return [
         {
           title: "Availability",

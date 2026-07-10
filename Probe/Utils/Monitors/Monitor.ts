@@ -660,9 +660,15 @@ export default class MonitorUtil {
       result.httpTimings = response.httpTimings;
     }
 
-    if (monitorType === MonitorType.SNMP) {
+    if (monitorType === MonitorType.NetworkDevice) {
+      /*
+       * The server hydrates the referenced NetworkDevice's SNMP config into
+       * snmpMonitor before handing out work; if it's absent the device was
+       * deleted or the reference is broken.
+       */
       if (!monitorStep.data?.snmpMonitor) {
-        result.failureCause = "SNMP configuration not specified";
+        result.failureCause =
+          "Network Device configuration not available. The referenced device may have been deleted.";
         return result;
       }
 

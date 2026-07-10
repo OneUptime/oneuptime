@@ -5,6 +5,7 @@ import logger from "../Logger";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
 import MonitorLogUtil from "./MonitorLogUtil";
 import MonitorMetricUtil from "./MonitorMetricUtil";
+import NetworkInventoryUtil from "./NetworkInventoryUtil";
 import SnmpInterfaceRateUtil from "./SnmpInterfaceRateUtil";
 import DataToProcess from "./DataToProcess";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -293,7 +294,7 @@ export default class MonitorResourceUtil {
            * while the previous log is still available, so the computed
            * values flow into metrics, criteria, and the stored log below.
            */
-          if (monitor.monitorType === MonitorType.SNMP) {
+          if (monitor.monitorType === MonitorType.NetworkDevice) {
             SnmpInterfaceRateUtil.attachInterfaceRates({
               probeMonitorResponse: dataToProcess as ProbeMonitorResponse,
               previousStepLog: (
@@ -302,6 +303,19 @@ export default class MonitorResourceUtil {
                 (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
               ] as JSONObject | undefined,
             });
+
+            /*
+             * Sync the NetworkDevice/NetworkInterface inventory from the
+             * walk, then prune the response to monitored interfaces so
+             * criteria and metrics ignore muted ports. Trap events carry
+             * no walk data — nothing to sync.
+             */
+            if (!isSnmpTrapEvent) {
+              await NetworkInventoryUtil.updateFromWalk({
+                monitor: monitor,
+                dataToProcess: dataToProcess as ProbeMonitorResponse,
+              });
+            }
           }
 
           if (!isSnmpTrapEvent) {

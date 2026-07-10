@@ -24,4 +24,14 @@ export default interface SnmpMonitorResponse {
    */
   interfaces?: Array<SnmpInterface> | undefined;
   interfaceWalkFailure?: string | undefined;
+  /*
+   * System-group identity (sysDescr / sysName), collected alongside the
+   * interface walk. Used to enrich the NetworkDevice resource.
+   */
+  systemInfo?:
+    | {
+        sysDescr?: string | undefined;
+        sysName?: string | undefined;
+      }
+    | undefined;
 }

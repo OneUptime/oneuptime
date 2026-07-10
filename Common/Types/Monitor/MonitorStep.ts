@@ -29,6 +29,9 @@ import MonitorStepExceptionMonitor, {
 import MonitorStepProfileMonitor, {
   MonitorStepProfileMonitorUtil,
 } from "./MonitorStepProfileMonitor";
+import MonitorStepNetworkDeviceMonitor, {
+  MonitorStepNetworkDeviceMonitorUtil,
+} from "./MonitorStepNetworkDeviceMonitor";
 import MonitorStepSnmpMonitor, {
   MonitorStepSnmpMonitorUtil,
 } from "./MonitorStepSnmpMonitor";
@@ -168,8 +171,15 @@ export interface MonitorStepType {
   // Profile monitor
   profileMonitor?: MonitorStepProfileMonitor | undefined;
 
-  // SNMP monitor
+  /*
+   * SNMP config carrier. For Network Device monitors this is populated
+   * server-side (hydrated from the referenced NetworkDevice) when work is
+   * handed to probes — it is never set by users.
+   */
   snmpMonitor?: MonitorStepSnmpMonitor | undefined;
+
+  // Network Device monitor (references a NetworkDevice resource)
+  networkDeviceMonitor?: MonitorStepNetworkDeviceMonitor | undefined;
 
   // DNS monitor
   dnsMonitor?: MonitorStepDnsMonitor | undefined;
@@ -239,6 +249,7 @@ export default class MonitorStep extends DatabaseProperty {
       exceptionMonitor: undefined,
       profileMonitor: undefined,
       snmpMonitor: undefined,
+      networkDeviceMonitor: undefined,
       dnsMonitor: undefined,
       domainMonitor: undefined,
       dnssecMonitor: undefined,
@@ -289,6 +300,7 @@ export default class MonitorStep extends DatabaseProperty {
       exceptionMonitor: undefined,
       profileMonitor: undefined,
       snmpMonitor: undefined,
+      networkDeviceMonitor: undefined,
       dnsMonitor: undefined,
       domainMonitor: undefined,
       dnssecMonitor: undefined,
@@ -473,6 +485,13 @@ export default class MonitorStep extends DatabaseProperty {
     profileMonitor: MonitorStepProfileMonitor,
   ): MonitorStep {
     this.data!.profileMonitor = profileMonitor;
+    return this;
+  }
+
+  public setNetworkDeviceMonitor(
+    networkDeviceMonitor: MonitorStepNetworkDeviceMonitor,
+  ): MonitorStep {
+    this.data!.networkDeviceMonitor = networkDeviceMonitor;
     return this;
   }
 
@@ -681,20 +700,17 @@ export default class MonitorStep extends DatabaseProperty {
       return "Port is required";
     }
 
-    if (monitorType === MonitorType.SNMP) {
-      if (!value.data.snmpMonitor) {
-        return "SNMP configuration is required";
-      }
-
-      if (!value.data.snmpMonitor.hostname) {
-        return "SNMP hostname is required";
+    if (monitorType === MonitorType.NetworkDevice) {
+      if (!value.data.networkDeviceMonitor?.networkDeviceId) {
+        return "Network Device is required";
       }
 
       if (
-        !value.data.snmpMonitor.oids ||
-        value.data.snmpMonitor.oids.length === 0
+        !value.data.networkDeviceMonitor.monitorInterfaces &&
+        (!value.data.networkDeviceMonitor.oids ||
+          value.data.networkDeviceMonitor.oids.length === 0)
       ) {
-        return "At least one OID is required";
+        return "Enable interface monitoring or configure at least one OID";
       }
     }
 
@@ -886,6 +902,11 @@ export default class MonitorStep extends DatabaseProperty {
           snmpMonitor: this.data.snmpMonitor
             ? MonitorStepSnmpMonitorUtil.toJSON(this.data.snmpMonitor)
             : undefined,
+          networkDeviceMonitor: this.data.networkDeviceMonitor
+            ? MonitorStepNetworkDeviceMonitorUtil.toJSON(
+                this.data.networkDeviceMonitor,
+              )
+            : undefined,
           dnsMonitor: this.data.dnsMonitor
             ? MonitorStepDnsMonitorUtil.toJSON(this.data.dnsMonitor)
             : undefined,
@@ -1048,6 +1069,9 @@ export default class MonitorStep extends DatabaseProperty {
       snmpMonitor: json["snmpMonitor"]
         ? (json["snmpMonitor"] as JSONObject)
         : undefined,
+      networkDeviceMonitor: json["networkDeviceMonitor"]
+        ? (json["networkDeviceMonitor"] as JSONObject)
+        : undefined,
       dnsMonitor: json["dnsMonitor"]
         ? (json["dnsMonitor"] as JSONObject)
         : undefined,
@@ -1116,6 +1140,7 @@ export default class MonitorStep extends DatabaseProperty {
         metricMonitor: Zod.any().optional(),
         profileMonitor: Zod.any().optional(),
         snmpMonitor: Zod.any().optional(),
+        networkDeviceMonitor: Zod.any().optional(),
         dnsMonitor: Zod.any().optional(),
         domainMonitor: Zod.any().optional(),
         dnssecMonitor: Zod.any().optional(),

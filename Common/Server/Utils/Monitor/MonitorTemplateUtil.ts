@@ -245,7 +245,7 @@ export default class MonitorTemplateUtil {
         } as JSONObject;
       }
 
-      if (data.monitorType === MonitorType.SNMP) {
+      if (data.monitorType === MonitorType.NetworkDevice) {
         const snmpResponse: SnmpMonitorResponse | undefined = (
           data.dataToProcess as ProbeMonitorResponse
         ).snmpResponse;

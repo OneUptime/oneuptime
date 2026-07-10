@@ -775,7 +775,7 @@ ${contextBlock}
       }
     }
 
-    if (input.monitor.monitorType === MonitorType.SNMP) {
+    if (input.monitor.monitorType === MonitorType.NetworkDevice) {
       const snmpMonitorResult: string | null =
         await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
           dataToProcess: input.dataToProcess,

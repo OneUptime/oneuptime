@@ -116,7 +116,7 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       );
     }
 
-    if (props.monitorType === MonitorType.SNMP) {
+    if (props.monitorType === MonitorType.NetworkDevice) {
       summaryComponent = (
         <SnmpMonitorView
           probeMonitorResponse={probeMonitorResponse}

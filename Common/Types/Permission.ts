@@ -1167,6 +1167,11 @@ enum Permission {
   EditDockerHost = "EditDockerHost",
   ReadDockerHost = "ReadDockerHost",
 
+  CreateNetworkDevice = "CreateNetworkDevice",
+  DeleteNetworkDevice = "DeleteNetworkDevice",
+  EditNetworkDevice = "EditNetworkDevice",
+  ReadNetworkDevice = "ReadNetworkDevice",
+
   CreatePodmanHost = "CreatePodmanHost",
   DeletePodmanHost = "DeletePodmanHost",
   EditPodmanHost = "EditPodmanHost",
@@ -7502,6 +7507,44 @@ export class PermissionHelper {
         isAccessControlPermission: true,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateNetworkDevice,
+        title: "Create Network Device",
+        description:
+          "This permission can create Network Device in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkDevice,
+        title: "Delete Network Device",
+        description:
+          "This permission can delete Network Device of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkDevice,
+        title: "Edit Network Device",
+        description: "This permission can edit Network Device of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkDevice,
+        title: "Read Network Device",
+        description: "This permission can read Network Device of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
       },
       {
         permission: Permission.CreatePodmanHost,

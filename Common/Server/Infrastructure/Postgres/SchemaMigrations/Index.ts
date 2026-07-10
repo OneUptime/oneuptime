@@ -423,6 +423,7 @@ import { AddEnableAutomaticAlertInvestigationToProject1783632447975 } from "./17
 import { AddCacheTokenColumnsToLlmLog1783695782697 } from "./1783695782697-AddCacheTokenColumnsToLlmLog";
 import { AddAlertInvestigationGating1783701585317 } from "./1783701585317-AddAlertInvestigationGating";
 import { AddAiDailyAutonomousTokenLimitToProject1783702431535 } from "./1783702431535-AddAiDailyAutonomousTokenLimitToProject";
+import { AddNetworkDeviceTables1783720000000 } from "./1783720000000-AddNetworkDeviceTables";
 import { AddAttemptCountToAIRun1783721121260 } from "./1783721121260-AddAttemptCountToAIRun";
 
 export default [
@@ -851,5 +852,6 @@ export default [
   AddCacheTokenColumnsToLlmLog1783695782697,
   AddAlertInvestigationGating1783701585317,
   AddAiDailyAutonomousTokenLimitToProject1783702431535,
+  AddNetworkDeviceTables1783720000000,
   AddAttemptCountToAIRun1783721121260,
 ];

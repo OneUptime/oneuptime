@@ -121,7 +121,10 @@ export class Service extends DatabaseService<Model> {
         }
 
         // For SNMP monitors, use the hostname from snmpMonitor config
-        if (monitorType === MonitorType.SNMP && firstStep?.data?.snmpMonitor) {
+        if (
+          monitorType === MonitorType.NetworkDevice &&
+          firstStep?.data?.snmpMonitor
+        ) {
           monitorDestination = firstStep.data.snmpMonitor.hostname || "";
           const port: number = firstStep.data.snmpMonitor.port || 161;
           if (monitorDestination && port) {

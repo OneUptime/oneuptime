@@ -121,6 +121,13 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_ARCHIVED]: `archived`,
 };
 
+export const NetworkDeviceRoutePath: Dictionary<string> = {
+  [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.NETWORK_DEVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.NETWORK_DEVICE_ARCHIVED]: `archived`,
+};
+
 export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.DOCKER_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
@@ -2393,6 +2400,40 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_ARCHIVED]
+    }`,
+  ),
+
+  // Network Devices
+
+  [PageMap.NETWORK_DEVICE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/*`,
+  ),
+
+  [PageMap.NETWORK_DEVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_ARCHIVED]
     }`,
   ),
 

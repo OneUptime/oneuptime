@@ -6,6 +6,8 @@ import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
 import KubernetesResource from "./KubernetesResource";
 import KubernetesContainer from "./KubernetesContainer";
 import DockerHost from "./DockerHost";
+import NetworkDevice from "./NetworkDevice";
+import NetworkInterface from "./NetworkInterface";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
@@ -768,6 +770,8 @@ const AllModelTypes: Array<{
   KubernetesResource,
   KubernetesContainer,
   DockerHost,
+  NetworkDevice,
+  NetworkInterface,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,

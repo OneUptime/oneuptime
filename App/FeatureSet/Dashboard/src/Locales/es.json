@@ -77,6 +77,8 @@
       "kubernetesDescription": "Supervise clústeres de Kubernetes.",
       "dockerTitle": "Docker",
       "dockerDescription": "Supervise hosts y contenedores Docker.",
+      "networkDevicesTitle": "Network Devices",
+      "networkDevicesDescription": "Monitor switches, routers, and firewalls via SNMP.",
       "podmanTitle": "Podman",
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",
