@@ -30,6 +30,15 @@ const NetworkDeviceSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Archive,
         },
+        {
+          link: {
+            title: "Discover Devices",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route,
+            ),
+          },
+          icon: IconProp.Search,
+        },
       ],
     },
     {

@@ -129,6 +129,7 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
 };
 
 export const DockerRoutePath: Dictionary<string> = {
@@ -2455,6 +2456,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_DISCOVERY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_DISCOVERY]
     }`,
   ),
 

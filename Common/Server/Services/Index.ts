@@ -41,6 +41,7 @@ import NetworkDeviceOwnerTeamService from "./NetworkDeviceOwnerTeamService";
 import NetworkDeviceOwnerUserService from "./NetworkDeviceOwnerUserService";
 import NetworkDeviceOwnerRuleService from "./NetworkDeviceOwnerRuleService";
 import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
+import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
@@ -312,6 +313,7 @@ const services: Array<BaseService> = [
   NetworkDeviceOwnerUserService,
   NetworkDeviceOwnerRuleService,
   NetworkDeviceLabelRuleService,
+  NetworkDeviceDiscoveryScanService,
   NetworkInterfaceService,
   PodmanHostService,
   ProxmoxClusterService,

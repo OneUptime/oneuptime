@@ -10,6 +10,7 @@ import {
 import AliveJob from "./Jobs/Alive";
 import FetchMonitorList from "./Jobs/Monitor/FetchList";
 import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
+import FetchDiscoveryScans from "./Jobs/Discovery/FetchScans";
 import Register from "./Services/Register";
 import SnmpTrapReceiver from "./Services/SnmpTrapReceiver";
 import MetricsAPI from "./API/Metrics";
@@ -113,6 +114,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       AliveJob();
       FetchMonitorList();
       FetchMonitorTestList();
+      FetchDiscoveryScans();
 
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();

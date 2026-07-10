@@ -1182,6 +1182,11 @@ enum Permission {
   EditNetworkDevice = "EditNetworkDevice",
   ReadNetworkDevice = "ReadNetworkDevice",
 
+  CreateNetworkDeviceDiscoveryScan = "CreateNetworkDeviceDiscoveryScan",
+  DeleteNetworkDeviceDiscoveryScan = "DeleteNetworkDeviceDiscoveryScan",
+  EditNetworkDeviceDiscoveryScan = "EditNetworkDeviceDiscoveryScan",
+  ReadNetworkDeviceDiscoveryScan = "ReadNetworkDeviceDiscoveryScan",
+
   CreatePodmanHost = "CreatePodmanHost",
   DeletePodmanHost = "DeletePodmanHost",
   EditPodmanHost = "EditPodmanHost",
@@ -7561,6 +7566,46 @@ export class PermissionHelper {
         permission: Permission.ReadNetworkDevice,
         title: "Read Network Device",
         description: "This permission can read Network Device of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkDeviceDiscoveryScan,
+        title: "Create Network Device Discovery Scan",
+        description:
+          "This permission can create Network Device Discovery Scan in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceDiscoveryScan,
+        title: "Delete Network Device Discovery Scan",
+        description:
+          "This permission can delete Network Device Discovery Scan of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkDeviceDiscoveryScan,
+        title: "Edit Network Device Discovery Scan",
+        description:
+          "This permission can edit Network Device Discovery Scan of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceDiscoveryScan,
+        title: "Read Network Device Discovery Scan",
+        description:
+          "This permission can read Network Device Discovery Scan of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
