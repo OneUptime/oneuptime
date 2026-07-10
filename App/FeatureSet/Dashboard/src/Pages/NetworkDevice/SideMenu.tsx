@@ -32,6 +32,30 @@ const NetworkDeviceSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    {
+      title: "Settings",
+      defaultCollapsed: true,
+      items: [
+        {
+          link: {
+            title: "Owner Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
+        {
+          link: {
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Label,
+        },
+      ],
+    },
   ];
 
   return <SideMenu sections={sections} />;

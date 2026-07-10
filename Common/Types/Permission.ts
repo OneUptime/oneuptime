@@ -511,6 +511,11 @@ enum Permission {
   EditDockerHostOwnerRule = "EditDockerHostOwnerRule",
   ReadDockerHostOwnerRule = "ReadDockerHostOwnerRule",
 
+  CreateNetworkDeviceOwnerRule = "CreateNetworkDeviceOwnerRule",
+  DeleteNetworkDeviceOwnerRule = "DeleteNetworkDeviceOwnerRule",
+  EditNetworkDeviceOwnerRule = "EditNetworkDeviceOwnerRule",
+  ReadNetworkDeviceOwnerRule = "ReadNetworkDeviceOwnerRule",
+
   // Podman Host Owner Rule Permissions
   CreatePodmanHostOwnerRule = "CreatePodmanHostOwnerRule",
   DeletePodmanHostOwnerRule = "DeletePodmanHostOwnerRule",
@@ -522,6 +527,11 @@ enum Permission {
   DeleteDockerHostLabelRule = "DeleteDockerHostLabelRule",
   EditDockerHostLabelRule = "EditDockerHostLabelRule",
   ReadDockerHostLabelRule = "ReadDockerHostLabelRule",
+
+  CreateNetworkDeviceLabelRule = "CreateNetworkDeviceLabelRule",
+  DeleteNetworkDeviceLabelRule = "DeleteNetworkDeviceLabelRule",
+  EditNetworkDeviceLabelRule = "EditNetworkDeviceLabelRule",
+  ReadNetworkDeviceLabelRule = "ReadNetworkDeviceLabelRule",
 
   // Podman Host Label Rule Permissions
   CreatePodmanHostLabelRule = "CreatePodmanHostLabelRule",
@@ -1182,6 +1192,11 @@ enum Permission {
   EditDockerHostOwnerTeam = "EditDockerHostOwnerTeam",
   ReadDockerHostOwnerTeam = "ReadDockerHostOwnerTeam",
 
+  CreateNetworkDeviceOwnerTeam = "CreateNetworkDeviceOwnerTeam",
+  DeleteNetworkDeviceOwnerTeam = "DeleteNetworkDeviceOwnerTeam",
+  EditNetworkDeviceOwnerTeam = "EditNetworkDeviceOwnerTeam",
+  ReadNetworkDeviceOwnerTeam = "ReadNetworkDeviceOwnerTeam",
+
   CreatePodmanHostOwnerTeam = "CreatePodmanHostOwnerTeam",
   DeletePodmanHostOwnerTeam = "DeletePodmanHostOwnerTeam",
   EditPodmanHostOwnerTeam = "EditPodmanHostOwnerTeam",
@@ -1191,6 +1206,11 @@ enum Permission {
   DeleteDockerHostOwnerUser = "DeleteDockerHostOwnerUser",
   EditDockerHostOwnerUser = "EditDockerHostOwnerUser",
   ReadDockerHostOwnerUser = "ReadDockerHostOwnerUser",
+
+  CreateNetworkDeviceOwnerUser = "CreateNetworkDeviceOwnerUser",
+  DeleteNetworkDeviceOwnerUser = "DeleteNetworkDeviceOwnerUser",
+  EditNetworkDeviceOwnerUser = "EditNetworkDeviceOwnerUser",
+  ReadNetworkDeviceOwnerUser = "ReadNetworkDeviceOwnerUser",
 
   CreatePodmanHostOwnerUser = "CreatePodmanHostOwnerUser",
   DeletePodmanHostOwnerUser = "DeletePodmanHostOwnerUser",
@@ -8775,10 +8795,30 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateNetworkDeviceOwnerTeam,
+        title: "Create Network Device Team Owner",
+        description:
+          "This permission can create Network Device Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.DeleteDockerHostOwnerTeam,
         title: "Delete Docker Host Team Owner",
         description:
           "This permission can delete Docker Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceOwnerTeam,
+        title: "Delete Network Device Team Owner",
+        description:
+          "This permission can delete Network Device Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8795,10 +8835,30 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditNetworkDeviceOwnerTeam,
+        title: "Edit Network Device Team Owner",
+        description:
+          "This permission can edit Network Device Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.ReadDockerHostOwnerTeam,
         title: "Read Docker Host Team Owner",
         description:
           "This permission can read Docker Host Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceOwnerTeam,
+        title: "Read Network Device Team Owner",
+        description:
+          "This permission can read Network Device Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8857,10 +8917,30 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateNetworkDeviceOwnerUser,
+        title: "Create Network Device User Owner",
+        description:
+          "This permission can create Network Device User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.DeleteDockerHostOwnerUser,
         title: "Delete Docker Host User Owner",
         description:
           "This permission can delete Docker Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceOwnerUser,
+        title: "Delete Network Device User Owner",
+        description:
+          "This permission can delete Network Device User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8877,10 +8957,30 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditNetworkDeviceOwnerUser,
+        title: "Edit Network Device User Owner",
+        description:
+          "This permission can edit Network Device User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.ReadDockerHostOwnerUser,
         title: "Read Docker Host User Owner",
         description:
           "This permission can read Docker Host User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceOwnerUser,
+        title: "Read Network Device User Owner",
+        description:
+          "This permission can read Network Device User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10661,10 +10761,30 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateNetworkDeviceOwnerRule,
+        title: "Create Network Device Owner Rule",
+        description:
+          "This permission can create Network Device Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.DeleteDockerHostOwnerRule,
         title: "Delete Docker Host Owner Rule",
         description:
           "This permission can delete Docker Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceOwnerRule,
+        title: "Delete Network Device Owner Rule",
+        description:
+          "This permission can delete Network Device Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10681,10 +10801,30 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditNetworkDeviceOwnerRule,
+        title: "Edit Network Device Owner Rule",
+        description:
+          "This permission can edit Network Device Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.ReadDockerHostOwnerRule,
         title: "Read Docker Host Owner Rule",
         description:
           "This permission can read Docker Host Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceOwnerRule,
+        title: "Read Network Device Owner Rule",
+        description:
+          "This permission can read Network Device Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10745,10 +10885,30 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateNetworkDeviceLabelRule,
+        title: "Create Network Device Label Rule",
+        description:
+          "This permission can create Network Device Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.DeleteDockerHostLabelRule,
         title: "Delete Docker Host Label Rule",
         description:
           "This permission can delete Docker Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteNetworkDeviceLabelRule,
+        title: "Delete Network Device Label Rule",
+        description:
+          "This permission can delete Network Device Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10765,10 +10925,30 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditNetworkDeviceLabelRule,
+        title: "Edit Network Device Label Rule",
+        description:
+          "This permission can edit Network Device Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.ReadDockerHostLabelRule,
         title: "Read Docker Host Label Rule",
         description:
           "This permission can read Docker Host Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadNetworkDeviceLabelRule,
+        title: "Read Network Device Label Rule",
+        description:
+          "This permission can read Network Device Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

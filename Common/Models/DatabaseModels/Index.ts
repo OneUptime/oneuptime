@@ -7,6 +7,10 @@ import KubernetesResource from "./KubernetesResource";
 import KubernetesContainer from "./KubernetesContainer";
 import DockerHost from "./DockerHost";
 import NetworkDevice from "./NetworkDevice";
+import NetworkDeviceOwnerTeam from "./NetworkDeviceOwnerTeam";
+import NetworkDeviceOwnerUser from "./NetworkDeviceOwnerUser";
+import NetworkDeviceOwnerRule from "./NetworkDeviceOwnerRule";
+import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
 import NetworkInterface from "./NetworkInterface";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
@@ -771,6 +775,10 @@ const AllModelTypes: Array<{
   KubernetesContainer,
   DockerHost,
   NetworkDevice,
+  NetworkDeviceOwnerTeam,
+  NetworkDeviceOwnerUser,
+  NetworkDeviceOwnerRule,
+  NetworkDeviceLabelRule,
   NetworkInterface,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
