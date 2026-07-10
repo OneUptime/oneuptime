@@ -1,7 +1,9 @@
 import FinalScheduleSummary from "./FinalScheduleSummary";
 import { getColorForUserId } from "./LayerUserColors";
+import TimezoneSelectButton from "./TimezoneSelectButton";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
 import Dictionary from "Common/Types/Dictionary";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
 import ScheduleShiftUtil, {
@@ -18,14 +20,9 @@ import IsNull from "Common/Types/BaseDatabase/IsNull";
 import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Calendar from "Common/UI/Components/Calendar/Calendar";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import TimezoneUtil from "Common/UI/Utils/Timezone";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
@@ -45,13 +42,6 @@ import React, {
  * that happen to fall in the calendar's currently-visible range.
  */
 const SUMMARY_WINDOW_DAYS: number = 42;
-
-/*
- * Timezone options are static and expensive to sort (every IANA zone by GMT
- * offset), so compute them once at module load rather than per render.
- */
-const timezoneDropdownOptions: Array<DropdownOption> =
-  TimezoneUtil.getTimezoneDropdownOptions();
 
 export interface ComponentProps {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
@@ -494,11 +484,6 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     );
   }, [viewAsTimezone]);
 
-  const selectedViewOption: DropdownOption | undefined =
-    timezoneDropdownOptions.find((option: DropdownOption) => {
-      return option.value === viewAsTimezone;
-    });
-
   /*
    * Explain which zone the grid/summary below are rendered in, and — when the
    * viewer has switched away from the schedule's own zone — that these times are
@@ -585,18 +570,20 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         person actually paged by a given policy may differ.
       </div>
 
-      {/* View-as timezone control + note above the calendar grid. */}
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="w-full sm:w-72">
-          <FieldLabelElement title="View as timezone" />
-          <Dropdown
-            options={timezoneDropdownOptions}
-            value={selectedViewOption}
-            placeholder="Select timezone"
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              const timezone: string | undefined =
-                value && !Array.isArray(value) ? value.toString() : undefined;
-
+      {/* View-as timezone bubble + note above the calendar grid. */}
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            View as
+          </span>
+          <TimezoneSelectButton
+            value={viewAsTimezone}
+            icon={IconProp.Clock}
+            modalTitle="View schedule in timezone"
+            modalDescription="Change the timezone this preview is shown in — for example, to see how an India schedule lands in your US working hours. This only changes what you see; it does not affect who is on call or when."
+            submitButtonText="Apply"
+            dataTestId="view-as-timezone-button"
+            onChange={(timezone: string | undefined) => {
               if (timezone) {
                 setViewAsTimezone(timezone);
               }
