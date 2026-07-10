@@ -1,5 +1,6 @@
 import LayerCard from "./LayerCard";
 import LayersPreview from "./LayersPreview";
+import TimezoneSelectButton from "./TimezoneSelectButton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -15,10 +16,6 @@ import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -26,18 +23,10 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import TimezoneUtil from "Common/UI/Utils/Timezone";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
-
-/*
- * Timezone options are static and expensive to sort (every IANA zone by GMT
- * offset), so compute them once at module load rather than per render.
- */
-const timezoneDropdownOptions: Array<DropdownOption> =
-  TimezoneUtil.getTimezoneDropdownOptions();
 
 export interface ComponentProps {
   onCallDutyPolicyScheduleId: ObjectID;
@@ -547,38 +536,38 @@ const Layers: FunctionComponent<ComponentProps> = (
   };
 
   const timezoneCard: GetReactElementFunction = (): ReactElement => {
-    const selectedOption: DropdownOption | undefined = scheduleTimezone
-      ? timezoneDropdownOptions.find((option: DropdownOption) => {
-          return option.value === scheduleTimezone;
-        })
-      : undefined;
-
     return (
       <div className="mb-5">
         <Card
           title="Schedule timezone"
           description={
-            "Every layer in this schedule — rotation start, hand-off and active-hour restrictions — is entered and enforced in this timezone. Leave empty to use the server's local timezone."
+            "Every layer in this schedule — rotation start, hand-off and active-hour restrictions — is entered and enforced in this timezone."
           }
         >
-          <div className="max-w-md">
-            <Dropdown
-              options={timezoneDropdownOptions}
-              value={selectedOption}
-              placeholder="Select timezone"
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                const timezone: string | undefined =
-                  value && !Array.isArray(value) ? value.toString() : undefined;
-
+          <div className="flex items-center gap-3">
+            <TimezoneSelectButton
+              value={scheduleTimezone}
+              saving={isSavingTimezone}
+              icon={IconProp.Globe}
+              placeholder="Not set — using server local time"
+              modalTitle="Set schedule timezone"
+              modalDescription="All rotation start, hand-off and active-hour times in this schedule are interpreted in this timezone. Changing it re-interprets the existing times in the new zone."
+              submitButtonText="Save timezone"
+              dataTestId="schedule-timezone-button"
+              onChange={(timezone: string | undefined) => {
                 saveScheduleTimezone(timezone).catch((err: Error) => {
                   setError(API.getFriendlyMessage(err));
                 });
               }}
             />
-            {isSavingTimezone && (
-              <p className="mt-2 text-xs text-gray-400">Saving timezone…</p>
+            {scheduleTimezone ? (
+              <span className="text-xs text-gray-500">
+                Click to change. Everything below is in this zone.
+              </span>
+            ) : (
+              <span className="text-xs text-amber-600">
+                No timezone set yet — click to choose one.
+              </span>
             )}
           </div>
         </Card>
