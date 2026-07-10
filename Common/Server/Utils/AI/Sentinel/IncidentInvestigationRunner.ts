@@ -104,21 +104,25 @@ export default class SentinelIncidentInvestigationRunner {
 
           /*
            * Also file the RCA as an incident internal note, where responders
-           * collaborate. System-authored (no user), so the note service skips
-           * its own "posted private note" announcement — the RootCause feed
-           * item above, with its quiet-mode gating, is the single source of
-           * notification. Best-effort: a note failure must not fail the run
-           * after the feed item already posted.
+           * collaborate. The RootCause feed item above, with its quiet-mode
+           * gating, must stay the single notification source, so:
+           * ignoreHooks skips the note service's "posted private note" feed
+           * item + unconditional workspace ping (workflow triggers and
+           * realtime updates still fire), and isOwnerNotified stops the
+           * note-posted owner-notification cron from paging owners about it.
+           * Best-effort: a note failure must not fail the run after the feed
+           * item already posted.
            */
           try {
             const note: IncidentInternalNote = new IncidentInternalNote();
             note.incidentId = incidentId;
             note.projectId = projectId;
             note.note = postData.analysisMarkdown;
+            note.isOwnerNotified = true;
 
             await IncidentInternalNoteService.create({
               data: note,
-              props: { isRoot: true },
+              props: { isRoot: true, ignoreHooks: true },
             });
           } catch (error) {
             logger.error(

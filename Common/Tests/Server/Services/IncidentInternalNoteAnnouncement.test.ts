@@ -8,15 +8,17 @@ import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
  * IncidentInternalNoteService.onCreateSuccess announces every new note with a
- * "posted private note" feed item + an UNCONDITIONAL workspace ping. Sentinel's
- * RCA note is system-authored (createdByUserId = null) and already has its own
- * RootCause feed item whose workspace ping is quiet-mode gated — so the
- * announcement must be skipped for user-less notes, or every RCA would be
- * double-posted and inconclusive investigations would ping the workspace
- * through the back door.
+ * "posted private note" feed item + workspace ping — INCLUDING user-less
+ * system notes: the SLA note-reminder job (SendNoteReminders.ts) creates notes
+ * with no createdByUserId and relies entirely on this hook for its feed entry
+ * and Slack/Teams ping (it sets isOwnerNotified itself, so the hook is its
+ * only push channel).
  *
- * These tests lock in the rule: user-authored notes announce; system-authored
- * notes don't.
+ * Callers that must NOT announce (Sentinel's RCA note, which has its own
+ * quiet-mode-gated RootCause feed item) opt out explicitly with
+ * props.ignoreHooks — see IncidentInvestigationRunner. These tests lock in
+ * that the hook announces for both user-authored and user-less notes, so the
+ * SLA flow can't be silenced again by a "system notes are quiet" shortcut.
  */
 
 function fakeNote(userId?: ObjectID | undefined): Model {
@@ -35,29 +37,7 @@ describe("IncidentInternalNoteService.onCreateSuccess", () => {
     jest.restoreAllMocks();
   });
 
-  test("system-authored note (no user) posts NO feed item and NO workspace ping", async () => {
-    const createFeedItem: jest.SpyInstance = jest.spyOn(
-      IncidentFeedService,
-      "createIncidentFeedItem",
-    );
-    const getIncidentNumber: jest.SpyInstance = jest.spyOn(
-      IncidentService,
-      "getIncidentNumber",
-    );
-
-    const note: Model = fakeNote(undefined);
-
-    const result: Model = await IncidentInternalNoteService.onCreateSuccess(
-      { createBy: { data: note, props: { isRoot: true } }, carryForward: null },
-      note,
-    );
-
-    expect(result).toBe(note);
-    expect(createFeedItem).not.toHaveBeenCalled();
-    expect(getIncidentNumber).not.toHaveBeenCalled();
-  });
-
-  test("user-authored note still announces with a feed item", async () => {
+  function mockAnnouncementDeps(): jest.SpyInstance {
     const createFeedItem: jest.SpyInstance = jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined as never);
@@ -68,11 +48,15 @@ describe("IncidentInternalNoteService.onCreateSuccess", () => {
     jest
       .spyOn(IncidentService, "getIncidentLinkInDashboard")
       .mockResolvedValue(URL.fromString("https://oneuptime.example/incident"));
-    // No attachments on this note.
+    // No attachments on these notes.
     jest
       .spyOn(IncidentInternalNoteService, "findOneById")
       .mockResolvedValue(null);
+    return createFeedItem;
+  }
 
+  test("user-authored note announces with a feed item attributed to the user", async () => {
+    const createFeedItem: jest.SpyInstance = mockAnnouncementDeps();
     const userId: ObjectID = ObjectID.generate();
     const note: Model = fakeNote(userId);
 
@@ -85,6 +69,25 @@ describe("IncidentInternalNoteService.onCreateSuccess", () => {
     expect(createFeedItem).toHaveBeenCalledWith(
       expect.objectContaining({
         userId,
+        workspaceNotification: expect.objectContaining({
+          sendWorkspaceNotification: true,
+        }),
+      }),
+    );
+  });
+
+  test("user-less system note (e.g. SLA reminder) still announces", async () => {
+    const createFeedItem: jest.SpyInstance = mockAnnouncementDeps();
+    const note: Model = fakeNote(undefined);
+
+    await IncidentInternalNoteService.onCreateSuccess(
+      { createBy: { data: note, props: { isRoot: true } }, carryForward: null },
+      note,
+    );
+
+    expect(createFeedItem).toHaveBeenCalledTimes(1);
+    expect(createFeedItem).toHaveBeenCalledWith(
+      expect.objectContaining({
         workspaceNotification: expect.objectContaining({
           sendWorkspaceNotification: true,
         }),

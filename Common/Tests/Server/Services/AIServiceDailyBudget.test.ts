@@ -56,6 +56,21 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
     expect(getTokens).not.toHaveBeenCalled();
   });
 
+  test("a limit of 0 pauses autonomous runs without querying usage", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject(0));
+    const getTokens: jest.SpyInstance = jest.spyOn(
+      LlmLogService,
+      "getTotalTokensUsedSince",
+    );
+
+    const status: AutonomousBudgetStatus =
+      await AIService.getAutonomousDailyBudgetStatus(projectId);
+
+    expect(status.exhausted).toBe(true);
+    expect(status.limitInTokens).toBe(0);
+    expect(getTokens).not.toHaveBeenCalled();
+  });
+
   test("usage below the limit is not exhausted", async () => {
     jest
       .spyOn(ProjectService, "findOneById")

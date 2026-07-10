@@ -95,10 +95,18 @@ export class Service extends BaseService {
     });
 
     const limitInTokens: number | null =
-      project?.aiDailyAutonomousTokenLimit || null;
+      project?.aiDailyAutonomousTokenLimit ?? null;
 
-    if (!limitInTokens || limitInTokens <= 0) {
+    if (limitInTokens === null) {
       return { exhausted: false, limitInTokens: null, usedTokensToday: 0 };
+    }
+
+    /*
+     * A limit of 0 (or negative) pauses autonomous runs entirely — the safe
+     * reading of "0 tokens allowed", and doubles as a spend kill-switch.
+     */
+    if (limitInTokens <= 0) {
+      return { exhausted: true, limitInTokens, usedTokensToday: 0 };
     }
 
     const usedTokensToday: number = await LlmLogService.getTotalTokensUsedSince(

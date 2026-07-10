@@ -39,7 +39,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             },
             title: "Daily Autonomous Token Limit",
             description:
-              "Maximum tokens per day (UTC) that autonomous investigations may consume, shared across incident and alert investigations for this project. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Leave empty for no limit.",
+              "Maximum tokens per day (UTC) that autonomous investigations may consume, shared across incident and alert investigations for this project. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Leave empty for no limit; set 0 to pause autonomous investigations entirely.",
             required: false,
             fieldType: FormFieldSchemaType.Number,
             placeholder: "No limit",

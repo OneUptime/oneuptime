@@ -133,17 +133,6 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    /*
-     * System-authored notes (no user) announce themselves — e.g. Sentinel's
-     * RCA note already posts its own RootCause feed item with quiet-mode
-     * gating — so the generic "posted private note" feed item + unconditional
-     * workspace ping is skipped for them (it would double-post the content
-     * and ping the workspace even for inconclusive investigations).
-     */
-    if (!userId) {
-      return createdItem;
-    }
-
     const incidentId: ObjectID = createdItem.incidentId!;
 
     const incidentNumberResult: {
