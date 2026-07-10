@@ -17,6 +17,7 @@ import AlertAIContextBuilder, {
   AlertContextData,
 } from "../AlertAIContextBuilder";
 import SentinelInvestigationEngine from "./SentinelInvestigationEngine";
+import SentinelInvestigationQueue from "./InvestigationQueue";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -51,7 +52,8 @@ export interface AlertGateDecision {
 export default class SentinelAlertInvestigationRunner {
   /*
    * Entry point called (fire-and-forget) from AlertService.onCreateSuccess.
-   * Never throws — all failures are logged and recorded on the AIRun.
+   * Cheap: gates + a Queued AIRun row; execution happens via the queue.
+   * Never throws — all failures are logged.
    */
   @CaptureSpan()
   public static async investigateNewAlert(data: {
@@ -82,17 +84,64 @@ export default class SentinelAlertInvestigationRunner {
         return;
       }
 
+      await SentinelInvestigationQueue.enqueue({
+        projectId,
+        subjectAlertId: alertId,
+        subjectMonitorId: gate.monitorId,
+      });
+    } catch (error) {
+      logger.error(
+        `Sentinel: unexpected error enqueueing investigation for alert ${alertId.toString()}: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * Execute a claimed run: assemble alert context and hand it to the engine.
+   * Called by SentinelInvestigationQueue after a successful claim. Never
+   * throws — failures are handed to the queue's retry policy so a claimed
+   * run is always finalized or requeued.
+   */
+  @CaptureSpan()
+  public static async executeInvestigation(data: {
+    aiRunId: ObjectID;
+    projectId: ObjectID;
+    alertId: ObjectID;
+    attemptCount: number;
+  }): Promise<void> {
+    const { aiRunId, projectId, alertId, attemptCount } = data;
+
+    let contextSummary: string;
+    try {
       const contextData: AlertContextData =
         await AlertAIContextBuilder.buildAlertContext({
           alertId,
         });
 
-      await SentinelInvestigationEngine.investigate({
-        projectId,
+      contextSummary = this.buildAlertSummary(contextData);
+    } catch (error) {
+      /*
+       * Context assembly failed — the run is claimed, so hand it to the
+       * retry policy rather than leaving it Running until the sweeper.
+       */
+      await SentinelInvestigationQueue.failOrRequeue({
+        aiRunId,
+        attemptCount,
+        errorMessage: `Failed to build alert context: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        isPermanent: false,
+      });
+      return;
+    }
+
+    await SentinelInvestigationEngine.executeRun({
+      aiRunId,
+      projectId,
+      attemptCount,
+      request: {
         feature: "Sentinel Alert Investigation",
-        subjectAlertId: alertId,
-        subjectMonitorId: gate.monitorId,
-        contextSummary: this.buildAlertSummary(contextData),
+        contextSummary,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           isConfident: boolean;
@@ -113,12 +162,8 @@ export default class SentinelAlertInvestigationRunner {
             },
           });
         },
-      });
-    } catch (error) {
-      logger.error(
-        `Sentinel: unexpected error investigating alert ${alertId.toString()}: ${error}`,
-      );
-    }
+      },
+    });
   }
 
   /*

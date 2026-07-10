@@ -148,6 +148,11 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
       messages: aiContext.messages,
       maxTokens: 4096,
       temperature: 0.2,
+      /*
+       * G8: the prompt embeds incident/alert/maintenance context whose read
+       * ACLs are narrower than LlmLog's — do not store previews.
+       */
+      storeContentPreviews: false,
     };
 
     if (props.userId) {

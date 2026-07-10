@@ -1,7 +1,7 @@
 import SentinelAlertInvestigationRunner, {
   AlertGateDecision,
 } from "../../../../Server/Utils/AI/Sentinel/AlertInvestigationRunner";
-import SentinelInvestigationEngine from "../../../../Server/Utils/AI/Sentinel/SentinelInvestigationEngine";
+import SentinelInvestigationQueue from "../../../../Server/Utils/AI/Sentinel/InvestigationQueue";
 import AlertService from "../../../../Server/Services/AlertService";
 import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
 import ProjectService from "../../../../Server/Services/ProjectService";
@@ -244,42 +244,44 @@ describe("SentinelAlertInvestigationRunner.shouldInvestigateAlert", () => {
   });
 });
 
-describe("SentinelInvestigationEngine concurrency cap", () => {
+describe("SentinelInvestigationQueue concurrency cap", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("skips the investigation when the per-project cap is reached", async () => {
+  test("leaves the run queued when the per-project cap is reached", async () => {
     jest
       .spyOn(AIRunService, "countBy")
       .mockResolvedValue(new PositiveNumber(3));
-    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
 
-    await SentinelInvestigationEngine.investigate({
+    await SentinelInvestigationQueue.processRun({
+      id: ObjectID.generate(),
       projectId: ObjectID.generate(),
-      feature: "Sentinel Alert Investigation",
-      contextSummary: "test",
-      postAnalysis: async () => {
-        return;
-      },
+      attemptCount: 0,
+      triggeredByAlertId: ObjectID.generate(),
     });
 
-    expect(create).not.toHaveBeenCalled();
+    expect(claim).not.toHaveBeenCalled();
   });
 
-  test("skips the investigation when the cap check itself fails", async () => {
+  test("leaves the run queued when the cap check itself fails", async () => {
     jest.spyOn(AIRunService, "countBy").mockRejectedValue(new Error("db down"));
-    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
 
-    await SentinelInvestigationEngine.investigate({
+    await SentinelInvestigationQueue.processRun({
+      id: ObjectID.generate(),
       projectId: ObjectID.generate(),
-      feature: "Sentinel Alert Investigation",
-      contextSummary: "test",
-      postAnalysis: async () => {
-        return;
-      },
+      attemptCount: 0,
+      triggeredByAlertId: ObjectID.generate(),
     });
 
-    expect(create).not.toHaveBeenCalled();
+    expect(claim).not.toHaveBeenCalled();
   });
 });
