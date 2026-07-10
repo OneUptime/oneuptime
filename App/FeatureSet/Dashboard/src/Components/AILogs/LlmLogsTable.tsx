@@ -65,6 +65,20 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
       field: { totalTokens: true },
       title: "Tokens Used",
       type: FieldType.Number,
+      getElement: (item: LlmLog): ReactElement => {
+        const total: number = (item["totalTokens"] as number) || 0;
+        const cached: number = (item["cachedInputTokens"] as number) || 0;
+
+        if (cached > 0) {
+          return (
+            <p>
+              {total} <span className="text-gray-500">({cached} cached)</span>
+            </p>
+          );
+        }
+
+        return <p>{total}</p>;
+      },
     },
     // Only show cost column if billing is enabled
     ...(BILLING_ENABLED
@@ -148,6 +162,7 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
         }}
         selectMoreFields={{
           statusMessage: true,
+          cachedInputTokens: true,
         }}
         cardProps={{
           title: "AI Logs",

@@ -201,6 +201,8 @@ export class Service extends BaseService {
       // Update log with success info
       logEntry.status = LlmLogStatus.Success;
       logEntry.totalTokens = response.usage?.totalTokens || 0;
+      logEntry.cachedInputTokens = response.usage?.cachedInputTokens || 0;
+      logEntry.cacheCreationTokens = response.usage?.cacheCreationTokens || 0;
       logEntry.responsePreview = storeContentPreviews
         ? response.content.substring(0, 2000) // Store first 2000 chars
         : "[Redacted — this content is private to the requesting user]";

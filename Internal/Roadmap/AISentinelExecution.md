@@ -50,7 +50,7 @@ Legend: ✅ Shipped · 🟡 Partial · ❌ Not started · 🔪 To be removed/abs
 | Item | Status | Code entry point |
 |---|---|---|
 | LLM gateway: multi-provider (incl. keyless local Ollama), metered via `LlmLog` (feature, tokens, cost, billing) | ✅ | `Common/Server/Utils/LLM/LLMService.ts`, `Common/Server/Services/AIService.ts` |
-| Prompt caching (Anthropic `cache_control`; OpenAI/Azure `cached_tokens` accounting) — **contrary to the original roadmap, this is done**; `cachedInputTokens` not yet persisted to `LlmLog` | ✅ | `Common/Server/Utils/LLM/LLMService.ts` (~654 and ~247) |
+| Prompt caching (Anthropic `cache_control`; OpenAI/Azure `cached_tokens` accounting) — **contrary to the original roadmap, this is done**; `cachedInputTokens`/`cacheCreationTokens` persisted to `LlmLog` since 2026-07-10 and shown in the AI Logs table | ✅ | `Common/Server/Utils/LLM/LLMService.ts` (~654 and ~247), `AIService.executeWithLogging`, `LlmLogsTable.tsx` |
 | Token streaming (SSE) | ❌ | `LLMService.ts` hardcodes `stream: false` (~818) |
 | Planner/synthesizer model routing | ❌ | one provider/model per call via `LlmProviderService` |
 | Stale-run sweeper: marks `Running` AIRuns with heartbeat older than 12 min as `Stale`; **marks only — never resumes** | ✅ | `App/FeatureSet/Workers/Jobs/AIChat/TimeoutStuckRuns.ts` |
@@ -102,7 +102,7 @@ Ordering changed from the original roadmap — rationale in the Deviations log. 
 - [ ] Alert severity/rate gating: investigations only for alerts meeting a per-project severity floor, with a per-monitor/episode dedupe window
 - [ ] **G4 cost guardrails (exit blocker):** at most one active investigation per monitor/episode per window; per-project concurrent-investigation cap; per-feature daily token/cost budget enforced in `AIService.executeWithLogging`; project-level autonomous-runs kill switch
 - [ ] RCA posted as incident internal note in addition to the feed item (or the Appendix claim formally dropped — decide, don't drift)
-- [ ] Persist `cachedInputTokens` to `LlmLog` for cache-hit visibility
+- [x] Persist `cachedInputTokens` to `LlmLog` for cache-hit visibility *(shipped 2026-07-10: `cachedInputTokens` + `cacheCreationTokens` columns, written in `AIService.executeWithLogging`, cached count shown in the AI Logs table)*
 - [x] **Standalone patch, ships independently:** atomic-claim CAS fix for `get-pending-task` in `Common/Server/API/AIAgentTaskAPI.ts` *(shipped 2026-07-10: `AIAgentTaskService.claimNextScheduledTask`)*
 - [ ] Docs page (`Docs/Content/en/...`): opt-in flags, quiet mode, budgets, BYO-LLM/Ollama setup — the shipped flagship currently has **zero** user docs
 - [ ] Measured exit: median trigger→RCA-posted < 3 min over ≥20 real investigations on our own production project
