@@ -98,6 +98,7 @@ describe("LogAggregationService", () => {
     ).buildHistogramStatement({
       ...defaultRequest,
       facetKey: undefined,
+      bucketSizeInMinutes: 60,
       attributes: { requestid: "uuid-123" },
     });
 
@@ -109,5 +110,26 @@ describe("LogAggregationService", () => {
     );
     expect(Object.values(statement.query_params)).toContain("requestid");
     expect(Object.values(statement.query_params)).toContain("uuid-123");
+  });
+
+  test("histogram supports multi-value dashboard attribute filters", () => {
+    const statement: Statement = (
+      LogAggregationService as any
+    ).buildHistogramStatement({
+      ...defaultRequest,
+      facetKey: undefined,
+      bucketSizeInMinutes: 60,
+      attributes: { region: ["eu-west-1", "us-east-1"] },
+    });
+
+    expect(statement.query).toContain(
+      "arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(",
+    );
+    expect(statement.query).toContain("AND v IN (");
+    expect(Object.values(statement.query_params)).toContain("region");
+    expect(Object.values(statement.query_params)).toContainEqual([
+      "eu-west-1",
+      "us-east-1",
+    ]);
   });
 });

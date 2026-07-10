@@ -17,6 +17,9 @@ export interface HistogramBucket {
   count: number;
 }
 
+export type LogAttributeFilterValue = string | Array<string>;
+export type LogAttributeFilters = Record<string, LogAttributeFilterValue>;
+
 export interface HistogramRequest {
   projectId: ObjectID;
   startTime: Date;
@@ -28,7 +31,7 @@ export interface HistogramRequest {
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
-  attributes?: Record<string, string> | undefined;
+  attributes?: LogAttributeFilters | undefined;
 }
 
 export interface FacetValue {
@@ -49,7 +52,7 @@ export interface FacetRequest {
   bodySearchText?: string | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
-  attributes?: Record<string, string> | undefined;
+  attributes?: LogAttributeFilters | undefined;
 }
 
 export type AnalyticsChartType = "timeseries" | "toplist" | "table";
@@ -834,15 +837,30 @@ export class LogAggregationService {
          * remember the exact casing is a poor experience. The user-supplied
          * key is validated above.
          */
-        statement.append(
-          SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
-            type: TableColumnType.Text,
-            value: attrKey,
-          }}) AND v = ${{
-            type: TableColumnType.Text,
-            value: attrValue,
-          }}, mapKeys(attributes), mapValues(attributes))`,
-        );
+        if (Array.isArray(attrValue)) {
+          if (attrValue.length === 0) {
+            continue;
+          }
+          statement.append(
+            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              type: TableColumnType.Text,
+              value: attrKey,
+            }}) AND v IN (${{
+              type: TableColumnType.Text,
+              value: new Includes(attrValue),
+            }}), mapKeys(attributes), mapValues(attributes))`,
+          );
+        } else {
+          statement.append(
+            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              type: TableColumnType.Text,
+              value: attrKey,
+            }}) AND v = ${{
+              type: TableColumnType.Text,
+              value: attrValue,
+            }}, mapKeys(attributes), mapValues(attributes))`,
+          );
+        }
       }
     }
   }

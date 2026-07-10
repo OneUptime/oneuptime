@@ -5,6 +5,7 @@ enum DashboardComponentType {
   Table = `Table`,
   Gauge = `Gauge`,
   LogStream = `LogStream`,
+  LogChart = `LogChart`,
   TraceList = `TraceList`,
   TraceChart = `TraceChart`,
   TraceTable = `TraceTable`,

@@ -21,6 +21,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import Service from "Common/Models/DatabaseModels/Service";
 import Label from "Common/Models/DatabaseModels/Label";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -75,6 +76,12 @@ function getEntityModelDef(
     case EntityFilterModelType.Monitor:
       return {
         modelType: Monitor as unknown as ModelTypeOf<BaseModel>,
+        sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+      };
+    case EntityFilterModelType.Service:
+      return {
+        modelType: Service as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
       };
