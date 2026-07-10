@@ -19,7 +19,7 @@ import { QueryMonitorsTool } from "./MonitorTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
 import { RecentChangesTool } from "./RecentChangesTools";
-import { QueryMetricsTool } from "./MetricTools";
+import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
 import { LookupContextTool } from "./ContextTools";
 import {
@@ -67,6 +67,7 @@ export default class AIToolbox {
     SearchLogsTool,
     LogHistogramTool,
     QueryMetricsTool,
+    BaselineAnomalyTool,
     QueryTracesTool,
     GetTraceTool,
     RecentChangesTool,
