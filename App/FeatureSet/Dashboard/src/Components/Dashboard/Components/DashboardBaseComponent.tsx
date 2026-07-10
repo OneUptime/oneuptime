@@ -554,10 +554,10 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
         gridColumn: `span ${widthOfComponent}`,
         gridRow: `span ${heightOfComponent}`,
         boxShadow: isDragging
-          ? "0 20px 40px -8px rgba(59,130,246,0.15), 0 8px 16px -4px rgba(0,0,0,0.08)"
+          ? "var(--ou-card-shadow-dragging, 0 20px 40px -8px rgba(59,130,246,0.15), 0 8px 16px -4px rgba(0,0,0,0.08))"
           : props.isSelected && props.isEditMode
-            ? "0 4px 12px -2px rgba(59,130,246,0.12), 0 2px 4px -1px rgba(0,0,0,0.04)"
-            : "0 2px 8px -2px rgba(0,0,0,0.08), 0 1px 4px -1px rgba(0,0,0,0.04)",
+            ? "var(--ou-card-shadow-selected, 0 4px 12px -2px rgba(59,130,246,0.12), 0 2px 4px -1px rgba(0,0,0,0.04))"
+            : "var(--ou-card-shadow, 0 2px 8px -2px rgba(0,0,0,0.08), 0 1px 4px -1px rgba(0,0,0,0.04))",
         transition: isDragging
           ? "none"
           : "box-shadow 0.2s ease, border-color 0.2s ease",
@@ -596,7 +596,8 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           style={{
             background: "rgba(30, 41, 59, 0.9)",
             backdropFilter: "blur(4px)",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            boxShadow:
+              "var(--ou-card-shadow-hover, 0 2px 8px rgba(0,0,0,0.15))",
           }}
         />
       </div>

@@ -65,7 +65,11 @@ function renderNodeRow(r: KubernetesResource): ReactElement {
   const readyText: string =
     isReady === true ? "Ready" : isReady === false ? "Not Ready" : "Unknown";
   const readyTextColor: string =
-    isReady === true ? "#047857" : isReady === false ? "#b91c1c" : "#6b7280";
+    isReady === true
+      ? "var(--ou-success-text, #047857)"
+      : isReady === false
+        ? "var(--ou-danger-text, #b91c1c)"
+        : "var(--ou-text-muted, #6b7280)";
 
   const pressures: Array<string> = [];
   if (r.hasMemoryPressure) {

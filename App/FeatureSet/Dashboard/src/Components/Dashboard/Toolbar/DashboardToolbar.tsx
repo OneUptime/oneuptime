@@ -296,7 +296,7 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         className="rounded-2xl bg-white border border-gray-200/60"
         style={{
           boxShadow:
-            "0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 1px 4px -1px rgba(0, 0, 0, 0.04)",
+            "var(--ou-card-shadow, 0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 1px 4px -1px rgba(0, 0, 0, 0.04))",
         }}
       >
         {/* Main toolbar row */}

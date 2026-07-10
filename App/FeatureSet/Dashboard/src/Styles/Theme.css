@@ -8,6 +8,7 @@
   --ou-surface-primary: #ffffff;
   --ou-surface-secondary: #f9fafb;
   --ou-surface-tertiary: #f3f4f6;
+  --ou-surface-quaternary: #e5e7eb;
   --ou-border-subtle: #f3f4f6;
   --ou-border-default: #e5e7eb;
   --ou-border-strong: #d1d5db;
@@ -17,6 +18,7 @@
   --ou-text-subtle: #9ca3af;
   --ou-chart-grid: #f1f5f9;
   --ou-chart-tick: #94a3b8;
+  --ou-chart-series-neutral: #64748b;
   --ou-chart-cursor: #d1d5db;
   --ou-chart-track: #eef2f7;
   --ou-chart-marker-ring: #ffffff;
@@ -31,26 +33,37 @@
   --ou-warning-text: #b45309;
   --ou-card-shadow: 0 1px 4px 0 rgb(0 0 0 / 4%),
     0 1px 2px -1px rgb(0 0 0 / 3%);
+  --ou-card-shadow-hover: 0 8px 25px -5px rgb(0 0 0 / 10%),
+    0 4px 10px -6px rgb(0 0 0 / 5%);
+  --ou-card-shadow-selected: 0 4px 12px -2px rgb(59 130 246 / 12%),
+    0 2px 4px -1px rgb(0 0 0 / 4%);
+  --ou-card-shadow-dragging: 0 20px 40px -8px rgb(59 130 246 / 15%),
+    0 8px 16px -4px rgb(0 0 0 / 8%);
+  --ou-shadow-sm: 0 1px 3px rgb(15 23 42 / 8%);
+  --ou-shadow-md: 0 8px 20px -6px rgb(15 23 42 / 18%);
+  --ou-shadow-lg: 0 18px 40px -12px rgb(15 23 42 / 24%);
 }
 
 html.dark {
   color-scheme: dark;
   --ou-background-primary: #0f172a;
-  --ou-surface-primary: #111827;
+  --ou-surface-primary: #172033;
   --ou-surface-secondary: #1e293b;
   --ou-surface-tertiary: #273449;
-  --ou-border-subtle: #1e293b;
-  --ou-border-default: #334155;
-  --ou-border-strong: #475569;
+  --ou-surface-quaternary: #334155;
+  --ou-border-subtle: #334155;
+  --ou-border-default: #475569;
+  --ou-border-strong: #64748b;
   --ou-text-primary: #f8fafc;
   --ou-text-secondary: #e2e8f0;
   --ou-text-muted: #cbd5e1;
   --ou-text-subtle: #94a3b8;
   --ou-chart-grid: #334155;
   --ou-chart-tick: #94a3b8;
+  --ou-chart-series-neutral: #cbd5e1;
   --ou-chart-cursor: #64748b;
   --ou-chart-track: #334155;
-  --ou-chart-marker-ring: #111827;
+  --ou-chart-marker-ring: #172033;
   --ou-flow-mask: rgb(15 23 42 / 72%);
   --ou-accent-soft: #1e1b4b;
   --ou-accent-muted: #312e81;
@@ -60,7 +73,20 @@ html.dark {
   --ou-success-text: #86efac;
   --ou-tool-text: #67e8f9;
   --ou-warning-text: #fcd34d;
-  --ou-card-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  --ou-card-shadow: 0 10px 28px rgb(0 0 0 / 42%),
+    0 0 0 1px rgb(148 163 184 / 10%);
+  --ou-card-shadow-hover: 0 16px 36px -8px rgb(0 0 0 / 58%),
+    0 0 0 1px rgb(148 163 184 / 16%);
+  --ou-card-shadow-selected: 0 10px 30px -8px rgb(59 130 246 / 38%),
+    0 0 0 1px rgb(96 165 250 / 36%);
+  --ou-card-shadow-dragging: 0 24px 48px -10px rgb(0 0 0 / 68%),
+    0 0 0 2px rgb(96 165 250 / 48%);
+  --ou-shadow-sm: 0 2px 6px rgb(0 0 0 / 36%),
+    0 0 0 1px rgb(148 163 184 / 8%);
+  --ou-shadow-md: 0 12px 28px -8px rgb(0 0 0 / 52%),
+    0 0 0 1px rgb(148 163 184 / 10%);
+  --ou-shadow-lg: 0 24px 52px -14px rgb(0 0 0 / 64%),
+    0 0 0 1px rgb(148 163 184 / 12%);
 }
 
 html.dark,
@@ -99,7 +125,12 @@ html.dark :is(
 }
 
 html.dark :is(.bg-gray-50, .bg-slate-50) {
-  background-color: var(--ou-background-primary);
+  background-color: var(--ou-surface-secondary);
+}
+
+/* The app shell uses bg-gray-50 too; keep only the canvas at the deepest tone. */
+html.dark body.bg-gray-50 {
+  background-color: var(--ou-background-primary) !important;
 }
 
 html.dark :is(
@@ -119,7 +150,7 @@ html.dark :is(
 
 html.dark :is(.bg-gray-100, .bg-slate-100, .bg-stone-100),
 html.dark [class~="!bg-gray-100"] {
-  background-color: var(--ou-surface-secondary) !important;
+  background-color: var(--ou-surface-tertiary) !important;
 }
 
 html.dark :is(
@@ -129,25 +160,34 @@ html.dark :is(
   ) {
   background-color: color-mix(
     in srgb,
-    var(--ou-surface-secondary) 82%,
+    var(--ou-surface-tertiary) 82%,
     transparent
   );
 }
 
 html.dark :is(.bg-gray-200, .bg-slate-200) {
-  background-color: var(--ou-surface-tertiary);
+  background-color: var(--ou-surface-quaternary);
 }
 
 html.dark [class~="bg-gray-200/70"] {
   background-color: color-mix(
     in srgb,
-    var(--ou-surface-tertiary) 82%,
+    var(--ou-surface-quaternary) 82%,
     transparent
   );
 }
 
 html.dark :is(.bg-gray-300, .bg-slate-300) {
   background-color: var(--ou-border-strong);
+}
+
+/* Light-theme primary controls use gray-900, which otherwise merges into the canvas. */
+html.dark .bg-gray-900.text-white {
+  background-color: var(--ou-surface-quaternary);
+}
+
+html.dark [class~="bg-gray-900/5"] {
+  background-color: rgb(148 163 184 / 12%);
 }
 
 /* State variants that otherwise flash back to literal light Tailwind colors. */
@@ -175,16 +215,26 @@ html.dark [class~="disabled:bg-gray-100"]:disabled {
 html.dark :is(
     [class~="hover:bg-gray-200"],
     [class*="hover:bg-gray-200/"],
-    [class~="hover:bg-gray-300"],
-    [class~="group-hover:bg-gray-200"],
-    [class~="group-hover:bg-gray-300"]
+    [class~="group-hover:bg-gray-200"]
   ):hover,
 html.dark .group:hover :is(
     [class~="group-hover:bg-gray-200"],
-    [class~="group-hover:bg-gray-300"],
     [class*="group-hover:bg-gray-50/"]
   ) {
-  background-color: var(--ou-border-strong) !important;
+  background-color: var(--ou-surface-quaternary) !important;
+}
+
+html.dark :is(
+    [class~="hover:bg-gray-300"],
+    [class~="group-hover:bg-gray-300"]
+  ):hover,
+html.dark .group:hover [class~="group-hover:bg-gray-300"] {
+  background-color: var(--ou-border-default) !important;
+}
+
+html.dark [class~="hover:bg-gray-800"]:hover,
+html.dark .group:hover [class~="group-hover:bg-gray-900"] {
+  background-color: var(--ou-border-default) !important;
 }
 
 /* Neutral text and placeholders. */
@@ -294,6 +344,10 @@ html.dark :is([class~="ring-black/5"], [class~="ring-black/10"]) {
   --tw-ring-color: rgb(148 163 184 / 18%);
 }
 
+html.dark [class~="ring-gray-900/5"] {
+  --tw-ring-color: rgb(148 163 184 / 20%);
+}
+
 html.dark .ring-white {
   --tw-ring-color: var(--ou-surface-primary);
 }
@@ -318,8 +372,25 @@ html.dark :is(.fill-gray-500, .fill-gray-800) {
   fill: var(--ou-chart-tick);
 }
 
-html.dark :is(.stroke-gray-100, .stroke-gray-500) {
+html.dark .stroke-gray-100 {
   stroke: var(--ou-chart-grid);
+}
+
+html.dark .stroke-gray-500 {
+  stroke: var(--ou-chart-series-neutral);
+}
+
+/* Tailwind's light shadows disappear against dark surfaces. */
+html.dark .shadow-sm {
+  --tw-shadow: var(--ou-shadow-sm);
+}
+
+html.dark :is(.shadow, .shadow-md) {
+  --tw-shadow: var(--ou-shadow-md);
+}
+
+html.dark :is(.shadow-lg, .shadow-xl, .shadow-2xl) {
+  --tw-shadow: var(--ou-shadow-lg);
 }
 
 /* Light gradients become layered dark surfaces. */
@@ -406,7 +477,14 @@ html.dark :is(
 }
 
 /* Semantic light surfaces retain hue without becoming luminous cards. */
-html.dark :is(.bg-red-50, .bg-red-100, [class~="bg-red-50/60"]) {
+html.dark :is(
+    .bg-red-50,
+    .bg-red-100,
+    [class~="bg-red-50/30"],
+    [class~="bg-red-50/40"],
+    [class~="bg-red-50/50"],
+    [class~="bg-red-50/60"]
+  ) {
   background-color: rgb(127 29 29 / 32%);
 }
 
@@ -414,19 +492,31 @@ html.dark :is(.bg-orange-50, .bg-orange-100) {
   background-color: rgb(124 45 18 / 32%);
 }
 
-html.dark :is(.bg-amber-50, .bg-amber-100, [class~="bg-amber-50/60"]) {
+html.dark :is(
+    .bg-amber-50,
+    .bg-amber-100,
+    [class~="bg-amber-50/30"],
+    [class~="bg-amber-50/50"],
+    [class~="bg-amber-50/60"],
+    [class~="bg-amber-50/70"]
+  ) {
   background-color: rgb(120 53 15 / 32%);
 }
 
-html.dark :is(.bg-yellow-50, .bg-yellow-100) {
+html.dark :is(.bg-yellow-50, .bg-yellow-100, [class~="bg-yellow-50/50"]) {
   background-color: rgb(113 63 18 / 32%);
 }
 
-html.dark :is(.bg-green-50, .bg-green-100) {
+html.dark :is(.bg-green-50, .bg-green-100, [class~="bg-green-50/50"]) {
   background-color: rgb(20 83 45 / 32%);
 }
 
-html.dark :is(.bg-emerald-50, .bg-emerald-100, [class~="bg-emerald-50/60"]) {
+html.dark :is(
+    .bg-emerald-50,
+    .bg-emerald-100,
+    [class~="bg-emerald-50/60"],
+    [class~="bg-emerald-50/70"]
+  ) {
   background-color: rgb(6 78 59 / 32%);
 }
 
@@ -438,11 +528,16 @@ html.dark :is(.bg-cyan-50, .bg-cyan-100) {
   background-color: rgb(22 78 99 / 32%);
 }
 
-html.dark :is(.bg-sky-50, .bg-sky-100) {
+html.dark :is(.bg-sky-50, .bg-sky-100, [class~="bg-sky-50/60"]) {
   background-color: rgb(12 74 110 / 32%);
 }
 
-html.dark :is(.bg-blue-50, .bg-blue-100) {
+html.dark :is(
+    .bg-blue-50,
+    .bg-blue-100,
+    [class~="bg-blue-50/40"],
+    [class~="bg-blue-50/50"]
+  ) {
   background-color: rgb(30 64 175 / 28%);
 }
 
@@ -454,7 +549,9 @@ html.dark :is(
     [class~="bg-indigo-50/40"],
     [class~="bg-indigo-50/50"],
     [class~="bg-indigo-50/60"],
-    [class~="bg-indigo-50/70"]
+    [class~="bg-indigo-50/70"],
+    [class~="bg-indigo-100/50"],
+    [class~="bg-indigo-500/5"]
   ) {
   background-color: rgb(49 46 129 / 35%);
 }
@@ -463,15 +560,29 @@ html.dark :is(.bg-violet-50, .bg-violet-100, [class~="bg-violet-50/40"]) {
   background-color: rgb(76 29 149 / 32%);
 }
 
-html.dark :is(.bg-purple-50, .bg-purple-100) {
+html.dark :is(.bg-purple-50, .bg-purple-100, [class~="bg-purple-50/50"]) {
   background-color: rgb(88 28 135 / 32%);
 }
 
-html.dark :is(.bg-rose-50, .bg-rose-100) {
+html.dark :is(.bg-fuchsia-50, .bg-fuchsia-100) {
+  background-color: rgb(112 26 117 / 32%);
+}
+
+html.dark :is(.bg-pink-50, .bg-pink-100) {
+  background-color: rgb(131 24 67 / 32%);
+}
+
+html.dark :is(.bg-rose-50, .bg-rose-100, [class~="bg-rose-50/60"]) {
   background-color: rgb(136 19 55 / 32%);
 }
 
-html.dark :is(.text-red-600, .text-red-700, .text-red-800, .text-red-900) {
+html.dark :is(
+    .text-red-600,
+    .text-red-700,
+    .text-red-800,
+    .text-red-900,
+    [class~="text-red-600/70"]
+  ) {
   color: #fca5a5;
 }
 
@@ -488,7 +599,8 @@ html.dark :is(
     .text-amber-600,
     .text-amber-700,
     .text-amber-800,
-    .text-amber-900
+    .text-amber-900,
+    [class~="text-amber-700/80"]
   ) {
   color: #fcd34d;
 }
@@ -515,7 +627,8 @@ html.dark :is(
     .text-emerald-600,
     .text-emerald-700,
     .text-emerald-800,
-    .text-emerald-900
+    .text-emerald-900,
+    [class~="text-emerald-700/80"]
   ) {
   color: #6ee7b7;
 }
@@ -532,7 +645,8 @@ html.dark :is(
     .text-sky-600,
     .text-sky-700,
     .text-sky-800,
-    .text-sky-900
+    .text-sky-900,
+    [class~="text-sky-700/80"]
   ) {
   color: #7dd3fc;
 }
@@ -550,7 +664,8 @@ html.dark :is(
     .text-indigo-600,
     .text-indigo-700,
     .text-indigo-800,
-    .text-indigo-900
+    .text-indigo-900,
+    [class~="text-indigo-500/80"]
   ) {
   color: #a5b4fc;
 }
@@ -573,11 +688,20 @@ html.dark :is(
   color: #d8b4fe;
 }
 
+html.dark :is(.text-fuchsia-600, .text-fuchsia-700) {
+  color: #e879f9;
+}
+
+html.dark :is(.text-pink-600, .text-pink-700) {
+  color: #f9a8d4;
+}
+
 html.dark :is(
     .text-rose-600,
     .text-rose-700,
     .text-rose-800,
-    .text-rose-900
+    .text-rose-900,
+    [class~="text-rose-700/80"]
   ) {
   color: #fda4af;
 }
@@ -586,6 +710,7 @@ html.dark :is(
     .border-red-100,
     .border-red-200,
     .border-red-300,
+    [class~="border-red-200/60"],
     .ring-red-100,
     .ring-red-200
   ) {
@@ -597,6 +722,7 @@ html.dark :is(
     .border-amber-100,
     .border-amber-200,
     .border-amber-300,
+    [class~="border-amber-200/70"],
     .ring-amber-100,
     .ring-amber-200
   ) {
@@ -615,6 +741,16 @@ html.dark :is(
   ) {
   border-color: rgb(52 211 153 / 42%);
   --tw-ring-color: rgb(52 211 153 / 32%);
+}
+
+html.dark :is(
+    .border-fuchsia-100,
+    .border-pink-100,
+    .ring-fuchsia-200,
+    .ring-pink-200
+  ) {
+  border-color: rgb(232 121 249 / 42%);
+  --tw-ring-color: rgb(244 114 182 / 35%);
 }
 
 html.dark :is(
@@ -919,6 +1055,32 @@ html.dark .ou-select__multi-value {
 
 html.dark .ou-select__multi-value__label {
   color: #c7d2fe !important;
+}
+
+html.dark .ou-select__indicator {
+  color: var(--ou-text-subtle) !important;
+}
+
+html.dark .ou-select__indicator:hover {
+  color: var(--ou-text-primary) !important;
+}
+
+html.dark .ou-select__indicator-separator {
+  background-color: var(--ou-border-default) !important;
+}
+
+html.dark .ou-select__menu-notice {
+  color: var(--ou-text-subtle) !important;
+}
+
+html.dark .ou-select__control--is-focused {
+  border-color: #818cf8 !important;
+  box-shadow: 0 0 0 1px #818cf8 !important;
+}
+
+html.dark .ou-select__control--is-disabled {
+  background-color: var(--ou-surface-secondary) !important;
+  color: var(--ou-text-subtle) !important;
 }
 
 html.dark :is(.react-flow, .react-flow__renderer) {

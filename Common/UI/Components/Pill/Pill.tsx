@@ -1,4 +1,4 @@
-import { Black } from "../../../Types/BrandColors";
+import { Gray500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import Icon, { SizeProp, ThickProp } from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -26,22 +26,32 @@ export interface ComponentProps {
 const Pill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const color: Color = props.color || Gray500;
+  const backgroundColor: string = color.toString();
+
   if (props.isMinimal) {
     return (
-      <span className="relative inline-flex items-center rounded-full border border-gray-300 px-3 py-0.5 text-sm">
+      <span
+        className="relative inline-flex items-center rounded-full border px-3 py-0.5 text-sm"
+        style={{
+          borderColor: "var(--ou-border-strong, #d1d5db)",
+        }}
+      >
         <span className="absolute flex flex-shrink-0 items-center justify-center">
           <span
             className="h-1.5 w-1.5 rounded-full bg-rose-500"
             style={{
-              backgroundColor:
-                props.style?.backgroundColor || props.color
-                  ? props.color.toString()
-                  : Black.toString(),
+              backgroundColor: backgroundColor,
             }}
             aria-hidden="true"
           ></span>
         </span>
-        <span className="ml-3.5 font-medium text-gray-900">{props.text}</span>
+        <span
+          className="ml-3.5 font-medium"
+          style={{ color: "var(--ou-text-primary, #111827)" }}
+        >
+          {props.text}
+        </span>
       </span>
     );
   }
@@ -50,18 +60,16 @@ const Pill: FunctionComponent<ComponentProps> = (
     return (
       <span
         data-testid="pill"
-        className="inline-flex items-center rounded-full p-1 pl-3 pr-3"
+        className="inline-flex items-center rounded-full border p-1 pl-3 pr-3"
         style={{
           // https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 
           color:
-            props.style?.color || Color.shouldUseDarkText(props.color || Black)
+            props.style?.color || Color.shouldUseDarkText(color)
               ? "#000000"
               : "#ffffff",
-          backgroundColor:
-            props.style?.backgroundColor || props.color
-              ? props.color.toString()
-              : Black.toString(),
+          backgroundColor: backgroundColor,
+          borderColor: "var(--ou-border-strong, #d1d5db)",
           fontSize: props.size ? props.size.toString() : PillSize.Normal,
           ...props.style,
         }}

@@ -114,12 +114,24 @@ function getNodeStatus(r: ProxmoxResource): {
 } {
   const isUp: boolean | undefined = r.isUp as boolean | undefined;
   if (isUp === true) {
-    return { text: "Online", dot: "#10b981", textColor: "#047857" };
+    return {
+      text: "Online",
+      dot: "#10b981",
+      textColor: "var(--ou-success-text, #047857)",
+    };
   }
   if (isUp === false) {
-    return { text: "Offline", dot: "#ef4444", textColor: "#b91c1c" };
+    return {
+      text: "Offline",
+      dot: "#ef4444",
+      textColor: "var(--ou-danger-text, #b91c1c)",
+    };
   }
-  return { text: "Unknown", dot: "#9ca3af", textColor: "#6b7280" };
+  return {
+    text: "Unknown",
+    dot: "#9ca3af",
+    textColor: "var(--ou-text-muted, #6b7280)",
+  };
 }
 
 function renderNodeRow(r: ProxmoxResource): ReactElement {

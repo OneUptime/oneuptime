@@ -137,7 +137,7 @@ const Bar: FunctionComponent<ComponentProps> = (
           marginLeft: `${barWidth + 15}px`,
           opacity: barOpacity,
           fontWeight: props.isHighlighted ? 600 : undefined,
-          color: props.isHighlighted ? "#4338ca" : undefined,
+          color: props.isHighlighted ? "var(--ou-link, #4338ca)" : undefined,
         }}
       >
         <BarLabel label={props.bar.label} />
