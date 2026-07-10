@@ -89,6 +89,7 @@ import LLMService, {
 } from "../Utils/LLM/LLMService";
 import LlmProviderService from "./LlmProviderService";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import SentinelIncidentInvestigationRunner from "../Utils/AI/Sentinel/IncidentInvestigationRunner";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
@@ -1237,6 +1238,30 @@ export class Service extends DatabaseService<Model> {
               projectId: createdItem.projectId?.toString(),
               incidentId: createdItem.id?.toString(),
               userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Sentinel (AI SRE): automatically investigate the new incident and post
+         * a cited root cause analysis to the incident timeline + Slack/Teams.
+         * Runs last so the workspace channels already exist, and is gated per
+         * project (opt-in) + requires a configured LLM provider. Read-only.
+         */
+        try {
+          if (createdItem.projectId && createdItem.id) {
+            await SentinelIncidentInvestigationRunner.investigateNewIncident({
+              incidentId: createdItem.id,
+              projectId: createdItem.projectId,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Sentinel incident investigation failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
             } as LogAttributes,
           );
         }

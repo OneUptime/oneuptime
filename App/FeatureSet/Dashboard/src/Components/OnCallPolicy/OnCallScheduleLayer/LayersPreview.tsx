@@ -1,8 +1,14 @@
+import FinalScheduleSummary from "./FinalScheduleSummary";
 import { getColorForUserId } from "./LayerUserColors";
+import TimezoneSelectButton from "./TimezoneSelectButton";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
 import Dictionary from "Common/Types/Dictionary";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
+import ScheduleShiftUtil, {
+  OnCallShift,
+} from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
 import UserOverrideUtil, {
   OverrideEventMeta,
   UserOverrideRecord,
@@ -28,6 +34,14 @@ import React, {
   useMemo,
   useState,
 } from "react";
+
+/*
+ * Forward window (from "now") the textual schedule summary looks ahead over.
+ * The user-override fetch is widened to at least this window too, so the summary
+ * reflects the same substitutions the server would page — not just overrides
+ * that happen to fall in the calendar's currently-visible range.
+ */
+const SUMMARY_WINDOW_DAYS: number = 42;
 
 export interface ComponentProps {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
@@ -97,6 +111,26 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     [],
   );
 
+  /*
+   * The timezone the preview is DISPLAYED in. Distinct from props.timezone,
+   * which is the schedule's operating zone used to COMPUTE shift boundaries and
+   * must never change here. "View as" defaults to the schedule zone (so the grid
+   * and summary show the zone people are actually paged in) but lets a viewer —
+   * e.g. a US operator who configured an India schedule — re-render everything
+   * in their own zone to see how the rotation lands for them. Display only: it
+   * never affects who is on call or when.
+   */
+  const [viewAsTimezone, setViewAsTimezone] = useState<string>(
+    props.timezone || OneUptimeDate.getCurrentTimezone().toString(),
+  );
+
+  // Follow the schedule zone when it changes (e.g. edited on the layers page).
+  useEffect(() => {
+    setViewAsTimezone(
+      props.timezone || OneUptimeDate.getCurrentTimezone().toString(),
+    );
+  }, [props.timezone]);
+
   const [overrides, setOverrides] = useState<
     Array<OnCallDutyPolicyUserOverride>
   >([]);
@@ -149,6 +183,26 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
     let isCancelled: boolean = false;
 
+    /*
+     * Fetch overrides overlapping BOTH the visible calendar range AND the
+     * summary's forward window [now, now + SUMMARY_WINDOW_DAYS]. Widening it to
+     * the summary window means a substitution that lands weeks ahead is applied
+     * to the "upcoming hand-offs" summary too, instead of only appearing once
+     * the user navigates the calendar to that week (which previously made the
+     * summary contradict the calendar and the actual paging).
+     */
+    const summaryNow: Date = OneUptimeDate.getCurrentDate();
+    const summaryEnd: Date = OneUptimeDate.addRemoveDays(
+      summaryNow,
+      SUMMARY_WINDOW_DAYS,
+    );
+    const fetchStart: Date = OneUptimeDate.isBefore(startTime, summaryNow)
+      ? startTime
+      : summaryNow;
+    const fetchEnd: Date = OneUptimeDate.isAfter(endTime, summaryEnd)
+      ? endTime
+      : summaryEnd;
+
     const fetchOverrides: () => Promise<void> = async (): Promise<void> => {
       try {
         const result: ListResult<OnCallDutyPolicyUserOverride> =
@@ -156,8 +210,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
             modelType: OnCallDutyPolicyUserOverride,
             query: {
               projectId: ProjectUtil.getCurrentProjectId()!,
-              startsAt: new LessThanOrEqual<Date>(endTime),
-              endsAt: new GreaterThanOrEqual<Date>(startTime),
+              startsAt: new LessThanOrEqual<Date>(fetchEnd),
+              endsAt: new GreaterThanOrEqual<Date>(fetchStart),
               onCallDutyPolicyId: new IsNull(),
             },
             limit: LIMIT_PER_PROJECT,
@@ -263,10 +317,13 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     return result;
   }, [scheduleUsersById, overrides, overrideUserInfo]);
 
-  useEffect(() => {
-    const layerUtil: LayerUtil = new LayerUtil();
+  /*
+   * Build the LayerProps array once from the current layers/users. Shared by
+   * both the calendar (visible range) and the textual summary (a fixed forward
+   * window), so the two are always computed from identical inputs.
+   */
+  const buildLayerProps: () => Array<LayerProps> = (): Array<LayerProps> => {
     const layerProps: Array<LayerProps> = [];
-
     for (const layer of props.layers) {
       const layerUsers: Array<OnCallDutyPolicyScheduleLayerUser> =
         props.allLayerUsers[layer.id?.toString() || ""] || [];
@@ -284,6 +341,64 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         timezone: props.timezone,
       });
     }
+    return layerProps;
+  };
+
+  const overrideRecords: Array<UserOverrideRecord> = useMemo(() => {
+    return overrides.map(
+      (o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
+        return {
+          overrideUserId: o.overrideUserId?.toString() || "",
+          routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
+          startsAt: o.startsAt!,
+          endsAt: o.endsAt!,
+          onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
+        };
+      },
+    );
+  }, [overrides]);
+
+  /*
+   * The combined-schedule shifts for the summary. Computed over a fixed forward
+   * window from "now" (independent of where the user has navigated the calendar)
+   * so "on call now / up next / upcoming hand-offs" stays stable and meaningful.
+   * Uses the same LayerUtil + override application as the calendar, so the
+   * summary never contradicts the grid below it.
+   */
+  const summaryData: {
+    shifts: Array<OnCallShift>;
+    now: Date;
+    windowEnd: Date;
+  } = useMemo(() => {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const windowEnd: Date = OneUptimeDate.addRemoveDays(
+      now,
+      SUMMARY_WINDOW_DAYS,
+    );
+
+    let events: Array<CalendarEvent> = new LayerUtil().getMultiLayerEvents({
+      calendarStartDate: now,
+      calendarEndDate: windowEnd,
+      layers: buildLayerProps(),
+    });
+
+    if (overrideRecords.length > 0) {
+      events = UserOverrideUtil.applyOverridesToEvents({
+        events,
+        overrides: overrideRecords,
+      });
+    }
+
+    return {
+      shifts: ScheduleShiftUtil.groupEventsIntoShifts(events),
+      now,
+      windowEnd,
+    };
+  }, [props.layers, props.allLayerUsers, props.timezone, overrideRecords]);
+
+  useEffect(() => {
+    const layerUtil: LayerUtil = new LayerUtil();
+    const layerProps: Array<LayerProps> = buildLayerProps();
 
     let events: Array<CalendarEvent> = layerUtil.getMultiLayerEvents({
       calendarEndDate: endTime,
@@ -291,19 +406,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
       layers: layerProps,
     });
 
-    if (overrides.length > 0) {
-      const overrideRecords: Array<UserOverrideRecord> = overrides.map(
-        (o: OnCallDutyPolicyUserOverride): UserOverrideRecord => {
-          return {
-            overrideUserId: o.overrideUserId?.toString() || "",
-            routeAlertsToUserId: o.routeAlertsToUserId?.toString() || "",
-            startsAt: o.startsAt!,
-            endsAt: o.endsAt!,
-            onCallDutyPolicyId: o.onCallDutyPolicyId?.toString() || null,
-          };
-        },
-      );
-
+    if (overrideRecords.length > 0) {
       events = UserOverrideUtil.applyOverridesToEvents({
         events,
         overrides: overrideRecords,
@@ -344,10 +447,53 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     props.timezone,
     startTime,
     endTime,
-    overrides,
+    overrideRecords,
     overrideUserInfo,
     scheduleUsersById,
   ]);
+
+  /*
+   * Shift each computed instant into the VIEW timezone for the grid. The
+   * calendar (react-big-calendar, browser-local localizer) has no timezone
+   * concept, so we hand it Dates whose browser-local wall-clock equals the
+   * instant's wall-clock in viewAsTimezone — the same trick the datetime input
+   * uses (getLocalDateFromWallClockInTimezone). Computation stays in real UTC
+   * anchored to props.timezone; only the display Dates move.
+   */
+  const displayEvents: Array<CalendarEvent> = useMemo(() => {
+    return calendarEvents.map((event: CalendarEvent) => {
+      return {
+        ...event,
+        start: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+          event.start,
+          viewAsTimezone,
+        ),
+        end: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+          event.end,
+          viewAsTimezone,
+        ),
+      };
+    });
+  }, [calendarEvents, viewAsTimezone]);
+
+  // "now" shifted into the view zone so the grid opens on that zone's today.
+  const displayDefaultDate: Date = useMemo(() => {
+    return OneUptimeDate.getLocalDateFromWallClockInTimezone(
+      OneUptimeDate.getCurrentDate(),
+      viewAsTimezone,
+    );
+  }, [viewAsTimezone]);
+
+  /*
+   * Explain which zone the grid/summary below are rendered in, and — when the
+   * viewer has switched away from the schedule's own zone — that these times are
+   * for reference only and not the zone people are actually paged in.
+   */
+  const viewNote: string = props.timezone
+    ? viewAsTimezone === props.timezone
+      ? `Times below are shown in the schedule's timezone (${props.timezone}) — the zone people are actually paged in.`
+      : `Viewing in ${viewAsTimezone}. This schedule is configured and paged in ${props.timezone}, so the times below are for your reference only.`
+    : `Viewing in ${viewAsTimezone}. This schedule has no timezone set, so it is paged in the server's local time.`;
 
   const hasActiveOverrides: boolean = overrides.length > 0;
 
@@ -364,6 +510,20 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
               : "Here is a preview of who is on call and when. This is based on your local timezone - " +
                 OneUptimeDate.getCurrentTimezoneString()
           }
+        />
+      )}
+
+      {/*
+       * Textual "who is on call now / next / upcoming" summary of the combined
+       * schedule, above the calendar grid it is derived from.
+       */}
+      {uniqueUsers.length > 0 && (
+        <FinalScheduleSummary
+          shifts={summaryData.shifts}
+          now={summaryData.now}
+          windowEnd={summaryData.windowEnd}
+          timezone={viewAsTimezone}
+          userById={{ ...scheduleUsersById, ...overrideUserInfo }}
         />
       )}
 
@@ -410,11 +570,53 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         person actually paged by a given policy may differ.
       </div>
 
+      {/* View-as timezone bubble + note above the calendar grid. */}
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            View as
+          </span>
+          <TimezoneSelectButton
+            value={viewAsTimezone}
+            icon={IconProp.Clock}
+            modalTitle="View schedule in timezone"
+            modalDescription="Change the timezone this preview is shown in — for example, to see how an India schedule lands in your US working hours. This only changes what you see; it does not affect who is on call or when."
+            submitButtonText="Apply"
+            dataTestId="view-as-timezone-button"
+            onChange={(timezone: string | undefined) => {
+              if (timezone) {
+                setViewAsTimezone(timezone);
+              }
+            }}
+          />
+        </div>
+        <p className="text-xs text-gray-500 sm:max-w-md sm:text-right">
+          {viewNote}
+        </p>
+      </div>
+
       <Calendar
-        events={calendarEvents}
+        events={displayEvents}
+        defaultDate={displayDefaultDate}
         onRangeChange={(startEndTime: StartAndEndTime) => {
-          setStartTime(startEndTime.startTime);
-          setEndTime(startEndTime.endTime);
+          /*
+           * react-big-calendar reports the visible range in the grid's
+           * (view-zone) wall-clock rendered as browser-local Dates. Convert it
+           * back to real instants — the inverse of the display shift — so event
+           * computation and the override fetch stay in true UTC.
+           */
+          setStartTime(
+            OneUptimeDate.getInstantFromLocalWallClockInTimezone(
+              startEndTime.startTime,
+              viewAsTimezone,
+            ),
+          );
+          setEndTime(
+            OneUptimeDate.getInstantFromLocalWallClockInTimezone(
+              startEndTime.endTime,
+              viewAsTimezone,
+            ),
+          );
         }}
       />
     </div>

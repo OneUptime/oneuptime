@@ -38,10 +38,10 @@ export interface Chart {
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
   /**
-   * Optional control panel rendered between the chart title and the
-   * chart body. Used by per-series-grouped metric charts to surface a
-   * search box, per-series toggles, and a "show all" escape hatch so
-   * the chart stays usable at thousands of unique label combinations.
+   * Optional control panel rendered directly below the chart body. Used by
+   * per-series-grouped metric charts to surface a search box, a sort
+   * control, per-series toggles, and a "show all" escape hatch so the chart
+   * stays usable at thousands of unique label combinations.
    */
   seriesControls?: ReactElement | undefined;
 }
@@ -308,10 +308,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   {chart.description}
                 </p>
               )}
-              {chart.seriesControls ? chart.seriesControls : null}
               <div className="flex-1 flex flex-col min-h-80">
                 {getChartContent(chart, index)}
               </div>
+              {chart.seriesControls ? chart.seriesControls : null}
             </div>
           );
         })}

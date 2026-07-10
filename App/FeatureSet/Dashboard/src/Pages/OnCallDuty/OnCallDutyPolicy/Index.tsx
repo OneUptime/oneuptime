@@ -7,8 +7,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import OnCallDutyPolicyFeedElement from "../../../Components/OnCallPolicy/OnCallDutyPolicyFeed";
+import OnCallPolicySummary from "../../../Components/OnCallPolicy/OnCallPolicySummary";
 
 const OnCallDutyPolicyView: FunctionComponent<
   PageComponentProps
@@ -117,6 +119,12 @@ const OnCallDutyPolicyView: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+
+      {/* At-a-glance overview of how this policy escalates. */}
+      <OnCallPolicySummary
+        onCallDutyPolicyId={modelId}
+        projectId={ProjectUtil.getCurrentProjectId()!}
       />
 
       <OnCallDutyPolicyFeedElement onCallDutyPolicyId={modelId} />

@@ -28,6 +28,12 @@ import {
   ResolveIncidentTool,
 } from "./IncidentWriteTools";
 import { AcknowledgeAlertTool, ResolveAlertTool } from "./AlertWriteTools";
+import {
+  PageOnCallPolicyTool,
+  RunRunbookTool,
+  PostIncidentStatusUpdateTool,
+  ChangeIncidentSeverityTool,
+} from "./SentinelActionTools";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 
 export interface ToolCallOutcome {
@@ -70,6 +76,11 @@ export default class AIToolbox {
     ResolveIncidentTool,
     AcknowledgeAlertTool,
     ResolveAlertTool,
+    // Sentinel action belt (Phase 0) — operate the platform, not just answer.
+    PageOnCallPolicyTool,
+    RunRunbookTool,
+    PostIncidentStatusUpdateTool,
+    ChangeIncidentSeverityTool,
   ];
 
   public static getTools(): Array<ObservabilityTool> {

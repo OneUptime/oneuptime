@@ -1,6 +1,7 @@
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
+import { JSONObject } from "../../../../Types/JSON";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import logger from "../../Logger";
@@ -32,6 +33,29 @@ export interface ObservabilityAssistantPriorTurn {
   content: string;
 }
 
+/*
+ * A single "thinking step" emitted live as the agent loop runs, so callers can
+ * narrate the investigation in real time ("Reading trace ✓ 0.4s"). This is the
+ * step-level narration the OneUptime UI renders by polling AIRunEvent rows.
+ */
+export type ObservabilityAssistantStepType =
+  | "llm_started"
+  | "llm_completed"
+  | "tool_started"
+  | "tool_completed"
+  | "tool_failed";
+
+export interface ObservabilityAssistantStep {
+  type: ObservabilityAssistantStepType;
+  toolName?: string | undefined;
+  toolArguments?: JSONObject | undefined;
+  rowCount?: number | undefined;
+  durationMs?: number | undefined;
+  citationId?: string | undefined;
+  totalTokens?: number | undefined;
+  errorMessage?: string | undefined;
+}
+
 export interface ObservabilityAssistantRequest {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
@@ -44,6 +68,29 @@ export interface ObservabilityAssistantRequest {
   llmProviderId?: ObjectID | undefined;
   // Label recorded on LlmLog, e.g. "Slack ChatOps".
   feature: string;
+  /*
+   * Extra instructions appended to the base observability system prompt — used
+   * to give an autonomous run (e.g. Sentinel incident investigation) a distinct
+   * persona and task framing while keeping the same hard rules (citations, no
+   * fabrication, read-only). The base prompt's grounding rules always win.
+   */
+  systemInstructions?: string | undefined;
+  /*
+   * Optional budget overrides. Autonomous investigations get more room than an
+   * interactive chat-ops answer, which must return in a single quick message.
+   * Omitted values fall back to the interactive defaults.
+   */
+  maxLlmCalls?: number | undefined;
+  maxToolCalls?: number | undefined;
+  maxWallClockMs?: number | undefined;
+  maxOutputTokens?: number | undefined;
+  /*
+   * Optional live-narration hook, fired for each LLM/tool step as the loop runs.
+   * Used by autonomous runs to persist a per-step AIRunEvent trail so the UI can
+   * "watch it think". Best-effort — implementations must not throw; a slow or
+   * failing handler should not break the run.
+   */
+  onStep?: ((step: ObservabilityAssistantStep) => Promise<void>) | undefined;
 }
 
 export interface ObservabilityAssistantResult {
@@ -70,19 +117,50 @@ export default class ObservabilityAssistant {
   ): Promise<ObservabilityAssistantResult> {
     const startedAtMs: number = Date.now();
 
+    const maxLlmCalls: number = request.maxLlmCalls ?? MAX_LLM_CALLS;
+    const maxToolCalls: number = request.maxToolCalls ?? MAX_TOOL_CALLS;
+    const maxWallClockMs: number = request.maxWallClockMs ?? MAX_WALL_CLOCK_MS;
+    const maxOutputTokens: number =
+      request.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
+
+    // Best-effort live-narration emitter — never throws into the loop.
+    const emitStep: (
+      step: ObservabilityAssistantStep,
+    ) => Promise<void> = async (
+      step: ObservabilityAssistantStep,
+    ): Promise<void> => {
+      if (!request.onStep) {
+        return;
+      }
+      try {
+        await request.onStep(step);
+      } catch (err) {
+        logger.error(`ObservabilityAssistant onStep failed: ${err}`);
+      }
+    };
+
     const toolContext: ToolContext = {
       projectId: request.projectId,
       props: request.props,
     };
 
+    let systemPromptContent: string = buildObservabilityChatSystemPrompt({
+      currentTime: OneUptimeDate.getCurrentDate(),
+      /*
+       * Slack/Teams and autonomous investigations have no approval UI, so this
+       * surface stays strictly read-only.
+       */
+      permissionMode: AIChatPermissionMode.ReadOnly,
+    });
+
+    if (request.systemInstructions) {
+      systemPromptContent += `\n\n${request.systemInstructions}`;
+    }
+
     const messages: Array<LLMMessage> = [
       {
         role: "system",
-        content: buildObservabilityChatSystemPrompt({
-          currentTime: OneUptimeDate.getCurrentDate(),
-          // Slack/Teams have no approval UI, so this surface stays read-only.
-          permissionMode: AIChatPermissionMode.ReadOnly,
-        }),
+        content: systemPromptContent,
       },
     ];
 
@@ -104,9 +182,9 @@ export default class ObservabilityAssistant {
 
     while (true) {
       const budgetExhausted: boolean =
-        llmCallCount >= MAX_LLM_CALLS - 1 ||
-        toolCallCount >= MAX_TOOL_CALLS ||
-        Date.now() - startedAtMs >= MAX_WALL_CLOCK_MS;
+        llmCallCount >= maxLlmCalls - 1 ||
+        toolCallCount >= maxToolCalls ||
+        Date.now() - startedAtMs >= maxWallClockMs;
 
       if (budgetExhausted) {
         messages.push({
@@ -115,6 +193,8 @@ export default class ObservabilityAssistant {
             "Your query budget for this turn is exhausted. Answer now with the findings so far, clearly stating what you could and could not verify. Do not request more tools.",
         });
       }
+
+      await emitStep({ type: "llm_started" });
 
       const response: AILogResponse = await AIService.executeWithLogging({
         projectId: request.projectId,
@@ -125,7 +205,7 @@ export default class ObservabilityAssistant {
         tools: budgetExhausted
           ? undefined
           : AIToolbox.getLlmToolDefinitions(AIChatPermissionMode.ReadOnly),
-        maxTokens: MAX_OUTPUT_TOKENS,
+        maxTokens: maxOutputTokens,
         temperature: TEMPERATURE,
         // Chat-ops content is per-user — do not persist previews to LlmLog.
         storeContentPreviews: false,
@@ -133,6 +213,11 @@ export default class ObservabilityAssistant {
 
       llmCallCount++;
       totalTokens += response.llmLog.totalTokens || 0;
+
+      await emitStep({
+        type: "llm_completed",
+        totalTokens: response.llmLog.totalTokens || 0,
+      });
 
       if (!providerName) {
         providerName = response.llmLog.llmProviderName;
@@ -152,8 +237,8 @@ export default class ObservabilityAssistant {
 
         for (const toolCall of response.toolCalls) {
           const overBudget: boolean =
-            toolCallCount >= MAX_TOOL_CALLS ||
-            Date.now() - startedAtMs >= MAX_WALL_CLOCK_MS;
+            toolCallCount >= maxToolCalls ||
+            Date.now() - startedAtMs >= maxWallClockMs;
 
           if (overBudget) {
             messages.push({
@@ -176,6 +261,14 @@ export default class ObservabilityAssistant {
             continue;
           }
 
+          const toolStartedAtMs: number = Date.now();
+
+          await emitStep({
+            type: "tool_started",
+            toolName: toolCall.name,
+            toolArguments: toolCall.arguments,
+          });
+
           const outcome: ToolCallOutcome = await AIToolbox.executeTool({
             name: toolCall.name,
             args: toolCall.arguments,
@@ -183,6 +276,13 @@ export default class ObservabilityAssistant {
           });
 
           if (!outcome.success || !outcome.result) {
+            await emitStep({
+              type: "tool_failed",
+              toolName: toolCall.name,
+              durationMs: Date.now() - toolStartedAtMs,
+              errorMessage: outcome.errorMessage || outcome.textForLlm,
+            });
+
             messages.push({
               role: "tool",
               toolCallId: toolCall.id,
@@ -200,6 +300,14 @@ export default class ObservabilityAssistant {
             queryArguments: toolCall.arguments,
             rowCount: outcome.result.rowCount,
             target: outcome.result.citationTarget,
+          });
+
+          await emitStep({
+            type: "tool_completed",
+            toolName: toolCall.name,
+            durationMs: Date.now() - toolStartedAtMs,
+            rowCount: outcome.result.rowCount,
+            citationId: citationId,
           });
 
           const escapedText: string = escapeToolResultContent(

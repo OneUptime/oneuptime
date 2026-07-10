@@ -13,6 +13,8 @@ import PageSEOConfig, { PageSEOData } from "./PageSEO";
 import Pricing, { PricingPlans } from "./Pricing";
 import ProductCompare, {
   Product,
+  PricingTier,
+  UseCaseComparison,
   getProductCompareSlugs,
 } from "./ProductCompare";
 import { JSONObject } from "Common/Types/JSON";
@@ -402,6 +404,51 @@ export function generateCompareMarkdown(
           `| ${tableCell(item.title)} (${tableCell(item.description)}) | ${tableCell(formatCompareValue(item.productColumn))} | ${tableCell(formatCompareValue(item.oneuptimeColumn))} |`,
         );
       }
+    }
+  }
+
+  if (product.competitorPricingTiers && product.competitorPricingTiers.length) {
+    lines.push("");
+    lines.push(`## ${product.productName} Pricing`);
+    for (const tier of product.competitorPricingTiers as Array<PricingTier>) {
+      lines.push("");
+      lines.push(`### ${tier.name} — ${tier.price} ${tier.period}`);
+      if (tier.features && tier.features.length) {
+        lines.push("");
+        lines.push("Includes:");
+        for (const feature of tier.features) {
+          lines.push(`- ${feature}`);
+        }
+      }
+      if (tier.limitations && tier.limitations.length) {
+        lines.push("");
+        lines.push("Limitations:");
+        for (const limitation of tier.limitations) {
+          lines.push(`- ${limitation}`);
+        }
+      }
+    }
+  }
+
+  if (product.useCases && product.useCases.length) {
+    lines.push("");
+    lines.push("## Real-World Cost Comparison");
+    lines.push("");
+    lines.push(`| Scenario | ${tableCell(product.productName)} | OneUptime |`);
+    lines.push("|---|---|---|");
+    for (const useCase of product.useCases as Array<UseCaseComparison>) {
+      lines.push(
+        `| ${tableCell(useCase.scenario)} | ${tableCell(`${useCase.competitorSolution} — ${useCase.competitorCost}`)} | ${tableCell(`${useCase.oneuptimeSolution} — ${useCase.oneuptimeCost}`)} |`,
+      );
+    }
+  }
+
+  if (product.migrationBenefits && product.migrationBenefits.length) {
+    lines.push("");
+    lines.push(`## Migrating from ${product.productName}`);
+    lines.push("");
+    for (const benefit of product.migrationBenefits) {
+      lines.push(`- ${benefit}`);
     }
   }
 

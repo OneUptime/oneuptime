@@ -287,6 +287,52 @@ export default class OneUptimeDate {
   }
 
   /**
+   * Format a single instant as a human-readable "weekday, month day, time"
+   * string resolved in a specific IANA timezone (e.g. "America/New_York").
+   *
+   * Used by the on-call schedule summaries to render each shift's start / end in
+   * the SAME zone the rotation engine schedules people in, with a DST-aware zone
+   * abbreviation appended so the reader is never in doubt which wall clock the
+   * time refers to. When `timezone` is omitted the instant is formatted in the
+   * viewer's local zone (matching the rest of the local-time UI).
+   */
+  public static getDateAsFormattedStringInTimezone(data: {
+    date: Date | string;
+    timezone?: string | undefined;
+    onlyShowDate?: boolean | undefined;
+    showWeekday?: boolean | undefined;
+    use12HourFormat?: boolean | undefined;
+  }): string {
+    const date: Date = this.fromString(data.date);
+    const use12HourFormat: boolean =
+      data.use12HourFormat ?? this.getUserPrefers12HourFormat();
+
+    const timePart: string = use12HourFormat ? "h:mm A" : "HH:mm";
+    const datePart: string = data.showWeekday
+      ? "ddd, MMM D, YYYY"
+      : "MMM D, YYYY";
+    const formatString: string = data.onlyShowDate
+      ? datePart
+      : `${datePart}, ${timePart}`;
+
+    if (!data.timezone) {
+      const local: moment.Moment = moment(date).local();
+      return (
+        local.format(formatString) +
+        (data.onlyShowDate ? "" : " " + this.getCurrentTimezoneString())
+      ).trim();
+    }
+
+    const zoned: moment.Moment = moment(date).tz(data.timezone);
+    return (
+      zoned.format(formatString) +
+      (data.onlyShowDate
+        ? ""
+        : " " + this.getZoneAbbrByTimezone(data.timezone as Timezone, date))
+    ).trim();
+  }
+
+  /**
    * Reinterpret the wall-clock components of `date` — read in the process /
    * browser local zone — as the SAME wall-clock in `timezone`, and return that
    * instant. Used to store a time the user typed for the schedule's timezone

@@ -9,6 +9,7 @@ import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
+import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -4098,6 +4099,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
+
+    // Sentinel — live incident investigation panel data
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

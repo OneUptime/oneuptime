@@ -89,6 +89,7 @@ import IncidentSettingsReminderRules from "../Pages/Incidents/Settings/IncidentR
 import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
 
 import IncidentSettingsMore from "../Pages/Incidents/Settings/IncidentMoreSettings";
+import IncidentSettingsAI from "../Pages/Incidents/Settings/IncidentAISettings";
 
 // Incident Episode Pages
 import IncidentEpisodes from "../Pages/Incidents/Episodes";
@@ -466,6 +467,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             <IncidentSettingsMore
               {...props}
               pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_MORE] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_AI] || ""}
+          element={
+            <IncidentSettingsAI
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route}
             />
           }
         />

@@ -68,6 +68,7 @@ import AlertSettingsPrivacyRules from "../Pages/Alerts/Settings/AlertPrivacyRule
 import AlertSettingsLabelRules from "../Pages/Alerts/Settings/AlertLabelRules";
 
 import AlertSettingsMore from "../Pages/Alerts/Settings/AlertMoreSettings";
+import AlertSettingsAI from "../Pages/Alerts/Settings/AlertAISettings";
 
 // Episode Pages
 import Episodes from "../Pages/Alerts/Episodes";
@@ -320,6 +321,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <AlertSettingsMore
               {...props}
               pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_MORE] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_AI] || ""}
+          element={
+            <AlertSettingsAI
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_AI] as Route}
             />
           }
         />

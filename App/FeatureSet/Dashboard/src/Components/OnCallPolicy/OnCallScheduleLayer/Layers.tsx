@@ -1,5 +1,6 @@
 import LayerCard from "./LayerCard";
 import LayersPreview from "./LayersPreview";
+import TimezoneSelectButton from "./TimezoneSelectButton";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -55,6 +56,9 @@ const Layers: FunctionComponent<ComponentProps> = (
   const [scheduleTimezone, setScheduleTimezone] = React.useState<
     string | undefined
   >(undefined);
+
+  const [isSavingTimezone, setIsSavingTimezone] =
+    React.useState<boolean>(false);
 
   const [isAddButtonLoading, setIsAddButtonLoading] =
     React.useState<boolean>(false);
@@ -491,6 +495,86 @@ const Layers: FunctionComponent<ComponentProps> = (
     );
   };
 
+  type SaveScheduleTimezoneFunction = (
+    timezone: string | undefined,
+  ) => Promise<void>;
+
+  /*
+   * The schedule's timezone lives on the schedule model but is edited here, next
+   * to the layers whose rotation-start / hand-off / restriction times it governs
+   * — so the zone and the times it interprets are configured in one place. We
+   * update local state optimistically so the layer editors and previews
+   * re-anchor immediately, and roll back if the save fails.
+   */
+  const saveScheduleTimezone: SaveScheduleTimezoneFunction = async (
+    timezone: string | undefined,
+  ): Promise<void> => {
+    const previous: string | undefined = scheduleTimezone;
+
+    if (timezone === previous) {
+      return;
+    }
+
+    setScheduleTimezone(timezone);
+    setIsSavingTimezone(true);
+    setError("");
+
+    try {
+      await ModelAPI.updateById({
+        modelType: OnCallDutyPolicySchedule,
+        id: props.onCallDutyPolicyScheduleId,
+        data: {
+          timezone: timezone || null,
+        },
+      });
+    } catch (err) {
+      setScheduleTimezone(previous);
+      setError(API.getFriendlyMessage(err));
+    }
+
+    setIsSavingTimezone(false);
+  };
+
+  const timezoneCard: GetReactElementFunction = (): ReactElement => {
+    return (
+      <div className="mb-5">
+        <Card
+          title="Schedule timezone"
+          description={
+            "Every layer in this schedule — rotation start, hand-off and active-hour restrictions — is entered and enforced in this timezone."
+          }
+        >
+          <div className="flex items-center gap-3">
+            <TimezoneSelectButton
+              value={scheduleTimezone}
+              saving={isSavingTimezone}
+              icon={IconProp.Globe}
+              placeholder="Not set — using server local time"
+              modalTitle="Set schedule timezone"
+              modalDescription="All rotation start, hand-off and active-hour times in this schedule are interpreted in this timezone. Changing it re-interprets the existing times in the new zone."
+              submitButtonText="Save timezone"
+              dataTestId="schedule-timezone-button"
+              onChange={(timezone: string | undefined) => {
+                saveScheduleTimezone(timezone).catch((err: Error) => {
+                  setError(API.getFriendlyMessage(err));
+                });
+              }}
+            />
+            {scheduleTimezone ? (
+              <span className="text-xs text-gray-500">
+                Click to change. Everything below is in this zone.
+              </span>
+            ) : (
+              <span className="text-xs text-amber-600">
+                No timezone set yet — click to choose one.
+              </span>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
   if (isLoading) {
     return <ComponentLoader />;
   }
@@ -502,6 +586,7 @@ const Layers: FunctionComponent<ComponentProps> = (
   if (layers.length === 0) {
     return (
       <div>
+        {timezoneCard()}
         <EmptyState
           footer={addLayerButton()}
           showSolidBackground={false}
@@ -518,6 +603,8 @@ const Layers: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      {timezoneCard()}
+
       {/* Section header */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>

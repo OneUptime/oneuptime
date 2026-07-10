@@ -119,6 +119,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
+            title: "AI",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
+        },
+        {
+          link: {
             title: "Incident State",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.INCIDENTS_SETTINGS_STATE] as Route,
