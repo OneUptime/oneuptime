@@ -263,15 +263,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           },
           icon: IconProp.Settings,
         },
-        {
-          link: {
-            title: "AI",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
-            ),
-          },
-          icon: IconProp.Sparkles,
-        },
       ],
     },
   ];
