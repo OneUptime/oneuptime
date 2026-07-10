@@ -71,8 +71,8 @@ const nodeTypes: NodeTypes = {
 
 const edgeStyle: React.CSSProperties = {
   strokeWidth: "2px",
-  stroke: "#94a3b8",
-  color: "#94a3b8",
+  stroke: "var(--ou-chart-tick, #94a3b8)",
+  color: "var(--ou-chart-tick, #94a3b8)",
 };
 
 const selectedEdgeStyle: React.CSSProperties = {
@@ -411,31 +411,33 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         minHeight: "600px",
         borderRadius: "8px",
         overflow: "hidden",
-        border: "1px solid #e2e8f0",
+        border: "1px solid var(--ou-border-default, #e2e8f0)",
       }}
     >
       <style>
         {`
           .react-flow__minimap {
             border-radius: 8px !important;
-            border: 1px solid #e2e8f0 !important;
+            border: 1px solid var(--ou-border-default, #e2e8f0) !important;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07) !important;
             overflow: hidden !important;
-            background: #ffffff !important;
+            background: var(--ou-surface-primary, #ffffff) !important;
           }
           .react-flow__controls {
             border-radius: 8px !important;
-            border: 1px solid #e2e8f0 !important;
+            border: 1px solid var(--ou-border-default, #e2e8f0) !important;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07) !important;
             overflow: hidden !important;
           }
           .react-flow__controls-button {
-            border-bottom: 1px solid #f1f5f9 !important;
+            border-bottom: 1px solid var(--ou-border-subtle, #f1f5f9) !important;
+            background: var(--ou-surface-primary, #ffffff) !important;
+            color: var(--ou-text-secondary, #475569) !important;
             width: 32px !important;
             height: 32px !important;
           }
           .react-flow__controls-button:hover {
-            background: #f8fafc !important;
+            background: var(--ou-surface-secondary, #f8fafc) !important;
           }
           .react-flow__controls-button svg {
             max-width: 14px !important;
@@ -507,9 +509,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             }
             return "#6366f1";
           }}
-          maskColor="rgba(241, 245, 249, 0.7)"
+          maskColor="var(--ou-flow-mask, rgba(241, 245, 249, 0.7))"
           style={{
-            backgroundColor: "#ffffff",
+            backgroundColor: "var(--ou-surface-primary, #ffffff)",
           }}
         />
         <Controls />
@@ -517,7 +519,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           variant={BackgroundVariant.Dots}
           gap={20}
           size={1}
-          color="#cbd5e1"
+          color="var(--ou-chart-grid, #cbd5e1)"
         />
       </ReactFlow>
 

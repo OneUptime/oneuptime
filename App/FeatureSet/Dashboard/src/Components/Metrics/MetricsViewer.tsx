@@ -282,6 +282,12 @@ interface EntityScopeFilter {
 
 interface Props {
   serviceIds?: Array<ObjectID> | undefined;
+  /*
+   * Restrict the service badges rendered in each row. This is separate from
+   * serviceIds because some legacy entity pages use serviceIds with an ID
+   * that does not belong to a Service.
+   */
+  serviceIdsToDisplay?: Array<ObjectID> | undefined;
   attributeFilters?: Record<string, string> | undefined;
   attributeFilterDisplayKeys?: Record<string, string> | undefined;
   /*
@@ -1288,6 +1294,7 @@ const MetricsViewer: FunctionComponent<Props> = (
             sparklinePoints={sparklineData[name]}
             sparklineLoading={sparklineLoading}
             lastValue={sparklineLastValue[name]}
+            serviceIds={props.serviceIdsToDisplay}
             onClick={() => {
               handleRowClick(metric);
             }}

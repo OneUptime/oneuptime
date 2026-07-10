@@ -1,4 +1,4 @@
-import Button, { ButtonStyleType } from "../Button/Button";
+import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
 import Icon, { IconType, SizeProp, ThickProp } from "../Icon/Icon";
 import Loader, { LoaderType } from "../Loader/Loader";
@@ -11,6 +11,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useRef,
 } from "react";
 
@@ -56,162 +57,253 @@ const Modal: FunctionComponent<ComponentProps> = (
   const translatedCloseButtonText: string | undefined = translateString(
     props.closeButtonText,
   );
+  const translatedCloseLabel: string = translateString("Close") || "Close";
   const modalRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const previouslyFocusedElementRef: React.MutableRefObject<HTMLElement | null> =
+    useRef<HTMLElement | null>(
+      typeof document !== "undefined" &&
+        document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null,
+    );
+  const onCloseRef: React.MutableRefObject<(() => void) | undefined> = useRef<
+    (() => void) | undefined
+  >(props.onClose);
+  const titleId: string = useId();
+  const descriptionId: string = useId();
 
-  // Handle Escape key to close modal
   useEffect(() => {
-    const handleEscapeKey: (event: KeyboardEvent) => void = (
-      event: KeyboardEvent,
-    ): void => {
-      if (event.key === "Escape" && props.onClose) {
-        props.onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleEscapeKey);
-    return () => {
-      document.removeEventListener("keydown", handleEscapeKey);
-    };
+    onCloseRef.current = props.onClose;
   }, [props.onClose]);
 
-  // Focus trap and initial focus
   useEffect(() => {
     const modal: HTMLDivElement | null = modalRef.current;
-    if (modal) {
-      // Focus the first focusable element in the modal, excluding the close button
-      const focusableElements: NodeListOf<Element> = modal.querySelectorAll(
-        'button:not([data-testid="close-button"]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
-      const firstFocusable: HTMLElement | undefined = focusableElements[0] as
-        | HTMLElement
-        | undefined;
-      if (firstFocusable) {
-        firstFocusable.focus();
-      }
+    if (!modal) {
+      return;
     }
+
+    const getFocusableElements: () => Array<HTMLElement> =
+      (): Array<HTMLElement> => {
+        return Array.from(
+          modal.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((element: HTMLElement) => {
+          return (
+            !element.hasAttribute("disabled") &&
+            element.getAttribute("aria-hidden") !== "true"
+          );
+        });
+      };
+
+    const isTopmostDialog: () => boolean = (): boolean => {
+      const openDialogs: Array<Element> = Array.from(
+        document.querySelectorAll('[role="dialog"][aria-modal="true"]'),
+      );
+
+      return openDialogs[openDialogs.length - 1] === modal;
+    };
+
+    const initialFocusElement: HTMLElement | undefined =
+      getFocusableElements().find((element: HTMLElement) => {
+        return element.getAttribute("data-testid") !== "close-button";
+      });
+
+    if (isTopmostDialog()) {
+      (initialFocusElement || modal).focus();
+    }
+
+    const handleKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (event.defaultPrevented || !isTopmostDialog()) {
+        return;
+      }
+
+      if (event.key === "Escape" && onCloseRef.current) {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusableElements: Array<HTMLElement> = getFocusableElements();
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        modal.focus();
+        return;
+      }
+
+      const firstFocusableElement: HTMLElement = focusableElements[0]!;
+      const lastFocusableElement: HTMLElement =
+        focusableElements[focusableElements.length - 1]!;
+      const activeElement: Element | null = document.activeElement;
+
+      if (
+        event.shiftKey &&
+        (activeElement === firstFocusableElement ||
+          !modal.contains(activeElement))
+      ) {
+        event.preventDefault();
+        lastFocusableElement.focus();
+      } else if (
+        !event.shiftKey &&
+        (activeElement === lastFocusableElement ||
+          !modal.contains(activeElement))
+      ) {
+        event.preventDefault();
+        firstFocusableElement.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+
+      if (previouslyFocusedElementRef.current?.isConnected) {
+        previouslyFocusedElementRef.current.focus();
+      }
+    };
   }, []);
 
-  let iconBgColor: string = "bg-indigo-100";
+  let iconBgColor: string = "bg-indigo-50";
   let iconColor: string = "text-indigo-600";
+  let iconRingColor: string = "ring-indigo-100";
 
   if (props.iconType === IconType.Info) {
-    iconBgColor = "bg-indigo-100";
+    iconBgColor = "bg-indigo-50";
     iconColor = "text-indigo-600";
+    iconRingColor = "ring-indigo-100";
   } else if (props.iconType === IconType.Warning) {
-    iconBgColor = "bg-yellow-100";
-    iconColor = "text-yellow-600";
+    iconBgColor = "bg-yellow-50";
+    iconColor = "text-yellow-700";
+    iconRingColor = "ring-yellow-100";
   } else if (props.iconType === IconType.Success) {
-    iconBgColor = "bg-green-100";
+    iconBgColor = "bg-green-50";
     iconColor = "text-green-600";
+    iconRingColor = "ring-green-100";
   } else if (props.iconType === IconType.Danger) {
-    iconBgColor = "bg-red-100";
+    iconBgColor = "bg-red-50";
     iconColor = "text-red-600";
+    iconRingColor = "ring-red-100";
+  }
+
+  let modalWidthClassName: string = "sm:max-w-lg md:max-w-lg";
+
+  if (props.modalWidth === ModalWidth.Medium) {
+    modalWidthClassName = "sm:max-w-3xl md:max-w-3xl";
+  } else if (props.modalWidth === ModalWidth.Large) {
+    modalWidthClassName = "sm:max-w-7xl md:max-w-7xl";
   }
 
   return (
-    <div
-      ref={modalRef}
-      className="relative z-20"
-      aria-labelledby="modal-title"
-      aria-describedby={props.description ? "modal-description" : undefined}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+    <div className="relative z-50">
+      <div
+        className="fixed inset-0 bg-gray-950/45 backdrop-blur-[2px]"
+        data-testid="modal-backdrop"
+        aria-hidden="true"
+      />
 
-      <div className="fixed inset-0 z-20 overflow-y-auto">
-        <div className="flex min-h-screen items-end justify-center p-0 text-center md:items-center md:p-4">
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-6">
           <div
-            className={`relative transform bg-white text-left shadow-xl transition-all w-full h-full md:rounded-lg md:my-8 ${
-              props.modalWidth && props.modalWidth === ModalWidth.Large
-                ? "md:max-w-7xl"
-                : ""
-            } ${
-              props.modalWidth && props.modalWidth === ModalWidth.Medium
-                ? "md:max-w-3xl"
-                : ""
-            } ${!props.modalWidth ? "md:max-w-lg" : ""} `}
+            ref={modalRef}
+            className={`relative flex max-h-[calc(100vh-1rem)] w-full flex-col rounded-t-2xl border border-gray-200/80 bg-white text-left shadow-2xl ring-1 ring-black/5 sm:my-8 sm:max-h-[calc(100vh-3rem)] sm:rounded-xl ${modalWidthClassName}`}
             data-testid="modal"
+            aria-labelledby={titleId}
+            aria-describedby={translatedDescription ? descriptionId : undefined}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
           >
-            {props.onClose && (
-              <div className="absolute top-0 right-0 z-10 pt-4 pr-4 md:hidden lg:block">
-                <Button
-                  buttonStyle={ButtonStyleType.ICON}
-                  icon={IconProp.Close}
-                  iconSize={SizeProp.Large}
-                  title="Close"
-                  dataTestId="close-button"
-                  onClick={props.onClose}
-                />
-              </div>
-            )}
-            <div className="p-4 md:p-6">
-              {props.icon && (
-                <div
-                  className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} md:mx-0 md:h-10 md:w-10`}
-                  data-testid="icon"
-                >
-                  <Icon
-                    thick={ThickProp.Thick}
-                    type={
-                      props.iconType === undefined
-                        ? IconType.Info
-                        : props.iconType
-                    }
-                    className={`${iconColor} h-6 w-6 stroke-2`}
-                    icon={props.icon}
-                    size={SizeProp.Large}
-                  />
-                </div>
-              )}
-              <div className="text-left md:mt-0 md:ml-4 md:mr-4">
-                <div className="flex flex-col md:flex-row md:justify-between">
-                  <div className="flex-1">
-                    <h3
-                      data-testid="modal-title"
-                      className={`text-lg font-medium leading-6 text-gray-900 ${
-                        props.icon ? "mt-4 md:ml-10 md:-mt-8 md:mb-5" : ""
-                      }`}
-                      id="modal-title"
-                    >
-                      {translatedTitle}
-                    </h3>
-                    {translatedDescription && (
-                      <p
-                        id="modal-description"
-                        data-testid="modal-description"
-                        className="text-sm leading-6 text-gray-500 mt-2"
-                      >
-                        {translatedDescription}
-                      </p>
-                    )}
+            <div className="relative flex shrink-0 flex-col gap-4 rounded-t-2xl border-b border-gray-100 bg-white px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:rounded-t-xl sm:px-6">
+              <div
+                className={`flex min-w-0 flex-1 items-start gap-3 ${
+                  props.onClose ? "pr-9 sm:pr-0" : ""
+                }`}
+              >
+                {props.icon && (
+                  <div
+                    className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${iconBgColor} ring-1 ring-inset ${iconRingColor}`}
+                    data-testid="icon"
+                  >
+                    <Icon
+                      thick={ThickProp.Thick}
+                      type={
+                        props.iconType === undefined
+                          ? IconType.Info
+                          : props.iconType
+                      }
+                      className={`${iconColor} h-5 w-5`}
+                      icon={props.icon}
+                      size={SizeProp.Five}
+                    />
                   </div>
-                  {props.rightElement && (
-                    <div
-                      data-testid="right-element"
-                      className="mt-4 md:mt-0 lg:mr-4"
+                )}
+                <div className="min-w-0 flex-1">
+                  <h3
+                    data-testid="modal-title"
+                    className="text-base font-semibold leading-6 tracking-tight text-gray-900"
+                    id={titleId}
+                  >
+                    {translatedTitle}
+                  </h3>
+                  {translatedDescription && (
+                    <p
+                      id={descriptionId}
+                      data-testid="modal-description"
+                      className="mt-0.5 text-sm leading-5 text-gray-500"
                     >
-                      {props.rightElement}
-                    </div>
+                      {translatedDescription}
+                    </p>
                   )}
                 </div>
-                <div className="mt-2">
-                  <ModalBody error={props.error}>
-                    {!props.isBodyLoading ? (
-                      props.children
-                    ) : (
-                      <div className="modal-body mt-20 mb-20 flex justify-center">
-                        <Loader
-                          loaderType={LoaderType.Bar}
-                          color={VeryLightGray}
-                          size={200}
-                        />
-                      </div>
-                    )}
-                  </ModalBody>
-                </div>
               </div>
+              {props.rightElement && (
+                <div
+                  data-testid="right-element"
+                  className={`flex-shrink-0 ${props.onClose ? "pr-9" : ""}`}
+                >
+                  {props.rightElement}
+                </div>
+              )}
+              {props.onClose && (
+                <button
+                  type="button"
+                  title={translatedCloseLabel}
+                  aria-label={translatedCloseLabel}
+                  data-testid="close-button"
+                  onClick={props.onClose}
+                  className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                >
+                  <Icon icon={IconProp.Close} className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
+              data-testid="modal-content"
+            >
+              <ModalBody error={props.error}>
+                {!props.isBodyLoading ? (
+                  props.children
+                ) : (
+                  <div className="modal-body flex justify-center py-16">
+                    <Loader
+                      loaderType={LoaderType.Bar}
+                      color={VeryLightGray}
+                      size={200}
+                    />
+                  </div>
+                )}
+              </ModalBody>
             </div>
             <ModalFooter
               submitButtonType={

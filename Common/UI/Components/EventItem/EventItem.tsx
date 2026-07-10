@@ -168,8 +168,8 @@ const EventItem: FunctionComponent<ComponentProps> = (
                     text={item}
                     color={VeryLightGray}
                     style={{
-                      backgroundColor: "#f3f4f6",
-                      color: "#9ca3af",
+                      backgroundColor: "var(--ou-surface-tertiary, #f3f4f6)",
+                      color: "var(--ou-text-subtle, #9ca3af)",
                     }}
                   />
                 );

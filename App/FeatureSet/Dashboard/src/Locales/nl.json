@@ -131,6 +131,10 @@
     "label": "Gebruikersprofiel",
     "profile": "Profiel",
     "adminSettings": "Beheerdersinstellingen",
+    "darkTheme": "Donker thema",
+    "lightTheme": "Licht thema",
+    "switchToDarkTheme": "Overschakelen naar donker thema",
+    "switchToLightTheme": "Overschakelen naar licht thema",
     "logOut": "Uitloggen"
   },
   "upgrade": {

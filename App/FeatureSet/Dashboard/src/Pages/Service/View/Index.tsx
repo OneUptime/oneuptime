@@ -289,26 +289,29 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Requests",
-      value: m ? formatCompact(m.total) : "…",
+      value: m ? formatCompact(m.total) : "—",
       icon: IconProp.Workflow,
       iconColor: "sky",
+      loading: metricsLoading,
       sublabel: "spans, selected range",
       to: populate(PageMap.SERVICE_VIEW_TRACES),
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent) : "…",
+      value: m ? formatPercent(m.errorRatePercent) : "—",
       icon: IconProp.Alert,
       iconColor: "rose",
+      loading: metricsLoading,
       sublabel: "of spans errored",
       percent: m?.errorRatePercent,
       thresholds: { warn: 1, danger: 5 },
     },
     {
       title: "Latency (p95)",
-      value: m ? formatDurationMs(m.p95DurationMs) : "…",
+      value: m ? formatDurationMs(m.p95DurationMs) : "—",
       icon: IconProp.Clock,
       iconColor: "amber",
+      loading: metricsLoading,
       sublabel: "span duration",
     },
   ];
@@ -332,6 +335,7 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       value: formatRuntimeValue(tileValue, firstRuntime.def.unit),
       icon: firstRuntime.def.icon,
       iconColor: firstRuntime.def.iconColor,
+      loading: metricsLoading,
       sublabel: firstRuntime.def.sublabel,
       percent: firstRuntime.def.unit === "percent" ? tileValue : undefined,
     });
@@ -474,7 +478,6 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         description={r.description as string}
         chips={chips}
         tiles={tiles}
-        tilesLoading={metricsLoading && !m}
         charts={charts}
         controls={
           <AutoRefreshControl

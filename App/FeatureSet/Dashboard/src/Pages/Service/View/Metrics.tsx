@@ -11,7 +11,7 @@ const ServiceMetrics: FunctionComponent<
 
   return (
     <Fragment>
-      <MetricsViewer serviceIds={[modelId]} />
+      <MetricsViewer serviceIds={[modelId]} serviceIdsToDisplay={[modelId]} />
     </Fragment>
   );
 };

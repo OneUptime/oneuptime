@@ -37,8 +37,8 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
                   gap: "0.625rem",
                   padding: "0.5rem 0.75rem",
                   borderRadius: "8px",
-                  backgroundColor: "#f8fafc",
-                  border: "1px solid #f1f5f9",
+                  backgroundColor: "var(--ou-surface-secondary, #f8fafc)",
+                  border: "1px solid var(--ou-border-subtle, #f1f5f9)",
                   marginBottom: "0.375rem",
                 }}
               >
@@ -47,7 +47,7 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
                     style={{
                       fontSize: "0.8125rem",
                       fontWeight: 500,
-                      color: "#334155",
+                      color: "var(--ou-text-secondary, #334155)",
                       margin: 0,
                       lineHeight: "1.25rem",
                     }}
@@ -55,7 +55,7 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
                     {returnValue.name}
                     <span
                       style={{
-                        color: "#94a3b8",
+                        color: "var(--ou-text-subtle, #94a3b8)",
                         fontWeight: 400,
                         fontSize: "0.6875rem",
                         marginLeft: "0.375rem",
@@ -70,7 +70,7 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
                     <p
                       style={{
                         fontSize: "0.75rem",
-                        color: "#94a3b8",
+                        color: "var(--ou-text-subtle, #94a3b8)",
                         margin: 0,
                         lineHeight: "1rem",
                       }}
@@ -83,12 +83,12 @@ const ComponentReturnValueViewer: FunctionComponent<ComponentProps> = (
                   style={{
                     fontSize: "0.6875rem",
                     fontWeight: 500,
-                    color: "#6366f1",
-                    backgroundColor: "#eef2ff",
+                    color: "var(--ou-link, #6366f1)",
+                    backgroundColor: "var(--ou-accent-soft, #eef2ff)",
                     padding: "0.125rem 0.5rem",
                     borderRadius: "100px",
                     whiteSpace: "nowrap",
-                    border: "1px solid #e0e7ff",
+                    border: "1px solid var(--ou-accent-muted, #e0e7ff)",
                   }}
                 >
                   {returnValue.type}

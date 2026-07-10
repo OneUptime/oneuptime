@@ -55,6 +55,23 @@ describe("Dropdown", () => {
     expect(await screen.findByText("2")).toBeInTheDocument();
   });
 
+  test("renders the menu portal above modal surfaces", async () => {
+    const { getByRole } = render(
+      <Dropdown onChange={() => {}} options={options} />,
+    );
+    const dropdown: HTMLElement = getByRole("combobox");
+
+    fireEvent.keyDown(dropdown, { key: "ArrowDown", code: "ArrowDown" });
+    await screen.findByText("1");
+
+    const menuPortal: HTMLElement | null = document.querySelector<HTMLElement>(
+      ".ou-select__menu-portal",
+    );
+
+    expect(menuPortal).toBeInTheDocument();
+    expect(menuPortal).toHaveStyle({ zIndex: "60" });
+  });
+
   test("renders placeholder", async () => {
     const { getByText } = render(
       <Dropdown

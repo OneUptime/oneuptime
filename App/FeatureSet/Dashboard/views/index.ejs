@@ -4,14 +4,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#000000" />
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1E293B" />
+  <meta name="theme-color" content="#f9fafb" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="description" content="OneUptime - the complete open-source observability platform.">
   <meta name="keywords" content="monitoring, observability, uptime, dashboard, PWA, progressive web app">
   <meta name="author" content="OneUptime">
   <meta name="slack-app-id" content="ACVBMTPJQ">
+
+  <!-- Apply the opt-in preference before CSS/React to avoid a theme flash. -->
+  <script>
+    (function () {
+      var theme = "light";
+      try {
+        if (window.localStorage.getItem("oneuptime-dashboard-theme") === "dark") {
+          theme = "dark";
+        }
+      } catch (_error) {
+        // Storage can be blocked; light is the intentional safe default.
+      }
+
+      var root = document.documentElement;
+      root.classList.toggle("dark", theme === "dark");
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+
+      var themeColor = document.querySelector('meta[name="theme-color"]:not([media])');
+      if (themeColor) {
+        themeColor.setAttribute("content", theme === "dark" ? "#0f172a" : "#f9fafb");
+      }
+    })();
+  </script>
 
   <!-- PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -179,7 +201,12 @@
 
     :fullscreen,
     ::backdrop {
-      background-color: rgb(249, 250, 251)
+      background-color: rgb(249, 250, 251);
+    }
+
+    html.dark :fullscreen,
+    html.dark ::backdrop {
+      background-color: rgb(15, 23, 42);
     }
   </style>
 
@@ -189,7 +216,9 @@
   <!-- Critical CSS to prevent layout shift before Tailwind loads -->
   <style>
     .h-full { height: 100%; }
-    .bg-gray-50 { background-color: #f9fafb; }
+    html, body, .bg-gray-50 { background-color: #f9fafb; }
+    html.dark, html.dark body, html.dark .bg-gray-50 { background-color: #0f172a; }
+    html.dark { color: #f8fafc; }
     #root { min-height: 100vh; }
   </style>
 
@@ -229,6 +258,7 @@
   <script type="module" src="/dashboard/dist/Index.js"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend:
         {

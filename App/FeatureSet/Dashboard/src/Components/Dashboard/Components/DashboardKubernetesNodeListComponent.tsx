@@ -104,9 +104,10 @@ function renderNodeRow(r: KubernetesResource): ReactElement {
             className="inline-flex items-center px-1.5 py-0.5 rounded font-medium border"
             style={{
               fontSize: "10px",
-              color: "#b45309",
-              borderColor: "#fcd34d",
-              backgroundColor: "#fef3c7",
+              color: "var(--ou-warning-text, #b45309)",
+              borderColor: "color-mix(in srgb, #f59e0b 42%, transparent)",
+              backgroundColor:
+                "color-mix(in srgb, #f59e0b 14%, var(--ou-surface-primary, #ffffff))",
             }}
           >
             {pressures.join(", ")}

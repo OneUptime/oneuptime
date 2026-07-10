@@ -131,6 +131,10 @@
     "label": "사용자 프로필",
     "profile": "프로필",
     "adminSettings": "관리자 설정",
+    "darkTheme": "다크 테마",
+    "lightTheme": "라이트 테마",
+    "switchToDarkTheme": "다크 테마로 전환",
+    "switchToLightTheme": "라이트 테마로 전환",
     "logOut": "로그아웃"
   },
   "upgrade": {

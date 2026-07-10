@@ -613,8 +613,9 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           <span
             className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium capitalize"
             style={{
-              background: "rgba(241, 245, 249, 0.9)",
-              color: "#64748b",
+              background:
+                "color-mix(in srgb, var(--ou-surface-secondary, #f1f5f9) 90%, transparent)",
+              color: "var(--ou-text-muted, #64748b)",
             }}
           >
             {component.componentType}

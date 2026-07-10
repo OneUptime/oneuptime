@@ -216,15 +216,21 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
             <XAxis
               dataKey="time"
               tickFormatter={formatTickTime}
-              tick={{ fontSize: 10, fill: "#9ca3af" }}
-              axisLine={{ stroke: "#e5e7eb" }}
+              tick={{
+                fontSize: 10,
+                fill: "var(--ou-chart-tick, #9ca3af)",
+              }}
+              axisLine={{ stroke: "var(--ou-chart-grid, #e5e7eb)" }}
               tickLine={false}
               minTickGap={40}
               dy={4}
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={{ fontSize: 10, fill: "#9ca3af" }}
+              tick={{
+                fontSize: 10,
+                fill: "var(--ou-chart-tick, #9ca3af)",
+              }}
               axisLine={false}
               tickLine={false}
               width={48}

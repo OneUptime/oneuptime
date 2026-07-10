@@ -1,0 +1,1065 @@
+/*
+ * Dashboard theme tokens. Light is intentionally the default; the dark
+ * values are activated only by the explicit class applied to <html>.
+ */
+:root {
+  color-scheme: light;
+  --ou-background-primary: #f8f9fb;
+  --ou-surface-primary: #ffffff;
+  --ou-surface-secondary: #f9fafb;
+  --ou-surface-tertiary: #f3f4f6;
+  --ou-border-subtle: #f3f4f6;
+  --ou-border-default: #e5e7eb;
+  --ou-border-strong: #d1d5db;
+  --ou-text-primary: #111827;
+  --ou-text-secondary: #4b5563;
+  --ou-text-muted: #6b7280;
+  --ou-text-subtle: #9ca3af;
+  --ou-chart-grid: #f1f5f9;
+  --ou-chart-tick: #94a3b8;
+  --ou-chart-cursor: #d1d5db;
+  --ou-chart-track: #eef2f7;
+  --ou-chart-marker-ring: #ffffff;
+  --ou-flow-mask: rgb(241 245 249 / 70%);
+  --ou-accent-soft: #eef2ff;
+  --ou-accent-muted: #e0e7ff;
+  --ou-accent-text: #312e81;
+  --ou-link: #4f46e5;
+  --ou-danger-text: #b91c1c;
+  --ou-success-text: #166534;
+  --ou-tool-text: #0e7490;
+  --ou-warning-text: #b45309;
+  --ou-card-shadow: 0 1px 4px 0 rgb(0 0 0 / 4%),
+    0 1px 2px -1px rgb(0 0 0 / 3%);
+}
+
+html.dark {
+  color-scheme: dark;
+  --ou-background-primary: #0f172a;
+  --ou-surface-primary: #111827;
+  --ou-surface-secondary: #1e293b;
+  --ou-surface-tertiary: #273449;
+  --ou-border-subtle: #1e293b;
+  --ou-border-default: #334155;
+  --ou-border-strong: #475569;
+  --ou-text-primary: #f8fafc;
+  --ou-text-secondary: #e2e8f0;
+  --ou-text-muted: #cbd5e1;
+  --ou-text-subtle: #94a3b8;
+  --ou-chart-grid: #334155;
+  --ou-chart-tick: #94a3b8;
+  --ou-chart-cursor: #64748b;
+  --ou-chart-track: #334155;
+  --ou-chart-marker-ring: #111827;
+  --ou-flow-mask: rgb(15 23 42 / 72%);
+  --ou-accent-soft: #1e1b4b;
+  --ou-accent-muted: #312e81;
+  --ou-accent-text: #e0e7ff;
+  --ou-link: #a5b4fc;
+  --ou-danger-text: #fca5a5;
+  --ou-success-text: #86efac;
+  --ou-tool-text: #67e8f9;
+  --ou-warning-text: #fcd34d;
+  --ou-card-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+
+html.dark,
+html.dark body,
+html.dark #root {
+  background-color: var(--ou-background-primary);
+  color: var(--ou-text-primary);
+}
+
+html.dark * {
+  --tw-ring-offset-color: var(--ou-background-primary);
+}
+
+html.dark ::selection {
+  background-color: rgb(99 102 241 / 45%);
+  color: #ffffff;
+}
+
+/* Core neutral surfaces. */
+html.dark .bg-white,
+html.dark [class~="!bg-white"] {
+  background-color: var(--ou-surface-primary) !important;
+}
+
+html.dark :is(
+    [class~="bg-white/60"],
+    [class~="bg-white/80"],
+    [class~="bg-white/90"],
+    [class~="bg-white/95"]
+  ) {
+  background-color: color-mix(
+    in srgb,
+    var(--ou-surface-primary) 88%,
+    transparent
+  );
+}
+
+html.dark :is(.bg-gray-50, .bg-slate-50) {
+  background-color: var(--ou-background-primary);
+}
+
+html.dark :is(
+    [class~="bg-gray-50/30"],
+    [class~="bg-gray-50/40"],
+    [class~="bg-gray-50/50"],
+    [class~="bg-gray-50/60"],
+    [class~="bg-gray-50/70"],
+    [class~="bg-gray-50/80"]
+  ) {
+  background-color: color-mix(
+    in srgb,
+    var(--ou-surface-secondary) 75%,
+    transparent
+  );
+}
+
+html.dark :is(.bg-gray-100, .bg-slate-100, .bg-stone-100),
+html.dark [class~="!bg-gray-100"] {
+  background-color: var(--ou-surface-secondary) !important;
+}
+
+html.dark :is(
+    [class~="bg-gray-100/50"],
+    [class~="bg-gray-100/60"],
+    [class~="bg-gray-100/70"]
+  ) {
+  background-color: color-mix(
+    in srgb,
+    var(--ou-surface-secondary) 82%,
+    transparent
+  );
+}
+
+html.dark :is(.bg-gray-200, .bg-slate-200) {
+  background-color: var(--ou-surface-tertiary);
+}
+
+html.dark [class~="bg-gray-200/70"] {
+  background-color: color-mix(
+    in srgb,
+    var(--ou-surface-tertiary) 82%,
+    transparent
+  );
+}
+
+html.dark :is(.bg-gray-300, .bg-slate-300) {
+  background-color: var(--ou-border-strong);
+}
+
+/* State variants that otherwise flash back to literal light Tailwind colors. */
+html.dark :is(
+    [class~="hover:bg-gray-50"],
+    [class*="hover:bg-gray-50/"],
+    [class~="hover:bg-slate-50"],
+    [class~="hover:bg-white"],
+    [class~="hover:bg-white/60"]
+  ):hover,
+html.dark :is([class~="focus:bg-gray-50"], [class~="focus:bg-white"]):focus {
+  background-color: var(--ou-surface-secondary) !important;
+}
+
+html.dark :is(
+    [class~="hover:bg-gray-100"],
+    [class*="hover:bg-gray-100/"],
+    [class~="active:bg-gray-100"]
+  ):hover,
+html.dark [class~="active:bg-gray-100"]:active,
+html.dark [class~="disabled:bg-gray-100"]:disabled {
+  background-color: var(--ou-surface-tertiary) !important;
+}
+
+html.dark :is(
+    [class~="hover:bg-gray-200"],
+    [class*="hover:bg-gray-200/"],
+    [class~="hover:bg-gray-300"],
+    [class~="group-hover:bg-gray-200"],
+    [class~="group-hover:bg-gray-300"]
+  ):hover,
+html.dark .group:hover :is(
+    [class~="group-hover:bg-gray-200"],
+    [class~="group-hover:bg-gray-300"],
+    [class*="group-hover:bg-gray-50/"]
+  ) {
+  background-color: var(--ou-border-strong) !important;
+}
+
+/* Neutral text and placeholders. */
+html.dark :is(.text-gray-900, .text-slate-900),
+html.dark [class~="!text-gray-900"] {
+  color: var(--ou-text-primary) !important;
+}
+
+html.dark :is(.text-gray-800, .text-slate-800) {
+  color: var(--ou-text-primary);
+}
+
+html.dark :is(.text-gray-700, .text-slate-700, .text-stone-600) {
+  color: var(--ou-text-secondary);
+}
+
+html.dark :is(.text-gray-600, .text-slate-600) {
+  color: var(--ou-text-muted);
+}
+
+html.dark :is(.text-gray-500, .text-slate-500) {
+  color: var(--ou-text-subtle);
+}
+
+html.dark :is(.text-gray-400, .text-slate-400),
+html.dark [class~="!text-gray-400"] {
+  color: #94a3b8 !important;
+}
+
+html.dark :is(.text-gray-300, .text-slate-300) {
+  color: #cbd5e1;
+}
+
+html.dark :is(
+    [class~="hover:text-gray-500"],
+    [class~="hover:text-gray-600"],
+    [class~="hover:text-gray-700"],
+    [class~="hover:text-gray-800"],
+    [class~="hover:text-gray-900"]
+  ):hover,
+html.dark [class~="focus:text-gray-900"]:focus,
+html.dark .group:hover [class*="group-hover"][class*="text-gray-"] {
+  color: var(--ou-text-primary) !important;
+}
+
+html.dark :is(.placeholder-gray-400, .placeholder-gray-500)::placeholder {
+  color: var(--ou-text-subtle);
+}
+
+/* Neutral borders, dividers, rings and SVG utility colors. */
+html.dark :is(.border-gray-50, .border-gray-100, .border-slate-200),
+html.dark [class~="border-gray-100/80"],
+html.dark [class~="!border-gray-100"] {
+  border-color: var(--ou-border-subtle) !important;
+}
+
+html.dark :is(.border-gray-200, .border-slate-300),
+html.dark :is(
+    [class~="border-gray-200/60"],
+    [class~="border-gray-200/70"],
+    [class~="border-gray-200/80"]
+  ) {
+  border-color: var(--ou-border-default);
+}
+
+html.dark .border-gray-300,
+html.dark [class~="!border-gray-300"] {
+  border-color: var(--ou-border-strong) !important;
+}
+
+html.dark :is(
+    [class~="hover:border-gray-200"],
+    [class~="hover:border-gray-300"],
+    [class~="hover:border-gray-400"],
+    [class~="hover:border-slate-300"]
+  ):hover,
+html.dark [class~="focus-within:border-gray-300"]:focus-within {
+  border-color: #64748b !important;
+}
+
+html.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+html.dark [class~="divide-gray-100/80"] > :not([hidden]) ~ :not([hidden]),
+html.dark [class~="lg:divide-gray-100"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--ou-border-subtle);
+}
+
+html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-gray-300 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--ou-border-default);
+}
+
+html.dark :is(
+    .ring-gray-100,
+    .ring-gray-200,
+    .ring-slate-200,
+    [class~="ring-gray-200/80"]
+  ) {
+  --tw-ring-color: var(--ou-border-default);
+}
+
+html.dark :is(.ring-gray-300, .ring-slate-300, .ring-stone-300) {
+  --tw-ring-color: var(--ou-border-strong);
+}
+
+html.dark :is([class~="ring-black/5"], [class~="ring-black/10"]) {
+  --tw-ring-color: rgb(148 163 184 / 18%);
+}
+
+html.dark .ring-white {
+  --tw-ring-color: var(--ou-surface-primary);
+}
+
+html.dark :is(
+    [class~="focus-visible:ring-gray-200"],
+    [class~="focus-visible:ring-gray-300"]
+  ):focus-visible {
+  --tw-ring-color: #64748b;
+}
+
+html.dark [class~="focus:ring-gray-900"]:focus,
+html.dark [class~="focus-within:ring-gray-900"]:focus-within {
+  --tw-ring-color: #818cf8;
+}
+
+html.dark [class~="focus-visible:outline-gray-900"]:focus-visible {
+  outline-color: #818cf8 !important;
+}
+
+html.dark :is(.fill-gray-500, .fill-gray-800) {
+  fill: var(--ou-chart-tick);
+}
+
+html.dark :is(.stroke-gray-100, .stroke-gray-500) {
+  stroke: var(--ou-chart-grid);
+}
+
+/* Light gradients become layered dark surfaces. */
+html.dark :is(
+    .from-white,
+    .from-gray-50,
+    [class~="from-gray-50/50"],
+    [class~="from-gray-50/60"]
+  ) {
+  --tw-gradient-from: var(--ou-surface-primary) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(17 24 39 / 0%) var(--tw-gradient-to-position);
+}
+
+html.dark :is(.via-white, .via-gray-200) {
+  --tw-gradient-via: var(--ou-surface-secondary)
+    var(--tw-gradient-via-position);
+}
+
+html.dark :is(
+    .to-white,
+    .to-gray-50,
+    .to-gray-100,
+    .to-slate-50,
+    [class~="to-gray-50/50"]
+  ) {
+  --tw-gradient-to: var(--ou-surface-secondary)
+    var(--tw-gradient-to-position);
+}
+
+html.dark :is(.from-red-50, .from-rose-50, .from-orange-50) {
+  --tw-gradient-from: rgb(127 29 29 / 38%) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(127 29 29 / 0%) var(--tw-gradient-to-position);
+}
+
+html.dark .from-amber-50 {
+  --tw-gradient-from: rgb(120 53 15 / 38%) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(120 53 15 / 0%) var(--tw-gradient-to-position);
+}
+
+html.dark .from-emerald-50 {
+  --tw-gradient-from: rgb(6 78 59 / 38%) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(6 78 59 / 0%) var(--tw-gradient-to-position);
+}
+
+html.dark :is(.from-blue-50, .from-sky-50, .from-cyan-50) {
+  --tw-gradient-from: rgb(30 64 175 / 35%) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(30 64 175 / 0%) var(--tw-gradient-to-position);
+}
+
+html.dark :is(
+    .from-indigo-50,
+    .from-violet-50,
+    [class~="from-indigo-50/40"]
+  ) {
+  --tw-gradient-from: rgb(49 46 129 / 42%) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(49 46 129 / 0%) var(--tw-gradient-to-position);
+}
+
+html.dark .via-indigo-50 {
+  --tw-gradient-via: rgb(49 46 129 / 34%) var(--tw-gradient-via-position);
+}
+
+html.dark :is(.to-red-100, .to-rose-50) {
+  --tw-gradient-to: rgb(127 29 29 / 42%) var(--tw-gradient-to-position);
+}
+
+html.dark .to-amber-100 {
+  --tw-gradient-to: rgb(120 53 15 / 42%) var(--tw-gradient-to-position);
+}
+
+html.dark .to-emerald-100 {
+  --tw-gradient-to: rgb(6 78 59 / 42%) var(--tw-gradient-to-position);
+}
+
+html.dark :is(.to-blue-100, .to-sky-100) {
+  --tw-gradient-to: rgb(30 64 175 / 40%) var(--tw-gradient-to-position);
+}
+
+html.dark :is(
+    .to-indigo-50,
+    [class~="to-indigo-50/50"]
+  ) {
+  --tw-gradient-to: rgb(49 46 129 / 42%) var(--tw-gradient-to-position);
+}
+
+/* Semantic light surfaces retain hue without becoming luminous cards. */
+html.dark :is(.bg-red-50, .bg-red-100, [class~="bg-red-50/60"]) {
+  background-color: rgb(127 29 29 / 32%);
+}
+
+html.dark :is(.bg-orange-50, .bg-orange-100) {
+  background-color: rgb(124 45 18 / 32%);
+}
+
+html.dark :is(.bg-amber-50, .bg-amber-100, [class~="bg-amber-50/60"]) {
+  background-color: rgb(120 53 15 / 32%);
+}
+
+html.dark :is(.bg-yellow-50, .bg-yellow-100) {
+  background-color: rgb(113 63 18 / 32%);
+}
+
+html.dark :is(.bg-green-50, .bg-green-100) {
+  background-color: rgb(20 83 45 / 32%);
+}
+
+html.dark :is(.bg-emerald-50, .bg-emerald-100, [class~="bg-emerald-50/60"]) {
+  background-color: rgb(6 78 59 / 32%);
+}
+
+html.dark :is(.bg-teal-50, .bg-teal-100) {
+  background-color: rgb(19 78 74 / 32%);
+}
+
+html.dark :is(.bg-cyan-50, .bg-cyan-100) {
+  background-color: rgb(22 78 99 / 32%);
+}
+
+html.dark :is(.bg-sky-50, .bg-sky-100) {
+  background-color: rgb(12 74 110 / 32%);
+}
+
+html.dark :is(.bg-blue-50, .bg-blue-100) {
+  background-color: rgb(30 64 175 / 28%);
+}
+
+html.dark :is(
+    .bg-indigo-50,
+    .bg-indigo-100,
+    .bg-indigo-200,
+    [class~="bg-indigo-50/30"],
+    [class~="bg-indigo-50/40"],
+    [class~="bg-indigo-50/50"],
+    [class~="bg-indigo-50/60"],
+    [class~="bg-indigo-50/70"]
+  ) {
+  background-color: rgb(49 46 129 / 35%);
+}
+
+html.dark :is(.bg-violet-50, .bg-violet-100, [class~="bg-violet-50/40"]) {
+  background-color: rgb(76 29 149 / 32%);
+}
+
+html.dark :is(.bg-purple-50, .bg-purple-100) {
+  background-color: rgb(88 28 135 / 32%);
+}
+
+html.dark :is(.bg-rose-50, .bg-rose-100) {
+  background-color: rgb(136 19 55 / 32%);
+}
+
+html.dark :is(.text-red-600, .text-red-700, .text-red-800, .text-red-900) {
+  color: #fca5a5;
+}
+
+html.dark :is(
+    .text-orange-600,
+    .text-orange-700,
+    .text-orange-800,
+    .text-orange-900
+  ) {
+  color: #fdba74;
+}
+
+html.dark :is(
+    .text-amber-600,
+    .text-amber-700,
+    .text-amber-800,
+    .text-amber-900
+  ) {
+  color: #fcd34d;
+}
+
+html.dark :is(
+    .text-yellow-600,
+    .text-yellow-700,
+    .text-yellow-800,
+    .text-yellow-900
+  ) {
+  color: #fde047;
+}
+
+html.dark :is(
+    .text-green-600,
+    .text-green-700,
+    .text-green-800,
+    .text-green-900
+  ) {
+  color: #86efac;
+}
+
+html.dark :is(
+    .text-emerald-600,
+    .text-emerald-700,
+    .text-emerald-800,
+    .text-emerald-900
+  ) {
+  color: #6ee7b7;
+}
+
+html.dark :is(.text-teal-600, .text-teal-700, .text-teal-800) {
+  color: #5eead4;
+}
+
+html.dark :is(.text-cyan-600, .text-cyan-700, .text-cyan-800) {
+  color: #67e8f9;
+}
+
+html.dark :is(
+    .text-sky-600,
+    .text-sky-700,
+    .text-sky-800,
+    .text-sky-900
+  ) {
+  color: #7dd3fc;
+}
+
+html.dark :is(
+    .text-blue-600,
+    .text-blue-700,
+    .text-blue-800,
+    .text-blue-900
+  ) {
+  color: #93c5fd;
+}
+
+html.dark :is(
+    .text-indigo-600,
+    .text-indigo-700,
+    .text-indigo-800,
+    .text-indigo-900
+  ) {
+  color: #a5b4fc;
+}
+
+html.dark :is(
+    .text-violet-600,
+    .text-violet-700,
+    .text-violet-800,
+    .text-violet-900
+  ) {
+  color: #c4b5fd;
+}
+
+html.dark :is(
+    .text-purple-600,
+    .text-purple-700,
+    .text-purple-800,
+    .text-purple-900
+  ) {
+  color: #d8b4fe;
+}
+
+html.dark :is(
+    .text-rose-600,
+    .text-rose-700,
+    .text-rose-800,
+    .text-rose-900
+  ) {
+  color: #fda4af;
+}
+
+html.dark :is(
+    .border-red-100,
+    .border-red-200,
+    .border-red-300,
+    .ring-red-100,
+    .ring-red-200
+  ) {
+  border-color: rgb(248 113 113 / 45%);
+  --tw-ring-color: rgb(248 113 113 / 35%);
+}
+
+html.dark :is(
+    .border-amber-100,
+    .border-amber-200,
+    .border-amber-300,
+    .ring-amber-100,
+    .ring-amber-200
+  ) {
+  border-color: rgb(251 191 36 / 42%);
+  --tw-ring-color: rgb(251 191 36 / 32%);
+}
+
+html.dark :is(
+    .border-green-100,
+    .border-green-200,
+    .border-emerald-100,
+    .border-emerald-200,
+    .border-emerald-300,
+    .ring-green-200,
+    .ring-emerald-200
+  ) {
+  border-color: rgb(52 211 153 / 42%);
+  --tw-ring-color: rgb(52 211 153 / 32%);
+}
+
+html.dark :is(
+    .border-blue-100,
+    .border-blue-200,
+    .border-blue-300,
+    .ring-blue-100,
+    .ring-blue-200,
+    .border-sky-100,
+    .border-sky-200,
+    .ring-sky-200
+  ) {
+  border-color: rgb(96 165 250 / 42%);
+  --tw-ring-color: rgb(96 165 250 / 32%);
+}
+
+html.dark :is(
+    .border-indigo-100,
+    .border-indigo-200,
+    .border-indigo-300,
+    .ring-indigo-100,
+    .ring-indigo-200,
+    .ring-indigo-300,
+    .border-violet-100,
+    .ring-violet-200,
+    .border-purple-100,
+    .ring-purple-200
+  ) {
+  border-color: rgb(129 140 248 / 45%);
+  --tw-ring-color: rgb(129 140 248 / 35%);
+}
+
+html.dark :is(
+    .border-yellow-100,
+    .border-yellow-200,
+    .border-orange-100,
+    .ring-yellow-200,
+    .ring-orange-200,
+    .border-rose-100,
+    .border-rose-200,
+    .ring-rose-200
+  ) {
+  border-color: rgb(251 146 60 / 42%);
+  --tw-ring-color: rgb(251 146 60 / 32%);
+}
+
+/* Semantic interaction variants use the same dark palette as their base. */
+html.dark :is(
+    [class*="hover:bg-indigo-50"],
+    [class~="hover:bg-indigo-100"],
+    [class~="hover:bg-indigo-200"],
+    [class~="group-hover:bg-indigo-50"],
+    [class~="group-hover:bg-indigo-100"]
+  ):hover,
+html.dark .group:hover :is(
+    [class*="group-hover:bg-indigo-50"],
+    [class~="group-hover:bg-indigo-100"]
+  ) {
+  background-color: rgb(49 46 129 / 48%) !important;
+}
+
+html.dark :is(
+    [class*="hover:bg-red-50"],
+    [class~="hover:bg-red-100"],
+    [class*="hover:bg-amber-50"],
+    [class~="hover:bg-amber-100"],
+    [class~="hover:bg-yellow-50"],
+    [class~="hover:bg-green-50"],
+    [class~="hover:bg-green-100"],
+    [class~="hover:bg-emerald-100"],
+    [class~="hover:bg-blue-50"],
+    [class~="hover:bg-rose-50"],
+    [class~="hover:bg-rose-100"]
+  ):hover {
+  background-color: var(--ou-surface-tertiary) !important;
+}
+
+html.dark [class*="hover:text-red-"]:hover,
+html.dark .group:hover [class*="group-hover:text-red-"] {
+  color: #fca5a5 !important;
+}
+
+html.dark [class*="hover:text-amber-"]:hover,
+html.dark .group:hover [class*="group-hover:text-amber-"] {
+  color: #fcd34d !important;
+}
+
+html.dark [class*="hover:text-green-"]:hover,
+html.dark .group:hover [class*="group-hover:text-green-"],
+html.dark [class*="hover:text-emerald-"]:hover,
+html.dark .group:hover [class*="group-hover:text-emerald-"] {
+  color: #86efac !important;
+}
+
+html.dark [class*="hover:text-blue-"]:hover,
+html.dark .group:hover [class*="group-hover:text-blue-"] {
+  color: #93c5fd !important;
+}
+
+html.dark [class*="hover:text-indigo-"]:hover,
+html.dark .group:hover [class*="group-hover:text-indigo-"] {
+  color: #a5b4fc !important;
+}
+
+html.dark [class*="hover:text-violet-"]:hover,
+html.dark [class*="hover:text-purple-"]:hover {
+  color: #c4b5fd !important;
+}
+
+html.dark [class*="hover:text-rose-"]:hover {
+  color: #fda4af !important;
+}
+
+html.dark [class*="focus:ring-indigo-"]:focus,
+html.dark [class*="focus-visible:ring-indigo-"]:focus-visible {
+  --tw-ring-color: rgb(129 140 248 / 55%) !important;
+}
+
+html.dark [class*="focus:ring-red-"]:focus,
+html.dark [class*="focus-visible:ring-red-"]:focus-visible {
+  --tw-ring-color: rgb(248 113 113 / 50%) !important;
+}
+
+html.dark [class*="focus:ring-blue-"]:focus,
+html.dark [class*="focus:ring-emerald-"]:focus,
+html.dark [class*="focus:ring-green-"]:focus {
+  --tw-ring-color: rgb(96 165 250 / 50%) !important;
+}
+
+html.dark :is(
+    [class*="hover:border-indigo-"],
+    [class*="focus:border-indigo-"]
+  ):hover,
+html.dark [class*="focus:border-indigo-"]:focus {
+  border-color: #818cf8 !important;
+}
+
+html.dark :is(
+    .ring-indigo-50,
+    .ring-red-50,
+    .ring-blue-50,
+    .ring-green-50,
+    .ring-emerald-50,
+    .ring-amber-50,
+    .ring-yellow-50,
+    .ring-sky-50,
+    .ring-rose-50
+  ) {
+  --tw-ring-color: rgb(129 140 248 / 35%);
+}
+
+/* Native controls and browser-managed states. */
+html.dark input,
+html.dark textarea,
+html.dark select,
+html.dark option,
+html.dark optgroup {
+  color-scheme: dark;
+}
+
+/* Switch thumbs are an affordance, not a surface, and must stay distinct. */
+html.dark button[role="switch"] > span.bg-white {
+  background-color: #f8fafc !important;
+}
+
+html.dark option,
+html.dark optgroup {
+  background-color: var(--ou-surface-primary);
+  color: var(--ou-text-primary);
+}
+
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-text-fill-color: var(--ou-text-primary);
+  box-shadow: 0 0 0 1000px var(--ou-surface-primary) inset;
+  caret-color: var(--ou-text-primary);
+}
+
+html.dark {
+  scrollbar-color: #475569 #0f172a;
+}
+
+html.dark ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+  border: 3px solid #0f172a;
+  border-radius: 9999px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Third-party portal and widget surfaces. */
+html.dark .tippy-box[data-theme~="light-border"] {
+  background-color: var(--ou-surface-primary);
+  color: var(--ou-text-secondary);
+  border-color: var(--ou-border-strong);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 45%);
+}
+
+html.dark .tippy-box[data-theme~="light-border"] > .tippy-backdrop {
+  background-color: var(--ou-surface-primary);
+}
+
+html.dark
+  .tippy-box[data-theme~="light-border"][data-placement^="top"]
+  > .tippy-arrow::before {
+  border-top-color: var(--ou-surface-primary);
+}
+
+html.dark
+  .tippy-box[data-theme~="light-border"][data-placement^="top"]
+  > .tippy-arrow::after {
+  border-top-color: var(--ou-border-strong);
+}
+
+html.dark
+  .tippy-box[data-theme~="light-border"][data-placement^="bottom"]
+  > .tippy-arrow::before {
+  border-bottom-color: var(--ou-surface-primary);
+}
+
+html.dark
+  .tippy-box[data-theme~="light-border"][data-placement^="bottom"]
+  > .tippy-arrow::after {
+  border-bottom-color: var(--ou-border-strong);
+}
+
+html.dark
+  .tippy-box[data-theme~="light-border"][data-placement^="left"]
+  > .tippy-arrow::before {
+  border-left-color: var(--ou-surface-primary);
+}
+
+html.dark
+  .tippy-box[data-theme~="light-border"][data-placement^="left"]
+  > .tippy-arrow::after {
+  border-left-color: var(--ou-border-strong);
+}
+
+html.dark
+  .tippy-box[data-theme~="light-border"][data-placement^="right"]
+  > .tippy-arrow::before {
+  border-right-color: var(--ou-surface-primary);
+}
+
+html.dark
+  .tippy-box[data-theme~="light-border"][data-placement^="right"]
+  > .tippy-arrow::after {
+  border-right-color: var(--ou-border-strong);
+}
+
+html.dark .tippy-box[data-theme~="light-border"] > .tippy-svg-arrow {
+  fill: var(--ou-surface-primary);
+}
+
+html.dark :is(.ou-select__control, .ou-select__menu) {
+  background-color: var(--ou-surface-primary) !important;
+  border-color: var(--ou-border-default) !important;
+  color: var(--ou-text-primary) !important;
+}
+
+html.dark :is(.ou-select__input-container, .ou-select__single-value) {
+  color: var(--ou-text-primary) !important;
+}
+
+html.dark .ou-select__placeholder {
+  color: var(--ou-text-subtle) !important;
+}
+
+html.dark .ou-select__option {
+  background-color: var(--ou-surface-primary) !important;
+  color: var(--ou-text-secondary) !important;
+}
+
+html.dark .ou-select__option--is-focused {
+  background-color: var(--ou-accent-soft) !important;
+  color: #c7d2fe !important;
+}
+
+html.dark .ou-select__option--is-selected {
+  background-color: var(--ou-accent-muted) !important;
+  color: #e0e7ff !important;
+}
+
+html.dark .ou-select__multi-value {
+  background-color: var(--ou-accent-soft) !important;
+  border-color: rgb(129 140 248 / 45%) !important;
+}
+
+html.dark .ou-select__multi-value__label {
+  color: #c7d2fe !important;
+}
+
+html.dark :is(.react-flow, .react-flow__renderer) {
+  background-color: var(--ou-background-primary);
+}
+
+html.dark :is(.react-flow__node-default, .react-flow__node-input, .react-flow__node-output) {
+  background-color: var(--ou-surface-primary);
+  border-color: var(--ou-border-default);
+  color: var(--ou-text-primary);
+}
+
+html.dark :is(.react-flow__controls, .react-flow__minimap) {
+  background: var(--ou-surface-primary) !important;
+  border-color: var(--ou-border-default) !important;
+}
+
+html.dark .react-flow__controls-button {
+  background: var(--ou-surface-primary) !important;
+  border-color: var(--ou-border-default) !important;
+  color: var(--ou-text-secondary) !important;
+  fill: var(--ou-text-secondary) !important;
+}
+
+html.dark .react-flow__controls-button:hover {
+  background: var(--ou-surface-secondary) !important;
+}
+
+html.dark .react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+html.dark .chrome-picker {
+  background-color: var(--ou-surface-primary) !important;
+  color: var(--ou-text-primary) !important;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%) !important;
+}
+
+html.dark .chrome-picker input {
+  background-color: var(--ou-surface-secondary) !important;
+  color: var(--ou-text-primary) !important;
+  box-shadow: inset 0 0 0 1px var(--ou-border-default) !important;
+}
+
+html.dark .chrome-picker svg {
+  color: var(--ou-text-secondary) !important;
+  fill: var(--ou-text-secondary) !important;
+}
+
+/* React Big Calendar ships a light-only skin; these remain wrapper-scoped. */
+html.dark .oneuptime-calendar .rbc-calendar,
+html.dark .oneuptime-calendar .rbc-toolbar-label,
+html.dark .oneuptime-calendar .rbc-date-cell,
+html.dark .oneuptime-calendar .rbc-agenda-view table,
+html.dark .oneuptime-calendar .rbc-agenda-date-cell,
+html.dark .oneuptime-calendar .rbc-agenda-time-cell {
+  color: var(--ou-text-secondary);
+}
+
+html.dark .oneuptime-calendar :is(
+    .rbc-month-view,
+    .rbc-time-view,
+    .rbc-agenda-view,
+    .rbc-toolbar .rbc-btn-group,
+    .rbc-time-content,
+    .rbc-day-bg,
+    .rbc-timeslot-group
+  ) {
+  background-color: var(--ou-surface-primary);
+  border-color: var(--ou-border-default);
+}
+
+html.dark .oneuptime-calendar :is(
+    .rbc-header,
+    .rbc-off-range-bg,
+    .rbc-toolbar button:hover,
+    .rbc-toolbar button:focus,
+    .rbc-agenda-view thead > tr > th
+  ) {
+  background-color: var(--ou-surface-secondary);
+  border-color: var(--ou-border-default);
+  color: var(--ou-text-muted);
+}
+
+html.dark .oneuptime-calendar .rbc-today {
+  background-color: var(--ou-accent-soft);
+}
+
+html.dark .oneuptime-calendar .rbc-toolbar button {
+  background-color: var(--ou-surface-primary);
+  border-color: var(--ou-border-default);
+  color: var(--ou-text-secondary);
+}
+
+html.dark .oneuptime-calendar .rbc-toolbar button.rbc-active {
+  background-color: var(--ou-accent-soft);
+  border-color: var(--ou-border-strong);
+  color: var(--ou-accent-text);
+}
+
+html.dark .oneuptime-calendar :is(.rbc-off-range, .rbc-label) {
+  color: var(--ou-text-subtle);
+}
+
+html.dark .oneuptime-calendar .rbc-show-more {
+  background-color: var(--ou-surface-secondary);
+  color: var(--ou-link);
+}
+
+html.dark .oneuptime-calendar .rbc-current-time-indicator {
+  background-color: #818cf8;
+}
+
+html.dark .oneuptime-calendar :is(
+    .rbc-month-row,
+    .rbc-day-bg,
+    .rbc-header,
+    .rbc-time-header-content,
+    .rbc-time-slot,
+    .rbc-timeslot-group,
+    td,
+    th
+  ) {
+  border-color: var(--ou-border-default) !important;
+}
+
+/* SVG/Recharts literals used by older widgets. */
+html.dark svg :is(
+    [stroke="#f1f5f9"],
+    [stroke="#e2e8f0"],
+    [stroke="#e5e7eb"],
+    [stroke="#d1d5db"]
+  ) {
+  stroke: var(--ou-chart-grid) !important;
+}
+
+html.dark svg :is([fill="#94a3b8"], [fill="#6b7280"]) {
+  fill: var(--ou-chart-tick) !important;
+}
+
+html.dark :fullscreen,
+html.dark ::backdrop {
+  background-color: var(--ou-background-primary);
+}

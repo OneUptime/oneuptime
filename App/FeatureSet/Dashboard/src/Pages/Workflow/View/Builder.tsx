@@ -277,9 +277,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             alignItems: "center",
             justifyContent: "space-between",
             padding: "0.75rem 1rem",
-            backgroundColor: "#ffffff",
+            backgroundColor: "var(--ou-surface-primary, #ffffff)",
             borderRadius: "10px",
-            border: "1px solid #e2e8f0",
+            border: "1px solid var(--ou-border-default, #e2e8f0)",
             marginBottom: "0.75rem",
             boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
           }}
@@ -345,9 +345,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "#ffffff",
+              backgroundColor: "var(--ou-surface-primary, #ffffff)",
               borderRadius: "10px",
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--ou-border-default, #e2e8f0)",
             }}
           >
             <ComponentLoader />

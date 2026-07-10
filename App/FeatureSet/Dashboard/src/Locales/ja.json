@@ -131,6 +131,10 @@
     "label": "ユーザープロファイル",
     "profile": "プロファイル",
     "adminSettings": "管理者設定",
+    "darkTheme": "ダークテーマ",
+    "lightTheme": "ライトテーマ",
+    "switchToDarkTheme": "ダークテーマに切り替える",
+    "switchToLightTheme": "ライトテーマに切り替える",
     "logOut": "ログアウト"
   },
   "upgrade": {

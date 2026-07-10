@@ -12,6 +12,7 @@ import Logo from "./Logo";
 import ProjectPicker from "./ProjectPicker";
 import Upgrade from "./Upgrade";
 import UserProfile from "./UserProfile";
+import ThemeToggle from "./ThemeToggle";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
@@ -874,6 +875,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         />{' '} */}
           </>
         }
+        mobileRightComponents={<ThemeToggle />}
         rightComponents={
           <>
             {BILLING_ENABLED &&

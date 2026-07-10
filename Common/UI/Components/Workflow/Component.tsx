@@ -36,8 +36,9 @@ const getCategoryColors: (
 ): CategoryColorScheme => {
   if (componentType === ComponentType.Trigger) {
     return {
-      bg: "#fefce8",
-      border: "#fde68a",
+      bg: "color-mix(in srgb, #f59e0b 12%, var(--ou-surface-primary, #ffffff))",
+      border:
+        "color-mix(in srgb, #f59e0b 38%, var(--ou-border-default, #e5e7eb))",
       headerBg: "linear-gradient(135deg, #f59e0b, #d97706)",
       headerText: "#ffffff",
       iconColor: "#ffffff",
@@ -52,8 +53,9 @@ const getCategoryColors: (
 
   if (lowerCategory.includes("condition") || lowerCategory.includes("logic")) {
     return {
-      bg: "#faf5ff",
-      border: "#e9d5ff",
+      bg: "color-mix(in srgb, #a855f7 12%, var(--ou-surface-primary, #ffffff))",
+      border:
+        "color-mix(in srgb, #a855f7 38%, var(--ou-border-default, #e5e7eb))",
       headerBg: "linear-gradient(135deg, #a855f7, #7c3aed)",
       headerText: "#ffffff",
       iconColor: "#ffffff",
@@ -66,8 +68,9 @@ const getCategoryColors: (
 
   if (lowerCategory.includes("api") || lowerCategory.includes("webhook")) {
     return {
-      bg: "#eff6ff",
-      border: "#bfdbfe",
+      bg: "color-mix(in srgb, #3b82f6 12%, var(--ou-surface-primary, #ffffff))",
+      border:
+        "color-mix(in srgb, #3b82f6 38%, var(--ou-border-default, #e5e7eb))",
       headerBg: "linear-gradient(135deg, #3b82f6, #2563eb)",
       headerText: "#ffffff",
       iconColor: "#ffffff",
@@ -87,8 +90,9 @@ const getCategoryColors: (
     lowerCategory.includes("notification")
   ) {
     return {
-      bg: "#ecfdf5",
-      border: "#a7f3d0",
+      bg: "color-mix(in srgb, #10b981 12%, var(--ou-surface-primary, #ffffff))",
+      border:
+        "color-mix(in srgb, #10b981 38%, var(--ou-border-default, #e5e7eb))",
       headerBg: "linear-gradient(135deg, #10b981, #059669)",
       headerText: "#ffffff",
       iconColor: "#ffffff",
@@ -105,8 +109,9 @@ const getCategoryColors: (
     lowerCategory.includes("custom")
   ) {
     return {
-      bg: "#fef2f2",
-      border: "#fecaca",
+      bg: "color-mix(in srgb, #ef4444 12%, var(--ou-surface-primary, #ffffff))",
+      border:
+        "color-mix(in srgb, #ef4444 38%, var(--ou-border-default, #e5e7eb))",
       headerBg: "linear-gradient(135deg, #ef4444, #dc2626)",
       headerText: "#ffffff",
       iconColor: "#ffffff",
@@ -119,8 +124,9 @@ const getCategoryColors: (
 
   if (lowerCategory.includes("json") || lowerCategory.includes("util")) {
     return {
-      bg: "#f0fdf4",
-      border: "#bbf7d0",
+      bg: "color-mix(in srgb, #22c55e 12%, var(--ou-surface-primary, #ffffff))",
+      border:
+        "color-mix(in srgb, #22c55e 38%, var(--ou-border-default, #e5e7eb))",
       headerBg: "linear-gradient(135deg, #22c55e, #16a34a)",
       headerText: "#ffffff",
       iconColor: "#ffffff",
@@ -137,8 +143,9 @@ const getCategoryColors: (
     lowerCategory.includes("timer")
   ) {
     return {
-      bg: "#fff7ed",
-      border: "#fed7aa",
+      bg: "color-mix(in srgb, #f97316 12%, var(--ou-surface-primary, #ffffff))",
+      border:
+        "color-mix(in srgb, #f97316 38%, var(--ou-border-default, #e5e7eb))",
       headerBg: "linear-gradient(135deg, #f97316, #ea580c)",
       headerText: "#ffffff",
       iconColor: "#ffffff",
@@ -151,8 +158,8 @@ const getCategoryColors: (
 
   // Default / database models
   return {
-    bg: "#f8fafc",
-    border: "#e2e8f0",
+    bg: "var(--ou-surface-secondary, #f8fafc)",
+    border: "var(--ou-border-default, #e2e8f0)",
     headerBg: "linear-gradient(135deg, #6366f1, #4f46e5)",
     headerText: "#ffffff",
     iconColor: "#ffffff",
@@ -223,8 +230,14 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         style={{
           width: "16rem",
           borderRadius: "12px",
-          border: `2px dashed ${isHovering ? "#94a3b8" : "#cbd5e1"}`,
-          backgroundColor: isHovering ? "#f8fafc" : "#ffffff",
+          border: `2px dashed ${
+            isHovering
+              ? "var(--ou-text-subtle, #94a3b8)"
+              : "var(--ou-border-strong, #cbd5e1)"
+          }`,
+          backgroundColor: isHovering
+            ? "var(--ou-surface-secondary, #f8fafc)"
+            : "var(--ou-surface-primary, #ffffff)",
           padding: "1.5rem",
           display: "flex",
           flexDirection: "column",
@@ -245,7 +258,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             width: "2.5rem",
             height: "2.5rem",
             borderRadius: "50%",
-            backgroundColor: isHovering ? "#e2e8f0" : "#f1f5f9",
+            backgroundColor: isHovering
+              ? "var(--ou-border-default, #e2e8f0)"
+              : "var(--ou-surface-tertiary, #f1f5f9)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -255,7 +270,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           <Icon
             icon={IconProp.Add}
             style={{
-              color: isHovering ? "#64748b" : "#94a3b8",
+              color: isHovering
+                ? "var(--ou-text-muted, #64748b)"
+                : "var(--ou-text-subtle, #94a3b8)",
               width: "1.25rem",
               height: "1.25rem",
               transition: "all 0.2s ease",
@@ -264,7 +281,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         </div>
         <p
           style={{
-            color: isHovering ? "#64748b" : "#94a3b8",
+            color: isHovering
+              ? "var(--ou-text-muted, #64748b)"
+              : "var(--ou-text-subtle, #94a3b8)",
             fontSize: "0.8125rem",
             fontWeight: 500,
             textAlign: "center",
@@ -302,7 +321,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 ? colors.selectedBorder
                 : colors.border
         }`,
-        backgroundColor: "#ffffff",
+        backgroundColor: "var(--ou-surface-primary, #ffffff)",
         overflow: "visible",
         boxShadow: props.selected
           ? colors.selectedShadow
@@ -364,11 +383,12 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             width: "22px",
             height: "22px",
             borderRadius: "50%",
-            backgroundColor: "#fef2f2",
+            backgroundColor:
+              "color-mix(in srgb, #ef4444 15%, var(--ou-surface-primary, #ffffff))",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            border: "1px solid #fecaca",
+            border: "1px solid rgb(248 113 113 / 45%)",
           }}
         >
           <Icon
@@ -451,8 +471,8 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              backgroundColor: "#ffffff",
-              border: "1px solid #e2e8f0",
+              backgroundColor: "var(--ou-surface-primary, #ffffff)",
+              border: "1px solid var(--ou-border-default, #e2e8f0)",
               borderRadius: "6px",
               padding: "0.125rem 0.5rem",
               marginBottom: "0.5rem",
@@ -460,7 +480,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           >
             <span
               style={{
-                color: "#64748b",
+                color: "var(--ou-text-muted, #64748b)",
                 fontSize: "0.6875rem",
                 fontWeight: 500,
                 fontFamily:
@@ -475,7 +495,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         {/* Description */}
         <p
           style={{
-            color: "#64748b",
+            color: "var(--ou-text-muted, #64748b)",
             fontSize: "0.75rem",
             lineHeight: "1.125rem",
             margin: 0,
@@ -504,7 +524,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                   props.data.metadata.outPorts.length === 1
                     ? "center"
                     : "space-between",
-                backgroundColor: "#ffffff",
+                backgroundColor: "var(--ou-surface-primary, #ffffff)",
                 borderRadius: "0 0 10px 10px",
               }}
             >
@@ -513,7 +533,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                   <Tooltip key={i} text={port.description || ""}>
                     <span
                       style={{
-                        color: "#94a3b8",
+                        color: "var(--ou-text-subtle, #94a3b8)",
                         fontSize: "0.6875rem",
                         fontWeight: 500,
                       }}

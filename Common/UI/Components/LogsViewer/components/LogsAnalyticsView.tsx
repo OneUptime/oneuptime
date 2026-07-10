@@ -654,21 +654,27 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 </defs>
                 <CartesianGrid
                   strokeDasharray="none"
-                  stroke="#f1f5f9"
+                  stroke="var(--ou-chart-grid, #f1f5f9)"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="time"
                   tickFormatter={formatTickTime}
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  axisLine={{ stroke: "#e2e8f0" }}
+                  tick={{
+                    fontSize: 11,
+                    fill: "var(--ou-chart-tick, #94a3b8)",
+                  }}
+                  axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
                   tickLine={false}
                   minTickGap={50}
                   interval="preserveStartEnd"
                   dy={8}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  tick={{
+                    fontSize: 11,
+                    fill: "var(--ou-chart-tick, #94a3b8)",
+                  }}
                   axisLine={false}
                   tickLine={false}
                   width={52}
@@ -678,7 +684,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                 <Tooltip
                   content={<AnalyticsTooltip />}
                   cursor={{
-                    stroke: "#c7d2fe",
+                    stroke: "var(--ou-accent-muted, #c7d2fe)",
                     strokeWidth: 1,
                     strokeDasharray: "4 4",
                   }}
@@ -692,7 +698,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   activeDot={{
                     r: 4,
                     fill: CHART_COLORS[0]!,
-                    stroke: "#fff",
+                    stroke: "var(--ou-chart-marker-ring, #ffffff)",
                     strokeWidth: 2,
                   }}
                   isAnimationActive={false}
@@ -707,21 +713,27 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
               >
                 <CartesianGrid
                   strokeDasharray="none"
-                  stroke="#f1f5f9"
+                  stroke="var(--ou-chart-grid, #f1f5f9)"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="time"
                   tickFormatter={formatTickTime}
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  axisLine={{ stroke: "#e2e8f0" }}
+                  tick={{
+                    fontSize: 11,
+                    fill: "var(--ou-chart-tick, #94a3b8)",
+                  }}
+                  axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
                   tickLine={false}
                   minTickGap={50}
                   interval="preserveStartEnd"
                   dy={8}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  tick={{
+                    fontSize: 11,
+                    fill: "var(--ou-chart-tick, #94a3b8)",
+                  }}
                   axisLine={false}
                   tickLine={false}
                   width={52}

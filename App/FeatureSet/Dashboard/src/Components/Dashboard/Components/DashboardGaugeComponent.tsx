@@ -483,7 +483,7 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
           <path
             d={backgroundPath}
             fill="none"
-            stroke="#eef2f7"
+            stroke="var(--ou-chart-track, #eef2f7)"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
           />
@@ -526,7 +526,7 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
               cx={arcCurrentX}
               cy={arcCurrentY}
               r={strokeWidth * 0.5}
-              fill="#ffffff"
+              fill="var(--ou-chart-marker-ring, #ffffff)"
               stroke={gaugeColor}
               strokeWidth={2}
             />

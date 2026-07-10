@@ -131,6 +131,10 @@
     "label": "使用者設定檔",
     "profile": "個人資料",
     "adminSettings": "管理員設定",
+    "darkTheme": "深色主題",
+    "lightTheme": "淺色主題",
+    "switchToDarkTheme": "切換至深色主題",
+    "switchToLightTheme": "切換至淺色主題",
     "logOut": "登出"
   },
   "upgrade": {

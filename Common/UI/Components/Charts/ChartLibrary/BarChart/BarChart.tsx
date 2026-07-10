@@ -925,7 +925,10 @@ const BarChart: React.ForwardRefExoticComponent<
               wrapperStyle={{ outline: "none" }}
               isAnimationActive={true}
               animationDuration={100}
-              cursor={{ fill: "#d1d5db", opacity: "0.15" }}
+              cursor={{
+                fill: "var(--ou-chart-cursor, #d1d5db)",
+                opacity: "0.15",
+              }}
               offset={20}
               {...(layout === "horizontal"
                 ? { position: { y: 0 } }

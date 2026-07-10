@@ -136,7 +136,7 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
             cy={center}
             r={radius}
             fill="none"
-            stroke="#e5e7eb"
+            stroke="var(--ou-chart-track, #e5e7eb)"
             strokeWidth={props.strokeWidth}
           />
           {/* Progress circle */}

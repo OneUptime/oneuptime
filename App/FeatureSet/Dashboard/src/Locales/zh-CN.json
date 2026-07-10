@@ -131,6 +131,10 @@
     "label": "用户配置",
     "profile": "个人资料",
     "adminSettings": "管理员设置",
+    "darkTheme": "深色主题",
+    "lightTheme": "浅色主题",
+    "switchToDarkTheme": "切换到深色主题",
+    "switchToLightTheme": "切换到浅色主题",
     "logOut": "登出"
   },
   "upgrade": {

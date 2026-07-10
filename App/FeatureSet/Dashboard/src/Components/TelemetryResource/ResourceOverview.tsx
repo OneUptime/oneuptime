@@ -33,6 +33,7 @@ export interface ResourceOverviewTile {
   value: string;
   icon: IconProp;
   iconColor: ResourceOverviewTileColor;
+  loading?: boolean | undefined;
   sublabel?: string | undefined;
   // 0-100 — renders a saturation bar under the value when provided.
   percent?: number | null | undefined;
@@ -129,7 +130,10 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
       : Math.min(100, Math.max(0, props.percent));
 
   const inner: ReactElement = (
-    <div className="h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow">
+    <div
+      className="h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow"
+      aria-busy={props.loading ? "true" : "false"}
+    >
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
           {props.title}
@@ -140,23 +144,47 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
           <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
         </div>
       </div>
-      <div className="text-2xl font-semibold text-gray-900 leading-none">
-        {props.value}
-      </div>
-      {props.sublabel ? (
-        <div className="mt-1 text-xs text-gray-500 truncate">
-          {props.sublabel}
+      {props.loading ? (
+        <div role="status" aria-live="polite">
+          <span className="sr-only">Loading {props.title}</span>
+          <div
+            className="h-6 w-24 rounded bg-gray-100 motion-safe:animate-pulse"
+            aria-hidden="true"
+          />
+          <div
+            className="mt-2 h-3 w-32 max-w-full rounded bg-gray-100 motion-safe:animate-pulse"
+            aria-hidden="true"
+          />
+          {props.percent !== undefined || props.thresholds ? (
+            <div
+              className="mt-3 h-1.5 w-full rounded-full bg-gray-100 motion-safe:animate-pulse"
+              aria-hidden="true"
+            />
+          ) : (
+            <></>
+          )}
         </div>
       ) : (
-        <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
-      )}
-      {props.percent !== undefined && props.percent !== null && (
-        <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
-          <div
-            className={`${barColor} h-1.5 rounded-full transition-all`}
-            style={{ width: `${safePercent}%` }}
-          />
-        </div>
+        <Fragment>
+          <div className="text-2xl font-semibold text-gray-900 leading-none">
+            {props.value}
+          </div>
+          {props.sublabel ? (
+            <div className="mt-1 text-xs text-gray-500 truncate">
+              {props.sublabel}
+            </div>
+          ) : (
+            <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
+          )}
+          {props.percent !== undefined && props.percent !== null && (
+            <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
+              <div
+                className={`${barColor} h-1.5 rounded-full transition-all`}
+                style={{ width: `${safePercent}%` }}
+              />
+            </div>
+          )}
+        </Fragment>
       )}
     </div>
   );
@@ -281,7 +309,13 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {props.tiles.map(
               (tile: ResourceOverviewTile, idx: number): ReactElement => {
-                return <GoldenMetricTile key={`tile-${idx}`} {...tile} />;
+                return (
+                  <GoldenMetricTile
+                    key={`tile-${idx}`}
+                    {...tile}
+                    loading={props.tilesLoading || tile.loading}
+                  />
+                );
               },
             )}
           </div>

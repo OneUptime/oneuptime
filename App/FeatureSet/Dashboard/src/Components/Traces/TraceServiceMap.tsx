@@ -335,7 +335,10 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
               refY="3"
               orient="auto"
             >
-              <polygon points="0 0, 8 3, 0 6" fill="#9ca3af" />
+              <polygon
+                points="0 0, 8 3, 0 6"
+                fill="var(--ou-chart-tick, #9ca3af)"
+              />
             </marker>
           </defs>
         </svg>

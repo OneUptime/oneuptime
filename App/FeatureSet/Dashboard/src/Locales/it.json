@@ -131,6 +131,10 @@
     "label": "Profilo utente",
     "profile": "Profilo",
     "adminSettings": "Impostazioni admin",
+    "darkTheme": "Tema scuro",
+    "lightTheme": "Tema chiaro",
+    "switchToDarkTheme": "Passa al tema scuro",
+    "switchToLightTheme": "Passa al tema chiaro",
     "logOut": "Esci"
   },
   "upgrade": {
