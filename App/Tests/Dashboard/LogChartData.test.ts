@@ -3,6 +3,7 @@ import DashboardVariable, {
   DashboardVariableType,
 } from "Common/Types/Dashboard/DashboardVariable";
 import { JSONObject } from "Common/Types/JSON";
+import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import {
   LogChartArguments,
   LogChartPivotResult,
@@ -13,6 +14,7 @@ import {
   formatLogCount,
   getExactAttributeFilters,
   pivotLogHistogramBuckets,
+  resolveLogChartType,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Components/LogChartData";
 
 const START: Date = new Date("2026-06-01T00:00:00.000Z");
@@ -41,22 +43,34 @@ describe("LogChartData.buildLogHistogramRequest", () => {
     });
   });
 
-  test("composes service, severity, body and exact attribute filters", () => {
+  test("composes severity, body and structured attribute filters", () => {
     const request: JSONObject = buildRequest({
-      serviceIds: ["service-a", "", "service-b"],
       severityFilters: ["Error", "Warning"],
       bodyContains: "  timeout  ",
-      attributeFilterQuery:
-        "@deployment.environment:production @region:eu-west-1",
+      attributeFilters: {
+        "deployment.environment": "production",
+        region: "eu-west-1",
+        attempts: 3,
+        healthy: true,
+      },
     });
 
-    expect(request["serviceIds"]).toEqual(["service-a", "service-b"]);
     expect(request["severityTexts"]).toEqual(["Error", "Warning"]);
     expect(request["bodySearchText"]).toBe("timeout");
     expect(request["attributes"]).toEqual({
       "deployment.environment": "production",
       region: "eu-west-1",
+      attempts: "3",
+      healthy: "true",
     });
+  });
+
+  test("ignores service ids left on a legacy saved widget", () => {
+    const request: JSONObject = buildRequest({
+      serviceIds: ["service-a"],
+    } as unknown as Partial<LogChartArguments>);
+
+    expect(request["serviceIds"]).toBeUndefined();
   });
 
   test("dashboard attribute variables are applied to the request", () => {
@@ -81,7 +95,9 @@ describe("LogChartData.buildLogHistogramRequest", () => {
     expect(
       buildRequest(
         {
-          attributeFilterQuery: "@deployment.environment:production",
+          attributeFilters: {
+            "deployment.environment": "production",
+          },
         },
         variables,
       )["attributes"],
@@ -93,18 +109,45 @@ describe("LogChartData.buildLogHistogramRequest", () => {
 });
 
 describe("LogChartData.getExactAttributeFilters", () => {
-  test("keeps equality filters", () => {
+  test("keeps structured equality filters", () => {
     expect(
-      getExactAttributeFilters("@http.status_code:500 @method:POST"),
+      getExactAttributeFilters({
+        attributeFilters: {
+          "http.status_code": 500,
+          method: "POST /shipments:retry",
+        },
+      }),
+    ).toEqual({
+      "http.status_code": "500",
+      method: "POST /shipments:retry",
+    });
+  });
+
+  test("reads the legacy query when structured filters are absent", () => {
+    expect(
+      getExactAttributeFilters({
+        attributeFilterQuery: "@http.status_code:500 @method:POST",
+      }),
     ).toEqual({
       "http.status_code": "500",
       method: "POST",
     });
   });
 
+  test("an explicitly cleared structured filter does not resurrect legacy input", () => {
+    expect(
+      getExactAttributeFilters({
+        attributeFilters: {},
+        attributeFilterQuery: "@deployment.environment:production",
+      }),
+    ).toEqual({});
+  });
+
   test("returns an empty record for empty input", () => {
-    expect(getExactAttributeFilters(undefined)).toEqual({});
-    expect(getExactAttributeFilters("   ")).toEqual({});
+    expect(getExactAttributeFilters({})).toEqual({});
+    expect(getExactAttributeFilters({ attributeFilterQuery: "   " })).toEqual(
+      {},
+    );
   });
 });
 
@@ -189,6 +232,22 @@ describe("LogChartData bucket sizing and formatters", () => {
     expect(minutesApart(1441)).toBe(60);
     expect(minutesApart(10081)).toBe(360);
     expect(minutesApart(43201)).toBe(1440);
+  });
+
+  test("resolves supported chart types and safely defaults to bars", () => {
+    expect(resolveLogChartType(DashboardChartType.Line)).toBe(
+      DashboardChartType.Line,
+    );
+    expect(resolveLogChartType(DashboardChartType.Area)).toBe(
+      DashboardChartType.Area,
+    );
+    expect(resolveLogChartType(DashboardChartType.Bar)).toBe(
+      DashboardChartType.Bar,
+    );
+    expect(resolveLogChartType(DashboardChartType.Pie)).toBe(
+      DashboardChartType.Bar,
+    );
+    expect(resolveLogChartType(undefined)).toBe(DashboardChartType.Bar);
   });
 
   test("formats counts and invalid timestamps", () => {

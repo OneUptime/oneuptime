@@ -8,9 +8,13 @@ import React, {
   useState,
 } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -42,8 +46,10 @@ import {
   formatLogChartTickTime,
   formatLogCount,
   pivotLogHistogramBuckets,
+  resolveLogChartType,
 } from "./LogChartData";
 import DashboardResourceList from "../Utils/DashboardResourceList";
+import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardLogChartComponent;
@@ -137,9 +143,9 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
       }
     }, [
       props.dashboardStartAndEndDate,
-      props.component.arguments.serviceIds,
       props.component.arguments.severityFilters,
       props.component.arguments.bodyContains,
+      props.component.arguments.attributeFilters,
       props.component.arguments.attributeFilterQuery,
       props.variables,
     ]);
@@ -156,6 +162,120 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
       chartTimeRange.endTime.getTime() - chartTimeRange.startTime.getTime() >
         24 * 60 * 60 * 1000,
   );
+  const chartType: DashboardChartType = resolveLogChartType(
+    props.component.arguments.chartType,
+  );
+
+  const sharedChartElements: ReactElement = (
+    <>
+      <CartesianGrid
+        strokeDasharray="none"
+        stroke="var(--ou-chart-grid, #f1f5f9)"
+        vertical={false}
+      />
+      <XAxis
+        dataKey="time"
+        tickFormatter={(time: string): string => {
+          return formatLogChartTickTime(time, includeDateInTicks);
+        }}
+        tick={{ fontSize: 10, fill: "var(--ou-chart-tick, #94a3b8)" }}
+        axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
+        tickLine={false}
+        minTickGap={40}
+        interval="preserveStartEnd"
+        dy={4}
+      />
+      <YAxis
+        tick={{ fontSize: 10, fill: "var(--ou-chart-tick, #94a3b8)" }}
+        axisLine={false}
+        tickLine={false}
+        width={56}
+        allowDecimals={false}
+        tickFormatter={formatLogCount}
+      />
+      <Tooltip
+        content={<HistogramTooltip />}
+        cursor={{ fill: "rgba(99,102,241,0.04)" }}
+      />
+    </>
+  );
+
+  const renderChart: () => ReactElement = (): ReactElement => {
+    const margin: { top: number; right: number; bottom: number; left: number } =
+      { top: 6, right: 12, bottom: 2, left: 0 };
+
+    if (chartType === DashboardChartType.Line) {
+      return (
+        <LineChart data={pivotedData} margin={margin}>
+          {sharedChartElements}
+          {severities.map((severity: string) => {
+            return (
+              <Line
+                key={severity}
+                dataKey={severity}
+                stroke={getSeverityColor(severity).fill}
+                strokeWidth={1.75}
+                dot={false}
+                connectNulls={true}
+                isAnimationActive={false}
+              />
+            );
+          })}
+        </LineChart>
+      );
+    }
+
+    if (chartType === DashboardChartType.Area) {
+      return (
+        <AreaChart data={pivotedData} margin={margin}>
+          {sharedChartElements}
+          {severities.map((severity: string) => {
+            const fill: string = getSeverityColor(severity).fill;
+            return (
+              <Area
+                key={severity}
+                dataKey={severity}
+                stackId="severity"
+                stroke={fill}
+                strokeWidth={1.5}
+                fill={fill}
+                fillOpacity={0.28}
+                dot={false}
+                connectNulls={true}
+                isAnimationActive={false}
+              />
+            );
+          })}
+        </AreaChart>
+      );
+    }
+
+    return (
+      <BarChart
+        data={pivotedData}
+        margin={margin}
+        barCategoryGap="18%"
+        barGap={0}
+      >
+        {sharedChartElements}
+        {severities.map((severity: string, index: number) => {
+          return (
+            <Bar
+              key={severity}
+              dataKey={severity}
+              stackId="severity"
+              fill={getSeverityColor(severity).fill}
+              radius={
+                index === severities.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]
+              }
+              isAnimationActive={false}
+              maxBarSize={28}
+            />
+          );
+        })}
+      </BarChart>
+    );
+  };
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -198,59 +318,7 @@ const DashboardLogChartComponentElement: FunctionComponent<ComponentProps> = (
         )}
         {!error && pivotedData.length > 0 && (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={pivotedData}
-              margin={{ top: 6, right: 12, bottom: 2, left: 0 }}
-              barCategoryGap="18%"
-              barGap={0}
-            >
-              <CartesianGrid
-                strokeDasharray="none"
-                stroke="var(--ou-chart-grid, #f1f5f9)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="time"
-                tickFormatter={(time: string): string => {
-                  return formatLogChartTickTime(time, includeDateInTicks);
-                }}
-                tick={{ fontSize: 10, fill: "var(--ou-chart-tick, #94a3b8)" }}
-                axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
-                tickLine={false}
-                minTickGap={40}
-                interval="preserveStartEnd"
-                dy={4}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: "var(--ou-chart-tick, #94a3b8)" }}
-                axisLine={false}
-                tickLine={false}
-                width={56}
-                allowDecimals={false}
-                tickFormatter={formatLogCount}
-              />
-              <Tooltip
-                content={<HistogramTooltip />}
-                cursor={{ fill: "rgba(99,102,241,0.04)" }}
-              />
-              {severities.map((severity: string, index: number) => {
-                return (
-                  <Bar
-                    key={severity}
-                    dataKey={severity}
-                    stackId="severity"
-                    fill={getSeverityColor(severity).fill}
-                    radius={
-                      index === severities.length - 1
-                        ? [3, 3, 0, 0]
-                        : [0, 0, 0, 0]
-                    }
-                    isAnimationActive={false}
-                    maxBarSize={28}
-                  />
-                );
-              })}
-            </BarChart>
+            {renderChart()}
           </ResponsiveContainer>
         )}
       </div>

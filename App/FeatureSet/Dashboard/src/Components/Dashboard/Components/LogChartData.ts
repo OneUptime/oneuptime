@@ -9,6 +9,7 @@ import {
   queryStringToFilter,
 } from "Common/Types/Log/LogQueryToFilter";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 
 export type LogChartArguments = DashboardLogChartComponent["arguments"];
 
@@ -73,20 +74,34 @@ export function computeBucketSizeInMinutes(
   );
 }
 
+export function resolveLogChartType(chartType: unknown): DashboardChartType {
+  if (
+    chartType === DashboardChartType.Line ||
+    chartType === DashboardChartType.Area
+  ) {
+    return chartType;
+  }
+
+  return DashboardChartType.Bar;
+}
+
 /*
- * The histogram endpoint supports exact attribute equality. The shared log
- * query parser understands richer operators too, so deliberately keep only
- * scalar values here instead of sending an operator object as "[object Object]".
+ * The histogram endpoint supports exact attribute equality. New widgets
+ * store a structured key/value record; the query string remains only as a
+ * fallback for widgets saved before the friendly editor existed.
  */
-export function getExactAttributeFilters(
-  attributeFilterQuery: string | undefined,
-  variables?: Array<DashboardVariable> | undefined,
-): Record<string, string | Array<string>> {
+export function getExactAttributeFilters(data: {
+  attributeFilters?: LogChartArguments["attributeFilters"] | undefined;
+  attributeFilterQuery?: string | undefined;
+  variables?: Array<DashboardVariable> | undefined;
+}): Record<string, string | Array<string>> {
   let parsedAttributes: Record<string, unknown> = {};
 
-  if (attributeFilterQuery?.trim()) {
+  if (data.attributeFilters !== undefined) {
+    parsedAttributes = { ...data.attributeFilters };
+  } else if (data.attributeFilterQuery?.trim()) {
     const parsedFilter: LogFilter = queryStringToFilter(
-      attributeFilterQuery.trim(),
+      data.attributeFilterQuery.trim(),
     );
     parsedAttributes = parsedFilter.attributes || {};
   }
@@ -94,7 +109,7 @@ export function getExactAttributeFilters(
   const interpolatedAttributes: Record<string, unknown> =
     DashboardVariableInterpolation.applyToAttributes(
       parsedAttributes,
-      variables,
+      data.variables,
     );
 
   const exactAttributes: Record<string, string | Array<string>> = {};
@@ -135,13 +150,6 @@ export function buildLogHistogramRequest(data: {
     ),
   };
 
-  const serviceIds: Array<string> = (data.arguments.serviceIds || []).filter(
-    Boolean,
-  );
-  if (serviceIds.length > 0) {
-    request["serviceIds"] = serviceIds;
-  }
-
   const severityFilters: Array<string> = (
     data.arguments.severityFilters || []
   ).filter(Boolean);
@@ -156,10 +164,11 @@ export function buildLogHistogramRequest(data: {
   }
 
   const attributes: Record<string, string | Array<string>> =
-    getExactAttributeFilters(
-      data.arguments.attributeFilterQuery,
-      data.variables,
-    );
+    getExactAttributeFilters({
+      attributeFilters: data.arguments.attributeFilters,
+      attributeFilterQuery: data.arguments.attributeFilterQuery,
+      variables: data.variables,
+    });
   if (Object.keys(attributes).length > 0) {
     request["attributes"] = attributes as unknown as JSONObject;
   }

@@ -76,7 +76,7 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         label: "Log Chart",
         icon: IconProp.ChartBar,
         description:
-          "Stacked log-volume bars over time, split by severity and filtered by service, body, or attributes.",
+          "Log volume over time by severity, with bar, line, or area visualization and friendly attribute filters.",
       },
       {
         type: DashboardComponentType.TraceList,

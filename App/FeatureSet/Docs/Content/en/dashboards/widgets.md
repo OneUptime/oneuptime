@@ -60,13 +60,14 @@ Use it when: you want a section heading, a paragraph of context, a list of links
 
 ### Log Chart
 
-A stacked bar chart of log volume over the dashboard's time range. Each bar is split by severity, so error spikes stand out from normal traffic.
+A time-series chart of log volume over the dashboard's time range. Each series represents a severity, so error spikes stand out from normal traffic.
 
 **Settings**:
 
-- Optional service and severity filters.
+- Bar, line, or area chart visualization. Bar and area charts stack severity series.
+- Optional severity filters.
 - Optional log-body text search.
-- Exact OpenTelemetry attribute filters, such as `@deployment.environment:production`.
+- Exact OpenTelemetry attribute filters using searchable key/value rows. Attribute names and known values are suggested as you type, while custom values remain supported.
 - An optional title.
 
 The dashboard time-range and refresh controls automatically re-query the chart. Dashboard telemetry-attribute variables also apply to it, including multi-select variables.

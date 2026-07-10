@@ -7,13 +7,13 @@ import {
   ComponentArgument,
   ComponentArgumentSection,
   ComponentInputType,
-  EntityFilterModelType,
 } from "../../../Types/Dashboard/DashboardComponents/ComponentArgument";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import DashboardChartType from "../../../Types/Dashboard/Chart/ChartType";
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display Options",
-  description: "Configure the chart heading",
+  description: "Configure the chart heading and visualization",
   order: 1,
 };
 
@@ -35,7 +35,9 @@ export default class DashboardLogChartComponentUtil extends DashboardBaseCompone
       componentId: ObjectID.generate(),
       minHeightInDashboardUnits: 3,
       minWidthInDashboardUnits: 6,
-      arguments: {},
+      arguments: {
+        chartType: DashboardChartType.Bar,
+      },
     };
   }
 
@@ -53,14 +55,17 @@ export default class DashboardLogChartComponentUtil extends DashboardBaseCompone
         section: DisplaySection,
       },
       {
-        name: "Services",
-        description: "Only count logs emitted by the selected services",
-        required: false,
-        type: ComponentInputType.EntityMultiSelectDropdown,
-        id: "serviceIds",
-        placeholder: "All services",
-        section: FiltersSection,
-        entityFilterModelType: EntityFilterModelType.Service,
+        name: "Chart Type",
+        description: "How log volume is visualized over time",
+        required: true,
+        type: ComponentInputType.Dropdown,
+        id: "chartType",
+        section: DisplaySection,
+        dropdownOptions: [
+          { label: "Bar Chart", value: DashboardChartType.Bar },
+          { label: "Line Chart", value: DashboardChartType.Line },
+          { label: "Area Chart", value: DashboardChartType.Area },
+        ],
       },
       {
         name: "Severities",
@@ -87,16 +92,6 @@ export default class DashboardLogChartComponentUtil extends DashboardBaseCompone
         type: ComponentInputType.Text,
         id: "bodyContains",
         placeholder: "Search text...",
-        section: FiltersSection,
-      },
-      {
-        name: "Attribute Filters",
-        description:
-          "Exact attribute matches, e.g. @service.name:checkout @deployment.environment:production",
-        required: false,
-        type: ComponentInputType.LongText,
-        id: "attributeFilterQuery",
-        placeholder: "@key:value @another.key:value",
         section: FiltersSection,
       },
     ];

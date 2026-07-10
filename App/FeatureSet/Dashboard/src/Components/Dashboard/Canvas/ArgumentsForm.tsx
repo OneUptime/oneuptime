@@ -20,6 +20,7 @@ import BasicForm, { FormProps } from "Common/UI/Components/Forms/BasicForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
 import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
@@ -47,6 +48,7 @@ import Button, {
 import IconProp from "Common/Types/Icon/IconProp";
 import EntityFilterDropdown from "./EntityFilterDropdown";
 import TraceChartQueryEditor from "./TraceChartQueryEditor";
+import LogChartQueryEditor from "./LogChartQueryEditor";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
 
@@ -507,6 +509,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         }}
         initialValues={{
           ...(component?.arguments || {}),
+          ...(componentType === DashboardComponentType.LogChart &&
+          !(component?.arguments as JSONObject)?.["chartType"]
+            ? { chartType: DashboardChartType.Bar }
+            : {}),
         }}
         onChange={(values: FormValues<JSONObject>) => {
           /*
@@ -1270,6 +1276,15 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
             component={component}
             onChange={commitComponent}
             mode="table"
+          />
+        </div>
+      )}
+
+      {componentType === DashboardComponentType.LogChart && (
+        <div className="mt-3">
+          <LogChartQueryEditor
+            component={component}
+            onChange={commitComponent}
           />
         </div>
       )}
