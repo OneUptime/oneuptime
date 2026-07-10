@@ -3,6 +3,8 @@ import MetricCriteriaContext from "./MetricMonitor/MetricCriteriaContext";
 
 export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
+  PacketLossPercent = "Packet Loss (in %)",
+  Jitter = "Jitter (in ms)",
   ResponseStatusCode = "Response Status Code",
   ResponseHeader = "Response Header",
   ResponseHeaderValue = "Response Header Value",
@@ -374,6 +376,8 @@ export class CriteriaFilterUtil {
     return (
       checkOn === CheckOn.ResponseStatusCode ||
       checkOn === CheckOn.ResponseTime ||
+      checkOn === CheckOn.PacketLossPercent ||
+      checkOn === CheckOn.Jitter ||
       checkOn === CheckOn.DiskUsagePercent ||
       checkOn === CheckOn.CPUUsagePercent ||
       checkOn === CheckOn.MemoryUsagePercent ||

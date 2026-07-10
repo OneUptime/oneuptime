@@ -1,8 +1,10 @@
 import OneUptimeDate from "Common/Types/Date";
+import PingMonitorResponse from "Common/Types/Monitor/PingMonitor/PingMonitorResponse";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
+import NetworkPathView from "./NetworkPathView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 
 export interface ComponentProps {
@@ -24,6 +26,9 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
   const hasErrorDetails: boolean = Boolean(
     props.probeMonitorResponse.requestFailedDetails,
   );
+
+  const pingResponse: PingMonitorResponse | undefined =
+    props.probeMonitorResponse.pingResponse;
 
   const probeAttempts: Array<ProbeAttempt> =
     props.probeMonitorResponse.probeAttempts || [];
@@ -75,6 +80,43 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
         />
       </div>
 
+      {pingResponse && (
+        <div className="flex space-x-3">
+          <InfoCard
+            className="w-1/4 shadow-none border-2 border-gray-100 "
+            title="Packet Loss"
+            value={`${pingResponse.packetLossPercent}% (${pingResponse.packetsReceived}/${pingResponse.packetsSent} received)`}
+          />
+          <InfoCard
+            className="w-1/4 shadow-none border-2 border-gray-100 "
+            title="Jitter"
+            value={
+              pingResponse.jitterInMs !== undefined
+                ? pingResponse.jitterInMs + " ms"
+                : "-"
+            }
+          />
+          <InfoCard
+            className="w-1/4 shadow-none border-2 border-gray-100 "
+            title="Min RTT"
+            value={
+              pingResponse.minRoundTripTimeInMs !== undefined
+                ? pingResponse.minRoundTripTimeInMs + " ms"
+                : "-"
+            }
+          />
+          <InfoCard
+            className="w-1/4 shadow-none border-2 border-gray-100 "
+            title="Max RTT"
+            value={
+              pingResponse.maxRoundTripTimeInMs !== undefined
+                ? pingResponse.maxRoundTripTimeInMs + " ms"
+                : "-"
+            }
+          />
+        </div>
+      )}
+
       {props.probeMonitorResponse.failureCause && (
         <div className="flex space-x-3">
           <InfoCard
@@ -117,6 +159,12 @@ const PingMonitorView: FunctionComponent<ComponentProps> = (
             />
           </div>
         </div>
+      )}
+
+      {props.probeMonitorResponse.networkPathTrace && (
+        <NetworkPathView
+          networkPathTrace={props.probeMonitorResponse.networkPathTrace}
+        />
       )}
 
       {hadRetries && (

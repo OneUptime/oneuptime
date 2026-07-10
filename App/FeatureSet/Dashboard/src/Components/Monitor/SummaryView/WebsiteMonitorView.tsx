@@ -7,6 +7,7 @@ import Field from "Common/UI/Components/Detail/Field";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { FunctionComponent, ReactElement } from "react";
+import HttpTimingsView from "./HttpTimingsView";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 
 export interface ComponentProps {
@@ -96,6 +97,10 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
           }
         />
       </div>
+
+      {props.probeMonitorResponse.httpTimings && (
+        <HttpTimingsView httpTimings={props.probeMonitorResponse.httpTimings} />
+      )}
 
       {props.probeMonitorResponse.failureCause && (
         <div className="flex space-x-3">

@@ -10,10 +10,16 @@ import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
+import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import { AxiosError } from "axios";
 import ProxyConfig, { ProxyAgents } from "../../ProxyConfig";
+import {
+  HttpTimingAgents,
+  HttpTimingCollector,
+  TimedAgents,
+} from "../../HttpTimingAgents";
 import https from "https";
 
 export interface ProbeWebsiteResponse {
@@ -30,6 +36,7 @@ export interface ProbeWebsiteResponse {
   isTimeout?: boolean;
   probeAttempts?: Array<ProbeAttempt> | undefined;
   totalAttempts?: number | undefined;
+  httpTimings?: HttpPhaseTimings | undefined;
 }
 
 export default class WebsiteMonitor {
@@ -85,6 +92,8 @@ export default class WebsiteMonitor {
     const tlsClientKeyPassphrase: string | undefined =
       options.tlsClientKeyPassphrase || undefined;
 
+    const timingCollector: HttpTimingCollector = new HttpTimingCollector();
+
     const buildAgents: () => ProxyAgents = (): ProxyAgents => {
       const proxyOptions: {
         rejectUnauthorized?: boolean;
@@ -107,21 +116,34 @@ export default class WebsiteMonitor {
         ...ProxyConfig.getRequestProxyAgents(url, proxyOptions),
       };
 
-      if (
+      const agentOptions: https.AgentOptions = {};
+      if (allowSelfSignedCertificates) {
+        agentOptions.rejectUnauthorized = false;
+      }
+      if (hasClientCert && tlsClientCertificate && tlsClientKey) {
+        agentOptions.cert = tlsClientCertificate;
+        agentOptions.key = tlsClientKey;
+        if (tlsClientKeyPassphrase) {
+          agentOptions.passphrase = tlsClientKeyPassphrase;
+        }
+      }
+
+      if (!proxyAgents.httpAgent && !proxyAgents.httpsAgent) {
+        /*
+         * No proxy in the way — use timing-instrumented agents so the check
+         * captures a DNS / TCP / TLS / TTFB phase breakdown.
+         */
+        timingCollector.reset();
+        const timedAgents: TimedAgents = HttpTimingAgents.create(
+          timingCollector,
+          agentOptions,
+        );
+        proxyAgents.httpAgent = timedAgents.httpAgent;
+        proxyAgents.httpsAgent = timedAgents.httpsAgent;
+      } else if (
         (allowSelfSignedCertificates || hasClientCert) &&
         !proxyAgents.httpsAgent
       ) {
-        const agentOptions: https.AgentOptions = {};
-        if (allowSelfSignedCertificates) {
-          agentOptions.rejectUnauthorized = false;
-        }
-        if (hasClientCert && tlsClientCertificate && tlsClientKey) {
-          agentOptions.cert = tlsClientCertificate;
-          agentOptions.key = tlsClientKey;
-          if (tlsClientKeyPassphrase) {
-            agentOptions.passphrase = tlsClientKeyPassphrase;
-          }
-        }
         proxyAgents.httpsAgent = new https.Agent(agentOptions);
       }
 
@@ -184,6 +206,10 @@ export default class WebsiteMonitor {
         return await this.ping(url, options);
       }
 
+      const httpTimings: HttpPhaseTimings = timingCollector.getTimings(
+        responseTimeInMS.toNumber(),
+      );
+
       const probeWebsiteResponse: ProbeWebsiteResponse = {
         url: url,
         requestHeaders: {},
@@ -197,6 +223,8 @@ export default class WebsiteMonitor {
         isTimeout: false,
         probeAttempts: options.attempts,
         totalAttempts: options.attempts!.length,
+        httpTimings:
+          Object.keys(httpTimings).length > 0 ? httpTimings : undefined,
       };
 
       logger.debug(

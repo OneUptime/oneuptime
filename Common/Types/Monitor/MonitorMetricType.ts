@@ -8,6 +8,23 @@ enum MonitorMetricType {
   ExecutionTime = "oneuptime.monitor.execution.time",
 
   /*
+   * Packet-level network metrics. Emitted by Ping/IP monitors when the
+   * probe sends multiple echo requests per check; absent for older probes.
+   */
+  PacketLossPercent = "oneuptime.monitor.ping.packet.loss.percent",
+  Jitter = "oneuptime.monitor.ping.jitter",
+
+  /*
+   * HTTP(S) phase breakdown. Emitted by Website/API monitors when the probe
+   * captured socket-level timings; absent behind proxies and on older probes.
+   */
+  DnsLookupTime = "oneuptime.monitor.http.dns.lookup.time",
+  TcpConnectTime = "oneuptime.monitor.http.tcp.connect.time",
+  TlsHandshakeTime = "oneuptime.monitor.http.tls.handshake.time",
+  TimeToFirstByte = "oneuptime.monitor.http.time.to.first.byte",
+  DownloadTime = "oneuptime.monitor.http.download.time",
+
+  /*
    * Extended server/VM metrics. Emitted when the agent payload contains them;
    * absent for older agents, which keeps the pipeline backwards-compatible.
    */
