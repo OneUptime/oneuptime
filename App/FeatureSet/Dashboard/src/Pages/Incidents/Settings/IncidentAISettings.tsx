@@ -33,6 +33,17 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },
+          {
+            field: {
+              aiDailyAutonomousTokenLimit: true,
+            },
+            title: "Daily Autonomous Token Limit",
+            description:
+              "Maximum tokens per day (UTC) that autonomous investigations may consume, shared across incident and alert investigations for this project. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Leave empty for no limit.",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "No limit",
+          },
         ]}
         modelDetailProps={{
           modelType: Project,
@@ -45,6 +56,14 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               title: "Automatically Investigate Incidents",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                aiDailyAutonomousTokenLimit: true,
+              },
+              title: "Daily Autonomous Token Limit",
+              placeholder: "No limit",
+              fieldType: FieldType.Number,
             },
           ],
           modelId: ProjectUtil.getCurrentProjectId()!,

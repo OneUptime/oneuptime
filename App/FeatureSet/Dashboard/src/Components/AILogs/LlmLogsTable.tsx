@@ -113,7 +113,10 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
           if (item["status"] === LlmLogStatus.Error) {
             color = Red;
           }
-          if (item["status"] === LlmLogStatus.InsufficientBalance) {
+          if (
+            item["status"] === LlmLogStatus.InsufficientBalance ||
+            item["status"] === LlmLogStatus.BudgetExceeded
+          ) {
             color = Yellow;
           }
           return (
@@ -186,7 +189,8 @@ const LlmLogsTable: FunctionComponent<LlmLogsTableProps> = (
             isVisible: (item: LlmLog): boolean => {
               return (
                 item["status"] === LlmLogStatus.Error ||
-                item["status"] === LlmLogStatus.InsufficientBalance
+                item["status"] === LlmLogStatus.InsufficientBalance ||
+                item["status"] === LlmLogStatus.BudgetExceeded
               );
             },
             onClick: async (item: LlmLog, onCompleteAction: VoidFunction) => {

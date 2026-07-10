@@ -16,6 +16,7 @@ import AIRunService from "../../../Services/AIRunService";
 import AIRunEventService from "../../../Services/AIRunEventService";
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
+import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
 import ObservabilityAssistant, {
   ObservabilityAssistantResult,
   ObservabilityAssistantStep,
@@ -208,6 +209,29 @@ export default class SentinelInvestigationEngine {
     } catch (error) {
       logger.error(
         `Sentinel: concurrency-cap check failed, skipping investigation: ${error}`,
+      );
+      return;
+    }
+
+    /*
+     * G4 daily budget: skip quietly BEFORE creating the run, so an exhausted
+     * budget produces a debug log instead of a run marked Error. The same
+     * check inside AIService.executeWithLogging is the hard backstop for runs
+     * that cross the limit mid-flight.
+     */
+    try {
+      const budget: AutonomousBudgetStatus =
+        await AIService.getAutonomousDailyBudgetStatus(projectId);
+
+      if (budget.exhausted) {
+        logger.debug(
+          `Sentinel: skipping investigation for project ${projectId.toString()} — daily autonomous token budget exhausted (${budget.usedTokensToday} of ${budget.limitInTokens} tokens used today).`,
+        );
+        return;
+      }
+    } catch (error) {
+      logger.error(
+        `Sentinel: budget check failed, skipping investigation: ${error}`,
       );
       return;
     }
