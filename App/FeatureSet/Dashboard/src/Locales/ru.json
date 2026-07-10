@@ -131,6 +131,10 @@
     "label": "Профиль пользователя",
     "profile": "Профиль",
     "adminSettings": "Настройки администратора",
+    "darkTheme": "Тёмная тема",
+    "lightTheme": "Светлая тема",
+    "switchToDarkTheme": "Переключиться на тёмную тему",
+    "switchToLightTheme": "Переключиться на светлую тему",
     "logOut": "Выйти"
   },
   "upgrade": {

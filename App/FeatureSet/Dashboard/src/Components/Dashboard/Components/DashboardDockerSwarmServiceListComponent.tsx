@@ -154,16 +154,20 @@ function getServiceStatus(r: DockerSwarmResource): {
       return {
         text: "Converged",
         dot: SERVICE_COLORS.converged,
-        textColor: "#047857",
+        textColor: "var(--ou-success-text, #047857)",
       };
     }
     if (have <= 0) {
-      return { text: "Down", dot: SERVICE_COLORS.down, textColor: "#b91c1c" };
+      return {
+        text: "Down",
+        dot: SERVICE_COLORS.down,
+        textColor: "var(--ou-danger-text, #b91c1c)",
+      };
     }
     return {
       text: `${have}/${desired}`,
       dot: SERVICE_COLORS.degraded,
-      textColor: "#b45309",
+      textColor: "var(--ou-warning-text, #b45309)",
     };
   }
 
@@ -173,16 +177,20 @@ function getServiceStatus(r: DockerSwarmResource): {
     return {
       text: "Converged",
       dot: SERVICE_COLORS.converged,
-      textColor: "#047857",
+      textColor: "var(--ou-success-text, #047857)",
     };
   }
   if (isReady === false || running === 0) {
-    return { text: "Down", dot: SERVICE_COLORS.down, textColor: "#b91c1c" };
+    return {
+      text: "Down",
+      dot: SERVICE_COLORS.down,
+      textColor: "var(--ou-danger-text, #b91c1c)",
+    };
   }
   return {
     text: "Unknown",
     dot: SERVICE_COLORS.unknown,
-    textColor: "#6b7280",
+    textColor: "var(--ou-text-muted, #6b7280)",
   };
 }
 

@@ -6,7 +6,30 @@
       name="viewport"
       content="width=device-width, initial-scale=1, shrink-to-fit=no"
     />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#f9fafb" />
+    <script>
+      (function () {
+        var isDark = false;
+        try {
+          isDark =
+            window.localStorage.getItem("oneuptime-dashboard-theme") ===
+            "dark";
+        } catch (_error) {
+          // Light remains the default when storage is unavailable.
+        }
+        var theme = isDark ? "dark" : "light";
+        document.documentElement.classList.toggle("dark", isDark);
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        var themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) {
+          themeColor.setAttribute(
+            "content",
+            isDark ? "#0f172a" : "#f9fafb",
+          );
+        }
+      })();
+    </script>
     <title>OneUptime - Offline</title>
     <link
       rel="icon"
@@ -14,6 +37,28 @@
       href="/dashboard/assets/img/favicons/favicon-32x32.png"
     />
     <style>
+      :root {
+        color-scheme: light;
+        --page-start: #667eea;
+        --page-end: #764ba2;
+        --surface: #ffffff;
+        --surface-hover: #f9fafb;
+        --border: #e5e7eb;
+        --text: #1f2937;
+        --muted: #6b7280;
+      }
+
+      html.dark {
+        color-scheme: dark;
+        --page-start: #0f172a;
+        --page-end: #1e1b4b;
+        --surface: #111827;
+        --surface-hover: #1e293b;
+        --border: #334155;
+        --text: #f8fafc;
+        --muted: #cbd5e1;
+      }
+
       * {
         margin: 0;
         padding: 0;
@@ -23,17 +68,21 @@
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           "Helvetica Neue", Arial, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(
+          135deg,
+          var(--page-start) 0%,
+          var(--page-end) 100%
+        );
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #333;
+        color: var(--text);
       }
 
       .container {
         text-align: center;
-        background: white;
+        background: var(--surface);
         padding: 3rem 2rem;
         border-radius: 12px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -59,11 +108,11 @@
         font-size: 1.5rem;
         font-weight: 600;
         margin-bottom: 0.5rem;
-        color: #1f2937;
+        color: var(--text);
       }
 
       p {
-        color: #6b7280;
+        color: var(--muted);
         margin-bottom: 2rem;
         line-height: 1.6;
       }
@@ -101,13 +150,13 @@
       }
 
       .secondary-btn {
-        background: white;
-        color: #000000;
-        border: 1px solid #e5e7eb;
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
       }
 
       .secondary-btn:hover {
-        background: #f9fafb;
+        background: var(--surface-hover);
       }
 
       .status {
@@ -128,18 +177,28 @@
         color: #991b1b;
       }
 
+      html.dark .status.online {
+        background: rgb(6 78 59 / 45%);
+        color: #6ee7b7;
+      }
+
+      html.dark .status.offline {
+        background: rgb(127 29 29 / 45%);
+        color: #fca5a5;
+      }
+
       .features {
         margin-top: 2rem;
         text-align: left;
         font-size: 14px;
-        color: #6b7280;
+        color: var(--muted);
       }
 
       .features h3 {
         font-size: 16px;
         font-weight: 600;
         margin-bottom: 0.75rem;
-        color: #1f2937;
+        color: var(--text);
       }
 
       .features ul {

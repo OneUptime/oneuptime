@@ -393,8 +393,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       style={{
         minWidth: "1000px",
         background: isEditMode
-          ? "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)"
-          : "#f8f9fb",
+          ? "linear-gradient(135deg, var(--ou-background-primary, #f8fafc) 0%, var(--ou-surface-secondary, #f1f5f9) 100%)"
+          : "var(--ou-background-primary, #f8f9fb)",
       }}
     >
       <DashboardToolbar
@@ -732,9 +732,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         ref={dashboardCanvasRef}
         className="px-1 pb-4 mx-3 mb-4 rounded-2xl border border-gray-200/60"
         style={{
-          background: "#ffffff",
-          boxShadow:
-            "0 1px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03)",
+          background: "var(--ou-surface-primary, #ffffff)",
+          boxShadow: "var(--ou-card-shadow)",
         }}
       >
         <DashboardCanvas

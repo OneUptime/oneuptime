@@ -213,7 +213,13 @@ const DashboardPodmanHostListComponentElement: FunctionComponent<
                 backgroundColor: isConnected ? "#10b981" : "#9ca3af",
               }}
             ></span>
-            <span style={{ color: isConnected ? "#047857" : "#6b7280" }}>
+            <span
+              style={{
+                color: isConnected
+                  ? "var(--ou-success-text, #047857)"
+                  : "var(--ou-text-muted, #6b7280)",
+              }}
+            >
               {isConnected ? "Connected" : "Disconnected"}
             </span>
           </span>

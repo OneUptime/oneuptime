@@ -33,6 +33,16 @@ class MonitorMetricTypeUtil {
         return AggregationType.Avg;
       case MonitorMetricType.ExecutionTime:
         return AggregationType.Avg;
+      case MonitorMetricType.PacketLossPercent:
+        return AggregationType.Avg;
+      case MonitorMetricType.Jitter:
+        return AggregationType.Avg;
+      case MonitorMetricType.DnsLookupTime:
+      case MonitorMetricType.TcpConnectTime:
+      case MonitorMetricType.TlsHandshakeTime:
+      case MonitorMetricType.TimeToFirstByte:
+      case MonitorMetricType.DownloadTime:
+        return AggregationType.Avg;
 
       /*
        * Extended server/VM metrics. Cumulative counters (bytes/packets/ops since
@@ -79,6 +89,10 @@ class MonitorMetricTypeUtil {
     switch (checkOn) {
       case CheckOn.ResponseTime:
         return MonitorMetricType.ResponseTime;
+      case CheckOn.PacketLossPercent:
+        return MonitorMetricType.PacketLossPercent;
+      case CheckOn.Jitter:
+        return MonitorMetricType.Jitter;
       case CheckOn.ResponseStatusCode:
         return MonitorMetricType.ResponseStatusCode;
       case CheckOn.IsOnline:
@@ -117,6 +131,11 @@ class MonitorMetricTypeUtil {
         MonitorMetricType.IsOnline,
         MonitorMetricType.ResponseTime,
         MonitorMetricType.ResponseStatusCode,
+        MonitorMetricType.DnsLookupTime,
+        MonitorMetricType.TcpConnectTime,
+        MonitorMetricType.TlsHandshakeTime,
+        MonitorMetricType.TimeToFirstByte,
+        MonitorMetricType.DownloadTime,
       ];
     }
 
@@ -165,9 +184,20 @@ class MonitorMetricTypeUtil {
       return [MonitorMetricType.ExecutionTime];
     }
 
+    if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
+      /*
+       * Ping/IP checks send multiple echo requests, so they get packet-level
+       * network metrics on top of availability and response time.
+       */
+      return [
+        MonitorMetricType.IsOnline,
+        MonitorMetricType.ResponseTime,
+        MonitorMetricType.PacketLossPercent,
+        MonitorMetricType.Jitter,
+      ];
+    }
+
     if (
-      monitorType === MonitorType.Ping ||
-      monitorType === MonitorType.IP ||
       monitorType === MonitorType.Port ||
       monitorType === MonitorType.SNMP ||
       monitorType === MonitorType.DNS ||
@@ -288,6 +318,20 @@ class MonitorMetricTypeUtil {
         return "Memory Usage Percent";
       case MonitorMetricType.ExecutionTime:
         return "Execution Time";
+      case MonitorMetricType.PacketLossPercent:
+        return "Packet Loss";
+      case MonitorMetricType.Jitter:
+        return "Jitter";
+      case MonitorMetricType.DnsLookupTime:
+        return "DNS Lookup Time";
+      case MonitorMetricType.TcpConnectTime:
+        return "TCP Connect Time";
+      case MonitorMetricType.TlsHandshakeTime:
+        return "TLS Handshake Time";
+      case MonitorMetricType.TimeToFirstByte:
+        return "Time to First Byte";
+      case MonitorMetricType.DownloadTime:
+        return "Download Time";
       case MonitorMetricType.LoadAverage1Min:
         return "Load Average (1 minute)";
       case MonitorMetricType.LoadAverage5Min:
@@ -370,6 +414,16 @@ class MonitorMetricTypeUtil {
         return "%";
       case MonitorMetricType.ExecutionTime:
         return "ms";
+      case MonitorMetricType.PacketLossPercent:
+        return "%";
+      case MonitorMetricType.Jitter:
+        return "ms";
+      case MonitorMetricType.DnsLookupTime:
+      case MonitorMetricType.TcpConnectTime:
+      case MonitorMetricType.TlsHandshakeTime:
+      case MonitorMetricType.TimeToFirstByte:
+      case MonitorMetricType.DownloadTime:
+        return "ms";
       case MonitorMetricType.LoadAverage1Min:
       case MonitorMetricType.LoadAverage5Min:
       case MonitorMetricType.LoadAverage15Min:
@@ -426,6 +480,20 @@ class MonitorMetricTypeUtil {
         return "Memory usage percent is the percentage of memory that is currently being used on a server. It is a measure of how much of the server's memory is being used.";
       case MonitorMetricType.ExecutionTime:
         return "Execution time is the time taken for a custom JavaScript code or a synthetic monitor to execute.";
+      case MonitorMetricType.PacketLossPercent:
+        return "Percentage of ICMP echo requests that received no reply during this check. Sustained loss above 1-2% typically indicates congestion, faulty hardware, or routing problems on the path.";
+      case MonitorMetricType.Jitter:
+        return "Variation in round-trip time across the packets sent in each check (standard deviation). High jitter degrades real-time traffic like VoIP and video even when average latency looks healthy.";
+      case MonitorMetricType.DnsLookupTime:
+        return "Time spent resolving the hostname to an IP address. Spikes here point at the DNS provider, not the monitored service.";
+      case MonitorMetricType.TcpConnectTime:
+        return "Time spent establishing the TCP connection after DNS resolution — a proxy for raw network latency to the target.";
+      case MonitorMetricType.TlsHandshakeTime:
+        return "Time spent negotiating TLS after the TCP connection was established. Regressions here often follow certificate or cipher configuration changes.";
+      case MonitorMetricType.TimeToFirstByte:
+        return "Time from the end of connection setup until the first byte of the response arrived — the server-side processing time.";
+      case MonitorMetricType.DownloadTime:
+        return "Time spent receiving the response body after the first byte arrived.";
       case MonitorMetricType.LoadAverage1Min:
         return "Average number of runnable or uninterruptible processes over the last 1 minute. Values persistently above the number of CPU cores indicate CPU saturation.";
       case MonitorMetricType.LoadAverage5Min:

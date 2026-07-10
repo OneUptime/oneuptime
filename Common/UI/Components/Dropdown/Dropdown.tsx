@@ -41,6 +41,12 @@ export interface DropdownOptionGroup {
   options: Array<DropdownOption>;
 }
 
+/*
+ * Modal surfaces use z-50. The portalled menu must sit above that stacking
+ * context so options are not painted underneath an anchored modal footer.
+ */
+export const DROPDOWN_MENU_Z_INDEX: number = 60;
+
 export interface ComponentProps {
   options: Array<DropdownOption | DropdownOptionGroup>;
   initialValue?: undefined | DropdownOption | Array<DropdownOption>;
@@ -334,8 +340,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   } = (color?: string): { backgroundColor: string; color: string } => {
     if (!color) {
       return {
-        backgroundColor: "#e5e7eb", // gray-200
-        color: "#374151", // gray-700
+        backgroundColor: "var(--ou-surface-tertiary, #e5e7eb)",
+        color: "var(--ou-text-secondary, #374151)",
       };
     }
 
@@ -510,6 +516,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     setValue(value);
   }, [props.value]);
+
+  const menuPortalTarget: HTMLElement | null =
+    typeof document === "undefined" ? null : document.body;
 
   return (
     <div
@@ -710,11 +719,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           menuPortal: (base: CSSObjectWithLabel): CSSObjectWithLabel => {
             return {
               ...base,
-              zIndex: 50,
+              zIndex: DROPDOWN_MENU_Z_INDEX,
             };
           },
         }}
-        menuPortalTarget={document.body}
+        menuPortalTarget={menuPortalTarget}
         menuPosition="fixed"
         isClearable={true}
         isSearchable={true}

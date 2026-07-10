@@ -19,18 +19,33 @@ export interface ComponentProps {
 function getRoleColor(role: string): { bg: string; text: string } {
   const normalized: string = (role || "").toLowerCase();
   if (normalized.includes("system")) {
-    return { bg: "#f3f4f6", text: "#374151" };
+    return {
+      bg: "var(--ou-surface-tertiary, #f3f4f6)",
+      text: "var(--ou-text-secondary, #374151)",
+    };
   }
   if (normalized.includes("assistant") || normalized.includes("choice")) {
-    return { bg: "#eef2ff", text: "#4338ca" };
+    return {
+      bg: "var(--ou-accent-soft, #eef2ff)",
+      text: "var(--ou-link, #4338ca)",
+    };
   }
   if (normalized.includes("tool")) {
-    return { bg: "#ecfeff", text: "#0e7490" };
+    return {
+      bg: "color-mix(in srgb, #06b6d4 14%, var(--ou-surface-primary, #ffffff))",
+      text: "var(--ou-tool-text, #0e7490)",
+    };
   }
   if (normalized.includes("user")) {
-    return { bg: "#f0fdf4", text: "#15803d" };
+    return {
+      bg: "color-mix(in srgb, #22c55e 14%, var(--ou-surface-primary, #ffffff))",
+      text: "var(--ou-success-text, #166534)",
+    };
   }
-  return { bg: "#f9fafb", text: "#4b5563" };
+  return {
+    bg: "var(--ou-surface-secondary, #f9fafb)",
+    text: "var(--ou-text-secondary, #4b5563)",
+  };
 }
 
 const Metric: FunctionComponent<{

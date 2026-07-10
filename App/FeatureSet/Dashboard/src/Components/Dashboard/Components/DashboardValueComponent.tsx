@@ -182,7 +182,7 @@ const Sparkline: FunctionComponent<SparklineProps> = (
               cx={hoverPos[0]}
               cy={hoverPos[1]}
               r={3.5}
-              fill="#ffffff"
+              fill="var(--ou-chart-marker-ring, #ffffff)"
               stroke={props.color}
               strokeWidth={2}
             />

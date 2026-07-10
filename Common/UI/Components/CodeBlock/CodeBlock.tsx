@@ -36,8 +36,9 @@ const CodeBlock: FunctionComponent<ComponentProps> = (
       {showCopyButton && typeof props.code === "string" && (
         <button
           onClick={handleCopy}
-          className="absolute top-2 right-2 p-2 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-all opacity-0 group-hover:opacity-100 z-10"
+          className="absolute top-2 right-2 p-2 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-all opacity-70 hover:opacity-100 focus-visible:opacity-100 group-hover:opacity-100 z-10"
           title={copied ? "Copied!" : "Copy to clipboard"}
+          aria-label={copied ? "Copied" : "Copy to clipboard"}
           type="button"
         >
           <Icon

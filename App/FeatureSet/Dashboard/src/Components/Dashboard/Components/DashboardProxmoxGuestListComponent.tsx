@@ -115,17 +115,29 @@ function getGuestStatus(r: ProxmoxResource): {
     return {
       text: `HA ${haState}`,
       dot: GUEST_COLORS.haError,
-      textColor: "#b91c1c",
+      textColor: "var(--ou-danger-text, #b91c1c)",
     };
   }
   const isUp: boolean | undefined = r.isUp as boolean | undefined;
   if (isUp === true) {
-    return { text: "Running", dot: GUEST_COLORS.running, textColor: "#047857" };
+    return {
+      text: "Running",
+      dot: GUEST_COLORS.running,
+      textColor: "var(--ou-success-text, #047857)",
+    };
   }
   if (isUp === false) {
-    return { text: "Stopped", dot: GUEST_COLORS.stopped, textColor: "#6b7280" };
+    return {
+      text: "Stopped",
+      dot: GUEST_COLORS.stopped,
+      textColor: "var(--ou-text-muted, #6b7280)",
+    };
   }
-  return { text: "Unknown", dot: GUEST_COLORS.unknown, textColor: "#9ca3af" };
+  return {
+    text: "Unknown",
+    dot: GUEST_COLORS.unknown,
+    textColor: "var(--ou-text-muted, #6b7280)",
+  };
 }
 
 function getGuestDisplayName(r: ProxmoxResource): string {

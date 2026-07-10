@@ -1,4 +1,3 @@
-import { Black } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 
@@ -14,7 +13,7 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const backgroundColor: string = props.color
     ? props.color.toString()
-    : Black.toString();
+    : "var(--ou-text-subtle, #9ca3af)";
 
   return (
     <div
@@ -37,6 +36,7 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
             className="relative inline-flex rounded-full h-3.5 w-3.5"
             style={{
               backgroundColor: backgroundColor,
+              boxShadow: "0 0 0 1px var(--ou-border-strong, #d1d5db)",
             }}
           ></span>
         </span>
@@ -44,7 +44,7 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
       <div
         className="text-sm font-medium"
         style={{
-          color: props.color ? props.color.toString() : Black.toString(),
+          color: "var(--ou-text-secondary, #4b5563)",
         }}
       >
         {props.text}

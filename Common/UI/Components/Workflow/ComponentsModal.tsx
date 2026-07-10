@@ -404,7 +404,8 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                         style={{
                           width: "28px",
                           height: "28px",
-                          backgroundColor: "#f1f5f9",
+                          backgroundColor:
+                            "var(--ou-surface-tertiary, #f1f5f9)",
                         }}
                       >
                         <Icon
@@ -443,16 +444,16 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                 borderRadius: "10px",
                                 border: isSelected
                                   ? "2px solid #6366f1"
-                                  : "1px solid #e2e8f0",
+                                  : "1px solid var(--ou-border-default, #e2e8f0)",
                                 backgroundColor: isSelected
-                                  ? "#eef2ff"
-                                  : "#ffffff",
+                                  ? "var(--ou-accent-soft, #eef2ff)"
+                                  : "var(--ou-surface-primary, #ffffff)",
                                 display: "flex",
                                 alignItems: "flex-start",
                                 gap: "0.75rem",
                                 boxShadow: isSelected
                                   ? "0 0 0 3px rgba(99, 102, 241, 0.1)"
-                                  : "0 1px 2px 0 rgba(0, 0, 0, 0.03)",
+                                  : "var(--ou-card-shadow, 0 1px 2px 0 rgba(0, 0, 0, 0.03))",
                               }}
                             >
                               {/* Icon */}
@@ -463,7 +464,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                   borderRadius: "8px",
                                   backgroundColor: isSelected
                                     ? "#6366f1"
-                                    : "#f1f5f9",
+                                    : "var(--ou-surface-tertiary, #f1f5f9)",
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
@@ -474,7 +475,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                 <Icon
                                   icon={componentMetadata.iconProp}
                                   style={{
-                                    color: isSelected ? "#ffffff" : "#64748b",
+                                    color: isSelected
+                                      ? "#ffffff"
+                                      : "var(--ou-text-muted, #64748b)",
                                     width: "1rem",
                                     height: "1rem",
                                   }}
@@ -488,7 +491,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                     style={{
                                       fontSize: "0.8125rem",
                                       fontWeight: 600,
-                                      color: isSelected ? "#4338ca" : "#1e293b",
+                                      color: isSelected
+                                        ? "var(--ou-accent-text, #4338ca)"
+                                        : "var(--ou-text-primary, #1e293b)",
                                       margin: 0,
                                       lineHeight: "1.25rem",
                                     }}
@@ -521,7 +526,9 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                 <p
                                   style={{
                                     fontSize: "0.75rem",
-                                    color: isSelected ? "#6366f1" : "#94a3b8",
+                                    color: isSelected
+                                      ? "var(--ou-link, #6366f1)"
+                                      : "var(--ou-text-subtle, #94a3b8)",
                                     margin: 0,
                                     marginTop: "2px",
                                     lineHeight: "1rem",

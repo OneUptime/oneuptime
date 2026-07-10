@@ -171,21 +171,21 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
       <>
         <CartesianGrid
           strokeDasharray="none"
-          stroke="#f1f5f9"
+          stroke="var(--ou-chart-grid, #f1f5f9)"
           vertical={false}
         />
         <XAxis
           dataKey="time"
           tickFormatter={formatTickTime}
-          tick={{ fontSize: 10, fill: "#94a3b8" }}
-          axisLine={{ stroke: "#e2e8f0" }}
+          tick={{ fontSize: 10, fill: "var(--ou-chart-tick, #94a3b8)" }}
+          axisLine={{ stroke: "var(--ou-chart-grid, #e2e8f0)" }}
           tickLine={false}
           minTickGap={40}
           interval="preserveStartEnd"
           dy={4}
         />
         <YAxis
-          tick={{ fontSize: 10, fill: "#94a3b8" }}
+          tick={{ fontSize: 10, fill: "var(--ou-chart-tick, #94a3b8)" }}
           axisLine={false}
           tickLine={false}
           width={56}

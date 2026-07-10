@@ -273,6 +273,8 @@ const TopologyGraph: FunctionComponent = (): ReactElement => {
             fontSize: "12px",
             whiteSpace: "pre-line",
             borderColor: "#6366f1",
+            backgroundColor: "var(--ou-surface-primary, #ffffff)",
+            color: "var(--ou-text-primary, #111827)",
             width: 180,
             cursor: "pointer",
           },
@@ -444,7 +446,12 @@ const TopologyGraph: FunctionComponent = (): ReactElement => {
             }}
           >
             <Controls showInteractive={false} />
-            <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={16}
+              size={1}
+              color="var(--ou-chart-grid, #cbd5e1)"
+            />
           </ReactFlow>
         </div>
       )}

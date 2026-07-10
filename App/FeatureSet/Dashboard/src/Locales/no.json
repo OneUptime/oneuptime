@@ -131,6 +131,10 @@
     "label": "Brukerprofil",
     "profile": "Profil",
     "adminSettings": "Admin-innstillinger",
+    "darkTheme": "Mørkt tema",
+    "lightTheme": "Lyst tema",
+    "switchToDarkTheme": "Bytt til mørkt tema",
+    "switchToLightTheme": "Bytt til lyst tema",
     "logOut": "Logg ut"
   },
   "upgrade": {

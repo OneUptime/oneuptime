@@ -226,7 +226,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   const getMenuContents: GetReactElementArrayFunction =
     (): Array<ReactElement> => {
       if (isLoading) {
-        return [<BarLoader key={-1} />];
+        return [<BarLoader key={-1} color="var(--ou-link, #4f46e5)" />];
       }
 
       const elements: Array<ReactElement> = [];

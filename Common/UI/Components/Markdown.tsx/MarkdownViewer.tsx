@@ -70,6 +70,7 @@ SyntaxHighlighter.registerLanguage("http", http);
 import mermaid from "mermaid";
 import DOMPurify from "dompurify";
 import OneUptimeDate from "../../../Types/Date";
+import { Theme, useTheme } from "../../Utils/Theme";
 
 /*
  * ISO 8601 timestamps produced by OneUptimeDate.toString() — the
@@ -80,22 +81,37 @@ import OneUptimeDate from "../../../Types/Date";
 const ISO_8601_REGEX: RegExp =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/;
 
-// Initialize mermaid
-mermaid.initialize({
-  startOnLoad: false,
-  theme: "default",
-  securityLevel: "strict",
-  fontFamily: "inherit",
-  themeVariables: {
-    background: "#ffffff",
-    primaryColor: "#e0f2fe",
-    primaryTextColor: "#1e293b",
-    primaryBorderColor: "#0ea5e9",
-    lineColor: "#64748b",
-    secondaryColor: "#f1f5f9",
-    tertiaryColor: "#ffffff",
-  },
-});
+const initializeMermaid: (theme: Theme) => void = (theme: Theme): void => {
+  const isDark: boolean = theme === Theme.Dark;
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDark ? "dark" : "default",
+    securityLevel: "strict",
+    fontFamily: "inherit",
+    themeVariables: isDark
+      ? {
+          background: "#111827",
+          primaryColor: "#1e3a5f",
+          primaryTextColor: "#f8fafc",
+          primaryBorderColor: "#38bdf8",
+          lineColor: "#94a3b8",
+          secondaryColor: "#1e293b",
+          tertiaryColor: "#0f172a",
+        }
+      : {
+          background: "#ffffff",
+          primaryColor: "#e0f2fe",
+          primaryTextColor: "#1e293b",
+          primaryBorderColor: "#0ea5e9",
+          lineColor: "#64748b",
+          secondaryColor: "#f1f5f9",
+          tertiaryColor: "#ffffff",
+        },
+  });
+};
+
+initializeMermaid(Theme.Light);
 
 // Mermaid diagram component
 const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
@@ -105,22 +121,26 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
 }) => {
   const containerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const theme: Theme = useTheme();
 
   useEffect(() => {
+    let isCancelled: boolean = false;
+
     const renderDiagram: () => Promise<void> = async (): Promise<void> => {
       if (containerRef.current) {
         containerRef.current.innerHTML = "";
         try {
+          initializeMermaid(theme);
           const id: string = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
           const { svg } = await mermaid.render(id, chart);
-          if (containerRef.current) {
+          if (containerRef.current && !isCancelled) {
             containerRef.current.innerHTML = DOMPurify.sanitize(svg, {
               USE_PROFILES: { svg: true, svgFilters: true },
               ADD_TAGS: ["foreignObject"],
             });
           }
         } catch (error) {
-          if (containerRef.current) {
+          if (containerRef.current && !isCancelled) {
             const errorMessage: string = String(error);
             const errorEl: HTMLPreElement = document.createElement("pre");
             errorEl.className = "text-red-500";
@@ -131,8 +151,12 @@ const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
         }
       }
     };
-    renderDiagram();
-  }, [chart]);
+    void renderDiagram();
+
+    return (): void => {
+      isCancelled = true;
+    };
+  }, [chart, theme]);
 
   return (
     <div

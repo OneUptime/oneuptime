@@ -6,11 +6,18 @@ import UnableToReachServer from "Common/Types/Exception/UnableToReachServer";
 import IPv4 from "Common/Types/IP/IPv4";
 import IPv6 from "Common/Types/IP/IPv6";
 import ObjectID from "Common/Types/ObjectID";
+import PingMonitorResponse from "Common/Types/Monitor/PingMonitor/PingMonitorResponse";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import logger from "Common/Server/Utils/Logger";
 import ping from "ping";
+
+/*
+ * Echo requests sent per check. Multiple packets turn a reachability probe
+ * into a measurement: packet loss %, jitter, and min/avg/max RTT.
+ */
+export const PING_PACKET_COUNT: number = 5;
 
 // TODO - make sure it works for the IPV6
 export interface PingResponse {
@@ -20,6 +27,7 @@ export interface PingResponse {
   isTimeout?: boolean | undefined;
   probeAttempts?: Array<ProbeAttempt> | undefined;
   totalAttempts?: number | undefined;
+  pingResponse?: PingMonitorResponse | undefined;
 }
 
 export interface PingOptions {
@@ -32,6 +40,65 @@ export interface PingOptions {
 }
 
 export default class PingMonitor {
+  /*
+   * Builds packet-level statistics from the ping library result. The library
+   * parses the OS ping summary into strings (min/max/avg/stddev/packetLoss,
+   * "unknown" when unavailable) and collects per-packet RTTs in `times`, so
+   * every stat is recomputed from `times` when the parsed value is missing.
+   */
+  public static getPacketStatistics(
+    res: ping.PingResponse,
+  ): PingMonitorResponse {
+    const times: Array<number> = (res.times || []).filter((time: number) => {
+      return typeof time === "number" && isFinite(time);
+    });
+
+    const parseStat: (value: string | undefined) => number | undefined = (
+      value: string | undefined,
+    ) => {
+      const parsed: number = parseFloat(value as string);
+      return isFinite(parsed) ? parsed : undefined;
+    };
+
+    const packetsReceived: number = times.length;
+    const packetLossPercent: number =
+      parseStat(res.packetLoss) ??
+      ((PING_PACKET_COUNT - packetsReceived) / PING_PACKET_COUNT) * 100;
+
+    const avg: number | undefined =
+      parseStat(res.avg) ??
+      (times.length > 0
+        ? times.reduce((sum: number, time: number) => {
+            return sum + time;
+          }, 0) / times.length
+        : undefined);
+
+    let jitter: number | undefined = parseStat(res.stddev);
+
+    if (jitter === undefined && times.length > 0 && avg !== undefined) {
+      const variance: number =
+        times.reduce((sum: number, time: number) => {
+          return sum + Math.pow(time - avg, 2);
+        }, 0) / times.length;
+      jitter = Math.sqrt(variance);
+    }
+
+    return {
+      packetsSent: PING_PACKET_COUNT,
+      packetsReceived: packetsReceived,
+      packetLossPercent: Math.round(packetLossPercent * 100) / 100,
+      minRoundTripTimeInMs:
+        parseStat(res.min) ??
+        (times.length > 0 ? Math.min(...times) : undefined),
+      maxRoundTripTimeInMs:
+        parseStat(res.max) ??
+        (times.length > 0 ? Math.max(...times) : undefined),
+      avgRoundTripTimeInMs: avg,
+      jitterInMs:
+        jitter !== undefined ? Math.round(jitter * 100) / 100 : undefined,
+    };
+  }
+
   public static async ping(
     host: Hostname | IPv4 | IPv6 | URL,
     pingOptions?: PingOptions,
@@ -71,6 +138,7 @@ export default class PingMonitor {
     try {
       const res: ping.PingResponse = await ping.promise.probe(hostAddress, {
         timeout: Math.ceil((pingOptions?.timeout?.toNumber() || 5000) / 1000),
+        min_reply: PING_PACKET_COUNT, // maps to -c on Linux/macOS and -n on Windows
       });
 
       logger.debug(
@@ -84,9 +152,23 @@ export default class PingMonitor {
         );
       }
 
-      const responseTime: PositiveNumber | undefined = res.time
-        ? new PositiveNumber(Math.ceil(res.time as any))
-        : undefined;
+      const packetStatistics: PingMonitorResponse =
+        this.getPacketStatistics(res);
+
+      /*
+       * Prefer the average RTT across all packets over the first packet's
+       * RTT — it is the more honest single number for a multi-packet check.
+       */
+      const rttForResponse: number | undefined =
+        packetStatistics.avgRoundTripTimeInMs ??
+        (res.time !== "unknown" && res.time !== undefined
+          ? (res.time as number)
+          : undefined);
+
+      const responseTime: PositiveNumber | undefined =
+        rttForResponse !== undefined
+          ? new PositiveNumber(Math.ceil(rttForResponse))
+          : undefined;
       const responseReceivedAt: Date = new Date();
 
       pingOptions.attempts!.push({
@@ -115,6 +197,7 @@ export default class PingMonitor {
         failureCause: "",
         probeAttempts: pingOptions.attempts,
         totalAttempts: pingOptions.attempts!.length,
+        pingResponse: packetStatistics,
       };
     } catch (err: unknown) {
       logger.debug(

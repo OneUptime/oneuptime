@@ -43,10 +43,12 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.DiskUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.MemoryUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.SwapUsagePercent ||
-      criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent;
+      criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent ||
+      criteriaFilter?.checkOn === CheckOn.PacketLossPercent;
 
     const isMilliseconds: boolean =
-      criteriaFilter?.checkOn === CheckOn.ResponseTime;
+      criteriaFilter?.checkOn === CheckOn.ResponseTime ||
+      criteriaFilter?.checkOn === CheckOn.Jitter;
 
     // check evaluation over time values.
     if (
@@ -182,11 +184,19 @@ export default class CriteriaFilterUtil {
     let options: Array<DropdownOption> =
       DropdownUtil.getDropdownOptionsFromEnum(CheckOn);
 
-    if (
-      monitorType === MonitorType.Ping ||
-      monitorType === MonitorType.IP ||
-      monitorType === MonitorType.Port
-    ) {
+    if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.IsOnline ||
+          i.value === CheckOn.ResponseTime ||
+          i.value === CheckOn.PacketLossPercent ||
+          i.value === CheckOn.Jitter ||
+          i.value === CheckOn.IsRequestTimeout
+        );
+      });
+    }
+
+    if (monitorType === MonitorType.Port) {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === CheckOn.IsOnline ||
@@ -393,7 +403,12 @@ export default class CriteriaFilterUtil {
       return [];
     }
 
-    if (checkOn === CheckOn.ResponseTime || checkOn === CheckOn.ExecutionTime) {
+    if (
+      checkOn === CheckOn.ResponseTime ||
+      checkOn === CheckOn.ExecutionTime ||
+      checkOn === CheckOn.PacketLossPercent ||
+      checkOn === CheckOn.Jitter
+    ) {
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === FilterType.GreaterThan ||
@@ -823,6 +838,14 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.ResponseTime) {
       return "5000";
+    }
+
+    if (checkOn === CheckOn.PacketLossPercent) {
+      return "2";
+    }
+
+    if (checkOn === CheckOn.Jitter) {
+      return "30";
     }
 
     if (checkOn === CheckOn.ServerProcessPID) {

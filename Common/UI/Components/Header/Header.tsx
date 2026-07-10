@@ -3,6 +3,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   leftComponents?: undefined | Array<ReactElement> | ReactElement;
   rightComponents?: undefined | Array<ReactElement> | ReactElement;
+  mobileRightComponents?: undefined | Array<ReactElement> | ReactElement;
   centerComponents?: undefined | Array<ReactElement> | ReactElement;
   className?: string | undefined;
 }
@@ -25,6 +26,12 @@ const Header: FunctionComponent<ComponentProps> = (
         {props.centerComponents && (
           <div className="relative z-0 flex flex-1 items-center justify-center px-2 sm:absolute sm:inset-0">
             {props.centerComponents}
+          </div>
+        )}
+
+        {props.mobileRightComponents && (
+          <div className="relative z-20 flex items-center lg:hidden">
+            {props.mobileRightComponents}
           </div>
         )}
 

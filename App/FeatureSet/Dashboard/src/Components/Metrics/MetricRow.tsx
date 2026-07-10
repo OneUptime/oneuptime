@@ -9,12 +9,15 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import OneUptimeDate from "Common/Types/Date";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
+import ObjectID from "Common/Types/ObjectID";
+import { getVisibleMetricServices } from "./MetricRowData";
 
 export interface MetricRowProps {
   metric: MetricType;
   sparklinePoints?: Array<SparklinePoint> | undefined;
   sparklineLoading?: boolean;
   lastValue?: number | undefined;
+  serviceIds?: Array<ObjectID> | undefined;
   onClick?: () => void;
 }
 
@@ -45,11 +48,10 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
     ? OneUptimeDate.getDateAsLocalFormattedString(hoveredPoint.time)
     : null;
 
-  const services: Array<Service> = (metric.services || []).filter(
-    (service: Service): boolean => {
-      return Boolean(service.name && service.name.toString().trim());
-    },
-  );
+  const services: Array<Service> = getVisibleMetricServices({
+    services: metric.services,
+    serviceIds: props.serviceIds,
+  });
   const rawUnit: string = metric.unit || "";
   const formatterOptions: { metricName: string } = {
     metricName: metric.name || "",

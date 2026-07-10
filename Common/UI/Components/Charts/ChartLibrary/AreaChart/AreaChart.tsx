@@ -815,7 +815,10 @@ const AreaChart: React.ForwardRefExoticComponent<
               wrapperStyle={{ outline: "none" }}
               isAnimationActive={true}
               animationDuration={100}
-              cursor={{ stroke: "#d1d5db", strokeWidth: 1 }}
+              cursor={{
+                stroke: "var(--ou-chart-cursor, #d1d5db)",
+                strokeWidth: 1,
+              }}
               offset={20}
               position={{ y: 0 }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -903,11 +906,11 @@ const AreaChart: React.ForwardRefExoticComponent<
                   }
                   return [low, high];
                 }}
-                stroke="#94a3b8"
+                stroke="var(--ou-chart-tick, #94a3b8)"
                 strokeOpacity={0.3}
                 strokeWidth={1}
                 strokeDasharray="3 3"
-                fill="#94a3b8"
+                fill="var(--ou-chart-tick, #94a3b8)"
                 fillOpacity={0.12}
                 isAnimationActive={false}
                 connectNulls={false}
@@ -1064,7 +1067,7 @@ const AreaChart: React.ForwardRefExoticComponent<
                     y={exemplar.y}
                     r={5}
                     fill="#7c3aed"
-                    stroke="#ffffff"
+                    stroke="var(--ou-chart-marker-ring, #ffffff)"
                     strokeWidth={2}
                     style={{ cursor: "pointer" }}
                     onClick={() => {
@@ -1074,7 +1077,7 @@ const AreaChart: React.ForwardRefExoticComponent<
                     <Label
                       value="E"
                       position="center"
-                      fill="#ffffff"
+                      fill="var(--ou-chart-marker-ring, #ffffff)"
                       fontSize={8}
                       fontWeight={700}
                     />

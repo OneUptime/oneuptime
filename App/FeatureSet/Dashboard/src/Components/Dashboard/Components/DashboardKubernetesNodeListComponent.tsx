@@ -65,7 +65,11 @@ function renderNodeRow(r: KubernetesResource): ReactElement {
   const readyText: string =
     isReady === true ? "Ready" : isReady === false ? "Not Ready" : "Unknown";
   const readyTextColor: string =
-    isReady === true ? "#047857" : isReady === false ? "#b91c1c" : "#6b7280";
+    isReady === true
+      ? "var(--ou-success-text, #047857)"
+      : isReady === false
+        ? "var(--ou-danger-text, #b91c1c)"
+        : "var(--ou-text-muted, #6b7280)";
 
   const pressures: Array<string> = [];
   if (r.hasMemoryPressure) {
@@ -104,9 +108,10 @@ function renderNodeRow(r: KubernetesResource): ReactElement {
             className="inline-flex items-center px-1.5 py-0.5 rounded font-medium border"
             style={{
               fontSize: "10px",
-              color: "#b45309",
-              borderColor: "#fcd34d",
-              backgroundColor: "#fef3c7",
+              color: "var(--ou-warning-text, #b45309)",
+              borderColor: "color-mix(in srgb, #f59e0b 42%, transparent)",
+              backgroundColor:
+                "color-mix(in srgb, #f59e0b 14%, var(--ou-surface-primary, #ffffff))",
             }}
           >
             {pressures.join(", ")}

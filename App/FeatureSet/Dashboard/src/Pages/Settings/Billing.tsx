@@ -53,12 +53,14 @@ import React, {
 import useAsyncEffect from "use-async-effect";
 import Countries from "Common/UI/Utils/Countries";
 import ObjectID from "Common/Types/ObjectID";
+import { Theme, useTheme } from "Common/UI/Utils/Theme";
 
 export type ComponentProps = PageComponentProps;
 
 const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
+  const theme: Theme = useTheme();
   const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
     useState<boolean>(true);
   const [showPaymentMethodModal, setShowPaymentMethodModal] =
@@ -590,6 +592,23 @@ const Settings: FunctionComponent<ComponentProps> = (
                   options={{
                     // passing the client secret obtained in step 3
                     clientSecret: setupIntent,
+                    appearance: {
+                      theme: theme === Theme.Dark ? "night" : "stripe",
+                      variables:
+                        theme === Theme.Dark
+                          ? {
+                              colorBackground: "#111827",
+                              colorText: "#f8fafc",
+                              colorTextSecondary: "#cbd5e1",
+                              colorPrimary: "#818cf8",
+                              colorDanger: "#f87171",
+                              colorIcon: "#cbd5e1",
+                              colorIconTab: "#94a3b8",
+                              colorIconTabSelected: "#a5b4fc",
+                              colorIconTabHover: "#e2e8f0",
+                            }
+                          : {},
+                    },
                   }}
                 >
                   <CheckoutForm

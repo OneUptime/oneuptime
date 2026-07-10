@@ -4,7 +4,7 @@ const Divider: () => JSX.Element = (): ReactElement => {
   return (
     <div
       className="w-full border-t border-gray-100"
-      style={{ borderColor: "#f9fafb" }}
+      style={{ borderColor: "var(--ou-border-subtle, #f9fafb)" }}
     ></div>
   );
 };

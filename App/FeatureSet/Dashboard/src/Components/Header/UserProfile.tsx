@@ -11,6 +11,7 @@ import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
+import ThemeUtil, { Theme, useTheme } from "Common/UI/Utils/Theme";
 import User from "Common/UI/Utils/User";
 import React, {
   FunctionComponent,
@@ -29,6 +30,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { t } = useTranslation();
   const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
+  const theme: Theme = useTheme();
 
   const [profilePictureId, setProfilePictureId] = useState<ObjectID | null>(
     User.getProfilePicId(),
@@ -106,6 +108,19 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
+
+          <IconDropdownItem
+            title={
+              theme === Theme.Dark
+                ? t("userProfile.lightTheme", "Light theme")
+                : t("userProfile.darkTheme", "Dark theme")
+            }
+            onClick={() => {
+              ThemeUtil.toggleTheme();
+              setIsDropdownVisible(false);
+            }}
+            icon={theme === Theme.Dark ? IconProp.Sun : IconProp.Moon}
+          />
 
           <IconDropdownItem
             title={t("userProfile.logOut")}

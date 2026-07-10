@@ -106,16 +106,32 @@ function getNodeStatus(r: DockerSwarmResource): {
 } {
   const state: string = ((r.state as string) || "").toLowerCase();
   if (state === "down") {
-    return { text: "Down", dot: "#ef4444", textColor: "#b91c1c" };
+    return {
+      text: "Down",
+      dot: "#ef4444",
+      textColor: "var(--ou-danger-text, #b91c1c)",
+    };
   }
   const isReady: boolean | undefined = r.isReady as boolean | undefined;
   if (isReady === true) {
-    return { text: "Ready", dot: "#10b981", textColor: "#047857" };
+    return {
+      text: "Ready",
+      dot: "#10b981",
+      textColor: "var(--ou-success-text, #047857)",
+    };
   }
   if (isReady === false) {
-    return { text: "Not Ready", dot: "#ef4444", textColor: "#b91c1c" };
+    return {
+      text: "Not Ready",
+      dot: "#ef4444",
+      textColor: "var(--ou-danger-text, #b91c1c)",
+    };
   }
-  return { text: "Unknown", dot: "#9ca3af", textColor: "#6b7280" };
+  return {
+    text: "Unknown",
+    dot: "#9ca3af",
+    textColor: "var(--ou-text-muted, #6b7280)",
+  };
 }
 
 function renderNodeRow(r: DockerSwarmResource): ReactElement {

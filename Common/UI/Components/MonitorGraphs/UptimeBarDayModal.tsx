@@ -41,7 +41,8 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                 width: "48px",
                 height: "48px",
                 borderRadius: "50%",
-                backgroundColor: "#f0fdf4",
+                backgroundColor:
+                  "color-mix(in srgb, #22c55e 14%, var(--ou-surface-primary, #ffffff))",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -65,13 +66,18 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
               style={{
                 fontSize: "14px",
                 fontWeight: 600,
-                color: "#111827",
+                color: "var(--ou-text-primary, #111827)",
                 marginBottom: "4px",
               }}
             >
               No incidents
             </div>
-            <div style={{ fontSize: "13px", color: "#6b7280" }}>
+            <div
+              style={{
+                fontSize: "13px",
+                color: "var(--ou-text-muted, #6b7280)",
+              }}
+            >
               No incidents were reported on this day.
             </div>
           </div>
@@ -91,20 +97,20 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                   : undefined
               }
               style={{
-                border: "1px solid #e5e7eb",
+                border: "1px solid var(--ou-border-default, #e5e7eb)",
                 borderRadius: "10px",
                 padding: "14px 16px",
                 marginBottom: "10px",
                 cursor: isClickable ? "pointer" : "default",
                 transition: "all 0.15s ease",
-                backgroundColor: "#ffffff",
+                backgroundColor: "var(--ou-surface-primary, #ffffff)",
               }}
               onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                 if (isClickable) {
                   (e.currentTarget as HTMLDivElement).style.backgroundColor =
-                    "#f9fafb";
+                    "var(--ou-surface-secondary, #f9fafb)";
                   (e.currentTarget as HTMLDivElement).style.borderColor =
-                    "#d1d5db";
+                    "var(--ou-border-strong, #d1d5db)";
                   (e.currentTarget as HTMLDivElement).style.boxShadow =
                     "0 1px 3px rgba(0,0,0,0.06)";
                 }
@@ -112,9 +118,9 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
               onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
                 if (isClickable) {
                   (e.currentTarget as HTMLDivElement).style.backgroundColor =
-                    "#ffffff";
+                    "var(--ou-surface-primary, #ffffff)";
                   (e.currentTarget as HTMLDivElement).style.borderColor =
-                    "#e5e7eb";
+                    "var(--ou-border-default, #e5e7eb)";
                   (e.currentTarget as HTMLDivElement).style.boxShadow = "none";
                 }
               }}
@@ -132,7 +138,9 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                     style={{
                       fontSize: "14px",
                       fontWeight: 600,
-                      color: isClickable ? "#2563eb" : "#111827",
+                      color: isClickable
+                        ? "var(--ou-link, #2563eb)"
+                        : "var(--ou-text-primary, #111827)",
                       lineHeight: "1.4",
                       marginBottom: "4px",
                     }}
@@ -142,7 +150,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                   <div
                     style={{
                       fontSize: "12px",
-                      color: "#6b7280",
+                      color: "var(--ou-text-muted, #6b7280)",
                     }}
                   >
                     Declared{" "}
@@ -162,7 +170,7 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
                   >
                     <path
                       d="M6 3l5 5-5 5"
-                      stroke="#9ca3af"
+                      stroke="var(--ou-text-subtle, #9ca3af)"
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"

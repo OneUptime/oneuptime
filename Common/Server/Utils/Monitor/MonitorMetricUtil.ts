@@ -14,7 +14,9 @@ import BasicInfrastructureMetrics, {
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMetric";
+import HttpPhaseTimings from "../../../Types/Monitor/HttpPhaseTimings";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
@@ -23,8 +25,12 @@ import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 
 export default class MonitorMetricUtil {
-  // Default retention in days if GlobalConfig is not set
-  private static readonly DEFAULT_RETENTION_DAYS: number = 1;
+  /*
+   * Default retention in days if GlobalConfig is not set. 30 days keeps
+   * enough history for trend analysis and evaluate-over-time criteria;
+   * one day made week-over-week charts impossible out of the box.
+   */
+  private static readonly DEFAULT_RETENTION_DAYS: number = 30;
 
   // Cached retention value to avoid querying GlobalConfig on every monitor check
   private static cachedRetentionDays: number | null = null;
@@ -881,6 +887,106 @@ export default class MonitorMetricUtil {
       metricType.unit = "ms";
 
       metricNameServiceNameMap[MonitorMetricType.ResponseTime] = metricType;
+    }
+
+    if ((data.dataToProcess as ProbeMonitorResponse).httpTimings) {
+      const httpTimings: HttpPhaseTimings = (
+        data.dataToProcess as ProbeMonitorResponse
+      ).httpTimings!;
+
+      const extraAttributes: JSONObject = {
+        probeId: (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeId.toString(),
+      };
+
+      const phaseMetrics: Array<{
+        metricName: MonitorMetricType;
+        value: number | undefined;
+        description: string;
+      }> = [
+        {
+          metricName: MonitorMetricType.DnsLookupTime,
+          value: httpTimings.dnsLookupInMs,
+          description: "DNS lookup time for this monitor",
+        },
+        {
+          metricName: MonitorMetricType.TcpConnectTime,
+          value: httpTimings.tcpConnectInMs,
+          description: "TCP connect time for this monitor",
+        },
+        {
+          metricName: MonitorMetricType.TlsHandshakeTime,
+          value: httpTimings.tlsHandshakeInMs,
+          description: "TLS handshake time for this monitor",
+        },
+        {
+          metricName: MonitorMetricType.TimeToFirstByte,
+          value: httpTimings.timeToFirstByteInMs,
+          description: "Time to first byte for this monitor",
+        },
+        {
+          metricName: MonitorMetricType.DownloadTime,
+          value: httpTimings.downloadInMs,
+          description: "Response download time for this monitor",
+        },
+      ];
+
+      for (const phaseMetric of phaseMetrics) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: phaseMetric.metricName,
+          value: phaseMetric.value,
+          description: phaseMetric.description,
+          unit: "ms",
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+      }
+    }
+
+    if ((data.dataToProcess as ProbeMonitorResponse).pingResponse) {
+      const pingResponse: PingMonitorResponse = (
+        data.dataToProcess as ProbeMonitorResponse
+      ).pingResponse!;
+
+      const extraAttributes: JSONObject = {
+        probeId: (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeId.toString(),
+      };
+
+      await this.pushMonitorMetric({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
+        probeName: data.probeName,
+        metricName: MonitorMetricType.PacketLossPercent,
+        value: pingResponse.packetLossPercent,
+        description: CheckOn.PacketLossPercent + " for this monitor",
+        unit: "%",
+        extraAttributes: extraAttributes,
+        metricRows: metricRows,
+        metricNameServiceNameMap: metricNameServiceNameMap,
+      });
+
+      await this.pushMonitorMetric({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
+        probeName: data.probeName,
+        metricName: MonitorMetricType.Jitter,
+        value: pingResponse.jitterInMs,
+        description: CheckOn.Jitter + " for this monitor",
+        unit: "ms",
+        extraAttributes: extraAttributes,
+        metricRows: metricRows,
+        metricNameServiceNameMap: metricNameServiceNameMap,
+      });
     }
 
     if ((data.dataToProcess as ProbeMonitorResponse).isOnline !== undefined) {

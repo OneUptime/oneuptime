@@ -1,6 +1,7 @@
 import Editor from "@monaco-editor/react";
 import CodeType from "../../../Types/Code/CodeType";
 import MarkdownUtil from "../../Utils/Markdown";
+import { Theme, useTheme } from "../../Utils/Theme";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -36,6 +37,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   const [placeholder, setPlaceholder] = useState<string>("");
   const [helpText, setHelpText] = useState<string | ReactElement>("");
   const editorRef: React.MutableRefObject<any> = useRef<any>(null);
+  const theme: Theme = useTheme();
 
   useEffect(() => {
     let value: string | undefined = props.value;
@@ -138,6 +140,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       )}
 
       <Editor
+        theme={theme === Theme.Dark ? "vs-dark" : "light"}
         defaultLanguage={props.type}
         height="30vh"
         value={value}

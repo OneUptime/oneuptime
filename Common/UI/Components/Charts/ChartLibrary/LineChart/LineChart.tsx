@@ -813,7 +813,10 @@ const LineChart: React.ForwardRefExoticComponent<
               wrapperStyle={{ outline: "none" }}
               isAnimationActive={true}
               animationDuration={100}
-              cursor={{ stroke: "#d1d5db", strokeWidth: 1 }}
+              cursor={{
+                stroke: "var(--ou-chart-cursor, #d1d5db)",
+                strokeWidth: 1,
+              }}
               offset={20}
               position={{ y: 0 }}
               content={({ active, payload, label }: any) => {
@@ -1052,7 +1055,7 @@ const LineChart: React.ForwardRefExoticComponent<
                     y={exemplar.y}
                     r={5}
                     fill="#7c3aed"
-                    stroke="#ffffff"
+                    stroke="var(--ou-chart-marker-ring, #ffffff)"
                     strokeWidth={2}
                     style={{ cursor: "pointer" }}
                     onClick={() => {
@@ -1062,7 +1065,7 @@ const LineChart: React.ForwardRefExoticComponent<
                     <Label
                       value="E"
                       position="center"
-                      fill="#ffffff"
+                      fill="var(--ou-chart-marker-ring, #ffffff)"
                       fontSize={8}
                       fontWeight={700}
                     />

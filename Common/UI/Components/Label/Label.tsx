@@ -1,7 +1,7 @@
 import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import LabelModel from "../../../Models/DatabaseModels/Label";
 import Pill, { ComponentProps as PillProps, PillSize } from "../Pill/Pill";
-import { Black } from "../../../Types/BrandColors";
+import { Gray500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 
@@ -19,7 +19,7 @@ const LabelElement: FunctionComponent<ComponentProps> = (
 
   const resolveColor: Color = (() => {
     if (!label.color) {
-      return Black;
+      return Gray500;
     }
 
     if (typeof label.color === "string") {

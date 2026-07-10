@@ -19,6 +19,7 @@ export interface ComponentProps {
   onClick?: (() => void) | undefined;
   name: string;
   showDropdown: boolean;
+  isPressed?: boolean | undefined;
 }
 
 const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
@@ -53,6 +54,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
           id={hasDropdown ? "user-menu-button" : undefined}
           aria-expanded={hasDropdown ? isDropdownVisible : undefined}
           aria-haspopup={hasDropdown ? "true" : undefined}
+          aria-pressed={props.isPressed}
           onClick={() => {
             props.onClick?.();
             setIsComponentVisible(!isDropdownVisible);

@@ -10,6 +10,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
 import Icon from "../Icon/Icon";
 import {
+  DROPDOWN_MENU_Z_INDEX,
   DropdownOption,
   DropdownOptionGroup,
   DropdownOptionLabel,
@@ -20,6 +21,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -107,6 +109,18 @@ export interface EntityDropdownProps {
 const SEARCH_DEBOUNCE_MS: number = 250;
 const SEARCH_PAGE_SIZE: number = 50;
 const LABEL_PREVIEW_LIMIT: number = 50;
+const MENU_GAP_PX: number = 4;
+const MENU_MAX_HEIGHT_PX: number = 384;
+const MENU_MIN_USEFUL_HEIGHT_PX: number = 160;
+const MENU_VIEWPORT_PADDING_PX: number = 8;
+
+interface EntityDropdownMenuPosition {
+  bottom?: number | undefined;
+  left: number;
+  maxHeight: number;
+  top?: number | undefined;
+  width: number;
+}
 
 const flattenOptions: (
   options: Array<DropdownOption | DropdownOptionGroup> | undefined,
@@ -441,12 +455,91 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
   const containerRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
+  const controlRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
   const inputRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
   const debounceRef: React.MutableRefObject<number | null> = useRef<
     number | null
   >(null);
   const searchSeqRef: React.MutableRefObject<number> = useRef<number>(0);
+  const [menuPosition, setMenuPosition] =
+    useState<EntityDropdownMenuPosition | null>(null);
+
+  const updateMenuPosition: () => void = useCallback((): void => {
+    if (!controlRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const controlRect: DOMRect = controlRef.current.getBoundingClientRect();
+    const availableWidth: number = Math.max(
+      0,
+      window.innerWidth - MENU_VIEWPORT_PADDING_PX * 2,
+    );
+    const width: number = Math.min(controlRect.width, availableWidth);
+    const maximumLeft: number = Math.max(
+      MENU_VIEWPORT_PADDING_PX,
+      window.innerWidth - MENU_VIEWPORT_PADDING_PX - width,
+    );
+    const left: number = Math.min(
+      Math.max(controlRect.left, MENU_VIEWPORT_PADDING_PX),
+      maximumLeft,
+    );
+    const spaceBelow: number = Math.max(
+      0,
+      window.innerHeight -
+        controlRect.bottom -
+        MENU_GAP_PX -
+        MENU_VIEWPORT_PADDING_PX,
+    );
+    const spaceAbove: number = Math.max(
+      0,
+      controlRect.top - MENU_GAP_PX - MENU_VIEWPORT_PADDING_PX,
+    );
+    const shouldOpenAbove: boolean =
+      spaceBelow < MENU_MIN_USEFUL_HEIGHT_PX && spaceAbove > spaceBelow;
+    const availableHeight: number = shouldOpenAbove ? spaceAbove : spaceBelow;
+
+    setMenuPosition({
+      bottom: shouldOpenAbove
+        ? window.innerHeight - controlRect.top + MENU_GAP_PX
+        : undefined,
+      left,
+      maxHeight: Math.min(MENU_MAX_HEIGHT_PX, availableHeight),
+      top: shouldOpenAbove ? undefined : controlRect.bottom + MENU_GAP_PX,
+      width,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setMenuPosition(null);
+      return;
+    }
+
+    let animationFrame: number | null = null;
+    const schedulePositionUpdate: () => void = (): void => {
+      if (animationFrame !== null) {
+        return;
+      }
+      animationFrame = window.requestAnimationFrame((): void => {
+        animationFrame = null;
+        updateMenuPosition();
+      });
+    };
+
+    updateMenuPosition();
+    window.addEventListener("resize", schedulePositionUpdate);
+    document.addEventListener("scroll", schedulePositionUpdate, true);
+
+    return () => {
+      window.removeEventListener("resize", schedulePositionUpdate);
+      document.removeEventListener("scroll", schedulePositionUpdate, true);
+      if (animationFrame !== null) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [isOpen, selectedKeys, updateMenuPosition]);
 
   // Click-outside closes the popover.
   useEffect(() => {
@@ -1106,7 +1199,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         </div>
       )}
 
-      <div className="relative">
+      <div ref={controlRef} className="relative">
         {/*
          * Single-select shows the resolved label in-place when closed so the
          * chrome looks like a static value field. Click anywhere on the
@@ -1281,6 +1374,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   return;
                 }
                 if (event.key === "Escape") {
+                  /*
+                   * The modal also listens for Escape. Consume it here so the
+                   * first press closes the menu without dismissing the form.
+                   */
+                  event.preventDefault();
                   setIsOpen(false);
                   setHighlightedIndex(-1);
                   return;
@@ -1329,8 +1427,18 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
       {isOpen && !props.disabled && (
         <div
-          className="absolute z-20 mt-1 flex max-h-96 w-full flex-col overflow-hidden rounded-md border border-gray-200 bg-white text-sm shadow-lg"
+          className="fixed flex flex-col overflow-hidden rounded-md border border-gray-200 bg-white text-sm shadow-lg"
+          data-testid="entity-dropdown-menu"
           role="listbox"
+          style={{
+            bottom: menuPosition?.bottom,
+            left: menuPosition?.left ?? 0,
+            maxHeight: menuPosition?.maxHeight,
+            top: menuPosition?.top,
+            visibility: menuPosition ? "visible" : "hidden",
+            width: menuPosition?.width ?? 0,
+            zIndex: DROPDOWN_MENU_Z_INDEX,
+          }}
         >
           {labelsTabEnabled && (
             <div className="flex flex-shrink-0 items-center gap-1 border-b border-gray-100 bg-gray-50 px-1.5 py-1">

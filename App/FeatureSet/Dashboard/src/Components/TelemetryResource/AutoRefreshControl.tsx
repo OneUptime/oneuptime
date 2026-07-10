@@ -95,7 +95,7 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
           cy={center}
           r={radius}
           fill="none"
-          stroke="#e5e7eb"
+          stroke="var(--ou-chart-track, #e5e7eb)"
           strokeWidth={STROKE_WIDTH}
         />
         {/* Countdown */}
@@ -104,7 +104,7 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
           cy={center}
           r={radius}
           fill="none"
-          stroke="#9ca3af"
+          stroke="var(--ou-chart-tick, #9ca3af)"
           strokeWidth={STROKE_WIDTH}
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}

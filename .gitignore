@@ -146,3 +146,6 @@ RFP/
 .gstack/
 .claude/scheduled_tasks.lock
 .claude/launch.json
+
+/.playwright-cli/**
+/output/**

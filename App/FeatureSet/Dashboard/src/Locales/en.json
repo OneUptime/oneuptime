@@ -131,6 +131,10 @@
     "label": "User Profile",
     "profile": "Profile",
     "adminSettings": "Admin Settings",
+    "darkTheme": "Dark theme",
+    "lightTheme": "Light theme",
+    "switchToDarkTheme": "Switch to dark theme",
+    "switchToLightTheme": "Switch to light theme",
     "logOut": "Log out"
   },
   "upgrade": {
