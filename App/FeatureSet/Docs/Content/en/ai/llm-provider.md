@@ -6,6 +6,7 @@ OneUptime supports integrating with various Large Language Model (LLM) providers
 
 LLM Providers in OneUptime help you automate and enhance your incident management workflow:
 
+- **Autonomous Investigations (Sentinel)**: Automatically investigate new incidents and alerts and post a cited root cause analysis to the timeline — see [Sentinel AI SRE](/docs/ai/sentinel)
 - **Incident Notes**: Automatically generate detailed incident notes and updates
 - **Alert Notes**: Create meaningful alert descriptions and context
 - **Scheduled Maintenance Notes**: Generate maintenance event notes automatically

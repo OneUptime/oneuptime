@@ -104,7 +104,7 @@ Ordering changed from the original roadmap — rationale in the Deviations log. 
 - [x] RCA posted as incident internal note in addition to the feed item (or the Appendix claim formally dropped — decide, don't drift) *(decided + shipped 2026-07-10: note is bot-authored with no duplicate announcement; alert-side note parity is an optional follow-on, not claimed)*
 - [x] Persist `cachedInputTokens` to `LlmLog` for cache-hit visibility *(shipped 2026-07-10: `cachedInputTokens` + `cacheCreationTokens` columns, written in `AIService.executeWithLogging`, cached count shown in the AI Logs table)*
 - [x] **Standalone patch, ships independently:** atomic-claim CAS fix for `get-pending-task` in `Common/Server/API/AIAgentTaskAPI.ts` *(shipped 2026-07-10: `AIAgentTaskService.claimNextScheduledTask`)*
-- [ ] Docs page (`Docs/Content/en/...`): opt-in flags, quiet mode, budgets, BYO-LLM/Ollama setup — the shipped flagship currently has **zero** user docs
+- [x] Docs page (`Docs/Content/en/...`): opt-in flags, quiet mode, budgets, BYO-LLM/Ollama setup — the shipped flagship currently has **zero** user docs *(shipped 2026-07-10: `en/ai/sentinel.md` covering enablement, quiet mode, all five cost controls, trust guarantees, and the auto-postmortem; nav entry + cross-link from the LLM Providers page; English-only day one — locale fallback covers the other languages until translated)*
 - [ ] Measured exit: median trigger→RCA-posted < 3 min over ≥20 real investigations on our own production project
 
 ### Phase 2 — Durability, measurement, trust UX
@@ -210,6 +210,7 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 
 ## 8. Changelog
 
+- **2026-07-10** — Shipped the Sentinel user docs page (`/docs/ai/sentinel`): the flagship is no longer dark. Phase 1 checklist is now complete except the measured exit (≥20 production investigations), which starts when the flags go on for our own project. Q3 GTM docs deliverable met.
 - **2026-07-10** — Shipped the `baseline_anomaly` read tool: hour-of-week baseline band verdicts (mean ± σ·stddev), cold-start-aware, with an expected-range band chart (first callers for `getBandSeries`/`getCoverage`); the investigation persona now points the model at it.
 - **2026-07-10** — RCA now also posted as a bot-authored incident internal note, created with `ignoreHooks` + `isOwnerNotified: true` so the RootCause feed item (quiet-mode gated) stays the single notification source; review caught and reverted an earlier user-less-notes-don't-announce rule that would have silenced SLA note reminders. Also: a daily token limit of 0 now pauses autonomous runs (spend kill-switch) instead of meaning "unlimited".
 - **2026-07-10** — Shipped G4 daily budget enforcement: `Project.aiDailyAutonomousTokenLimit` (UTC day, autonomous features only), quiet-skip before run creation, fail-closed backstop in `AIService.executeWithLogging` with `LlmLogStatus.BudgetExceeded`; settings on both AI settings pages. G4 marked MET with residuals noted.
