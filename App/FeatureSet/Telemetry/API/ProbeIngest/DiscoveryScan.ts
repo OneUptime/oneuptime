@@ -1,13 +1,15 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { ProbeExpressRequest } from "../../Types/Request";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
-import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiscoveryScan, {
+  DiscoveredNetworkDevice,
+} from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
@@ -185,7 +187,8 @@ router.post(
         completed.statusMessage = req.body["statusMessage"] as string;
       }
       // Column is a JSON array of host suggestions, stored as-is.
-      completed.discoveredDevices = discoveredDevices as JSONArray;
+      completed.discoveredDevices =
+        discoveredDevices as unknown as Array<DiscoveredNetworkDevice>;
       if (typeof req.body["scannedHostCount"] === "number") {
         completed.scannedHostCount = req.body["scannedHostCount"] as number;
       }
