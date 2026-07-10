@@ -384,3 +384,47 @@ describe("LLMService — prompt caching", () => {
     expect(response.usage!.totalTokens).toBe(55);
   });
 });
+
+describe("LLMService — additionalParams (per-provider overrides)", () => {
+  test("merges provider additionalParams into the request body", async () => {
+    const spy: PostSpy = mockPostResponse({
+      choices: [{ message: { content: "OK" } }],
+    });
+
+    await LLMService.getCompletion({
+      llmProviderConfig: { llmType: LlmType.OpenAI, apiKey: "test-key" },
+      messages: [{ role: "user", content: "hi" }],
+      maxTokens: 1024,
+      additionalParams: { temperature: 0.2, top_p: 0.9 },
+    });
+
+    const requestBody: JSONObject = (
+      spy.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+    // additionalParams override defaults and are added to the body...
+    expect(requestBody["temperature"]).toBe(0.2);
+    expect(requestBody["top_p"]).toBe(0.9);
+    // ...while leaving the default max_tokens intact for legacy providers.
+    expect(requestBody["max_tokens"]).toBe(1024);
+  });
+
+  test("max_completion_tokens in additionalParams drops the legacy max_tokens", async () => {
+    const spy: PostSpy = mockPostResponse({
+      choices: [{ message: { content: "OK" } }],
+    });
+
+    await LLMService.getCompletion({
+      llmProviderConfig: { llmType: LlmType.OpenAI, apiKey: "test-key" },
+      messages: [{ role: "user", content: "hi" }],
+      maxTokens: 1024,
+      // gpt-5 / o1 / o3 reject max_tokens and require max_completion_tokens.
+      additionalParams: { max_completion_tokens: 2048 },
+    });
+
+    const requestBody: JSONObject = (
+      spy.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+    expect(requestBody["max_completion_tokens"]).toBe(2048);
+    expect(requestBody["max_tokens"]).toBeUndefined();
+  });
+});
