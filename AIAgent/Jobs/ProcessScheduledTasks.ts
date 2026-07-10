@@ -192,7 +192,13 @@ const startTaskProcessingLoop: () => Promise<void> =
         );
 
         try {
-          /* Mark task as InProgress */
+          /*
+           * get-pending-task already claimed the task (Scheduled ->
+           * InProgress) atomically on the server, so this update is a
+           * no-op refresh there — but it is load-bearing against older
+           * servers that return tasks unclaimed, so keep it until no
+           * pre-claim servers remain in the field.
+           */
           const inProgressResult: HTTPResponse<JSONObject> = await API.post({
             url: updateTaskStatusUrl,
             data: {

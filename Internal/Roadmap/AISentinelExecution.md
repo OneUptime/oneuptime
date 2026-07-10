@@ -67,7 +67,7 @@ Legend: ✅ Shipped · 🟡 Partial · ❌ Not started · 🔪 To be removed/abs
 | Item | Status | Code entry point |
 |---|---|---|
 | Standalone worker still fully deployed (compose, Helm, KEDA) with OpenCode CLI shell-out | 🔪 running in prod | `AIAgent/`, `docker-compose.base.yml`, `HelmChart/Public/oneuptime/templates/ai-agent.yaml` |
-| `get-pending-task` double-processing race (plain `findOneBy`, no atomic claim) — **fix immediately as a standalone patch**, CAS pattern per `ChatAgentRunner.ts` ~249–264 | ❌ unfixed | `Common/Server/API/AIAgentTaskAPI.ts` |
+| `get-pending-task` double-processing race — fixed via atomic Scheduled→InProgress claim (status-guarded `updateOneBy`, bounded retry over next candidates; CAS pattern generalized from `ChatAgentRunner.ts`). Worker's follow-up InProgress update kept as a no-op refresh for rolling-upgrade compat with pre-claim servers | ✅ | `AIAgentTaskService.claimNextScheduledTask`, `Common/Server/API/AIAgentTaskAPI.ts` (`get-pending-task`), tests in `Common/Tests/Server/Services/AIAgentTaskServiceClaim.test.ts` |
 | Git/PR/workspace plumbing to keep (fold into future `code_fix` tool; GitHub-only today, generalize via `CodeRepository.repositoryHostedAt`) | ✅ exists | `AIAgent/Utils/PullRequestCreator.ts` and related |
 
 ---
@@ -103,7 +103,7 @@ Ordering changed from the original roadmap — rationale in the Deviations log. 
 - [ ] **G4 cost guardrails (exit blocker):** at most one active investigation per monitor/episode per window; per-project concurrent-investigation cap; per-feature daily token/cost budget enforced in `AIService.executeWithLogging`; project-level autonomous-runs kill switch
 - [ ] RCA posted as incident internal note in addition to the feed item (or the Appendix claim formally dropped — decide, don't drift)
 - [ ] Persist `cachedInputTokens` to `LlmLog` for cache-hit visibility
-- [ ] **Standalone patch, ships independently:** atomic-claim CAS fix for `get-pending-task` in `Common/Server/API/AIAgentTaskAPI.ts`
+- [x] **Standalone patch, ships independently:** atomic-claim CAS fix for `get-pending-task` in `Common/Server/API/AIAgentTaskAPI.ts` *(shipped 2026-07-10: `AIAgentTaskService.claimNextScheduledTask`)*
 - [ ] Docs page (`Docs/Content/en/...`): opt-in flags, quiet mode, budgets, BYO-LLM/Ollama setup — the shipped flagship currently has **zero** user docs
 - [ ] Measured exit: median trigger→RCA-posted < 3 min over ≥20 real investigations on our own production project
 
@@ -210,4 +210,5 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 
 ## 8. Changelog
 
+- **2026-07-10** — Shipped the standalone atomic-claim CAS fix for the legacy `get-pending-task` double-processing race (`AIAgentTaskService.claimNextScheduledTask`); checked off the Phase 1 item and updated the legacy AIAgent table.
 - **2026-07-10** — Initial split from `AISentinelReliabilityBrain.md`. Re-baselined all statuses against the tree; added Safety Gates, re-sequenced queue before trigger expansion, pulled topology consumption into Phase 2, split the code-fix track, added GTM lane/packaging, refreshed competitive table (Bits AI GA, incident.io comms, Grafana, Seer, JSM Rovo), corrected the Appendix-era claims (trigger is inline not enqueued; feed-item-only output; two opt-in flags).
