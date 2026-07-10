@@ -813,6 +813,19 @@ export default class AnalyticsDatabaseService<
         ? Object.keys(aggregateBy.groupBy)
         : [];
 
+      /*
+       * Attribute-key grouping returns the selected keys folded into a
+       * single `attributes` map column (see MetricService); carry it
+       * onto the aggregated rows so series splitters can read labels.
+       */
+      if (
+        aggregateBy.groupByAttributeKeys &&
+        aggregateBy.groupByAttributeKeys.length > 0 &&
+        !groupByColumnNames.includes("attributes")
+      ) {
+        groupByColumnNames.push("attributes");
+      }
+
       for (const item of items) {
         if (
           !(item as JSONObject)[
@@ -1171,6 +1184,20 @@ export default class AnalyticsDatabaseService<
     statement: Statement;
     columns: Array<string>;
   } {
+    /*
+     * Attribute-key grouping needs model-specific SQL over a map column
+     * (MetricService builds it); reaching this generic path with keys
+     * set would silently return ungrouped results.
+     */
+    if (
+      aggregateBy.groupByAttributeKeys &&
+      aggregateBy.groupByAttributeKeys.length > 0
+    ) {
+      throw new BadDataException(
+        `groupByAttributeKeys is not supported for ${this.model.tableName}.`,
+      );
+    }
+
     if (!this.database) {
       this.useDefaultDatabase();
     }
