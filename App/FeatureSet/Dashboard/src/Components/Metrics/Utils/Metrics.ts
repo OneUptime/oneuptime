@@ -300,25 +300,40 @@ export default class MetricUtil {
       metricViewData.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
         /*
          * Per-series viewing: when the user has selected attribute
-         * keys to group by (e.g. host.name), inject the nested
-         * `attributes` column into the aggregation's GROUP BY so
-         * ClickHouse emits one row per unique attribute map. The
-         * chart layer then splits those rows into one line per
-         * unique label combination via `getSeries` (injected in
-         * MetricView before render).
+         * keys to group by (e.g. host.name), pass them through as
+         * `groupByAttributeKeys` so the server groups on the
+         * individual map entries (`attributes['host.name']`) and
+         * returns one pooled series per unique key-value combination.
+         * The chart layer splits those rows into one line per label
+         * combination via `getSeries` (injected in MetricView before
+         * render).
+         *
+         * Grouping by the whole `attributes` Map column (the previous
+         * approach, still baked into older stored dashboard configs)
+         * fragments the result into one series per unique attribute
+         * combination — for percentiles of histogram metrics that
+         * collapses every sub-series onto a near-constant bucket
+         * midpoint and renders as flat straight lines — so any legacy
+         * `attributes` entry in groupBy is stripped when key-scoped
+         * grouping is active.
          */
-        const hasGroupByAttributes: boolean = Boolean(
-          queryConfig.metricQueryData.groupByAttributeKeys &&
-            queryConfig.metricQueryData.groupByAttributeKeys.length > 0,
-        );
+        const groupByAttributeKeys: Array<string> =
+          queryConfig.metricQueryData.groupByAttributeKeys || [];
+        const hasGroupByAttributes: boolean = groupByAttributeKeys.length > 0;
 
-        const aggregationGroupBy: typeof queryConfig.metricQueryData.groupBy =
-          hasGroupByAttributes
-            ? ({
-                ...(queryConfig.metricQueryData.groupBy || {}),
-                attributes: true,
-              } as typeof queryConfig.metricQueryData.groupBy)
-            : queryConfig.metricQueryData.groupBy;
+        let aggregationGroupBy: typeof queryConfig.metricQueryData.groupBy =
+          queryConfig.metricQueryData.groupBy;
+
+        if (hasGroupByAttributes && aggregationGroupBy) {
+          const strippedGroupBy: Record<string, unknown> = {
+            ...(aggregationGroupBy as Record<string, unknown>),
+          };
+          delete strippedGroupBy["attributes"];
+          aggregationGroupBy =
+            Object.keys(strippedGroupBy).length > 0
+              ? (strippedGroupBy as typeof queryConfig.metricQueryData.groupBy)
+              : undefined;
+        }
 
         return dedupedAggregate({
           query: {
@@ -346,6 +361,9 @@ export default class MetricUtil {
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           groupBy: aggregationGroupBy,
+          groupByAttributeKeys: hasGroupByAttributes
+            ? groupByAttributeKeys
+            : undefined,
         } as AggregateBy<Metric>);
       }),
     );

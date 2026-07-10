@@ -192,7 +192,15 @@ function buildMetricQueryConfig(config: MetricConfig): Record<string, unknown> {
         metricName: config.metricName,
         aggegationType: config.aggregationType,
       },
-      groupBy: config.groupByAttributeKeys ? { attributes: true } : undefined,
+      /*
+       * groupByAttributeKeys alone drives per-series grouping — the
+       * fetch layer compiles it to `GROUP BY attributes['<key>']`.
+       * Baking a whole-map `groupBy: { attributes: true }` alongside
+       * it (the old approach) fragmented results into one series per
+       * unique attribute combination; older stored configs that still
+       * carry it are stripped at fetch time (MetricUtil.fetchResults).
+       */
+      groupBy: undefined,
       groupByAttributeKeys: config.groupByAttributeKeys,
     },
     transformAsRate: config.transformAsRate,

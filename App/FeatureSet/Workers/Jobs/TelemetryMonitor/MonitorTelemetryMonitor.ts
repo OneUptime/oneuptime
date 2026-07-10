@@ -51,6 +51,7 @@ import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import { getPercentileLevel } from "Common/Types/BaseDatabase/AggregationType";
 import Dictionary from "Common/Types/Dictionary";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
@@ -580,6 +581,28 @@ const aggregatePerSeriesFromRawMetrics: (input: {
       case MetricsAggregationType.Min:
         aggregated = Math.min(...vs);
         break;
+      case MetricsAggregationType.P50:
+      case MetricsAggregationType.P90:
+      case MetricsAggregationType.P95:
+      case MetricsAggregationType.P99: {
+        /*
+         * Nearest-rank percentile over the bucket's raw values. This
+         * path serves the infra monitors' gauge metrics, where every
+         * row is a single observation — histogram metrics go through
+         * the SQL bucket fanout instead. Previously these fell into
+         * the default branch and were silently computed as Avg.
+         */
+        const sorted: Array<number> = [...vs].sort((a: number, b: number) => {
+          return a - b;
+        });
+        const level: number = getPercentileLevel(input.aggregationType) || 0.5;
+        const rankIndex: number = Math.min(
+          sorted.length - 1,
+          Math.max(0, Math.ceil(level * sorted.length) - 1),
+        );
+        aggregated = sorted[rankIndex]!;
+        break;
+      }
       case MetricsAggregationType.Avg:
       default:
         aggregated =
@@ -1038,40 +1061,23 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
-
-    if (groupByAttributeKeys.length > 0) {
-      /*
-       * Per-series path: fetch raw rows including the full
-       * attributes map, then bucket + aggregate in code. We can't
-       * push this through aggregateBy+SQL because the @clickhouse/client
-       * parameterized query returns 0 rows when GROUP BY includes the
-       * Map column. See aggregatePerSeriesFromRawMetrics for details.
-       */
-      const rawMetrics: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
+    /*
+     * Grouped and ungrouped monitors share the SQL aggregation path.
+     * Per-series grouping goes through `groupByAttributeKeys`, which
+     * MetricService compiles to `GROUP BY attributes['<key>']` — the
+     * previous raw-row JS fallback aggregated the `value` column
+     * directly, which for histogram metrics holds the datapoint SUM
+     * (so an "Avg of http.client.request.duration" monitor evaluated
+     * ~110s instead of ~0.6s and false-alerted), silently computed
+     * percentile aggregations as Avg, and truncated high-cardinality
+     * metrics at the 10k raw-row limit. The SQL path is histogram-
+     * aware for both scalar and percentile aggregations, and returns
+     * one row per (bucket, selected-key values) with an `attributes`
+     * map carrying exactly the grouped keys — the shape
+     * buildSeriesBreakdown already consumes.
+     */
+    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
+      {
         query: query,
         aggregationType,
         aggregateColumnName: "value",
@@ -1084,11 +1090,13 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        groupByAttributeKeys:
+          groupByAttributeKeys.length > 0 ? groupByAttributeKeys : undefined,
         props: {
           isRoot: true,
         },
-      });
-    }
+      },
+    );
 
     logger.debug("Aggregated results", {
       service: "workers",

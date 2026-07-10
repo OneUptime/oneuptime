@@ -1,4 +1,5 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
+import { ResponseJSON, ResultSet } from "@clickhouse/client";
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import { MutableMetricService as MutableMetricServiceClass } from "./MutableMetricService";
 import Metric from "../../Models/AnalyticsModels/Metric";
@@ -14,15 +15,325 @@ import AggregationType, {
   isPercentileAggregation,
 } from "../../Types/BaseDatabase/AggregationType";
 import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
+import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import BadDataException from "../../Types/Exception/BadDataException";
+import { JSONObject } from "../../Types/JSON";
 import { keyForHost } from "../../Utils/Telemetry/EntityKey";
 import ObjectID from "../../Types/ObjectID";
 import logger, { LogAttributes } from "../Utils/Logger";
 
+/*
+ * Metric point types whose rows carry a pre-aggregated distribution
+ * (count/sum/min/max + buckets) instead of a single observation. For
+ * these rows the `value` column holds the datapoint's SUM of all
+ * observations in the export interval (see OtelMetricsIngestService's
+ * buildMetricRow: value = asInt ?? asDouble ?? sum), so aggregating
+ * `value` directly produces sum-scale numbers — e.g. "Avg of
+ * http.client.request.duration" would return ~110s for a service whose
+ * true mean latency is 0.586s at ~188 requests per export interval.
+ */
+const DISTRIBUTION_POINT_TYPES: ReadonlyArray<string> = [
+  "Histogram",
+  "ExponentialHistogram",
+  "Summary",
+];
+
+const MAX_GROUP_BY_ATTRIBUTE_KEYS: number = 10;
+const MAX_GROUP_BY_ATTRIBUTE_KEY_LENGTH: number = 256;
+
+const POINT_TYPE_CACHE_TTL_MS: number = 10 * 60 * 1000;
+const POINT_TYPE_CACHE_MAX_ENTRIES: number = 5000;
+
 export class MetricService extends AnalyticsDatabaseService<Metric> {
+  /*
+   * (projectId|metricName) -> metricPointType, resolved lazily on the
+   * aggregate path so scalar aggregations of distribution metrics can
+   * skip the MVs (whose states collapse `value` — the histogram sum)
+   * and use the count-weighted expressions instead. Bounded + TTL'd so
+   * a tenant churning metric names can't grow it without limit.
+   */
+  private metricPointTypeCache: Map<
+    string,
+    { pointType: string | null; expiresAt: number }
+  > = new Map();
+
+  /*
+   * Point-type hint per aggregateBy call. toAggregateStatement is a
+   * synchronous override, so the async lookup happens in aggregateBy
+   * and is handed over keyed on the (shared) aggregateBy object.
+   */
+  private pointTypeHintByAggregate: WeakMap<
+    AggregateBy<Metric>,
+    string | null
+  > = new WeakMap();
+
+  private inFlightPointTypeLookups: Map<string, Promise<string | null>> =
+    new Map();
+
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: Metric, database: clickhouseDatabase });
+  }
+
+  public override async aggregateBy(
+    aggregateBy: AggregateBy<Metric>,
+  ): Promise<AggregatedResult> {
+    /*
+     * Only scalar aggregations over `value` need the point type — the
+     * percentile path is already distribution-aware via the bucket
+     * fanout, and MV routing is the only decision the hint drives.
+     * Grouped queries (model-column or attribute-key) never route to
+     * the MVs, so the lookup would be dead weight there.
+     */
+    if (
+      !isPercentileAggregation(aggregateBy.aggregationType) &&
+      aggregateBy.aggregateColumnName.toString() === "value" &&
+      (!aggregateBy.groupBy || Object.keys(aggregateBy.groupBy).length === 0) &&
+      (!aggregateBy.groupByAttributeKeys ||
+        aggregateBy.groupByAttributeKeys.length === 0)
+    ) {
+      const pointType: string | null =
+        await this.resolveMetricPointType(aggregateBy);
+      this.pointTypeHintByAggregate.set(aggregateBy, pointType);
+    }
+
+    return super.aggregateBy(aggregateBy);
+  }
+
+  private async resolveMetricPointType(
+    aggregateBy: AggregateBy<Metric>,
+  ): Promise<string | null> {
+    const metricName: string | null = this.getExactMetricNameFromQuery(
+      aggregateBy.query,
+    );
+    if (!metricName) {
+      return null;
+    }
+
+    const queryRecord: Record<string, unknown> =
+      (aggregateBy.query as unknown as Record<string, unknown>) || {};
+    const projectIdValue: unknown = queryRecord["projectId"];
+    let projectId: string = "";
+    if (projectIdValue instanceof ObjectID) {
+      projectId = projectIdValue.toString();
+    } else if (typeof projectIdValue === "string") {
+      projectId = projectIdValue;
+    }
+    if (!projectId) {
+      return null;
+    }
+
+    const cacheKey: string = `${projectId}|${metricName}`;
+    const cached: { pointType: string | null; expiresAt: number } | undefined =
+      this.metricPointTypeCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.pointType;
+    }
+
+    /*
+     * Coalesce concurrent misses: a dashboard refresh fires many
+     * aggregates for the same metric at once; without this every one
+     * of them would issue the same lookup before any could populate
+     * the cache.
+     */
+    const inFlight: Promise<string | null> | undefined =
+      this.inFlightPointTypeLookups.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const lookup: Promise<string | null> = this.lookupMetricPointType(
+      aggregateBy,
+      projectId,
+      metricName,
+    )
+      .then((pointType: string | null) => {
+        this.evictExpiredPointTypeCacheEntries();
+        this.metricPointTypeCache.set(cacheKey, {
+          pointType,
+          expiresAt: Date.now() + POINT_TYPE_CACHE_TTL_MS,
+        });
+        return pointType;
+      })
+      .finally(() => {
+        this.inFlightPointTypeLookups.delete(cacheKey);
+      });
+
+    this.inFlightPointTypeLookups.set(cacheKey, lookup);
+    return lookup;
+  }
+
+  private async lookupMetricPointType(
+    aggregateBy: AggregateBy<Metric>,
+    projectId: string,
+    metricName: string,
+  ): Promise<string | null> {
+    try {
+      if (!this.database) {
+        this.useDefaultDatabase();
+      }
+      const databaseName: string =
+        this.database.getDatasourceOptions().database!;
+
+      const statement: Statement = SQL`SELECT metricPointType FROM `;
+      statement.append(`${databaseName}.${this.model.tableName}`);
+      statement.append(
+        SQL` WHERE projectId = ${{
+          value: projectId,
+          type: TableColumnType.ObjectID,
+        }} AND name = ${{
+          value: metricName,
+          type: TableColumnType.Text,
+        }} AND isNotNull(metricPointType)`,
+      );
+
+      /*
+       * Bound the lookup to the aggregation's own window so ClickHouse
+       * can prune daily partitions (the table partitions on
+       * toYYYYMMDD(time)); without this the LIMIT 1 seek could touch
+       * every partition in retention for a metric with all-null point
+       * types. The point type is stable per metric name, so any window
+       * that has data answers correctly.
+       */
+      if (aggregateBy.startTimestamp && aggregateBy.endTimestamp) {
+        statement.append(
+          ` AND time >= toDateTime('${this.formatDateTime(
+            aggregateBy.startTimestamp,
+          )}') AND time <= toDateTime('${this.formatDateTime(
+            aggregateBy.endTimestamp,
+          )}')`,
+        );
+      }
+
+      statement.append(SQL` LIMIT 1`);
+
+      const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+      const responseJSON: ResponseJSON<JSONObject> =
+        await dbResult.json<JSONObject>();
+      const row: JSONObject | undefined = (responseJSON.data || [])[0];
+      const rawPointType: unknown = row ? row["metricPointType"] : undefined;
+      return typeof rawPointType === "string" ? rawPointType : null;
+    } catch (err) {
+      /*
+       * Lookup failures must not fail the aggregation — fall back to
+       * the (possibly MV-served) scalar path, which is today's
+       * behavior for unknown point types.
+       */
+      logger.debug("Metric point type lookup failed");
+      logger.debug(err);
+      return null;
+    }
+  }
+
+  private evictExpiredPointTypeCacheEntries(): void {
+    if (this.metricPointTypeCache.size < POINT_TYPE_CACHE_MAX_ENTRIES) {
+      return;
+    }
+    const now: number = Date.now();
+    for (const [key, entry] of this.metricPointTypeCache) {
+      if (entry.expiresAt <= now) {
+        this.metricPointTypeCache.delete(key);
+      }
+    }
+    /*
+     * Still full after dropping expired entries: evict oldest-inserted
+     * until under the cap (Map preserves insertion order). Never
+     * clear() — that would stampede every active dashboard into
+     * re-issuing its lookup at once.
+     */
+    while (this.metricPointTypeCache.size >= POINT_TYPE_CACHE_MAX_ENTRIES) {
+      const oldestKey: string | undefined = this.metricPointTypeCache
+        .keys()
+        .next().value;
+      if (oldestKey === undefined) {
+        break;
+      }
+      this.metricPointTypeCache.delete(oldestKey);
+    }
+  }
+
+  private isDistributionMetricAggregate(
+    aggregateBy: AggregateBy<Metric>,
+  ): boolean {
+    const pointType: string | null | undefined =
+      this.pointTypeHintByAggregate.get(aggregateBy);
+    return Boolean(pointType && DISTRIBUTION_POINT_TYPES.includes(pointType));
+  }
+
+  /**
+   * Validated, deduplicated attribute keys to group the aggregation by.
+   * Keys are bound as query parameters wherever they reach SQL, so this
+   * is shape validation (not injection defense): drop non-strings and
+   * empties, cap key length and count.
+   */
+  private getSanitizedGroupByAttributeKeys(
+    aggregateBy: AggregateBy<Metric>,
+  ): Array<string> {
+    const keys: Array<string> = [];
+    for (const rawKey of aggregateBy.groupByAttributeKeys || []) {
+      if (typeof rawKey !== "string") {
+        continue;
+      }
+      const key: string = rawKey.trim();
+      if (
+        !key ||
+        key.length > MAX_GROUP_BY_ATTRIBUTE_KEY_LENGTH ||
+        keys.includes(key)
+      ) {
+        continue;
+      }
+      keys.push(key);
+    }
+
+    if (keys.length > MAX_GROUP_BY_ATTRIBUTE_KEYS) {
+      throw new BadDataException(
+        `A maximum of ${MAX_GROUP_BY_ATTRIBUTE_KEYS} group-by attribute keys is supported.`,
+      );
+    }
+
+    return keys;
+  }
+
+  /**
+   * Appends `, attributes[{key}] AS __attr_grp_<i>` for every group-by
+   * attribute key. Used in the (inner) SELECT so the outer/main query
+   * can group on and re-project the extracted values.
+   */
+  private appendAttributeGroupExtractionColumns(
+    statement: Statement,
+    attributeGroupKeys: Array<string>,
+  ): void {
+    attributeGroupKeys.forEach((key: string, index: number) => {
+      statement.append(`, `);
+      statement.append(
+        SQL`attributes[${{ value: key, type: TableColumnType.Text }}]`,
+      );
+      statement.append(` AS __attr_grp_${index}`);
+    });
+  }
+
+  /**
+   * Appends `, map({key0}, __attr_grp_0, ...) AS attributes` so grouped
+   * rows return exactly the selected keys as an attributes map — the
+   * same shape series splitters already read (`row.attributes[key]`).
+   */
+  private appendAttributeGroupMapColumn(
+    statement: Statement,
+    attributeGroupKeys: Array<string>,
+  ): void {
+    if (attributeGroupKeys.length === 0) {
+      return;
+    }
+    statement.append(`, map(`);
+    attributeGroupKeys.forEach((key: string, index: number) => {
+      if (index > 0) {
+        statement.append(`, `);
+      }
+      statement.append(SQL`${{ value: key, type: TableColumnType.Text }}`);
+      statement.append(`, __attr_grp_${index}`);
+    });
+    statement.append(`) AS attributes`);
   }
 
   /*
@@ -182,6 +493,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       return mutableMetricStatement;
     }
 
+    const attributeGroupKeys: Array<string> =
+      this.getSanitizedGroupByAttributeKeys(aggregateBy);
+
     if (!isPercentileAggregation(aggregateBy.aggregationType)) {
       /*
        * Try the per-host MV first — host detail pages are the
@@ -189,21 +503,43 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
        * the only one that can serve them. If it doesn't apply
        * (no host filter, or extra attrs/groupBy), fall through
        * to the project/primaryEntityId MV, then to the base table.
+       *
+       * Distribution metrics (histograms/summaries) must skip the
+       * MVs entirely: their states collapse `value`, which for
+       * distribution rows is the datapoint SUM — merging those can
+       * only ever produce sum-scale results. The base-table builder
+       * below weights by the datapoint `count` instead.
        */
-      const hostMvStatement: {
-        statement: Statement;
-        columns: Array<string>;
-      } | null = this.tryBuildHostAggregateMVStatement(aggregateBy);
-      if (hostMvStatement) {
-        return hostMvStatement;
+      if (
+        attributeGroupKeys.length === 0 &&
+        !this.isDistributionMetricAggregate(aggregateBy)
+      ) {
+        const hostMvStatement: {
+          statement: Statement;
+          columns: Array<string>;
+        } | null = this.tryBuildHostAggregateMVStatement(aggregateBy);
+        if (hostMvStatement) {
+          return hostMvStatement;
+        }
+        const mvStatement: {
+          statement: Statement;
+          columns: Array<string>;
+        } | null = this.tryBuildMinuteAggregateMVStatement(aggregateBy);
+        if (mvStatement) {
+          return mvStatement;
+        }
       }
-      const mvStatement: {
-        statement: Statement;
-        columns: Array<string>;
-      } | null = this.tryBuildMinuteAggregateMVStatement(aggregateBy);
-      if (mvStatement) {
-        return mvStatement;
+
+      if (
+        aggregateBy.aggregateColumnName.toString() === "value" &&
+        aggregateBy.aggregationTimestampColumnName.toString() === "time"
+      ) {
+        return this.buildScalarAggregateStatement(
+          aggregateBy,
+          attributeGroupKeys,
+        );
       }
+
       return super.toAggregateStatement(aggregateBy);
     }
 
@@ -233,12 +569,18 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * Group-by columns from the caller need to be carried through the
      * inner subquery so the outer GROUP BY can reference them. Only
      * columns that exist on the model are accepted (matches the base
-     * generator's safety net).
+     * generator's safety net). A whole-map `attributes` group-by is
+     * dropped when key-scoped grouping is requested — keeping both
+     * would fragment the series again and collide with the
+     * `map(...) AS attributes` projection.
      */
     const groupByKeys: Array<string> = [];
     if (aggregateBy.groupBy) {
       for (const key of Object.keys(aggregateBy.groupBy)) {
         if (!this.model.getTableColumn(key)) {
+          continue;
+        }
+        if (key === "attributes" && attributeGroupKeys.length > 0) {
           continue;
         }
         groupByKeys.push(key);
@@ -336,8 +678,20 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       statement.append(`, ${key}`);
     }
 
+    /*
+     * Attribute-key grouping: the inner subquery extracts each selected
+     * key into `__attr_grp_<i>`; the outer query groups on those and
+     * folds them back into a per-row `attributes` map so the result
+     * shape matches what series splitters read. Grouping happens on the
+     * individual keys — NOT the whole attributes map, which would
+     * fragment the quantile into one near-constant series per unique
+     * attribute combination.
+     */
+    this.appendAttributeGroupMapColumn(statement, attributeGroupKeys);
+
     statement.append(SQL` FROM (`);
     statement.append(`SELECT ${innerSelectClause}`);
+    this.appendAttributeGroupExtractionColumns(statement, attributeGroupKeys);
     statement.append(
       ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
     );
@@ -349,6 +703,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     for (const key of groupByKeys) {
       statement.append(`, ${key}`);
     }
+    attributeGroupKeys.forEach((_key: string, index: number) => {
+      statement.append(`, __attr_grp_${index}`);
+    });
 
     statement.append(SQL` ORDER BY `).append(sortStatement);
 
@@ -385,9 +742,221 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       aggregationColumn,
       aggregationTimestampColumn,
       ...groupByKeys,
+      ...(attributeGroupKeys.length > 0 ? ["attributes"] : []),
     ];
 
     logger.debug(`${this.model.tableName} Percentile Aggregate Statement`, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+    logger.debug(statement, {
+      tableName: this.model.tableName,
+    } as LogAttributes);
+
+    return { statement, columns };
+  }
+
+  /**
+   * Distribution-aware per-bucket expression for scalar aggregations
+   * over `value`. Distribution rows (histogram/summary — identified by
+   * a non-null `count`) carry the datapoint's observation total in
+   * `sum` (mirrored into `value` at ingest) and the observation count
+   * in `count`, so:
+   *
+   *   Avg   -> sum(sum) / sum(count)   (count-weighted mean of
+   *            observations, not the mean of per-export-interval sums)
+   *   Sum   -> sum(sum)                (total of all observations)
+   *   Count -> sum(count)              (number of observations, not
+   *            the number of export intervals)
+   *   Min   -> min(min), falling back to the datapoint mean when the
+   *            optional OTLP min is absent
+   *   Max   -> max(max), same fallback
+   *
+   * Scalar rows (Sum/Gauge points — `count` is null) degrade to the
+   * plain value semantics these aggregations always had: each row is
+   * one observation of `value` with weight 1.
+   */
+  private getDistributionAwareAggregationExpression(
+    aggregationType: AggregationType,
+    column: string,
+  ): string {
+    const distRowCondition: string = `isNotNull(count) AND isNotNull(coalesce(sum, ${column}))`;
+    const observationTotalExpression: string = `sum(multiIf(${distRowCondition}, toFloat64(coalesce(sum, ${column})), isNotNull(${column}), toFloat64(${column}), 0))`;
+    const observationCountExpression: string = `sum(multiIf(${distRowCondition}, toFloat64(count), isNotNull(${column}), 1, 0))`;
+    const datapointMeanExpression: string = `toFloat64(coalesce(sum, ${column})) / toFloat64(count)`;
+
+    switch (aggregationType) {
+      case AggregationType.Sum:
+        return observationTotalExpression;
+      case AggregationType.Count:
+        return observationCountExpression;
+      case AggregationType.Avg:
+        return `if(${observationCountExpression} = 0, 0, ${observationTotalExpression} / ${observationCountExpression})`;
+      case AggregationType.Min:
+        return `min(multiIf(isNotNull(min), toFloat64(min), ${distRowCondition} AND count > 0, ${datapointMeanExpression}, isNotNull(${column}), toFloat64(${column}), NULL))`;
+      case AggregationType.Max:
+        return `max(multiIf(isNotNull(max), toFloat64(max), ${distRowCondition} AND count > 0, ${datapointMeanExpression}, isNotNull(${column}), toFloat64(${column}), NULL))`;
+      default:
+        return `${aggregationType.toLocaleLowerCase()}(${column})`;
+    }
+  }
+
+  /**
+   * Base-table statement for non-percentile aggregations over `value`,
+   * used whenever the MV fast paths don't apply (attribute filters,
+   * group-by, or a distribution metric). Compared to the generic
+   * statement in AnalyticsDatabaseService this adds:
+   *
+   *   - distribution-aware aggregation expressions (see
+   *     getDistributionAwareAggregationExpression), and
+   *   - grouping by individual attribute keys via
+   *     `attributes['<key>']` (aliased and re-projected as a compact
+   *     `attributes` map), which GroupBy<Metric> cannot express since
+   *     it only references whole model columns.
+   *
+   * Model-column group-bys (including the legacy whole-map
+   * `groupBy: { attributes: true }` used by the infra pages) are
+   * carried through unchanged, appended as raw identifiers exactly
+   * like the percentile path does.
+   */
+  private buildScalarAggregateStatement(
+    aggregateBy: AggregateBy<Metric>,
+    attributeGroupKeys: Array<string>,
+  ): { statement: Statement; columns: Array<string> } {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const aggregationColumn: string =
+      aggregateBy.aggregateColumnName.toString();
+    const aggregationTimestampColumn: string =
+      aggregateBy.aggregationTimestampColumnName.toString();
+    const aggregationInterval: string = AggregateUtil.getAggregationInterval({
+      startDate: aggregateBy.startTimestamp!,
+      endDate: aggregateBy.endTimestamp!,
+    }).toLowerCase();
+
+    const groupByKeys: Array<string> = [];
+    if (aggregateBy.groupBy) {
+      for (const key of Object.keys(aggregateBy.groupBy)) {
+        if (!this.model.getTableColumn(key)) {
+          continue;
+        }
+        /*
+         * Key-scoped grouping supersedes a whole-map `attributes`
+         * group-by: keeping both would fragment the series again AND
+         * collide with the `map(...) AS attributes` projection below.
+         */
+        if (key === "attributes" && attributeGroupKeys.length > 0) {
+          continue;
+        }
+        groupByKeys.push(key);
+      }
+    }
+
+    const whereStatement: Statement = this.statementGenerator.toWhereStatement(
+      aggregateBy.query,
+    );
+    const sortStatement: Statement = this.statementGenerator.toSortStatement(
+      aggregateBy.sort!,
+    );
+
+    const aggregationExpression: string =
+      this.getDistributionAwareAggregationExpression(
+        aggregateBy.aggregationType,
+        aggregationColumn,
+      );
+
+    const statement: Statement = SQL``;
+
+    statement.append(
+      `SELECT ${aggregationExpression} as ${aggregationColumn}, date_trunc('${aggregationInterval}', toStartOfInterval(${aggregationTimestampColumn}, INTERVAL 1 ${aggregationInterval})) as ${aggregationTimestampColumn}`,
+    );
+    for (const key of groupByKeys) {
+      statement.append(`, ${key}`);
+    }
+    this.appendAttributeGroupMapColumn(statement, attributeGroupKeys);
+
+    if (attributeGroupKeys.length > 0) {
+      /*
+       * Subquery form: extract the selected keys into `__attr_grp_<i>`
+       * one level down so the outer `map(...) AS attributes` alias can
+       * never shadow (or cycle with) the real `attributes` column the
+       * extraction and WHERE filters read. Mirrors the percentile path.
+       */
+      const innerColumns: Array<string> = [
+        aggregationTimestampColumn,
+        "value",
+        "sum",
+        "count",
+        "min",
+        "max",
+      ];
+      for (const key of groupByKeys) {
+        if (!innerColumns.includes(key)) {
+          innerColumns.push(key);
+        }
+      }
+
+      statement.append(SQL` FROM (`);
+      statement.append(`SELECT ${innerColumns.join(", ")}`);
+      this.appendAttributeGroupExtractionColumns(statement, attributeGroupKeys);
+      statement.append(
+        ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
+      );
+      statement.append(whereStatement);
+      statement.append(this.getRetentionReadFilter());
+      statement.append(SQL`) `);
+    } else {
+      statement.append(
+        ` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `,
+      );
+      statement.append(whereStatement);
+      statement.append(this.getRetentionReadFilter());
+    }
+
+    statement.append(SQL` GROUP BY `).append(`${aggregationTimestampColumn}`);
+    for (const key of groupByKeys) {
+      statement.append(`, ${key}`);
+    }
+    attributeGroupKeys.forEach((_key: string, index: number) => {
+      statement.append(`, __attr_grp_${index}`);
+    });
+
+    statement.append(SQL` ORDER BY `).append(sortStatement);
+
+    statement.append(
+      SQL` LIMIT ${{
+        value: Number(aggregateBy.limit),
+        type: TableColumnType.Number,
+      }}`,
+    );
+    statement.append(
+      SQL` OFFSET ${{
+        value: Number(aggregateBy.skip),
+        type: TableColumnType.Number,
+      }} `,
+    );
+
+    statement.append(
+      getQuerySettings({
+        additionalSettings: {
+          optimize_aggregation_in_order: 1,
+          optimize_move_to_prewhere: 1,
+          max_threads: 4,
+        },
+      }),
+    );
+
+    const columns: Array<string> = [
+      aggregationColumn,
+      aggregationTimestampColumn,
+      ...groupByKeys,
+      ...(attributeGroupKeys.length > 0 ? ["attributes"] : []),
+    ];
+
+    logger.debug(`${this.model.tableName} Scalar Aggregate Statement`, {
       tableName: this.model.tableName,
     } as LogAttributes);
     logger.debug(statement, {
@@ -564,6 +1133,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   private canRouteAggregateToMutableMetricTable(
     aggregateBy: AggregateBy<Metric>,
   ): boolean {
+    if (
+      aggregateBy.groupByAttributeKeys &&
+      aggregateBy.groupByAttributeKeys.length > 0
+    ) {
+      return false;
+    }
+
     const supportedColumns: Set<string> = new Set<string>([
       "projectId",
       "name",
@@ -684,6 +1260,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+      return null;
+    }
+
+    if (
+      aggregateBy.groupByAttributeKeys &&
+      aggregateBy.groupByAttributeKeys.length > 0
+    ) {
       return null;
     }
 
@@ -839,6 +1422,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+      return null;
+    }
+
+    if (
+      aggregateBy.groupByAttributeKeys &&
+      aggregateBy.groupByAttributeKeys.length > 0
+    ) {
       return null;
     }
 
