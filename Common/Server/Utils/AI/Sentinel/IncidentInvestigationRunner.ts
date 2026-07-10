@@ -2,7 +2,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import { Blue500 } from "../../../../Types/BrandColors";
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
+import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
+import IncidentInternalNoteService from "../../../Services/IncidentInternalNoteService";
 import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "../IncidentAIContextBuilder";
@@ -99,6 +101,30 @@ export default class SentinelIncidentInvestigationRunner {
               sendWorkspaceNotification: postData.isConfident,
             },
           });
+
+          /*
+           * Also file the RCA as an incident internal note, where responders
+           * collaborate. System-authored (no user), so the note service skips
+           * its own "posted private note" announcement — the RootCause feed
+           * item above, with its quiet-mode gating, is the single source of
+           * notification. Best-effort: a note failure must not fail the run
+           * after the feed item already posted.
+           */
+          try {
+            const note: IncidentInternalNote = new IncidentInternalNote();
+            note.incidentId = incidentId;
+            note.projectId = projectId;
+            note.note = postData.analysisMarkdown;
+
+            await IncidentInternalNoteService.create({
+              data: note,
+              props: { isRoot: true },
+            });
+          } catch (error) {
+            logger.error(
+              `Sentinel: failed to post RCA internal note for incident ${incidentId.toString()}: ${error}`,
+            );
+          }
         },
       });
     } catch (error) {
