@@ -147,6 +147,14 @@ echo $(kubectl get secret --namespace "default" oneuptime-clickhouse-altinity -o
   quorum. To use an existing ZooKeeper/Keeper instead, set
   `clickhouseOperator.altinity.zookeeper.nodes` (this disables the bundled Keeper).
 
+Step-by-step runbooks (prerequisites, verification queries, and the data-movement
+caveats for each):
+
+- [Adding shards (horizontal scale)](./IncreaseClickhouseShards.md) — note that
+  existing data is **not** rebalanced onto new shards.
+- [Adding replicas (HA)](./IncreaseClickhouseReplicas.md) — new replicas
+  auto-populate their copy of existing data via Keeper.
+
 Inspect the installation and Keeper:
 
 ```
