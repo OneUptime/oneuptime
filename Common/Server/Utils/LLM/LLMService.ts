@@ -220,15 +220,29 @@ export default class LLMService {
     };
 
     if (request.maxTokens) {
-      data["max_completion_tokens"] = request.maxTokens;
+      data["max_tokens"] = request.maxTokens;
     }
 
     if (request.tools && request.tools.length > 0) {
       data["tools"] = this.toOpenAITools(request.tools);
     }
 
+    // Provider-configured overrides are applied last so they win over defaults.
     if (request.additionalParams) {
       Object.assign(data, request.additionalParams);
+    }
+
+    // OpenAI's newer model families (gpt-5, o1, o3, ...) reject the legacy
+    // `max_tokens` parameter and require `max_completion_tokens` instead; the
+    // two are mutually exclusive. When a provider opts into
+    // `max_completion_tokens` via additionalParams, drop the default
+    // `max_tokens` so the request is accepted. Legacy OpenAI-compatible
+    // backends (Ollama, vLLM, LocalAI, ...) keep receiving `max_tokens`.
+    if (
+      data["max_completion_tokens"] !== undefined &&
+      data["max_tokens"] !== undefined
+    ) {
+      delete data["max_tokens"];
     }
 
     return data;
