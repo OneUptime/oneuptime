@@ -43,6 +43,8 @@ export interface TelemetrySearchBarProps {
   isAttributesLoading?: boolean | undefined;
   // Loading state for `@attribute:value` autocomplete (per-key value fetch).
   isValuesLoading?: boolean | undefined;
+  // Loading state for the telemetry results shown by the parent viewer.
+  isLoading?: boolean | undefined;
 }
 
 export interface TelemetrySearchBarRef {
@@ -337,6 +339,7 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
               ? "border-indigo-400 ring-2 ring-indigo-100"
               : "border-gray-200 hover:border-gray-300"
           }`}
+          aria-busy={props.isLoading || false}
         >
           <Icon
             icon={IconProp.Search}
@@ -367,6 +370,16 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
             spellCheck={false}
             autoComplete="off"
           />
+          {props.isLoading && (
+            <div
+              className="flex-none text-indigo-500"
+              role="status"
+              aria-label="Loading results"
+              title="Loading results..."
+            >
+              <Icon icon={IconProp.Spinner} className="h-4 w-4 animate-spin" />
+            </div>
+          )}
           {props.value.length > 0 && (
             <button
               type="button"

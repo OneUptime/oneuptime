@@ -147,6 +147,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             helpCombinedExample={props.searchHelpCombinedExample}
             isAttributesLoading={props.searchAttributesLoading}
             isValuesLoading={props.searchValuesLoading}
+            isLoading={props.isLoading}
           />
         </div>
 
