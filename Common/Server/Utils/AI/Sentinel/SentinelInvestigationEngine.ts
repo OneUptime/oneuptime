@@ -1,7 +1,6 @@
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
-import BadDataException from "../../../../Types/Exception/BadDataException";
 import {
   AIChatCitation,
   AIRunEventResultSummary,
@@ -52,6 +51,14 @@ const MAX_OUTPUT_TOKENS: number = 2000;
  * a non-answer should never loudly page the on-call.
  */
 const INCONCLUSIVE_RE: RegExp = /inconclusive[^.\n]*insufficient signal/i;
+
+/*
+ * Failures a retry cannot fix within the run's usefulness window: missing/
+ * broken provider configuration and budget exhaustion (both messages minted
+ * by our own gating in AIService/LLMService, so they are stable to match).
+ */
+const PERMANENT_FAILURE_RE: RegExp =
+  /no llm provider configured|llm provider type is not configured|token budget exhausted/i;
 
 // Maps a live agent step to the AIRunEvent type persisted for the glass-box trail.
 const STEP_EVENT_TYPE: Record<ObservabilityAssistantStepType, AIRunEventType> =
@@ -221,10 +228,12 @@ export default class SentinelInvestigationEngine {
         citationId: step.citationId,
       });
 
-      // Keep the run visibly alive for the stale-run sweeper + live UI.
-      if (step.type === "llm_started") {
-        await this.touchHeartbeat(aiRunId);
-      }
+      /*
+       * Keep the run visibly alive for the stale-run sweeper + live UI on
+       * EVERY step — a slow self-hosted LLM call can approach the sweeper's
+       * timeout, so the heartbeat must be as frequent as we can make it.
+       */
+      await this.touchHeartbeat(aiRunId);
     };
 
     try {
@@ -243,18 +252,35 @@ export default class SentinelInvestigationEngine {
           onStep,
         });
 
-      await AIRunService.updateOneBy({
-        query: { _id: aiRunId.toString(), status: AIRunStatus.Running },
-        data: {
-          status: AIRunStatus.Completed,
-          completedAt: OneUptimeDate.getCurrentDate(),
-          lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
-          llmCallCount: result.llmCallCount,
-          toolCallCount: result.toolCallCount,
-          totalTokens: result.totalTokens,
-        } as never,
-        props: { isRoot: true },
-      });
+      /*
+       * Atomic Running -> Completed. If we did NOT win this transition,
+       * another actor moved the run while we executed — most likely the
+       * stale sweeper falsely requeued it (slow LLM call outlasting the
+       * heartbeat window) and a second attempt is or will be running. In
+       * that case DO NOT post the analysis: the winning attempt will, and
+       * posting here would duplicate the RCA in the feed and workspace.
+       */
+      const completedCount: number = await AIRunService.attemptStatusTransition(
+        {
+          aiRunId,
+          fromStatus: AIRunStatus.Running,
+          set: {
+            status: AIRunStatus.Completed,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
+            llmCallCount: result.llmCallCount,
+            toolCallCount: result.toolCallCount,
+            totalTokens: result.totalTokens,
+          },
+        },
+      );
+
+      if (completedCount === 0) {
+        logger.warn(
+          `Sentinel: run ${aiRunId.toString()} finished but was no longer Running (likely requeued as stale mid-flight); skipping postAnalysis to avoid a duplicate RCA.`,
+        );
+        return;
+      }
 
       await this.emitEvent({
         projectId,
@@ -296,15 +322,19 @@ export default class SentinelInvestigationEngine {
 
       /*
        * Hand the failure to the queue's retry policy: transient errors
-       * requeue while attempts remain; permanent ones (bad configuration —
-       * BadDataException: no provider, budget exhausted) finalize as Error
-       * since retrying cannot help.
+       * requeue while attempts remain; permanent ones finalize as Error
+       * since retrying cannot help. Classification is by message, NOT by
+       * exception type: LLMService wraps transient provider failures (429s,
+       * 5xx, timeouts) in BadDataException too, so type-based classification
+       * would wrongly make the exact failures retries exist for permanent.
+       * Only configuration/budget gating — which a retry cannot change
+       * within the run's usefulness window — counts as permanent.
        */
       await SentinelInvestigationQueue.failOrRequeue({
         aiRunId,
         attemptCount: data.attemptCount,
         errorMessage: message,
-        isPermanent: error instanceof BadDataException,
+        isPermanent: PERMANENT_FAILURE_RE.test(message),
       });
 
       logger.error(

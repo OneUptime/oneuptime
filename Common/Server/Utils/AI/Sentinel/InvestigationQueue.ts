@@ -21,12 +21,17 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *   1. enqueue() records the durable intent as an AIRun in status Queued
  *      BEFORE any expensive work, then immediately tries to process it
  *      in-process — same latency as before when the pod stays alive.
- *   2. Claims are a status-guarded CAS (Queued -> Running, attemptCount+1),
- *      so the enqueueing pod and the poller can both try and exactly one
- *      wins — double-processing is impossible.
- *   3. A Workers poller drains whatever the inline path left behind
+ *   2. Claims go through AIRunService.attemptStatusTransition — one
+ *      conditional UPDATE guarded on BOTH status=Queued and the expected
+ *      attemptCount — so the enqueueing pod and the poller can race and
+ *      exactly one wins, and a stale queue snapshot can never claim (or
+ *      re-number) a run that moved on. attemptCount can therefore never
+ *      exceed MAX_INVESTIGATION_ATTEMPTS.
+ *   3. A Workers poller claims whatever the inline path left behind
  *      (pod died, cap was full, budget was exhausted) and expires runs
- *      that sat queued past their usefulness window.
+ *      that sat queued past their usefulness window. The poller claims
+ *      sequentially (so the concurrency cap sees each claim) but executes
+ *      detached, keeping the every-minute tick fast.
  *   4. Failed attempts requeue (transient errors and stale heartbeats)
  *      until MAX_ATTEMPTS, then finalize as Error/Stale — G9's retry
  *      policy. Permanent errors (bad configuration) never retry.
@@ -144,106 +149,25 @@ export default class SentinelInvestigationQueue {
   }
 
   /*
-   * Claim a queued run and execute it. Safe to call from multiple places
-   * concurrently — the CAS guarantees a single winner. Leaves the run
-   * Queued (for the poller / TTL) when the concurrency cap is full or the
-   * budget is exhausted.
+   * Claim a queued run and execute it to completion. Safe to call from
+   * multiple places concurrently — the claim is one conditional UPDATE, so
+   * exactly one caller wins. Leaves the run Queued (for the poller / TTL)
+   * when the concurrency cap is full or the budget is exhausted.
    */
   @CaptureSpan()
   public static async processRun(run: QueuedRunRef): Promise<void> {
     try {
-      const runningCount: number = (
-        await AIRunService.countBy({
-          query: {
-            projectId: run.projectId,
-            runType: AIRunType.Investigation,
-            status: AIRunStatus.Running,
-          },
-          props: { isRoot: true },
-        })
-      ).toNumber();
-
-      if (runningCount >= MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT) {
-        logger.debug(
-          `Sentinel: leaving run ${run.id.toString()} queued — ${runningCount} investigations already running (cap: ${MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT}).`,
-        );
+      if (!(await this.passesClaimGates(run))) {
         return;
       }
 
-      const budget: AutonomousBudgetStatus =
-        await AIService.getAutonomousDailyBudgetStatus(run.projectId);
+      const attempt: number | null = await this.claim(run);
 
-      if (budget.exhausted) {
-        logger.debug(
-          `Sentinel: leaving run ${run.id.toString()} queued — daily autonomous token budget exhausted.`,
-        );
+      if (attempt === null) {
         return;
       }
 
-      const attempt: number = (run.attemptCount || 0) + 1;
-
-      const claimedCount: number = await AIRunService.updateOneBy({
-        query: {
-          _id: run.id.toString(),
-          status: AIRunStatus.Queued,
-        },
-        data: {
-          status: AIRunStatus.Running,
-          startedAt: OneUptimeDate.getCurrentDate(),
-          lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
-          attemptCount: attempt,
-        } as never,
-        props: { isRoot: true },
-      });
-
-      if (claimedCount === 0) {
-        // Another worker won the claim (or the run was expired/cancelled).
-        return;
-      }
-
-      if (run.triggeredByIncidentId) {
-        /*
-         * Lazy require: the runners import this queue to enqueue, so a
-         * top-level import here would be circular at module-init time
-         * (same pattern as DatabaseService -> AuditLogService).
-         */
-        const incidentRunner: typeof import("./IncidentInvestigationRunner").default =
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-          require("./IncidentInvestigationRunner").default;
-
-        await incidentRunner.executeInvestigation({
-          aiRunId: run.id,
-          projectId: run.projectId,
-          incidentId: run.triggeredByIncidentId,
-          attemptCount: attempt,
-        });
-        return;
-      }
-
-      if (run.triggeredByAlertId) {
-        const alertRunner: typeof import("./AlertInvestigationRunner").default =
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-          require("./AlertInvestigationRunner").default;
-
-        await alertRunner.executeInvestigation({
-          aiRunId: run.id,
-          projectId: run.projectId,
-          alertId: run.triggeredByAlertId,
-          attemptCount: attempt,
-        });
-        return;
-      }
-
-      // A queued investigation without a subject cannot be executed.
-      await AIRunService.updateOneBy({
-        query: { _id: run.id.toString(), status: AIRunStatus.Running },
-        data: {
-          status: AIRunStatus.Error,
-          completedAt: OneUptimeDate.getCurrentDate(),
-          errorMessage: "Queued investigation has no subject to investigate.",
-        } as never,
-        props: { isRoot: true },
-      });
+      await this.dispatch(run, attempt);
     } catch (error) {
       logger.error(
         `Sentinel: failed to process queued run ${run.id.toString()}: ${error}`,
@@ -253,8 +177,12 @@ export default class SentinelInvestigationQueue {
 
   /*
    * One poller tick: expire runs that queued past their usefulness window,
-   * then drain a batch of the rest. Called every minute from Workers; also
-   * the recovery path for runs orphaned by pod restarts.
+   * then claim a batch of the rest. Claims happen sequentially — each claim
+   * sets Running immediately, so the next iteration's concurrency-cap count
+   * sees it — but execution is detached so the tick finishes in seconds
+   * instead of holding the job open for the length of the investigations.
+   * Called every minute from Workers; also the recovery path for runs
+   * orphaned by pod restarts.
    */
   @CaptureSpan()
   public static async processQueuedRuns(): Promise<void> {
@@ -274,14 +202,14 @@ export default class SentinelInvestigationQueue {
     });
 
     for (const expired of expiredRuns) {
-      await AIRunService.updateOneBy({
-        query: { _id: expired.id!.toString(), status: AIRunStatus.Queued },
-        data: {
+      await AIRunService.attemptStatusTransition({
+        aiRunId: expired.id!,
+        fromStatus: AIRunStatus.Queued,
+        set: {
           status: AIRunStatus.Cancelled,
           completedAt: OneUptimeDate.getCurrentDate(),
           errorMessage: `Expired in the investigation queue after ${QUEUE_TTL_MINUTES} minutes — a first-pass analysis this late would no longer be useful. The project may have been at its concurrency cap or daily token budget.`,
-        } as never,
-        props: { isRoot: true },
+        },
       });
     }
 
@@ -304,22 +232,47 @@ export default class SentinelInvestigationQueue {
     });
 
     for (const queued of queuedRuns) {
-      // Sequential on purpose: lets the concurrency cap settle between claims.
-      await this.processRun({
+      const ref: QueuedRunRef = {
         id: queued.id!,
         projectId: queued.projectId!,
         attemptCount: queued.attemptCount || 0,
         triggeredByIncidentId: queued.triggeredByIncidentId,
         triggeredByAlertId: queued.triggeredByAlertId,
-      });
+      };
+
+      try {
+        if (!(await this.passesClaimGates(ref))) {
+          continue;
+        }
+
+        const attempt: number | null = await this.claim(ref);
+
+        if (attempt === null) {
+          continue;
+        }
+
+        /*
+         * Execute detached — the run is claimed (Running + heartbeat), so
+         * the sweeper owns recovery if this pod dies mid-flight.
+         */
+        this.dispatch(ref, attempt).catch((error: Error) => {
+          logger.error(
+            `Sentinel: detached execution of run ${ref.id.toString()} failed: ${error}`,
+          );
+        });
+      } catch (error) {
+        logger.error(
+          `Sentinel: poller failed on queued run ${ref.id.toString()}: ${error}`,
+        );
+      }
     }
   }
 
   /*
    * Finalize a failed attempt: requeue transient failures while attempts
-   * remain, otherwise mark the run Error. The CAS guards on Running so a
-   * run that already completed (e.g. only postAnalysis failed) is never
-   * clobbered or re-run.
+   * remain, otherwise mark the run Error. The transition guards on Running
+   * so a run that already completed (e.g. only postAnalysis failed) is
+   * never clobbered or re-run.
    */
   @CaptureSpan()
   public static async failOrRequeue(data: {
@@ -331,13 +284,13 @@ export default class SentinelInvestigationQueue {
     const truncatedMessage: string = data.errorMessage.substring(0, 400);
 
     if (!data.isPermanent && data.attemptCount < MAX_INVESTIGATION_ATTEMPTS) {
-      const requeued: number = await AIRunService.updateOneBy({
-        query: { _id: data.aiRunId.toString(), status: AIRunStatus.Running },
-        data: {
+      const requeued: number = await AIRunService.attemptStatusTransition({
+        aiRunId: data.aiRunId,
+        fromStatus: AIRunStatus.Running,
+        set: {
           status: AIRunStatus.Queued,
           errorMessage: `Attempt ${data.attemptCount} failed and the run was requeued: ${truncatedMessage}`,
-        } as never,
-        props: { isRoot: true },
+        },
       });
 
       if (requeued > 0) {
@@ -348,14 +301,14 @@ export default class SentinelInvestigationQueue {
       return;
     }
 
-    await AIRunService.updateOneBy({
-      query: { _id: data.aiRunId.toString(), status: AIRunStatus.Running },
-      data: {
+    await AIRunService.attemptStatusTransition({
+      aiRunId: data.aiRunId,
+      fromStatus: AIRunStatus.Running,
+      set: {
         status: AIRunStatus.Error,
         completedAt: OneUptimeDate.getCurrentDate(),
-        errorMessage: truncatedMessage.substring(0, 480),
-      } as never,
-      props: { isRoot: true },
+        errorMessage: truncatedMessage,
+      },
     });
   }
 
@@ -370,13 +323,13 @@ export default class SentinelInvestigationQueue {
     attemptCount: number;
   }): Promise<"requeued" | "stale"> {
     if ((run.attemptCount || 0) < MAX_INVESTIGATION_ATTEMPTS) {
-      const requeued: number = await AIRunService.updateOneBy({
-        query: { _id: run.id.toString(), status: AIRunStatus.Running },
-        data: {
+      const requeued: number = await AIRunService.attemptStatusTransition({
+        aiRunId: run.id,
+        fromStatus: AIRunStatus.Running,
+        set: {
           status: AIRunStatus.Queued,
           errorMessage: `Attempt ${run.attemptCount} stopped reporting progress (the server processing it may have restarted) and the run was requeued.`,
-        } as never,
-        props: { isRoot: true },
+        },
       });
 
       if (requeued > 0) {
@@ -384,17 +337,132 @@ export default class SentinelInvestigationQueue {
       }
     }
 
-    await AIRunService.updateOneBy({
-      query: { _id: run.id.toString(), status: AIRunStatus.Running },
-      data: {
+    await AIRunService.attemptStatusTransition({
+      aiRunId: run.id,
+      fromStatus: AIRunStatus.Running,
+      set: {
         status: AIRunStatus.Stale,
         completedAt: OneUptimeDate.getCurrentDate(),
         errorMessage:
           "The run stopped reporting progress and was marked as stale after exhausting its retry attempts. The server processing it may have restarted.",
-      } as never,
-      props: { isRoot: true },
+      },
     });
 
     return "stale";
+  }
+
+  /*
+   * The claim-time cost gates: concurrency cap and daily budget. A run
+   * failing these stays Queued — the poller retries and the TTL expires
+   * what never fits. Fails cheap (skip) on gate errors.
+   */
+  private static async passesClaimGates(run: QueuedRunRef): Promise<boolean> {
+    const runningCount: number = (
+      await AIRunService.countBy({
+        query: {
+          projectId: run.projectId,
+          runType: AIRunType.Investigation,
+          status: AIRunStatus.Running,
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    if (runningCount >= MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT) {
+      logger.debug(
+        `Sentinel: leaving run ${run.id.toString()} queued — ${runningCount} investigations already running (cap: ${MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT}).`,
+      );
+      return false;
+    }
+
+    const budget: AutonomousBudgetStatus =
+      await AIService.getAutonomousDailyBudgetStatus(run.projectId);
+
+    if (budget.exhausted) {
+      logger.debug(
+        `Sentinel: leaving run ${run.id.toString()} queued — daily autonomous token budget exhausted.`,
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  /*
+   * The atomic claim: Queued -> Running, guarded on the attemptCount the
+   * caller observed, so a stale queue snapshot can neither double-claim
+   * nor reset the attempt numbering. Returns the claimed attempt number,
+   * or null when another actor won.
+   */
+  private static async claim(run: QueuedRunRef): Promise<number | null> {
+    const attempt: number = (run.attemptCount || 0) + 1;
+
+    const claimedCount: number = await AIRunService.attemptStatusTransition({
+      aiRunId: run.id,
+      fromStatus: AIRunStatus.Queued,
+      expectedAttemptCount: run.attemptCount || 0,
+      set: {
+        status: AIRunStatus.Running,
+        startedAt: OneUptimeDate.getCurrentDate(),
+        lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
+        attemptCount: attempt,
+      },
+    });
+
+    if (claimedCount === 0) {
+      return null;
+    }
+
+    return attempt;
+  }
+
+  // Route a claimed run to its subject's executor.
+  private static async dispatch(
+    run: QueuedRunRef,
+    attempt: number,
+  ): Promise<void> {
+    if (run.triggeredByIncidentId) {
+      /*
+       * Lazy require: the runners import this queue to enqueue, so a
+       * top-level import here would be circular at module-init time
+       * (same pattern as DatabaseService -> AuditLogService).
+       */
+      const incidentRunner: typeof import("./IncidentInvestigationRunner").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("./IncidentInvestigationRunner").default;
+
+      await incidentRunner.executeInvestigation({
+        aiRunId: run.id,
+        projectId: run.projectId,
+        incidentId: run.triggeredByIncidentId,
+        attemptCount: attempt,
+      });
+      return;
+    }
+
+    if (run.triggeredByAlertId) {
+      const alertRunner: typeof import("./AlertInvestigationRunner").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("./AlertInvestigationRunner").default;
+
+      await alertRunner.executeInvestigation({
+        aiRunId: run.id,
+        projectId: run.projectId,
+        alertId: run.triggeredByAlertId,
+        attemptCount: attempt,
+      });
+      return;
+    }
+
+    // A queued investigation without a subject cannot be executed.
+    await AIRunService.attemptStatusTransition({
+      aiRunId: run.id,
+      fromStatus: AIRunStatus.Running,
+      set: {
+        status: AIRunStatus.Error,
+        completedAt: OneUptimeDate.getCurrentDate(),
+        errorMessage: "Queued investigation has no subject to investigate.",
+      },
+    });
   }
 }

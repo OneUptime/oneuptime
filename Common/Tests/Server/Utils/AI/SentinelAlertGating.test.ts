@@ -253,7 +253,10 @@ describe("SentinelInvestigationQueue concurrency cap", () => {
     jest
       .spyOn(AIRunService, "countBy")
       .mockResolvedValue(new PositiveNumber(3));
-    const claim: jest.SpyInstance = jest.spyOn(AIRunService, "updateOneBy");
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
 
     await SentinelInvestigationQueue.processRun({
       id: ObjectID.generate(),
@@ -267,7 +270,10 @@ describe("SentinelInvestigationQueue concurrency cap", () => {
 
   test("leaves the run queued when the cap check itself fails", async () => {
     jest.spyOn(AIRunService, "countBy").mockRejectedValue(new Error("db down"));
-    const claim: jest.SpyInstance = jest.spyOn(AIRunService, "updateOneBy");
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
 
     await SentinelInvestigationQueue.processRun({
       id: ObjectID.generate(),

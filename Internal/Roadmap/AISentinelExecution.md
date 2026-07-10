@@ -2,7 +2,7 @@
 
 > The **living** companion to [AISentinelVision.md](./AISentinelVision.md). Vision says why; this doc says what is built, what is next, and what gates what.
 > **Rule:** any PR that changes behavior under `Common/Server/Utils/AI/` (or the legacy `AIAgent/`) must update the relevant status row and, if it re-sequences work, add a line to the Deviations log. Stale status is worse than no status.
-> Status last verified against the codebase: **2026-07-10**.
+> Status last verified against the codebase: **2026-07-11**.
 
 ---
 
@@ -212,6 +212,7 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 
 - **2026-07-10** — G8 preview half: `storeContentPreviews: false` on all five one-shot endpoints and the auto-postmortem path. **Also fixed a metering bypass:** `IncidentService.generatePostmortemFromAI` called `LLMService.getCompletion` directly — auto-postmortems were unmetered, unbilled, and invisible to LlmLog; they now route through `AIService.executeWithLogging`.
 - **2026-07-10** — Shipped `get_service_dependencies` (topology consumption, Phase 2 item pulled from Phase 4) — see the checked item in §3.
+- **2026-07-11** — Queue hardened after adversarial review: (1) claims/transitions now use `AIRunService.attemptStatusTransition` — a single conditional UPDATE — because `updateOneBy` is SELECT-then-save and cannot implement a CAS; (2) the claim also guards on expected `attemptCount`, so attempts can never exceed the max; (3) transient/permanent failure classification is by message (LLMService wraps transient provider errors in `BadDataException` too); (4) `postAnalysis` only fires when the executor WINS the Completed transition (no duplicate RCA if the sweeper falsely requeued a slow run) and heartbeats now touch on every step; (5) the poller claims sequentially but executes detached, keeping the tick inside its job timeout.
 - **2026-07-10** — **Phase 2 opened: shipped the durable investigation queue** (`SentinelInvestigationQueue`, Q1 → DB-claim on AIRun rows). Triggers record Queued intent before any expensive work; CAS claims with `attemptCount`; inline kick keeps the 1–3 min latency; every-minute poller drains orphans and expires >30-min queue waits; stale sweeper requeues instead of marking Stale while attempts remain; G9 retry policy (transient requeues, permanent finalizes). D2 residual closed; panel shows the Queued state.
 - **2026-07-10** — Shipped the Sentinel user docs page (`/docs/ai/sentinel`): the flagship is no longer dark. Phase 1 checklist is now complete except the measured exit (≥20 production investigations), which starts when the flags go on for our own project. Q3 GTM docs deliverable met.
 - **2026-07-10** — Shipped the `baseline_anomaly` read tool: hour-of-week baseline band verdicts (mean ± σ·stddev), cold-start-aware, with an expected-range band chart (first callers for `getBandSeries`/`getCoverage`); the investigation persona now points the model at it.

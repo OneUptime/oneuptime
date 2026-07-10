@@ -89,7 +89,7 @@ describe("SentinelInvestigationQueue", () => {
   });
 
   test("a lost claim never executes the investigation", async () => {
-    jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(0);
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(0);
     const execute: jest.SpyInstance = jest.spyOn(
       SentinelIncidentInvestigationRunner,
       "executeInvestigation",
@@ -109,7 +109,7 @@ describe("SentinelInvestigationQueue", () => {
     const runId: ObjectID = ObjectID.generate();
     const incidentId: ObjectID = ObjectID.generate();
     const claim: jest.SpyInstance = jest
-      .spyOn(AIRunService, "updateOneBy")
+      .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
     const execute: jest.SpyInstance = jest
       .spyOn(SentinelIncidentInvestigationRunner, "executeInvestigation")
@@ -124,11 +124,11 @@ describe("SentinelInvestigationQueue", () => {
 
     expect(claim).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: {
-          _id: runId.toString(),
-          status: AIRunStatus.Queued,
-        },
-        data: expect.objectContaining({
+        aiRunId: runId,
+        fromStatus: AIRunStatus.Queued,
+        // Guards against stale queue snapshots re-claiming or re-numbering.
+        expectedAttemptCount: 0,
+        set: expect.objectContaining({
           status: AIRunStatus.Running,
           attemptCount: 1,
         }),
@@ -145,7 +145,7 @@ describe("SentinelInvestigationQueue", () => {
 
   test("a won claim dispatches alert runs to the alert runner", async () => {
     const alertId: ObjectID = ObjectID.generate();
-    jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(1);
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
     const execute: jest.SpyInstance = jest
       .spyOn(SentinelAlertInvestigationRunner, "executeInvestigation")
       .mockResolvedValue(undefined);
@@ -165,7 +165,7 @@ describe("SentinelInvestigationQueue", () => {
   test("a transient failure on the first attempt requeues the run", async () => {
     const runId: ObjectID = ObjectID.generate();
     const update: jest.SpyInstance = jest
-      .spyOn(AIRunService, "updateOneBy")
+      .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
     await SentinelInvestigationQueue.failOrRequeue({
@@ -177,8 +177,9 @@ describe("SentinelInvestigationQueue", () => {
 
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: { _id: runId.toString(), status: AIRunStatus.Running },
-        data: expect.objectContaining({
+        aiRunId: runId,
+        fromStatus: AIRunStatus.Running,
+        set: expect.objectContaining({
           status: AIRunStatus.Queued,
         }),
       }),
@@ -187,7 +188,7 @@ describe("SentinelInvestigationQueue", () => {
 
   test("a transient failure on the final attempt finalizes as Error", async () => {
     const update: jest.SpyInstance = jest
-      .spyOn(AIRunService, "updateOneBy")
+      .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
     await SentinelInvestigationQueue.failOrRequeue({
@@ -199,7 +200,7 @@ describe("SentinelInvestigationQueue", () => {
 
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
+        set: expect.objectContaining({
           status: AIRunStatus.Error,
         }),
       }),
@@ -208,7 +209,7 @@ describe("SentinelInvestigationQueue", () => {
 
   test("a permanent failure never retries, even with attempts remaining", async () => {
     const update: jest.SpyInstance = jest
-      .spyOn(AIRunService, "updateOneBy")
+      .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
     await SentinelInvestigationQueue.failOrRequeue({
@@ -221,7 +222,7 @@ describe("SentinelInvestigationQueue", () => {
     expect(update).toHaveBeenCalledTimes(1);
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
+        set: expect.objectContaining({
           status: AIRunStatus.Error,
         }),
       }),
@@ -229,7 +230,7 @@ describe("SentinelInvestigationQueue", () => {
   });
 
   test("a heartbeat-stale run requeues while attempts remain", async () => {
-    jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(1);
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
 
     const outcome: "requeued" | "stale" =
       await SentinelInvestigationQueue.requeueOrMarkStale({
@@ -242,7 +243,7 @@ describe("SentinelInvestigationQueue", () => {
 
   test("a heartbeat-stale run out of attempts is marked Stale", async () => {
     const update: jest.SpyInstance = jest
-      .spyOn(AIRunService, "updateOneBy")
+      .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
     const outcome: "requeued" | "stale" =
@@ -254,7 +255,7 @@ describe("SentinelInvestigationQueue", () => {
     expect(outcome).toBe("stale");
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
+        set: expect.objectContaining({
           status: AIRunStatus.Stale,
         }),
       }),
@@ -269,7 +270,7 @@ describe("SentinelInvestigationQueue", () => {
       .mockResolvedValueOnce([{ id: expiredId } as unknown as AIRun])
       .mockResolvedValueOnce([]);
     const update: jest.SpyInstance = jest
-      .spyOn(AIRunService, "updateOneBy")
+      .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
     await SentinelInvestigationQueue.processQueuedRuns();
@@ -277,8 +278,9 @@ describe("SentinelInvestigationQueue", () => {
     expect(findBy).toHaveBeenCalledTimes(2);
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: { _id: expiredId.toString(), status: AIRunStatus.Queued },
-        data: expect.objectContaining({
+        aiRunId: expiredId,
+        fromStatus: AIRunStatus.Queued,
+        set: expect.objectContaining({
           status: AIRunStatus.Cancelled,
         }),
       }),

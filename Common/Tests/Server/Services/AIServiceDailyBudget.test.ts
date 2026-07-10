@@ -153,7 +153,10 @@ describe("SentinelInvestigationQueue budget skip", () => {
       limitInTokens: 100_000,
       usedTokensToday: 120_000,
     });
-    const claim: jest.SpyInstance = jest.spyOn(AIRunService, "updateOneBy");
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
 
     await SentinelInvestigationQueue.processRun({
       id: ObjectID.generate(),
