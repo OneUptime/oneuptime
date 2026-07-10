@@ -152,6 +152,7 @@ export default class LlmProviderAPI extends BaseAPI<
                 apiKey: true,
                 baseUrl: true,
                 modelName: true,
+                additionalParams: true,
               },
               props: {
                 isRoot: true,
@@ -191,6 +192,9 @@ export default class LlmProviderAPI extends BaseAPI<
               temperature: 0,
               maxTokens: 16,
               llmProviderConfig: llmProviderConfig,
+              ...(provider.additionalParams
+                ? { additionalParams: provider.additionalParams }
+                : {}),
             });
           } catch (err) {
             logger.error(err);

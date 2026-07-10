@@ -41,6 +41,7 @@ export interface LLMCompletionRequest {
   messages: Array<LLMMessage>;
   temperature?: number | undefined;
   maxTokens?: number | undefined;
+  additionalParams?: JSONObject | undefined;
   tools?: Array<LLMToolDefinition> | undefined;
   llmProviderConfig: LLMProviderConfig;
 }
@@ -219,11 +220,15 @@ export default class LLMService {
     };
 
     if (request.maxTokens) {
-      data["max_tokens"] = request.maxTokens;
+      data["max_completion_tokens"] = request.maxTokens;
     }
 
     if (request.tools && request.tools.length > 0) {
       data["tools"] = this.toOpenAITools(request.tools);
+    }
+
+    if (request.additionalParams) {
+      Object.assign(data, request.additionalParams);
     }
 
     return data;

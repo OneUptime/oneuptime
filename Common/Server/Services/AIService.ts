@@ -194,6 +194,9 @@ export class Service extends BaseService {
         temperature: request.temperature ?? 0.7,
         maxTokens: request.maxTokens,
         tools: request.tools,
+        ...(llmProvider.additionalParams
+          ? { additionalParams: llmProvider.additionalParams }
+          : {}),
       });
 
       const endTime: Date = new Date();
