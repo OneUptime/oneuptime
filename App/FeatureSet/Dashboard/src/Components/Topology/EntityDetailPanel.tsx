@@ -21,6 +21,7 @@ import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import OneUptimeDate from "Common/Types/Date";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import {
   formatCallRate,
   formatDurationMs,
@@ -103,6 +104,7 @@ function renderStatusItem(
 const EntityDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const { entity } = props;
   const entityKey: string = entity.entityKey || "";
   const displayName: string = entity.displayName || "Unnamed entity";
@@ -268,7 +270,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2">
           <Button
-            title="Focus on this node"
+            title={translateString("Focus on this node") || ""}
             buttonStyle={ButtonStyleType.OUTLINE}
             onClick={() => {
               props.onFocus(entityKey);
@@ -280,7 +282,8 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         props.incidentStatus.activeIncidentCount > 0 ? (
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              Active incidents ({props.incidentStatus.activeIncidentCount})
+              {translateString("Active incidents") || ""} (
+              {props.incidentStatus.activeIncidentCount})
             </h3>
             <ul className="mt-1 divide-y divide-gray-100">
               {props.incidentStatus.incidents.map(
@@ -301,7 +304,8 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         {props.incidentStatus && props.incidentStatus.activeAlertCount > 0 ? (
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              Active alerts ({props.incidentStatus.activeAlertCount})
+              {translateString("Active alerts") || ""} (
+              {props.incidentStatus.activeAlertCount})
             </h3>
             <ul className="mt-1 divide-y divide-gray-100">
               {props.incidentStatus.alerts.map(
@@ -320,11 +324,13 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         )}
 
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Details</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {translateString("Details") || ""}
+          </h3>
           <dl className="mt-2 space-y-1 text-sm text-gray-600">
             {entity.firstSeenAt && (
               <div className="flex justify-between gap-4">
-                <dt>First seen</dt>
+                <dt>{translateString("First seen") || ""}</dt>
                 <dd>
                   {OneUptimeDate.getDateAsLocalFormattedString(
                     entity.firstSeenAt,
@@ -334,7 +340,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             )}
             {entity.lastSeenAt && (
               <div className="flex justify-between gap-4">
-                <dt>Last seen</dt>
+                <dt>{translateString("Last seen") || ""}</dt>
                 <dd>
                   {OneUptimeDate.getDateAsLocalFormattedString(
                     entity.lastSeenAt,
@@ -347,11 +353,12 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
 
         <div>
           <h3 className="text-sm font-semibold text-gray-900">
-            Connections ({edgeRows.length})
+            {translateString("Connections") || ""} ({edgeRows.length})
           </h3>
           {edgeRows.length === 0 ? (
             <p className="mt-2 text-sm text-gray-500">
-              No connections in the selected time range.
+              {translateString("No connections in the selected time range.") ||
+                ""}
             </p>
           ) : (
             <ul className="mt-1 divide-y divide-gray-100">
@@ -361,7 +368,9 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">Open</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {translateString("Open") || ""}
+          </h3>
           <ul className="mt-2 space-y-2 text-sm">
             {entity._id && (
               <li>
@@ -372,7 +381,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
-                  Entity details
+                  {translateString("Entity details") || ""}
                 </Link>
               </li>
             )}
@@ -385,7 +394,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
-                  Traces for this service
+                  {translateString("Traces for this service") || ""}
                 </Link>
               </li>
             )}
@@ -398,7 +407,8 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
-                  Network device: {matchedDevice.name || "device"}
+                  {translateString("Network device:") || ""}{" "}
+                  {matchedDevice.name || "device"}
                 </Link>
               </li>
             )}

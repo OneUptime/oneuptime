@@ -30,6 +30,7 @@ import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import Navigation from "Common/UI/Utils/Navigation";
 import computeLayeredLayout, {
   LayoutPoint,
 } from "../../Utils/LayeredGraphLayout";
@@ -172,10 +173,42 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
 
-  const [searchText, setSearchText] = useState<string>("");
+  /*
+   * Search and focus live in the URL (replaceState — no history flood) so
+   * a filtered/focused view is shareable. A focus key that does not exist
+   * in this graph (e.g. carried over from the other tab) is ignored.
+   */
+  const [searchText, setSearchTextState] = useState<string>(
+    Navigation.getQueryStringByName("search") || "",
+  );
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const [focusKey, setFocusKeyState] = useState<string | null>(
+    Navigation.getQueryStringByName("focus"),
+  );
+
+  /*
+   * Debounce the URL mirror: per-keystroke replaceState trips Safari's
+   * rate limit; React state stays the source of truth.
+   */
+  const searchUrlTimeout: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setSearchText: (value: string) => void = (value: string): void => {
+    setSearchTextState(value);
+    if (searchUrlTimeout.current) {
+      clearTimeout(searchUrlTimeout.current);
+    }
+    searchUrlTimeout.current = setTimeout(() => {
+      Navigation.setQueryString({ search: value || null });
+    }, 250);
+  };
+  const setFocusKey: (value: string | null) => void = (
+    value: string | null,
+  ): void => {
+    setFocusKeyState(value);
+    Navigation.setQueryString({ focus: value });
+  };
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
 
@@ -245,9 +278,13 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     );
   }, [props.relationships, entityByKey]);
 
+  // Only honor a focus key that exists in THIS graph.
+  const effectiveFocusKey: string | null =
+    focusKey && entityByKey.has(focusKey) ? focusKey : null;
+
   // Focus mode: every service reachable from the focused one, both ways.
   const focusedKeys: Set<string> | null = useMemo(() => {
-    if (!focusKey) {
+    if (!effectiveFocusKey) {
       return null;
     }
     const neighbors: Map<string, Array<string>> = new Map<
@@ -264,8 +301,8 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         edge.fromEntityKey!,
       ]);
     }
-    const reached: Set<string> = new Set<string>([focusKey]);
-    const queue: Array<string> = [focusKey];
+    const reached: Set<string> = new Set<string>([effectiveFocusKey]);
+    const queue: Array<string> = [effectiveFocusKey];
     while (queue.length > 0) {
       const current: string = queue.shift()!;
       for (const neighbor of neighbors.get(current) || []) {
@@ -276,7 +313,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
       }
     }
     return reached;
-  }, [focusKey, dependsOnEdges]);
+  }, [effectiveFocusKey, dependsOnEdges]);
 
   const { nodes, edges } = useMemo((): {
     nodes: Array<Node<ServiceNodeData>>;
@@ -433,11 +470,30 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     props.metricsWindowSeconds,
   ]);
 
-  // Re-fit when the visible graph changes (focus set, search, new data).
+  /*
+   * Re-fit when the visible graph changes. A new controlled `nodes` array
+   * wipes React Flow's measured dimensions, and fitView no-ops (returns
+   * false) until nodes re-measure — retry on animation frames until it
+   * lands.
+   */
   useEffect(() => {
-    if (flowInstance.current && nodes.length > 0) {
-      flowInstance.current.fitView({ padding: 0.2 });
-    }
+    let raf: number = 0;
+    let attempts: number = 20;
+    const tryFit: () => void = (): void => {
+      const didFit: boolean = Boolean(
+        flowInstance.current &&
+          nodes.length > 0 &&
+          flowInstance.current.fitView({ padding: 0.2 }),
+      );
+      if (!didFit && attempts > 0) {
+        attempts--;
+        raf = requestAnimationFrame(tryFit);
+      }
+    };
+    tryFit();
+    return () => {
+      cancelAnimationFrame(raf);
+    };
   }, [focusKey, nodes.length]);
 
   const selectedEntity: TelemetryEntity | null =
@@ -479,7 +535,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-        {focusKey && (
+        {effectiveFocusKey && (
           <button
             type="button"
             data-testid="service-map-clear-focus"
@@ -489,7 +545,8 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             }}
           >
             {translateString("Focused on") || "Focused on"}{" "}
-            {entityByKey.get(focusKey)?.displayName || focusKey}
+            {entityByKey.get(effectiveFocusKey)?.displayName ||
+              effectiveFocusKey}
             <span aria-hidden={true}>✕</span>
           </button>
         )}

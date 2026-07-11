@@ -34,6 +34,11 @@ import {
 export interface TraceServiceMapProps {
   spans: Span[];
   telemetryServices: Service[];
+  /**
+   * Clicking a node/edge selects a span for drill-down: the slowest span
+   * of that service (node) or the slowest call of that pair (edge).
+   */
+  onSpanSelect?: ((spanId: string) => void) | undefined;
 }
 
 interface ServiceNode {
@@ -43,6 +48,8 @@ interface ServiceNode {
   spanCount: number;
   errorCount: number;
   totalDurationUnixNano: number;
+  slowestSpanId: string | null;
+  slowestSpanDurationUnixNano: number;
 }
 
 interface ServiceEdge {
@@ -51,6 +58,8 @@ interface ServiceEdge {
   callCount: number;
   totalDurationUnixNano: number;
   errorCount: number;
+  slowestSpanId: string | null;
+  slowestSpanDurationUnixNano: number;
 }
 
 interface TraceNodeData {
@@ -58,6 +67,7 @@ interface TraceNodeData {
   health: TrafficHealth;
   colorDot: string;
   statLines: Array<ReactElement>;
+  slowestSpanId: string | null;
 }
 
 const TraceServiceMapNode: FunctionComponent<NodeProps<TraceNodeData>> = (
@@ -107,6 +117,10 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
         if (span.statusCode === SpanStatus.Error) {
           existing.errorCount += 1;
         }
+        if (span.durationUnixNano! > existing.slowestSpanDurationUnixNano) {
+          existing.slowestSpanDurationUnixNano = span.durationUnixNano!;
+          existing.slowestSpanId = span.spanId?.toString() || null;
+        }
       } else {
         const service: Service | undefined = telemetryServices.find(
           (s: Service) => {
@@ -122,6 +136,8 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
           spanCount: 1,
           errorCount: span.statusCode === SpanStatus.Error ? 1 : 0,
           totalDurationUnixNano: span.durationUnixNano!,
+          slowestSpanId: span.spanId?.toString() || null,
+          slowestSpanDurationUnixNano: span.durationUnixNano!,
         });
       }
     }
@@ -150,6 +166,10 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
         if (span.statusCode === SpanStatus.Error) {
           existing.errorCount += 1;
         }
+        if (span.durationUnixNano! > existing.slowestSpanDurationUnixNano) {
+          existing.slowestSpanDurationUnixNano = span.durationUnixNano!;
+          existing.slowestSpanId = span.spanId?.toString() || null;
+        }
       } else {
         edgeMap.set(edgeKey, {
           fromServiceId: parentServiceId,
@@ -157,6 +177,8 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
           callCount: 1,
           totalDurationUnixNano: span.durationUnixNano!,
           errorCount: span.statusCode === SpanStatus.Error ? 1 : 0,
+          slowestSpanId: span.spanId?.toString() || null,
+          slowestSpanDurationUnixNano: span.durationUnixNano!,
         });
       }
     }
@@ -233,6 +255,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
             health,
             colorDot: node.serviceColor,
             statLines,
+            slowestSpanId: node.slowestSpanId,
           },
         };
       },
@@ -255,6 +278,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
         id: `${edge.fromServiceId}->${edge.toServiceId}`,
         source: edge.fromServiceId,
         target: edge.toServiceId,
+        data: { slowestSpanId: edge.slowestSpanId },
         type: "smoothstep",
         label: `${edge.callCount}x · avg ${durationStr}${
           edge.errorCount > 0
@@ -289,7 +313,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
     <div className="trace-service-map">
       <div className="text-[11px] text-gray-500 mb-2 px-1">
         Service flow for this trace. Arrows show cross-service calls with count
-        and latency.
+        and latency. Click a service or call to open its slowest span.
       </div>
       <div
         className="rounded border border-gray-200 bg-gray-50"
@@ -303,7 +327,22 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
           proOptions={{ hideAttribution: true }}
           nodesDraggable={true}
           nodesConnectable={false}
-          elementsSelectable={false}
+          elementsSelectable={Boolean(props.onSpanSelect)}
+          onNodeClick={(_event: React.MouseEvent, node: Node) => {
+            const spanId: string | null =
+              (node.data as TraceNodeData)?.slowestSpanId || null;
+            if (spanId && props.onSpanSelect) {
+              props.onSpanSelect(spanId);
+            }
+          }}
+          onEdgeClick={(_event: React.MouseEvent, edge: Edge) => {
+            const spanId: string | null =
+              (edge.data as { slowestSpanId?: string | null } | undefined)
+                ?.slowestSpanId || null;
+            if (spanId && props.onSpanSelect) {
+              props.onSpanSelect(spanId);
+            }
+          }}
         >
           <Controls showInteractive={false} />
           <Background

@@ -10,6 +10,11 @@ import React, {
 export interface ComponentProps {
   tabs: Array<Tab>;
   onTabChange: (tab: Tab) => void;
+  /**
+   * Tab selected on first render (e.g. restored from a URL param).
+   * Falls back to the first tab when absent or unknown.
+   */
+  initialTabName?: string | undefined;
 }
 
 const Tabs: FunctionComponent<ComponentProps> = (
@@ -88,7 +93,11 @@ const Tabs: FunctionComponent<ComponentProps> = (
 
     if (!hasInitialized.current && props.tabs.length > 0) {
       hasInitialized.current = true;
-      setCurrentTabName(props.tabs[0]!.name);
+      setCurrentTabName(
+        props.initialTabName && tabNames.includes(props.initialTabName)
+          ? props.initialTabName
+          : props.tabs[0]!.name,
+      );
       return;
     }
 

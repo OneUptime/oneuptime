@@ -22,6 +22,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -134,30 +135,52 @@ const TopologyPage: FunctionComponent<
    * Devices) — the telemetry time range does not apply to it, so the
    * picker hides while it is active.
    */
-  const [activeTabName, setActiveTabName] = useState<string>("Service Map");
+  const TAB_NAMES: Array<string> = ["Service Map", "Infrastructure", "Network"];
+  const initialTabName: string = (() => {
+    const fromUrl: string | null = Navigation.getQueryStringByName("tab");
+    return fromUrl && TAB_NAMES.includes(fromUrl) ? fromUrl : "Service Map";
+  })();
+  const [activeTabName, setActiveTabName] = useState<string>(initialTabName);
   const isNetworkTab: boolean = activeTabName === "Network";
+
+  /*
+   * Loading/error live INSIDE the telemetry tabs: the Network tab has an
+   * independent data source and must stay reachable when the telemetry
+   * entity fetch fails.
+   */
+  const wrapTelemetryTab: (graph: ReactElement) => ReactElement = (
+    graph: ReactElement,
+  ): ReactElement => {
+    if (isLoading) {
+      return <ComponentLoader />;
+    }
+    if (error) {
+      return <ErrorMessage message={error} />;
+    }
+    return graph;
+  };
 
   const tabs: Array<Tab> = useMemo(() => {
     return [
       {
         name: "Service Map",
-        children: (
+        children: wrapTelemetryTab(
           <ServiceMapGraph
             entities={entities}
             relationships={relationships}
             metricsWindowSeconds={METRICS_WINDOW_SECONDS}
             timeRange={timeRange}
-          />
+          />,
         ),
       },
       {
         name: "Infrastructure",
-        children: (
+        children: wrapTelemetryTab(
           <InfrastructureGraph
             entities={entities}
             relationships={relationships}
             metricsWindowSeconds={METRICS_WINDOW_SECONDS}
-          />
+          />,
         ),
       },
       {
@@ -165,7 +188,7 @@ const TopologyPage: FunctionComponent<
         children: <NetworkTopologyView />,
       },
     ];
-  }, [entities, relationships, timeRange]);
+  }, [entities, relationships, timeRange, isLoading, error]);
 
   return (
     <Page title="Topology" breadcrumbLinks={[]}>
@@ -186,7 +209,7 @@ const TopologyPage: FunctionComponent<
         )}
       </div>
 
-      {isTruncated && !isNetworkTab ? (
+      {isTruncated && !isNetworkTab && !isLoading && !error ? (
         <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
           {translateString(
             "This map is very large, so only part of it is shown. Use search, filters or the focus mode to narrow it down.",
@@ -196,18 +219,17 @@ const TopologyPage: FunctionComponent<
         <></>
       )}
 
-      {isLoading ? (
-        <ComponentLoader />
-      ) : error ? (
-        <ErrorMessage message={error} />
-      ) : (
-        <Tabs
-          tabs={tabs}
-          onTabChange={(tab: Tab) => {
-            setActiveTabName(tab.name);
-          }}
-        />
-      )}
+      <Tabs
+        tabs={tabs}
+        initialTabName={initialTabName}
+        onTabChange={(tab: Tab) => {
+          setActiveTabName(tab.name);
+          // Keep the view shareable; default tab keeps the URL clean.
+          Navigation.setQueryString({
+            tab: tab.name === "Service Map" ? null : tab.name,
+          });
+        }}
+      />
     </Page>
   );
 };

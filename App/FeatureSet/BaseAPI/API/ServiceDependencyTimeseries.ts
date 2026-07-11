@@ -43,6 +43,8 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 const TARGET_BUCKETS: number = 60;
 const MIN_BUCKET_SECONDS: number = 60;
 const MAX_BUCKET_SECONDS: number = 24 * 60 * 60;
+// Client-requested bucket sizes may go up to a month (chart-aligned).
+const MAX_REQUESTED_BUCKET_SECONDS: number = 30 * 24 * 60 * 60;
 const MAX_RANGE_DAYS: number = 93;
 const MAX_RESULT_BUCKETS: number = 500;
 const MAX_SPANS_PER_SIDE: number = 500000;
@@ -182,13 +184,35 @@ export default class ServiceDependencyTimeseriesAPI {
               resolveService(calleeServiceName),
             ]);
 
-          const bucketSeconds: number = Math.min(
+          /*
+           * The client may request a bucket size aligned with its chart
+           * intervals (1:1 buckets keep per-interval aggregation exact).
+           * Honor it when it is a sane integer AND the resulting bucket
+           * count stays within the result cap; otherwise fall back to
+           * the ~TARGET_BUCKETS default.
+           */
+          let bucketSeconds: number = Math.min(
             MAX_BUCKET_SECONDS,
             Math.max(
               MIN_BUCKET_SECONDS,
               Math.ceil(rangeSeconds / TARGET_BUCKETS),
             ),
           );
+          const requestedBucketSeconds: number = Number(body["bucketSeconds"]);
+          if (
+            Number.isInteger(requestedBucketSeconds) &&
+            requestedBucketSeconds >= 1 &&
+            requestedBucketSeconds <= MAX_REQUESTED_BUCKET_SECONDS &&
+            /*
+             * +1: toStartOfInterval aligns buckets to the epoch, not to
+             * startTime, so an unaligned window can straddle one extra
+             * bucket beyond ceil(range / bucket).
+             */
+            Math.ceil(rangeSeconds / requestedBucketSeconds) + 1 <=
+              MAX_RESULT_BUCKETS
+          ) {
+            bucketSeconds = requestedBucketSeconds;
+          }
 
           const projectIdSql: string = escapeSql(props.tenantId.toString());
           const serviceTypeSql: string = escapeSql(ServiceType.OpenTelemetry);

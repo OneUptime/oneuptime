@@ -37,6 +37,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { APP_API_URL } from "Common/UI/Config";
 import OneUptimeDate from "Common/Types/Date";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -97,9 +98,43 @@ function parseBucketStart(value: string): Date {
   return OneUptimeDate.fromString(value);
 }
 
+/*
+ * Mirror XAxisUtil.getPrecision's interval for the range so the API
+ * returns exactly one bucket per chart interval. With 1:1 buckets the
+ * chart's per-interval aggregation is exact — no collapsing, so the
+ * latency series never averages averages across buckets (which would be
+ * unweighted) and counts never sum across misaligned buckets.
+ *
+ * Capped at hourly: the API's buckets are epoch-aligned in UTC while the
+ * chart's day/week intervals anchor to the range start and the viewer's
+ * LOCAL calendar, so daily-or-coarser buckets can miss the chart's
+ * interval labels entirely (dropped points). Hourly buckets always
+ * format into the right day/week label, at worst leaving latency as an
+ * unweighted average within an interval — the pre-existing behavior.
+ */
+function chartAlignedBucketSeconds(rangeSeconds: number): number {
+  if (rangeSeconds <= 15) {
+    return 1;
+  }
+  if (rangeSeconds <= 75) {
+    return 5;
+  }
+  if (rangeSeconds <= 150) {
+    return 10;
+  }
+  if (rangeSeconds <= 450) {
+    return 30;
+  }
+  if (rangeSeconds <= 3 * 3600) {
+    return 60;
+  }
+  return 3600;
+}
+
 const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const fromName: string = props.fromEntity.displayName || "Unknown service";
   const toName: string = props.toEntity.displayName || "Unknown service";
 
@@ -139,6 +174,12 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
               calleeServiceName: toName,
               startTime: OneUptimeDate.toString(window.startValue),
               endTime: OneUptimeDate.toString(window.endValue),
+              bucketSeconds: chartAlignedBucketSeconds(
+                Math.ceil(
+                  (window.endValue.getTime() - window.startValue.getTime()) /
+                    1000,
+                ),
+              ),
             },
             headers: { ...ModelAPI.getCommonHeaders() },
           });
@@ -296,7 +337,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
     return [
       {
         id: "edge-calls",
-        title: "Calls and errors",
+        title: translateString("Calls and errors") || "Calls and errors",
         description: `${fromName} → ${toName}`,
         type: ChartType.LINE,
         props: {
@@ -321,8 +362,10 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
       },
       {
         id: "edge-latency",
-        title: "Average latency",
-        description: "How long the callee took to answer",
+        title: translateString("Average latency") || "Average latency",
+        description:
+          translateString("How long the callee took to answer") ||
+          "How long the callee took to answer",
         type: ChartType.LINE,
         props: {
           data: latencySeries,
@@ -354,7 +397,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
   return (
     <SideOver
       title={`${fromName} → ${toName}`}
-      description="Service dependency"
+      description={translateString("Service dependency") || ""}
       onClose={props.onClose}
       size={SideOverSize.Medium}
     >
@@ -362,7 +405,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
         {hasLatestMetrics ? (
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              Latest window (~15 min)
+              {translateString("Latest window (~15 min)") || ""}
             </h3>
             <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
               <span>
@@ -380,9 +423,9 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
 
         {result?.truncated ? (
           <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
-            These services have more traffic than can be analyzed for this time
-            range, so the history shows the most recent part only. Narrow the
-            time range for complete data.
+            {translateString(
+              "These services have more traffic than can be analyzed for this time range, so the history shows the most recent part only. Narrow the time range for complete data.",
+            ) || ""}
           </div>
         ) : (
           <></>
@@ -394,8 +437,9 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
           <ErrorMessage message={error} />
         ) : !result || result.buckets.length === 0 ? (
           <p className="text-sm text-gray-500">
-            No calls between these services were recorded in the selected time
-            range.
+            {translateString(
+              "No calls between these services were recorded in the selected time range.",
+            ) || ""}
           </p>
         ) : (
           <ChartGroup charts={buildCharts()} />
@@ -413,7 +457,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
-                  Traces for {fromName}
+                  {translateString("Traces for") || ""} {fromName}
                 </Link>
               </li>
             )}
@@ -426,7 +470,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                   )}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
-                  Traces for {toName}
+                  {translateString("Traces for") || ""} {toName}
                 </Link>
               </li>
             )}
