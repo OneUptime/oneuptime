@@ -95,7 +95,7 @@ Devices that already speak MQTT can publish readings directly — no SDK, collec
 ${mqttWebSocketUrl}
 \`\`\`
 
-Authenticate with the ingestion key selected above as the **MQTT password** (the username is ignored). Then publish JSON readings under the \`oneuptime/\` topic prefix:
+Authenticate with the ingestion key selected above as the **MQTT password** (the username is ignored) — or better, register each device under the fleet's **Device Registry** tab to get a per-device credential (credential ID as username, secret as password) with topic isolation, individual revocation, and silent-death offline detection. Then publish JSON readings under the \`oneuptime/\` topic prefix:
 
 \`\`\`text
 Topic:   oneuptime/<fleet>/<device>/telemetry

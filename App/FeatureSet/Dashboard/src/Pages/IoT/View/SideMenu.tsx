@@ -165,6 +165,16 @@ const IoTFleetSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Cube}
           badge={counts.devices}
         />
+        <SideMenuItem
+          link={{
+            title: "Device Registry",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Lock}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Activity">

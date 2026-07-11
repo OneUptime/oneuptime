@@ -45,12 +45,15 @@ A full metric query builder over anything the fleet reports — including your o
 
 ## Offline Detection
 
-The Device Offline template fires when a device reports `iot_device_up = 0`. Two ways that value gets there:
+The Device Offline template fires when a device reports `iot_device_up = 0`. Three ways a silent or dead device trips it:
 
 - **Gateway-reported**: the gateway or collector publishes `iot_device_up = 0` for devices it can no longer reach.
 - **MQTT Last Will**: devices connecting over OneUptime's MQTT endpoint can register a Last Will on their `status` topic. If the device dies, the broker publishes `iot_device_up = 0` on its behalf the moment the session drops — no polling, no missed-scrape delay. See [Sending Metrics via MQTT](/docs/telemetry/iot-devices).
+- **Registered devices** (silent-death detection): devices registered under the fleet's **Device Registry** tab are treated as *expected*. When a registered device produces no data at all in the evaluation window, the monitor synthesizes an empty series for it and the Device Offline template's treat-no-data-as-zero policy folds it to `iot_device_up = 0` — one incident per silent device, which auto-resolves when the device reports again. Registered devices also stay in the fleet inventory as Offline instead of being pruned after 15 minutes of silence. This needs a Device Offline monitor whose `iot_device_up` criteria carries the **Treat as Zero** no-data policy — monitors created from the Quick Setup template now include it, but a Device Offline monitor created before device registration shipped must be recreated from the template (or have Treat as Zero enabled on its criteria) to pick it up.
 
-A device that goes silent without either mechanism simply stops producing series data. In a per-device grouped monitor, the **no-data policy** set to **Trigger** cannot single out one silent device — it fires only when the whole query returns no data (for example, the entire fleet goes dark). To catch silent deaths per device, use MQTT Last Will or gateway-reported status; for an individual critical device, create a monitor scoped to just that device (Custom Metric tab → Device ID filter) with the no-data policy set to Trigger.
+An *unregistered* device that goes silent without a Last Will or gateway report simply stops producing series data and cannot be singled out by a per-device grouped monitor — the no-data policy only fires when the whole query returns no data (for example, the entire fleet goes dark). Register your devices to close that gap, or for an individual critical device, create a monitor scoped to just that device (Custom Metric tab → Device ID filter) with the no-data policy set to Trigger.
+
+Note: registered-but-silent detection needs at least one other device in the fleet still reporting — a fully dark fleet (for example, a gateway outage) raises a single monitor-level incident rather than one incident per device.
 
 ## No-Data Semantics
 

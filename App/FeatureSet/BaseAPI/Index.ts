@@ -121,6 +121,9 @@ import StatusPageSCIMLogService, {
 import TelemetryIngestionKeyService, {
   Service as TelemetryIngestionKeyServiceType,
 } from "Common/Server/Services/TelemetryIngestionKeyService";
+import IoTDeviceCredentialService, {
+  Service as IoTDeviceCredentialServiceType,
+} from "Common/Server/Services/IoTDeviceCredentialService";
 import EmailVerificationTokenService, {
   Service as EmailVerificationTokenServiceType,
 } from "Common/Server/Services/EmailVerificationTokenService";
@@ -1128,6 +1131,7 @@ import StatusPageFooterLink from "Common/Models/DatabaseModels/StatusPageFooterL
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
@@ -2429,6 +2433,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TelemetryIngestionKey, TelemetryIngestionKeyServiceType>(
         TelemetryIngestionKey,
         TelemetryIngestionKeyService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTDeviceCredential, IoTDeviceCredentialServiceType>(
+        IoTDeviceCredential,
+        IoTDeviceCredentialService,
       ).getRouter(),
     );
 

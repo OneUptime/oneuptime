@@ -107,7 +107,12 @@ OneUptime ships a built-in MQTT endpoint, so devices that already speak MQTT can
 | MQTT over WebSocket   | `wss://<your-host>/mqtt`               | Works on every deployment — rides the normal HTTPS port through the OneUptime ingress     |
 | MQTT over TCP         | `<app-host>:1883` (`MQTT_INGEST_PORT`) | Self-hosted: internal to the cluster/compose network by default; expose it if you need it |
 
-**Authentication** — send your **Telemetry Ingestion Token** as the MQTT password (the username is ignored; if your client only exposes a username field, put the token there instead). Invalid tokens are rejected at CONNECT with return code 4 (bad username or password), so a misconfigured device fails loudly.
+**Authentication** — two options:
+
+- **Project-wide**: send your **Telemetry Ingestion Token** as the MQTT password (the username is ignored; if your client only exposes a username field, put the token there instead). Right for gateways that publish on behalf of many devices.
+- **Per-device** (recommended for devices connecting directly): register the device under the fleet's **Device Registry** tab in the dashboard. Registration issues a per-device credential — the credential ID is the MQTT **username** and the secret is the **password**. Device-authenticated clients can only publish under their own `oneuptime/<fleet>/<device>/…` topics, a single compromised device can be revoked from the dashboard without touching the rest of the fleet (revocation takes effect within about a minute, even for connected sessions), and registered devices get **silent-death offline detection**: they stay in the inventory as Offline instead of vanishing when they stop reporting, and the Device Offline alert template fires for them even if they die without a Last Will.
+
+Invalid credentials are rejected at CONNECT with return code 4 (bad username or password), so a misconfigured device fails loudly.
 
 **Topics** — publish under the fixed `oneuptime/` prefix. Fleet and device segments must not contain `/`, `+`, or `#`, and are limited to 100 characters:
 

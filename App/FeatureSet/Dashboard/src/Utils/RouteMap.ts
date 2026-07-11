@@ -206,6 +206,7 @@ export const ProxmoxRoutePath: Dictionary<string> = {
 export const IoTRoutePath: Dictionary<string> = {
   [PageMap.IOT_FLEET_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.IOT_FLEET_VIEW_DEVICES]: `${RouteParams.ModelID}/devices`,
+  [PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY]: `${RouteParams.ModelID}/device-registry`,
   [PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL]: `${RouteParams.ModelID}/devices/${RouteParams.SubModelID}`,
   [PageMap.IOT_FLEET_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.IOT_FLEET_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -2881,6 +2882,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.IOT_FLEET_VIEW_DEVICES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/iot/${
       IoTRoutePath[PageMap.IOT_FLEET_VIEW_DEVICES]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY]
     }`,
   ),
 

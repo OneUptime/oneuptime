@@ -1,5 +1,6 @@
 import net from "net";
 import http from "http";
+import { timingSafeEqual } from "crypto";
 import { Duplex } from "stream";
 import Aedes, {
   createBroker,
@@ -14,6 +15,9 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import IoTDeviceCredentialService, {
+  IoTDeviceCredentialContext,
+} from "Common/Server/Services/IoTDeviceCredentialService";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import { JSONObject } from "Common/Types/JSON";
@@ -93,7 +97,24 @@ const MQTT_MAX_PACKET_BYTES: number = MQTT_MAX_PAYLOAD_BYTES + 8 * 1024;
  * client object — including the dead client aedes hands back when it
  * authorizes a Last Will publish.
  */
-const clientProjectIds: WeakMap<Client, ObjectID> = new WeakMap();
+interface MqttAuthContext {
+  projectId: ObjectID;
+  /*
+   * Present when the client authenticated with a per-device credential
+   * (username = credential id, password = device secret) instead of a
+   * project-wide ingestion key. Device-authenticated clients may only
+   * publish under their own oneuptime/<fleet>/<device>/... topics, and
+   * every publish re-validates the credential through the service's
+   * cache so revocation cuts a connected device off within ~60s.
+   */
+  device?: {
+    credentialId: string;
+    fleetName: string;
+    externalId: string;
+  };
+}
+
+const clientAuthContexts: WeakMap<Client, MqttAuthContext> = new WeakMap();
 
 function makeAuthenticateError(
   message: string,
@@ -105,36 +126,94 @@ function makeAuthenticateError(
 }
 
 /*
- * Telemetry ingestion keys are UUIDs by construction. Rejecting
- * non-UUID credentials up front keeps garbage CONNECT floods off
- * Postgres entirely (the secretKey column is a uuid type, so a
- * non-UUID value would otherwise error the query itself).
+ * Telemetry ingestion keys, device credential ids and device secrets
+ * are all UUIDs by construction. Rejecting non-UUID credentials up
+ * front keeps garbage CONNECT floods off Postgres entirely (the
+ * secretKey columns are uuid-typed, so a non-UUID value would
+ * otherwise error the query itself).
  */
 const UUID_REGEX: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function resolveProjectId(
+/*
+ * Constant-time-ish secret comparison; both sides are fixed-length
+ * UUIDs so timingSafeEqual applies cleanly.
+ */
+function secretsMatch(presented: string, expected: string): boolean {
+  const presentedBuffer: Buffer = Buffer.from(presented.toLowerCase(), "utf8");
+  const expectedBuffer: Buffer = Buffer.from(expected.toLowerCase(), "utf8");
+  if (presentedBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+  return timingSafeEqual(
+    presentedBuffer as unknown as NodeJS.ArrayBufferView,
+    expectedBuffer as unknown as NodeJS.ArrayBufferView,
+  );
+}
+
+async function resolveAuthContext(
   username: string | undefined,
   password: Buffer | undefined,
-): Promise<ObjectID | null> {
-  /*
-   * The ingestion key rides the password field; some constrained MQTT
-   * clients only expose a username, so accept it there as a fallback.
-   */
-  const secretKey: string =
-    password?.toString("utf8").trim() || username?.trim() || "";
+): Promise<MqttAuthContext | null> {
+  const usernameText: string = username?.trim() || "";
+  const passwordText: string = password?.toString("utf8").trim() || "";
 
-  if (!secretKey || !UUID_REGEX.test(secretKey)) {
-    return null;
+  /*
+   * PER-DEVICE credential: username carries the credential id and the
+   * password carries the device secret. A UUID username that matches
+   * a registered credential must present the matching secret — no
+   * fall-through to project auth on a wrong secret, so a stolen
+   * credential id cannot be retried against the project-key path.
+   */
+  if (usernameText && UUID_REGEX.test(usernameText)) {
+    const context: IoTDeviceCredentialContext | null =
+      await IoTDeviceCredentialService.getCredentialContext(usernameText);
+
+    if (context) {
+      if (
+        !passwordText ||
+        !UUID_REGEX.test(passwordText) ||
+        !secretsMatch(passwordText, context.secretKey)
+      ) {
+        return null;
+      }
+
+      return {
+        projectId: new ObjectID(context.projectId),
+        device: {
+          credentialId: context.credentialId,
+          fleetName: context.fleetName,
+          externalId: context.externalId,
+        },
+      };
+    }
   }
 
   /*
-   * Anything this throws is infrastructural (e.g. Postgres down) and
-   * propagates to the authenticate catch, which answers CONNACK rc=3
-   * (server unavailable) so well-behaved devices retry later instead
-   * of concluding their credentials are wrong.
+   * PROJECT-WIDE ingestion key: rides the password field (username is
+   * ignored); some constrained MQTT clients only expose a username,
+   * so accept the key there as a fallback. Anything this throws is
+   * infrastructural (e.g. Postgres down) and propagates to the
+   * authenticate catch, which answers CONNACK rc=3 (server
+   * unavailable) so well-behaved devices retry later instead of
+   * concluding their credentials are wrong.
    */
-  return TelemetryIngestionKeyService.getProjectIdFromSecretKey(secretKey);
+  const projectSecretKey: string = passwordText || usernameText;
+
+  if (!projectSecretKey || !UUID_REGEX.test(projectSecretKey)) {
+    return null;
+  }
+
+  const projectId: ObjectID | null =
+    await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
+      projectSecretKey,
+    );
+
+  if (!projectId) {
+    return null;
+  }
+
+  return { projectId };
 }
 
 async function handleAuthorizePublish(
@@ -158,10 +237,35 @@ async function handleAuthorizePublish(
     return;
   }
 
-  const projectId: ObjectID | undefined = clientProjectIds.get(client);
+  const authContext: MqttAuthContext | undefined =
+    clientAuthContexts.get(client);
 
-  if (!projectId) {
+  if (!authContext) {
     throw new Error("MQTT: publish rejected — client is not authenticated.");
+  }
+
+  const projectId: ObjectID = authContext.projectId;
+
+  if (authContext.device) {
+    /*
+     * Revocation check on every publish, served from the service's
+     * short-TTL cache: disabling or deleting the credential cuts a
+     * connected device off within one cache window instead of
+     * lingering for the life of its session.
+     */
+    const liveContext: IoTDeviceCredentialContext | null =
+      await IoTDeviceCredentialService.getCredentialContext(
+        authContext.device.credentialId,
+      );
+
+    if (!liveContext) {
+      logger.warn(
+        `MQTT: closing client "${client.id}" — device credential was revoked or deleted.`,
+        { service: "telemetry" },
+      );
+      client.close();
+      return;
+    }
   }
 
   /*
@@ -210,6 +314,30 @@ async function handleAuthorizePublish(
     return;
   }
 
+  if (authContext.device) {
+    /*
+     * Topic isolation: a device-authenticated client may only publish
+     * under its own fleet/device identity. Fleet names compare
+     * case-insensitively (fleet find-or-create is case-insensitive);
+     * device ids compare byte-exact (device.id labels are verbatim).
+     * Violations are dropped, not errored — same no-NACK reasoning as
+     * malformed payloads.
+     */
+    const fleetMatches: boolean =
+      parsed.payload.fleetName.toLowerCase() ===
+      authContext.device.fleetName.toLowerCase();
+    const deviceMatches: boolean =
+      parsed.payload.deviceId === authContext.device.externalId;
+
+    if (!fleetMatches || !deviceMatches) {
+      logger.warn(
+        `MQTT: dropped publish to "${packet.topic}" — device credential "${authContext.device.credentialId}" is scoped to fleet "${authContext.device.fleetName}", device "${authContext.device.externalId}".`,
+        { service: "telemetry" },
+      );
+      return;
+    }
+  }
+
   if (TelemetryIngestionDisabled.isDisabled()) {
     // Same contract as the other ingest paths: accept and drop.
     return;
@@ -243,16 +371,16 @@ function createMqttBroker(): Aedes {
     password: Readonly<Buffer | undefined>,
     done: (error: AuthenticateError | null, success: boolean | null) => void,
   ): void => {
-    resolveProjectId(username as string | undefined, password as Buffer)
-      .then((projectId: ObjectID | null) => {
-        if (!projectId) {
+    resolveAuthContext(username as string | undefined, password as Buffer)
+      .then((authContext: MqttAuthContext | null) => {
+        if (!authContext) {
           logger.warn(
-            `MQTT: CONNECT rejected for client "${client.id}" — missing or invalid telemetry ingestion key.`,
+            `MQTT: CONNECT rejected for client "${client.id}" — missing or invalid credentials.`,
             { service: "telemetry" },
           );
           done(
             makeAuthenticateError(
-              "Invalid telemetry ingestion key.",
+              "Invalid telemetry ingestion key or device credential.",
               CONNACK_BAD_USERNAME_OR_PASSWORD,
             ),
             false,
@@ -260,7 +388,7 @@ function createMqttBroker(): Aedes {
           return;
         }
 
-        clientProjectIds.set(client, projectId);
+        clientAuthContexts.set(client, authContext);
 
         /*
          * Namespace the clientId by project BEFORE aedes registers the
@@ -269,10 +397,23 @@ function createMqttBroker(): Aedes {
          * takeover), so an un-namespaced id would let one tenant evict
          * another tenant's device — and fire its Last Will.
          */
-        client.id = `${projectId.toString()}/${client.id}`;
+        client.id = `${authContext.projectId.toString()}/${client.id}`;
+
+        if (authContext.device) {
+          /*
+           * Liveness stamp for the registry UI — throttled inside the
+           * service, and deliberately not awaited: a slow heartbeat
+           * write must not delay the CONNACK.
+           */
+          IoTDeviceCredentialService.markConnected(
+            new ObjectID(authContext.device.credentialId),
+          ).catch((err: unknown) => {
+            logger.debug(`MQTT: markConnected failed: ${err}`);
+          });
+        }
 
         logger.debug(
-          `MQTT: client "${client.id}" authenticated for project ${projectId.toString()}.`,
+          `MQTT: client "${client.id}" authenticated for project ${authContext.projectId.toString()}${authContext.device ? ` (device "${authContext.device.externalId}" in fleet "${authContext.device.fleetName}")` : ""}.`,
         );
         done(null, true);
       })

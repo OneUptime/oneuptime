@@ -1236,6 +1236,11 @@ enum Permission {
   EditIoTFleet = "EditIoTFleet",
   ReadIoTFleet = "ReadIoTFleet",
 
+  CreateIoTDeviceCredential = "CreateIoTDeviceCredential",
+  DeleteIoTDeviceCredential = "DeleteIoTDeviceCredential",
+  EditIoTDeviceCredential = "EditIoTDeviceCredential",
+  ReadIoTDeviceCredential = "ReadIoTDeviceCredential",
+
   CreateCephCluster = "CreateCephCluster",
   DeleteCephCluster = "DeleteCephCluster",
   EditCephCluster = "EditCephCluster",
@@ -7762,6 +7767,47 @@ export class PermissionHelper {
         description: "This permission can read IoT Fleet of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateIoTDeviceCredential,
+        title: "Create IoT Device Credential",
+        description:
+          "This permission can create IoT Device Credentials in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteIoTDeviceCredential,
+        title: "Delete IoT Device Credential",
+        description:
+          "This permission can delete IoT Device Credentials of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.EditIoTDeviceCredential,
+        title: "Edit IoT Device Credential",
+        description:
+          "This permission can edit IoT Device Credentials of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadIoTDeviceCredential,
+        title: "Read IoT Device Credential",
+        description:
+          "This permission can read IoT Device Credentials of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
