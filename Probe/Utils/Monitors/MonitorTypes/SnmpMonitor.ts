@@ -13,6 +13,7 @@ import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLeve
 import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import SnmpInterface from "Common/Types/Monitor/SnmpMonitor/SnmpInterface";
+import LldpNeighbor from "Common/Types/Monitor/SnmpMonitor/LldpNeighbor";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import snmp from "net-snmp";
@@ -60,6 +61,23 @@ const IF_X_TABLE_COLUMNS: {
   ifHCOutOctets: 10,
   ifHighSpeed: 15,
   ifAlias: 18,
+};
+
+/*
+ * LLDP-MIB lldpRemTable — one row per discovered neighbor. The row index is
+ * a composite "timeMark.localPortNum.remIndex", so the local port number is
+ * the second-to-last component of the row key. Columns are relative to
+ * lldpRemEntry (1.0.8802.1.1.2.1.4.1).
+ */
+const LLDP_REM_TABLE_OID: string = "1.0.8802.1.1.2.1.4.1";
+const LLDP_REM_COLUMNS: {
+  lldpRemChassisId: number;
+  lldpRemPortId: number;
+  lldpRemSysName: number;
+} = {
+  lldpRemChassisId: 5,
+  lldpRemPortId: 7,
+  lldpRemSysName: 9,
 };
 
 type SnmpTableRows = Record<string, Record<string, unknown>>;
@@ -115,6 +133,7 @@ export default class SnmpMonitor {
       let systemInfo:
         | { sysDescr?: string | undefined; sysName?: string | undefined }
         | undefined = undefined;
+      let lldpNeighbors: Array<LldpNeighbor> | undefined = undefined;
       let interfaceWalkFailure: string | undefined = undefined;
 
       if (shouldWalkInterfaces) {
@@ -124,9 +143,11 @@ export default class SnmpMonitor {
             systemInfo?:
               | { sysDescr?: string | undefined; sysName?: string | undefined }
               | undefined;
+            lldpNeighbors?: Array<LldpNeighbor> | undefined;
           } = await SnmpMonitor.walkInterfaces(config, options);
           interfaces = walkResult.interfaces;
           systemInfo = walkResult.systemInfo;
+          lldpNeighbors = walkResult.lldpNeighbors;
         } catch (err: unknown) {
           if (config.oids.length === 0) {
             // The walk was the only check — treat as device unreachable.
@@ -173,6 +194,7 @@ export default class SnmpMonitor {
         interfaces: interfaces,
         interfaceWalkFailure: interfaceWalkFailure,
         systemInfo: systemInfo,
+        lldpNeighbors: lldpNeighbors,
       };
     } catch (err: unknown) {
       logger.debug(
@@ -325,6 +347,7 @@ export default class SnmpMonitor {
     systemInfo?:
       | { sysDescr?: string | undefined; sysName?: string | undefined }
       | undefined;
+    lldpNeighbors?: Array<LldpNeighbor> | undefined;
   }> {
     const session: snmp.Session = SnmpMonitor.createSnmpSession(
       config,
@@ -452,10 +475,65 @@ export default class SnmpMonitor {
         return a.interfaceIndex - b.interfaceIndex;
       });
 
-      return { interfaces, systemInfo };
+      // Best-effort LLDP neighbor discovery for the topology graph.
+      let lldpNeighbors: Array<LldpNeighbor> | undefined = undefined;
+      try {
+        lldpNeighbors = await SnmpMonitor.walkLldpNeighbors(session);
+      } catch (err) {
+        logger.debug(
+          `SNMP LLDP walk failed for ${config.hostname} (device may not run LLDP): ${err}`,
+        );
+      }
+
+      return { interfaces, systemInfo, lldpNeighbors };
     } finally {
       session.close();
     }
+  }
+
+  private static async walkLldpNeighbors(
+    session: snmp.Session,
+  ): Promise<Array<LldpNeighbor>> {
+    const table: SnmpTableRows = await SnmpMonitor.getTableColumns(
+      session,
+      LLDP_REM_TABLE_OID,
+      Object.values(LLDP_REM_COLUMNS),
+    );
+
+    const neighbors: Array<LldpNeighbor> = [];
+
+    for (const rowKey of Object.keys(table)) {
+      const row: Record<string, unknown> = table[rowKey]!;
+
+      /*
+       * Row key is "timeMark.localPortNum.remIndex"; the local port number
+       * (which equals ifIndex on most gear) is the second-to-last part.
+       */
+      const parts: Array<string> = rowKey.split(".");
+      const localPortPart: string | undefined =
+        parts.length >= 2 ? parts[parts.length - 2] : undefined;
+      const localInterfaceIndex: number | undefined = localPortPart
+        ? parseInt(localPortPart, 10)
+        : undefined;
+
+      neighbors.push({
+        localInterfaceIndex:
+          localInterfaceIndex !== undefined && !isNaN(localInterfaceIndex)
+            ? localInterfaceIndex
+            : undefined,
+        remoteChassisId: SnmpMonitor.toDisplayString(
+          row[LLDP_REM_COLUMNS.lldpRemChassisId.toString()],
+        ),
+        remotePortId: SnmpMonitor.toDisplayString(
+          row[LLDP_REM_COLUMNS.lldpRemPortId.toString()],
+        ),
+        remoteSysName: SnmpMonitor.toDisplayString(
+          row[LLDP_REM_COLUMNS.lldpRemSysName.toString()],
+        ),
+      });
+    }
+
+    return neighbors;
   }
 
   private static getOids(

@@ -93,6 +93,7 @@ import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
+import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
 } from "Common/Server/Services/ApiKeyPermissionService";
@@ -4136,6 +4137,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     //attach api's
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserAPI().getRouter());
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkDeviceTopologyAPI().getRouter(),
+    );
   },
 };
 

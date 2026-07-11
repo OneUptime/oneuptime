@@ -1,6 +1,7 @@
 import ProbeAttempt from "../../Probe/ProbeAttempt";
 import SnmpDataType from "./SnmpDataType";
 import SnmpInterface from "./SnmpInterface";
+import LldpNeighbor from "./LldpNeighbor";
 
 export interface SnmpOidResponse {
   oid: string;
@@ -34,4 +35,9 @@ export default interface SnmpMonitorResponse {
         sysName?: string | undefined;
       }
     | undefined;
+  /*
+   * LLDP neighbors discovered during the walk (when interface monitoring is
+   * enabled). Used to build the network topology graph.
+   */
+  lldpNeighbors?: Array<LldpNeighbor> | undefined;
 }

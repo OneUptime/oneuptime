@@ -11,6 +11,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 import NetworkDevices from "../Pages/NetworkDevice/Devices";
 import NetworkDeviceArchived from "../Pages/NetworkDevice/Archived";
 import NetworkDeviceDiscovery from "../Pages/NetworkDevice/Discovery";
+import NetworkDeviceTopology from "../Pages/NetworkDevice/Topology";
 import NetworkDeviceOverview from "../Pages/NetworkDevice/View/Index";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
 import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/OwnerRules";
@@ -69,6 +70,15 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkDeviceDiscovery
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_TOPOLOGY] || ""}
+          element={
+            <NetworkDeviceTopology
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route}
             />
           }
         />
