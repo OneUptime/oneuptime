@@ -426,6 +426,7 @@ import { AddAiDailyAutonomousTokenLimitToProject1783702431535 } from "./17837024
 import { AddNetworkDeviceTables1783720000000 } from "./1783720000000-AddNetworkDeviceTables";
 import { AddNetworkDeviceOwnersAndRules1783730000000 } from "./1783730000000-AddNetworkDeviceOwnersAndRules";
 import { AddNetworkDeviceDiscoveryScan1783740000000 } from "./1783740000000-AddNetworkDeviceDiscoveryScan";
+import { AddLldpNeighborsToNetworkDevice1783750000000 } from "./1783750000000-AddLldpNeighborsToNetworkDevice";
 import { AddAttemptCountToAIRun1783721121260 } from "./1783721121260-AddAttemptCountToAIRun";
 
 export default [
@@ -858,4 +859,5 @@ export default [
   AddAttemptCountToAIRun1783721121260,
   AddNetworkDeviceOwnersAndRules1783730000000,
   AddNetworkDeviceDiscoveryScan1783740000000,
+  AddLldpNeighborsToNetworkDevice1783750000000,
 ];

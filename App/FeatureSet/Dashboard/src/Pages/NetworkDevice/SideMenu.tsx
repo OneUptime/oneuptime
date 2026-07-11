@@ -39,6 +39,15 @@ const NetworkDeviceSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Search,
         },
+        {
+          link: {
+            title: "Topology",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route,
+            ),
+          },
+          icon: IconProp.Graph,
+        },
       ],
     },
     {

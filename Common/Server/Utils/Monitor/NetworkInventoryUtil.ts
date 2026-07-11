@@ -5,6 +5,7 @@ import NetworkInterfaceService from "../../Services/NetworkInterfaceService";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import LldpNeighbor from "../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
@@ -45,6 +46,8 @@ export default class NetworkInventoryUtil {
     const systemInfo:
       | { sysDescr?: string | undefined; sysName?: string | undefined }
       | undefined = data.dataToProcess.snmpResponse?.systemInfo;
+    const lldpNeighbors: Array<LldpNeighbor> | undefined =
+      data.dataToProcess.snmpResponse?.lldpNeighbors;
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -59,6 +62,15 @@ export default class NetworkInventoryUtil {
       }
       if (systemInfo?.sysName) {
         deviceUpdate["sysName"] = systemInfo.sysName.substring(0, 100);
+      }
+
+      /*
+       * Store the LLDP snapshot (capped) whenever the walk ran, even if it
+       * found nothing — clearing stale neighbors is as important as adding
+       * new ones for keeping the topology accurate.
+       */
+      if (lldpNeighbors !== undefined) {
+        deviceUpdate["lldpNeighbors"] = lldpNeighbors.slice(0, 256);
       }
 
       if (walkedInterfaces.length > 0) {

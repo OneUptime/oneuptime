@@ -4,6 +4,7 @@ import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
+import LldpNeighbor from "../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
@@ -651,6 +652,37 @@ export default class NetworkDevice extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public sysName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "LLDP Neighbors",
+    description:
+      "LLDP neighbors discovered on the last SNMP walk, used to build the network topology graph. Managed by the probe.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public lldpNeighbors?: Array<LldpNeighbor> = undefined;
 
   @ColumnAccessControl({
     create: [],
