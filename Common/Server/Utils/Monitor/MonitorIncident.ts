@@ -1141,9 +1141,25 @@ export default class MonitorIncident {
       input.breachingSeriesFingerprints !== undefined &&
       openSeriesFingerprint
     ) {
-      const stillBreaching: boolean = input.breachingSeriesFingerprints.has(
-        openSeriesFingerprint,
-      );
+      /*
+       * The breaching set is the matched criteria's per-series matches.
+       * Only ONE criteria wins per evaluation tick, so on a recovery
+       * tick the matched criteria is the RECOVERY criteria (e.g.
+       * Min(iot_device_up) >= 1) and its "matches" are healthy series —
+       * NOT breaches. Treating them as breaching would leave the open
+       * offline incident's fingerprint in the set and pin it open
+       * forever once no other series is down. So membership only counts
+       * as still-breaching when the matched criteria actually creates
+       * incidents (an offline/breach criteria); a recovery criteria
+       * (createIncidents=false) contributes no breaches and lets the
+       * per-series incident auto-resolve.
+       */
+      const matchedCriteriaCreatesIncidents: boolean =
+        input.criteriaInstance?.data?.createIncidents === true;
+
+      const stillBreaching: boolean =
+        matchedCriteriaCreatesIncidents &&
+        input.breachingSeriesFingerprints.has(openSeriesFingerprint);
 
       if (stillBreaching) {
         return false;

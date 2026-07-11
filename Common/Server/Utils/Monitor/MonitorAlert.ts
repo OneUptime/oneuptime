@@ -749,9 +749,21 @@ export default class MonitorAlert {
       input.breachingSeriesFingerprints !== undefined &&
       openSeriesFingerprint
     ) {
-      const stillBreaching: boolean = input.breachingSeriesFingerprints.has(
-        openSeriesFingerprint,
-      );
+      /*
+       * The breaching set is the matched criteria's per-series matches.
+       * On a recovery tick the matched criteria is the RECOVERY criteria
+       * and its matches are healthy series, not breaches; counting them
+       * would pin the open offline alert open forever. Membership only
+       * counts as still-breaching when the matched criteria actually
+       * creates alerts (createAlerts=false recovery criteria contributes
+       * no breaches, letting the per-series alert auto-resolve).
+       */
+      const matchedCriteriaCreatesAlerts: boolean =
+        input.criteriaInstance?.data?.createAlerts === true;
+
+      const stillBreaching: boolean =
+        matchedCriteriaCreatesAlerts &&
+        input.breachingSeriesFingerprints.has(openSeriesFingerprint);
 
       if (stillBreaching) {
         return false;
