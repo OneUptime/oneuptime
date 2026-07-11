@@ -428,6 +428,7 @@ import { AddNetworkDeviceOwnersAndRules1783730000000 } from "./1783730000000-Add
 import { AddNetworkDeviceDiscoveryScan1783740000000 } from "./1783740000000-AddNetworkDeviceDiscoveryScan";
 import { AddLldpNeighborsToNetworkDevice1783750000000 } from "./1783750000000-AddLldpNeighborsToNetworkDevice";
 import { AddAttemptCountToAIRun1783721121260 } from "./1783721121260-AddAttemptCountToAIRun";
+import { AddInvestigationTuningToProject1783760576655 } from "./1783760576655-AddInvestigationTuningToProject";
 
 export default [
   InitialMigration,
@@ -860,4 +861,5 @@ export default [
   AddNetworkDeviceOwnersAndRules1783730000000,
   AddNetworkDeviceDiscoveryScan1783740000000,
   AddLldpNeighborsToNetworkDevice1783750000000,
+  AddInvestigationTuningToProject1783760576655,
 ];

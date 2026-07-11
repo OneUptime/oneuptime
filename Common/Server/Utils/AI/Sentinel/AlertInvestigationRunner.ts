@@ -39,7 +39,10 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *     investigation recently is not re-investigated — the first RCA stands.
  */
 
-const DEDUPE_WINDOW_MINUTES: number = 30;
+// Per-project override lives in Project.alertInvestigationDedupeWindowMinutes.
+export const DEFAULT_DEDUPE_WINDOW_MINUTES: number = 30;
+// Clamp: an RCA older than a day is a new episode by any reading.
+const MAX_DEDUPE_WINDOW_MINUTES: number = 24 * 60;
 
 export interface AlertGateDecision {
   investigate: boolean;
@@ -194,9 +197,21 @@ export default class SentinelAlertInvestigationRunner {
       return { investigate: false, reason: "alert not found" };
     }
 
+    // One project read serves both the severity floor and the dedupe window.
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: {
+        alertInvestigationMinimumSeverityId: true,
+        alertInvestigationDedupeWindowMinutes: true,
+      },
+      props: { isRoot: true },
+    });
+
     // Severity floor.
-    const floorOrder: number | null =
-      await this.getSeverityFloorOrder(projectId);
+    const floorOrder: number | null = await this.getSeverityFloorOrder(
+      projectId,
+      project?.alertInvestigationMinimumSeverityId,
+    );
     const alertOrder: number | undefined = alert.alertSeverity?.order;
 
     if (
@@ -211,11 +226,23 @@ export default class SentinelAlertInvestigationRunner {
       };
     }
 
-    // Per-monitor dedupe window. Alerts without a monitor have no dedupe key.
-    if (alert.monitorId) {
-      const windowStart: Date = OneUptimeDate.getSomeMinutesAgo(
-        DEDUPE_WINDOW_MINUTES,
-      );
+    /*
+     * Per-monitor dedupe window: per-project override, defaulting to 30
+     * minutes, clamped to at most a day; 0 disables the cooldown. Alerts
+     * without a monitor have no dedupe key.
+     */
+    const dedupeWindowMinutes: number = Math.min(
+      MAX_DEDUPE_WINDOW_MINUTES,
+      Math.max(
+        0,
+        project?.alertInvestigationDedupeWindowMinutes ??
+          DEFAULT_DEDUPE_WINDOW_MINUTES,
+      ),
+    );
+
+    if (alert.monitorId && dedupeWindowMinutes > 0) {
+      const windowStart: Date =
+        OneUptimeDate.getSomeMinutesAgo(dedupeWindowMinutes);
 
       const recentRunCount: number = (
         await AIRunService.countBy({
@@ -232,7 +259,7 @@ export default class SentinelAlertInvestigationRunner {
       if (recentRunCount > 0) {
         return {
           investigate: false,
-          reason: `monitor ${alert.monitorId.toString()} was already investigated within the last ${DEDUPE_WINDOW_MINUTES} minutes`,
+          reason: `monitor ${alert.monitorId.toString()} was already investigated within the last ${dedupeWindowMinutes} minutes`,
           monitorId: alert.monitorId,
         };
       }
@@ -254,17 +281,12 @@ export default class SentinelAlertInvestigationRunner {
    */
   private static async getSeverityFloorOrder(
     projectId: ObjectID,
+    minimumSeverityId: ObjectID | undefined,
   ): Promise<number | null> {
-    const project: Project | null = await ProjectService.findOneById({
-      id: projectId,
-      select: { alertInvestigationMinimumSeverityId: true },
-      props: { isRoot: true },
-    });
-
-    if (project?.alertInvestigationMinimumSeverityId) {
+    if (minimumSeverityId) {
       const floorSeverity: AlertSeverity | null =
         await AlertSeverityService.findOneById({
-          id: project.alertInvestigationMinimumSeverityId,
+          id: minimumSeverityId,
           select: { order: true },
           props: { isRoot: true },
         });

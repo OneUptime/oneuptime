@@ -3,7 +3,9 @@ import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunService from "../../../Services/AIRunService";
+import ProjectService from "../../../Services/ProjectService";
 import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import QueryHelper from "../../../Types/Database/QueryHelper";
@@ -46,11 +48,18 @@ export const MAX_INVESTIGATION_ATTEMPTS: number = 2;
 
 /*
  * G4 cost guardrail: at most this many investigations may be Running per
- * project at once. Enforced at CLAIM time, so a storm queues (bounded by
- * dedupe + severity gates + this TTL) and drains at cap rate instead of
- * being dropped.
+ * project at once (per-project override in
+ * Project.aiMaxConcurrentInvestigations). Enforced at CLAIM time, so a storm
+ * queues (bounded by dedupe + severity gates + this TTL) and drains at cap
+ * rate instead of being dropped.
  */
-export const MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT: number = 3;
+export const DEFAULT_MAX_CONCURRENT_INVESTIGATIONS: number = 3;
+/*
+ * Clamp bounds for the per-project override. Pausing has its own switches
+ * (the opt-in toggles, daily limit 0), so the floor is 1, not 0.
+ */
+const MIN_CONCURRENT_INVESTIGATIONS: number = 1;
+const MAX_CONCURRENT_INVESTIGATIONS: number = 25;
 
 /*
  * A first-pass RCA is only useful while the incident is fresh. Queued runs
@@ -357,6 +366,22 @@ export default class SentinelInvestigationQueue {
    * what never fits. Fails cheap (skip) on gate errors.
    */
   private static async passesClaimGates(run: QueuedRunRef): Promise<boolean> {
+    // Per-project cap override, defaulting to 3 and clamped to [1, 25].
+    const project: Project | null = await ProjectService.findOneById({
+      id: run.projectId,
+      select: { aiMaxConcurrentInvestigations: true },
+      props: { isRoot: true },
+    });
+
+    const concurrencyCap: number = Math.min(
+      MAX_CONCURRENT_INVESTIGATIONS,
+      Math.max(
+        MIN_CONCURRENT_INVESTIGATIONS,
+        project?.aiMaxConcurrentInvestigations ??
+          DEFAULT_MAX_CONCURRENT_INVESTIGATIONS,
+      ),
+    );
+
     const runningCount: number = (
       await AIRunService.countBy({
         query: {
@@ -368,9 +393,9 @@ export default class SentinelInvestigationQueue {
       })
     ).toNumber();
 
-    if (runningCount >= MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT) {
+    if (runningCount >= concurrencyCap) {
       logger.debug(
-        `Sentinel: leaving run ${run.id.toString()} queued — ${runningCount} investigations already running (cap: ${MAX_CONCURRENT_INVESTIGATIONS_PER_PROJECT}).`,
+        `Sentinel: leaving run ${run.id.toString()} queued — ${runningCount} investigations already running (cap: ${concurrencyCap}).`,
       );
       return false;
     }

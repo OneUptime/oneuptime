@@ -40,7 +40,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             },
             title: "Minimum Severity To Investigate",
             description:
-              "Only alerts at or above this severity are investigated. When unset, the top two severity tiers are investigated by default. Repeat alerts from the same monitor within 30 minutes are not re-investigated.",
+              "Only alerts at or above this severity are investigated. When unset, the top two severity tiers are investigated by default.",
             required: false,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
@@ -49,6 +49,28 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               valueField: "_id",
             },
             placeholder: "Default (top two severity tiers)",
+          },
+          {
+            field: {
+              alertInvestigationDedupeWindowMinutes: true,
+            },
+            title: "Re-investigation Cooldown (Minutes)",
+            description:
+              "Repeat alerts from the same monitor within this many minutes are not re-investigated — the first analysis stands. Leave empty for the default of 30 minutes; set 0 to investigate every qualifying alert.",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "30",
+          },
+          {
+            field: {
+              aiMaxConcurrentInvestigations: true,
+            },
+            title: "Max Concurrent Investigations",
+            description:
+              "How many investigations may run at the same time, shared across incident and alert investigations for this project. Queued investigations wait for a free slot and expire after 30 minutes. Leave empty for the default of 3 (minimum 1, maximum 25).",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "3",
           },
           {
             field: {
@@ -83,6 +105,22 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               title: "Minimum Severity To Investigate",
               placeholder: "Default (top two severity tiers)",
               fieldType: FieldType.Entity,
+            },
+            {
+              field: {
+                alertInvestigationDedupeWindowMinutes: true,
+              },
+              title: "Re-investigation Cooldown (Minutes)",
+              placeholder: "Default (30 minutes)",
+              fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                aiMaxConcurrentInvestigations: true,
+              },
+              title: "Max Concurrent Investigations",
+              placeholder: "Default (3)",
+              fieldType: FieldType.Number,
             },
             {
               field: {

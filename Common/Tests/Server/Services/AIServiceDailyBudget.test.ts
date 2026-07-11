@@ -143,7 +143,10 @@ describe("SentinelInvestigationQueue budget skip", () => {
   });
 
   test("leaves a queued run unclaimed when the budget is exhausted at claim time", async () => {
-    // Concurrency cap passes…
+    // No per-project cap override; concurrency cap passes…
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(fakeProject(undefined));
     jest
       .spyOn(AIRunService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));

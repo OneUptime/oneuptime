@@ -40,8 +40,8 @@ Alert volume can be much higher than incident volume, so autonomous investigatio
 | Control | Behavior | Where to configure |
 |---|---|---|
 | Severity floor (alerts) | Only alerts at or above a minimum severity are investigated. Default: the project's **top two severity tiers**. | Alerts > Settings > AI |
-| Dedupe window (alerts) | Repeat alerts from the same monitor within **30 minutes** are not re-investigated — the first analysis stands. | Built in |
-| Concurrency cap | At most **3** investigations run at once per project. | Built in |
+| Re-investigation cooldown (alerts) | Repeat alerts from the same monitor within the cooldown are not re-investigated — the first analysis stands. Default **30 minutes**; set 0 to disable. | Alerts > Settings > AI |
+| Concurrency cap | How many investigations run at once per project. Default **3** (1–25); queued investigations wait for a free slot and expire after 30 minutes. | Incidents or Alerts > Settings > AI |
 | Per-run budget | Each investigation is capped at 8 LLM calls, 12 tool calls, 150 seconds, and 2,000 output tokens. | Built in |
 | Daily token limit | Optional maximum tokens per UTC day across all autonomous investigations. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Set **0** to pause autonomous investigations entirely. | Incidents or Alerts > Settings > AI |
 

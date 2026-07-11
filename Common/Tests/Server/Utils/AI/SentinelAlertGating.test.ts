@@ -42,10 +42,14 @@ function fakeAlert(data: {
   } as unknown as Alert;
 }
 
-function fakeProject(minimumSeverityId?: ObjectID | undefined): Project {
+function fakeProject(
+  minimumSeverityId?: ObjectID | undefined,
+  dedupeWindowMinutes?: number | undefined,
+): Project {
   return {
     id: ObjectID.generate(),
     alertInvestigationMinimumSeverityId: minimumSeverityId,
+    alertInvestigationDedupeWindowMinutes: dedupeWindowMinutes,
   } as unknown as Project;
 }
 
@@ -231,6 +235,47 @@ describe("SentinelAlertInvestigationRunner.shouldInvestigateAlert", () => {
     expect(countBy).not.toHaveBeenCalled();
   });
 
+  test("a cooldown of 0 disables the dedupe check entirely", async () => {
+    const monitorId: ObjectID = ObjectID.generate();
+    const countBy: jest.SpyInstance = jest.spyOn(AIRunService, "countBy");
+
+    mockGates({
+      alert: fakeAlert({ severityOrder: 1, monitorId }),
+      project: fakeProject(undefined, 0),
+      topTiers: fakeSeverities([1, 2]),
+      recentRunCount: 1,
+    });
+
+    const decision: AlertGateDecision =
+      await SentinelAlertInvestigationRunner.shouldInvestigateAlert({
+        alertId,
+        projectId,
+      });
+
+    expect(decision.investigate).toBe(true);
+    expect(countBy).not.toHaveBeenCalled();
+  });
+
+  test("a custom cooldown is used for the dedupe window", async () => {
+    const monitorId: ObjectID = ObjectID.generate();
+
+    mockGates({
+      alert: fakeAlert({ severityOrder: 1, monitorId }),
+      project: fakeProject(undefined, 45),
+      topTiers: fakeSeverities([1, 2]),
+      recentRunCount: 1,
+    });
+
+    const decision: AlertGateDecision =
+      await SentinelAlertInvestigationRunner.shouldInvestigateAlert({
+        alertId,
+        projectId,
+      });
+
+    expect(decision.investigate).toBe(false);
+    expect(decision.reason).toContain("within the last 45 minutes");
+  });
+
   test("skips when the alert cannot be found", async () => {
     mockGates({ alert: null });
 
@@ -245,6 +290,11 @@ describe("SentinelAlertInvestigationRunner.shouldInvestigateAlert", () => {
 });
 
 describe("SentinelInvestigationQueue concurrency cap", () => {
+  beforeEach(() => {
+    // No per-project override => the default cap of 3 applies.
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -270,6 +320,29 @@ describe("SentinelInvestigationQueue concurrency cap", () => {
 
   test("leaves the run queued when the cap check itself fails", async () => {
     jest.spyOn(AIRunService, "countBy").mockRejectedValue(new Error("db down"));
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
+
+    await SentinelInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByAlertId: ObjectID.generate(),
+    });
+
+    expect(claim).not.toHaveBeenCalled();
+  });
+
+  test("a per-project cap override of 1 blocks the second concurrent run", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: ObjectID.generate(),
+      aiMaxConcurrentInvestigations: 1,
+    } as unknown as Project);
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
     const claim: jest.SpyInstance = jest.spyOn(
       AIRunService,
       "attemptStatusTransition",

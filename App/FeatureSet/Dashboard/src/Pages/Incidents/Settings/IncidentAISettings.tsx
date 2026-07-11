@@ -35,6 +35,17 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              aiMaxConcurrentInvestigations: true,
+            },
+            title: "Max Concurrent Investigations",
+            description:
+              "How many investigations may run at the same time, shared across incident and alert investigations for this project. Queued investigations wait for a free slot and expire after 30 minutes. Leave empty for the default of 3 (minimum 1, maximum 25).",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "3",
+          },
+          {
+            field: {
               aiDailyAutonomousTokenLimit: true,
             },
             title: "Daily Autonomous Token Limit",
@@ -56,6 +67,14 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               title: "Automatically Investigate Incidents",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                aiMaxConcurrentInvestigations: true,
+              },
+              title: "Max Concurrent Investigations",
+              placeholder: "Default (3)",
+              fieldType: FieldType.Number,
             },
             {
               field: {

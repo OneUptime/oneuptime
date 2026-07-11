@@ -5,6 +5,8 @@ import SentinelIncidentInvestigationRunner from "../../../../Server/Utils/AI/Sen
 import SentinelAlertInvestigationRunner from "../../../../Server/Utils/AI/Sentinel/AlertInvestigationRunner";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIService from "../../../../Server/Services/AIService";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import Project from "../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import ObjectID from "../../../../Types/ObjectID";
@@ -40,6 +42,10 @@ function mockBudgetOk(): void {
 describe("SentinelInvestigationQueue", () => {
   beforeEach(() => {
     mockBudgetOk();
+    // No per-project cap override => default of 3.
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as Project);
     // No investigations currently running (cap check passes).
     jest
       .spyOn(AIRunService, "countBy")
