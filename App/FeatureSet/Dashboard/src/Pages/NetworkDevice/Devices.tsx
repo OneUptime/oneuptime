@@ -25,6 +25,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
 
 const NetworkDevices: FunctionComponent<
   PageComponentProps
@@ -138,39 +139,7 @@ const NetworkDevices: FunctionComponent<
             required: true,
             placeholder: "Probe",
           },
-          {
-            field: {
-              snmpVersion: true,
-            },
-            title: "SNMP Version",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              { label: "V1", value: "V1" },
-              { label: "V2c", value: "V2c" },
-              { label: "V3", value: "V3" },
-            ],
-            required: true,
-            placeholder: "V2c",
-          },
-          {
-            field: {
-              snmpCommunityString: true,
-            },
-            title: "SNMP Community String",
-            fieldType: FormFieldSchemaType.Password,
-            required: false,
-            placeholder: "public",
-            description: "Required for SNMP V1 and V2c. Not used for V3.",
-          },
-          {
-            field: {
-              snmpPort: true,
-            },
-            title: "SNMP Port",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "161",
-          },
+          ...getSnmpConfigFormFields(),
         ]}
         columns={[
           {

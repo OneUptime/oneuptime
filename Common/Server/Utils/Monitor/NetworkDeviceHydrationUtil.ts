@@ -6,6 +6,9 @@ import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import SnmpVersion from "../../../Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "../../../Types/Monitor/SnmpMonitor/SnmpV3Auth";
+import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
+import SnmpAuthProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
+import SnmpPrivProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../Logger";
 
@@ -58,6 +61,12 @@ export default class NetworkDeviceHydrationUtil {
         snmpCommunityString: true,
         snmpPort: true,
         snmpV3Auth: true,
+        snmpV3SecurityLevel: true,
+        snmpV3Username: true,
+        snmpV3AuthProtocol: true,
+        snmpV3AuthKey: true,
+        snmpV3PrivProtocol: true,
+        snmpV3PrivKey: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -103,8 +112,7 @@ export default class NetworkDeviceHydrationUtil {
           hostname: device.hostname,
           port: device.snmpPort || 161,
           communityString: device.snmpCommunityString || undefined,
-          snmpV3Auth:
-            (device.snmpV3Auth as SnmpV3Auth | undefined) || undefined,
+          snmpV3Auth: NetworkDeviceHydrationUtil.buildSnmpV3Auth(device),
           oids: step.data.networkDeviceMonitor?.oids || [],
           timeout: 5000,
           retries: 3,
@@ -113,6 +121,43 @@ export default class NetworkDeviceHydrationUtil {
         };
       }
     }
+  }
+
+  /*
+   * Assembles the SnmpV3Auth object the probe expects. Prefers the flattened
+   * snmpV3* columns (the current storage), falling back to the deprecated
+   * snmpV3Auth JSON column so devices created before the columns existed keep
+   * working. Returns undefined when no v3 username is configured.
+   */
+  private static buildSnmpV3Auth(
+    device: NetworkDevice,
+  ): SnmpV3Auth | undefined {
+    if (device.snmpV3Username) {
+      return {
+        securityLevel:
+          (device.snmpV3SecurityLevel as SnmpSecurityLevel) ||
+          SnmpSecurityLevel.NoAuthNoPriv,
+        username: device.snmpV3Username,
+        authProtocol:
+          (device.snmpV3AuthProtocol as SnmpAuthProtocol | undefined) ||
+          undefined,
+        authKey: device.snmpV3AuthKey || undefined,
+        privProtocol:
+          (device.snmpV3PrivProtocol as SnmpPrivProtocol | undefined) ||
+          undefined,
+        privKey: device.snmpV3PrivKey || undefined,
+      };
+    }
+
+    // Legacy devices stored the whole object in the snmpV3Auth JSON column.
+    const legacy: SnmpV3Auth | undefined = device.snmpV3Auth as
+      | SnmpV3Auth
+      | undefined;
+    if (legacy && legacy.username) {
+      return legacy;
+    }
+
+    return undefined;
   }
 
   // Tolerates both enum values ("2c") and enum keys ("V2c") in stored config.

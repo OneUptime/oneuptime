@@ -229,7 +229,7 @@ export default class SnmpMonitor {
         failureCause: (err as Error).message || (err as Error).toString(),
       });
 
-      if (options.currentRetryCount < (options.retry || config.retries || 3)) {
+      if (options.currentRetryCount < (options.retry ?? config.retries ?? 3)) {
         options.currentRetryCount++;
         await Sleep.sleep(1000);
         return await SnmpMonitor.query(config, options);
@@ -309,7 +309,18 @@ export default class SnmpMonitor {
     config: MonitorStepSnmpMonitor,
     options: SnmpQueryOptions,
   ): snmp.Session {
-    if (config.snmpVersion === SnmpVersion.V3 && config.snmpV3Auth) {
+    if (config.snmpVersion === SnmpVersion.V3) {
+      /*
+       * A v3 device MUST have auth configured. Falling through to the v2c
+       * branch would silently poll it as v2c with community "public" — a
+       * false success/failure and an unexpected cleartext community on the
+       * wire — so fail loudly instead.
+       */
+      if (!config.snmpV3Auth || !config.snmpV3Auth.username) {
+        throw new Error(
+          `SNMP v3 is selected for ${config.hostname} but no v3 credentials (username) are configured.`,
+        );
+      }
       const sessionOptionsV3: snmp.SessionOptionsV3 = {
         port: config.port || 161,
         timeout: options.timeout || config.timeout || 5000,
@@ -633,7 +644,7 @@ export default class SnmpMonitor {
         resolve: (value: Array<SnmpOidResponse>) => void,
         reject: (reason?: Error) => void,
       ) => {
-        let session: snmp.Session;
+        let session: snmp.Session | undefined;
 
         try {
           session = SnmpMonitor.createSnmpSession(config, options);
@@ -655,7 +666,7 @@ export default class SnmpMonitor {
               varbinds: Array<snmp.Varbind> | undefined,
             ) => {
               if (error || !varbinds) {
-                session.close();
+                session!.close();
                 reject(error || new Error("No varbinds returned"));
                 return;
               }
@@ -683,11 +694,20 @@ export default class SnmpMonitor {
                 }
               }
 
-              session.close();
+              session!.close();
               resolve(oidResponses);
             },
           );
         } catch (err) {
+          /*
+           * Close the session if it was created before the throw (e.g. a
+           * synchronous throw from session.get) so we don't leak the socket.
+           */
+          try {
+            session?.close();
+          } catch {
+            // ignore close errors on an already-broken session
+          }
           reject(err as Error);
         }
       },

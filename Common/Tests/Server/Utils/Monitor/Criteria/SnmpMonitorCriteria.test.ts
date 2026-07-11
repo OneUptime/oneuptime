@@ -207,6 +207,65 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       expect(result).toBeTruthy();
       expect(result).toContain("equal to OK");
     });
+
+    test("empty OctetString is NOT coerced to numeric 0 for an 'equal to 0' filter", async () => {
+      /*
+       * Regression: Number("") === 0, so an empty value used to spuriously
+       * satisfy a numeric "== 0" criterion. It must fall through to a string
+       * comparison ("" !== "0") and not match.
+       */
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpOidValue,
+        filterType: FilterType.EqualTo,
+        value: "0",
+        snmpMonitorOptions: { oid: PSU_OID },
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [
+          {
+            oid: PSU_OID,
+            value: "",
+            type: SnmpDataType.OctetString,
+          },
+        ],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeNull();
+    });
+
+    test("whitespace-only OctetString is NOT coerced to numeric 0", async () => {
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpOidValue,
+        filterType: FilterType.EqualTo,
+        value: "0",
+        snmpMonitorOptions: { oid: PSU_OID },
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [
+          {
+            oid: PSU_OID,
+            value: "   ",
+            type: SnmpDataType.OctetString,
+          },
+        ],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeNull();
+    });
   });
 
   describe("SnmpOidValue guards", () => {

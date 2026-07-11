@@ -306,8 +306,15 @@ export default class SnmpMonitorCriteria {
 
       const oidValue: string | number = oidResponse.value;
 
-      // Numeric comparison
-      if (typeof oidValue === "number" || !isNaN(Number(oidValue))) {
+      /*
+       * Numeric comparison — only when the value is genuinely numeric. Guard
+       * against empty/whitespace OctetStrings, which Number("") coerces to 0
+       * and would spuriously satisfy a "== 0" criterion.
+       */
+      const isNumeric: boolean =
+        typeof oidValue === "number" ||
+        (String(oidValue).trim() !== "" && !isNaN(Number(oidValue)));
+      if (isNumeric) {
         const numericValue: number =
           typeof oidValue === "number" ? oidValue : Number(oidValue);
         const numericThreshold: number | null =

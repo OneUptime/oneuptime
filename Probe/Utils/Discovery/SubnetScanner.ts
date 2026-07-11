@@ -30,22 +30,33 @@ export default class SubnetScanner {
   public static async scan(
     config: SubnetScanConfig,
   ): Promise<SubnetScanResult> {
-    const hosts: Array<string> = SubnetScanner.expandCidr(config.cidr);
+    /*
+     * Reject oversized subnets by prefix BEFORE expanding. expandCidr()
+     * materializes one string per host, so validating after expansion would
+     * let a /8 allocate ~16M strings (OOM) before the limit is ever checked.
+     */
+    const expectedHostCount: number = SubnetScanner.countHosts(config.cidr);
 
-    if (hosts.length === 0) {
+    if (expectedHostCount === 0) {
       throw new Error("Invalid or empty CIDR: " + config.cidr);
     }
 
-    if (hosts.length > MAX_HOSTS) {
+    if (expectedHostCount > MAX_HOSTS) {
       throw new Error(
         "CIDR " +
           config.cidr +
           " expands to " +
-          hosts.length +
+          expectedHostCount +
           " hosts, exceeding the " +
           MAX_HOSTS +
           "-host scan limit. Use a smaller subnet.",
       );
+    }
+
+    const hosts: Array<string> = SubnetScanner.expandCidr(config.cidr);
+
+    if (hosts.length === 0) {
+      throw new Error("Invalid or empty CIDR: " + config.cidr);
     }
 
     const discoveredHosts: Array<DiscoveredHost> = [];
@@ -100,6 +111,34 @@ export default class SubnetScanner {
       discoveredHosts: discoveredHosts,
       scannedHostCount: hosts.length,
     };
+  }
+
+  /*
+   * Returns how many usable host addresses a CIDR expands to, computed from
+   * the prefix alone (no allocation). Returns 0 for a malformed CIDR. Mirrors
+   * expandCidr's rule: /31 and /32 count every address, larger blocks exclude
+   * the network and broadcast addresses.
+   */
+  public static countHosts(cidr: string): number {
+    const match: RegExpMatchArray | null = cidr
+      .trim()
+      .match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/);
+
+    if (!match) {
+      return 0;
+    }
+
+    const prefix: number = parseInt(match[2]!, 10);
+    if (prefix < 0 || prefix > 32) {
+      return 0;
+    }
+
+    if (isNaN(SubnetScanner.ipToLong(match[1]!))) {
+      return 0;
+    }
+
+    const blockSize: number = Math.pow(2, 32 - prefix);
+    return blockSize <= 2 ? blockSize : blockSize - 2;
   }
 
   /*

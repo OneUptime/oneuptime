@@ -577,13 +577,262 @@ export default class NetworkDevice extends BaseModel {
     required: false,
     title: "SNMP v3 Authentication",
     description:
-      "SNMP v3 authentication settings: {securityLevel, username, authProtocol, authKey, privProtocol, privKey}",
+      "Deprecated: SNMP v3 auth is now stored in the snmpV3* columns below. Retained for reading legacy devices.",
   })
   @Column({
     type: ColumnType.JSON,
     nullable: true,
   })
   public snmpV3Auth?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "SNMP v3 Security Level",
+    description:
+      "SNMP v3 security level: noAuthNoPriv, authNoPriv, or authPriv",
+    example: "authPriv",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public snmpV3SecurityLevel?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "SNMP v3 Username",
+    description: "Security name (username) used for SNMP v3 polling",
+    example: "monitoring",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public snmpV3Username?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "SNMP v3 Authentication Protocol",
+    description: "SNMP v3 authentication protocol: MD5, SHA, SHA256, or SHA512",
+    example: "SHA",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public snmpV3AuthProtocol?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "SNMP v3 Authentication Key",
+    description: "SNMP v3 authentication passphrase",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+  })
+  public snmpV3AuthKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "SNMP v3 Privacy Protocol",
+    description: "SNMP v3 privacy (encryption) protocol: DES, AES, or AES256",
+    example: "AES",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public snmpV3PrivProtocol?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "SNMP v3 Privacy Key",
+    description: "SNMP v3 privacy (encryption) passphrase",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+  })
+  public snmpV3PrivKey?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

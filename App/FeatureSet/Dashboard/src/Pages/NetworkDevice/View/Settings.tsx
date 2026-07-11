@@ -9,6 +9,7 @@ import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveRe
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { getSnmpConfigFormFields } from "../SnmpConfigFormFields";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const NetworkDeviceSettings: FunctionComponent<
@@ -45,6 +46,17 @@ const NetworkDeviceSettings: FunctionComponent<
             required: false,
             placeholder: "Core switch in the US East datacenter",
           },
+          {
+            field: {
+              hostname: true,
+            },
+            title: "Hostname",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "10.0.0.1 or switch-01.example.com",
+            description: "IP address or hostname the probe will poll via SNMP.",
+          },
+          ...getSnmpConfigFormFields(),
         ]}
         modelDetailProps={{
           modelType: NetworkDevice,

@@ -431,6 +431,7 @@ import { AddAttemptCountToAIRun1783721121260 } from "./1783721121260-AddAttemptC
 import { AddInvestigationTuningToProject1783760576655 } from "./1783760576655-AddInvestigationTuningToProject";
 import { AddTelemetryEntityRelationshipMetrics1783762505482 } from "./1783762505482-AddTelemetryEntityRelationshipMetrics";
 import { AddIoTDeviceCredentialTable1783780000000 } from "./1783780000000-AddIoTDeviceCredentialTable";
+import { AddSnmpV3AuthColumnsToNetworkDevice1783790000000 } from "./1783790000000-AddSnmpV3AuthColumnsToNetworkDevice";
 
 export default [
   InitialMigration,
@@ -866,4 +867,5 @@ export default [
   AddInvestigationTuningToProject1783760576655,
   AddTelemetryEntityRelationshipMetrics1783762505482,
   AddIoTDeviceCredentialTable1783780000000,
+  AddSnmpV3AuthColumnsToNetworkDevice1783790000000,
 ];
