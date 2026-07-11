@@ -3,7 +3,7 @@ import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
-import { computeTopologyLayout } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyGraph";
+import { computeTopologyLayout } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyLayout";
 
 const WIDTH: number = 1000;
 const HEIGHT: number = 700;
