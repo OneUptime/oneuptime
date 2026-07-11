@@ -477,6 +477,12 @@ export default class IncidentSeverity extends BaseModel {
     type: TableColumnType.SmallNumber,
     title: "Order",
     description: "Order / Priority of this resource",
+    /*
+     * Readable on relation queries like its name/color siblings —
+     * severity ranking (lower = more severe) is needed wherever a related
+     * incident's severity is selected (e.g. the Service Map overlay).
+     */
+    canReadOnRelationQuery: true,
   })
   @Column({
     type: ColumnType.SmallNumber,

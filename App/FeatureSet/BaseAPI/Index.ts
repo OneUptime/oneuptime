@@ -96,6 +96,7 @@ import UserAPI from "Common/Server/API/UserAPI";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
+import ServiceIncidentStatusAPI from "./API/ServiceIncidentStatus";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
 } from "Common/Server/Services/ApiKeyPermissionService";
@@ -4150,6 +4151,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ServiceDependencyTimeseriesAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ServiceIncidentStatusAPI().getRouter(),
     );
   },
 };

@@ -28,6 +28,7 @@ import {
   labelForRelationship,
   metaForEntityType,
 } from "./TopologyMeta";
+import { ServiceIncidentInfo, ServiceIncidentStatus } from "./IncidentOverlay";
 
 /*
  * Right-hand detail drawer for a topology node. Keeps the user on the map
@@ -42,6 +43,8 @@ export interface ComponentProps {
   entity: TelemetryEntity;
   relationships: Array<TelemetryEntityRelationship>;
   entityByKey: Map<string, TelemetryEntity>;
+  /** Active incidents affecting this service (Service Map overlay). */
+  incidentStatus?: ServiceIncidentStatus | null | undefined;
   /** Seconds the depends-on metrics were aggregated over (cron window). */
   metricsWindowSeconds: number;
   onClose: () => void;
@@ -217,6 +220,48 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
+
+        {props.incidentStatus &&
+        props.incidentStatus.activeIncidentCount > 0 ? (
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">
+              Active incidents ({props.incidentStatus.activeIncidentCount})
+            </h3>
+            <ul className="mt-1 divide-y divide-gray-100">
+              {props.incidentStatus.incidents.map(
+                (incident: ServiceIncidentInfo): ReactElement => {
+                  return (
+                    <li key={incident.incidentId} className="py-2">
+                      <Link
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                          { modelId: new ObjectID(incident.incidentId) },
+                        )}
+                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                      >
+                        {incident.title}
+                      </Link>
+                      {incident.severityName ? (
+                        <p
+                          className="mt-0.5 text-xs font-medium"
+                          style={{
+                            color: incident.severityColor || "#dc2626",
+                          }}
+                        >
+                          {incident.severityName}
+                        </p>
+                      ) : (
+                        <></>
+                      )}
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          </div>
+        ) : (
+          <></>
+        )}
 
         <div>
           <h3 className="text-sm font-semibold text-gray-900">Details</h3>

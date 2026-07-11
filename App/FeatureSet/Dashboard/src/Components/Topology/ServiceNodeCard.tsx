@@ -18,6 +18,8 @@ import { HEALTH_COLORS, TrafficHealth } from "./TopologyMeta";
 export interface ComponentProps {
   label: string;
   health: TrafficHealth;
+  /** Overrides the health-derived border (e.g. incident severity color). */
+  borderColor?: string | undefined;
   /** Telemetry service accent color, rendered as a small dot. */
   colorDot?: string | undefined;
   /** Small gray stat lines under the name (already formatted). */
@@ -31,7 +33,7 @@ const ServiceNodeCard: FunctionComponent<ComponentProps> = (
   return (
     <div
       style={{
-        border: `2px solid ${HEALTH_COLORS[props.health]}`,
+        border: `2px solid ${props.borderColor || HEALTH_COLORS[props.health]}`,
         borderRadius: 8,
         padding: "8px 12px",
         background: "var(--ou-surface-primary, #ffffff)",
