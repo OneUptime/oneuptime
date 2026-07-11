@@ -763,6 +763,72 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/network-monitoring": {
+    title:
+      "Network Device Monitoring | SNMP Switches, Routers & Firewalls | OneUptime",
+    description:
+      "Agentless SNMP monitoring for switches, routers, and firewalls: device and interface health, LLDP topology maps, probe latency matrix, subnet discovery, and vendor alert packs — wired to on-call. Open source.",
+    canonicalPath: "/product/network-monitoring",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Network Devices", url: "/product/network-monitoring" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Network Device Monitoring",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitor network devices over SNMP from OneUptime probes: reachability, system health, per-interface status, traffic and errors, LLDP topology maps, probe-to-device latency, subnet discovery, vendor health templates, and recommended alert packs with on-call escalation built in.",
+      features: [
+        "Agentless SNMP polling from probes",
+        "Per-interface status, traffic & error metrics",
+        "LLDP network topology map",
+        "Probe latency matrix",
+        "Subnet discovery from probes",
+        "Vendor health templates & recommended alert packs",
+        "Device ownership & label rules",
+        "On-call, incidents & status pages built in",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/observability": {
+    title: "Observability Platform | Logs, Metrics & Traces | OneUptime",
+    description:
+      "OpenTelemetry-native observability: logs, metrics, traces, exceptions, profiles, RUM, and dashboards in one open-source platform. Correlate every signal, alert on any query, and pay only for the telemetry you ingest.",
+    canonicalPath: "/product/observability",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Observability", url: "/product/observability" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Observability Platform",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Full-stack observability in one open-source platform: logs, metrics, traces, exceptions, profiles, and real user monitoring over standard OpenTelemetry, with service maps, dashboards, telemetry alerting, and on-call escalation included.",
+      features: [
+        "OpenTelemetry-native OTLP ingestion (HTTP & gRPC)",
+        "Logs, metrics & traces in one place",
+        "Exceptions, profiles & real user monitoring",
+        "Correlate signals across your whole stack",
+        "Service map & dependency views",
+        "Custom dashboards",
+        "Alert on any telemetry query",
+        "On-call, incidents & status pages built in",
+        "Usage-based pricing per GB ingested",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/services": {
     title: "Service Catalog | Map, Own & Monitor Every Service | OneUptime",
     description:

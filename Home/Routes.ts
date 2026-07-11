@@ -777,6 +777,34 @@ const HomeFeatureSet: FeatureSet = {
     });
 
     app.get(
+      "/product/network-monitoring",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/network-monitoring",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/network-monitoring`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
+      "/product/observability",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/observability",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/observability`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
       "/product/services",
       (_req: ExpressRequest, res: ExpressResponse) => {
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(

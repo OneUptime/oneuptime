@@ -514,6 +514,14 @@
               <span class="text-sm font-medium text-gray-900">Maintenance</span>
             </a>
 
+            <!-- Observability - Indigo -->
+            <a href="/product/observability" class="flex items-center gap-3 rounded-xl p-3 hover:bg-indigo-50 ring-1 ring-transparent hover:ring-indigo-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                <%- include('./Partials/icons/observability', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Observability</span>
+            </a>
+
             <!-- Logs - Amber -->
             <a href="/product/logs-management" class="flex items-center gap-3 rounded-xl p-3 hover:bg-amber-50 ring-1 ring-transparent hover:ring-amber-200">
               <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200">
@@ -624,6 +632,14 @@
                 <%- include('./Partials/icons/iot', {iconClass: 'h-4 w-4'}) %>
               </div>
               <span class="text-sm font-medium text-gray-900">IoT Devices</span>
+            </a>
+
+            <!-- Network Devices - Sky -->
+            <a href="/product/network-monitoring" class="flex items-center gap-3 rounded-xl p-3 hover:bg-sky-50 ring-1 ring-transparent hover:ring-sky-200">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                <%- include('./Partials/icons/network-devices', {iconClass: 'h-4 w-4'}) %>
+              </div>
+              <span class="text-sm font-medium text-gray-900">Network Devices</span>
             </a>
 
             <!-- Serverless - Fuchsia -->
@@ -868,6 +884,15 @@
           <div class="product-group mb-6">
             <h3 class="mb-2.5 px-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500">Observability</h3>
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <a href="/product/observability" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="observability platform logs metrics traces opentelemetry otel correlate signals">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/observability', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Observability</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Logs, metrics &amp; traces in one</p>
+                </div>
+              </a>
               <a href="/product/logs-management" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="logs fastest log ingest search">
                 <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 ring-1 ring-amber-200">
                   <%- include('./Partials/icons/logs', {iconClass: 'h-5 w-5'}) %>
@@ -1017,6 +1042,15 @@
                 <div class="min-w-0 flex-1">
                   <p class="product-card-title truncate text-sm font-medium text-gray-900">IoT Devices</p>
                   <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Fleets, sensors &amp; gateways</p>
+                </div>
+              </a>
+              <a href="/product/network-monitoring" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="network devices snmp switches routers firewalls interfaces lldp topology latency">
+                <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
+                  <%- include('./Partials/icons/network-devices', {iconClass: 'h-5 w-5'}) %>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="product-card-title truncate text-sm font-medium text-gray-900">Network Devices</p>
+                  <p class="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">Switches, routers &amp; firewalls</p>
                 </div>
               </a>
               <a href="/product/serverless" class="product-card group flex h-full items-start gap-3 rounded-xl border border-transparent p-3 text-left transition-colors duration-150 hover:border-indigo-200 hover:bg-indigo-50/40" data-search="serverless functions cold starts lambda">

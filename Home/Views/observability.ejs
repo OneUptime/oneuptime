@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Observability Platform - Logs, Metrics, Traces & More</title>
+  <meta name="description"
+    content="OpenTelemetry-native observability: logs, metrics, traces, exceptions, profiles, RUM, and dashboards in one open-source platform. Correlate every signal, alert on any query, and pay only for the telemetry you ingest.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="obs-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - indigo color -->
+      <div id="obs-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(79, 70, 229, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(79, 70, 229, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-indigo-600 mb-4">OpenTelemetry-Native Observability Platform</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              All your telemetry. One platform.
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Logs, metrics, traces, exceptions, profiles, and real user monitoring &mdash; ingested over standard OpenTelemetry, stored together, and correlated so a spike in one signal takes you straight to the cause in another. Open source, and priced per GB instead of per host.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>Logs</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Metrics</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Traces</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Exceptions</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Profiles</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>RUM</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Trace + correlated signals mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <!-- Observability Dashboard Mockup -->
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/observability', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Trace &middot; POST /api/checkout</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        842 ms &middot; 14 spans
+                      </div>
+                      <span class="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 rounded-md text-xs font-medium text-red-600 border border-red-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        error
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Waterfall -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-4">
+                      <div class="text-sm font-semibold text-gray-800 mb-3">Waterfall</div>
+                      <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                          <span class="w-32 text-[11px] font-mono text-gray-600 truncate">web-frontend</span>
+                          <div class="flex-1 relative h-4 bg-gray-50 rounded">
+                            <div class="absolute h-4 rounded bg-indigo-400" style="left:0%;width:96%"></div>
+                          </div>
+                          <span class="w-14 text-right text-[10px] text-gray-400">842 ms</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                          <span class="w-32 text-[11px] font-mono text-gray-600 truncate">&nbsp;&nbsp;checkout-service</span>
+                          <div class="flex-1 relative h-4 bg-gray-50 rounded">
+                            <div class="absolute h-4 rounded bg-indigo-300" style="left:6%;width:84%"></div>
+                          </div>
+                          <span class="w-14 text-right text-[10px] text-gray-400">718 ms</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                          <span class="w-32 text-[11px] font-mono text-gray-600 truncate">&nbsp;&nbsp;&nbsp;&nbsp;payments-api</span>
+                          <div class="flex-1 relative h-4 bg-gray-50 rounded">
+                            <div class="absolute h-4 rounded bg-red-400" style="left:22%;width:58%"></div>
+                          </div>
+                          <span class="w-14 text-right text-[10px] text-red-500 font-medium">497 ms</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                          <span class="w-32 text-[11px] font-mono text-gray-600 truncate">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;postgres</span>
+                          <div class="flex-1 relative h-4 bg-gray-50 rounded">
+                            <div class="absolute h-4 rounded bg-sky-300" style="left:30%;width:12%"></div>
+                          </div>
+                          <span class="w-14 text-right text-[10px] text-gray-400">104 ms</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Correlated signals row -->
+                    <div class="grid grid-cols-2 gap-3">
+                      <!-- Correlated logs -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                          <span class="text-xs font-semibold text-gray-700">Logs for this trace</span>
+                          <span class="text-[10px] text-gray-400">same trace.id</span>
+                        </div>
+                        <div class="divide-y divide-gray-100 font-mono">
+                          <div class="px-4 py-2 text-[10px] text-gray-500"><span class="text-gray-400">14:02:11.204</span> <span class="text-sky-600">INFO</span> charge requested order=8841</div>
+                          <div class="px-4 py-2 text-[10px] text-gray-500"><span class="text-gray-400">14:02:11.688</span> <span class="text-amber-600">WARN</span> upstream retry attempt=2</div>
+                          <div class="px-4 py-2 text-[10px] bg-red-50/50 text-gray-600"><span class="text-gray-400">14:02:11.701</span> <span class="text-red-600 font-bold">ERROR</span> gateway timeout after 450ms</div>
+                        </div>
+                      </div>
+
+                      <!-- Correlated metric + exception -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                          <span class="text-xs font-semibold text-gray-700">payments-api &middot; error rate</span>
+                          <span class="text-[10px] text-red-500 font-medium">&uarr; 4.2%</span>
+                        </div>
+                        <div class="p-3">
+                          <svg viewBox="0 0 400 70" class="w-full h-16">
+                            <defs>
+                              <linearGradient id="obsErrGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.2"/>
+                                <stop offset="100%" style="stop-color:#ef4444;stop-opacity:0"/>
+                              </linearGradient>
+                            </defs>
+                            <line x1="0" y1="23" x2="400" y2="23" stroke="#f3f4f6" stroke-width="1"/>
+                            <line x1="0" y1="46" x2="400" y2="46" stroke="#f3f4f6" stroke-width="1"/>
+                            <path d="M0,60 L40,59 L80,60 L120,58 L160,59 L200,57 L240,58 L280,40 L320,22 L360,14 L400,12 L400,70 L0,70 Z" fill="url(#obsErrGrad)"/>
+                            <path d="M0,60 L40,59 L80,60 L120,58 L160,59 L200,57 L240,58 L280,40 L320,22 L360,14 L400,12" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+                          </svg>
+                          <div class="mt-2 flex items-center justify-between p-2 bg-red-50 rounded-lg border border-red-100">
+                            <span class="text-[11px] font-mono text-gray-600">GatewayTimeoutError</span>
+                            <span class="text-[10px] text-red-600 font-semibold">28 occurrences &middot; grouped</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            If it speaks OpenTelemetry, it works
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            No proprietary agent, no vendor SDK to adopt. Point your existing instrumentation at OneUptime and keep everything portable.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-indigo-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Point your SDK at OneUptime</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Set <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">OTEL_EXPORTER_OTLP_ENDPOINT</code> and an ingest-token header. OTLP over HTTP or gRPC, with official OpenTelemetry SDKs in 11+ languages.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 7.5h-.75A2.25 2.25 0 004.5 9.75v7.5a2.25 2.25 0 002.25 2.25h7.5a2.25 2.25 0 002.25-2.25v-7.5a2.25 2.25 0 00-2.25-2.25h-.75m0-3l-3-3m0 0l-3 3m3-3v11.25m6-2.25h.75a2.25 2.25 0 012.25 2.25v7.5a2.25 2.25 0 01-2.25 2.25h-7.5a2.25 2.25 0 01-2.25-2.25v-.75" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Or keep your shippers</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Dedicated endpoints for Fluentd and syslog bring in logs from hundreds of sources &mdash; Fluent Bit ships over its OpenTelemetry output. Profilers that speak Pyroscope's pprof push straight in.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Query at any scale</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Telemetry lands in ClickHouse-backed storage built for petabyte scale. Search logs in milliseconds with full-text or SQL &mdash; no rehydration, ever.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-indigo-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-600 ring-2 ring-indigo-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Alert on any signal</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Turn any telemetry query into a monitor &mdash; threshold or anomaly-based &mdash; wired to escalation policies, incidents, and status pages in the same product.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 mb-6">
+            <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span class="text-sm font-medium text-indigo-700">Why OneUptime for observability</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            Signals that talk to each other
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Separate logging, metrics, and tracing vendors mean every incident starts with copy-pasting timestamps between browser tabs. When every signal lives in one platform, the spike, the trace, the log line, and the exception are one click apart.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Correlation -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Cross-Signal Correlation</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">From symptom to cause without switching tabs</h3>
+              <p class="mt-4 text-lg text-gray-600">Every log line carries its trace context, every exception points at its span, every metric shares the same resource attributes. Jump from a slow trace to the exact logs it emitted, from an error-rate spike to the grouped exception behind it &mdash; because it's one store, not three products glued together with timestamps.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Trace &rarr; logs &rarr; metrics &rarr; exceptions, one click each way
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Intelligent error grouping with full stack traces
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  RUM sessions link browser clicks to the backend traces behind them
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Correlation Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Span &middot; charge-card</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-mono text-gray-700">payments-api &middot; charge-card</span>
+                        <span class="text-[10px] font-bold text-red-600 uppercase">error</span>
+                      </div>
+                      <div class="text-[10px] text-gray-500">span 4c9a&hellip; &middot; 497 ms &middot; retry=2</div>
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                      <span class="flex-1 h-px bg-gray-100"></span>
+                      correlated signals
+                      <span class="flex-1 h-px bg-gray-100"></span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-md bg-amber-50 border border-amber-200 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" /></svg>
+                        </span>
+                        <span class="text-xs text-gray-700">3 log lines in this span</span>
+                      </div>
+                      <span class="text-[10px] text-indigo-600 font-semibold">View &rarr;</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-md bg-orange-50 border border-orange-200 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                        </span>
+                        <span class="text-xs text-gray-700">GatewayTimeoutError &middot; 28&times; grouped</span>
+                      </div>
+                      <span class="text-[10px] text-indigo-600 font-semibold">View &rarr;</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-md bg-purple-50 border border-purple-200 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2 12h3l2-4 3 8 3-6 2 4h7" /></svg>
+                        </span>
+                        <span class="text-xs text-gray-700">p95 latency, error rate &amp; throughput</span>
+                      </div>
+                      <span class="text-[10px] text-indigo-600 font-semibold">View &rarr;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Service map -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Service map Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Service Map</span>
+                    </div>
+                  </div>
+                  <div class="px-4 pt-3">
+                    <div class="flex items-center gap-2 text-[10px]">
+                      <span class="px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200">Service Map</span>
+                      <span class="px-2 py-1 rounded-md text-gray-400 border border-transparent">Infrastructure</span>
+                      <span class="px-2 py-1 rounded-md text-gray-400 border border-transparent">Network</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <svg viewBox="0 0 360 220" class="w-full">
+                      <!-- Edges -->
+                      <line x1="180" y1="46" x2="90" y2="120" stroke="#c7d2fe" stroke-width="2"/>
+                      <line x1="180" y1="46" x2="270" y2="120" stroke="#c7d2fe" stroke-width="2"/>
+                      <line x1="270" y1="148" x2="270" y2="186" stroke="#c7d2fe" stroke-width="2"/>
+                      <line x1="90" y1="148" x2="90" y2="186" stroke="#c7d2fe" stroke-width="2"/>
+                      <!-- Edge labels -->
+                      <text x="105" y="80" fill="#9ca3af" font-size="8">1.2k rpm &middot; 38ms</text>
+                      <text x="242" y="80" fill="#ef4444" font-size="8">840 rpm &middot; 4.2% err</text>
+                      <!-- web node -->
+                      <rect x="130" y="20" width="100" height="26" rx="13" fill="#eef2ff" stroke="#a5b4fc"/>
+                      <circle cx="145" cy="33" r="3" fill="#10b981"/>
+                      <text x="153" y="36" fill="#374151" font-size="9" font-family="monospace">web-frontend</text>
+                      <!-- catalog node -->
+                      <rect x="40" y="120" width="100" height="26" rx="13" fill="#eef2ff" stroke="#a5b4fc"/>
+                      <circle cx="55" cy="133" r="3" fill="#10b981"/>
+                      <text x="63" y="136" fill="#374151" font-size="9" font-family="monospace">catalog-api</text>
+                      <!-- payments node with incident -->
+                      <rect x="220" y="120" width="100" height="26" rx="13" fill="#fef2f2" stroke="#fca5a5"/>
+                      <circle cx="235" cy="133" r="3" fill="#ef4444"/>
+                      <text x="243" y="136" fill="#374151" font-size="9" font-family="monospace">payments-api</text>
+                      <circle cx="318" cy="120" r="8" fill="#ef4444"/>
+                      <text x="318" y="123" fill="#ffffff" font-size="9" text-anchor="middle" font-weight="bold">1</text>
+                      <!-- db nodes -->
+                      <rect x="40" y="186" width="100" height="26" rx="13" fill="#f8fafc" stroke="#cbd5e1"/>
+                      <circle cx="55" cy="199" r="3" fill="#10b981"/>
+                      <text x="63" y="202" fill="#374151" font-size="9" font-family="monospace">postgres</text>
+                      <rect x="220" y="186" width="100" height="26" rx="13" fill="#f8fafc" stroke="#cbd5e1"/>
+                      <circle cx="235" cy="199" r="3" fill="#10b981"/>
+                      <text x="243" y="202" fill="#374151" font-size="9" font-family="monospace">stripe-gateway</text>
+                    </svg>
+                    <div class="mt-2 flex items-center justify-center gap-4 text-[10px] text-gray-400">
+                      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Healthy</span>
+                      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Active incident</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Service Map &amp; Topology</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Your architecture, drawn from your traces</h3>
+              <p class="mt-4 text-lg text-gray-600">The service map builds itself from trace data: services as nodes, real call paths as edges with live traffic and latency. Active incidents and alerts overlay directly on the affected service, and each edge drills down into its actual call history. Infrastructure and network views sit one tab away.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Auto-generated from spans &mdash; no diagram to maintain
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Incident &amp; alert badges on the services that own them
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Service Map, Infrastructure &amp; Network views in one place
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: Dashboards & alerting -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Dashboards &amp; Alerting</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">See it on one screen, get paged when it moves</h3>
+              <p class="mt-4 text-lg text-gray-600">Drag-and-drop dashboards mix metrics, logs, traces, and status data on one canvas &mdash; no query language required to start, PromQL-compatible when you want it. Alert on thresholds or on anomalies against learned baselines, and bring your existing Grafana dashboards with you.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Widgets for metrics, logs, traces &amp; monitor status
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Threshold &amp; anomaly-based alerts on any query
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Grafana dashboard import &amp; PromQL compatibility
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Dashboard Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Checkout Health</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <div class="grid grid-cols-3 gap-2 mb-3">
+                      <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
+                        <div class="text-[9px] font-medium text-gray-400 uppercase tracking-wider mb-1">Requests</div>
+                        <div class="text-sm font-bold text-gray-900">2.4k<span class="text-[9px] font-medium text-gray-400 ml-0.5">rpm</span></div>
+                      </div>
+                      <div class="bg-red-50 rounded-lg p-2.5 border border-red-200">
+                        <div class="text-[9px] font-medium text-red-400 uppercase tracking-wider mb-1">Error rate</div>
+                        <div class="text-sm font-bold text-red-600">4.2%</div>
+                      </div>
+                      <div class="bg-gray-50 rounded-lg p-2.5 border border-gray-200">
+                        <div class="text-[9px] font-medium text-gray-400 uppercase tracking-wider mb-1">P95</div>
+                        <div class="text-sm font-bold text-gray-900">612<span class="text-[9px] font-medium text-gray-400 ml-0.5">ms</span></div>
+                      </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200 mb-3">
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-[10px] font-semibold text-gray-600">p95 latency vs learned baseline</span>
+                        <span class="text-[9px] text-amber-600 font-semibold">anomaly</span>
+                      </div>
+                      <svg viewBox="0 0 400 70" class="w-full h-14">
+                        <path d="M0,42 L50,44 L100,40 L150,43 L200,41 L250,44 L300,42 L350,45 L400,43" fill="none" stroke="#d1d5db" stroke-width="2" stroke-dasharray="4 3"/>
+                        <path d="M0,45 L50,46 L100,43 L150,45 L200,44 L250,42 L300,30 L350,18 L400,14" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                      <div class="flex items-center gap-3 text-[9px] text-gray-400">
+                        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-indigo-600 inline-block"></span>now</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-gray-300 inline-block"></span>hour-of-week baseline</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between p-2.5 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+                        <span class="text-[11px] text-gray-700 font-medium">Alert: p95 above baseline for 10 min</span>
+                      </div>
+                      <span class="text-[10px] text-amber-700 font-semibold">paging&hellip;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Sentinel AI SRE -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Sentinel Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Incident Timeline</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+                          <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 3.75 11 6.75l3 1.187-3 1.188-1.188 3-1.187-3-3-1.188 3-1.187 1.187-3Z" />
+                          </svg>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-800">Sentinel &middot; Root cause analysis</span>
+                        <span class="text-[10px] text-gray-400 ml-auto">2 min after alert</span>
+                      </div>
+                      <p class="text-xs text-gray-600 leading-relaxed">Error rate on <span class="font-mono">payments-api</span> rose to 4.2% at 14:02. Correlated logs show gateway timeouts to <span class="font-mono">stripe-gateway</span> starting immediately after deploy <span class="font-mono">a41f92</span> cut the client timeout from 2s to 450ms.</p>
+                      <div class="mt-2 flex flex-wrap gap-1.5">
+                        <span class="px-1.5 py-0.5 bg-white rounded text-[9px] text-gray-500 border border-gray-200">cited: 3 log queries</span>
+                        <span class="px-1.5 py-0.5 bg-white rounded text-[9px] text-gray-500 border border-gray-200">2 metric checks</span>
+                        <span class="px-1.5 py-0.5 bg-white rounded text-[9px] text-gray-500 border border-gray-200">1 recent change</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between p-2.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                      <span class="text-xs text-gray-600">Read-only investigation &middot; full audit trail</span>
+                      <span class="text-[10px] text-emerald-600 font-semibold">every claim cited</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <span class="text-xs text-gray-600">Postmortem draft on resolve</span>
+                      <span class="text-[10px] text-indigo-600 font-semibold">auto-generated</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Sentinel AI SRE</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">An AI that reads your telemetry before you're awake</h3>
+              <p class="mt-4 text-lg text-gray-600">When an incident is declared, Sentinel investigates across your logs, metrics, traces, exceptions, and recent changes, then posts a root cause analysis to the timeline &mdash; with every claim cited from tool calls that actually ran. Investigations are strictly read-only, secrets are redacted before anything reaches the model, and self-hosted deployments can use their own LLM provider, including local Ollama.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Cited, auditable RCA on the incident timeline
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Auto-drafted postmortems when incidents resolve
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Budgets, cooldowns &amp; token limits keep costs predictable
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- The whole stack Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 mb-6">
+            <svg class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-indigo-700">The whole stack</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Six signals. Each a full product.
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Everything below ships in the same platform, on the same usage-based bill of $0.10 per GB ingested &mdash; not six subscriptions taped together.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: Logs -->
+            <a href="/product/logs-management" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <%- include('./Partials/icons/logs', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Logs</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Petabyte-scale ingest with millisecond search and no rehydration. Full-text queries or ClickHouse SQL, from any source: OpenTelemetry, Fluentd, Fluent Bit, Docker, or syslog.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-amber-600">Explore Logs <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 2: Metrics -->
+            <a href="/product/metrics" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-purple-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 ring-1 ring-purple-200">
+                  <%- include('./Partials/icons/metrics', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Metrics</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">OpenTelemetry and Prometheus native, with PromQL-compatible querying, anomaly detection against learned baselines, and Grafana dashboard import.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-purple-600">Explore Metrics <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 3: Traces -->
+            <a href="/product/traces" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-yellow-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50 ring-1 ring-yellow-200">
+                  <%- include('./Partials/icons/traces', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Traces</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">End-to-end distributed tracing with waterfalls, latency analysis, and error correlation &mdash; follow one request across every service it touched.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-yellow-600">Explore Traces <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 4: Exceptions -->
+            <a href="/product/exceptions" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-orange-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 ring-1 ring-orange-200">
+                  <%- include('./Partials/icons/exceptions', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Exceptions</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Full stack traces with intelligent error grouping across every service &mdash; catch bugs before users notice.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-orange-600">Explore Exceptions <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 5: Profiles -->
+            <a href="/product/profiles" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-rose-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-200">
+                  <%- include('./Partials/icons/profiles', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Profiles</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Continuous CPU and memory profiling with flamegraphs and diff comparison &mdash; Pyroscope-compatible, so profilers that ship pprof push straight in.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-rose-600">Explore Profiles <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+            <!-- Card 6: RUM -->
+            <a href="/product/rum" class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <%- include('./Partials/icons/rum', {iconClass: 'h-6 w-6'}) %>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Real User Monitoring</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Page loads, Core Web Vitals, JavaScript errors, and real sessions for web and mobile apps &mdash; each click linked to the backend trace behind it.</p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600">Explore RUM <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5" /></svg></span>
+              </div>
+            </a>
+
+          </div>
+
+          <!-- Also-in-the-box strip -->
+          <div class="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
+            <span>Also in the box:</span>
+            <a href="/product/dashboards" class="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Dashboards</a>
+            <span class="text-gray-300">&middot;</span>
+            <a href="/product/ai-observability" class="text-gray-700 hover:text-indigo-600 font-medium transition-colors">AI / LLM Observability</a>
+            <span class="text-gray-300">&middot;</span>
+            <a href="/product/services" class="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Service Catalog</a>
+            <span class="text-gray-300">&middot;</span>
+            <a href="/product/kubernetes" class="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Kubernetes</a>
+            <span class="text-gray-300">&middot;</span>
+            <a href="/product/network-monitoring" class="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Network Devices</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Open source & pricing Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-indigo-600 uppercase tracking-wide mb-3">Open Source &amp; Honest Pricing</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              Per GB ingested. Not per host, not per seat.
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Telemetry costs $0.10 per GB ingested &mdash; 8&times; cheaper than Datadog &mdash; and the entire platform is Apache-2.0 open source. Outgrow the cloud bill or need data to stay in-house? Self-host the exact same product for free.
+            </p>
+
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                $0.10/GB, usage-based
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                100% open source
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Free to self-host
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                US &amp; EU data residency
+              </div>
+            </div>
+
+            <a href="/pricing" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+              See pricing
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- Cost comparison visual -->
+          <div class="mt-12 lg:mt-0 relative">
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+            <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+              <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                <div class="flex gap-1.5">
+                  <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                  <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                </div>
+                <div class="flex-1 text-center">
+                  <span class="text-xs text-gray-400">Monthly cost &middot; 1 TB telemetry ingested</span>
+                </div>
+              </div>
+              <div class="p-6 space-y-5">
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-sm font-semibold text-gray-900">OneUptime</span>
+                    <span class="text-sm font-bold text-emerald-600">$100</span>
+                  </div>
+                  <div class="w-full bg-gray-100 rounded-full h-3"><div class="bg-emerald-400 h-3 rounded-full" style="width:12.5%"></div></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-sm text-gray-600">Typical per-host APM vendor</span>
+                    <span class="text-sm font-semibold text-gray-500">$800+</span>
+                  </div>
+                  <div class="w-full bg-gray-100 rounded-full h-3"><div class="bg-gray-300 h-3 rounded-full" style="width:100%"></div></div>
+                </div>
+                <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                  <p class="text-xs text-gray-600 leading-relaxed"><span class="font-semibold text-indigo-700">Why it's cheaper:</span> ClickHouse-backed storage and one shared platform instead of per-product SKUs. You pay for bytes, not for how many hosts or teammates you have.</p>
+                </div>
+                <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                  <span class="text-xs text-gray-600">Prefer $0? Self-host the same code.</span>
+                  <a href="https://github.com/oneuptime/oneuptime" class="text-[10px] text-indigo-600 font-bold uppercase">GitHub &rarr;</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('obs-hero-section');
+      const gridGlow = document.getElementById('obs-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

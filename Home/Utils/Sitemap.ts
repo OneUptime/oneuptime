@@ -47,6 +47,8 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/product/ceph": { priority: 0.9, changefreq: "weekly" },
   "/product/docker-swarm": { priority: 0.9, changefreq: "weekly" },
   "/product/iot": { priority: 0.9, changefreq: "weekly" },
+  "/product/network-monitoring": { priority: 0.9, changefreq: "weekly" },
+  "/product/observability": { priority: 0.9, changefreq: "weekly" },
   "/product/serverless": { priority: 0.9, changefreq: "weekly" },
   "/product/rum": { priority: 0.9, changefreq: "weekly" },
   "/product/cloud": { priority: 0.9, changefreq: "weekly" },
