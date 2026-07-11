@@ -429,6 +429,7 @@ import { AddNetworkDeviceDiscoveryScan1783740000000 } from "./1783740000000-AddN
 import { AddLldpNeighborsToNetworkDevice1783750000000 } from "./1783750000000-AddLldpNeighborsToNetworkDevice";
 import { AddAttemptCountToAIRun1783721121260 } from "./1783721121260-AddAttemptCountToAIRun";
 import { AddInvestigationTuningToProject1783760576655 } from "./1783760576655-AddInvestigationTuningToProject";
+import { AddTelemetryEntityRelationshipMetrics1783762505482 } from "./1783762505482-AddTelemetryEntityRelationshipMetrics";
 
 export default [
   InitialMigration,
@@ -862,4 +863,5 @@ export default [
   AddNetworkDeviceDiscoveryScan1783740000000,
   AddLldpNeighborsToNetworkDevice1783750000000,
   AddInvestigationTuningToProject1783760576655,
+  AddTelemetryEntityRelationshipMetrics1783762505482,
 ];

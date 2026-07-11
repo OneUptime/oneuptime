@@ -17,7 +17,12 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Navigation from "Common/UI/Utils/Navigation";
 import { APP_API_URL } from "Common/UI/Config";
+import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 import React, {
   Fragment,
   FunctionComponent,
@@ -125,7 +130,7 @@ const NetworkDeviceTopology: FunctionComponent<
     <Fragment>
       <Card
         title="Network Topology"
-        description="A live map of your network built from LLDP neighbor data. Managed devices are filled; unmanaged LLDP peers are hollow. Node color reflects status."
+        description="A live map of your network built from LLDP neighbor data. Managed devices are filled; unmanaged LLDP peers are hollow. Node color reflects status. Click a managed device to open it."
         buttons={[
           {
             title: "Refresh",
@@ -139,7 +144,17 @@ const NetworkDeviceTopology: FunctionComponent<
           },
         ]}
       >
-        <TopologyGraph topology={topology} />
+        <TopologyGraph
+          topology={topology}
+          onManagedNodeClick={(node: NetworkTopologyNode) => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
+                { modelId: new ObjectID(node.id) },
+              ),
+            );
+          }}
+        />
       </Card>
     </Fragment>
   );

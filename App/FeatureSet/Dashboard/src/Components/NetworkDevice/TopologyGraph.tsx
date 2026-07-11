@@ -7,6 +7,11 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface ComponentProps {
   topology: NetworkTopology;
+  /**
+   * Called when a managed device node is clicked (unmanaged LLDP-only
+   * neighbors have no device row to open). Omitting it keeps nodes inert.
+   */
+  onManagedNodeClick?: ((node: NetworkTopologyNode) => void) | undefined;
 }
 
 // A single 2D coordinate.
@@ -339,8 +344,22 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
               node.isManaged ? "" : ", unmanaged"
             })${interfacesSummary ? ` — ${interfacesSummary}` : ""}`;
 
+            const isClickable: boolean = Boolean(
+              node.isManaged && props.onManagedNodeClick,
+            );
+
             return (
-              <g key={`node-${node.id}`}>
+              <g
+                key={`node-${node.id}`}
+                style={isClickable ? { cursor: "pointer" } : undefined}
+                onClick={
+                  isClickable
+                    ? () => {
+                        props.onManagedNodeClick!(node);
+                      }
+                    : undefined
+                }
+              >
                 <title>{tooltip}</title>
                 <circle
                   cx={point.x}

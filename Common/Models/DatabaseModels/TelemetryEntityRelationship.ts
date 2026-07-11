@@ -205,6 +205,60 @@ export default class TelemetryEntityRelationship extends DatabaseBaseModel {
   @Column({ type: ColumnType.Date, nullable: true })
   public lastSeenAt?: Date = undefined;
 
+  /*
+   * Traffic metrics for `depends-on` edges, refreshed each run of the
+   * ComputeServiceDependencies cron from the most recent span window
+   * (~15 min). Null on co-occurrence-inferred edges, which carry no
+   * call semantics.
+   */
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Call Count",
+    description:
+      "Calls observed over this edge in the most recent computation window (depends-on edges only).",
+    example: "1240",
+  })
+  @Column({ type: ColumnType.Number, nullable: true })
+  public callCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Error Count",
+    description:
+      "Errored calls observed over this edge in the most recent computation window (depends-on edges only).",
+    example: "12",
+  })
+  @Column({ type: ColumnType.Number, nullable: true })
+  public errorCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Average Duration (ms)",
+    description:
+      "Average call duration in milliseconds over this edge in the most recent computation window (depends-on edges only).",
+    example: "38",
+  })
+  @Column({ type: ColumnType.Number, nullable: true })
+  public avgDurationMs?: number = undefined;
+
   @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
