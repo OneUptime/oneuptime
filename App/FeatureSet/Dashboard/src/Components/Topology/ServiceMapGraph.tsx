@@ -37,9 +37,9 @@ import EntityDetailPanel from "./EntityDetailPanel";
 import EdgeDetailPanel from "./EdgeDetailPanel";
 import ServiceNodeCard from "./ServiceNodeCard";
 import {
-  ServiceIncidentStatus,
-  fetchServiceIncidentStatuses,
-} from "./IncidentOverlay";
+  ServiceOperationalStatus,
+  fetchServiceOperationalStatuses,
+} from "./OperationalOverlay";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import {
   HEALTH_COLORS,
@@ -79,10 +79,13 @@ interface ServiceNodeData {
   dimmed: boolean;
   incidentCount: number;
   incidentColor: string | null;
+  alertCount: number;
+  alertColor: string | null;
 }
 
-// Fallback border when an incident has no severity color configured.
+// Fallbacks when a severity has no color configured.
 const INCIDENT_FALLBACK_COLOR: string = "#dc2626";
+const ALERT_FALLBACK_COLOR: string = "#f59e0b";
 
 /*
  * Custom node: service name plus served-traffic badges (rate and error %
@@ -108,6 +111,20 @@ const ServiceMapNode: FunctionComponent<NodeProps<ServiceNodeData>> = (
       </span>,
     );
   }
+  if (data.alertCount > 0) {
+    statLines.push(
+      <span
+        key="alerts"
+        style={{
+          color: data.alertColor || ALERT_FALLBACK_COLOR,
+          fontWeight: 600,
+        }}
+      >
+        ⚠ {data.alertCount} active alert
+        {data.alertCount === 1 ? "" : "s"}
+      </span>,
+    );
+  }
   if (data.rateText) {
     statLines.push(
       <span key="traffic">
@@ -125,15 +142,18 @@ const ServiceMapNode: FunctionComponent<NodeProps<ServiceNodeData>> = (
       </span>,
     );
   }
+  // Border precedence: incident > alert > traffic health.
+  let borderColor: string | undefined = undefined;
+  if (data.incidentCount > 0) {
+    borderColor = data.incidentColor || INCIDENT_FALLBACK_COLOR;
+  } else if (data.alertCount > 0) {
+    borderColor = data.alertColor || ALERT_FALLBACK_COLOR;
+  }
   return (
     <ServiceNodeCard
       label={data.label}
       health={data.health}
-      borderColor={
-        data.incidentCount > 0
-          ? data.incidentColor || INCIDENT_FALLBACK_COLOR
-          : undefined
-      }
+      borderColor={borderColor}
       dimmed={data.dimmed}
       statLines={statLines}
     />
@@ -176,10 +196,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     return map;
   }, [serviceEntities]);
 
-  // Incident overlay: active incidents per service, keyed by lowercase name.
-  const [incidentStatuses, setIncidentStatuses] = useState<
-    Map<string, ServiceIncidentStatus>
-  >(new Map<string, ServiceIncidentStatus>());
+  // Operational overlay: incidents/alerts per service, keyed by lowercase name.
+  const [operationalStatuses, setOperationalStatuses] = useState<
+    Map<string, ServiceOperationalStatus>
+  >(new Map<string, ServiceOperationalStatus>());
 
   useEffect(() => {
     let cancelled: boolean = false;
@@ -189,13 +209,13 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
       })
       .filter(Boolean);
     if (names.length === 0) {
-      setIncidentStatuses(new Map<string, ServiceIncidentStatus>());
+      setOperationalStatuses(new Map<string, ServiceOperationalStatus>());
       return undefined;
     }
-    fetchServiceIncidentStatuses(names)
-      .then((statuses: Map<string, ServiceIncidentStatus>) => {
+    fetchServiceOperationalStatuses(names)
+      .then((statuses: Map<string, ServiceOperationalStatus>) => {
         if (!cancelled) {
-          setIncidentStatuses(statuses);
+          setOperationalStatuses(statuses);
         }
       })
       .catch((err: unknown) => {
@@ -204,7 +224,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
          * keep the failure observable instead of fully silent.
          */
         // eslint-disable-next-line no-console
-        console.error("Service Map incident overlay failed to load:", err);
+        console.error("Service Map operational overlay failed to load:", err);
       });
     return () => {
       cancelled = true;
@@ -344,8 +364,8 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             }) * X_GAP,
           y: (layout.size > 0 ? maxY + Y_GAP : 0) + Y_GAP,
         };
-        const incidentStatus: ServiceIncidentStatus | undefined =
-          incidentStatuses.get(label.toLowerCase());
+        const incidentStatus: ServiceOperationalStatus | undefined =
+          operationalStatuses.get(label.toLowerCase());
         return {
           id: key,
           type: "serviceMapNode",
@@ -361,7 +381,9 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               : null,
             dimmed,
             incidentCount: incidentStatus?.activeIncidentCount || 0,
-            incidentColor: incidentStatus?.worstSeverityColor || null,
+            incidentColor: incidentStatus?.worstIncidentSeverityColor || null,
+            alertCount: incidentStatus?.activeAlertCount || 0,
+            alertColor: incidentStatus?.worstAlertSeverityColor || null,
           },
         };
       },
@@ -407,7 +429,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
     dependsOnEdges,
     focusedKeys,
     searchText,
-    incidentStatuses,
+    operationalStatuses,
     props.metricsWindowSeconds,
   ]);
 
@@ -520,7 +542,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
           relationships={dependsOnEdges}
           entityByKey={entityByKey}
           incidentStatus={
-            incidentStatuses.get(
+            operationalStatuses.get(
               (selectedEntity.displayName || "").toLowerCase(),
             ) || null
           }

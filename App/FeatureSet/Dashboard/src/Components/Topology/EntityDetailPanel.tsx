@@ -28,23 +28,27 @@ import {
   labelForRelationship,
   metaForEntityType,
 } from "./TopologyMeta";
-import { ServiceIncidentInfo, ServiceIncidentStatus } from "./IncidentOverlay";
+import {
+  ServiceOperationalStatus,
+  ServiceStatusItem,
+} from "./OperationalOverlay";
 
 /*
  * Right-hand detail drawer for a topology node. Keeps the user on the map
  * (no navigation on click) while still offering deep links: the entity
- * detail page, service traces (Service row resolved by name — the entity
- * registry's resourceId pointer is not populated yet), and the matching
- * network device for Host entities (cross-layer link, matched on
- * hostname/sysName since the two features share no foreign key).
+ * detail page, service traces (via the registry's resourceId pointer,
+ * with a by-name fallback for pre-pointer rows), active incidents and
+ * alerts (Service Map overlay), and the matching network device for Host
+ * entities (cross-layer link, matched on hostname/sysName since the two
+ * features share no foreign key).
  */
 
 export interface ComponentProps {
   entity: TelemetryEntity;
   relationships: Array<TelemetryEntityRelationship>;
   entityByKey: Map<string, TelemetryEntity>;
-  /** Active incidents affecting this service (Service Map overlay). */
-  incidentStatus?: ServiceIncidentStatus | null | undefined;
+  /** Active incidents/alerts affecting this service (Service Map overlay). */
+  incidentStatus?: ServiceOperationalStatus | null | undefined;
   /** Seconds the depends-on metrics were aggregated over (cron window). */
   metricsWindowSeconds: number;
   onClose: () => void;
@@ -66,6 +70,36 @@ function normalizeHostName(value: string | undefined): string {
   return withoutPrefix.split(".")[0] || withoutPrefix;
 }
 
+/** One active incident/alert row: title link + severity line. */
+function renderStatusItem(
+  item: ServiceStatusItem,
+  viewRoute: Route,
+  fallbackColor: string,
+): ReactElement {
+  return (
+    <li key={item.id} className="py-2">
+      <Link
+        to={RouteUtil.populateRouteParams(viewRoute, {
+          modelId: new ObjectID(item.id),
+        })}
+        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+      >
+        {item.title}
+      </Link>
+      {item.severityName ? (
+        <p
+          className="mt-0.5 text-xs font-medium"
+          style={{ color: item.severityColor || fallbackColor }}
+        >
+          {item.severityName}
+        </p>
+      ) : (
+        <></>
+      )}
+    </li>
+  );
+}
+
 const EntityDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -78,71 +112,92 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     null,
   );
 
-  // Service entities: resolve the Service row by name for the traces link.
+  /*
+   * Service entities: the traces link needs the Service row id. The
+   * registry stamps the (resourceType, resourceId) pointer at reconcile
+   * time now — use it directly; fall back to a by-name lookup only for
+   * rows written before the pointer existed.
+   */
   useEffect(() => {
+    /*
+     * Stale-write guard: the pointer branch resolves synchronously, so an
+     * unguarded by-name fetch from a previously selected entity would
+     * always land AFTER it and overwrite the newer selection's id.
+     */
+    let cancelled: boolean = false;
     setServiceId(null);
-    if (entity.entityType !== EntityType.Service || !entity.displayName) {
-      return;
-    }
-    const load: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<Service> = await ModelAPI.getList<Service>({
-          modelType: Service,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            name: entity.displayName!,
-          },
-          select: { _id: true },
-          sort: {},
-          skip: 0,
-          limit: 1,
-        });
-        if (result.data[0]?._id) {
-          setServiceId(result.data[0]._id.toString());
-        }
-      } catch {
-        // Best-effort deep link; the panel works without it.
+    if (entity.entityType === EntityType.Service && entity.displayName) {
+      if (entity.resourceType === "Service" && entity.resourceId) {
+        setServiceId(entity.resourceId.toString());
+      } else {
+        const load: () => Promise<void> = async (): Promise<void> => {
+          try {
+            const result: ListResult<Service> = await ModelAPI.getList<Service>(
+              {
+                modelType: Service,
+                query: {
+                  projectId: ProjectUtil.getCurrentProjectId()!,
+                  name: entity.displayName!,
+                },
+                select: { _id: true },
+                sort: {},
+                skip: 0,
+                limit: 1,
+              },
+            );
+            if (!cancelled && result.data[0]?._id) {
+              setServiceId(result.data[0]._id.toString());
+            }
+          } catch {
+            // Best-effort deep link; the panel works without it.
+          }
+        };
+        void load();
       }
+    }
+    return () => {
+      cancelled = true;
     };
-    void load();
   }, [entity]);
 
   // Host entities: find a network device with the same hostname/sysName.
   useEffect(() => {
+    let cancelled: boolean = false;
     setMatchedDevice(null);
-    if (entity.entityType !== EntityType.Host || !entity.displayName) {
-      return;
-    }
     const hostKey: string = normalizeHostName(entity.displayName);
-    if (!hostKey) {
-      return;
+    if (entity.entityType === EntityType.Host && hostKey) {
+      const load: () => Promise<void> = async (): Promise<void> => {
+        try {
+          const result: ListResult<NetworkDevice> =
+            await ModelAPI.getList<NetworkDevice>({
+              modelType: NetworkDevice,
+              query: { projectId: ProjectUtil.getCurrentProjectId()! },
+              select: { _id: true, name: true, hostname: true, sysName: true },
+              sort: {},
+              skip: 0,
+              limit: 500,
+            });
+          const match: NetworkDevice | undefined = result.data.find(
+            (device: NetworkDevice) => {
+              return (
+                normalizeHostName(device.hostname) === hostKey ||
+                normalizeHostName(device.sysName) === hostKey ||
+                normalizeHostName(device.name) === hostKey
+              );
+            },
+          );
+          if (!cancelled) {
+            setMatchedDevice(match || null);
+          }
+        } catch {
+          // Cross-layer link is best-effort.
+        }
+      };
+      void load();
     }
-    const load: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<NetworkDevice> =
-          await ModelAPI.getList<NetworkDevice>({
-            modelType: NetworkDevice,
-            query: { projectId: ProjectUtil.getCurrentProjectId()! },
-            select: { _id: true, name: true, hostname: true, sysName: true },
-            sort: {},
-            skip: 0,
-            limit: 500,
-          });
-        const match: NetworkDevice | undefined = result.data.find(
-          (device: NetworkDevice) => {
-            return (
-              normalizeHostName(device.hostname) === hostKey ||
-              normalizeHostName(device.sysName) === hostKey ||
-              normalizeHostName(device.name) === hostKey
-            );
-          },
-        );
-        setMatchedDevice(match || null);
-      } catch {
-        // Cross-layer link is best-effort.
-      }
+    return () => {
+      cancelled = true;
     };
-    void load();
   }, [entity]);
 
   const edgeRows: Array<EdgeRow> = useMemo(() => {
@@ -229,31 +284,32 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             </h3>
             <ul className="mt-1 divide-y divide-gray-100">
               {props.incidentStatus.incidents.map(
-                (incident: ServiceIncidentInfo): ReactElement => {
-                  return (
-                    <li key={incident.incidentId} className="py-2">
-                      <Link
-                        to={RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                          { modelId: new ObjectID(incident.incidentId) },
-                        )}
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                      >
-                        {incident.title}
-                      </Link>
-                      {incident.severityName ? (
-                        <p
-                          className="mt-0.5 text-xs font-medium"
-                          style={{
-                            color: incident.severityColor || "#dc2626",
-                          }}
-                        >
-                          {incident.severityName}
-                        </p>
-                      ) : (
-                        <></>
-                      )}
-                    </li>
+                (item: ServiceStatusItem): ReactElement => {
+                  return renderStatusItem(
+                    item,
+                    RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                    "#dc2626",
+                  );
+                },
+              )}
+            </ul>
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {props.incidentStatus && props.incidentStatus.activeAlertCount > 0 ? (
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">
+              Active alerts ({props.incidentStatus.activeAlertCount})
+            </h3>
+            <ul className="mt-1 divide-y divide-gray-100">
+              {props.incidentStatus.alerts.map(
+                (item: ServiceStatusItem): ReactElement => {
+                  return renderStatusItem(
+                    item,
+                    RouteMap[PageMap.ALERT_VIEW] as Route,
+                    "#f59e0b",
                   );
                 },
               )}

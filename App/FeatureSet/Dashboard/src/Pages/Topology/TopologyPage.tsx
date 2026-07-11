@@ -84,6 +84,8 @@ const TopologyPage: FunctionComponent<
               entityKey: true,
               displayName: true,
               entityType: true,
+              resourceType: true,
+              resourceId: true,
               firstSeenAt: true,
               lastSeenAt: true,
             },
