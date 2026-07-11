@@ -44,6 +44,7 @@
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@sendgrid/mail": "^8.1.0",
     "@xmldom/xmldom": "^0.9.10",
+    "aedes": "^0.51.3",
     "Common": "file:../Common",
     "ejs": "^3.1.9",
     "handlebars": "^4.7.8",
@@ -52,6 +53,7 @@
     "protobufjs": "^7.5.4",
     "ts-node": "^10.9.1",
     "twilio": "^4.20.0",
+    "ws": "^8.21.0",
     "xml-crypto": "^3.2.0",
     "xml2js": "^0.6.2"
   },
@@ -59,6 +61,7 @@
     "@types/jest": "^29.5.11",
     "@types/node": "^17.0.31",
     "@types/nodemailer": "^8.0.1",
+    "@types/ws": "^8.18.1",
     "@types/xml2js": "^0.4.14",
     "jest": "^28.1.0",
     "nodemon": "^3.1.14",

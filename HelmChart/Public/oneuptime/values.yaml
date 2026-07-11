@@ -1286,6 +1286,7 @@ app:
   ports:
     http: 3002
     grpc: 4317
+    mqtt: 1883
   resources:
   nodeSelector: {}
   podSecurityContext: {}

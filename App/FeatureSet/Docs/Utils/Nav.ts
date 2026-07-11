@@ -289,6 +289,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/ceph-monitor",
       },
       {
+        title: "IoT Device Monitor",
+        url: "/docs/monitor/iot-device-monitor",
+      },
+      {
         title: "Logs Monitor",
         url: "/docs/monitor/logs-monitor",
       },

@@ -2483,6 +2483,10 @@
                         "grpc": {
                             "type": "integer",
                             "default": 4317
+                        },
+                        "mqtt": {
+                            "type": "integer",
+                            "default": 1883
                         }
                     },
                     "additionalProperties": false
@@ -2626,6 +2630,10 @@
                         "grpc": {
                             "type": "integer",
                             "default": 4317
+                        },
+                        "mqtt": {
+                            "type": "integer",
+                            "default": 1883
                         }
                     },
                     "additionalProperties": false

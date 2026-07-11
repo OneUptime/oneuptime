@@ -2,9 +2,14 @@
 
 ## Overview
 
-OneUptime monitors fleets of IoT devices — sensors, gateways, controllers, and edge boxes — by ingesting standard OpenTelemetry (OTLP) metrics. Each device (or a gateway on its behalf) pushes a small set of `iot_*` metrics over OTLP HTTP, tagged with which **fleet** it belongs to and its own **device id**. OneUptime groups those metrics into a fleet, builds a live device inventory, and tracks per-device battery, connectivity, temperature, CPU, memory, and availability.
+OneUptime monitors fleets of IoT devices — sensors, gateways, controllers, and edge boxes — by ingesting a small set of `iot_*` metrics, tagged with which **fleet** each reading belongs to and its own **device id**. OneUptime groups those metrics into a fleet, builds a live device inventory, and tracks per-device battery, connectivity, temperature, CPU, memory, and availability.
 
-There is no agent to install on the device side — anything that can speak OTLP (an OpenTelemetry SDK on the device, or an OpenTelemetry Collector running on a gateway that fans out to many devices) works. This page is the **ingestion guide**. For configuring IoT monitors and alerts on top of the data you push, see [IoT Device Monitor](/docs/monitor/iot-device-monitor).
+Devices can push readings two ways, and both feed the exact same fleet inventory, dashboards, and monitors:
+
+- **OpenTelemetry (OTLP)** — an OTel SDK on the device, or an OpenTelemetry Collector on a gateway that fans out to many devices.
+- **MQTT** — connect straight to OneUptime's built-in MQTT endpoint (MQTT-over-WebSocket at `wss://<your-host>/mqtt`, or raw MQTT TCP on self-hosted deployments) and publish JSON readings. No collector required, and Last Will support gives you instant offline detection.
+
+There is no proprietary agent to install on the device side. This page is the **ingestion guide**. For configuring IoT monitors and alerts on top of the data you push, see [IoT Device Monitor](/docs/monitor/iot-device-monitor).
 
 ## Prerequisites
 
@@ -76,10 +81,7 @@ processors:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # OneUptime requires the JSON encoder instead of the default Proto(buf)
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 
 service:
@@ -92,7 +94,99 @@ service:
 
 - **`resource`** stamps every record with the fleet attributes. Set `iot.fleet.name` (and the matching `service.name=iot/<fleet>`) per gateway so each gateway's devices land in the right fleet.
 - Keep `device.id` (and optionally `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) on each datapoint so OneUptime can resolve the individual device inside the fleet.
-- **`otlphttp`** sends to OneUptime over HTTPS with the ingestion token attached. Note `encoding: json` and the `Content-Type: application/json` header are required.
+- **`otlphttp`** sends to OneUptime over HTTPS with the ingestion token attached. Both the default protobuf encoding and `encoding: json` are accepted.
+
+## Sending Metrics via MQTT
+
+OneUptime ships a built-in MQTT endpoint, so devices that already speak MQTT can push readings directly — no OpenTelemetry SDK, collector, or bridge required. Everything published over MQTT lands in the same pipeline as OTLP: fleets are auto-created, the device inventory updates, and every IoT monitor and alert template works unchanged.
+
+**Endpoints**
+
+| Transport             | Address                                | Notes                                                                                     |
+| --------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
+| MQTT over WebSocket   | `wss://<your-host>/mqtt`               | Works on every deployment — rides the normal HTTPS port through the OneUptime ingress     |
+| MQTT over TCP         | `<app-host>:1883` (`MQTT_INGEST_PORT`) | Self-hosted: internal to the cluster/compose network by default; expose it if you need it |
+
+**Authentication** — send your **Telemetry Ingestion Token** as the MQTT password (the username is ignored; if your client only exposes a username field, put the token there instead). Invalid tokens are rejected at CONNECT with return code 4 (bad username or password), so a misconfigured device fails loudly.
+
+**Topics** — publish under the fixed `oneuptime/` prefix. Fleet and device segments must not contain `/`, `+`, or `#`, and are limited to 100 characters:
+
+| Topic                                            | Payload                                                                                              |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `oneuptime/<fleet>/<device>/telemetry`           | JSON object of readings — `{ "metrics": { "iot_temperature_celsius": 21.5 } }`, or a flat object whose numeric fields are the metrics |
+| `oneuptime/<fleet>/<device>/metrics/<metricName>`| A single value — a bare number (`23.4`) or `{ "value": 23.4 }`                                        |
+| `oneuptime/<fleet>/<device>/status`              | `"online"` or `"offline"` (also `1`/`0`, `true`/`false`, `up`/`down`) — maps to `iot_device_up`       |
+
+Telemetry payloads may also carry `"attributes"` (a string map stamped on every datapoint — use it for `iot.device.kind`, `iot.device.type`, `iot.device.firmware`, or your own labels) and `"timestamp"` (ISO-8601, or unix seconds/milliseconds). Both are optional; the ingest time is used when `timestamp` is absent.
+
+**Offline detection with Last Will** — register an MQTT Last Will on `oneuptime/<fleet>/<device>/status` with payload `offline`. If the device dies or drops off the network, the broker publishes `iot_device_up = 0` on its behalf the moment the session ends — which trips the stock **Device Offline** alert template and flips the device to Down in the inventory, with no polling and no waiting for a missed scrape. Publish `online` to the same topic after connecting so the device shows Up again.
+
+Example with `mosquitto_pub` (raw TCP, self-hosted):
+
+```bash
+mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
+  -u oneuptime -P "YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -t "oneuptime/building-a-sensors/sensor-001/telemetry" \
+  -m '{"metrics":{"iot_device_up":1,"iot_battery_percent":87,"iot_temperature_celsius":21.5},"attributes":{"iot.device.type":"temp-sensor","iot.device.firmware":"1.4.2"}}'
+```
+
+Example with Node.js `mqtt` over WebSocket (works against oneuptime.com and any self-hosted instance):
+
+```javascript
+const mqtt = require("mqtt");
+
+const client = mqtt.connect("wss://oneuptime.com/mqtt", {
+  username: "oneuptime", // ignored — the token below is what authenticates
+  password: "YOUR_TELEMETRY_INGESTION_TOKEN",
+  will: {
+    topic: "oneuptime/building-a-sensors/sensor-001/status",
+    payload: "offline",
+  },
+});
+
+client.on("connect", () => {
+  client.publish("oneuptime/building-a-sensors/sensor-001/status", "online");
+  setInterval(() => {
+    client.publish(
+      "oneuptime/building-a-sensors/sensor-001/telemetry",
+      JSON.stringify({
+        metrics: {
+          iot_device_up: 1,
+          iot_battery_percent: readBattery(),
+          iot_temperature_celsius: readTemperature(),
+        },
+      }),
+    );
+  }, 60 * 1000);
+});
+```
+
+Example with Python `paho-mqtt` over WebSocket:
+
+```python
+import json
+import paho.mqtt.client as mqtt
+
+client = mqtt.Client(transport="websockets")
+client.username_pw_set("oneuptime", "YOUR_TELEMETRY_INGESTION_TOKEN")
+client.tls_set()
+client.will_set("oneuptime/building-a-sensors/sensor-001/status", "offline")
+client.ws_set_options(path="/mqtt")
+client.connect("oneuptime.com", 443)
+
+client.publish("oneuptime/building-a-sensors/sensor-001/status", "online")
+client.publish(
+    "oneuptime/building-a-sensors/sensor-001/telemetry",
+    json.dumps({"metrics": {"iot_device_up": 1, "iot_temperature_celsius": 21.5}}),
+)
+```
+
+Notes:
+
+- The endpoint is **ingestion-only**: subscriptions are denied (SUBACK failure). Use QoS 1 if you want the broker to acknowledge receipt. Ingestion is **at-least-once** — a QoS 1/2 retransmission after a lost acknowledgment can produce duplicate datapoints.
+- Publishes outside the topic contract or with malformed payloads are accepted and **dropped** (MQTT 3.1.1 has no per-message error reply) — the server logs a warning with the reason, so check the OneUptime app logs if data is not arriving.
+- On the WebSocket endpoint, keep the MQTT keepalive **under 5 minutes** — the OneUptime ingress closes idle WebSocket connections after 300 seconds, which would fire your Last Will and a false Device Offline alert. Client-library defaults (60 s for `mqtt` and `paho-mqtt`) are fine. The raw TCP endpoint has no such ceiling.
+- Payloads are capped at 128 KB and 100 metrics per publish; oversized packets drop the connection.
 
 ## Metric Conventions
 
@@ -123,7 +217,7 @@ OneUptime recognizes the following `iot_*` metric names. Each datapoint should c
 
 1. Verify `iot.fleet.name` is set as a **resource** attribute (not a datapoint label), and that `service.name` is `iot/<fleet>`.
 2. Confirm the exporter endpoint is `https://oneuptime.com/otlp` (or your self-hosted `…/otlp`) and the `x-oneuptime-token` header carries a valid token.
-3. If using a collector, ensure `encoding: json` and `Content-Type: application/json` are set on the `otlphttp` exporter.
+3. If using MQTT, confirm the topic follows `oneuptime/<fleet>/<device>/…` exactly — the fleet segment of the topic is what creates the fleet.
 
 ### Devices Missing from the Inventory
 
@@ -155,13 +249,13 @@ Or, in a collector:
 exporters:
   otlphttp:
     endpoint: https://your-oneuptime-host.example.com/otlp
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-If your instance is HTTP-only, change the scheme to `http://` and use the appropriate port.
+For MQTT, connect to `wss://your-oneuptime-host.example.com/mqtt`, or expose the app service's raw MQTT TCP port (`MQTT_INGEST_PORT`, default `1883`) if your devices cannot speak WebSocket. Set `MQTT_INGEST_ENABLED=false` on the app service to turn the MQTT listeners off entirely.
+
+If your instance is HTTP-only, change the scheme to `http://` (and `ws://` for MQTT) and use the appropriate port.
 
 ## Next steps
 

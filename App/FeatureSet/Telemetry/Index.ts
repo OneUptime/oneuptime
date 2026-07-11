@@ -17,6 +17,7 @@ import IncomingRequestAPI from "./API/IncomingRequestIngest/IncomingRequest";
 import "./Jobs/TelemetryIngest/ProcessTelemetry";
 import { TELEMETRY_CONCURRENCY } from "./Config";
 import { startGrpcServer } from "./GrpcServer";
+import { startMqttServer } from "./MqttServer";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
@@ -80,6 +81,9 @@ const TelemetryFeatureSet: FeatureSet = {
 
       // Start gRPC OTLP server on port 4317
       startGrpcServer();
+
+      // Start MQTT ingest listeners (TCP 1883 + WebSocket /mqtt)
+      startMqttServer();
     } catch (err) {
       logger.error("Telemetry FeatureSet Init Failed:", {
         service: "telemetry",

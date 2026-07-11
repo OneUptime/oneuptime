@@ -930,6 +930,32 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         client_max_body_size 50M;
     }
 
+    # MQTT-over-WebSocket ingest for IoT devices (ws(s)://<host>/mqtt).
+    # The app hosts an in-process MQTT broker; this rides the same
+    # HTTP(S) ports as everything else, so no extra network surface.
+    location /mqtt {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass $backend_app;
+
+        # MQTT keepalive (PINGREQ) intervals are device-controlled and
+        # often sparse — allow idle gaps well past the 60s default so
+        # a device with a 4-minute keepalive is not disconnected.
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+
+        client_max_body_size 1M;
+    }
+
     location /analytics-api {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};

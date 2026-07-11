@@ -143,6 +143,9 @@ spec:
             - containerPort: {{ $.Values.app.ports.grpc | default 4317 }}
               protocol: TCP
               name: grpc
+            - containerPort: {{ $.Values.app.ports.mqtt | default 1883 }}
+              protocol: TCP
+              name: mqtt
           {{- if $.Values.app.resources }}
           resources:
             {{- toYaml $.Values.app.resources | nindent 12 }}
@@ -161,7 +164,7 @@ spec:
 
 {{- if and $.Values.app.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime app Service
-{{- $appPorts := dict "http" $.Values.app.ports.http "grpc" ($.Values.app.ports.grpc | default 4317) -}}
+{{- $appPorts := dict "http" $.Values.app.ports.http "grpc" ($.Values.app.ports.grpc | default 4317) "mqtt" ($.Values.app.ports.mqtt | default 1883) -}}
 {{- $appServiceArgs := dict "ServiceName" "app" "Ports" $appPorts "Release" $.Release "Values" $.Values -}}
 {{- include "oneuptime.service" $appServiceArgs }}
 ---
