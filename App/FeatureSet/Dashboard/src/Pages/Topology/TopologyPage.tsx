@@ -1,6 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import ServiceMapGraph from "../../Components/Topology/ServiceMapGraph";
 import InfrastructureGraph from "../../Components/Topology/InfrastructureGraph";
+import NetworkTopologyView from "../../Components/NetworkDevice/NetworkTopologyView";
 import Page from "Common/UI/Components/Page/Page";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -128,6 +129,14 @@ const TopologyPage: FunctionComponent<
     void load();
   }, [timeRange]);
 
+  /*
+   * The Network tab is a live LLDP view (also surfaced under Network
+   * Devices) — the telemetry time range does not apply to it, so the
+   * picker hides while it is active.
+   */
+  const [activeTabName, setActiveTabName] = useState<string>("Service Map");
+  const isNetworkTab: boolean = activeTabName === "Network";
+
   const tabs: Array<Tab> = useMemo(() => {
     return [
       {
@@ -151,6 +160,10 @@ const TopologyPage: FunctionComponent<
           />
         ),
       },
+      {
+        name: "Network",
+        children: <NetworkTopologyView />,
+      },
     ];
   }, [entities, relationships, timeRange]);
 
@@ -158,14 +171,22 @@ const TopologyPage: FunctionComponent<
     <Page title="Topology" breadcrumbLinks={[]}>
       <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <p className="text-sm text-gray-500">
-          {translateString(
-            "Maps are discovered automatically from your OpenTelemetry data for the selected time range.",
-          ) || ""}
+          {isNetworkTab
+            ? translateString(
+                "The network map is live — it shows the physical layer as devices report it right now.",
+              ) || ""
+            : translateString(
+                "Maps are discovered automatically from your OpenTelemetry data for the selected time range.",
+              ) || ""}
         </p>
-        <TelemetryTimeRangePicker value={timeRange} onChange={setTimeRange} />
+        {isNetworkTab ? (
+          <></>
+        ) : (
+          <TelemetryTimeRangePicker value={timeRange} onChange={setTimeRange} />
+        )}
       </div>
 
-      {isTruncated ? (
+      {isTruncated && !isNetworkTab ? (
         <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
           {translateString(
             "This map is very large, so only part of it is shown. Use search, filters or the focus mode to narrow it down.",
@@ -182,8 +203,8 @@ const TopologyPage: FunctionComponent<
       ) : (
         <Tabs
           tabs={tabs}
-          onTabChange={() => {
-            // Selection is managed by the Tabs component.
+          onTabChange={(tab: Tab) => {
+            setActiveTabName(tab.name);
           }}
         />
       )}

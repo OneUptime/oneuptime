@@ -12,6 +12,12 @@ export interface ComponentProps {
    * neighbors have no device row to open). Omitting it keeps nodes inert.
    */
   onManagedNodeClick?: ((node: NetworkTopologyNode) => void) | undefined;
+  /**
+   * Rendered under the empty-state text (e.g. a setup link). Injected by
+   * the caller so this component stays free of router imports — its pure
+   * layout export is unit-tested in a plain node environment.
+   */
+  emptyStateFooter?: ReactElement | undefined;
 }
 
 // A single 2D coordinate.
@@ -271,12 +277,17 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
       <div className="flex items-center justify-center py-16 px-6">
         <div className="text-center max-w-md">
           <div className="text-sm font-medium text-gray-900">
-            No topology discovered yet.
+            No network topology discovered yet.
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Enable interface monitoring on your Network Device monitors — LLDP
-            neighbors appear here as devices report them.
+            Add network devices and enable interface monitoring — LLDP neighbors
+            appear here as devices report them.
           </p>
+          {props.emptyStateFooter ? (
+            <p className="mt-3">{props.emptyStateFooter}</p>
+          ) : (
+            <></>
+          )}
         </div>
       </div>
     );
