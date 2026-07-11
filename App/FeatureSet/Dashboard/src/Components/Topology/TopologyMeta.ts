@@ -145,6 +145,14 @@ export function formatErrorRate(
   return `${percent.toFixed(1)}%`;
 }
 
+/** Edge stroke width scaled by call volume (log so heavy edges stay sane). */
+export function edgeWidthForCalls(callCount: number | undefined): number {
+  if (!callCount || callCount <= 0) {
+    return 1.5;
+  }
+  return Math.min(6, 1.5 + Math.log10(callCount + 1) * 1.2);
+}
+
 export function formatDurationMs(avgDurationMs: number | undefined): string {
   if (avgDurationMs === undefined || avgDurationMs === null) {
     return "—";

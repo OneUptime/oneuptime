@@ -34,9 +34,13 @@ import computeLayeredLayout, {
   LayoutPoint,
 } from "../../Utils/LayeredGraphLayout";
 import EntityDetailPanel from "./EntityDetailPanel";
+import EdgeDetailPanel from "./EdgeDetailPanel";
+import ServiceNodeCard from "./ServiceNodeCard";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import {
   HEALTH_COLORS,
   TrafficHealth,
+  edgeWidthForCalls,
   formatCallRate,
   formatDurationMs,
   formatErrorRate,
@@ -59,6 +63,8 @@ export interface ComponentProps {
   relationships: Array<TelemetryEntityRelationship>;
   /** Seconds the depends-on metrics were aggregated over (cron window). */
   metricsWindowSeconds: number;
+  /** The page's picked range — drives the edge drill-down history query. */
+  timeRange: RangeStartAndEndDateTime;
 }
 
 interface ServiceNodeData {
@@ -79,40 +85,30 @@ const ServiceMapNode: FunctionComponent<NodeProps<ServiceNodeData>> = (
 ): ReactElement => {
   const { data } = props;
   return (
-    <div
-      style={{
-        border: `2px solid ${HEALTH_COLORS[data.health]}`,
-        borderRadius: 8,
-        padding: "8px 12px",
-        background: "var(--ou-surface-primary, #ffffff)",
-        color: "var(--ou-text-primary, #111827)",
-        width: 200,
-        opacity: data.dimmed ? 0.25 : 1,
-        cursor: "pointer",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {data.label}
-      </div>
-      {data.rateText && (
-        <div style={{ marginTop: 4, fontSize: 11, color: "#6b7280" }}>
-          {data.rateText}
-          {data.errorText && (
-            <span style={{ color: HEALTH_COLORS[data.health], marginLeft: 8 }}>
-              {data.errorText} err
-            </span>
-          )}
-        </div>
-      )}
-    </div>
+    <ServiceNodeCard
+      label={data.label}
+      health={data.health}
+      dimmed={data.dimmed}
+      statLines={
+        data.rateText
+          ? [
+              <span key="traffic">
+                {data.rateText}
+                {data.errorText && (
+                  <span
+                    style={{
+                      color: HEALTH_COLORS[data.health],
+                      marginLeft: 8,
+                    }}
+                  >
+                    {data.errorText} err
+                  </span>
+                )}
+              </span>,
+            ]
+          : []
+      }
+    />
   );
 };
 
@@ -123,13 +119,6 @@ const NODE_TYPES: Record<
   serviceMapNode: ServiceMapNode,
 };
 
-function edgeWidth(callCount: number | undefined): number {
-  if (!callCount || callCount <= 0) {
-    return 1.5;
-  }
-  return Math.min(6, 1.5 + Math.log10(callCount + 1) * 1.2);
-}
-
 const ServiceMapGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -137,6 +126,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
 
   const [searchText, setSearchText] = useState<string>("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
@@ -338,7 +328,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
           markerEnd: { type: MarkerType.ArrowClosed, color },
           style: {
             stroke: color,
-            strokeWidth: edgeWidth(relationship.callCount),
+            strokeWidth: edgeWidthForCalls(relationship.callCount),
           },
         };
       },
@@ -415,7 +405,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         )}
         <p className="text-xs text-gray-500 md:ml-auto">
           {translateString(
-            "Edge labels show recent call rate, error rate and average latency.",
+            "Edge labels show recent call rate, error rate and average latency. Click an edge for its history.",
           ) || ""}
         </p>
       </div>
@@ -434,7 +424,16 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
             flowInstance.current = instance;
           }}
           onNodeClick={(_event: React.MouseEvent, node: Node) => {
+            /*
+             * Panels are exclusive — SideOver has no backdrop, so two
+             * would stack on top of each other.
+             */
+            setSelectedEdgeId(null);
             setSelectedKey(node.id);
+          }}
+          onEdgeClick={(_event: React.MouseEvent, edge: Edge) => {
+            setSelectedKey(null);
+            setSelectedEdgeId(edge.id);
           }}
         >
           <Controls showInteractive={false} />
@@ -462,6 +461,41 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
           }}
         />
       )}
+
+      {(() => {
+        if (!selectedEdgeId) {
+          return <></>;
+        }
+        const relationship: TelemetryEntityRelationship | undefined =
+          dependsOnEdges.find((candidate: TelemetryEntityRelationship) => {
+            return (
+              `${candidate.fromEntityKey}->${candidate.toEntityKey}` ===
+              selectedEdgeId
+            );
+          });
+        const fromEntity: TelemetryEntity | undefined = entityByKey.get(
+          relationship?.fromEntityKey || "",
+        );
+        const toEntity: TelemetryEntity | undefined = entityByKey.get(
+          relationship?.toEntityKey || "",
+        );
+        if (!relationship || !fromEntity || !toEntity) {
+          return <></>;
+        }
+        return (
+          <EdgeDetailPanel
+            key={selectedEdgeId}
+            fromEntity={fromEntity}
+            toEntity={toEntity}
+            relationship={relationship}
+            timeRange={props.timeRange}
+            metricsWindowSeconds={props.metricsWindowSeconds}
+            onClose={() => {
+              setSelectedEdgeId(null);
+            }}
+          />
+        );
+      })()}
     </Fragment>
   );
 };

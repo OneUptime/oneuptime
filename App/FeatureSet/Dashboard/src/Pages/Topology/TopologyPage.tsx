@@ -135,6 +135,7 @@ const TopologyPage: FunctionComponent<
             entities={entities}
             relationships={relationships}
             metricsWindowSeconds={METRICS_WINDOW_SECONDS}
+            timeRange={timeRange}
           />
         ),
       },
@@ -149,7 +150,7 @@ const TopologyPage: FunctionComponent<
         ),
       },
     ];
-  }, [entities, relationships]);
+  }, [entities, relationships, timeRange]);
 
   return (
     <Page title="Topology" breadcrumbLinks={[]}>

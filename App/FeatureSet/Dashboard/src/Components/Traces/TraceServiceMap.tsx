@@ -2,6 +2,34 @@ import SpanUtil, { DivisibilityFactor } from "../../Utils/SpanUtil";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement } from "react";
+import ReactFlow, {
+  Background,
+  BackgroundVariant,
+  Controls,
+  Edge,
+  MarkerType,
+  Node,
+  NodeProps,
+} from "reactflow";
+import "reactflow/dist/style.css";
+import computeLayeredLayout, {
+  LayoutPoint,
+} from "../../Utils/LayeredGraphLayout";
+import ServiceNodeCard from "../Topology/ServiceNodeCard";
+import {
+  HEALTH_COLORS,
+  TrafficHealth,
+  edgeWidthForCalls,
+  healthForErrorRate,
+} from "../Topology/TopologyMeta";
+
+/*
+ * Per-trace service map: the same aggregation as before (nodes = services
+ * touched by this trace, edges = cross-service parent/child span pairs),
+ * but rendered with the shared topology stack — layered layout,
+ * React Flow, health colors, node cards — so this map and the
+ * project-wide Service Map speak one visual language.
+ */
 
 export interface TraceServiceMapProps {
   spans: Span[];
@@ -24,6 +52,36 @@ interface ServiceEdge {
   totalDurationUnixNano: number;
   errorCount: number;
 }
+
+interface TraceNodeData {
+  label: string;
+  health: TrafficHealth;
+  colorDot: string;
+  statLines: Array<ReactElement>;
+}
+
+const TraceServiceMapNode: FunctionComponent<NodeProps<TraceNodeData>> = (
+  props: NodeProps<TraceNodeData>,
+): ReactElement => {
+  return (
+    <ServiceNodeCard
+      label={props.data.label}
+      health={props.data.health}
+      colorDot={props.data.colorDot}
+      statLines={props.data.statLines}
+    />
+  );
+};
+
+const NODE_TYPES: Record<
+  string,
+  FunctionComponent<NodeProps<TraceNodeData>>
+> = {
+  traceServiceNode: TraceServiceMapNode,
+};
+
+const X_GAP: number = 260;
+const Y_GAP: number = 130;
 
 const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
   props: TraceServiceMapProps,
@@ -130,6 +188,95 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
   const divisibilityFactor: DivisibilityFactor =
     SpanUtil.getDivisibilityFactor(traceDuration);
 
+  const { flowNodes, flowEdges } = React.useMemo((): {
+    flowNodes: Array<Node<TraceNodeData>>;
+    flowEdges: Array<Edge>;
+  } => {
+    const layout: Map<string, LayoutPoint> = computeLayeredLayout(
+      nodes.map((node: ServiceNode) => {
+        return node.primaryEntityId;
+      }),
+      edges.map((edge: ServiceEdge) => {
+        return { from: edge.fromServiceId, to: edge.toServiceId };
+      }),
+      { xGap: X_GAP, yGap: Y_GAP },
+    );
+
+    const flowNodes: Array<Node<TraceNodeData>> = nodes.map(
+      (node: ServiceNode): Node<TraceNodeData> => {
+        const health: TrafficHealth = healthForErrorRate(
+          node.spanCount,
+          node.errorCount,
+        );
+        const statLines: Array<ReactElement> = [
+          <span key="stats">
+            {node.spanCount} span{node.spanCount === 1 ? "" : "s"}
+            {node.errorCount > 0 && (
+              <span style={{ color: HEALTH_COLORS[health], marginLeft: 8 }}>
+                {node.errorCount} error{node.errorCount === 1 ? "" : "s"}
+              </span>
+            )}
+          </span>,
+          <span key="duration">
+            {SpanUtil.getSpanDurationAsString({
+              spanDurationInUnixNano: node.totalDurationUnixNano,
+              divisibilityFactor: divisibilityFactor,
+            })}
+          </span>,
+        ];
+        return {
+          id: node.primaryEntityId,
+          type: "traceServiceNode",
+          position: layout.get(node.primaryEntityId) || { x: 0, y: 0 },
+          data: {
+            label: node.serviceName,
+            health,
+            colorDot: node.serviceColor,
+            statLines,
+          },
+        };
+      },
+    );
+
+    const flowEdges: Array<Edge> = edges.map((edge: ServiceEdge): Edge => {
+      const health: TrafficHealth = healthForErrorRate(
+        edge.callCount,
+        edge.errorCount,
+      );
+      const color: string =
+        health === "unknown" ? "#94a3b8" : HEALTH_COLORS[health];
+      const avgDuration: number =
+        edge.callCount > 0 ? edge.totalDurationUnixNano / edge.callCount : 0;
+      const durationStr: string = SpanUtil.getSpanDurationAsString({
+        spanDurationInUnixNano: avgDuration,
+        divisibilityFactor: divisibilityFactor,
+      });
+      return {
+        id: `${edge.fromServiceId}->${edge.toServiceId}`,
+        source: edge.fromServiceId,
+        target: edge.toServiceId,
+        type: "smoothstep",
+        label: `${edge.callCount}x · avg ${durationStr}${
+          edge.errorCount > 0
+            ? ` · ${edge.errorCount} error${edge.errorCount === 1 ? "" : "s"}`
+            : ""
+        }`,
+        labelStyle: { fontSize: 10, fill: "#6b7280" },
+        labelBgStyle: {
+          fill: "var(--ou-surface-primary, #ffffff)",
+          fillOpacity: 0.85,
+        },
+        markerEnd: { type: MarkerType.ArrowClosed, color },
+        style: {
+          stroke: color,
+          strokeWidth: edgeWidthForCalls(edge.callCount),
+        },
+      };
+    });
+
+    return { flowNodes, flowEdges };
+  }, [nodes, edges, divisibilityFactor]);
+
   if (nodes.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 text-sm">
@@ -138,109 +285,6 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
     );
   }
 
-  /*
-   * Layout: arrange nodes in a topological order based on edges
-   * Simple layout: find entry nodes and lay out left-to-right
-   */
-  const { nodePositions, layoutWidth, layoutHeight } = React.useMemo(() => {
-    // Build adjacency list
-    const adjList: Map<string, string[]> = new Map();
-    const inDegree: Map<string, number> = new Map();
-
-    for (const node of nodes) {
-      adjList.set(node.primaryEntityId, []);
-      inDegree.set(node.primaryEntityId, 0);
-    }
-
-    for (const edge of edges) {
-      const neighbors: string[] = adjList.get(edge.fromServiceId) || [];
-      neighbors.push(edge.toServiceId);
-      adjList.set(edge.fromServiceId, neighbors);
-      inDegree.set(edge.toServiceId, (inDegree.get(edge.toServiceId) || 0) + 1);
-    }
-
-    // Topological sort using BFS (Kahn's algorithm)
-    const queue: string[] = [];
-    for (const [nodeId, degree] of inDegree.entries()) {
-      if (degree === 0) {
-        queue.push(nodeId);
-      }
-    }
-
-    const levels: Map<string, number> = new Map();
-    let level: number = 0;
-    const levelNodes: string[][] = [];
-
-    while (queue.length > 0) {
-      const levelSize: number = queue.length;
-      const currentLevel: string[] = [];
-
-      for (let i: number = 0; i < levelSize; i++) {
-        const nodeId: string = queue.shift()!;
-        levels.set(nodeId, level);
-        currentLevel.push(nodeId);
-
-        const neighbors: string[] = adjList.get(nodeId) || [];
-        for (const neighbor of neighbors) {
-          const newDegree: number = (inDegree.get(neighbor) || 1) - 1;
-          inDegree.set(neighbor, newDegree);
-          if (newDegree === 0) {
-            queue.push(neighbor);
-          }
-        }
-      }
-
-      levelNodes.push(currentLevel);
-      level++;
-    }
-
-    // Handle cycles - place unvisited nodes at the end
-    for (const node of nodes) {
-      if (!levels.has(node.primaryEntityId)) {
-        if (levelNodes.length === 0) {
-          levelNodes.push([]);
-        }
-        levelNodes[levelNodes.length - 1]!.push(node.primaryEntityId);
-        levels.set(node.primaryEntityId, levelNodes.length - 1);
-      }
-    }
-
-    // Compute positions
-    const nodeWidth: number = 200;
-    const nodeHeight: number = 80;
-    const horizontalGap: number = 120;
-    const verticalGap: number = 40;
-
-    const positions: Map<string, { x: number; y: number }> = new Map();
-    let maxX: number = 0;
-    let maxY: number = 0;
-
-    for (let l: number = 0; l < levelNodes.length; l++) {
-      const levelNodeIds: string[] = levelNodes[l]!;
-      const x: number = l * (nodeWidth + horizontalGap) + 20;
-
-      for (let n: number = 0; n < levelNodeIds.length; n++) {
-        const y: number = n * (nodeHeight + verticalGap) + 20;
-        positions.set(levelNodeIds[n]!, { x, y });
-        if (x + nodeWidth > maxX) {
-          maxX = x + nodeWidth;
-        }
-        if (y + nodeHeight > maxY) {
-          maxY = y + nodeHeight;
-        }
-      }
-    }
-
-    return {
-      nodePositions: positions,
-      layoutWidth: maxX + 40,
-      layoutHeight: maxY + 40,
-    };
-  }, [nodes, edges]);
-
-  const nodeWidth: number = 200;
-  const nodeHeight: number = 80;
-
   return (
     <div className="trace-service-map">
       <div className="text-[11px] text-gray-500 mb-2 px-1">
@@ -248,153 +292,27 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
         and latency.
       </div>
       <div
-        className="relative overflow-auto rounded border border-gray-200 bg-gray-50"
-        style={{
-          minHeight: `${Math.max(layoutHeight, 200)}px`,
-        }}
+        className="rounded border border-gray-200 bg-gray-50"
+        style={{ height: "420px", width: "100%" }}
       >
-        <svg
-          width={layoutWidth}
-          height={layoutHeight}
-          className="absolute top-0 left-0"
+        <ReactFlow
+          nodes={flowNodes}
+          edges={flowEdges}
+          nodeTypes={NODE_TYPES}
+          fitView={true}
+          proOptions={{ hideAttribution: true }}
+          nodesDraggable={true}
+          nodesConnectable={false}
+          elementsSelectable={false}
         >
-          {/* Render edges */}
-          {edges.map((edge: ServiceEdge) => {
-            const fromPos: { x: number; y: number } | undefined =
-              nodePositions.get(edge.fromServiceId);
-            const toPos: { x: number; y: number } | undefined =
-              nodePositions.get(edge.toServiceId);
-
-            if (!fromPos || !toPos) {
-              return null;
-            }
-
-            const x1: number = fromPos.x + nodeWidth;
-            const y1: number = fromPos.y + nodeHeight / 2;
-            const x2: number = toPos.x;
-            const y2: number = toPos.y + nodeHeight / 2;
-
-            const midX: number = (x1 + x2) / 2;
-
-            const hasError: boolean = edge.errorCount > 0;
-            const strokeColor: string = hasError ? "#ef4444" : "#9ca3af";
-
-            const avgDuration: number =
-              edge.callCount > 0
-                ? edge.totalDurationUnixNano / edge.callCount
-                : 0;
-            const durationStr: string = SpanUtil.getSpanDurationAsString({
-              spanDurationInUnixNano: avgDuration,
-              divisibilityFactor: divisibilityFactor,
-            });
-
-            const edgeKey: string = `${edge.fromServiceId}->${edge.toServiceId}`;
-
-            return (
-              <g key={edgeKey}>
-                {/* Curved path */}
-                <path
-                  d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
-                  fill="none"
-                  stroke={strokeColor}
-                  strokeWidth={Math.min(2 + edge.callCount * 0.5, 5)}
-                  strokeDasharray={hasError ? "4,4" : "none"}
-                  markerEnd="url(#arrowhead)"
-                />
-                {/* Label */}
-                <text
-                  x={midX}
-                  y={(y1 + y2) / 2 - 8}
-                  textAnchor="middle"
-                  className="text-[10px] fill-gray-500"
-                >
-                  {edge.callCount}x | avg {durationStr}
-                </text>
-                {hasError ? (
-                  <text
-                    x={midX}
-                    y={(y1 + y2) / 2 + 6}
-                    textAnchor="middle"
-                    className="text-[9px] fill-red-500 font-medium"
-                  >
-                    {edge.errorCount} error{edge.errorCount > 1 ? "s" : ""}
-                  </text>
-                ) : (
-                  <></>
-                )}
-              </g>
-            );
-          })}
-          {/* Arrow marker definition */}
-          <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="8"
-              markerHeight="6"
-              refX="8"
-              refY="3"
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 8 3, 0 6"
-                fill="var(--ou-chart-tick, #9ca3af)"
-              />
-            </marker>
-          </defs>
-        </svg>
-
-        {/* Render nodes */}
-        {nodes.map((node: ServiceNode) => {
-          const pos: { x: number; y: number } | undefined = nodePositions.get(
-            node.primaryEntityId,
-          );
-          if (!pos) {
-            return null;
-          }
-
-          const hasErrors: boolean = node.errorCount > 0;
-
-          return (
-            <div
-              key={node.primaryEntityId}
-              className={`absolute rounded-lg border-2 bg-white shadow-sm p-3 ${
-                hasErrors ? "border-red-300" : "border-gray-200"
-              }`}
-              style={{
-                left: `${pos.x}px`,
-                top: `${pos.y}px`,
-                width: `${nodeWidth}px`,
-                height: `${nodeHeight}px`,
-              }}
-            >
-              <div className="flex items-center space-x-2 mb-1">
-                <span
-                  className="h-3 w-3 rounded-sm ring-1 ring-black/10 flex-shrink-0"
-                  style={{ backgroundColor: node.serviceColor }}
-                />
-                <span className="text-xs font-semibold text-gray-800 truncate">
-                  {node.serviceName}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-x-3 text-[10px] text-gray-500">
-                <span>{node.spanCount} spans</span>
-                {hasErrors ? (
-                  <span className="text-red-600 font-medium">
-                    {node.errorCount} errors
-                  </span>
-                ) : (
-                  <></>
-                )}
-              </div>
-              <div className="text-[10px] text-gray-400 mt-0.5">
-                {SpanUtil.getSpanDurationAsString({
-                  spanDurationInUnixNano: node.totalDurationUnixNano,
-                  divisibilityFactor: divisibilityFactor,
-                })}
-              </div>
-            </div>
-          );
-        })}
+          <Controls showInteractive={false} />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={16}
+            size={1}
+            color="var(--ou-chart-grid, #cbd5e1)"
+          />
+        </ReactFlow>
       </div>
     </div>
   );
