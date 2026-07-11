@@ -1,0 +1,14 @@
+FROM alpine:3.22
+
+# A real net-snmp agent (unlike snmpsim, it answers SNMPv3 requests that use
+# the default empty context - which is what the OneUptime probe sends).
+# Serves real IF-MIB data for the container's own interfaces. No LLDP.
+RUN apk add --no-cache net-snmp net-snmp-tools
+
+COPY snmpd.conf /etc/snmp/snmpd.conf.tpl
+
+EXPOSE 161/udp
+
+# createUser is processed and rewritten by snmpd at startup, so the config
+# must live on a writable path inside the container.
+CMD ["sh", "-c", "cp /etc/snmp/snmpd.conf.tpl /etc/snmp/snmpd.conf && exec snmpd -f -Lo -C -c /etc/snmp/snmpd.conf"]
