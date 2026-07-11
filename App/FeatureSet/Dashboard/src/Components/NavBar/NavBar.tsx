@@ -207,16 +207,16 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
      *   iconColor: "blue",
      *   category: observabilityCategory,
      * },
-     * {
-     *   title: t("navbar.items.topologyTitle"),
-     *   description: t("navbar.items.topologyDescription"),
-     *   route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
-     *   activeRoute: RouteMap[PageMap.TOPOLOGY],
-     *   icon: IconProp.FlowDiagram,
-     *   iconColor: "indigo",
-     *   category: observabilityCategory,
-     * },
      */
+    {
+      title: t("navbar.items.topologyTitle"),
+      description: t("navbar.items.topologyDescription"),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
+      activeRoute: RouteMap[PageMap.TOPOLOGY],
+      icon: IconProp.FlowDiagram,
+      iconColor: "indigo",
+      category: observabilityCategory,
+    },
     {
       title: t("navbar.items.servicesTitle"),
       description: t("navbar.items.servicesDescription"),
