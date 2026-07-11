@@ -48,6 +48,15 @@ const NetworkDeviceSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Graph,
         },
+        {
+          link: {
+            title: "Latency Matrix",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_LATENCY_MATRIX] as Route,
+            ),
+          },
+          icon: IconProp.TableCells,
+        },
       ],
     },
     {

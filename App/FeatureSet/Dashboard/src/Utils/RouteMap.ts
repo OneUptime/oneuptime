@@ -131,6 +131,7 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
   [PageMap.NETWORK_DEVICE_TOPOLOGY]: `topology`,
+  [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
 };
 
 export const DockerRoutePath: Dictionary<string> = {
@@ -2469,6 +2470,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_TOPOLOGY]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_TOPOLOGY]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_LATENCY_MATRIX]
     }`,
   ),
 

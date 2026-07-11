@@ -94,6 +94,7 @@ import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
+import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
 } from "Common/Server/Services/ApiKeyPermissionService";
@@ -4140,6 +4141,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkDeviceTopologyAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkLatencyMatrixAPI().getRouter(),
     );
   },
 };

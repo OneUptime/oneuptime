@@ -12,6 +12,7 @@ import NetworkDevices from "../Pages/NetworkDevice/Devices";
 import NetworkDeviceArchived from "../Pages/NetworkDevice/Archived";
 import NetworkDeviceDiscovery from "../Pages/NetworkDevice/Discovery";
 import NetworkDeviceTopology from "../Pages/NetworkDevice/Topology";
+import NetworkDeviceLatencyMatrix from "../Pages/NetworkDevice/LatencyMatrix";
 import NetworkDeviceOverview from "../Pages/NetworkDevice/View/Index";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
 import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/OwnerRules";
@@ -79,6 +80,19 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkDeviceTopology
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_LATENCY_MATRIX] || ""
+          }
+          element={
+            <NetworkDeviceLatencyMatrix
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_LATENCY_MATRIX] as Route
+              }
             />
           }
         />
