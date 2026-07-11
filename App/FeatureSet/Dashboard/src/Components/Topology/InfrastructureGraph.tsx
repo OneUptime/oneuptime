@@ -37,7 +37,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import computeNestedLayout, {
   NestedLayoutBox,
 } from "../../Utils/NestedGraphLayout";
+import computeInfraParenting, { infraEdgeId } from "./InfrastructureNesting";
 import EntityDetailPanel from "./EntityDetailPanel";
+import ServiceNodeCard from "./ServiceNodeCard";
 import { labelForRelationship, metaForEntityType } from "./TopologyMeta";
 
 /*
@@ -45,18 +47,25 @@ import { labelForRelationship, metaForEntityType } from "./TopologyMeta";
  * member-of / hosted-on / part-of / instance-of). Service-to-service call
  * edges live in the sibling Service Map tab.
  *
- * Containment renders as NESTING, not arrows: each structural entity picks
- * one containment edge as its parent (part-of beats runs-on beats
- * member-of; more specific containers beat broader ones, so a pod nests in
- * its node rather than directly in the cluster) and is drawn inside that
- * parent's box — the mental model of a rack diagram. Relationships not
- * expressed by the nesting (a pod's namespace membership, hosted-on,
- * instance-of, and anything touching non-structural entities like
- * services) still render as edges, with plain-language labels on hover.
+ * Containment renders as NESTING, not arrows (see InfrastructureNesting.ts
+ * for how each node's single parent is picked):
+ *   - structural containment nests a pod in its node, a container in its
+ *     host, and so on — the mental model of a rack diagram; and
+ *   - workload grouping nests the fleet of hosts/pods a service runs on
+ *     inside that service, so "one service across 120 hosts" reads as one
+ *     labelled box instead of 120 loose boxes tied to a hub by 120 edges.
+ * Relationships not expressed by the nesting still render as edges, with
+ * plain-language labels on hover.
  */
 
-const LEAF_WIDTH: number = 180;
-const LEAF_HEIGHT: number = 64;
+const LEAF_WIDTH: number = 200;
+const LEAF_HEIGHT: number = 48;
+/*
+ * Light, neutral border for leaf cards — the type is carried by the color
+ * dot, so 120 fleet chips read as a calm texture, not 120 loud borders.
+ */
+const LEAF_BORDER_COLOR: string = "#e2e8f0";
+
 const LAYOUT_OPTIONS: {
   leafWidth: number;
   leafHeight: number;
@@ -71,69 +80,37 @@ const LAYOUT_OPTIONS: {
   leafWidth: LEAF_WIDTH,
   leafHeight: LEAF_HEIGHT,
   padding: 16,
-  headerHeight: 30,
-  gapX: 24,
-  gapY: 20,
-  rootGapX: 60,
-  rootGapY: 50,
-  maxRowWidth: 1400,
-};
-
-/*
- * Only structural entities nest inside a parent box; workloads like
- * services span many pods/hosts, so nesting them under one would lie.
- */
-const NESTABLE_CHILD_TYPES: Set<EntityType> = new Set<EntityType>([
-  EntityType.Container,
-  EntityType.Process,
-  EntityType.KubernetesPod,
-  EntityType.KubernetesNode,
-  EntityType.KubernetesNamespace,
-  EntityType.KubernetesDeployment,
-  EntityType.ProxmoxNode,
-  EntityType.ProxmoxGuest,
-  EntityType.DockerSwarmNode,
-  EntityType.DockerSwarmService,
-  EntityType.DockerSwarmTask,
-]);
-
-// Higher wins when two candidate parents tie on relationship priority.
-const CONTAINER_SPECIFICITY: Partial<Record<EntityType, number>> = {
-  [EntityType.KubernetesCluster]: 0,
-  [EntityType.ProxmoxCluster]: 0,
-  [EntityType.CephCluster]: 0,
-  [EntityType.DockerSwarmCluster]: 0,
-  [EntityType.Host]: 1,
-  [EntityType.KubernetesNamespace]: 1,
-  [EntityType.KubernetesNode]: 2,
-  [EntityType.KubernetesDeployment]: 2,
-  [EntityType.ProxmoxNode]: 2,
-  [EntityType.DockerSwarmNode]: 2,
-  [EntityType.KubernetesPod]: 3,
-  [EntityType.ProxmoxGuest]: 3,
-  [EntityType.DockerSwarmTask]: 3,
-  [EntityType.Container]: 4,
-};
-
-const NESTING_RELATIONSHIP_PRIORITY: Partial<
-  Record<EntityRelationshipType, number>
-> = {
-  [EntityRelationshipType.PartOf]: 3,
-  [EntityRelationshipType.RunsOn]: 2,
-  [EntityRelationshipType.MemberOf]: 1,
+  headerHeight: 44,
+  gapX: 14,
+  gapY: 12,
+  rootGapX: 48,
+  rootGapY: 44,
+  maxRowWidth: 1500,
 };
 
 interface ContainerNodeData {
   title: string;
   typeLabel: string;
   color: string;
+  /** e.g. "120 hosts" — visible child count, from the applied layout. */
+  countLabel: string;
+  dimmed: boolean;
+}
+
+interface LeafNodeData {
+  title: string;
+  typeLabel: string;
+  color: string;
+  /** Standalone leaves show their type; grouped chips omit it (redundant). */
+  showType: boolean;
   dimmed: boolean;
 }
 
 /*
- * A container box: header label at the top, children render inside.
- * Invisible handles so edges touching the container still attach (custom
- * React Flow nodes without <Handle>s silently drop their edges).
+ * A container box: a strong type-colored header (name, type, and a count
+ * pill), children render inside. Invisible handles so edges touching the
+ * container still attach (custom React Flow nodes without <Handle>s silently
+ * drop their edges).
  */
 const InfraContainerNode: FunctionComponent<NodeProps<ContainerNodeData>> = (
   props: NodeProps<ContainerNodeData>,
@@ -145,9 +122,9 @@ const InfraContainerNode: FunctionComponent<NodeProps<ContainerNodeData>> = (
         width: "100%",
         height: "100%",
         border: `2px solid ${data.color}`,
-        borderRadius: 10,
+        borderRadius: 12,
         background: `${data.color}0d`,
-        opacity: data.dimmed ? 0.25 : 1,
+        opacity: data.dimmed ? 0.35 : 1,
         cursor: "pointer",
       }}
     >
@@ -165,37 +142,112 @@ const InfraContainerNode: FunctionComponent<NodeProps<ContainerNodeData>> = (
       />
       <div
         style={{
-          padding: "6px 10px",
-          fontSize: 12,
-          fontWeight: 600,
-          color: "var(--ou-text-primary, #111827)",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          padding: "8px 12px",
         }}
       >
-        {data.title}
-        <span
+        <div
           style={{
-            marginLeft: 8,
-            fontWeight: 400,
-            color: "#6b7280",
-            fontSize: 11,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            minWidth: 0,
           }}
         >
-          {data.typeLabel}
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 3,
+              backgroundColor: data.color,
+              flexShrink: 0,
+              boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.1)",
+            }}
+          />
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "var(--ou-text-primary, #111827)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {data.title}
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 400,
+              color: "#6b7280",
+              flexShrink: 0,
+            }}
+          >
+            {data.typeLabel}
+          </span>
+        </div>
+        <span
+          style={{
+            flexShrink: 0,
+            fontSize: 11,
+            fontWeight: 600,
+            color: data.color,
+            background: `${data.color}1a`,
+            borderRadius: 999,
+            padding: "2px 8px",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {data.countLabel}
         </span>
       </div>
     </div>
   );
 };
 
-const INFRA_NODE_TYPES: Record<
-  string,
-  FunctionComponent<NodeProps<ContainerNodeData>>
-> = {
-  infraContainer: InfraContainerNode,
+/*
+ * A leaf node: the shared service-graph card so the Infrastructure map and
+ * the Service Map speak one visual language. Type is carried by the color
+ * dot; the border stays a calm neutral.
+ */
+const InfraLeafNode: FunctionComponent<NodeProps<LeafNodeData>> = (
+  props: NodeProps<LeafNodeData>,
+): ReactElement => {
+  const { data } = props;
+  return (
+    <ServiceNodeCard
+      label={data.title}
+      health="unknown"
+      borderColor={LEAF_BORDER_COLOR}
+      colorDot={data.color}
+      dimmed={data.dimmed}
+      statLines={
+        data.showType
+          ? [
+              <span key="type" style={{ color: "#6b7280" }}>
+                {data.typeLabel}
+              </span>,
+            ]
+          : undefined
+      }
+    />
+  );
 };
+
+const INFRA_NODE_TYPES: Record<string, FunctionComponent<NodeProps>> = {
+  infraContainer: InfraContainerNode as FunctionComponent<NodeProps>,
+  infraLeaf: InfraLeafNode as FunctionComponent<NodeProps>,
+};
+
+const WORKLOAD_GROUPING_RELATIONSHIPS: Set<EntityRelationshipType> =
+  new Set<EntityRelationshipType>([
+    EntityRelationshipType.HostedOn,
+    EntityRelationshipType.RunsOn,
+  ]);
 
 export interface ComponentProps {
   entities: Array<TelemetryEntity>;
@@ -339,9 +391,16 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     return reached;
   }, [effectiveFocusKey, infraEdges]);
 
-  const { nodes, edges } = useMemo((): {
-    nodes: Array<Node>;
+  /*
+   * The layout is deliberately independent of searchText: search only dims
+   * non-matching nodes, so recomputing the two-pass parenting + nested
+   * layout on every keystroke (potentially ~1000 nodes) would be wasted
+   * work. Dimming is applied in a cheap downstream memo (displayNodes).
+   */
+  const { baseNodes, edges, appliedParent } = useMemo((): {
+    baseNodes: Array<Node>;
     edges: Array<Edge>;
+    appliedParent: Map<string, string>;
   } => {
     const visibleKeys: Set<string> = new Set<string>();
     for (const key of graphNodeKeys) {
@@ -365,64 +424,22 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
       },
     );
 
-    /*
-     * Pick one containment edge per structural entity as its nesting
-     * parent: highest relationship priority wins, then the most specific
-     * container type, then the lexicographically smallest key so the
-     * choice is deterministic. Edges chosen for nesting are not drawn.
-     */
-    const parentOf: Map<string, string> = new Map<string, string>();
-    const nestingEdgeKeys: Set<string> = new Set<string>();
-    const candidateByChild: Map<
-      string,
-      { relationship: TelemetryEntityRelationship; score: [number, number] }
-    > = new Map<
-      string,
-      { relationship: TelemetryEntityRelationship; score: [number, number] }
-    >();
-    for (const relationship of visibleEdges) {
-      const childKey: string = relationship.fromEntityKey!;
-      const parentKey: string = relationship.toEntityKey!;
-      const childType: EntityType | undefined =
-        entityByKey.get(childKey)?.entityType;
-      const parentType: EntityType | undefined =
-        entityByKey.get(parentKey)?.entityType;
-      if (!childType || !NESTABLE_CHILD_TYPES.has(childType)) {
-        continue;
-      }
-      const priority: number =
-        NESTING_RELATIONSHIP_PRIORITY[
-          relationship.relationshipType as EntityRelationshipType
-        ] || 0;
-      if (priority === 0) {
-        continue;
-      }
-      const specificity: number =
-        (parentType && CONTAINER_SPECIFICITY[parentType]) ?? -1;
-      const score: [number, number] = [priority, specificity];
-      const current:
-        | {
-            relationship: TelemetryEntityRelationship;
-            score: [number, number];
-          }
-        | undefined = candidateByChild.get(childKey);
-      const better: boolean =
-        !current ||
-        score[0] > current.score[0] ||
-        (score[0] === current.score[0] && score[1] > current.score[1]) ||
-        (score[0] === current.score[0] &&
-          score[1] === current.score[1] &&
-          parentKey < (current.relationship.toEntityKey || ""));
-      if (better) {
-        candidateByChild.set(childKey, { relationship, score });
-      }
+    const entityTypeByKey: Map<string, EntityType | string | undefined> =
+      new Map<string, EntityType | string | undefined>();
+    for (const key of visibleKeys) {
+      entityTypeByKey.set(key, entityByKey.get(key)?.entityType);
     }
-    for (const [childKey, candidate] of candidateByChild) {
-      parentOf.set(childKey, candidate.relationship.toEntityKey!);
-      nestingEdgeKeys.add(
-        `${candidate.relationship.fromEntityKey}-${candidate.relationship.relationshipType}-${candidate.relationship.toEntityKey}`,
-      );
-    }
+
+    const { parentOf, nestingEdgeByChild } = computeInfraParenting(
+      visibleEdges.map((relationship: TelemetryEntityRelationship) => {
+        return {
+          fromEntityKey: relationship.fromEntityKey!,
+          toEntityKey: relationship.toEntityKey!,
+          relationshipType: relationship.relationshipType!,
+        };
+      }),
+      entityTypeByKey,
+    );
 
     const layout: Map<string, NestedLayoutBox> = computeNestedLayout(
       Array.from(visibleKeys),
@@ -430,41 +447,94 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
       LAYOUT_OPTIONS,
     );
 
-    const lowerSearch: string = searchText.trim().toLowerCase();
-    const hasChildren: Set<string> = new Set<string>(parentOf.values());
+    /*
+     * Read the APPLIED hierarchy back from the sanitized layout — NOT from
+     * parentOf. computeNestedLayout silently drops cycle/self/unknown
+     * parent links, so anything that styles or hides nodes must agree with
+     * where they were actually placed, or a dropped link leaves a
+     * leaf-sized box wearing container chrome and an edge that is neither
+     * drawn nor nested.
+     */
+    const appliedParent: Map<string, string> = new Map<string, string>();
+    const childCount: Map<string, number> = new Map<string, number>();
+    const childTypeOfParent: Map<string, Set<string>> = new Map<
+      string,
+      Set<string>
+    >();
+    for (const [key, box] of layout) {
+      if (box.parentId) {
+        appliedParent.set(key, box.parentId);
+        childCount.set(box.parentId, (childCount.get(box.parentId) || 0) + 1);
+        const set: Set<string> =
+          childTypeOfParent.get(box.parentId) || new Set<string>();
+        set.add(entityByKey.get(key)?.entityType || "unknown");
+        childTypeOfParent.set(box.parentId, set);
+      }
+    }
+    const hasChildren: Set<string> = new Set<string>(appliedParent.values());
+
+    // Only hide an edge if the nesting it expresses was actually applied.
+    const consumedEdgeIds: Set<string> = new Set<string>();
+    for (const [childKey, selection] of nestingEdgeByChild) {
+      if (appliedParent.get(childKey) === selection.parentKey) {
+        consumedEdgeIds.add(selection.edgeId);
+      }
+    }
 
     /*
      * React Flow requires a parent node to appear in the array before its
-     * children — order by nesting depth.
+     * children — order by nesting depth (read from the same sanitized
+     * layout, so order and hierarchy can never disagree). Depth is memoized
+     * once rather than re-walked inside the sort comparator.
      */
+    const depthByKey: Map<string, number> = new Map<string, number>();
     const depthOf: (key: string) => number = (key: string): number => {
-      let depth: number = 0;
-      let cursor: string | undefined = layout.get(key)?.parentId || undefined;
-      while (cursor && depth < 100) {
-        depth++;
-        cursor = layout.get(cursor)?.parentId || undefined;
+      const cached: number | undefined = depthByKey.get(key);
+      if (cached !== undefined) {
+        return cached;
       }
+      let depth: number = 0;
+      let cursor: string | undefined = appliedParent.get(key);
+      const guard: Set<string> = new Set<string>([key]);
+      while (cursor && !guard.has(cursor) && depth < 100) {
+        guard.add(cursor);
+        depth++;
+        cursor = appliedParent.get(cursor);
+      }
+      depthByKey.set(key, depth);
       return depth;
     };
 
+    /*
+     * Code-unit compare (matches computeNestedLayout's .sort()) for a
+     * deterministic, locale-independent order.
+     */
     const orderedKeys: Array<string> = Array.from(visibleKeys).sort(
       (a: string, b: string) => {
         const diff: number = depthOf(a) - depthOf(b);
         if (diff !== 0) {
           return diff;
         }
-        return a.localeCompare(b);
+        return a < b ? -1 : a > b ? 1 : 0;
       },
     );
+
+    const countLabelFor: (key: string) => string = (key: string): string => {
+      const count: number = childCount.get(key) || 0;
+      const types: Set<string> = childTypeOfParent.get(key) || new Set();
+      if (types.size === 1) {
+        const only: string = Array.from(types)[0]!;
+        const noun: string = metaForEntityType(only).label.toLowerCase();
+        return `${count} ${noun}${count === 1 ? "" : "s"}`;
+      }
+      return `${count} item${count === 1 ? "" : "s"}`;
+    };
 
     const builtNodes: Array<Node> = orderedKeys.map((key: string): Node => {
       const entity: TelemetryEntity | undefined = entityByKey.get(key);
       const label: string = entity?.displayName || "Unnamed entity";
       const typeMeta: { label: string; color: string } = metaForEntityType(
         entity?.entityType,
-      );
-      const dimmed: boolean = Boolean(
-        lowerSearch && !label.toLowerCase().includes(lowerSearch),
       );
       const box: NestedLayoutBox = layout.get(key) || {
         x: 0,
@@ -491,39 +561,68 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
             title: label,
             typeLabel: typeMeta.label,
             color: typeMeta.color,
-            dimmed,
-          },
+            countLabel: countLabelFor(key),
+            dimmed: false,
+          } as ContainerNodeData,
           style: { width: box.width, height: box.height },
         } as Node;
       }
 
       return {
         id: key,
+        type: "infraLeaf",
         ...common,
-        data: { label: `${label}\n${typeMeta.label}` },
-        style: {
-          fontSize: "12px",
-          whiteSpace: "pre-line",
-          border: `2px solid ${typeMeta.color}`,
-          borderRadius: 8,
-          backgroundColor: "var(--ou-surface-primary, #ffffff)",
-          color: "var(--ou-text-primary, #111827)",
-          width: LEAF_WIDTH,
-          opacity: dimmed ? 0.25 : 1,
-          cursor: "pointer",
-        },
+        data: {
+          title: label,
+          typeLabel: typeMeta.label,
+          color: typeMeta.color,
+          showType: !box.parentId,
+          dimmed: false,
+        } as LeafNodeData,
       } as Node;
     });
 
     const builtEdges: Array<Edge> = visibleEdges
       .filter((relationship: TelemetryEntityRelationship) => {
-        // Relationships expressed by the nesting are not drawn as arrows.
-        return !nestingEdgeKeys.has(
-          `${relationship.fromEntityKey}-${relationship.relationshipType}-${relationship.toEntityKey}`,
+        const id: string = infraEdgeId(
+          relationship.fromEntityKey!,
+          relationship.relationshipType!,
+          relationship.toEntityKey!,
         );
+        // Relationships expressed by the applied nesting are not drawn.
+        if (consumedEdgeIds.has(id)) {
+          return false;
+        }
+        /*
+         * Suppress secondary workload edges: a host on several services
+         * nests under one of them, but the OTHER services' hosted-on/
+         * runs-on edges would otherwise pierce into that group's box and
+         * rebuild a mini-hairball. The extra memberships still show in the
+         * node's detail panel. Never draw an edge terminating on a node
+         * nested inside a different service's box.
+         */
+        const parentOfTarget: string | undefined = appliedParent.get(
+          relationship.toEntityKey!,
+        );
+        if (
+          WORKLOAD_GROUPING_RELATIONSHIPS.has(
+            relationship.relationshipType as EntityRelationshipType,
+          ) &&
+          entityByKey.get(relationship.fromEntityKey!)?.entityType ===
+            EntityType.Service &&
+          parentOfTarget &&
+          entityByKey.get(parentOfTarget)?.entityType === EntityType.Service
+        ) {
+          return false;
+        }
+        return true;
       })
       .map((relationship: TelemetryEntityRelationship): Edge => {
-        const id: string = `${relationship.fromEntityKey}-${relationship.relationshipType}-${relationship.toEntityKey}`;
+        const id: string = infraEdgeId(
+          relationship.fromEntityKey!,
+          relationship.relationshipType!,
+          relationship.toEntityKey!,
+        );
         return {
           id,
           source: relationship.fromEntityKey!,
@@ -540,15 +639,41 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
         };
       });
 
-    return { nodes: builtNodes, edges: builtEdges };
-  }, [
-    infraEdges,
-    graphNodeKeys,
-    entityByKey,
-    excludedTypes,
-    focusedKeys,
-    searchText,
-  ]);
+    return { baseNodes: builtNodes, edges: builtEdges, appliedParent };
+  }, [infraEdges, graphNodeKeys, entityByKey, excludedTypes, focusedKeys]);
+
+  /*
+   * Apply search dimming here (cheap: no relayout). A container stays bright
+   * if it OR any descendant matches — React Flow multiplies a parent's
+   * opacity onto its children, so dimming a matched chip's container would
+   * hide the very node the search found.
+   */
+  const displayNodes: Array<Node> = useMemo(() => {
+    const lower: string = searchText.trim().toLowerCase();
+    if (!lower) {
+      return baseNodes;
+    }
+    const bright: Set<string> = new Set<string>();
+    for (const node of baseNodes) {
+      const title: string = (
+        (node.data as { title?: string } | undefined)?.title || ""
+      ).toLowerCase();
+      if (title.includes(lower)) {
+        let cursor: string | undefined = node.id;
+        while (cursor && !bright.has(cursor)) {
+          bright.add(cursor);
+          cursor = appliedParent.get(cursor);
+        }
+      }
+    }
+    return baseNodes.map((node: Node): Node => {
+      const dimmed: boolean = !bright.has(node.id);
+      return {
+        ...node,
+        data: { ...(node.data as Record<string, unknown>), dimmed },
+      } as Node;
+    });
+  }, [baseNodes, appliedParent, searchText]);
 
   /*
    * Hover labels live in a separate cheap memo: only the edges array
@@ -577,16 +702,16 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
    * Re-fit when the visible graph changes. A new controlled `nodes` array
    * wipes React Flow's measured dimensions, and fitView no-ops (returns
    * false) until nodes re-measure — retry on animation frames until it
-   * lands.
+   * lands. Only structural changes (focus / node count) refit, not dimming.
    */
   useEffect(() => {
     let raf: number = 0;
-    let attempts: number = 20;
+    let attempts: number = 16;
     const tryFit: () => void = (): void => {
       const didFit: boolean = Boolean(
         flowInstance.current &&
-          nodes.length > 0 &&
-          flowInstance.current.fitView({ padding: 0.15 }),
+          baseNodes.length > 0 &&
+          flowInstance.current.fitView({ padding: 0.12 }),
       );
       if (!didFit && attempts > 0) {
         attempts--;
@@ -597,7 +722,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [focusKey, nodes.length]);
+  }, [focusKey, baseNodes.length]);
 
   const selectedEntity: TelemetryEntity | null =
     (selectedKey && entityByKey.get(selectedKey)) || null;
@@ -678,14 +803,38 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
             </button>
           )}
         </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+          {presentTypes.map((typeLabel: string): ReactElement => {
+            const meta: { label: string; color: string } =
+              metaForEntityType(typeLabel);
+            return (
+              <span
+                key={typeLabel}
+                className="inline-flex items-center gap-1.5 text-xs text-gray-500"
+              >
+                <span
+                  className="inline-block"
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 3,
+                    backgroundColor: meta.color,
+                    boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.1)",
+                  }}
+                />
+                {meta.label}
+              </span>
+            );
+          })}
+        </div>
         <p className="mt-2 text-xs text-gray-500">
           {translateString(
-            "Entities are nested inside what contains them. Hover over a connection to see how two entities are related; click anything for details.",
+            "Hosts and workloads are grouped inside what they run on. Search to find one; hover a connection to see how two entities relate; click anything for details.",
           ) || ""}
         </p>
       </div>
 
-      {nodes.length === 0 ? (
+      {baseNodes.length === 0 ? (
         <EmptyState
           id="topology-filtered-empty"
           icon={IconProp.FlowDiagram}
@@ -695,7 +844,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
       ) : (
         <div style={{ height: "70vh", width: "100%" }}>
           <ReactFlow
-            nodes={nodes}
+            nodes={displayNodes}
             edges={displayEdges}
             nodeTypes={INFRA_NODE_TYPES}
             fitView={true}
