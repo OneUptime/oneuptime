@@ -169,7 +169,7 @@ Ordering changed from the original roadmap — rationale in the Deviations log. 
 
 **X — fix-before-incident:**
 
-- [ ] Outcome instrumentation on the EXISTING manual fix path first (PR merged / closed-unmerged / merged-with-edits, from `AIAgentTaskPullRequest` state) — zero-risk, starts the G11 precision baseline immediately
+- [ ] Outcome instrumentation on the EXISTING manual fix path first (PR merged / closed-unmerged / merged-with-edits, from `AIAgentTaskPullRequest` state) — zero-risk, starts the G11 precision baseline immediately *(state-sync half shipped 2026-07-13: `AIAgent:SyncPullRequestStates` polls open agent PRs every 30 min via the GitHub App and records Merged/Closed — the raw baseline now accumulates; merged-with-edits detection + per-project rate reporting still open)*
 - [ ] Flip `enableAutomaticImprovements` default to **false** + explicit project-level preventive opt-in flag (the column shipped default-true with no engine; when an engine lands it must not become silent default-on — same opt-in posture as the investigation flags)
 - [ ] Auto-created fix tasks for graduated finding types only (new-fingerprint exceptions first — highest precision, handler exists), honoring `restrictedImprovementActions` + `maxOpenPullRequests` + a per-project daily fix-task budget + a retry cap (the 30-min stuck-task reset currently retries forever); **draft PRs, human review always**; requires the code-fix track's sandbox + verify loop (today's path commits the agent diff and opens a non-draft PR with zero build/test/lint)
 - [ ] Widen the fix context beyond the stack trace: fix tasks read the finding's cited evidence (logs/traces/spans/occurrence history) — the "grounded in full telemetry" differentiator, currently absent even from the manual path
@@ -249,6 +249,8 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 | 2026-07 | **D5:** Roadmap restructured: original `AISentinelReliabilityBrain.md` split into Vision + this tracker | The single doc's execution claims were stale at merge time ("zero implementation" shipped in the same commit); vision content had not drifted at all |
 
 ## 8. Changelog
+
+- **2026-07-13** — **Shipped Preventive-lane X-1 (first half): AI-agent PR outcome sync.** New `AIAgent:SyncPullRequestStates` worker (every 30 min) resolves open `AIAgentTaskPullRequest` rows against GitHub via the App installation (token reused per installation, uninstalled apps skipped) and records Merged / Closed — merged-first mapping so merges never count as plain closes. `pullRequestState` previously stayed "Open" forever, making fix-acceptance rates unknowable; the G11 precision baseline now accumulates from real usage. Merged-with-edits detection and rate reporting remain open.
 
 - **2026-07-13** — **Shipped UX-overhaul C3+D3: AI agent fleet demoted to Settings.** Fleet management (the Probe-pattern AIAgent credential object) moved from AI > Agents to **Settings > AI > AI Agents** at `settings/ai-agents/…` — which makes `AIAgentService.getLinkInDashboard`'s owner-notification links (emails/push/WhatsApp) point at a real page for the first time since they shipped (the server already emitted this path; it was dead in the dashboard). Probe-style "Show ID and Key" added to the list; old `/ai/agents/agents` pages/routes removed; readiness deep-link + guidance strings updated. D3: the AI Logs side-menu items on incident/alert/maintenance views (commented out 2025-12-16, pages orphaned-but-working since) are restored.
 
