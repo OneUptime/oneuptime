@@ -21,6 +21,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunHumanVerdict from "../../Types/AI/AIRunHumanVerdict";
+import AIRunAutoGrade from "../../Types/AI/AIRunAutoGrade";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import {
   AIRunEgressManifest,
@@ -708,6 +710,133 @@ export default class AIRun extends BaseModel {
     length: ColumnLength.LongText,
   })
   public errorMessage?: string = undefined;
+
+  /*
+   * Measurement layer (Phase 2): the one-click human verdict on a completed
+   * investigation's posted analysis. Written only by the server via
+   * POST /ai-investigation/verdict (empty create/update ACL, like every
+   * other column on this table); overwriting is allowed — a user may change
+   * their mind.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Human Verdict",
+    description:
+      "For investigation runs: the one-click human verdict on the posted analysis (Confirmed or Rejected). Null until a user weighs in.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public humanVerdict?: AIRunHumanVerdict = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Human Verdict At",
+    description: "When the human verdict was recorded (or last changed).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public humanVerdictAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Human Verdict By User ID",
+    description: "The user who recorded (or last changed) the human verdict.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public humanVerdictByUserId?: ObjectID = undefined;
+
+  /*
+   * Measurement layer (Phase 2): the automatic grade assigned when the
+   * incident behind this investigation resolves with a human-recorded root
+   * cause — one constrained LLM comparison of the posted analysis against
+   * Incident.rootCause (see Sentinel/InvestigationGrader.ts). Null means
+   * not graded (yet); a set value also serves as the grading dedupe.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Auto Grade",
+    description:
+      "For investigation runs: how the posted analysis compared to the incident's final recorded root cause (Match, Partial or Mismatch).",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public autoGrade?: AIRunAutoGrade = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Auto Graded At",
+    description: "When the automatic grade was recorded.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public autoGradeAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -5,6 +5,7 @@ import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/Inciden
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
 import IncidentInternalNoteService from "../../../Services/IncidentInternalNoteService";
+import IncidentService from "../../../Services/IncidentService";
 import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "../IncidentAIContextBuilder";
@@ -175,6 +176,22 @@ export default class SentinelIncidentInvestigationRunner {
           } catch (error) {
             logger.error(
               `Sentinel: failed to post RCA internal note for incident ${incidentId.toString()}: ${error}`,
+            );
+          }
+
+          /*
+           * Measurement layer: record the time-to-rca metric (seconds from
+           * incident creation to this analysis post, with the same base
+           * attribute shape as every other incident metric). Best-effort —
+           * metrics must never break the RCA post.
+           */
+          try {
+            await IncidentService.recordTimeToRootCausePostedMetric({
+              incidentId,
+            });
+          } catch (error) {
+            logger.error(
+              `Sentinel: failed to record time-to-rca metric for incident ${incidentId.toString()}: ${error}`,
             );
           }
 

@@ -440,6 +440,7 @@ import { AddInstrumentationFixTasksFlag1783954040984 } from "./1783954040984-Add
 import { AddTaskContextToAIRun1783958542237 } from "./1783958542237-AddTaskContextToAIRun";
 import { MigrationName1783937343400 } from "./1783937343400-MigrationName";
 import { MigrationName1783957160597 } from "./1783957160597-MigrationName";
+import { AddInvestigationVerdictAndGrade1783965945957 } from "./1783965945957-AddInvestigationVerdictAndGrade";
 
 export default [
   InitialMigration,
@@ -884,4 +885,5 @@ export default [
   AddInstrumentationFixTasksFlag1783954040984,
   MigrationName1783957160597,
   AddTaskContextToAIRun1783958542237,
+  AddInvestigationVerdictAndGrade1783965945957,
 ];

@@ -3,6 +3,8 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
+import AIRunHumanVerdict from "../../Types/AI/AIRunHumanVerdict";
+import BadDataException from "../../Types/Exception/BadDataException";
 import CodeFixTaskType, {
   CodeFixContextKind,
   CodeFixTaskTypeHelper,
@@ -269,6 +271,61 @@ export class Service extends DatabaseService<Model> {
     });
 
     return runs;
+  }
+
+  /*
+   * Measurement layer (Phase 2): record a human's one-click verdict
+   * (Confirmed / Rejected) on the LATEST COMPLETED investigation run for an
+   * incident or alert. Overwriting an existing verdict is deliberate — a
+   * user may change their mind; the verdict is per-run state, not an audit
+   * trail. Throws when no completed investigation exists for the subject.
+   * Callers must have already access-checked the subject under the USER's
+   * permissions — this method reads and writes as root (investigation runs
+   * are system-authored, so the per-user privacy pin would hide them).
+   */
+  @CaptureSpan()
+  public async applyHumanVerdictToLatestInvestigation(data: {
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    verdict: AIRunHumanVerdict;
+    verdictByUserId: ObjectID;
+  }): Promise<{ runId: ObjectID; verdict: AIRunHumanVerdict }> {
+    if (!data.incidentId && !data.alertId) {
+      throw new BadDataException(
+        "An incident or alert subject is required to record a verdict.",
+      );
+    }
+
+    const run: Model | null = await this.findOneBy({
+      query: {
+        runType: AIRunType.Investigation,
+        status: AIRunStatus.Completed,
+        ...(data.incidentId
+          ? { triggeredByIncidentId: data.incidentId }
+          : { triggeredByAlertId: data.alertId! }),
+      },
+      select: { _id: true },
+      sort: { createdAt: SortOrder.Descending },
+      props: { isRoot: true },
+    });
+
+    if (!run || !run.id) {
+      throw new BadDataException(
+        "No completed AI investigation exists for this subject yet — a verdict can only be recorded on a completed investigation.",
+      );
+    }
+
+    await this.updateOneById({
+      id: run.id,
+      data: {
+        humanVerdict: data.verdict,
+        humanVerdictAt: OneUptimeDate.getCurrentDate(),
+        humanVerdictByUserId: data.verdictByUserId,
+      },
+      props: { isRoot: true },
+    });
+
+    return { runId: run.id, verdict: data.verdict };
   }
 
   protected override async onBeforeFind(
