@@ -16,9 +16,9 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
       <CardModelDetail<Project>
         name="Automatic Incident Investigation"
         cardProps={{
-          title: "Automatic Incident Investigation (Sentinel)",
+          title: "Sentinel: Automatic Incident Investigation",
           description:
-            "When enabled, OneUptime's AI SRE (Sentinel) automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. Requires an LLM provider to be configured in Settings > LLM Providers.",
+            "When enabled, Sentinel — OneUptime's AI SRE — automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. Requires an LLM provider to be configured in Settings > Sentinel > LLM Providers.",
         }}
         isEditable={true}
         editButtonText={"Update"}
@@ -39,7 +39,7 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             },
             title: "Instrumentation PRs From Inconclusive Investigations",
             description:
-              "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, the AI agent opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
+              "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, Sentinel opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },

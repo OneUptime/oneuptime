@@ -70,7 +70,7 @@ const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Fix Pull Request Outcomes"
-      description="How the pull requests opened by the AI agent were received. States sync from GitHub every 30 minutes."
+      description="How the pull requests opened by Sentinel were received. States sync from GitHub every 30 minutes."
     >
       <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100 mt-2">
         <div className="px-4 py-2">

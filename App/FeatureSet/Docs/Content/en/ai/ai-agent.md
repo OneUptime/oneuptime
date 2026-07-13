@@ -1,19 +1,19 @@
 # AI Agents — Fix Exceptions with a Pull Request
 
-The OneUptime AI Agent turns an unresolved exception into a reviewable pull request. On any unresolved exception, click **Fix with AI Agent**: the agent reads the exception (type, error message, and stack trace), clones the GitHub repository linked to the service that threw it, writes a fix on a new branch, and opens a pull request.
+Sentinel turns an unresolved exception into a reviewable pull request. On any unresolved exception, click **Fix with Sentinel**: the agent reads the exception (type, error message, and stack trace), clones the GitHub repository linked to the service that threw it, writes a fix on a new branch, and opens a pull request.
 
 Every pull request is reviewed and merged by a human. The agent never merges its own changes — it can push branches and open PRs, nothing more.
 
 ## How a fix run works
 
-1. You click **Fix with AI Agent** on an unresolved exception.
+1. You click **Fix with Sentinel** on an unresolved exception.
 2. A fix task is created and picked up by an available agent.
 3. The agent fetches the exception details — exception type, error message, and stack trace.
 4. It clones the linked repository into an ephemeral workspace and creates a branch (named like `oneuptime-fix-exception-<task-id>`).
 5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix.
 6. The agent commits, pushes the branch, opens a pull request, and deletes the workspace.
 
-The exception page shows the task's live status. The task's detail page (under **AI** > **Agents** > **Tasks**) keeps the full run log and links to every pull request the task opened.
+The exception page shows the task's live status. The task's detail page (under **Sentinel** > **Tasks**) keeps the full run log and links to every pull request the task opened.
 
 ## Prerequisites
 
@@ -21,7 +21,7 @@ Three things must be in place before the agent can fix anything. The exception p
 
 ### 1. An LLM provider
 
-- **OneUptime Cloud**: agent tasks always run with an LLM provider your project owns — configure one under **Project Settings** > **AI** > **LLM Providers**. The shared global provider (the one billed as metered AI tokens) is **not** usable for agent tasks.
+- **OneUptime Cloud**: agent tasks always run with an LLM provider your project owns — configure one under **Project Settings** > **Sentinel** > **LLM Providers**. The shared global provider (the one billed as metered AI tokens) is **not** usable for agent tasks.
 - **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a local Ollama:
 
 ```bash
@@ -44,7 +44,7 @@ You do **not** map repositories to services: OneUptime resolves the right reposi
 - **OneUptime Cloud**: the shared agent fleet is available automatically — there is nothing to run.
 - **Self-hosted**: the agent container runs by default — the Docker Compose install includes the `ai-agent` service, and the Helm chart deploys it (`aiAgent.enabled`, default `true`). It registers itself with your instance automatically (no credentials to copy) and shows up on the agents page. The agent idles cheaply when no LLM provider is configured; tasks fail early with guidance until one is set up.
 
-To run an additional agent elsewhere (for example on a machine closer to your repositories), create an agent under **Settings** > **AI** > **AI Agents**. You will get an `AI_AGENT_ID` and an `AI_AGENT_KEY` (the key is shown once — save it securely). Then run the agent container:
+To run an additional agent elsewhere (for example on a machine closer to your repositories), create an agent under **Settings** > **Sentinel** > **AI Agents**. You will get an `AI_AGENT_ID` and an `AI_AGENT_KEY` (the key is shown once — save it securely). Then run the agent container:
 
 ```bash
 docker run --name oneuptime-ai-agent --network host \
@@ -62,7 +62,7 @@ The agent page in the dashboard shows this command pre-filled with your agent's 
 | `AI_AGENT_ID`   | The agent ID from the dashboard                                      |
 | `ONEUPTIME_URL` | Your OneUptime instance URL (`https://oneuptime.com` on Cloud)       |
 
-The agent shows as connected on the **Settings** > **AI** > **AI Agents** page within a few minutes. If it does not, check the container logs (`docker logs oneuptime-ai-agent`) for credential or network errors.
+The agent shows as connected on the **Settings** > **Sentinel** > **AI Agents** page within a few minutes. If it does not, check the container logs (`docker logs oneuptime-ai-agent`) for credential or network errors.
 
 ## When a fix fails
 

@@ -87,7 +87,7 @@ const AIBillingSettings: FunctionComponent<
             },
             title: "Enable AI",
             description:
-              "Enable AI services for this project. This allows the use of AI features like copilot, automatic improvements, and more.",
+              "Enable AI services for this project. This allows the use of Sentinel features like chat, investigations, automatic improvements, and more.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },

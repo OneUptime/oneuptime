@@ -143,7 +143,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
               <div className="truncate text-sm font-semibold text-gray-900">
                 {chat.isConversationView
                   ? chat.activeConversationTitle
-                  : "Ask AI"}
+                  : "Ask Sentinel"}
               </div>
               <div className="truncate text-xs text-gray-400">
                 {chat.isWorking
