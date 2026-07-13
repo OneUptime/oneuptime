@@ -244,13 +244,45 @@ function getChartPalette(
 }
 
 /*
+ * Split a composed grouped-series name back into its "key=value" segments,
+ * using the known group keys so it stays correct when a value itself contains
+ * the ", " that also joins multi-key segments. A single-key group-by has
+ * exactly one segment (the whole name), so a comma in the value can never be
+ * mis-split. For multi-key names, a fragment that doesn't start with a known
+ * "key=" prefix is treated as a continuation of the previous value.
+ */
+function splitSeriesNameIntoSegments(
+  seriesName: string,
+  groupByKeys: Array<string>,
+): Array<string> {
+  if (groupByKeys.length <= 1) {
+    return [seriesName];
+  }
+  const startsWithKnownKey: (fragment: string) => boolean = (
+    fragment: string,
+  ): boolean => {
+    return groupByKeys.some((key: string): boolean => {
+      return fragment.startsWith(`${key}=`);
+    });
+  };
+  const segments: Array<string> = [];
+  for (const fragment of seriesName.split(", ")) {
+    if (segments.length > 0 && !startsWithKnownKey(fragment)) {
+      segments[segments.length - 1] += `, ${fragment}`;
+    } else {
+      segments.push(fragment);
+    }
+  }
+  return segments;
+}
+
+/*
  * Resolve the color for one series. Per-group pins win first: `colorsByGroup`
- * is keyed by the "key=value" segment the series renderer emits, so a composed
- * multi-key name ("service.name=api, host.name=web1") is split on ", " and the
- * first matching segment's pin is used. Otherwise fall back to the effective
- * palette by position — `effectivePalette` already leads with the query's
- * single `color`, so a color-only query keeps its exact prior behavior. Used by
- * both the chart's colors array and the legend chips so they always agree.
+ * is keyed by the "key=value" segment the series renderer emits, matched via
+ * the key-aware split above. Otherwise fall back to the effective palette by
+ * position — `effectivePalette` already leads with the query's single `color`,
+ * so a color-only query keeps its exact prior behavior. Used by both the
+ * chart's colors array and the legend chips so they always agree.
  */
 function resolveSeriesColor(
   seriesName: string,
@@ -258,9 +290,13 @@ function resolveSeriesColor(
   opts: {
     colorsByGroup: Record<string, string>;
     effectivePalette: Array<ChartColorValue>;
+    groupByKeys: Array<string>;
   },
 ): ChartColorValue {
-  const segments: Array<string> = seriesName.split(", ");
+  const segments: Array<string> = splitSeriesNameIntoSegments(
+    seriesName,
+    opts.groupByKeys,
+  );
   for (const segment of segments) {
     const pinned: string | undefined = opts.colorsByGroup[segment];
     if (pinned) {
@@ -301,6 +337,8 @@ function renderSeriesControls(input: {
    * Per-group color pins keyed by "key=value" segment (see resolveSeriesColor).
    */
   colorsByGroup?: Record<string, string> | undefined;
+  // The query's group-by attribute keys, for key-aware segment matching.
+  groupByKeys?: Array<string> | undefined;
   /*
    * Formats a series value (peak/avg/latest) for display next to its name,
    * using the same unit/precision as the chart's y-axis.
@@ -319,6 +357,7 @@ function renderSeriesControls(input: {
     chartType,
     color,
     colorsByGroup,
+    groupByKeys,
     valueFormatter,
   } = input;
 
@@ -356,6 +395,7 @@ function renderSeriesControls(input: {
       resolveSeriesColor(series.seriesName, i, {
         colorsByGroup: chipColorsByGroup,
         effectivePalette,
+        groupByKeys: groupByKeys || [],
       }),
     );
   });
@@ -1098,6 +1138,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         getChartPalette(chartType);
       const chartColorsByGroup: Record<string, string> =
         queryConfig.colorsByGroup || {};
+      const chartGroupByKeys: Array<string> =
+        queryConfig.metricQueryData.groupByAttributeKeys || [];
       const effectiveChartPalette: Array<ChartColorValue> = queryConfig.color
         ? [queryConfig.color, ...chartBasePalette]
         : chartBasePalette;
@@ -1110,6 +1152,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               return resolveSeriesColor(s.seriesName, i, {
                 colorsByGroup: chartColorsByGroup,
                 effectivePalette: effectiveChartPalette,
+                groupByKeys: chartGroupByKeys,
               });
             })
           : undefined;
@@ -1148,6 +1191,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               chartType,
               color: queryConfig.color,
               colorsByGroup: queryConfig.colorsByGroup,
+              groupByKeys: queryConfig.metricQueryData.groupByAttributeKeys,
               valueFormatter: seriesValueFormatter,
             })
           : undefined;

@@ -71,6 +71,22 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
     props.data?.metricQueryData?.filterData?.metricName?.toString() || "";
 
   /*
+   * Whether any per-group pin belongs to a CURRENT group-by key. Pins for keys
+   * the query no longer groups by are intentionally kept in storage (so they
+   * return if the key is re-added rather than being destroyed on a toggle), but
+   * they are inert and must not light the "customized" indicator.
+   */
+  const groupColorPinsMap: Record<string, string> =
+    props.data?.colorsByGroup || {};
+  const hasActiveGroupColorPins: boolean = groupByKeys.some(
+    (key: string): boolean => {
+      return Object.keys(groupColorPinsMap).some((segment: string): boolean => {
+        return segment.startsWith(`${key}=`);
+      });
+    },
+  );
+
+  /*
    * Load distinct values for each group-by key so the per-group editor can
    * suggest them. The Group By multi-select never triggers a value fetch (only
    * the JSON filter editor does), so kick it off here via onAttributeKeySelected
@@ -450,8 +466,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 <span>Display Settings</span>
                 {(props.data?.metricAliasData?.title ||
                   props.data?.color ||
-                  (props.data?.colorsByGroup &&
-                    Object.keys(props.data.colorsByGroup).length > 0) ||
+                  hasActiveGroupColorPins ||
                   props.data?.warningThreshold !== undefined ||
                   props.data?.criticalThreshold !== undefined) && (
                   <span className="inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
@@ -486,7 +501,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                     }
                     description={
                       groupByKeys.length > 0
-                        ? "Used for group values you haven't pinned below."
+                        ? "Colors the first unpinned group; the rest use the theme palette."
                         : undefined
                     }
                     value={props.data?.color}
