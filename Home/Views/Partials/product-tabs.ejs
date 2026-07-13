@@ -22,7 +22,7 @@
                 <option value="dashboards">Dashboards</option>
                 <option value="kubernetes">Kubernetes</option>
                 <option value="profiles">Profiles</option>
-                <option value="ai-agent">AI Agent</option>
+                <option value="ai-agent">Sentinel</option>
                 <option value="scheduled-maintenance">Maintenance</option>
             </select>
           </div>
@@ -74,7 +74,7 @@
                         <!-- Dashboards -->
                         <button type="button" onclick="showTab('dashboards')" id="tab-dashboards" role="tab" aria-selected="false" aria-controls="panel-dashboards" class="tab-dashboards-button tab-10-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Dashboards"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 ring-1 ring-indigo-200 mr-2"><svg class="icon-tab-10 text-indigo-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" /><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" /></svg></span><span>Dashboards</span></button>
                         <!-- AI Agent -->
-                        <button type="button" onclick="showTab('ai-agent')" id="tab-ai-agent" role="tab" aria-selected="false" aria-controls="panel-ai-agent" class="tab-ai-agent-button tab-13-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="AI Agent"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-violet-50 ring-1 ring-violet-200 mr-2"><svg class="icon-tab-13 text-violet-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg></span><span>AI Agent</span></button>
+                        <button type="button" onclick="showTab('ai-agent')" id="tab-ai-agent" role="tab" aria-selected="false" aria-controls="panel-ai-agent" class="tab-ai-agent-button tab-13-button cursor-pointer text-gray-500 hover:bg-gray-100 hover:text-gray-700 group inline-flex items-center rounded-full py-2.5 px-4 font-medium focus:outline-none transition-all duration-200" tabindex="-1" aria-label="Sentinel"><span class="flex items-center justify-center w-7 h-7 rounded-full bg-violet-50 ring-1 ring-violet-200 mr-2"><svg class="icon-tab-13 text-violet-600 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg></span><span>Sentinel</span></button>
                     </div>
                 </div>
             </nav>
@@ -999,7 +999,7 @@
             <div class="mx-auto max-w-xl px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0">
                 <div>
                     <div class="mt-6">
-                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Let AI fix bugs while you sleep. Wake up to pull requests, not pages.</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-gray-900">Let Sentinel investigate while you sleep. Wake up to root causes and one-click fix PRs, not pages.</h2>
 
                         <ul role="list" class="mt-8 mb-8 space-y-4">
                             <li class="flex items-start gap-3">
@@ -1016,7 +1016,7 @@
                                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                                     </svg>
                                 </span>
-                                <span class="text-gray-600 text-base leading-relaxed">Finds slow database queries and optimizes them</span>
+                                <span class="text-gray-600 text-base leading-relaxed">Finds N+1 queries and slow spans in traces and optimizes them</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 mt-0.5">
@@ -1040,7 +1040,7 @@
                                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                                     </svg>
                                 </span>
-                                <span class="text-gray-600 text-base leading-relaxed">Works with your repo: GitHub, GitLab, Bitbucket</span>
+                                <span class="text-gray-600 text-base leading-relaxed">Works with your GitHub repos via the GitHub App</span>
                             </li>
                         </ul>
 
@@ -1061,7 +1061,7 @@
 
             <div class="my-auto mx-auto px-6 col-span-2">
                 <div class="relative -m-2 rounded-xl bg-gray-900/5 p-2 ring-1 ring-inset ring-gray-900/10 lg:-m-4 lg:rounded-2xl lg:p-4">
-                    <img class="relative rounded-lg shadow-lg" src="/img/ai-agent.png" alt="OneUptime AI Agent dashboard showing intelligent incident resolution and automation">
+                    <img class="relative rounded-lg shadow-lg" src="/img/ai-agent.png" alt="OneUptime Sentinel dashboard showing intelligent incident resolution and automation">
                 </div>
             </div>
         </div>
