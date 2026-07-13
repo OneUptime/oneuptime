@@ -4,6 +4,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import AIAgentTaskTable from "../../Components/AIAgentTask/AIAgentTaskTable";
+import AIFixOutcomeStats from "../../Components/AIAgentTask/AIFixOutcomeStats";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
@@ -42,6 +43,10 @@ const AIAgentTasksPage: FunctionComponent<
           </span>
         }
       />
+
+      <div className="mb-5">
+        <AIFixOutcomeStats />
+      </div>
 
       <Tabs
         tabs={[
