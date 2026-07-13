@@ -34,17 +34,6 @@ export function getAIAgentTasksBreadcrumbs(
       "View Task",
       "Delete Task",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_AGENTS, [
-      "Project",
-      "AI Agents",
-      "Agents",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENTS_AGENT_VIEW, [
-      "Project",
-      "AI Agents",
-      "Agents",
-      "View Agent",
-    ]),
   };
   return breadcrumpLinksMap[path];
 }

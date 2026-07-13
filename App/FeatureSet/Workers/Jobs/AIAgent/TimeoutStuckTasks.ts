@@ -149,7 +149,7 @@ RunCron(
           id: task.id!,
           data: {
             status: AIAgentTaskStatus.Error,
-            statusMessage: `No AI agent picked this task up within ${TASK_TIMEOUT_MINUTES} minutes and none is currently online. Check that your agent container is running (AI > Agents), then retry the fix from the exception page.`,
+            statusMessage: `No AI agent picked this task up within ${TASK_TIMEOUT_MINUTES} minutes and none is currently online. Check that your agent container is running (Settings > AI > AI Agents), then retry the fix from the exception page.`,
           },
           props: {
             isRoot: true,

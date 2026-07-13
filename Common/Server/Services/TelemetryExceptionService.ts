@@ -226,7 +226,7 @@ export class Service extends DatabaseService<Model> {
         ? ""
         : anyAgent
           ? `The AI agent "${anyAgent.name || "agent"}" has not reported in — check that its container is running.`
-          : "No AI agent is available for this project. Self-hosted: create an agent under AI > Agents and run its container. Cloud: the shared fleet appears here automatically once enabled.",
+          : "No AI agent is available for this project. Self-hosted: create an agent under Settings > AI > AI Agents and run its container. Cloud: the shared fleet appears here automatically once enabled.",
     };
 
     const checks: Array<AIFixReadinessCheck> = [

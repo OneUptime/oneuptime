@@ -648,7 +648,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       return {
         title: "View AI Agents",
         route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.AI_AGENTS_AGENTS] as Route,
+          RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
         ),
       };
     }

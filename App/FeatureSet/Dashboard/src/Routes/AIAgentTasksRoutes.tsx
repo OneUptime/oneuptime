@@ -18,10 +18,6 @@ import AIAgentTaskViewLogs from "../Pages/AIAgentTasks/View/Logs";
 
 import AIAgentTaskViewPullRequests from "../Pages/AIAgentTasks/View/PullRequests";
 
-import Agents from "../Pages/AIAgentTasks/Agents";
-
-import AgentView from "../Pages/AIAgentTasks/AgentView";
-
 const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -43,24 +39,6 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
             <AIAgentTasks
               {...props}
               pageRoute={RouteMap[PageMap.AI_AGENT_TASKS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_AGENTS] || ""}
-          element={
-            <Agents
-              {...props}
-              pageRoute={RouteMap[PageMap.AI_AGENTS_AGENTS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={AIAgentTasksRoutePath[PageMap.AI_AGENTS_AGENT_VIEW] || ""}
-          element={
-            <AgentView
-              {...props}
-              pageRoute={RouteMap[PageMap.AI_AGENTS_AGENT_VIEW] as Route}
             />
           }
         />
