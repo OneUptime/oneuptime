@@ -19,9 +19,19 @@ The exception page shows the task's live status. The task's detail page (under *
 
 Three things must be in place before the agent can fix anything. The exception page checks all of them up front and shows a readiness checklist, so you can see exactly what is missing before a task is created.
 
-### 1. A project-owned LLM provider
+### 1. An LLM provider
 
-Agent tasks always run with an LLM provider your project owns — configure one under **Project Settings** > **AI** > **LLM Providers**. The shared global provider on OneUptime Cloud (the one billed as metered AI tokens) is **not** usable for agent tasks. Any supported provider works, including self-hosted Ollama — see [LLM Providers](/docs/ai/llm-provider).
+- **OneUptime Cloud**: agent tasks always run with an LLM provider your project owns — configure one under **Project Settings** > **AI** > **LLM Providers**. The shared global provider (the one billed as metered AI tokens) is **not** usable for agent tasks.
+- **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a local Ollama:
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+GLOBAL_LLM_PROVIDER_BASE_URL=http://your-ollama-host:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3
+# No GLOBAL_LLM_PROVIDER_API_KEY needed — Ollama is keyless.
+```
+
+Any supported provider works — see [LLM Providers](/docs/ai/llm-provider) for all providers and the full list of environment variables.
 
 ### 2. GitHub connected through the GitHub App
 
@@ -32,7 +42,9 @@ You do **not** map repositories to services: OneUptime resolves the right reposi
 ### 3. An agent online
 
 - **OneUptime Cloud**: the shared agent fleet is available automatically — there is nothing to run.
-- **Self-hosted**: create an agent under **AI** > **Agents**. You will get an `AI_AGENT_ID` and an `AI_AGENT_KEY` (the key is shown once — save it securely). Then run the agent container:
+- **Self-hosted**: the agent container runs by default — the Docker Compose install includes the `ai-agent` service, and the Helm chart deploys it (`aiAgent.enabled`, default `true`). It registers itself with your instance automatically (no credentials to copy) and shows up on the agents page. The agent idles cheaply when no LLM provider is configured; tasks fail early with guidance until one is set up.
+
+To run an additional agent elsewhere (for example on a machine closer to your repositories), create an agent under **Settings** > **AI** > **AI Agents**. You will get an `AI_AGENT_ID` and an `AI_AGENT_KEY` (the key is shown once — save it securely). Then run the agent container:
 
 ```bash
 docker run --name oneuptime-ai-agent --network host \
@@ -50,7 +62,7 @@ The agent page in the dashboard shows this command pre-filled with your agent's 
 | `AI_AGENT_ID`   | The agent ID from the dashboard                                      |
 | `ONEUPTIME_URL` | Your OneUptime instance URL (`https://oneuptime.com` on Cloud)       |
 
-The agent shows as connected on the **AI** > **Agents** page within a few minutes. If it does not, check the container logs (`docker logs oneuptime-ai-agent`) for credential or network errors.
+The agent shows as connected on the **Settings** > **AI** > **AI Agents** page within a few minutes. If it does not, check the container logs (`docker logs oneuptime-ai-agent`) for credential or network errors.
 
 ## When a fix fails
 

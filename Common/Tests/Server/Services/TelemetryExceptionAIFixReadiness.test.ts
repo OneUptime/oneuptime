@@ -21,10 +21,11 @@ import { describe, expect, test, afterEach } from "@jest/globals";
 /*
  * "Fix with AI Agent" readiness: every prerequisite is checked BEFORE a task
  * is created. Since the runtime-resolution change there are exactly three
- * checks — project LLM provider, repository RESOLVED (stack-trace matching
- * with fallbacks, no Service Catalog prerequisite), agent online. These
- * tests mock the persistence layer and lock in each check's fail condition
- * and the fail-early behaviour of task creation.
+ * checks — LLM provider (project-owned, with a global fallback on
+ * self-host), repository RESOLVED (stack-trace matching with fallbacks, no
+ * Service Catalog prerequisite), agent online. These tests mock the
+ * persistence layer and lock in each check's fail condition and the
+ * fail-early behaviour of task creation.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -75,7 +76,7 @@ function mockReadiness(data: ReadinessMocks): void {
     .spyOn(TelemetryExceptionService, "findOneById")
     .mockResolvedValue(fakeException());
   jest
-    .spyOn(LlmProviderService, "getProjectOwnedLlmProvider")
+    .spyOn(LlmProviderService, "getLlmProviderForAgentTasks")
     .mockResolvedValue(
       data.provider === undefined
         ? ({ id: ObjectID.generate(), name: "BYO" } as unknown as LlmProvider)
@@ -152,7 +153,7 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
     );
   });
 
-  test("fails llmProvider check when the project owns no provider", async () => {
+  test("fails llmProvider check when no provider is available", async () => {
     mockReadiness({ provider: null });
 
     const readiness: AIFixReadiness =
@@ -245,7 +246,7 @@ describe("TelemetryExceptionService.createAIAgentTaskForException fail-early", (
         props: { isRoot: true },
       }),
     ).rejects.toThrow(
-      /Project LLM provider.*AI agent online|AI agent online.*Project LLM provider/,
+      /LLM provider.*AI agent online|AI agent online.*LLM provider/,
     );
   });
 });

@@ -5,12 +5,12 @@ import Query from "../../../Server/Types/Database/Query";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
- * getProjectOwnedLlmProvider backs the AI Agent path, where the raw apiKey
- * is handed to an external process whose LLM calls are NOT metered through
- * AIService/LlmLog. The invariant these tests lock in: the resolver only
- * ever queries providers owned by the given project — the shared global
- * (billed) provider must never be reachable from this path, or its usage
- * would be unbilled and exempt from budgets.
+ * getProjectOwnedLlmProvider (via getLlmProviderForAgentTasks) backs the AI
+ * Agent path, where the raw apiKey is handed to an external process whose
+ * LLM calls are NOT metered through AIService/LlmLog. The invariant these
+ * tests lock in: the resolver only ever queries providers owned by the given
+ * project — the shared global (billed) provider must never be reachable from
+ * this path on Cloud, or its usage would be unbilled and exempt from budgets.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -68,5 +68,79 @@ describe("LlmProviderService.getProjectOwnedLlmProvider", () => {
       await LlmProviderService.getProjectOwnedLlmProvider(projectId);
 
     expect(result).toBeNull();
+  });
+});
+
+/*
+ * getLlmProviderForAgentTasks relaxes the project-owned restriction ONLY on
+ * self-host (billing disabled), where the global provider is the operator's
+ * own key/endpoint. On Cloud (billing enabled) the invariant above still
+ * holds: the shared global (billed) provider is never reachable. The
+ * billingEnabled option pins the mode explicitly so these tests don't depend
+ * on the BILLING_ENABLED env var of the test run.
+ */
+describe("LlmProviderService.getLlmProviderForAgentTasks", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a project-owned provider wins in both modes, without a global query", async () => {
+    const owned: LlmProvider = fakeProvider("owned");
+    jest
+      .spyOn(LlmProviderService, "getProjectOwnedLlmProvider")
+      .mockResolvedValue(owned);
+    const findSpy: jest.SpiedFunction<typeof LlmProviderService.findOneBy> =
+      jest.spyOn(LlmProviderService, "findOneBy");
+
+    expect(
+      await LlmProviderService.getLlmProviderForAgentTasks(projectId, {
+        billingEnabled: true,
+      }),
+    ).toBe(owned);
+    expect(
+      await LlmProviderService.getLlmProviderForAgentTasks(projectId, {
+        billingEnabled: false,
+      }),
+    ).toBe(owned);
+    expect(findSpy).not.toHaveBeenCalled();
+  });
+
+  test("never falls back to the global provider when billing is enabled (cloud)", async () => {
+    jest
+      .spyOn(LlmProviderService, "getProjectOwnedLlmProvider")
+      .mockResolvedValue(null);
+    const findSpy: jest.SpiedFunction<typeof LlmProviderService.findOneBy> =
+      jest.spyOn(LlmProviderService, "findOneBy");
+
+    const result: LlmProvider | null =
+      await LlmProviderService.getLlmProviderForAgentTasks(projectId, {
+        billingEnabled: true,
+      });
+
+    expect(result).toBeNull();
+    expect(findSpy).not.toHaveBeenCalled();
+  });
+
+  test("falls back to the global provider when billing is disabled (self-host)", async () => {
+    const globalProvider: LlmProvider = fakeProvider("global");
+    jest
+      .spyOn(LlmProviderService, "getProjectOwnedLlmProvider")
+      .mockResolvedValue(null);
+    const findSpy: jest.SpiedFunction<typeof LlmProviderService.findOneBy> =
+      jest
+        .spyOn(LlmProviderService, "findOneBy")
+        .mockResolvedValue(globalProvider);
+
+    const result: LlmProvider | null =
+      await LlmProviderService.getLlmProviderForAgentTasks(projectId, {
+        billingEnabled: false,
+      });
+
+    expect(result).toBe(globalProvider);
+    expect(findSpy).toHaveBeenCalledTimes(1);
+    const query: Query<LlmProvider> = findSpy.mock.calls[0]![0]!.query;
+    expect(query["isGlobalLlm"]).toBe(true);
+    // Global rows have no projectId — the query must target the null tenant.
+    expect(query["projectId"]).not.toBe(projectId);
   });
 });

@@ -78,23 +78,25 @@ export default class AIAgentDataAPI {
           const projectId: ObjectID = new ObjectID(data["projectId"] as string);
 
           /*
-           * AI Agent tasks require a provider the project OWNS. This endpoint
-           * hands the raw apiKey to the agent process, whose LLM calls are
-           * made directly by the code agent and are NOT metered through
-           * AIService/LlmLog — so the shared global (OneUptime-billed)
-           * provider must never be returned to ANY agent, global or
-           * project-scoped: its usage would be unbilled, unlogged, and
-           * exempt from the daily token budget.
+           * This endpoint hands the raw apiKey to the agent process, whose
+           * LLM calls are made directly by the code agent and are NOT metered
+           * through AIService/LlmLog. On Cloud (billing enabled) that means
+           * only a provider the project OWNS may be returned — the shared
+           * global (OneUptime-billed) provider's usage here would be
+           * unbilled, unlogged, and exempt from the daily token budget. On
+           * self-host (billing disabled) the global provider is the
+           * operator's own key/endpoint (e.g. seeded from the
+           * GLOBAL_LLM_PROVIDER_* env vars), so falling back to it is fine.
            */
           const llmProvider: LlmProvider | null =
-            await LlmProviderService.getProjectOwnedLlmProvider(projectId);
+            await LlmProviderService.getLlmProviderForAgentTasks(projectId);
 
           if (!llmProvider) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                "AI Agent tasks require a project-owned LLM provider (the shared global provider is not supported on this path because agent usage is not metered). Add one in Project Settings > AI > LLM Providers.",
+                "No LLM provider is available for AI Agent tasks. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project. (On OneUptime Cloud the provider must be project-owned — the shared global provider is not supported on this path because agent usage is not metered.)",
               ),
             );
           }

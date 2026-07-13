@@ -8,6 +8,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -159,10 +160,11 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Resolve a provider the project OWNS — never the global fallback. The AI
-   * Agent path hands the raw apiKey to an external process whose LLM calls
-   * are not metered through AIService/LlmLog, so the shared global (billed)
-   * provider must never be returned here: its usage would be unbilled and
-   * uncapped. Prefers the project default, else any project-owned provider.
+   * Agent path (via getLlmProviderForAgentTasks) hands the raw apiKey to an
+   * external process whose LLM calls are not metered through AIService/
+   * LlmLog, so the shared global (billed) provider must never be returned
+   * here: its usage would be unbilled and uncapped. Prefers the project
+   * default, else any project-owned provider.
    */
   @CaptureSpan()
   public async getProjectOwnedLlmProvider(
@@ -213,6 +215,61 @@ export class Service extends DatabaseService<Model> {
         createdAt: SortOrder.Ascending,
       },
       select,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * Resolve the provider handed to the AI Agent for a task. A project-owned
+   * provider (getProjectOwnedLlmProvider) always wins. When the project owns
+   * none, what happens next depends on where this instance runs:
+   *
+   * - Cloud (billing enabled): return null. The global provider there is
+   *   OneUptime-billed and agent usage is not metered through AIService/
+   *   LlmLog, so handing its key to the agent would be unbilled and uncapped.
+   * - Self-host (billing disabled): fall back to the global provider — it is
+   *   the operator's own key/endpoint (often seeded from the
+   *   GLOBAL_LLM_PROVIDER_* env vars), so there is nothing to meter.
+   *
+   * options.billingEnabled overrides the IsBillingEnabled env flag — it
+   * exists so tests can exercise both modes without mocking the module.
+   */
+  @CaptureSpan()
+  public async getLlmProviderForAgentTasks(
+    projectId: ObjectID,
+    options?: { billingEnabled?: boolean },
+  ): Promise<Model | null> {
+    const projectOwnedProvider: Model | null =
+      await this.getProjectOwnedLlmProvider(projectId);
+
+    if (projectOwnedProvider) {
+      return projectOwnedProvider;
+    }
+
+    const billingEnabled: boolean = options?.billingEnabled ?? IsBillingEnabled;
+
+    if (billingEnabled) {
+      return null;
+    }
+
+    return this.findOneBy({
+      query: {
+        projectId: QueryHelper.isNull(),
+        isGlobalLlm: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        llmType: true,
+        apiKey: true,
+        baseUrl: true,
+        modelName: true,
+        additionalParams: true,
+        isGlobalLlm: true,
+        costPerMillionTokensInUSDCents: true,
+      },
       props: {
         isRoot: true,
       },

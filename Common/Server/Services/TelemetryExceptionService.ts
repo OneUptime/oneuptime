@@ -112,17 +112,21 @@ export class Service extends DatabaseService<Model> {
 
     const projectId: ObjectID = telemetryException.projectId;
 
-    // 1. Project-owned LLM provider (the agent path never uses the global one).
+    /*
+     * 1. An LLM provider the agent may use: project-owned on Cloud, with a
+     * global-provider fallback on self-host (billing disabled) where the
+     * global provider is the operator's own key.
+     */
     const llmProvider: LlmProvider | null =
-      await LlmProviderService.getProjectOwnedLlmProvider(projectId);
+      await LlmProviderService.getLlmProviderForAgentTasks(projectId);
 
     const llmCheck: AIFixReadinessCheck = {
       id: "llmProvider",
       ok: Boolean(llmProvider),
-      title: "Project LLM provider",
+      title: "LLM provider",
       detail: llmProvider
         ? ""
-        : "AI fix tasks run with your own LLM provider (the shared global provider is not supported on this path). Add one in Project Settings > AI > LLM Providers.",
+        : "AI fix tasks need an LLM provider. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project. (On OneUptime Cloud the provider must be project-owned — the shared global provider is not supported on this path.)",
     };
 
     /*
