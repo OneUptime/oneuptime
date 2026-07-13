@@ -177,14 +177,21 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         "--btn-soft": alpha(0.1),
         "--btn-soft-active": alpha(0.16),
         "--btn-ring": alpha(0.4),
+        // Colored drop shadow so the hover "lift" feels tied to the button color.
+        "--btn-glow": alpha(0.45),
       };
 
       const baseClassName: string =
-        "inline-flex select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-3.5 py-2 text-sm font-semibold shadow-sm transition-all duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[color:var(--btn-ring)] active:translate-y-px disabled:pointer-events-none disabled:opacity-50";
+        "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-3.5 py-2 text-sm font-semibold transition-all duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[color:var(--btn-ring)] active:translate-y-px disabled:pointer-events-none disabled:opacity-50";
 
+      /*
+       * Solid: filled state color with a faint inset top highlight for depth and
+       * a color-tinted hover glow. Outline: white with the accent border/text, a
+       * soft tint on hover. Both lift on hover and press down on active.
+       */
       const variantClassName: string = isSolid
-        ? "[background-color:var(--btn)] [border-color:var(--btn)] [color:var(--btn-text)] hover:-translate-y-px hover:shadow-md hover:[background-color:var(--btn-hover)] hover:[border-color:var(--btn-hover)] active:[background-color:var(--btn-active)]"
-        : "bg-white [border-color:var(--btn-accent)] [color:var(--btn-accent)] hover:[background-color:var(--btn-soft)] active:[background-color:var(--btn-soft-active)]";
+        ? "[background-color:var(--btn)] [border-color:var(--btn)] [color:var(--btn-text)] [box-shadow:0_1px_2px_0_rgba(16,24,40,0.08),inset_0_1px_0_0_rgba(255,255,255,0.22)] hover:-translate-y-px hover:[background-color:var(--btn-hover)] hover:[border-color:var(--btn-hover)] hover:[box-shadow:0_10px_20px_-8px_var(--btn-glow),inset_0_1px_0_0_rgba(255,255,255,0.28)] active:[background-color:var(--btn-active)] active:[box-shadow:0_1px_2px_0_rgba(16,24,40,0.1)]"
+        : "bg-white [border-color:var(--btn-accent)] [color:var(--btn-accent)] [box-shadow:0_1px_2px_0_rgba(16,24,40,0.05)] hover:-translate-y-px hover:[background-color:var(--btn-soft)] hover:[box-shadow:0_8px_16px_-8px_var(--btn-glow)] active:[background-color:var(--btn-soft-active)] active:[box-shadow:0_1px_2px_0_rgba(16,24,40,0.05)]";
 
       return (
         <button
@@ -226,7 +233,13 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         return getActionButton(action);
       })}
       {props.onStateSelect && statesForMenu.length > 0 && (
-        <MoreMenu>
+        <MoreMenu
+          text="More actions"
+          elementToBeShownInsteadOfButton={
+            <Icon icon={IconProp.More} className="h-4 w-4" />
+          }
+          triggerClassName="inline-flex h-[38px] w-[38px] cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-500 shadow-sm transition-all duration-150 ease-out hover:-translate-y-px hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 hover:shadow-md active:translate-y-px active:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+        >
           {[
             <MoreMenuSection
               key="states"

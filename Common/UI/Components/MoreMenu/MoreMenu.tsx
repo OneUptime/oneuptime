@@ -15,6 +15,12 @@ import Button, { ButtonStyleType } from "../Button/Button";
 export interface ComponentProps {
   children: Array<ReactElement>;
   elementToBeShownInsteadOfButton?: ReactElement | undefined;
+  /*
+   * Classes applied to the custom-trigger wrapper (the focusable element that
+   * opens the menu). Lets callers style a custom trigger — e.g. to match a
+   * button group — while keeping the menu's keyboard/ARIA behavior.
+   */
+  triggerClassName?: string | undefined;
   menuIcon?: IconProp | undefined;
   text?: string | undefined;
 }
@@ -124,13 +130,20 @@ const MoreMenu: React.ForwardRefExoticComponent<
 
         {props.elementToBeShownInsteadOfButton && (
           <div
+            id={buttonId}
+            className={props.triggerClassName}
             onClick={() => {
               setIsComponentVisible(!isDropdownVisible);
             }}
             role="button"
             tabIndex={0}
+            aria-label={props.text || "More options"}
+            aria-haspopup="menu"
+            aria-expanded={isComponentVisible}
+            aria-controls={isComponentVisible ? menuId : undefined}
             onKeyDown={(e: React.KeyboardEvent) => {
               if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
                 setIsComponentVisible(!isDropdownVisible);
               }
             }}
