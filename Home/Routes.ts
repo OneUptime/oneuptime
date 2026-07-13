@@ -805,6 +805,20 @@ const HomeFeatureSet: FeatureSet = {
     );
 
     app.get(
+      "/product/topology",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/topology",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/topology`, {
+          enableGoogleTagManager: IsBillingEnabled,
+          seo,
+        });
+      },
+    );
+
+    app.get(
       "/product/services",
       (_req: ExpressRequest, res: ExpressResponse) => {
         const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
