@@ -15,6 +15,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Query from "../../Types/BaseDatabase/Query";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import AIRunType from "../../Types/AI/AIRunType";
+import AIRunHumanVerdict from "../../Types/AI/AIRunHumanVerdict";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -90,6 +91,11 @@ async function sendLatestInvestigation(
       toolCallCount: true,
       totalTokens: true,
       createdAt: true,
+      // Measurement layer: the panel renders verdict/grade state from these.
+      humanVerdict: true,
+      humanVerdictAt: true,
+      autoGrade: true,
+      autoGradeAt: true,
     },
     sort: { createdAt: SortOrder.Descending },
     limit: 1,
@@ -219,6 +225,109 @@ router.post(
       await sendLatestInvestigation(req, res, {
         triggeredByAlertId: alertId,
         runType: AIRunType.Investigation,
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Human verdict capture (Phase 2 measurement layer): one-click Confirm /
+ * Reject on the investigation panel. Applies to the LATEST COMPLETED
+ * investigation run for the subject; overwriting is allowed (a user may
+ * change their mind), and the request is rejected when no completed
+ * investigation exists. The subject is access-checked under the USER's
+ * permissions first (same idiom as the read routes above); the run itself is
+ * written as root because investigation runs are system-authored.
+ * Body: { subjectType: "incident" | "alert", subjectId,
+ * verdict: "Confirmed" | "Rejected" }. Response: { runId, verdict }.
+ */
+router.post(
+  "/ai-investigation/verdict",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const subjectType: string | undefined = req.body["subjectType"] as
+        | string
+        | undefined;
+
+      if (subjectType !== "incident" && subjectType !== "alert") {
+        throw new BadDataException(
+          'subjectType must be "incident" or "alert".',
+        );
+      }
+
+      const subjectIdString: string | undefined = req.body["subjectId"] as
+        | string
+        | undefined;
+
+      if (!subjectIdString) {
+        throw new BadDataException("subjectId is required.");
+      }
+
+      const subjectId: ObjectID = new ObjectID(subjectIdString);
+
+      const verdict: string | undefined = req.body["verdict"] as
+        | string
+        | undefined;
+
+      if (
+        verdict !== AIRunHumanVerdict.Confirmed &&
+        verdict !== AIRunHumanVerdict.Rejected
+      ) {
+        throw new BadDataException(
+          'verdict must be "Confirmed" or "Rejected".',
+        );
+      }
+
+      // Access check under the USER's permissions (null when not allowed).
+      if (subjectType === "incident") {
+        const incident: Incident | null = await IncidentService.findOneById({
+          id: subjectId,
+          select: { _id: true },
+          props,
+        });
+
+        if (!incident) {
+          throw new BadDataException(
+            "Incident not found (or you do not have access to it).",
+          );
+        }
+      } else {
+        const alert: Alert | null = await AlertService.findOneById({
+          id: subjectId,
+          select: { _id: true },
+          props,
+        });
+
+        if (!alert) {
+          throw new BadDataException(
+            "Alert not found (or you do not have access to it).",
+          );
+        }
+      }
+
+      const result: { runId: ObjectID; verdict: AIRunHumanVerdict } =
+        await AIRunService.applyHumanVerdictToLatestInvestigation({
+          ...(subjectType === "incident"
+            ? { incidentId: subjectId }
+            : { alertId: subjectId }),
+          verdict: verdict as AIRunHumanVerdict,
+          verdictByUserId: props.userId!,
+        });
+
+      Response.sendJsonObjectResponse(req, res, {
+        runId: result.runId.toString(),
+        verdict: result.verdict,
       });
       return;
     } catch (err) {

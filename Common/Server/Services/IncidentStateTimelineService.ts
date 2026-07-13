@@ -28,6 +28,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
 import IncidentFeedService from "./IncidentFeedService";
 import SentinelIncidentPostmortemRunner from "../Utils/AI/Sentinel/IncidentPostmortemRunner";
+import InvestigationGrader from "../Utils/AI/Sentinel/InvestigationGrader";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -566,6 +567,25 @@ ${createdItem.rootCause}`,
         projectId: createdItem.projectId!,
       }).catch((error: Error) => {
         logger.error(`Sentinel auto-postmortem failed on resolve:`, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
+        logger.error(error, {
+          projectId: createdItem.projectId?.toString(),
+          incidentId: createdItem.incidentId?.toString(),
+        } as LogAttributes);
+      });
+
+      /*
+       * Sentinel measurement layer: grade the completed investigation (if
+       * any) against the human-recorded root cause. Fire-and-forget like
+       * the postmortem draft above — must never block or fail the resolve.
+       */
+      InvestigationGrader.gradeInvestigationOnResolve({
+        incidentId: createdItem.incidentId!,
+        projectId: createdItem.projectId!,
+      }).catch((error: Error) => {
+        logger.error(`Sentinel investigation grading failed on resolve:`, {
           projectId: createdItem.projectId?.toString(),
           incidentId: createdItem.incidentId?.toString(),
         } as LogAttributes);

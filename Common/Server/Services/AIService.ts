@@ -34,6 +34,11 @@ import logger, { LogAttributes } from "../Utils/Logger";
 export const AUTONOMOUS_AI_FEATURES: Array<string> = [
   "Sentinel Incident Investigation",
   "Sentinel Alert Investigation",
+  /*
+   * On-resolve investigation grading (InvestigationGrader) — one constrained
+   * call per resolved incident, but autonomous, so the budget covers it.
+   */
+  "Sentinel Investigation Grading",
 ];
 
 export interface AutonomousBudgetStatus {
