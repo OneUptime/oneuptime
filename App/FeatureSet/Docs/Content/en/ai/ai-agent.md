@@ -1,4 +1,4 @@
-# AI Agents — Fix Exceptions with a Pull Request
+# Sentinel Fix Tasks — Fix Exceptions with a Pull Request
 
 Sentinel turns an unresolved exception into a reviewable pull request. On any unresolved exception, click **Fix with Sentinel**: the agent reads the exception (type, error message, and stack trace), clones the GitHub repository linked to the service that threw it, writes a fix on a new branch, and opens a pull request.
 

@@ -586,10 +586,10 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
-    title: "AI",
+    title: "Sentinel",
     links: [
       { title: "Sentinel AI SRE", url: "/docs/ai/sentinel" },
-      { title: "AI Agents", url: "/docs/ai/ai-agent" },
+      { title: "Fix Tasks", url: "/docs/ai/ai-agent" },
       { title: "LLM Providers", url: "/docs/ai/llm-provider" },
       { title: "MCP Server", url: "/docs/ai/mcp-server" },
     ],
