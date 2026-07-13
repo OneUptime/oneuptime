@@ -328,7 +328,7 @@ describe("AnalyticsDatabaseService", () => {
   /*
    * The base AnalyticsDatabaseService.toAggregateStatement is what every
    * analytics model that does NOT override aggregation (Log, AuditLog, …)
-   * uses. Exercise its aggregationInterval / None GROUP BY assembly here,
+   * uses. Exercise its aggregationInterval / Total GROUP BY assembly here,
    * since MetricService's own builders bypass it.
    */
   describe("toAggregateStatement aggregationInterval (base path)", () => {
@@ -372,9 +372,9 @@ describe("AnalyticsDatabaseService", () => {
       expect(query).not.toContain("min(column_ObjectID)");
     });
 
-    test("None with no group-by drops the time bucket and guards empty windows", () => {
+    test("Total with no group-by drops the time bucket and guards empty windows", () => {
       const query: string = service.toAggregateStatement(
-        makeBaseAggregateBy({ aggregationInterval: "None" }),
+        makeBaseAggregateBy({ aggregationInterval: "Total" }),
       ).statement.query;
 
       expect(query).toContain("min(column_ObjectID) as column_ObjectID");
@@ -383,17 +383,17 @@ describe("AnalyticsDatabaseService", () => {
       expect(query).toContain("HAVING count() > 0");
     });
 
-    test("None with a model-column group-by keeps the column, drops the time bucket", () => {
+    test("Total with a model-column group-by keeps the column, drops the time bucket", () => {
       const query: string = service.toAggregateStatement(
         makeBaseAggregateBy({
-          aggregationInterval: "None",
+          aggregationInterval: "Total",
           groupBy: { column_1: true },
         }),
       ).statement.query;
 
       expect(query).toContain("min(column_ObjectID) as column_ObjectID");
       expect(query).toContain("GROUP BY");
-      // The time column must not be a grouping key under None.
+      // The time column must not be a grouping key under Total.
       expect(query).not.toContain("GROUP BY column_ObjectID");
       // A grouped query never needs the empty-window guard.
       expect(query).not.toContain("HAVING count() > 0");

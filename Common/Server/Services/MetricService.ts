@@ -704,7 +704,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(SQL`) `);
 
     /*
-     * `None` collapses the window into one row per group: the timestamp
+     * `Total` collapses the window into one row per group: the timestamp
      * becomes an aggregate (`min(...)`) and drops out of GROUP BY, and
      * when nothing else is grouped the clause is omitted entirely.
      */
@@ -724,9 +724,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         .append(percentileGroupByTerms.join(", "));
     } else {
       /*
-       * Group-less None: suppress the single phantom row an empty window
+       * Group-less Total: suppress the single phantom row an empty window
        * would otherwise return (min(time) → 1970 epoch). Only reachable
-       * under None — a bucketed query always groups by the time column.
+       * under Total — a bucketed query always groups by the time column.
        */
       statement.append(SQL` HAVING count() > 0`);
     }
@@ -945,7 +945,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     /*
-     * `None` drops the time bucket from GROUP BY (it becomes an
+     * `Total` drops the time bucket from GROUP BY (it becomes an
      * aggregate `min(...)`), leaving one row per group — or a single
      * global row when nothing else is grouped, in which case the GROUP
      * BY clause is omitted entirely.
@@ -964,9 +964,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       statement.append(SQL` GROUP BY `).append(scalarGroupByTerms.join(", "));
     } else {
       /*
-       * Group-less None: suppress the single phantom row an empty window
+       * Group-less Total: suppress the single phantom row an empty window
        * would otherwise return (min(time) → 1970 epoch). Only reachable
-       * under None — a bucketed query always groups by the time column.
+       * under Total — a bucketed query always groups by the time column.
        */
       statement.append(SQL` HAVING count() > 0`);
     }
@@ -1092,8 +1092,8 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       .append(SQL` AND retentionDate >= now()`);
 
     /*
-     * Mirror the base builder's None handling: the SELECT above (shared
-     * toAggregateSelectStatement) already emits `min(time)` for a `None`
+     * Mirror the base builder's Total handling: the SELECT above (shared
+     * toAggregateSelectStatement) already emits `min(time)` for a `Total`
      * interval, so the time column must NOT appear in GROUP BY — grouping
      * by an aggregate alias is a ClickHouse error. Omit the clause
      * entirely when nothing else is grouped.
@@ -1131,7 +1131,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     /*
-     * Group-less None: suppress the single phantom row an empty window
+     * Group-less Total: suppress the single phantom row an empty window
      * would otherwise return (min(time) → 1970 epoch). No-op for bucketed
      * or grouped queries.
      */
@@ -1325,7 +1325,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * The MV is bucketed at 1 minute, so every time-bucketed interval
      * (Minute / Hour / Day / Week / Month / Year) is >= MV resolution and
      * acceptable — the honored interval flows into the date_trunc below.
-     * `None` (whole-window, no bucketing) is the one exception: fall back
+     * `Total` (whole-window, no bucketing) is the one exception: fall back
      * to the raw-table builder, which knows how to collapse the window.
      */
     if (AggregateUtil.isTotalAggregation(interval)) {
@@ -1600,7 +1600,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       aggregationInterval: aggregateBy.aggregationInterval,
     });
     /*
-     * `None` (whole-window, no bucketing) is not served by this
+     * `Total` (whole-window, no bucketing) is not served by this
      * time-bucketed per-host MV — fall back to the raw-table builder.
      * Every other interval is >= the MV's 1-minute resolution and flows
      * into the date_trunc below.

@@ -1240,7 +1240,7 @@ export default class AnalyticsDatabaseService<
 
     /*
      * The time bucket is a grouping key only when we ARE bucketing by
-     * time. For a `None` (whole-window) aggregation the timestamp is
+     * time. For a `Total` (whole-window) aggregation the timestamp is
      * emitted as `min(...)` — an aggregate, not a group key — so it must
      * be left out of GROUP BY. When there is no group-by column either,
      * the GROUP BY clause is omitted entirely (a single global row).
@@ -1277,7 +1277,7 @@ export default class AnalyticsDatabaseService<
     }
 
     /*
-     * A group-less None aggregation (`SELECT agg(...), min(ts) ...` with no
+     * A group-less Total aggregation (`SELECT agg(...), min(ts) ...` with no
      * GROUP BY) returns exactly one row even over an empty window —
      * ClickHouse fills the aggregates with type defaults, so min(ts)
      * surfaces as a 1970 epoch point. Suppress that phantom row. This is a

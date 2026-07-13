@@ -248,7 +248,7 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     /*
      * This projection path derives its bucket interval from the window
      * and buckets by minute; it does not implement the explicit
-     * `aggregationInterval` override (nor the `None` whole-window mode).
+     * `aggregationInterval` override (nor the `Total` whole-window mode).
      * When a caller pins an interval, fall back to the generic base
      * builder, which honors it.
      */

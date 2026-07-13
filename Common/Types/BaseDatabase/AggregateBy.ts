@@ -13,7 +13,7 @@ export default interface AggregateBy<TBaseModel extends GenericObject> {
    * bucket size is derived from the query window (≤3h → minute, ≤7d →
    * hour, ≤6w → day, …) — see AggregationIntervalUtil. Set this to pin a
    * granularity independent of the window (e.g. `Day` buckets over a
-   * one-week window), or to `None` to aggregate the whole window into a
+   * one-week window), or to `Total` to aggregate the whole window into a
    * single value per group (no time bucketing). Invalid values are
    * rejected with a 400 in AnalyticsDatabaseService.aggregateBy.
    */

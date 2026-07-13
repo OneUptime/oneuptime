@@ -267,15 +267,15 @@ describe("MetricService aggregate statement generation", () => {
   });
 
   /*
-   * `None` = no time bucketing: the entire window collapses into a single
+   * `Total` = no time bucketing: the entire window collapses into a single
    * aggregate per group. The bucket timestamp becomes `min(time)` (an
    * aggregate, not a group key), so `time` must drop out of GROUP BY —
    * and the clause disappears entirely when nothing else is grouped.
    */
-  describe("None (whole-window) aggregation", () => {
+  describe("Total (whole-window) aggregation", () => {
     it("collapses the window into one row per host (scalar Avg)", () => {
       const aggregateBy: AggregateBy<Metric> = buildAggregateBy({
-        aggregationInterval: AggregationInterval.None,
+        aggregationInterval: AggregationInterval.Total,
         groupByAttributeKeys: ["host.name"],
       });
 
@@ -289,7 +289,7 @@ describe("MetricService aggregate statement generation", () => {
 
     it("emits a single global aggregate with no GROUP BY when nothing is grouped", () => {
       const aggregateBy: AggregateBy<Metric> = buildAggregateBy({
-        aggregationInterval: AggregationInterval.None,
+        aggregationInterval: AggregationInterval.Total,
         /*
          * An attribute filter (not a host filter) blocks every MV and
          * routes to the base scalar builder without a group-by.
@@ -311,9 +311,9 @@ describe("MetricService aggregate statement generation", () => {
       expect(query).toContain("HAVING count() > 0");
     });
 
-    it("falls back from the minute MV to the base table for None", () => {
+    it("falls back from the minute MV to the base table for Total", () => {
       const aggregateBy: AggregateBy<Metric> = buildAggregateBy({
-        aggregationInterval: AggregationInterval.None,
+        aggregationInterval: AggregationInterval.Total,
       });
 
       const query: string = getQuery(aggregateBy);
@@ -325,9 +325,9 @@ describe("MetricService aggregate statement generation", () => {
       expect(query).toContain("HAVING count() > 0");
     });
 
-    it("keeps a model-column groupBy while dropping the time bucket (None)", () => {
+    it("keeps a model-column groupBy while dropping the time bucket (Total)", () => {
       const aggregateBy: AggregateBy<Metric> = buildAggregateBy({
-        aggregationInterval: AggregationInterval.None,
+        aggregationInterval: AggregationInterval.Total,
         groupBy: { metricPointType: true } as AggregateBy<Metric>["groupBy"],
       });
 
@@ -346,7 +346,7 @@ describe("MetricService aggregate statement generation", () => {
     it("collapses the window into one row per host on the percentile path", () => {
       const aggregateBy: AggregateBy<Metric> = buildAggregateBy({
         aggregationType: AggregationType.P90,
-        aggregationInterval: AggregationInterval.None,
+        aggregationInterval: AggregationInterval.Total,
         groupByAttributeKeys: ["host.name"],
       });
 

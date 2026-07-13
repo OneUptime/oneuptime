@@ -18,7 +18,7 @@ export class AggregateUtil {
    * statement generator compiles into `toStartOfInterval(...)`.
    *
    * `aggregationInterval`, when provided, pins the bucket size
-   * independent of the window (including `None` for a single
+   * independent of the window (including `Total` for a single
    * whole-window bucket per group).
    */
   @CaptureSpan()
@@ -35,17 +35,17 @@ export class AggregateUtil {
    * entire window collapses into one aggregate per group.
    */
   public static isTotalAggregation(interval: AggregationInterval): boolean {
-    return interval === AggregationInterval.None;
+    return interval === AggregationInterval.Total;
   }
 
   /**
    * The SELECT fragment that produces the bucket timestamp column,
    * already aliased to `timestampColumn`. Shared by every aggregate SQL
-   * builder so the `None` (whole-window) shape stays identical across
+   * builder so the `Total` (whole-window) shape stays identical across
    * paths:
    *
    *   - normal interval → `date_trunc('<i>', toStartOfInterval(col, INTERVAL 1 <i>)) as col`
-   *   - None            → `min(col) as col` (one row per group; the
+   *   - Total           → `min(col) as col` (one row per group; the
    *     earliest sample timestamp in the window is the bucket label)
    *
    * `timestampColumn` is a model-validated identifier (see

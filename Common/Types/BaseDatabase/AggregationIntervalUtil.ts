@@ -18,7 +18,7 @@ export class AggregationIntervalUtil {
     endDate: Date;
     /**
      * Explicit override. When set to a valid AggregationInterval it is
-     * returned verbatim (including `None`), so callers can pin a bucket
+     * returned verbatim (including `Total`), so callers can pin a bucket
      * size independent of the window. Unknown/undefined falls through to
      * the window-derived interval below.
      */
@@ -79,9 +79,9 @@ export class AggregationIntervalUtil {
         return 1000 * 60 * 60 * 24 * 30;
       case AggregationInterval.Year:
         return 1000 * 60 * 60 * 24 * 365;
-      case AggregationInterval.None:
+      case AggregationInterval.Total:
         /*
-         * `None` is a single whole-window bucket with no fixed width. The
+         * `Total` is a single whole-window bucket with no fixed width. The
          * window-derived picker never returns it, so grid-reconstruction
          * callers (heartbeat charts, XAxis) never see it. Return a very
          * large finite width (~1000 years) so any defensive fixed-step

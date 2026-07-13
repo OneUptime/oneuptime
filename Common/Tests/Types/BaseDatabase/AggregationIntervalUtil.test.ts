@@ -63,13 +63,13 @@ describe("AggregationIntervalUtil", () => {
       ).toBe(AggregationInterval.Day);
     });
 
-    test("the None override is returned verbatim (whole-window bucketing)", () => {
+    test("the Total override is returned verbatim (whole-window bucketing)", () => {
       expect(
         AggregationIntervalUtil.getAggregationIntervalForWindow({
           ...windowOf(14 * DAY),
-          aggregationInterval: AggregationInterval.None,
+          aggregationInterval: AggregationInterval.Total,
         }),
-      ).toBe(AggregationInterval.None);
+      ).toBe(AggregationInterval.Total);
     });
 
     test("an invalid override falls through to the window-derived interval", () => {
@@ -133,10 +133,10 @@ describe("AggregationIntervalUtil", () => {
       },
     );
 
-    test("None has no fixed width, so it maps to a very large sentinel > Year", () => {
+    test("Total has no fixed width, so it maps to a very large sentinel > Year", () => {
       expect(
         AggregationIntervalUtil.getAggregationIntervalMs(
-          AggregationInterval.None,
+          AggregationInterval.Total,
         ),
       ).toBeGreaterThan(
         AggregationIntervalUtil.getAggregationIntervalMs(

@@ -243,6 +243,33 @@ function getChartPalette(
   return LineChartPalette;
 }
 
+/*
+ * Resolve the color for one series. Per-group pins win first: `colorsByGroup`
+ * is keyed by the "key=value" segment the series renderer emits, so a composed
+ * multi-key name ("service.name=api, host.name=web1") is split on ", " and the
+ * first matching segment's pin is used. Otherwise fall back to the effective
+ * palette by position — `effectivePalette` already leads with the query's
+ * single `color`, so a color-only query keeps its exact prior behavior. Used by
+ * both the chart's colors array and the legend chips so they always agree.
+ */
+function resolveSeriesColor(
+  seriesName: string,
+  index: number,
+  opts: {
+    colorsByGroup: Record<string, string>;
+    effectivePalette: Array<ChartColorValue>;
+  },
+): ChartColorValue {
+  const segments: Array<string> = seriesName.split(", ");
+  for (const segment of segments) {
+    const pinned: string | undefined = opts.colorsByGroup[segment];
+    if (pinned) {
+      return pinned;
+    }
+  }
+  return opts.effectivePalette[index % opts.effectivePalette.length]!;
+}
+
 /**
  * Render the per-chart control panel for a high-cardinality metric
  * chart. Combines a compact toolbar (search, Top-N toggle, reset
@@ -266,10 +293,14 @@ function renderSeriesControls(input: {
   needsTopN: boolean;
   chartType: ChartType;
   /*
-   * Optional user-chosen lead color for this chart (hex or named key). When
-   * set, it heads the palette so the chips match the recolored chart series.
+   * The query's single lead color (hex or named key), if any — heads the
+   * palette so the chips match the recolored chart series.
    */
-  colorsOverride?: string | undefined;
+  color?: string | undefined;
+  /*
+   * Per-group color pins keyed by "key=value" segment (see resolveSeriesColor).
+   */
+  colorsByGroup?: Record<string, string> | undefined;
   /*
    * Formats a series value (peak/avg/latest) for display next to its name,
    * using the same unit/precision as the chart's y-axis.
@@ -286,7 +317,8 @@ function renderSeriesControls(input: {
     hiddenFromTopN,
     needsTopN,
     chartType,
-    colorsOverride,
+    color,
+    colorsByGroup,
     valueFormatter,
   } = input;
 
@@ -310,15 +342,22 @@ function renderSeriesControls(input: {
    */
   const basePalette: Array<AvailableChartColorsKeys> =
     getChartPalette(chartType);
-  const palette: Array<ChartColorValue> = colorsOverride
-    ? [colorsOverride, ...basePalette]
+  const effectivePalette: Array<ChartColorValue> = color
+    ? [color, ...basePalette]
     : basePalette;
+  const chipColorsByGroup: Record<string, string> = colorsByGroup || {};
   const colorByName: Map<string, ChartColorValue> = new Map<
     string,
     ChartColorValue
   >();
   displayableSeries.forEach((series: SeriesPoint, i: number) => {
-    colorByName.set(series.seriesName, palette[i % palette.length]!);
+    colorByName.set(
+      series.seriesName,
+      resolveSeriesColor(series.seriesName, i, {
+        colorsByGroup: chipColorsByGroup,
+        effectivePalette,
+      }),
+    );
   });
 
   /*
@@ -888,17 +927,6 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         chartType = ChartType.AREA;
       }
 
-      /*
-       * Per-chart color override. When the query specifies a color, it leads
-       * the chart-type palette so the (single) series renders in that color;
-       * grouped multi-series charts keep the palette for the remaining series.
-       * Undefined = fall back to the wrapper's default palette.
-       */
-      const chartColorsOverride: Array<ChartColorValue> | undefined =
-        queryConfig.color
-          ? [queryConfig.color, ...getChartPalette(chartType)]
-          : undefined;
-
       // Resolve the unit for formatting
       const metricType: MetricType | undefined = props.metricTypes.find(
         (m: MetricType) => {
@@ -1057,6 +1085,35 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
        */
       displayableSeries = displayableSeries.slice().sort(compareSeriesByName);
 
+      /*
+       * Per-series colors. Per-group pins (colorsByGroup) win by "key=value"
+       * segment; otherwise the query's single `color` leads the palette. Built
+       * as an explicit array aligned to displayableSeries order (the chart
+       * library assigns colors by position), so it stays correct under
+       * Top-N/hidden/search filtering. Undefined when nothing is customized, so
+       * the wrapper falls back to its default palette (unchanged for existing
+       * charts). A color-only query yields exactly the prior lead-color array.
+       */
+      const chartBasePalette: Array<AvailableChartColorsKeys> =
+        getChartPalette(chartType);
+      const chartColorsByGroup: Record<string, string> =
+        queryConfig.colorsByGroup || {};
+      const effectiveChartPalette: Array<ChartColorValue> = queryConfig.color
+        ? [queryConfig.color, ...chartBasePalette]
+        : chartBasePalette;
+      const hasColorCustomization: boolean =
+        Boolean(queryConfig.color) ||
+        Object.keys(chartColorsByGroup).length > 0;
+      const chartColorsOverride: Array<ChartColorValue> | undefined =
+        hasColorCustomization
+          ? displayableSeries.map((s: SeriesPoint, i: number) => {
+              return resolveSeriesColor(s.seriesName, i, {
+                colorsByGroup: chartColorsByGroup,
+                effectivePalette: effectiveChartPalette,
+              });
+            })
+          : undefined;
+
       const hiddenFromTopN: number =
         needsTopN && !controls.showAllSeries
           ? Math.max(0, totalSeries - DEFAULT_TOP_N_SERIES)
@@ -1089,7 +1146,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               hiddenFromTopN,
               needsTopN,
               chartType,
-              colorsOverride: queryConfig.color,
+              color: queryConfig.color,
+              colorsByGroup: queryConfig.colorsByGroup,
               valueFormatter: seriesValueFormatter,
             })
           : undefined;

@@ -41,6 +41,16 @@ export default interface MetricQueryConfigData {
    */
   color?: string | undefined;
   /*
+   * Per-group color pins for GROUP-BY queries. Keyed by the individual
+   * "key=value" segment that MetricCharts' series renderer emits for a
+   * grouped series — e.g. { "service.name=api": "#f59e0b" }. Use "(unset)"
+   * as the value for null/empty groups to match the series name. A series
+   * whose composed name contains a pinned segment renders in that color
+   * (first matching segment wins for multi-key group-bys); unpinned series
+   * fall back to `color` (lead) then the chart-type palette. Stored as hex.
+   */
+  colorsByGroup?: Record<string, string> | undefined;
+  /*
    * When true, the post-aggregation series points are transformed into
    * a per-second rate of change: `(value - previousValue) / Δt`. This is
    * the right view for OTel cumulative counters (e.g. `system.disk.io`,
