@@ -321,6 +321,7 @@
         "noItems": "구성된 LLM 공급자가 없습니다. AI 기능을 활성화하려면 LLM 공급자를 추가하세요.",
         "stepBasicInfo": "기본 정보",
         "stepProviderSettings": "공급자 설정",
+        "stepAdvanced": "고급",
         "stepCostSettings": "비용 설정"
       }
     }

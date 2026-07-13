@@ -93,6 +93,8 @@ Across the full lifecycle: **Detect → Correlate → Investigate → Remediate 
 
 13. **Reliability-debt & cost report — "improve your software over time" made literal.** *"These 5 auto-remediations fired 200× this month → here are the permanent fixes, ranked by toil-hours saved"* — a CFO/eng-leader ROI artifact no observability competitor produces.
 
+14. **The preventive lane — the fix that lands before the incident exists (*silent watch*).** Everything above reacts to a signal loud enough to open an incident or alert. This lane is quieter, and it is three tiers priced honestly. **Tier 1 — deterministic watchers:** the platform watches everything continuously with statistical sensors, **never an LLM reading the firehose** (that is the tokenpocalypse we attack Datadog for). Hour-of-week baseline bands; week-over-week drift (the slow decay a rolling band re-learns and structurally cannot see); new exception fingerprints; exceptions that regressed in a newer release; post-deploy regression windows; trace-latency creep; log-pattern novelty; expiry countdowns (certificates, domains, DNSSEC). **Tier 2 — Reliability Findings:** when a sensor fires, it does not page and does not open an incident — it files a finding into a quiet triage inbox, enriched by a budgeted, read-only, citation-minting Sentinel run: what it is, which service, which repo, how big the blast radius, what to do. **Tier 3 — fix-before-incident:** for finding types that have *earned* it with measured precision, the same coding sub-agent as §4.8 opens the fix PR — always human-reviewed, never auto-merged — so the bug is dead before it ever becomes a page. Findings feed the §4.13 reliability-debt report; "incidents prevented" is a counterfactual claim and gets counted conservatively or not at all.
+
 ---
 
 ## 5. The wow moments
@@ -109,6 +111,7 @@ Across the full lifecycle: **Detect → Correlate → Investigate → Remediate 
 8. **The honesty receipt** — a public **Agent Accuracy scorecard**.
 9. **The Friday digest.**
 10. **Sentinel watching Sentinel** — a public live dashboard of OneUptime's own production agent's accuracy/cost/traces.
+11. **The incident that never happened** — Monday standup opens on a PR merged last Thursday: Sentinel caught a week-over-week latency drift, filed a quiet finding, opened the fix, a human reviewed and merged it. The chart shows the creep bending back into the band. No alert ever fired.
 
 ---
 
@@ -125,11 +128,13 @@ Trust is the entire game — hallucinated overconfidence is the **#1 documented 
 - **Autonomous agents see a hard allowlist** — the curated read-only toolbox, never the full MCP tool surface.
 - **Full audit trail** — `AIRun` / `AIRunEvent` / `LlmLog` + per-run **egress manifest** (to be extended from chat to all autonomous runs) + `gen_ai.*` OTel spans. The audit trail itself gets a lifecycle: retention limits and access tiering on stored prompts/responses, because an audit log of incident data is itself sensitive data.
 - **Honest uncertainty as an action** — when telemetry is insufficient, the Brain **refuses** and auto-opens an instrumentation-gap ticket.
+- **The preventive lane never pages, and silence is earned.** Findings live in a quiet inbox, never the notification pipeline. A detector whose findings humans keep dismissing gets demoted, and preventive fix PRs are gated on measured per-finding-type precision (execution doc gate G11) — a noisy preventive lane is just a second alert storm with better branding.
 - **Eval harness dogfooding our own spans** — a golden-incident corpus built from real resolved incidents (target ≥50), offline replay driven by recorded run trails, scored on top-hypothesis precision, citation-grounding rate, tool-selection accuracy, and inconclusive-recall. Passing thresholds per risk tier is the graduation gate for autonomy.
 
 **Threat model (what we defend against, not just what we promise):**
 
 - **Adversarial telemetry / prompt injection.** All telemetry content — logs, traces, exception messages, spans — is attacker-writable and is treated as **adversarial by default**. Tool results are framed as untrusted data, and, critically, **no control-flow decision (confidence, quiet mode, hypothesis labels, page delay) may be derived from the model's free-form prose**, because injected content can steer prose. Control signals must be structured and server-verified (constrained classification calls, deterministic checks over cited evidence). Agent-authored markdown is sanitized before it reaches feeds, Slack, or subscriber-facing surfaces.
+- **Code-from-telemetry supply-chain risk.** The fix loop reads adversarial telemetry and writes code — a prompt-injected log line must never become a merged backdoor. The defenses are structural, not behavioral: fix PRs are always human-reviewed (auto-merge is a non-goal, not a setting), the coding sandbox gets no production secrets and no network egress beyond the repo, diffs are scope-limited to the implicated service path, and the generated regression test must fail before the fix and pass after it — a deterministic check injected prose cannot forge.
 - **Page-suppression safety contract.** Suppression is a **delay, never a cancel**: a dead-man's switch pages the original policy after N minutes unless a human acknowledges the diagnosis. Per-service, admin-owned opt-in; the enabling admin owns the residual risk and we publish suppression precision. Every suppression is a first-class auditable event feeding a mandatory review queue. Suppression precision requirements are strictly higher than the general RCA accuracy target — an 80%-accurate RCA is nowhere near good enough to silence a page.
 - **Data egress & PII.** The serializer-level redaction (tokens, secrets, credential patterns) is the egress baseline and extends to context builders and memory, not just tool results. Cloud tenants on the global LLM provider get a documented egress posture (which provider, subprocessor/DPA terms); self-host/BYO-LLM remains the zero-third-party-egress option. Redaction-bypass tests are part of the eval harness.
 - **Failure semantics, stated per capability.** Notification and paging paths **fail open** (an agent error never suppresses a page). Mutations and customer comms **fail closed** (never act on error). Verification failures report "unverified", never "verified". Failed or orphaned investigations are visibly surfaced, so absence-of-RCA is distinguishable from "nothing found". Provider fallback and bounded retry are defined, not improvised.
@@ -152,6 +157,7 @@ Trust is the entire game — hallucinated overconfidence is the **#1 documented 
 | Self-hosted deployment available | ✅ | ❌ | ⚠️ Stack yes, AI via cloud | ⚠️ Cleric in-VPC, closed source | ❌ | ⚠️ Self-hosted Sentry, Seer cloud |
 | Open-source & inspectable audit trail (egress manifest) | ✅ **Only us** | ❌ | ⚠️ OSS stack, closed AI | ❌ | ❌ | ⚠️ |
 | Code-fix PRs with regression tests | 🔜 (full-telemetry-grounded — catch-up-then-differentiate) | ⚠️ Bolt-on | ❌ | ❌ | ⚠️ Code links | ✅ Ahead today |
+| Silent watch → finding → fix PR before any incident exists (drift, novelty, release regressions) | 🔜 (three-tier lane on the roadmap: deterministic watchers, quiet findings, reviewed PRs) | ⚠️ Watchdog detects, no code-fix | ⚠️ Detects, no fix | ⚠️ Detection federated | ❌ | ⚠️ Error-triggered fixes only, no drift/latency watch |
 | Public accuracy scorecard | ✅ **Wins** (once measured — see execution doc) | ❌ | ❌ | ⚠️ Internal eval only | ⚠️ | ❌ |
 | Reliability-debt → permanent-fix backlog | ✅ **Only us** | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Confidence-gated page delay (with dead-man's switch) | ✅ **Only us** | ❌ | ❌ | ❌ | ⚠️ | ❌ |

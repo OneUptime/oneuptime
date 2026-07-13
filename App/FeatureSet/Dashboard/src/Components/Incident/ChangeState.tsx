@@ -35,6 +35,7 @@ export interface ComponentProps {
   incidentId: ObjectID;
   onActionComplete: () => void;
   eventNumber?: string | undefined;
+  title?: string | undefined;
   severity?: { name: string; color: Color } | undefined;
   isPrivate?: boolean | undefined;
 }
@@ -326,6 +327,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           };
         })}
         identifier={props.eventNumber}
+        title={props.title}
         currentStateId={currentIncidentState?.id?.toString()}
         severity={props.severity}
         isPrivate={props.isPrivate}

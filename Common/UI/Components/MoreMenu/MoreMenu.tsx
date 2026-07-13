@@ -15,6 +15,12 @@ import Button, { ButtonStyleType } from "../Button/Button";
 export interface ComponentProps {
   children: Array<ReactElement>;
   elementToBeShownInsteadOfButton?: ReactElement | undefined;
+  /*
+   * Classes applied to the custom-trigger wrapper (the focusable element that
+   * opens the menu). Lets callers style a custom trigger — e.g. to match a
+   * button group — while keeping the menu's keyboard/ARIA behavior.
+   */
+  triggerClassName?: string | undefined;
   menuIcon?: IconProp | undefined;
   text?: string | undefined;
 }
@@ -63,6 +69,23 @@ const MoreMenu: React.ForwardRefExoticComponent<
       }
     }, [focusedIndex]);
 
+    const restoreFocusToTrigger: () => void = useCallback((): void => {
+      /*
+       * Return focus to the trigger after the menu closes via Escape or item
+       * selection (WAI-ARIA menu-button pattern). Deferred to the next frame so
+       * the menu has unmounted, and only reclaimed if focus fell back to
+       * <body> — so we never steal focus that the activated item intentionally
+       * moved elsewhere (e.g. into a dialog it opened). Not called on
+       * outside-click dismissal, which should leave focus where the user clicked.
+       */
+      requestAnimationFrame(() => {
+        const activeElement: Element | null = document.activeElement;
+        if (!activeElement || activeElement === document.body) {
+          document.getElementById(buttonId)?.focus();
+        }
+      });
+    }, [buttonId]);
+
     const handleKeyDown: (event: React.KeyboardEvent) => void = useCallback(
       (event: React.KeyboardEvent): void => {
         if (!isComponentVisible) {
@@ -75,6 +98,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
           case "Escape":
             event.preventDefault();
             setIsComponentVisible(false);
+            restoreFocusToTrigger();
             break;
           case "ArrowDown":
             event.preventDefault();
@@ -98,7 +122,12 @@ const MoreMenu: React.ForwardRefExoticComponent<
             break;
         }
       },
-      [isComponentVisible, props.children.length, setIsComponentVisible],
+      [
+        isComponentVisible,
+        props.children.length,
+        setIsComponentVisible,
+        restoreFocusToTrigger,
+      ],
     );
 
     return (
@@ -124,13 +153,42 @@ const MoreMenu: React.ForwardRefExoticComponent<
 
         {props.elementToBeShownInsteadOfButton && (
           <div
+            /*
+             * The id lets the menu's aria-labelledby resolve and lets focus
+             * return here on close. But the menu-button ARIA (haspopup/expanded/
+             * label) is only applied when a caller opts in with triggerClassName
+             * — callers that pass their own element (some already a real
+             * <button>) keep a bare wrapper to avoid layering redundant button
+             * semantics on top.
+             */
+            id={buttonId}
+            className={props.triggerClassName}
             onClick={() => {
               setIsComponentVisible(!isDropdownVisible);
             }}
             role="button"
             tabIndex={0}
+            aria-label={
+              props.triggerClassName ? props.text || "More options" : undefined
+            }
+            aria-haspopup={props.triggerClassName ? "menu" : undefined}
+            aria-expanded={
+              props.triggerClassName ? isComponentVisible : undefined
+            }
+            aria-controls={
+              props.triggerClassName && isComponentVisible ? menuId : undefined
+            }
             onKeyDown={(e: React.KeyboardEvent) => {
-              if (e.key === "Enter" || e.key === " ") {
+              /*
+               * Only respond to the wrapper's own keys, never a focusable
+               * child's (e.g. an input inside a custom trigger), so typing
+               * isn't hijacked.
+               */
+              if (
+                (e.key === "Enter" || e.key === " ") &&
+                e.target === e.currentTarget
+              ) {
+                e.preventDefault();
                 setIsComponentVisible(!isDropdownVisible);
               }
             }}
@@ -160,6 +218,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
                   onClick={() => {
                     if (isComponentVisible) {
                       setIsComponentVisible(false);
+                      restoreFocusToTrigger();
                     }
                   }}
                   onKeyDown={(e: React.KeyboardEvent) => {

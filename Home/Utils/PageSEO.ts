@@ -829,6 +829,40 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     },
   },
 
+  "/product/topology": {
+    title: "Topology | Service Map, Infrastructure & Network Maps | OneUptime",
+    description:
+      "Automatic topology maps built from your telemetry: a service map drawn from traces with live traffic and latency, a nested infrastructure map, and a live network map. Active incidents overlay on every node. Open source.",
+    canonicalPath: "/product/topology",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Topology", url: "/product/topology" },
+    ],
+    softwareApplication: {
+      name: "OneUptime Topology",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Auto-discovered topology maps for your whole stack: a layer-7 service map built from OpenTelemetry traces with per-edge traffic, error rate, and latency; a nested infrastructure map spanning Kubernetes, Proxmox, Ceph, Docker Swarm, and hosts; and a live LLDP network map of switches, routers, and firewalls. Active incidents and alerts overlay on the services that own them.",
+      features: [
+        "Service map auto-generated from traces",
+        "Per-edge call rate, error rate & latency",
+        "Health colors by error rate",
+        "Nested infrastructure containment map",
+        "Kubernetes, Proxmox, Ceph, Docker Swarm & hosts",
+        "Fleets grouped by workload",
+        "Live LLDP network topology map",
+        "Active incident & alert overlay on nodes",
+        "Node & edge detail drawers with deep links",
+        "Included with your telemetry",
+        "Open source",
+      ],
+    },
+  },
+
   "/product/services": {
     title: "Service Catalog | Map, Own & Monitor Every Service | OneUptime",
     description:

@@ -35,6 +35,7 @@ export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
   onActionComplete: () => void;
   eventNumber?: string | undefined;
+  title?: string | undefined;
   eventStartsAt?: Date | undefined;
   eventEndsAt?: Date | undefined;
 }
@@ -377,6 +378,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           },
         )}
         identifier={props.eventNumber}
+        title={props.title}
         currentStateId={currentScheduledMaintenanceState?.id?.toString()}
         durationPrefix={durationPrefix}
         durationStartsAt={durationStartsAt}
