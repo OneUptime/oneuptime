@@ -45,6 +45,9 @@ import CodeFixTaskContext, {
   PerformanceFinding,
 } from "../../Types/AI/CodeFixTaskContext";
 import SpanTreeAnalyzer from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+import OpenPullRequestCap, {
+  OpenPullRequestCapDecision,
+} from "../Utils/AI/CodeFix/OpenPullRequestCap";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -900,6 +903,7 @@ export default class AIAgentDataAPI {
                 organizationName: true,
                 repositoryName: true,
                 gitHubAppInstallationId: true,
+                maxOpenFixPullRequests: true,
               },
               props: {
                 isRoot: true,
@@ -932,6 +936,31 @@ export default class AIAgentDataAPI {
               res,
               new BadDataException(
                 "No GitHub App installation ID found for this repository",
+              ),
+            );
+          }
+
+          /*
+           * G11 guardrail: per-repo open-PR cap, enforced HERE because the
+           * token is the agent's only way to clone and push — a repo at its
+           * cap physically cannot receive another AI branch or PR. The
+           * worker records this message as the run's failure guidance.
+           */
+          const openPrCap: OpenPullRequestCapDecision =
+            await OpenPullRequestCap.checkForRepository({
+              codeRepositoryId,
+              configuredLimit: codeRepository.maxOpenFixPullRequests ?? null,
+            });
+
+          if (!openPrCap.allowed) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                OpenPullRequestCap.describeRejection({
+                  decision: openPrCap,
+                  repositoryName: `${codeRepository.organizationName}/${codeRepository.repositoryName}`,
+                }),
               ),
             );
           }

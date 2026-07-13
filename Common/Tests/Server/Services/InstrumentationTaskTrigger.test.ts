@@ -1,4 +1,5 @@
 import InstrumentationTaskTrigger from "../../../Server/Utils/AI/Sentinel/InstrumentationTaskTrigger";
+import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import ProjectService from "../../../Server/Services/ProjectService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -9,7 +10,7 @@ import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The ImproveInstrumentation trigger: an INCONCLUSIVE Sentinel investigation
@@ -113,8 +114,48 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
 });
 
 describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () => {
+  beforeEach(() => {
+    /*
+     * The daily fix-run budget defaults to allowed; its own decision matrix
+     * lives in FixRunBudget.test.ts. Mocking getBudgetStatus covers both
+     * the trigger's pre-check and assertWithinBudget inside the enqueue.
+     */
+    jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue({
+      allowed: true,
+      limit: 25,
+      paused: false,
+      runsToday: 0,
+    });
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  test("over the daily fix-run budget: a logged SKIP — no run created, nothing thrown into the investigation", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+    jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue({
+      allowed: false,
+      limit: 25,
+      paused: false,
+      runsToday: 25,
+    });
+    const countBy: jest.SpyInstance = jest.spyOn(
+      CodeRepositoryService,
+      "countBy",
+    );
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
+        projectId,
+        incidentId,
+      }),
+    ).resolves.toBeUndefined();
+
+    // Skipped before the repo/dedupe queries, and no run was created.
+    expect(countBy).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   test("a not-opted-in project skips cheaply: no repo count, no dedupe query, no run created", async () => {

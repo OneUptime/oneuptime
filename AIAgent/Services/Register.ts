@@ -16,33 +16,48 @@ import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
 export default class Register {
+  // Base retry interval; backoff doubles from here up to the cap below.
+  private static readonly baseRetryIntervalInSeconds: number = 30;
+
+  // Backoff cap: never wait longer than this between attempts.
+  private static readonly maxRetryIntervalInSeconds: number = 5 * 60;
+
+  /*
+   * Register the AI agent, retrying FOREVER on failure. The server being
+   * temporarily unreachable (boot ordering, migrations, network blips) must
+   * never kill or give up on the agent container — it registers whenever
+   * the server comes back. Backoff starts at 30s and doubles per
+   * consecutive failure, capped at 5 minutes; every failure is logged with
+   * the attempt count and the next wait.
+   */
   public static async registerAIAgent(): Promise<void> {
-    // register AI agent with 10 retries and 30 second interval between each retry.
+    let attempt: number = 0;
 
-    let currentRetry: number = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      attempt++;
 
-    const maxRetry: number = 10;
-
-    const retryIntervalInSeconds: number = 30;
-
-    while (currentRetry < maxRetry) {
       try {
-        logger.debug(`Registering AI Agent. Attempt: ${currentRetry + 1}`, {
+        logger.debug(`Registering AI Agent. Attempt: ${attempt}`, {
           aiAgentName: AI_AGENT_NAME,
         } as LogAttributes);
         await Register._registerAIAgent();
         logger.debug(`AI Agent registered successfully.`, {
           aiAgentName: AI_AGENT_NAME,
         } as LogAttributes);
-        break;
+        return;
       } catch (error) {
+        const waitSeconds: number = Math.min(
+          Register.baseRetryIntervalInSeconds * Math.pow(2, attempt - 1),
+          Register.maxRetryIntervalInSeconds,
+        );
+
         logger.error(
-          `Failed to register AI Agent. Retrying after ${retryIntervalInSeconds} seconds...`,
+          `Failed to register AI Agent (attempt ${attempt}). Retrying after ${waitSeconds} seconds — the agent keeps retrying until the server is reachable.`,
           { aiAgentName: AI_AGENT_NAME } as LogAttributes,
         );
         logger.error(error, { aiAgentName: AI_AGENT_NAME } as LogAttributes);
-        currentRetry++;
-        await Sleep.sleep(retryIntervalInSeconds * 1000);
+        await Sleep.sleep(waitSeconds * 1000);
       }
     }
   }
@@ -107,12 +122,16 @@ export default class Register {
 
       LocalCache.setString("AI_AGENT", "AI_AGENT_ID", aiAgentId);
     } else {
-      // Non-clustered mode: Validate AI agent by sending alive request
+      /*
+       * Non-clustered mode: validate the AI agent by sending an alive
+       * request. A missing AI_AGENT_ID is thrown (NOT process.exit) so the
+       * retry-forever loop keeps the container alive and logging the
+       * misconfiguration — a crash loop hides the message.
+       */
       if (!AI_AGENT_ID) {
-        logger.error("AI_AGENT_ID or ONEUPTIME_SECRET should be set", {
-          aiAgentName: AI_AGENT_NAME,
-        } as LogAttributes);
-        return process.exit();
+        throw new Error(
+          "AI_AGENT_ID or ONEUPTIME_SECRET should be set for the AI agent to register. Set one of them and the agent will register on its next retry.",
+        );
       }
 
       const aliveUrl: URL = URL.fromString(ONEUPTIME_URL.toString()).addRoute(

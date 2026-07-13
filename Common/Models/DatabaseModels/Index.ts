@@ -172,10 +172,7 @@ import ProbeOwnerUser from "./ProbeOwnerUser";
 import AIAgent from "./AIAgent";
 import AIAgentOwnerTeam from "./AIAgentOwnerTeam";
 import AIAgentOwnerUser from "./AIAgentOwnerUser";
-import AIAgentTask from "./AIAgentTask";
-import AIAgentTaskLog from "./AIAgentTaskLog";
 import AIAgentTaskPullRequest from "./AIAgentTaskPullRequest";
-import AIAgentTaskTelemetryException from "./AIAgentTaskTelemetryException";
 import AIConversation from "./AIConversation";
 import AIConversationMessage from "./AIConversationMessage";
 import AIRun from "./AIRun";
@@ -724,10 +721,7 @@ const AllModelTypes: Array<{
   AIAgent,
   AIAgentOwnerTeam,
   AIAgentOwnerUser,
-  AIAgentTask,
-  AIAgentTaskLog,
   AIAgentTaskPullRequest,
-  AIAgentTaskTelemetryException,
   AIConversation,
   AIConversationMessage,
   AIRun,

@@ -130,7 +130,7 @@ import "./Jobs/Probe/UpdateConnectionStatus";
 // AI Agents
 import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";
-import "./Jobs/AIAgent/TimeoutStuckTasks";
+import "./Jobs/AIAgent/FailOrphanedQueuedCodeFixRuns";
 import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";

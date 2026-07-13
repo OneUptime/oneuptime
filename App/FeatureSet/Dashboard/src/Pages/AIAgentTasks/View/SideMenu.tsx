@@ -13,8 +13,8 @@ export interface ComponentProps {
 }
 
 /*
- * No Logs item: the old AIAgentTaskLog table only holds legacy rows — new
- * runs record typed AIRunEvents, rendered in the Overview's activity feed.
+ * No Logs item: runs record typed AIRunEvents, rendered in the Overview's
+ * activity feed (the legacy AIAgentTaskLog table is gone).
  * No Delete item either: runs are system-managed audit records (the AIRun
  * model permits no user deletes).
  */

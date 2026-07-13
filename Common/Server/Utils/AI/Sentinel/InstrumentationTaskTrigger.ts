@@ -4,6 +4,7 @@ import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
 import ProjectService from "../../../Services/ProjectService";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
+import FixRunBudget, { FixRunBudgetDecision } from "../CodeFix/FixRunBudget";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -138,6 +139,23 @@ export default class InstrumentationTaskTrigger {
       if (!optInDecision.enqueue) {
         logger.debug(
           `Sentinel: not enqueueing instrumentation task for project ${projectId.toString()} — ${optInDecision.reason}.`,
+        );
+        return;
+      }
+
+      /*
+       * G11 guardrail: the per-project daily fix-run budget. For this
+       * AUTOMATIC trigger, over-budget is a logged skip — never an error
+       * thrown into the investigation (enqueueSubjectCodeFixRun would
+       * throw the same rejection, but that lands in the catch below as an
+       * error log; a budget skip is expected behavior, not a failure).
+       */
+      const budget: FixRunBudgetDecision =
+        await FixRunBudget.getBudgetStatus(projectId);
+
+      if (!budget.allowed) {
+        logger.debug(
+          `Sentinel: not enqueueing instrumentation task for project ${projectId.toString()} — ${FixRunBudget.describeRejection(budget)}`,
         );
         return;
       }

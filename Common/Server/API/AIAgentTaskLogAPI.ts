@@ -1,17 +1,13 @@
-import AIAgentTaskLogService, {
-  Service as AIAgentTaskLogServiceType,
-} from "../Services/AIAgentTaskLogService";
 import AIAgentService from "../Services/AIAgentService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
-import {
+import Express, {
   ExpressRequest,
   ExpressResponse,
+  ExpressRouter,
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import BaseAPI from "./BaseAPI";
-import AIAgentTaskLog from "../../Models/DatabaseModels/AIAgentTaskLog";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -22,12 +18,20 @@ import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
 import LogSeverity from "../../Types/Log/LogSeverity";
 
-export default class AIAgentTaskLogAPI extends BaseAPI<
-  AIAgentTaskLog,
-  AIAgentTaskLogServiceType
-> {
+/*
+ * The agent worker's progress-log protocol. The route name predates the
+ * AIRun substrate (the legacy AIAgentTaskLog MODEL is gone — this is a
+ * plain protocol router, not a CRUD API); log lines land as ProgressLog
+ * AIRunEvents on the run's glass-box trail.
+ */
+
+const API_BASE_PATH: string = "/ai-agent-task-log";
+
+export default class AIAgentTaskLogAPI {
+  public router!: ExpressRouter;
+
   public constructor() {
-    super(AIAgentTaskLog, AIAgentTaskLogService);
+    this.router = Express.getRouter();
 
     /*
      * Record a progress log line for a code-fix run. The route name and
@@ -38,7 +42,7 @@ export default class AIAgentTaskLogAPI extends BaseAPI<
      * agent is never swept as stale. Validates aiAgentId and aiAgentKey.
      */
     this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/create-log`,
+      `${API_BASE_PATH}/create-log`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const data: JSONObject = req.body;
@@ -149,6 +153,10 @@ export default class AIAgentTaskLogAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  public getRouter(): ExpressRouter {
+    return this.router;
   }
 
   /*
