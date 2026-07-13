@@ -51,8 +51,7 @@ interface AIAgentTaskInfo {
 
 type AIFixReadinessCheckId =
   | "llmProvider"
-  | "serviceLinked"
-  | "repositoryLinked"
+  | "repositoryResolved"
   | "agentAvailable";
 
 interface AIFixReadinessCheck {
@@ -600,42 +599,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       };
     }
 
-    if (checkId === "serviceLinked") {
-      return {
-        title: "View Service Catalog",
-        route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.SERVICES] as Route,
-        ),
-      };
-    }
-
-    if (checkId === "repositoryLinked") {
-      /*
-       * Deep-link into the exception's own service when it resolves to a
-       * real Service (primaryEntityId is polymorphic — only real Services
-       * are in the loaded list). Otherwise fall back to the repository root.
-       */
-      const exceptionService: Service | undefined = services.find(
-        (service: Service) => {
-          return (
-            service.id?.toString() ===
-            telemetryException.primaryEntityId?.toString()
-          );
-        },
-      );
-
-      if (exceptionService?.id) {
-        return {
-          title: "Link a Code Repository to this Service",
-          route: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route,
-            {
-              modelId: exceptionService.id,
-            },
-          ),
-        };
-      }
-
+    if (checkId === "repositoryResolved") {
       return {
         title: "View Code Repositories",
         route: RouteUtil.populateRouteParams(

@@ -135,9 +135,9 @@ export default class GitHubAPI {
     removedRepositories: JSONArray,
   ): Promise<void> {
     for (const removedRepository of removedRepositories) {
-      const fullName: string | undefined = (
-        removedRepository as JSONObject
-      )?.["full_name"]?.toString();
+      const fullName: string | undefined = (removedRepository as JSONObject)?.[
+        "full_name"
+      ]?.toString();
 
       if (!fullName) {
         continue;

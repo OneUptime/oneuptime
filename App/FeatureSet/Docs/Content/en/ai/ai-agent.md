@@ -17,21 +17,19 @@ The exception page shows the task's live status. The task's detail page (under *
 
 ## Prerequisites
 
-Four things must be in place before the agent can fix anything. The exception page checks all of them up front and shows a readiness checklist, so you can see exactly what is missing before a task is created.
+Three things must be in place before the agent can fix anything. The exception page checks all of them up front and shows a readiness checklist, so you can see exactly what is missing before a task is created.
 
 ### 1. A project-owned LLM provider
 
 Agent tasks always run with an LLM provider your project owns — configure one under **Project Settings** > **AI** > **LLM Providers**. The shared global provider on OneUptime Cloud (the one billed as metered AI tokens) is **not** usable for agent tasks. Any supported provider works, including self-hosted Ollama — see [LLM Providers](/docs/ai/llm-provider).
 
-### 2. The exception attributed to a service
+### 2. GitHub connected through the GitHub App
 
-The agent finds the repository through the service that threw the exception, so the exception must be attributed to a service in the Service Catalog. Set `service.name` on the SDK / OpenTelemetry resource that emits the telemetry. Exceptions without a service attribution (for example, from host or infrastructure telemetry) cannot be fixed.
+Connect GitHub under **Code Repositories** using **Connect with GitHub App** — installing the app imports all of its repositories automatically and keeps them in sync. The GitHub App is the only connection the agent can push through (GitLab is on the roadmap).
 
-### 3. That service linked to a GitHub repository through the GitHub App
+You do **not** map repositories to services: OneUptime resolves the right repository at fix time by matching the exception's stack-trace file paths against your connected repositories (falling back to repository-name matching and, when the project has exactly one repository, to that repository). The readiness checklist on the exception page shows which repository resolved and why.
 
-Connect the repository under **Code Repositories** using **Connect with GitHub App** — the GitHub App is the only connection the agent can push through. Access-token connections are not supported for agent fixes, and only GitHub is supported today (GitLab is on the roadmap). Then link the repository to the service under **Service** > **Code Repositories**.
-
-### 4. An agent online
+### 3. An agent online
 
 - **OneUptime Cloud**: the shared agent fleet is available automatically — there is nothing to run.
 - **Self-hosted**: create an agent under **AI** > **Agents**. You will get an `AI_AGENT_ID` and an `AI_AGENT_KEY` (the key is shown once — save it securely). Then run the agent container:

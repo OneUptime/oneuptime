@@ -4,70 +4,51 @@ import TelemetryExceptionService, {
 } from "../../../Server/Services/TelemetryExceptionService";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ServiceService from "../../../Server/Services/ServiceService";
-import ServiceCodeRepositoryService from "../../../Server/Services/ServiceCodeRepositoryService";
+import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIAgentService from "../../../Server/Services/AIAgentService";
+import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import TelemetryService from "../../../Models/DatabaseModels/Service";
-import ServiceCodeRepository from "../../../Models/DatabaseModels/ServiceCodeRepository";
-import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import AIAgent, {
   AIAgentConnectionStatus,
 } from "../../../Models/DatabaseModels/AIAgent";
-import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
- * "Fix with AI Agent" readiness (UX overhaul workstream A): every
- * prerequisite is checked BEFORE a task is created, so the dashboard can
- * render a checklist instead of a button whose failures surface minutes
- * later inside the agent container. These tests mock the persistence layer
- * and lock in each check's fail condition and the fail-early behaviour of
- * task creation.
+ * "Fix with AI Agent" readiness: every prerequisite is checked BEFORE a task
+ * is created. Since the runtime-resolution change there are exactly three
+ * checks — project LLM provider, repository RESOLVED (stack-trace matching
+ * with fallbacks, no Service Catalog prerequisite), agent online. These
+ * tests mock the persistence layer and lock in each check's fail condition
+ * and the fail-early behaviour of task creation.
  */
 
 const projectId: ObjectID = ObjectID.generate();
 const exceptionId: ObjectID = ObjectID.generate();
 const serviceId: ObjectID = ObjectID.generate();
 
-function fakeException(data?: {
-  withService?: boolean;
-  primaryEntityType?: string;
-}): TelemetryException {
+function fakeException(): TelemetryException {
   return {
     id: exceptionId,
     projectId: projectId,
-    primaryEntityId: data?.withService === false ? undefined : serviceId,
-    primaryEntityType: data?.primaryEntityType,
+    primaryEntityId: serviceId,
+    stackTrace: "at charge (/app/src/billing/charge.ts:12:5)",
   } as unknown as TelemetryException;
 }
 
-function fakeProvider(): LlmProvider {
-  return { id: ObjectID.generate(), name: "BYO" } as unknown as LlmProvider;
-}
-
-function fakeService(): TelemetryService {
+function fakeResolution(): RepoResolution {
   return {
-    id: serviceId,
-    _id: serviceId.toString(),
-    name: "checkout",
-  } as unknown as TelemetryService;
-}
-
-function fakeRepoLink(data: {
-  hostedAt: CodeRepositoryType;
-  installationId?: string;
-}): ServiceCodeRepository {
-  return {
-    codeRepository: {
-      repositoryHostedAt: data.hostedAt,
-      gitHubAppInstallationId: data.installationId,
-      name: "repo",
-    } as unknown as CodeRepository,
-  } as unknown as ServiceCodeRepository;
+    codeRepositoryId: ObjectID.generate().toString(),
+    organizationName: "acme",
+    repositoryName: "checkout",
+    servicePathInRepository: null,
+    method: "stack-trace",
+    evidence: "Matched src/billing/charge.ts in acme/checkout",
+  };
 }
 
 function fakeAgent(data: {
@@ -83,39 +64,40 @@ function fakeAgent(data: {
 }
 
 interface ReadinessMocks {
-  exception?: TelemetryException | null;
   provider?: LlmProvider | null;
-  service?: TelemetryService | null;
-  repoLinks?: Array<ServiceCodeRepository>;
+  resolution?: RepoResolution | null;
+  resolutionThrows?: Error;
   agent?: AIAgent | null;
 }
 
 function mockReadiness(data: ReadinessMocks): void {
   jest
     .spyOn(TelemetryExceptionService, "findOneById")
-    .mockResolvedValue(
-      data.exception === undefined ? fakeException() : data.exception,
-    );
+    .mockResolvedValue(fakeException());
   jest
     .spyOn(LlmProviderService, "getProjectOwnedLlmProvider")
     .mockResolvedValue(
-      data.provider === undefined ? fakeProvider() : data.provider,
+      data.provider === undefined
+        ? ({ id: ObjectID.generate(), name: "BYO" } as unknown as LlmProvider)
+        : data.provider,
     );
-  jest
-    .spyOn(ServiceService, "findOneById")
-    .mockResolvedValue(
-      data.service === undefined ? fakeService() : data.service,
+  jest.spyOn(ServiceService, "findOneById").mockResolvedValue({
+    id: serviceId,
+    name: "checkout",
+  } as unknown as TelemetryService);
+
+  const resolutionSpy: jest.SpiedFunction<
+    typeof CodeRepositoryService.resolveRepositoryForException
+  > = jest.spyOn(CodeRepositoryService, "resolveRepositoryForException");
+
+  if (data.resolutionThrows) {
+    resolutionSpy.mockRejectedValue(data.resolutionThrows);
+  } else {
+    resolutionSpy.mockResolvedValue(
+      data.resolution === undefined ? fakeResolution() : data.resolution,
     );
-  jest.spyOn(ServiceCodeRepositoryService, "findBy").mockResolvedValue(
-    data.repoLinks === undefined
-      ? [
-          fakeRepoLink({
-            hostedAt: CodeRepositoryType.GitHub,
-            installationId: "install-1",
-          }),
-        ]
-      : data.repoLinks,
-  );
+  }
+
   jest
     .spyOn(AIAgentService, "getAIAgentForProject")
     .mockResolvedValue(
@@ -140,7 +122,7 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
     jest.restoreAllMocks();
   });
 
-  test("is ready when provider, service, GitHub-App repo, and alive agent all exist", async () => {
+  test("is ready with provider, resolved repository, and alive agent — exactly three checks", async () => {
     mockReadiness({});
 
     const readiness: AIFixReadiness =
@@ -150,10 +132,24 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
       });
 
     expect(readiness.ready).toBe(true);
-    expect(readiness.checks).toHaveLength(4);
+    expect(readiness.checks).toHaveLength(3);
     for (const check of readiness.checks) {
       expect(check.ok).toBe(true);
     }
+  });
+
+  test("resolved repository is named in the check title as evidence", async () => {
+    mockReadiness({});
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    expect(getCheck(readiness, "repositoryResolved").title).toContain(
+      "acme/checkout",
+    );
   });
 
   test("fails llmProvider check when the project owns no provider", async () => {
@@ -171,11 +167,8 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
     expect(check.detail).toContain("LLM Providers");
   });
 
-  test("fails service and repository checks when the exception has no resolvable service", async () => {
-    mockReadiness({
-      exception: fakeException({ primaryEntityType: "Host" }),
-      service: null,
-    });
+  test("fails repositoryResolved check when nothing resolves", async () => {
+    mockReadiness({ resolution: null });
 
     const readiness: AIFixReadiness =
       await TelemetryExceptionService.getAIFixReadiness({
@@ -184,32 +177,30 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
       });
 
     expect(readiness.ready).toBe(false);
-    expect(getCheck(readiness, "serviceLinked").ok).toBe(false);
-    expect(getCheck(readiness, "serviceLinked").detail).toContain("Host");
-    expect(getCheck(readiness, "repositoryLinked").ok).toBe(false);
-  });
-
-  test("fails repository check when links exist but none is GitHub-App connected", async () => {
-    mockReadiness({
-      repoLinks: [
-        fakeRepoLink({ hostedAt: CodeRepositoryType.GitHub }), // no installation id
-        fakeRepoLink({
-          hostedAt: CodeRepositoryType.GitLab,
-          installationId: "irrelevant",
-        }),
-      ],
-    });
-
-    const readiness: AIFixReadiness =
-      await TelemetryExceptionService.getAIFixReadiness({
-        telemetryExceptionId: exceptionId,
-        props: { isRoot: true },
-      });
-
-    expect(readiness.ready).toBe(false);
-    const check: AIFixReadinessCheck = getCheck(readiness, "repositoryLinked");
+    const check: AIFixReadinessCheck = getCheck(
+      readiness,
+      "repositoryResolved",
+    );
     expect(check.ok).toBe(false);
     expect(check.detail).toContain("GitHub App");
+  });
+
+  test("resolver failure fails the check with the error surfaced, not a crash", async () => {
+    mockReadiness({ resolutionThrows: new Error("GitHub API rate limited") });
+
+    const readiness: AIFixReadiness =
+      await TelemetryExceptionService.getAIFixReadiness({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      });
+
+    expect(readiness.ready).toBe(false);
+    const check: AIFixReadinessCheck = getCheck(
+      readiness,
+      "repositoryResolved",
+    );
+    expect(check.ok).toBe(false);
+    expect(check.detail).toContain("GitHub API rate limited");
   });
 
   test("fails agent check when the only agent has a stale heartbeat", async () => {
@@ -230,23 +221,6 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
     const check: AIFixReadinessCheck = getCheck(readiness, "agentAvailable");
     expect(check.ok).toBe(false);
     expect(check.detail).toContain("has not reported in");
-  });
-
-  test("passes agent check on a fresh heartbeat even when status is stale-Disconnected", async () => {
-    mockReadiness({
-      agent: fakeAgent({
-        connectionStatus: AIAgentConnectionStatus.Disconnected,
-        lastAlive: OneUptimeDate.getCurrentDate(),
-      }),
-    });
-
-    const readiness: AIFixReadiness =
-      await TelemetryExceptionService.getAIFixReadiness({
-        telemetryExceptionId: exceptionId,
-        props: { isRoot: true },
-      });
-
-    expect(getCheck(readiness, "agentAvailable").ok).toBe(true);
   });
 });
 

@@ -6,6 +6,11 @@ import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import URL from "../../Types/API/URL";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  RepoResolution,
+  ResolvableRepository,
+  resolveRepositoryForExceptionFix,
+} from "../Utils/CodeRepository/StackTraceRepoResolver";
 import GitHubUtil, {
   GitHubRepository,
 } from "../Utils/CodeRepository/GitHub/GitHub";
@@ -135,6 +140,79 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { imported, skipped };
+  }
+
+  /*
+   * Resolve which of the project's repositories an exception's code lives
+   * in, AT RUNTIME — stack-trace path matching over cached git trees, with
+   * exact-name-match and only-repository fallbacks. This replaces the old
+   * manual ServiceCodeRepository mapping table.
+   */
+  @CaptureSpan()
+  public async resolveRepositoryForException(data: {
+    projectId: ObjectID;
+    stackTrace: string | null;
+    serviceName: string | null;
+  }): Promise<RepoResolution | null> {
+    const repositories: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        name: true,
+        organizationName: true,
+        repositoryName: true,
+        mainBranchName: true,
+        gitHubAppInstallationId: true,
+        repositoryHostedAt: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // Only GitHub-App-connected repos can be cloned/pushed by the agent.
+    const resolvable: Array<ResolvableRepository> = repositories
+      .filter((repository: Model) => {
+        return (
+          repository.repositoryHostedAt === CodeRepositoryType.GitHub &&
+          Boolean(repository.gitHubAppInstallationId) &&
+          Boolean(repository.id)
+        );
+      })
+      .map((repository: Model) => {
+        return {
+          id: repository.id!.toString(),
+          name: repository.name || "",
+          organizationName: repository.organizationName || "",
+          repositoryName: repository.repositoryName || "",
+          mainBranchName: repository.mainBranchName || "main",
+          gitHubAppInstallationId: repository.gitHubAppInstallationId || null,
+        };
+      });
+
+    if (resolvable.length === 0) {
+      return null;
+    }
+
+    return resolveRepositoryForExceptionFix({
+      stackTrace: data.stackTrace,
+      serviceName: data.serviceName,
+      repositories: resolvable,
+      getTreePaths: (
+        repository: ResolvableRepository,
+      ): Promise<Array<string>> => {
+        return GitHubUtil.getRepositoryTreePaths({
+          installationId: repository.gitHubAppInstallationId!,
+          organizationName: repository.organizationName,
+          repositoryName: repository.repositoryName,
+          branchName: repository.mainBranchName,
+        });
+      },
+    });
   }
 }
 

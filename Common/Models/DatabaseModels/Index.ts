@@ -212,7 +212,6 @@ import ScheduledMaintenanceStateTimeline from "./ScheduledMaintenanceStateTimeli
 import Service from "./Service";
 import ServiceOwnerTeam from "./ServiceOwnerTeam";
 import ServiceOwnerUser from "./ServiceOwnerUser";
-import ServiceCodeRepository from "./ServiceCodeRepository";
 import CodeRepository from "./CodeRepository";
 // Short link.
 import ShortLink from "./ShortLink";
@@ -713,7 +712,6 @@ const AllModelTypes: Array<{
   Service,
   ServiceOwnerTeam,
   ServiceOwnerUser,
-  ServiceCodeRepository,
 
   // Code Repository
   CodeRepository,

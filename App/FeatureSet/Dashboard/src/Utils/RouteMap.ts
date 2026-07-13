@@ -54,7 +54,6 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.SERVICE_VIEW_EXCEPTIONS]: `${RouteParams.ModelID}/exceptions`,
-  [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
   [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
@@ -68,7 +67,6 @@ export const CodeRepositoryRoutePath: Dictionary<string> = {
   [PageMap.CODE_REPOSITORY_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
-  [PageMap.CODE_REPOSITORY_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
 };
 
 export const KubernetesRoutePath: Dictionary<string> = {
@@ -2055,12 +2053,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_CODE_REPOSITORIES]
-    }`,
-  ),
-
   [PageMap.SERVICE_VIEW_INCIDENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_INCIDENTS]
@@ -2110,12 +2102,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code-repository/${
       CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_SETTINGS]
-    }`,
-  ),
-
-  [PageMap.CODE_REPOSITORY_VIEW_SERVICES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/code-repository/${
-      CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_SERVICES]
     }`,
   ),
 

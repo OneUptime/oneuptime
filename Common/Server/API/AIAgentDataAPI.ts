@@ -2,8 +2,8 @@ import AIAgentService from "../Services/AIAgentService";
 import LlmProviderService from "../Services/LlmProviderService";
 import TelemetryExceptionService from "../Services/TelemetryExceptionService";
 import ServiceService from "../Services/ServiceService";
-import ServiceCodeRepositoryService from "../Services/ServiceCodeRepositoryService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
+import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
 import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
 import AIAgentTaskService from "../Services/AIAgentTaskService";
 import Express, {
@@ -17,7 +17,6 @@ import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
 import Service from "../../Models/DatabaseModels/Service";
-import ServiceCodeRepository from "../../Models/DatabaseModels/ServiceCodeRepository";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
@@ -28,7 +27,6 @@ import GitHubUtil, {
   GitHubInstallationToken,
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import URL from "../../Types/API/URL";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
@@ -226,7 +224,13 @@ export default class AIAgentDataAPI {
       },
     );
 
-    // Get code repositories linked to a service
+    /*
+     * Resolve the repository the exception's code lives in — AT RUNTIME
+     * (stack-trace path matching over the project's connected repos, with
+     * name-match and only-repository fallbacks). Replaces the old
+     * ServiceCodeRepository mapping-table lookup; the response keeps the
+     * `repositories` array shape the agent already consumes.
+     */
     this.router.post(
       "/ai-agent-data/get-code-repositories",
       async (
@@ -248,100 +252,121 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Get service ID (supports primaryEntityId plus legacy serviceId / telemetryServiceId from older agents)
-          const serviceIdParam: string | undefined =
-            (data["primaryEntityId"] as string) ||
-            (data["serviceId"] as string) ||
-            (data["telemetryServiceId"] as string);
-
-          if (!serviceIdParam) {
+          if (!data["exceptionId"]) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("primaryEntityId is required"),
+              new BadDataException(
+                "exceptionId is required (agents older than the runtime-resolution change must be upgraded)",
+              ),
             );
           }
 
-          const primaryEntityId: ObjectID = new ObjectID(serviceIdParam);
+          const exceptionId: ObjectID = new ObjectID(
+            data["exceptionId"] as string,
+          );
 
-          // Find CodeRepositories linked to this Service
-          const repositories: Array<{
-            id: string;
-            name: string;
-            repositoryHostedAt: string;
-            organizationName: string;
-            repositoryName: string;
-            mainBranchName: string;
-            servicePathInRepository: string | null;
-            gitHubAppInstallationId: string | null;
-          }> = [];
-
-          const serviceCodeRepositories: Array<ServiceCodeRepository> =
-            await ServiceCodeRepositoryService.findBy({
-              query: {
-                serviceId: primaryEntityId,
-              },
+          const exception: TelemetryException | null =
+            await TelemetryExceptionService.findOneById({
+              id: exceptionId,
               select: {
-                codeRepositoryId: true,
-                servicePathInRepository: true,
-                codeRepository: {
-                  _id: true,
-                  name: true,
-                  repositoryHostedAt: true,
-                  organizationName: true,
-                  repositoryName: true,
-                  mainBranchName: true,
-                  gitHubAppInstallationId: true,
-                },
+                _id: true,
+                projectId: true,
+                stackTrace: true,
+                primaryEntityId: true,
               },
-              skip: 0,
-              limit: LIMIT_MAX,
               props: {
                 isRoot: true,
               },
             });
 
-          for (const scr of serviceCodeRepositories) {
-            if (scr.codeRepository) {
-              // Check if we already have this repository
-              const existingRepo: boolean = repositories.some(
-                (r: {
-                  id: string;
-                  name: string;
-                  repositoryHostedAt: string;
-                  organizationName: string;
-                  repositoryName: string;
-                  mainBranchName: string;
-                  servicePathInRepository: string | null;
-                  gitHubAppInstallationId: string | null;
-                }) => {
-                  return r.id === scr.codeRepository?._id?.toString();
+          if (!exception || !exception.projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Exception not found"),
+            );
+          }
+
+          // Service name feeds the name-match fallback when there is one.
+          const service: Service | null = exception.primaryEntityId
+            ? await ServiceService.findOneById({
+                id: exception.primaryEntityId,
+                select: {
+                  name: true,
                 },
-              );
-              if (!existingRepo) {
-                repositories.push({
-                  id: scr.codeRepository._id?.toString() || "",
-                  name: scr.codeRepository.name || "",
-                  repositoryHostedAt:
-                    scr.codeRepository.repositoryHostedAt || "",
-                  organizationName: scr.codeRepository.organizationName || "",
-                  repositoryName: scr.codeRepository.repositoryName || "",
-                  mainBranchName: scr.codeRepository.mainBranchName || "main",
-                  servicePathInRepository: scr.servicePathInRepository || null,
-                  gitHubAppInstallationId:
-                    scr.codeRepository.gitHubAppInstallationId || null,
-                });
-              }
-            }
+                props: {
+                  isRoot: true,
+                },
+              })
+            : null;
+
+          const resolution: RepoResolution | null =
+            await CodeRepositoryService.resolveRepositoryForException({
+              projectId: exception.projectId,
+              stackTrace: exception.stackTrace || null,
+              serviceName: service?.name || null,
+            });
+
+          if (!resolution) {
+            logger.debug(
+              `No repository resolved for exception ${exceptionId.toString()}`,
+              getLogAttributesFromRequest(req as any),
+            );
+
+            return Response.sendJsonObjectResponse(req, res, {
+              repositories: [],
+              resolutionError:
+                "Could not resolve a repository for this exception: no connected repository contains the files in its stack trace, no repository name matches the service, and the project has more than one repository. Connect the right repository via the GitHub App.",
+            });
+          }
+
+          const repository: CodeRepository | null =
+            await CodeRepositoryService.findOneById({
+              id: new ObjectID(resolution.codeRepositoryId),
+              select: {
+                _id: true,
+                name: true,
+                repositoryHostedAt: true,
+                organizationName: true,
+                repositoryName: true,
+                mainBranchName: true,
+                gitHubAppInstallationId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!repository) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Resolved repository no longer exists"),
+            );
           }
 
           logger.debug(
-            `Found ${repositories.length} code repositories for service ${primaryEntityId.toString()}`,
+            `Resolved repository ${resolution.organizationName}/${resolution.repositoryName} for exception ${exceptionId.toString()} via ${resolution.method}: ${resolution.evidence}`,
             getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendJsonObjectResponse(req, res, {
-            repositories: repositories,
+            repositories: [
+              {
+                id: repository.id!.toString(),
+                name: repository.name || "",
+                repositoryHostedAt: repository.repositoryHostedAt || "",
+                organizationName: repository.organizationName || "",
+                repositoryName: repository.repositoryName || "",
+                mainBranchName: repository.mainBranchName || "main",
+                servicePathInRepository: resolution.servicePathInRepository,
+                gitHubAppInstallationId:
+                  repository.gitHubAppInstallationId || null,
+                resolutionMethod: resolution.method,
+                resolutionEvidence: resolution.evidence,
+              },
+            ],
           });
         } catch (err) {
           next(err);

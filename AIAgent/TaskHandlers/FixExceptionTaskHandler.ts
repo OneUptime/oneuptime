@@ -73,34 +73,32 @@ export default class FixExceptionTaskHandler extends BaseTaskHandler<FixExceptio
       const exceptionDetails: ExceptionDetails =
         await context.backendAPI.getExceptionDetails(metadata.exceptionId);
 
-      if (!exceptionDetails.service) {
-        await this.log(context, "No service linked to this exception", "error");
-        return this.createFailureResult("No service linked to this exception", {
-          isError: true,
-        });
-      }
-
       await this.log(
         context,
         `Exception: ${exceptionDetails.exception.message.substring(0, 100)}...`,
       );
-      await this.log(context, `Service: ${exceptionDetails.service.name}`);
 
-      // Step 3: Get linked code repositories
-      await this.log(context, "Finding linked code repositories...");
+      if (exceptionDetails.service) {
+        await this.log(context, `Service: ${exceptionDetails.service.name}`);
+      }
+
+      /*
+       * Step 3: Resolve the repository — the server matches the exception's
+       * stack-trace files against the project's connected repos at runtime.
+       * No Service Catalog link is required.
+       */
+      await this.log(context, "Resolving the repository for this exception...");
       const repositories: Array<CodeRepositoryInfo> =
-        await context.backendAPI.getCodeRepositories(
-          exceptionDetails.service.id,
-        );
+        await context.backendAPI.getCodeRepositories(metadata.exceptionId);
 
       if (repositories.length === 0) {
         await this.log(
           context,
-          "No code repositories linked to this service",
+          "Could not resolve a repository for this exception",
           "error",
         );
         return this.createFailureResult(
-          "No code repositories linked to this service via Service Catalog",
+          "Could not resolve a repository for this exception: its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository through the GitHub App.",
           { isError: true },
         );
       }

@@ -233,9 +233,13 @@ export default class BackendAPI {
     };
   }
 
-  // Get code repositories linked to a service
+  /*
+   * Resolve the repository for an exception — the server matches the
+   * exception's stack-trace files against the project's connected repos at
+   * runtime (with name-match / only-repository fallbacks).
+   */
   public async getCodeRepositories(
-    serviceId: string,
+    exceptionId: string,
   ): Promise<Array<CodeRepositoryInfo>> {
     const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-code-repositories",
@@ -245,7 +249,7 @@ export default class BackendAPI {
       url,
       data: {
         ...AIAgentAPIRequest.getDefaultRequestBody(),
-        primaryEntityId: serviceId,
+        exceptionId: exceptionId,
       },
     });
 
@@ -261,7 +265,7 @@ export default class BackendAPI {
       response.data as unknown as CodeRepositoriesResponse;
 
     logger.debug(
-      `Got ${data.repositories.length} code repositories for service ${serviceId}`,
+      `Resolved ${data.repositories.length} code repository(ies) for exception ${exceptionId}`,
     );
 
     return data.repositories.map((repo: CodeRepositoryResponse) => {

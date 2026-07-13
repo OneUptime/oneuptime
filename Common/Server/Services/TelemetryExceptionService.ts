@@ -15,13 +15,11 @@ import AIAgentTaskTelemetryExceptionService from "./AIAgentTaskTelemetryExceptio
 import AIAgentService from "./AIAgentService";
 import LlmProviderService from "./LlmProviderService";
 import ServiceService from "./ServiceService";
-import ServiceCodeRepositoryService from "./ServiceCodeRepositoryService";
+import CodeRepositoryService from "./CodeRepositoryService";
+import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import TelemetryService from "../../Models/DatabaseModels/Service";
-import ServiceCodeRepository from "../../Models/DatabaseModels/ServiceCodeRepository";
-import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -44,8 +42,7 @@ export interface CreateAIAgentTaskForExceptionParams {
 
 export type AIFixReadinessCheckId =
   | "llmProvider"
-  | "serviceLinked"
-  | "repositoryLinked"
+  | "repositoryResolved"
   | "agentAvailable";
 
 export interface AIFixReadinessCheck {
@@ -102,6 +99,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         projectId: true,
+        stackTrace: true,
         primaryEntityId: true,
         primaryEntityType: true,
       },
@@ -127,7 +125,12 @@ export class Service extends DatabaseService<Model> {
         : "AI fix tasks run with your own LLM provider (the shared global provider is not supported on this path). Add one in Project Settings > AI > LLM Providers.",
     };
 
-    // 2. The exception must be attributed to a real Service.
+    /*
+     * 2. A repository must RESOLVE for this exception — computed at runtime
+     * from the stack trace (path matching over connected repos), falling
+     * back to service-name matching and the only-repository rule. No manual
+     * mapping table, no Service Catalog prerequisite.
+     */
     const service: TelemetryService | null = telemetryException.primaryEntityId
       ? await ServiceService.findOneById({
           id: telemetryException.primaryEntityId,
@@ -141,71 +144,34 @@ export class Service extends DatabaseService<Model> {
         })
       : null;
 
-    const serviceCheck: AIFixReadinessCheck = {
-      id: "serviceLinked",
-      ok: Boolean(service),
-      title: "Exception attributed to a service",
-      detail: service
-        ? ""
-        : `This exception is not attributed to a service in the Service Catalog${
-            telemetryException.primaryEntityType
-              ? ` (it came from ${telemetryException.primaryEntityType} telemetry)`
-              : ""
-          }, so there is no repository to fix. Set service.name on the SDK/resource that emits this telemetry.`,
-    };
-
-    // 3. That service must be linked to a GitHub-App-connected repository.
     let repoCheck: AIFixReadinessCheck;
 
-    if (!service) {
-      repoCheck = {
-        id: "repositoryLinked",
-        ok: false,
-        title: "Repository linked to the service",
-        detail:
-          "Once the exception is attributed to a service, link that service to a code repository (Service > Code Repositories).",
-      };
-    } else {
-      const links: Array<ServiceCodeRepository> =
-        await ServiceCodeRepositoryService.findBy({
-          query: {
-            serviceId: service.id!,
-          },
-          select: {
-            _id: true,
-            codeRepository: {
-              _id: true,
-              name: true,
-              repositoryHostedAt: true,
-              gitHubAppInstallationId: true,
-            },
-          },
-          skip: 0,
-          limit: LIMIT_MAX,
-          props: {
-            isRoot: true,
-          },
+    try {
+      const resolution: RepoResolution | null =
+        await CodeRepositoryService.resolveRepositoryForException({
+          projectId,
+          stackTrace: telemetryException.stackTrace || null,
+          serviceName: service?.name || null,
         });
 
-      const hasUsableRepo: boolean = links.some(
-        (link: ServiceCodeRepository) => {
-          return (
-            link.codeRepository?.repositoryHostedAt ===
-              CodeRepositoryType.GitHub &&
-            Boolean(link.codeRepository?.gitHubAppInstallationId)
-          );
-        },
-      );
-
       repoCheck = {
-        id: "repositoryLinked",
-        ok: hasUsableRepo,
-        title: "Repository linked to the service",
-        detail: hasUsableRepo
+        id: "repositoryResolved",
+        ok: Boolean(resolution),
+        title: resolution
+          ? `Repository resolved: ${resolution.organizationName}/${resolution.repositoryName}`
+          : "Repository resolved",
+        detail: resolution
           ? ""
-          : links.length > 0
-            ? `Repositories are linked to ${service.name || "this service"}, but none is connected through the GitHub App (the only connection the agent can push to). Reconnect the repository with the GitHub App.`
-            : `Link a GitHub-App-connected repository to ${service.name || "this service"} so the agent knows where to open the fix PR.`,
+          : "No connected repository could be matched to this exception — its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository through the GitHub App (installing it imports all its repositories automatically).",
+      };
+    } catch (err) {
+      repoCheck = {
+        id: "repositoryResolved",
+        ok: false,
+        title: "Repository resolved",
+        detail: `Could not check the connected repositories: ${
+          err instanceof Error ? err.message : "unknown error"
+        }`,
       };
     }
 
@@ -231,7 +197,6 @@ export class Service extends DatabaseService<Model> {
 
     const checks: Array<AIFixReadinessCheck> = [
       llmCheck,
-      serviceCheck,
       repoCheck,
       agentCheck,
     ];

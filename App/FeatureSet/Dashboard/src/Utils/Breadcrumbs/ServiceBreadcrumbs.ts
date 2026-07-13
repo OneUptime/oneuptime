@@ -47,12 +47,6 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "View Service",
       "Metrics",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_CODE_REPOSITORIES, [
-      "Project",
-      "Services",
-      "View Service",
-      "Code Repositories",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVICE_VIEW_INCIDENTS, [
       "Project",
       "Services",

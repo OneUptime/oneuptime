@@ -137,7 +137,6 @@ import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStat
 import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
 import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import ServiceService from "./ServiceService";
-import ServiceCodeRepositoryService from "./ServiceCodeRepositoryService";
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
 import SmsLogService from "./SmsLogService";
@@ -456,7 +455,6 @@ const services: Array<BaseService> = [
   ServiceService,
   ServiceOwnerTeamService,
   ServiceOwnerUserService,
-  ServiceCodeRepositoryService,
 
   TelemetryExceptionService,
   TelemetryEntityService,
