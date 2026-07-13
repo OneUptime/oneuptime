@@ -119,7 +119,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       items: [
         {
           link: {
-            title: "AI",
+            title: "Sentinel",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERTS_SETTINGS_AI] as Route,
             ),

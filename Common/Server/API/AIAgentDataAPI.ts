@@ -36,8 +36,15 @@ import AlertFeed, {
 import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRunType from "../../Types/AI/AIRunType";
 import CodeFixTaskType, {
+  CodeFixContextKind,
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
+import CodeFixTaskContext, {
+  ImplicatedSpan,
+  PerformanceCodeLocation,
+  PerformanceFinding,
+} from "../../Types/AI/CodeFixTaskContext";
+import SpanTreeAnalyzer from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -396,22 +403,28 @@ export default class AIAgentDataAPI {
     );
 
     /*
-     * Context for the incident/alert-subject recipes (ImproveInstrumentation
-     * and FixFromIncident): the investigation's posted analysis + subject
-     * metadata + the resolved repository. `taskId` carries the AIRun id of
-     * the CodeFix run (the id get-pending-task returned) — these runs have
-     * NO telemetry exception, so the exception-shaped endpoints above cannot
-     * serve them. The route name predates FixFromIncident and is kept for
-     * agent compatibility; the response shape is recipe-independent.
+     * Context for every non-exception recipe, keyed by the run id `taskId`
+     * (the id get-pending-task returned) — these runs have NO telemetry
+     * exception, so the exception-shaped endpoints above cannot serve them.
+     * The route name predates the newer recipes and is kept for agent
+     * compatibility. Two context kinds are served:
      *
-     * The analysis text comes from the subject's latest RootCause feed item:
-     * Sentinel's postAnalysis is the only writer of RootCause feed events,
-     * it writes them for BOTH subjects and for BOTH confident and
-     * inconclusive analyses (quiet mode only mutes the workspace ping), so
-     * the feed item IS the investigation run's persisted output. The
-     * incident internal note is best-effort and incident-only, and
-     * AIRunEvents do not persist the final analysis text — the feed is the
-     * most reliable source.
+     *  - Incident/alert-subject recipes (ImproveInstrumentation,
+     *    FixFromIncident): the investigation's posted analysis + subject
+     *    metadata + the repository resolved without a stack trace. The
+     *    analysis text comes from the subject's latest RootCause feed item:
+     *    Sentinel's postAnalysis is the only writer of RootCause feed
+     *    events, it writes them for BOTH subjects and BOTH confidence
+     *    outcomes (quiet mode only mutes the workspace ping), so the feed
+     *    item IS the investigation run's persisted output.
+     *
+     *  - Trace-evidence recipes (FixPerformance): the deterministic
+     *    span-tree findings stored on AIRun.taskContext at trigger time
+     *    (subjectType "trace"; the rendered evidence rides in
+     *    analysisMarkdown so the worker pipeline stays shared). Repository
+     *    resolution here TRIES the stack-trace path matcher first, fed by a
+     *    synthetic trace built from the implicated spans' code.*
+     *    attributes, before the name-match / only-repository fallbacks.
      */
     this.router.post(
       "/ai-agent-data/get-instrumentation-task-details",
@@ -453,6 +466,7 @@ export default class AIAgentDataAPI {
               codeFixTaskType: true,
               triggeredByIncidentId: true,
               triggeredByAlertId: true,
+              taskContext: true,
             },
             props: {
               isRoot: true,
@@ -468,24 +482,162 @@ export default class AIAgentDataAPI {
           }
 
           /*
-           * Any recipe whose subject is an incident/alert (rather than a
-           * telemetry exception) is served here — the same recipe grouping
-           * the claim guard uses.
+           * Any non-exception recipe is served here — the same context-kind
+           * grouping the claim guard uses.
            */
           const taskType: CodeFixTaskType =
             CodeFixTaskTypeHelper.fromDatabaseValue(run.codeFixTaskType);
+          const contextKind: CodeFixContextKind =
+            CodeFixTaskTypeHelper.getContextKind(taskType);
 
           if (
             run.runType !== AIRunType.CodeFix ||
-            CodeFixTaskTypeHelper.requiresTelemetryException(taskType)
+            contextKind === CodeFixContextKind.TelemetryException
           ) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                "Task is not an incident/alert-subject code-fix run (ImproveInstrumentation or FixFromIncident)",
+                "Task is not an incident/alert-subject or trace-evidence code-fix run (ImproveInstrumentation, FixFromIncident or FixPerformance)",
               ),
             );
+          }
+
+          /*
+           * Trace-evidence recipes (FixPerformance): everything the worker
+           * needs was captured into taskContext at trigger time — the spans
+           * themselves may already be past ClickHouse retention.
+           */
+          if (contextKind === CodeFixContextKind.TaskContext) {
+            const taskContext: CodeFixTaskContext | undefined = run.taskContext;
+            const findings: Array<PerformanceFinding> =
+              taskContext?.performanceFindings || [];
+
+            if (!taskContext?.traceId || findings.length === 0) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "This performance-fix task has no stored trace evidence — the task has nothing to work from.",
+                ),
+              );
+            }
+
+            // Deduped name+duration summary of every implicated span.
+            const spanSummaries: Array<ImplicatedSpan> = [];
+            const seenSpanIds: Set<string> = new Set();
+            for (const finding of findings) {
+              for (const implicated of finding.implicatedSpans) {
+                if (!seenSpanIds.has(implicated.spanId)) {
+                  seenSpanIds.add(implicated.spanId);
+                  spanSummaries.push(implicated);
+                }
+              }
+            }
+
+            /*
+             * Repository resolution: the implicated spans' code.*
+             * attributes (when the instrumentation stamps them) become a
+             * synthetic stack trace for the path matcher — each line is
+             * shaped so extractCandidatePathsFromStackTrace parses it.
+             * Without code attributes this degrades to the name-match /
+             * only-repository fallbacks, exactly like the subject recipes.
+             */
+            const codeLocations: Array<PerformanceCodeLocation> =
+              taskContext.codeLocations || [];
+            const syntheticStackTrace: string | null =
+              codeLocations.length > 0
+                ? codeLocations
+                    .map((location: PerformanceCodeLocation): string => {
+                      return `    at ${
+                        location.functionName ? `${location.functionName} ` : ""
+                      }(${location.filePath}:${location.lineNumber ?? 1})`;
+                    })
+                    .join("\n")
+                : null;
+
+            const serviceName: string | null = taskContext.serviceName || null;
+
+            const resolution: RepoResolution | null =
+              await CodeRepositoryService.resolveRepositoryForException({
+                projectId: run.projectId,
+                stackTrace: syntheticStackTrace,
+                serviceName,
+              });
+
+            const repository: CodeRepository | null = resolution
+              ? await CodeRepositoryService.findOneById({
+                  id: new ObjectID(resolution.codeRepositoryId),
+                  select: {
+                    _id: true,
+                    name: true,
+                    repositoryHostedAt: true,
+                    organizationName: true,
+                    repositoryName: true,
+                    mainBranchName: true,
+                    gitHubAppInstallationId: true,
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : null;
+
+            /*
+             * The rendered evidence rides in analysisMarkdown and the top
+             * finding's headline in subjectTitle, so the shared
+             * SubjectPullRequestTaskHandler pipeline needs no special
+             * casing — the structured findings travel alongside.
+             */
+            const basePayload: JSONObject = {
+              subjectType: "trace",
+              subjectTitle: findings[0]!.headline,
+              analysisMarkdown:
+                SpanTreeAnalyzer.renderFindingsMarkdown(findings),
+              serviceName,
+              projectId: run.projectId.toString(),
+              traceId: taskContext.traceId,
+              findings: findings as never,
+              spanSummaries: spanSummaries as never,
+            };
+
+            if (!resolution || !repository) {
+              logger.debug(
+                `No repository resolved for ${taskType} task ${taskId.toString()}`,
+                getLogAttributesFromRequest(req as any),
+              );
+
+              return Response.sendJsonObjectResponse(req, res, {
+                ...basePayload,
+                repositories: [],
+                resolutionError:
+                  "Could not resolve a repository for this performance-fix task: the trace's spans carried no matching code file paths, no connected repository name matches the affected service, and the project has more than one repository. Connect the right repository via the GitHub App, or rename one to match the service.",
+              });
+            }
+
+            logger.debug(
+              `Resolved repository ${resolution.organizationName}/${resolution.repositoryName} for ${taskType} task ${taskId.toString()} via ${resolution.method}: ${resolution.evidence}`,
+              getLogAttributesFromRequest(req as any),
+            );
+
+            return Response.sendJsonObjectResponse(req, res, {
+              ...basePayload,
+              repositories: [
+                {
+                  id: repository.id!.toString(),
+                  name: repository.name || "",
+                  repositoryHostedAt: repository.repositoryHostedAt || "",
+                  organizationName: repository.organizationName || "",
+                  repositoryName: repository.repositoryName || "",
+                  mainBranchName: repository.mainBranchName || "main",
+                  servicePathInRepository: resolution.servicePathInRepository,
+                  gitHubAppInstallationId:
+                    repository.gitHubAppInstallationId || null,
+                  resolutionMethod: resolution.method,
+                  resolutionEvidence: resolution.evidence,
+                },
+              ],
+            });
           }
 
           if (!run.triggeredByIncidentId && !run.triggeredByAlertId) {

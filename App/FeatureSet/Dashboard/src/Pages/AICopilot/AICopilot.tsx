@@ -61,7 +61,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 
   return (
-    <Page title="AI Chat" description={AI_CHAT_DESCRIPTION}>
+    <Page title="Sentinel" description={AI_CHAT_DESCRIPTION}>
       <AIPlanGate />
       <div
         className="flex overflow-hidden rounded-2xl border border-gray-200 bg-white"
@@ -155,7 +155,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <div className="truncate text-sm font-semibold text-gray-900">
                   {chat.isConversationView
                     ? chat.activeConversationTitle
-                    : "AI Chat"}
+                    : "Sentinel"}
                 </div>
                 <div className="truncate text-xs text-gray-400">
                   {chat.isWorking

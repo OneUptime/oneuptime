@@ -51,11 +51,11 @@ const STATUS_TEXT: { [key in AIRunStatus]: CodeFixRunStatusText } = {
   [AIRunStatus.Queued]: {
     title: "Queued",
     description:
-      "The fix task is queued and waiting to be picked up by an AI agent.",
+      "The fix task is queued and waiting to be picked up by Sentinel.",
   },
   [AIRunStatus.Running]: {
     title: "In Progress",
-    description: "An AI agent is working on a fix for this exception.",
+    description: "Sentinel is working on a fix for this exception.",
   },
   [AIRunStatus.WaitingForApproval]: {
     title: "Waiting for Approval",
@@ -64,20 +64,20 @@ const STATUS_TEXT: { [key in AIRunStatus]: CodeFixRunStatusText } = {
   [AIRunStatus.Completed]: {
     title: "Completed",
     description:
-      "The AI agent finished. Review the pull request it opened for the proposed fix.",
+      "Sentinel finished. Review the pull request it opened for the proposed fix.",
   },
   [AIRunStatus.Error]: {
     title: "Error",
-    description: "The AI agent could not complete the fix.",
+    description: "Sentinel could not complete the fix.",
   },
   [AIRunStatus.Cancelled]: {
     title: "Cancelled",
-    description: "The fix task was cancelled before an agent completed it.",
+    description: "The fix task was cancelled before Sentinel completed it.",
   },
   [AIRunStatus.Stale]: {
     title: "Stale",
     description:
-      "The AI agent stopped reporting progress and the run was marked as stale. You can retry the fix.",
+      "Sentinel stopped reporting progress and the run was marked as stale. You can retry the fix.",
   },
 };
 

@@ -23,8 +23,13 @@ enum CodeFixTaskType {
    */
   ImproveInstrumentation = "ImproveInstrumentation",
   /*
-   * Declared for an upcoming recipe — not triggerable yet. The user-facing
-   * create endpoints reject it until its recipe ships.
+   * Fix a deterministically-detected performance pattern in a trace (N+1
+   * queries, one dominant slow span, sequential-that-could-be-parallel
+   * siblings). Human-triggered from the trace view (POST /ai-investigation/
+   * create-performance-fix-task), NOT from the exception page: it has no
+   * subject row at all — its entire context (the SpanTreeAnalyzer findings)
+   * is captured at trigger time into AIRun.taskContext (see
+   * Common/Server/Utils/AI/Sentinel/FixPerformanceTaskTrigger.ts).
    */
   FixPerformance = "FixPerformance",
   /*
@@ -39,17 +44,37 @@ enum CodeFixTaskType {
 
 export default CodeFixTaskType;
 
+/*
+ * What a queued run of a recipe must CARRY to be executable — the claim
+ * guard and the task-details endpoint both group recipes by this, so a new
+ * recipe declares its context kind exactly once.
+ */
+export enum CodeFixContextKind {
+  // Executes against AIRun.triggeredByTelemetryExceptionId.
+  TelemetryException = "TelemetryException",
+  // Executes against AIRun.triggeredByIncidentId / triggeredByAlertId.
+  IncidentOrAlertSubject = "IncidentOrAlertSubject",
+  /*
+   * Executes against evidence captured at trigger time into
+   * AIRun.taskContext (FixPerformance: traceId + span-tree findings) — no
+   * subject row exists at all.
+   */
+  TaskContext = "TaskContext",
+}
+
 export class CodeFixTaskTypeHelper {
   /*
    * The recipes a user may start today FROM THE EXCEPTION PAGE. Recipes
    * outside this list exist as enum values so the worker/UI can already
    * dispatch on them, but creation via the exception-page endpoint is
-   * server-rejected. ImproveInstrumentation and FixFromIncident stay off
-   * this list by design — they are not exception-triggered at all:
-   * ImproveInstrumentation's trigger is an inconclusive Sentinel
-   * investigation on an opted-in project, and FixFromIncident is user-
-   * triggered from the investigation panel via its own endpoint
-   * (POST /ai-investigation/create-fix-task).
+   * server-rejected. ImproveInstrumentation, FixFromIncident and
+   * FixPerformance stay off this list by design — they are not
+   * exception-triggered at all: ImproveInstrumentation's trigger is an
+   * inconclusive Sentinel investigation on an opted-in project,
+   * FixFromIncident is user-triggered from the investigation panel
+   * (POST /ai-investigation/create-fix-task), and FixPerformance is
+   * user-triggered from the trace view
+   * (POST /ai-investigation/create-performance-fix-task).
    */
   public static getUserTriggerableTaskTypes(): Array<CodeFixTaskType> {
     return [CodeFixTaskType.FixException, CodeFixTaskType.WriteRegressionTest];
@@ -60,18 +85,33 @@ export class CodeFixTaskTypeHelper {
   }
 
   /*
+   * Which context record a queued run of this recipe must carry to be
+   * executable. The claim guard rejects runs missing their kind's record,
+   * and the task-details endpoint dispatches its response shape on it.
+   * Unlisted (and legacy-null-normalized) recipes are exception-based —
+   * the safe default, since an exception-less claim of one is unexecutable.
+   */
+  public static getContextKind(taskType: CodeFixTaskType): CodeFixContextKind {
+    switch (taskType) {
+      case CodeFixTaskType.ImproveInstrumentation:
+      case CodeFixTaskType.FixFromIncident:
+        return CodeFixContextKind.IncidentOrAlertSubject;
+      case CodeFixTaskType.FixPerformance:
+        return CodeFixContextKind.TaskContext;
+      default:
+        return CodeFixContextKind.TelemetryException;
+    }
+  }
+
+  /*
    * Whether the recipe executes against a telemetry exception
-   * (AIRun.triggeredByTelemetryExceptionId). The claim guard uses this to
-   * decide which trigger record a queued run must carry: exception-based
-   * recipes are unexecutable without their exception, while
-   * ImproveInstrumentation / FixFromIncident run against the incident or
-   * alert that triggered them (triggeredByIncidentId / triggeredByAlertId)
-   * and must not be rejected for lacking an exception.
+   * (AIRun.triggeredByTelemetryExceptionId). Kept as sugar over
+   * getContextKind — the claim guard and the task-details endpoint now
+   * dispatch on the full context kind.
    */
   public static requiresTelemetryException(taskType: CodeFixTaskType): boolean {
     return (
-      taskType !== CodeFixTaskType.ImproveInstrumentation &&
-      taskType !== CodeFixTaskType.FixFromIncident
+      this.getContextKind(taskType) === CodeFixContextKind.TelemetryException
     );
   }
 

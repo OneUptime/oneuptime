@@ -9,6 +9,7 @@ import {
   WriteRegressionTestTaskHandler,
   ImproveInstrumentationTaskHandler,
   FixFromIncidentTaskHandler,
+  FixPerformanceTaskHandler,
 } from "./TaskHandlers/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
@@ -74,6 +75,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       taskHandlerRegistry.register(new WriteRegressionTestTaskHandler());
       taskHandlerRegistry.register(new ImproveInstrumentationTaskHandler());
       taskHandlerRegistry.register(new FixFromIncidentTaskHandler());
+      taskHandlerRegistry.register(new FixPerformanceTaskHandler());
       logger.debug(
         `Registered ${taskHandlerRegistry.getHandlerCount()} task handler(s): ${taskHandlerRegistry.getRegisteredTaskTypes().join(", ")}`,
         { serviceName: APP_NAME } as LogAttributes,

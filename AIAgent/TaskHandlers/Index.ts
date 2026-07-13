@@ -18,3 +18,4 @@ export { default as FixExceptionTaskHandler } from "./FixExceptionTaskHandler";
 export { default as WriteRegressionTestTaskHandler } from "./WriteRegressionTestTaskHandler";
 export { default as ImproveInstrumentationTaskHandler } from "./ImproveInstrumentationTaskHandler";
 export { default as FixFromIncidentTaskHandler } from "./FixFromIncidentTaskHandler";
+export { default as FixPerformanceTaskHandler } from "./FixPerformanceTaskHandler";

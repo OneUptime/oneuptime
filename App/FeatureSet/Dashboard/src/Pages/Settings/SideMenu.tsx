@@ -113,7 +113,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
-      title: "AI",
+      title: "Sentinel",
       items: [
         {
           link: {

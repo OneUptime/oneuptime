@@ -15,17 +15,17 @@ When an investigation finishes, Sentinel posts a root cause analysis with these 
 
 For incidents, the analysis is posted to the incident feed **and** as an incident internal note (where responders collaborate). For alerts, it is posted to the alert feed.
 
-While the investigation runs, the incident or alert page shows a live **AI Investigation** panel that narrates each step — which tools ran, what they found, and how long they took — so you can watch Sentinel think. If an investigation fails, the panel shows the failure reason rather than a silent gap.
+While the investigation runs, the incident or alert page shows a live **Sentinel Investigation** panel that narrates each step — which tools ran, what they found, and how long they took — so you can watch Sentinel think. If an investigation fails, the panel shows the failure reason rather than a silent gap.
 
 ## Enabling Sentinel
 
 Sentinel is **off by default**. To enable it:
 
 1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens.
-2. **Make sure AI is enabled for the project** (it is by default) — Project Settings > AI Credits > Enable AI.
+2. **Make sure AI is enabled for the project** (it is by default) — Project Settings > Sentinel > AI Credits > Enable AI.
 3. **Opt in per signal type:**
-   - Incidents: **Incidents > Settings > AI** — toggle *Automatically Investigate Incidents*.
-   - Alerts: **Alerts > Settings > AI** — toggle *Automatically Investigate Alerts*.
+   - Incidents: **Incidents > Settings > Sentinel** — toggle *Automatically Investigate Incidents*.
+   - Alerts: **Alerts > Settings > Sentinel** — toggle *Automatically Investigate Alerts*.
 
 Incidents and alerts are opted in independently, so you can start with incidents only.
 
@@ -39,17 +39,17 @@ Alert volume can be much higher than incident volume, so autonomous investigatio
 
 | Control | Behavior | Where to configure |
 |---|---|---|
-| Severity floor (alerts) | Only alerts at or above a minimum severity are investigated. Default: the project's **top two severity tiers**. | Alerts > Settings > AI |
-| Re-investigation cooldown (alerts) | Repeat alerts from the same monitor within the cooldown are not re-investigated — the first analysis stands. Default **30 minutes**; set 0 to disable. | Alerts > Settings > AI |
-| Concurrency cap | How many investigations run at once per project. Default **3** (1–25); queued investigations wait for a free slot and expire after 30 minutes. | Incidents or Alerts > Settings > AI |
+| Severity floor (alerts) | Only alerts at or above a minimum severity are investigated. Default: the project's **top two severity tiers**. | Alerts > Settings > Sentinel |
+| Re-investigation cooldown (alerts) | Repeat alerts from the same monitor within the cooldown are not re-investigated — the first analysis stands. Default **30 minutes**; set 0 to disable. | Alerts > Settings > Sentinel |
+| Concurrency cap | How many investigations run at once per project. Default **3** (1–25); queued investigations wait for a free slot and expire after 30 minutes. | Incidents or Alerts > Settings > Sentinel |
 | Per-run budget | Each investigation is capped at 8 LLM calls, 12 tool calls, 150 seconds, and 2,000 output tokens. | Built in |
-| Daily token limit | Optional maximum tokens per UTC day across all autonomous investigations. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Set **0** to pause autonomous investigations entirely. | Incidents or Alerts > Settings > AI |
+| Daily token limit | Optional maximum tokens per UTC day across all autonomous investigations. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Set **0** to pause autonomous investigations entirely. | Incidents or Alerts > Settings > Sentinel |
 
 ## Trust and safety
 
 - **Read-only, always.** Autonomous investigations run with a curated set of read-only tools (metric, log, trace, exception, and change queries — including `baseline_anomaly`, which judges a metric against its learned hour-of-week normal range). Sentinel cannot acknowledge, resolve, page, or modify anything from an investigation.
 - **Citations are minted server-side** from tool calls that actually executed — the model cannot fabricate a citation to data it never read.
-- **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (Project Settings > AI Logs) with token counts and cost.
+- **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (Project Settings > Sentinel > AI Logs) with token counts and cost.
 - **Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns).
 - **Self-host = zero third-party egress.** With your own LLM provider (including local Ollama), telemetry never leaves your infrastructure.
 

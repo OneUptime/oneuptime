@@ -234,7 +234,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title="AI Investigation"
+      title="Sentinel Investigation"
       description={`Sentinel's live root-cause investigation for this ${props.subjectType}.`}
     >
       <div className="-mt-4">
@@ -296,7 +296,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 strongTitle="Fix task created"
                 title={
                   <span>
-                    The AI agent will open a pull request from this analysis.{" "}
+                    Sentinel will open a pull request from this analysis.{" "}
                     <Link
                       className="underline"
                       to={RouteUtil.populateRouteParams(
@@ -326,7 +326,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                               RouteMap[PageMap.AI_AGENT_TASKS] as Route,
                             )}
                           >
-                            View AI tasks
+                            View Sentinel tasks
                           </Link>
                           .
                         </span>
