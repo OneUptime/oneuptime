@@ -130,17 +130,29 @@ const MoreMenu: React.ForwardRefExoticComponent<
 
         {props.elementToBeShownInsteadOfButton && (
           <div
-            id={buttonId}
+            /*
+             * When a caller opts in with triggerClassName, this wrapper IS the
+             * menu button, so give it the full menu-button semantics. Callers
+             * that pass their own element (some already a real <button>) keep a
+             * bare wrapper to avoid layering redundant button semantics on top.
+             */
+            id={props.triggerClassName ? buttonId : undefined}
             className={props.triggerClassName}
             onClick={() => {
               setIsComponentVisible(!isDropdownVisible);
             }}
             role="button"
             tabIndex={0}
-            aria-label={props.text || "More options"}
-            aria-haspopup="menu"
-            aria-expanded={isComponentVisible}
-            aria-controls={isComponentVisible ? menuId : undefined}
+            aria-label={
+              props.triggerClassName ? props.text || "More options" : undefined
+            }
+            aria-haspopup={props.triggerClassName ? "menu" : undefined}
+            aria-expanded={
+              props.triggerClassName ? isComponentVisible : undefined
+            }
+            aria-controls={
+              props.triggerClassName && isComponentVisible ? menuId : undefined
+            }
             onKeyDown={(e: React.KeyboardEvent) => {
               /*
                * Only respond to the wrapper's own keys, never a focusable
