@@ -8,6 +8,8 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INIT]: new Route(`/admin`),
   [PageMap.HOME]: new Route(`/admin`),
   [PageMap.HEALTH]: new Route(`/admin/health`),
+  [PageMap.HEALTH_QUEUES]: new Route(`/admin/health/queues`),
+  [PageMap.HEALTH_INSTANCE_LOGS]: new Route(`/admin/health/instance-logs`),
   [PageMap.HEALTH_POSTGRES]: new Route(`/admin/health/postgres`),
   [PageMap.HEALTH_CLICKHOUSE]: new Route(`/admin/health/clickhouse`),
   [PageMap.HEALTH_REDIS]: new Route(`/admin/health/redis`),

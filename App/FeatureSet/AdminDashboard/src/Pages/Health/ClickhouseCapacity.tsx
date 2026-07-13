@@ -110,7 +110,6 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
 
   const connected: boolean = Boolean(data?.["connected"]);
   const diskByNode: JSONArray = asArray(data?.["diskByNode"]);
-  const topTables: JSONArray = asArray(data?.["topTables"]);
   const localTableSizes: JSONArray = asArray(data?.["localTableSizesByShard"]);
 
   const diskTotal: number | null = toNumberOrNull(data?.["diskTotalInBytes"]);
@@ -258,36 +257,6 @@ const ClickhouseCapacity: FunctionComponent = (): ReactElement => {
                   {renderStat("Disk used", bytesToReadable(diskUsed))}
                   {renderStat("Disk total", bytesToReadable(diskTotal))}
                 </div>
-
-                {topTables.length > 0 ? (
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900 mb-2">
-                      Largest tables across the cluster
-                    </div>
-                    <div className="space-y-1">
-                      {topTables.map(
-                        (value: unknown, index: number): ReactElement => {
-                          const table: JSONObject = asObject(value);
-                          return (
-                            <div
-                              key={`clickhouse-top-table-${index}`}
-                              className="flex justify-between gap-4 text-sm text-gray-600"
-                            >
-                              <span className="font-mono truncate">
-                                {String(table["name"] || "—")}
-                              </span>
-                              <span className="tabular-nums whitespace-nowrap">
-                                {bytesToReadable(table["sizeInBytes"])}
-                              </span>
-                            </div>
-                          );
-                        },
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <></>
-                )}
               </>
             ) : (
               <></>

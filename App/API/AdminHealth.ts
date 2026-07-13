@@ -47,6 +47,7 @@ const router: ExpressRouter = Express.getRouter();
  */
 const CACHE_TTL_MS: number = 15000;
 let overviewCache: { data: JSONObject; expiresAt: number } | null = null;
+let queuesCache: { data: JSONObject; expiresAt: number } | null = null;
 
 type ClickhouseJsonResult = { data: Array<JSONObject> };
 
@@ -395,6 +396,108 @@ async function getQueueStats(): Promise<JSONArray> {
   }
 
   return stats;
+}
+
+/*
+ * A cheap ClickHouse reachability probe for the overview summary. The full
+ * capacity read (getClickhouseStats) crosses the cluster and is far too heavy
+ * for an at-a-glance health tile, so here we only answer "can we reach it".
+ */
+async function getClickhouseHealthSummary(): Promise<JSONObject> {
+  const result: JSONObject = { connected: false };
+
+  try {
+    const client: ReturnType<typeof ClickhouseAppInstance.getDataSource> =
+      ClickhouseAppInstance.getDataSource();
+
+    if (!client) {
+      return result;
+    }
+
+    await (
+      await client.query({
+        query: "SELECT 1" + CH_DIAG_QUERY_SETTINGS,
+        format: "JSON",
+      })
+    ).json();
+
+    result["connected"] = true;
+  } catch (err) {
+    logger.error("AdminHealth: failed to reach ClickHouse for health summary");
+    logger.error(err);
+  }
+
+  return result;
+}
+
+/*
+ * A compact, at-a-glance roll-up of the whole instance's health for the
+ * overview page: datastore reachability (Postgres / ClickHouse / Redis) plus a
+ * background-queue summary. Each datastore probe already fails soft (returns
+ * connected:false rather than throwing), so one unreachable datastore never
+ * blanks the others. Kept deliberately lightweight — the deep introspection
+ * lives on each subsystem's own page.
+ */
+async function getHealthSummary(): Promise<JSONObject> {
+  const [postgres, clickhouse, redis, queues] = await Promise.all([
+    getPostgresStats(),
+    getClickhouseHealthSummary(),
+    getRedisStats(),
+    getQueueStats(),
+  ]);
+
+  let totalQueues: number = 0;
+  let healthyQueues: number = 0;
+  let failingQueues: number = 0;
+  let unavailableQueues: number = 0;
+  let failedJobs: number = 0;
+  let waitingJobs: number = 0;
+  let delayedJobs: number = 0;
+
+  for (const queue of queues) {
+    const queueObject: JSONObject = queue as JSONObject;
+    totalQueues++;
+
+    if (queueObject["error"]) {
+      unavailableQueues++;
+      continue;
+    }
+
+    const failed: number = toNumberOrNull(queueObject["failed"]) || 0;
+    failedJobs += failed;
+    waitingJobs += toNumberOrNull(queueObject["waiting"]) || 0;
+    delayedJobs += toNumberOrNull(queueObject["delayed"]) || 0;
+
+    if (failed > 0) {
+      failingQueues++;
+    } else {
+      healthyQueues++;
+    }
+  }
+
+  return {
+    postgres: {
+      connected: Boolean(postgres["connected"]),
+      databaseSizeInBytes: postgres["databaseSizeInBytes"] ?? null,
+    },
+    clickhouse: {
+      connected: Boolean(clickhouse["connected"]),
+    },
+    redis: {
+      connected: Boolean(redis["connected"]),
+      usedMemoryInBytes: redis["usedMemoryInBytes"] ?? null,
+      maxMemoryInBytes: redis["maxMemoryInBytes"] ?? null,
+    },
+    queues: {
+      totalQueues,
+      healthyQueues,
+      failingQueues,
+      unavailableQueues,
+      failedJobs,
+      waitingJobs,
+      delayedJobs,
+    },
+  };
 }
 
 /*
@@ -2879,9 +2982,9 @@ router.get(
         return Response.sendJsonObjectResponse(req, res, overviewCache.data);
       }
 
-      const queues: JSONArray = await getQueueStats();
+      const summary: JSONObject = await getHealthSummary();
 
-      const data: JSONObject = { queues };
+      const data: JSONObject = { summary };
 
       overviewCache = {
         data,
@@ -2896,8 +2999,51 @@ router.get(
 );
 
 /*
+ * Full per-queue background-queue stats for the dedicated Background Queues
+ * page. The overview above only carries the compact queue roll-up, so the drill
+ * -in page reads the detailed breakdown here. Cached like the overview since the
+ * introspection crosses Redis.
+ */
+router.get(
+  "/queues",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      if (queuesCache && queuesCache.expiresAt > Date.now()) {
+        return Response.sendJsonObjectResponse(req, res, queuesCache.data);
+      }
+
+      const queues: JSONArray = await getQueueStats();
+
+      const data: JSONObject = { queues };
+
+      queuesCache = {
+        data,
+        expiresAt: Date.now() + CACHE_TTL_MS,
+      };
+
+      return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
  * Focused datastore endpoints keep database introspection on the datastore's
- * own page. The overview above now reads queue state only.
+ * own page. The overview above now reads a compact cluster-health summary only.
  */
 router.get(
   "/clickhouse-capacity",

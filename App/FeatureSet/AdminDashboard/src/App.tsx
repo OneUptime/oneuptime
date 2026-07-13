@@ -1,6 +1,8 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
 import Init from "./Pages/Init/Init";
 import Health from "./Pages/Health/Index";
+import HealthQueues from "./Pages/Health/Queues";
+import HealthInstanceLogs from "./Pages/Health/InstanceLogs";
 import HealthPostgres from "./Pages/Health/Postgres";
 import HealthClickhouse from "./Pages/Health/Clickhouse";
 import HealthRedis from "./Pages/Health/Redis";
@@ -83,6 +85,16 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.HEALTH]?.toString() || ""}
           element={<Health />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_QUEUES]?.toString() || ""}
+          element={<HealthQueues />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_INSTANCE_LOGS]?.toString() || ""}
+          element={<HealthInstanceLogs />}
         />
 
         <PageRoute

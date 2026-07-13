@@ -18,9 +18,9 @@ const HealthClickhouse: FunctionComponent = (): ReactElement => {
       enterpriseFeatureDescription="Shard reachability, the distributed-DDL queue, replica and replication-queue state and the Keeper connection for the ClickHouse backing this instance."
     >
       <ClickhouseCapacity />
-      <ClickhouseCapacitySettings />
       <ClickhouseCluster />
       <ClickhouseTelemetryIngestion />
+      <ClickhouseCapacitySettings />
     </HealthPage>
   );
 };

@@ -20,6 +20,24 @@ const HealthSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Activity}
         />
+        <SideMenuItem
+          link={{
+            title: "Background Queues",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HEALTH_QUEUES] as Route,
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "Instance Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HEALTH_INSTANCE_LOGS] as Route,
+            ),
+          }}
+          icon={IconProp.Logs}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Datastores">

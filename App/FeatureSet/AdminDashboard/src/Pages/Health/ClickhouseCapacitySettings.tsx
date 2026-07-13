@@ -57,142 +57,142 @@ const validatePruningTarget: (
 
 const ClickhouseCapacitySettings: FunctionComponent = (): ReactElement => {
   return (
-    <>
-      <Alert
-        type={AlertType.WARNING}
-        strongTitle="Automatic pruning permanently deletes telemetry."
-        title="When enabled, OneUptime drops the oldest eligible telemetry partitions across the cluster until capacity reaches the target. Deleted data cannot be recovered unless you have a backup."
-      />
-
-      <CardModelDetail<GlobalConfig>
-        name="ClickHouse Capacity Policy"
-        cardProps={{
-          title: "ClickHouse capacity policy",
+    <CardModelDetail<GlobalConfig>
+      name="ClickHouse Capacity Policy"
+      cardProps={{
+        title: "ClickHouse capacity policy",
+        description:
+          "Notify master administrators when a writable physical disk on any ClickHouse shard or replica crosses a capacity threshold, and optionally reclaim space by pruning the oldest data.",
+      }}
+      isEditable={true}
+      editButtonText="Edit capacity policy"
+      formFields={[
+        {
+          field: {
+            clickhouseCapacityNotificationEnabled: true,
+          },
+          title: "Notify on high capacity",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
           description:
-            "Notify master administrators when a writable physical disk on any ClickHouse shard or replica crosses a capacity threshold, and optionally reclaim space by pruning the oldest data.",
-        }}
-        isEditable={true}
-        editButtonText="Edit capacity policy"
-        formFields={[
+            "Notify master administrators when a writable physical disk on any ClickHouse shard or replica crosses the configured capacity threshold.",
+        },
+        {
+          field: {
+            clickhouseCapacityNotificationThresholdPercent: true,
+          },
+          title: "Notification threshold (%)",
+          fieldType: FormFieldSchemaType.PositiveNumber,
+          required: isNotificationEnabled,
+          showIf: isNotificationEnabled,
+          validation: {
+            minValue: 1,
+            maxValue: 100,
+          },
+          placeholder: "80",
+          description:
+            "Send a notification when physical disk usage on any ClickHouse shard or replica rises to this percentage.",
+        },
+        {
+          field: {
+            clickhouseDataPruningEnabled: true,
+          },
+          title: "Enable automatic data pruning",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          description:
+            "Permanently delete the oldest eligible telemetry partitions when capacity reaches the pruning trigger.",
+          footerElement: (
+            <Alert
+              type={AlertType.WARNING}
+              strongTitle="Automatic pruning permanently deletes telemetry."
+              title="When enabled, OneUptime drops the oldest eligible telemetry partitions across the cluster until capacity reaches the target. Deleted data cannot be recovered unless you have a backup."
+              className="mt-3"
+            />
+          ),
+        },
+        {
+          field: {
+            clickhouseDataPruningThresholdPercent: true,
+          },
+          title: "Pruning trigger (%)",
+          fieldType: FormFieldSchemaType.PositiveNumber,
+          required: isPruningEnabled,
+          showIf: isPruningEnabled,
+          validation: {
+            minValue: 1,
+            maxValue: 100,
+          },
+          placeholder: "90",
+          description:
+            "Start pruning when physical disk usage on any ClickHouse shard or replica reaches this percentage.",
+        },
+        {
+          field: {
+            clickhouseDataPruningTargetPercent: true,
+          },
+          title: "Pruning target (%)",
+          fieldType: FormFieldSchemaType.PositiveNumber,
+          required: isPruningEnabled,
+          showIf: isPruningEnabled,
+          validation: {
+            minValue: 1,
+            maxValue: 100,
+          },
+          customValidation: validatePruningTarget,
+          placeholder: "80",
+          description:
+            "Continue deleting the oldest data until every writable ClickHouse disk falls to this percentage. This must be lower than the pruning trigger.",
+        },
+      ]}
+      modelDetailProps={{
+        modelType: GlobalConfig,
+        id: "model-detail-clickhouse-capacity-policy",
+        fields: [
           {
             field: {
               clickhouseCapacityNotificationEnabled: true,
             },
-            title: "Notify on high capacity",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Notify master administrators when a writable physical disk on any ClickHouse shard or replica crosses the configured capacity threshold.",
+            fieldType: FieldType.Boolean,
+            title: "High-capacity notifications",
+            placeholder: "No",
           },
           {
             field: {
               clickhouseCapacityNotificationThresholdPercent: true,
             },
+            fieldType: FieldType.Number,
             title: "Notification threshold (%)",
-            fieldType: FormFieldSchemaType.PositiveNumber,
-            required: isNotificationEnabled,
-            showIf: isNotificationEnabled,
-            validation: {
-              minValue: 1,
-              maxValue: 100,
-            },
-            placeholder: "80",
-            description:
-              "Send a notification when physical disk usage on any ClickHouse shard or replica rises to this percentage.",
+            placeholder: "Not configured",
           },
           {
             field: {
               clickhouseDataPruningEnabled: true,
             },
-            title: "Enable automatic data pruning",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "Permanently delete the oldest eligible telemetry partitions when capacity reaches the pruning trigger.",
+            fieldType: FieldType.Boolean,
+            title: "Automatic data pruning",
+            placeholder: "No",
           },
           {
             field: {
               clickhouseDataPruningThresholdPercent: true,
             },
+            fieldType: FieldType.Number,
             title: "Pruning trigger (%)",
-            fieldType: FormFieldSchemaType.PositiveNumber,
-            required: isPruningEnabled,
-            showIf: isPruningEnabled,
-            validation: {
-              minValue: 1,
-              maxValue: 100,
-            },
-            placeholder: "90",
-            description:
-              "Start pruning when physical disk usage on any ClickHouse shard or replica reaches this percentage.",
+            placeholder: "Not configured",
           },
           {
             field: {
               clickhouseDataPruningTargetPercent: true,
             },
+            fieldType: FieldType.Number,
             title: "Pruning target (%)",
-            fieldType: FormFieldSchemaType.PositiveNumber,
-            required: isPruningEnabled,
-            showIf: isPruningEnabled,
-            validation: {
-              minValue: 1,
-              maxValue: 100,
-            },
-            customValidation: validatePruningTarget,
-            placeholder: "80",
-            description:
-              "Continue deleting the oldest data until every writable ClickHouse disk falls to this percentage. This must be lower than the pruning trigger.",
+            placeholder: "Not configured",
           },
-        ]}
-        modelDetailProps={{
-          modelType: GlobalConfig,
-          id: "model-detail-clickhouse-capacity-policy",
-          fields: [
-            {
-              field: {
-                clickhouseCapacityNotificationEnabled: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "High-capacity notifications",
-              placeholder: "No",
-            },
-            {
-              field: {
-                clickhouseCapacityNotificationThresholdPercent: true,
-              },
-              fieldType: FieldType.Number,
-              title: "Notification threshold (%)",
-              placeholder: "Not configured",
-            },
-            {
-              field: {
-                clickhouseDataPruningEnabled: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Automatic data pruning",
-              placeholder: "No",
-            },
-            {
-              field: {
-                clickhouseDataPruningThresholdPercent: true,
-              },
-              fieldType: FieldType.Number,
-              title: "Pruning trigger (%)",
-              placeholder: "Not configured",
-            },
-            {
-              field: {
-                clickhouseDataPruningTargetPercent: true,
-              },
-              fieldType: FieldType.Number,
-              title: "Pruning target (%)",
-              placeholder: "Not configured",
-            },
-          ],
-          modelId: ObjectID.getZeroObjectID(),
-        }}
-      />
-    </>
+        ],
+        modelId: ObjectID.getZeroObjectID(),
+      }}
+    />
   );
 };
 
