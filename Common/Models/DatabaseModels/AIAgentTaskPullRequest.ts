@@ -1,5 +1,4 @@
 import AIAgent from "./AIAgent";
-import AIAgentTask from "./AIAgentTask";
 import CodeRepository from "./CodeRepository";
 import Project from "./Project";
 import User from "./User";
@@ -140,78 +139,6 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public projectId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgentTask,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProjectAIAgentTask,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.Entity,
-    required: false,
-    modelType: AIAgentTask,
-    manyToOneRelationColumn: "aiAgentTaskId",
-    title: "AI Agent Task",
-    description:
-      "Legacy AI Agent Task this pull request belongs to. New rows reference an AIRun via aiRunId instead.",
-  })
-  @ManyToOne(
-    () => {
-      return AIAgentTask;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "aiAgentTaskId" })
-  public aiAgentTask?: AIAgentTask = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgentTask,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProjectAIAgentTask,
-    ],
-    update: [],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    canReadOnRelationQuery: true,
-    title: "AI Agent Task ID",
-    description:
-      "ID of the legacy AI Agent Task this pull request belongs to. Null for rows created on the AIRun substrate.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public aiAgentTaskId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

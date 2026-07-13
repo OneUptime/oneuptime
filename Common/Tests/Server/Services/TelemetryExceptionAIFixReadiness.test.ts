@@ -2,6 +2,7 @@ import TelemetryExceptionService, {
   AIFixReadiness,
   AIFixReadinessCheck,
 } from "../../../Server/Services/TelemetryExceptionService";
+import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
@@ -232,6 +233,9 @@ describe("TelemetryExceptionService.createCodeFixRunForException fail-early", ()
 
   test("rejects with every missing prerequisite named, before any run is created", async () => {
     mockReadiness({ provider: null, agent: null });
+
+    // The daily fix-run budget has its own suite (FixRunBudget.test.ts).
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
 
     await expect(
       TelemetryExceptionService.createCodeFixRunForException({

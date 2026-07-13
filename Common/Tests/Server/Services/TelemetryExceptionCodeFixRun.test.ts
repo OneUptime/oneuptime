@@ -1,4 +1,5 @@
 import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
+import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
@@ -16,8 +17,9 @@ import AIAgent, {
 import AIRunType from "../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * "Fix with AI Agent" on the AIRun substrate: creation records a Queued
@@ -80,6 +82,11 @@ function mockReadinessOk(): void {
 }
 
 describe("TelemetryExceptionService.createCodeFixRunForException", () => {
+  beforeEach(() => {
+    // The daily fix-run budget has its own suite (FixRunBudget.test.ts).
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -114,6 +121,34 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
         props: expect.objectContaining({ isRoot: true }),
       }),
     );
+  });
+
+  test("over the daily fix-run budget: rejects BEFORE the readiness probes, nothing created", async () => {
+    mockReadinessOk();
+
+    jest
+      .spyOn(FixRunBudget, "assertWithinBudget")
+      .mockRejectedValue(
+        new BadDataException(
+          "The project's daily AI fix task limit has been reached",
+        ),
+      );
+    const readinessProbe: jest.SpyInstance = jest.spyOn(
+      LlmProviderService,
+      "getLlmProviderForAgentTasks",
+    );
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(/daily AI fix task limit/);
+
+    // Budget is the cheaper gate — the readiness checks never ran.
+    expect(readinessProbe).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
   test("duplicate guard: an active (non-terminal) run for the exception blocks creation", async () => {

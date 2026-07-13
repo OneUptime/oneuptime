@@ -251,15 +251,16 @@ enum Permission {
   EditProjectAIAgent = "EditProjectAIAgent",
   ReadProjectAIAgent = "ReadProjectAIAgent",
 
+  /*
+   * The AIAgentTask model these were named for is removed (fix runs live
+   * on AIRun, which is server-written only); the permissions remain
+   * because they govern AIAgentTaskPullRequest — the record of pull
+   * requests AI fix runs opened.
+   */
   CreateProjectAIAgentTask = "CreateProjectAIAgentTask",
   DeleteProjectAIAgentTask = "DeleteProjectAIAgentTask",
   EditProjectAIAgentTask = "EditProjectAIAgentTask",
   ReadProjectAIAgentTask = "ReadProjectAIAgentTask",
-
-  CreateProjectAIAgentTaskTelemetryException = "CreateProjectAIAgentTaskTelemetryException",
-  DeleteProjectAIAgentTaskTelemetryException = "DeleteProjectAIAgentTaskTelemetryException",
-  EditProjectAIAgentTaskTelemetryException = "EditProjectAIAgentTaskTelemetryException",
-  ReadProjectAIAgentTaskTelemetryException = "ReadProjectAIAgentTaskTelemetryException",
 
   CreateProjectLlm = "CreateProjectLlm",
   DeleteProjectLlm = "DeleteProjectLlm",
@@ -6041,7 +6042,7 @@ export class PermissionHelper {
         permission: Permission.CreateProjectAIAgentTask,
         title: "Create AI Agent Task",
         description:
-          "This permission can create AI agent tasks for this project.",
+          "This permission can create AI agent fix task pull request records for this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -6051,7 +6052,7 @@ export class PermissionHelper {
         permission: Permission.DeleteProjectAIAgentTask,
         title: "Delete AI Agent Task",
         description:
-          "This permission can delete AI agent tasks of this project.",
+          "This permission can delete AI agent fix task pull request records of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -6060,7 +6061,8 @@ export class PermissionHelper {
       {
         permission: Permission.EditProjectAIAgentTask,
         title: "Edit AI Agent Task",
-        description: "This permission can edit AI agent tasks of this project.",
+        description:
+          "This permission can edit AI agent fix task pull request records of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -6069,48 +6071,8 @@ export class PermissionHelper {
       {
         permission: Permission.ReadProjectAIAgentTask,
         title: "Read AI Agent Task",
-        description: "This permission can read AI agent tasks of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-        isRolePermission: false,
-        group: PermissionGroup.AIAgent,
-      },
-
-      {
-        permission: Permission.CreateProjectAIAgentTaskTelemetryException,
-        title: "Create AI Agent Task Exception Link",
         description:
-          "This permission can create links between AI agent tasks and telemetry exceptions.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.AIAgent,
-      },
-      {
-        permission: Permission.DeleteProjectAIAgentTaskTelemetryException,
-        title: "Delete AI Agent Task Exception Link",
-        description:
-          "This permission can delete links between AI agent tasks and telemetry exceptions.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-        isRolePermission: false,
-        group: PermissionGroup.AIAgent,
-      },
-      {
-        permission: Permission.EditProjectAIAgentTaskTelemetryException,
-        title: "Edit AI Agent Task Exception Link",
-        description:
-          "This permission can edit links between AI agent tasks and telemetry exceptions.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: true,
-        isRolePermission: false,
-        group: PermissionGroup.AIAgent,
-      },
-      {
-        permission: Permission.ReadProjectAIAgentTaskTelemetryException,
-        title: "Read AI Agent Task Exception Link",
-        description:
-          "This permission can read links between AI agent tasks and telemetry exceptions.",
+          "This permission can read AI agent fix tasks and their pull requests of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

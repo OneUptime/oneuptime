@@ -1,4 +1,5 @@
 import FixFromIncidentTaskTrigger from "../../../Server/Utils/AI/Sentinel/FixFromIncidentTaskTrigger";
+import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
@@ -8,7 +9,7 @@ import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The FixFromIncident trigger: the user clicks "Open Fix PR from this
@@ -32,6 +33,11 @@ function fakeRun(): AIRun {
 }
 
 describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
+  beforeEach(() => {
+    // The daily fix-run budget has its own suite (FixRunBudget.test.ts).
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -118,6 +124,34 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
         userId,
       }),
     ).rejects.toThrow(/already queued or running/);
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("over the daily fix-run budget: the user-facing call REJECTS with the budget message, nothing enqueued", async () => {
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValueOnce(fakeRun()) // completed investigation
+      .mockResolvedValueOnce(null); // no duplicate run
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    jest
+      .spyOn(FixRunBudget, "assertWithinBudget")
+      .mockRejectedValue(
+        new BadDataException(
+          "The project's daily AI fix task limit has been reached",
+        ),
+      );
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        userId,
+      }),
+    ).rejects.toThrow(/daily AI fix task limit/);
 
     expect(create).not.toHaveBeenCalled();
   });

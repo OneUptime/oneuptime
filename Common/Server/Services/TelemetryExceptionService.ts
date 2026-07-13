@@ -12,6 +12,7 @@ import CodeFixTaskType, {
 } from "../../Types/AI/CodeFixTaskType";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIRunService from "./AIRunService";
+import FixRunBudget from "../Utils/AI/CodeFix/FixRunBudget";
 import AIAgentService from "./AIAgentService";
 import LlmProviderService from "./LlmProviderService";
 import ServiceService from "./ServiceService";
@@ -259,6 +260,13 @@ export class Service extends DatabaseService<Model> {
     if (!telemetryException || !telemetryException.projectId) {
       throw new BadDataException("Telemetry Exception not found");
     }
+
+    /*
+     * G11 guardrail: the per-project daily fix-run budget. Checked before
+     * the (more expensive) readiness probes — an over-budget project gets
+     * the budget message, not a readiness one.
+     */
+    await FixRunBudget.assertWithinBudget(telemetryException.projectId);
 
     /*
      * Fail early with everything that's missing, instead of creating a run
