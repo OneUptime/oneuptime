@@ -17,11 +17,19 @@ refresh_deps_if_missing() {
   if ! (
     cd "${dir}" &&
     node -e "
+      const fs = require('fs');
+      const path = require('path');
       const pkg = require('./package.json');
       const deps = Object.keys({ ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) });
       for (const name of deps) {
-        try { require.resolve(name + '/package.json', { paths: [process.cwd()] }); }
-        catch (e) { console.error('missing:', name); process.exit(1); }
+        // Check for the installed package directory rather than resolving a
+        // subpath: an 'exports' map (e.g. openid-client) can block
+        // require.resolve(name + '/package.json') even when installed, and
+        // type-only packages (@types/*) have no importable entry point.
+        if (!fs.existsSync(path.join(process.cwd(), 'node_modules', name, 'package.json'))) {
+          console.error('missing:', name);
+          process.exit(1);
+        }
       }
     "
   ) >/dev/null 2>&1; then
