@@ -928,4 +928,109 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: true,
   })
   public monitorMetricRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "ClickHouse Capacity Notifications",
+    description:
+      "Notify master administrators when ClickHouse capacity rises above the configured threshold.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public clickhouseCapacityNotificationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "ClickHouse Capacity Notification Threshold (%)",
+    description:
+      "Notify master administrators when ClickHouse capacity rises above this percentage.",
+    defaultValue: 80,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 80,
+  })
+  public clickhouseCapacityNotificationThresholdPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "ClickHouse Data Pruning",
+    description:
+      "Automatically prune ClickHouse data when capacity rises above the configured threshold.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public clickhouseDataPruningEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "ClickHouse Data Pruning Threshold (%)",
+    description:
+      "Start pruning ClickHouse data when capacity rises above this percentage.",
+    defaultValue: 90,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 90,
+  })
+  public clickhouseDataPruningThresholdPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "ClickHouse Data Pruning Target (%)",
+    description:
+      "Continue pruning ClickHouse data until capacity reaches this percentage.",
+    defaultValue: 80,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 80,
+  })
+  public clickhouseDataPruningTargetPercent?: number = undefined;
 }

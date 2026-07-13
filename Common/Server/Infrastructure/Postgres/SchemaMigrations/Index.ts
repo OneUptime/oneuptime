@@ -438,6 +438,7 @@ import { CodeFixRunsOnAIRun1783947444597 } from "./1783947444597-CodeFixRunsOnAI
 import { AddCodeFixTaskType1783950962813 } from "./1783950962813-AddCodeFixTaskType";
 import { AddInstrumentationFixTasksFlag1783954040984 } from "./1783954040984-AddInstrumentationFixTasksFlag";
 import { MigrationName1783937343400 } from "./1783937343400-MigrationName";
+import { MigrationName1783957160597 } from "./1783957160597-MigrationName";
 
 export default [
   InitialMigration,
@@ -880,4 +881,5 @@ export default [
   CodeFixRunsOnAIRun1783947444597,
   AddCodeFixTaskType1783950962813,
   AddInstrumentationFixTasksFlag1783954040984,
+  MigrationName1783957160597,
 ];

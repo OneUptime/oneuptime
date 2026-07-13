@@ -138,6 +138,9 @@ import "./Jobs/AIChat/ProcessQueuedInvestigations";
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 
+// Instance health and capacity management.
+import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";
+
 // Derived / recording-rule metrics.
 import "./Jobs/Metrics/ComputeRecordingRules";
 

@@ -30,13 +30,20 @@ import {
   getStorageTableName,
 } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
+import {
+  getClickhouseDiskSnapshots,
+  getClickhouseLocalTableSizes,
+  ClickhouseLocalTableSize,
+} from "Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity";
+import InstanceHealthLogService from "Common/Server/Services/InstanceHealthLogService";
+import InstanceHealthLog from "Common/Models/DatabaseModels/InstanceHealthLog";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * The overview aggregates several DB-introspection queries. Master-admin
- * traffic is low-volume, but the page polls, so we cache the result briefly to
- * keep the queries off the datastores on every refresh.
+ * The overview polls background-queue state. Master-admin traffic is
+ * low-volume, but queue introspection still crosses Redis, so cache it briefly.
  */
 const CACHE_TTL_MS: number = 15000;
 let overviewCache: { data: JSONObject; expiresAt: number } | null = null;
@@ -172,6 +179,7 @@ async function getClickhouseStats(): Promise<JSONObject> {
     diskTotalInBytes: null,
     diskByNode: [],
     topTables: [],
+    localTableSizesByShard: [],
   };
 
   try {
@@ -183,6 +191,10 @@ async function getClickhouseStats(): Promise<JSONObject> {
     }
 
     const clusterNameLiteral: string = getClickhouseClusterName().replace(
+      /'/g,
+      "''",
+    );
+    const databaseNameLiteral: string = ClickhouseDatabaseName.replace(
       /'/g,
       "''",
     );
@@ -200,7 +212,7 @@ async function getClickhouseStats(): Promise<JSONObject> {
       const sizeResult: ClickhouseJsonResult = (await (
         await client.query({
           query:
-            `SELECT sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active` +
+            `SELECT sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active AND database = '${databaseNameLiteral}'` +
             CH_DIAG_QUERY_SETTINGS,
           format: "JSON",
         })
@@ -216,38 +228,30 @@ async function getClickhouseStats(): Promise<JSONObject> {
     }
 
     /*
-     * Disk capacity PER NODE. Every physical node (each shard AND each replica)
-     * has its own disk that can independently fill up, so we list them rather than
-     * sum — a single node at 95% must never be hidden inside an aggregate. We read
-     * through `clusterAllReplicas(<name>, system.disks)` (EVERY node, not one per
-     * shard) and group by host, summing each node's own volumes. diskFree/Total
-     * keep a raw cluster-wide aggregate for the support bundle and the UI's
-     * single-bar fallback.
+     * Disk capacity stays separate per writable physical disk, so a roomy
+     * volume on the same host cannot hide one that is nearly full. Aggregate
+     * totals remain available for the support bundle and UI fallback.
      */
     try {
-      const diskResult: ClickhouseJsonResult = (await (
-        await client.query({
-          query:
-            `SELECT hostName() AS host, sum(free_space) AS free, sum(total_space) AS total FROM clusterAllReplicas('${clusterNameLiteral}', system.disks) GROUP BY host ORDER BY host ASC` +
-            CH_DIAG_QUERY_SETTINGS,
-          format: "JSON",
-        })
-      ).json()) as ClickhouseJsonResult;
-
       const nodes: JSONArray = [];
       let totalSum: number = 0;
       let freeSum: number = 0;
 
-      for (const row of diskResult.data || []) {
-        const totalInBytes: number | null = toNumberOrNull(row["total"]);
-        const freeInBytes: number | null = toNumberOrNull(row["free"]);
+      for (const disk of await getClickhouseDiskSnapshots()) {
+        const totalInBytes: number = disk.totalInBytes;
+        const freeInBytes: number = disk.freeInBytes;
         nodes.push({
-          host: String(row["host"]),
+          shardNum: disk.shardNum,
+          host: disk.host,
+          diskName: disk.diskName,
+          path: disk.path,
           freeInBytes: freeInBytes,
+          unreservedInBytes: disk.unreservedInBytes,
           totalInBytes: totalInBytes,
+          utilizationPercent: disk.utilizationPercent,
         });
-        totalSum += totalInBytes ?? 0;
-        freeSum += freeInBytes ?? 0;
+        totalSum += totalInBytes;
+        freeSum += freeInBytes;
       }
 
       result["connected"] = true;
@@ -269,7 +273,7 @@ async function getClickhouseStats(): Promise<JSONObject> {
       const tablesResult: ClickhouseJsonResult = (await (
         await client.query({
           query:
-            `SELECT table AS name, sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active GROUP BY table ORDER BY bytes DESC LIMIT 8` +
+            `SELECT table AS name, sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active AND database = '${databaseNameLiteral}' AND endsWith(table, 'Local') GROUP BY table ORDER BY bytes DESC LIMIT 8` +
             CH_DIAG_QUERY_SETTINGS,
           format: "JSON",
         })
@@ -286,6 +290,27 @@ async function getClickhouseStats(): Promise<JSONObject> {
       );
     } catch (err) {
       logger.error("AdminHealth: failed to read ClickHouse top tables");
+      logger.error(err);
+    }
+
+    try {
+      result["localTableSizesByShard"] = (
+        await getClickhouseLocalTableSizes()
+      ).map((table: ClickhouseLocalTableSize): JSONObject => {
+        return {
+          shardNum: table.shardNum,
+          host: table.host,
+          tableName: table.tableName,
+          sizeInBytes: table.sizeInBytes,
+          rowCount: table.rowCount,
+          partCount: table.partCount,
+        };
+      });
+      result["connected"] = true;
+    } catch (err) {
+      logger.error(
+        "AdminHealth: failed to read local ClickHouse table sizes by shard",
+      );
       logger.error(err);
     }
   } catch (err) {
@@ -2854,19 +2879,9 @@ router.get(
         return Response.sendJsonObjectResponse(req, res, overviewCache.data);
       }
 
-      const [postgres, clickhouse, redis, queues] = await Promise.all([
-        getPostgresStats(),
-        getClickhouseStats(),
-        getRedisStats(),
-        getQueueStats(),
-      ]);
+      const queues: JSONArray = await getQueueStats();
 
-      const data: JSONObject = {
-        postgres,
-        clickhouse,
-        redis,
-        queues,
-      };
+      const data: JSONObject = { queues };
 
       overviewCache = {
         data,
@@ -2874,6 +2889,134 @@ router.get(
       };
 
       return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Focused datastore endpoints keep database introspection on the datastore's
+ * own page. The overview above now reads queue state only.
+ */
+router.get(
+  "/clickhouse-capacity",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "ClickHouse capacity health is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        await getClickhouseStats(),
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.get(
+  "/redis",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "Redis health is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      return Response.sendJsonObjectResponse(req, res, await getRedisStats());
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.get(
+  "/instance-health-logs",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "Instance health logs are only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      const logs: Array<InstanceHealthLog> =
+        await InstanceHealthLogService.findBy({
+          query: {},
+          select: {
+            _id: true,
+            eventType: true,
+            status: true,
+            message: true,
+            completedAt: true,
+            nextCheckAt: true,
+            capacityBeforePercent: true,
+            capacityAfterPercent: true,
+            thresholdPercent: true,
+            targetPercent: true,
+            estimatedFreedBytes: true,
+            metadata: true,
+            createdAt: true,
+          },
+          sort: {
+            createdAt: SortOrder.Descending,
+          },
+          skip: 0,
+          limit: 50,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const items: JSONArray = logs.map(
+        (log: InstanceHealthLog): JSONObject => {
+          return {
+            _id: log._id || null,
+            eventType: log.eventType || null,
+            status: log.status || null,
+            message: log.message || "",
+            completedAt: toIsoOrNull(log.completedAt),
+            nextCheckAt: toIsoOrNull(log.nextCheckAt),
+            capacityBeforePercent: log.capacityBeforePercent ?? null,
+            capacityAfterPercent: log.capacityAfterPercent ?? null,
+            thresholdPercent: log.thresholdPercent ?? null,
+            targetPercent: log.targetPercent ?? null,
+            estimatedFreedBytes: log.estimatedFreedBytes ?? null,
+            metadata: log.metadata || null,
+            createdAt: toIsoOrNull(log.createdAt),
+          };
+        },
+      );
+
+      return Response.sendJsonObjectResponse(req, res, { logs: items });
     } catch (err) {
       return next(err);
     }

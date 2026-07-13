@@ -72,6 +72,7 @@ import EmailLog from "./EmailLog";
 import EmailVerificationToken from "./EmailVerificationToken";
 import File from "./File";
 import GlobalConfig from "./GlobalConfig";
+import InstanceHealthLog from "./InstanceHealthLog";
 import GreenlockCertificate from "./GreenlockCertificate";
 // Greenlock
 import GreenlockChallenge from "./GreenlockChallenge";
@@ -676,6 +677,7 @@ const AllModelTypes: Array<{
   OpenSourceDeployment,
 
   GlobalConfig,
+  InstanceHealthLog,
 
   MonitorGroup,
   MonitorGroupOwnerTeam,

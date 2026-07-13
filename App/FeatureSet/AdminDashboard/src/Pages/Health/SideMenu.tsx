@@ -43,6 +43,15 @@ const HealthSideMenu: () => JSX.Element = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Redis",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HEALTH_REDIS] as Route,
+            ),
+          }}
+          icon={IconProp.Database}
+        />
+        <SideMenuItem
+          link={{
             title: "Query Console",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HEALTH_QUERY] as Route,
