@@ -222,6 +222,7 @@ class MonitorMetricTypeUtil {
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
+      monitorType === MonitorType.SQLQuery ||
       monitorType === MonitorType.ExternalStatusPage
     ) {
       return [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime];
