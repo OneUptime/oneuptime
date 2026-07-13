@@ -104,7 +104,7 @@
       "aiAgentsTitle": "Agents",
       "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "コードリポジトリ",
-      "codeRepositoriesDescription": "GitHubとGitLabの統合。",
+      "codeRepositoriesDescription": "Connect GitHub so the AI agent can open fix PRs.",
       "usersTitle": "ユーザー",
       "usersDescription": "プロジェクトのユーザーと招待を管理します。",
       "teamsTitle": "チーム",

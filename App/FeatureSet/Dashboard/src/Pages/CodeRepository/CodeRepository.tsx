@@ -1,6 +1,10 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import Link from "Common/UI/Components/Link/Link";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
@@ -9,7 +13,6 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
-import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -18,25 +21,17 @@ import React, {
 } from "react";
 import { env, HOME_URL } from "Common/UI/Config";
 import UserUtil from "Common/UI/Utils/User";
-import GitHubRepoSelectorModal from "../../Components/CodeRepository/GitHubRepoSelectorModal";
-import GitRepoConnectionModal from "../../Components/CodeRepository/GitRepoConnectionModal";
+import AIPlanGate from "../../Components/AI/AIPlanGate";
 import RepositoryConnectionStatus from "../../Components/CodeRepository/RepositoryConnectionStatus";
 import Card from "Common/UI/Components/Card/Card";
 import ObjectID from "Common/Types/ObjectID";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 
 const CodeRepositoryPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [showGitHubModal, setShowGitHubModal] = useState<boolean>(false);
-  const [showGitModal, setShowGitModal] = useState<boolean>(false);
-  const [gitHubInstallationId, setGitHubInstallationId] = useState<
-    string | null
-  >(null);
-  const [projectInstallationId, setProjectInstallationId] = useState<
-    string | null
-  >(null);
+  const [showGitHubConnectedBanner, setShowGitHubConnectedBanner] =
+    useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
@@ -44,50 +39,26 @@ const CodeRepositoryPage: FunctionComponent<
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  // Fetch GitHub installation ID from project
-  const fetchProjectInstallationId: () => Promise<void> =
-    async (): Promise<void> => {
-      if (!projectId) {
-        return;
-      }
-
-      try {
-        const project: Project | null = await ModelAPI.getItem({
-          modelType: Project,
-          id: projectId,
-          select: {
-            gitHubAppInstallationId: true,
-          },
-        });
-
-        if (project?.gitHubAppInstallationId) {
-          setProjectInstallationId(project.gitHubAppInstallationId);
-        }
-      } catch (err: unknown) {
-        // Silently fail - we'll just redirect to GitHub if we can't get the installation ID
-        API.getFriendlyErrorMessage(err as Error);
-      }
-    };
-
   useEffect(() => {
-    // Check for installation_id in URL query params (returned from GitHub OAuth)
+    /*
+     * Check for installation_id in URL query params (returned from GitHub
+     * after installing the app). The repositories in the installation were
+     * already imported server-side by the install callback, so all that is
+     * left to do here is show a success banner and refresh the table.
+     */
     const urlParams: URLSearchParams = new URLSearchParams(
       window.location.search,
     );
     const installationId: string | null = urlParams.get("installation_id");
 
     if (installationId) {
-      setGitHubInstallationId(installationId);
-      setProjectInstallationId(installationId); // Also update the project installation ID
-      setShowGitHubModal(true);
+      setShowGitHubConnectedBanner(true);
+      setRefreshToggle(Date.now().toString());
 
       // Clean up the URL
       const newUrl: string = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-
-    // Fetch installation ID from project
-    fetchProjectInstallationId();
   }, []);
 
   const handleConnectWithGitHub: () => void = (): void => {
@@ -95,76 +66,58 @@ const CodeRepositoryPage: FunctionComponent<
       return;
     }
 
-    // If project already has an installation ID, show the modal directly
-    if (projectInstallationId) {
-      setGitHubInstallationId(projectInstallationId);
-      setShowGitHubModal(true);
-      return;
-    }
-
-    // Otherwise, redirect to GitHub for fresh installation
+    /*
+     * Redirect to GitHub to install (or update) the GitHub App. Once
+     * installed, all repositories in the installation are imported
+     * automatically and kept in sync via webhooks.
+     */
     const userId: ObjectID = UserUtil.getUserId();
     const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
     window.location.href = installUrl;
-  };
-
-  const handleConnectWithGit: () => void = (): void => {
-    setShowGitModal(true);
-  };
-
-  const handleGitHubModalClose: () => void = (): void => {
-    setShowGitHubModal(false);
-    setGitHubInstallationId(null);
-  };
-
-  const handleGitModalClose: () => void = (): void => {
-    setShowGitModal(false);
-  };
-
-  const handleRepoConnected: () => void = (): void => {
-    setShowGitHubModal(false);
-    setShowGitModal(false);
-    setGitHubInstallationId(null);
-    // Refresh the table
-    setRefreshToggle(Date.now().toString());
-  };
-
-  /**
-   * Called when the GitHub App installation is no longer valid (e.g., uninstalled from GitHub).
-   * This clears the stale installation ID and redirects the user to GitHub for a fresh installation.
-   */
-  const handleInstallationExpired: () => void = (): void => {
-    // Close the modal
-    setShowGitHubModal(false);
-    setGitHubInstallationId(null);
-
-    // Clear the stale project installation ID (backend already cleared it from the database)
-    setProjectInstallationId(null);
-
-    // Redirect to GitHub for a fresh installation
-    if (projectId) {
-      const userId: ObjectID = UserUtil.getUserId();
-      const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
-      window.location.href = installUrl;
-    }
   };
 
   // Read GitHub App Name fresh on each render to avoid module initialization timing issues
   const gitHubAppName: string | null = env("GITHUB_APP_NAME") || null;
   const isGitHubAppConfigured: boolean = Boolean(gitHubAppName);
 
+  const aiAgentsRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.AI_AGENT_TASKS] as Route,
+  );
+
   return (
     <>
+      <AIPlanGate />
+
+      {showGitHubConnectedBanner && (
+        <Alert
+          type={AlertType.SUCCESS}
+          strongTitle="GitHub connected"
+          title="Your repositories were imported automatically."
+          onClose={() => {
+            setShowGitHubConnectedBanner(false);
+          }}
+        />
+      )}
+
       {/* Connect Repository Card */}
       <Card
-        title="Connect Repository"
-        description="Connect your code repositories to enable code analysis, automatic improvements, and CI/CD integration."
+        title="Connect Repositories"
+        description={
+          <span>
+            Install the GitHub App and all repositories in the installation are
+            imported automatically — no need to pick them one at a time. They
+            stay in sync as repositories are added to or removed from the
+            installation. Connected repositories are what the{" "}
+            <Link to={aiAgentsRoute} className="underline">
+              AI agent
+            </Link>{" "}
+            opens fix pull requests against.
+          </span>
+        }
       >
-        <div
-          className={`grid gap-4 ${isGitHubAppConfigured ? "md:grid-cols-2" : "md:grid-cols-1"}`}
-        >
-          {/* GitHub App Option */}
-          {isGitHubAppConfigured && (
+        {isGitHubAppConfigured ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* GitHub App Option */}
             <div
               className="relative rounded-lg border border-gray-200 bg-white p-6 hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer group"
               onClick={handleConnectWithGitHub}
@@ -190,8 +143,9 @@ const CodeRepositoryPage: FunctionComponent<
                     Connect with GitHub App
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Recommended for GitHub repositories. Provides seamless
-                    integration with automatic authentication.
+                    Recommended for GitHub repositories. Installing the app
+                    imports all of its repositories automatically and keeps them
+                    in sync.
                   </p>
                   <div className="mt-3">
                     <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
@@ -201,48 +155,28 @@ const CodeRepositoryPage: FunctionComponent<
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Git Repository Option */}
-          <div
-            className="relative rounded-lg border border-gray-200 bg-white p-6 hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer group"
-            onClick={handleConnectWithGit}
-          >
-            <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth="1.5"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-gray-900 group-hover:text-indigo-600">
-                  Connect with Access Token
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Connect any Git repository (GitHub, GitLab, etc.) using a
-                  personal access token.
-                </p>
-                <div className="mt-3">
-                  <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                    Universal
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
+            <h3 className="text-base font-semibold text-gray-900">
+              GitHub App is not configured on this server
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Connecting a repository requires the GitHub App environment
+              variables (like <code>GITHUB_APP_NAME</code> and{" "}
+              <code>GITHUB_APP_ID</code>) to be configured on your OneUptime
+              server. See the{" "}
+              <Link
+                to={Route.fromString("/docs/self-hosted/github-integration")}
+                openInNewTab={true}
+                className="underline"
+              >
+                GitHub Integration documentation
+              </Link>{" "}
+              for setup instructions.
+            </p>
+          </div>
+        )}
       </Card>
 
       <ModelTable<CodeRepository>
@@ -264,11 +198,13 @@ const CodeRepositoryPage: FunctionComponent<
         cardProps={{
           title: "Code Repositories",
           description:
-            "Your connected code repositories for code analysis and improvements.",
+            "Your connected code repositories. The AI agent analyzes these and opens fix pull requests against them.",
         }}
         showViewIdButton={true}
         noItemsMessage={
-          "No repositories connected. Use the buttons above to connect a repository."
+          isGitHubAppConfigured
+            ? "No repositories connected. Use the card above to install the GitHub App — all repositories in the installation are imported automatically."
+            : "No repositories connected. Configure the GitHub App on your server to connect repositories."
         }
         showRefreshButton={true}
         searchableFields={["name", "description"]}
@@ -390,26 +326,6 @@ const CodeRepositoryPage: FunctionComponent<
       />
 
       {labelBulkActionModals}
-
-      {/* GitHub Repository Selector Modal */}
-      {showGitHubModal && gitHubInstallationId && projectId && (
-        <GitHubRepoSelectorModal
-          projectId={projectId}
-          installationId={gitHubInstallationId}
-          onClose={handleGitHubModalClose}
-          onSuccess={handleRepoConnected}
-          onInstallationExpired={handleInstallationExpired}
-        />
-      )}
-
-      {/* Git Repository Connection Modal */}
-      {showGitModal && projectId && (
-        <GitRepoConnectionModal
-          projectId={projectId}
-          onClose={handleGitModalClose}
-          onSuccess={handleRepoConnected}
-        />
-      )}
     </>
   );
 };

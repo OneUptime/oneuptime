@@ -1,14 +1,15 @@
 import { TaskHandler } from "./TaskHandlerInterface";
-import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
 import logger from "Common/Server/Utils/Logger";
 
 /*
- * Registry for task handlers
- * Allows dynamic registration and lookup of handlers by task type
+ * Registry for task handlers.
+ * Keyed by the plain task-type string the server sends on pending tasks
+ * (the Common/Types/AI/CodeFixTaskType wire values) — NOT the legacy Common
+ * AIAgentTaskType enum, which is frozen at FixException.
  */
 export default class TaskHandlerRegistry {
   private static instance: TaskHandlerRegistry | null = null;
-  private handlers: Map<AIAgentTaskType, TaskHandler> = new Map();
+  private handlers: Map<string, TaskHandler> = new Map();
 
   // Private constructor for singleton pattern
   private constructor() {}
@@ -48,7 +49,7 @@ export default class TaskHandlerRegistry {
   }
 
   // Unregister a handler
-  public unregister(taskType: AIAgentTaskType): void {
+  public unregister(taskType: string): void {
     if (this.handlers.has(taskType)) {
       this.handlers.delete(taskType);
       logger.debug(`Unregistered handler for task type: ${taskType}`);
@@ -56,17 +57,17 @@ export default class TaskHandlerRegistry {
   }
 
   // Get a handler for a specific task type
-  public getHandler(taskType: AIAgentTaskType): TaskHandler | undefined {
+  public getHandler(taskType: string): TaskHandler | undefined {
     return this.handlers.get(taskType);
   }
 
   // Check if a handler exists for a task type
-  public hasHandler(taskType: AIAgentTaskType): boolean {
+  public hasHandler(taskType: string): boolean {
     return this.handlers.has(taskType);
   }
 
   // Get all registered task types
-  public getRegisteredTaskTypes(): Array<AIAgentTaskType> {
+  public getRegisteredTaskTypes(): Array<string> {
     return Array.from(this.handlers.keys());
   }
 

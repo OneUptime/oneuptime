@@ -1,7 +1,11 @@
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -15,6 +19,12 @@ export interface ComponentProps {
    * list here and keeps only the hero + suggested prompts.
    */
   hideConversations?: boolean | undefined;
+  /*
+   * True when the provider list has loaded and is empty — the first message
+   * would fail, so surface the setup notice up front instead. Left false while
+   * loading or when the fetch errors (fail open).
+   */
+  showNoProviderNotice?: boolean | undefined;
 }
 
 interface SuggestedQuestion {
@@ -51,6 +61,10 @@ const suggestions: Array<SuggestedQuestion> = [
 const ChatHomeView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const llmProvidersRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route,
+  );
+
   return (
     <div className="flex min-h-full flex-col px-6 py-10">
       <div className="mb-8">
@@ -66,6 +80,25 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
           incidents or acknowledge alerts, always with your approval.
         </p>
       </div>
+
+      {props.showNoProviderNotice && (
+        <div className="mb-8 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5">
+          <Icon
+            icon={IconProp.Info}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
+          />
+          <div className="text-sm leading-relaxed text-amber-800">
+            <span className="font-medium">
+              No LLM provider is configured for this project.
+            </span>{" "}
+            Messages need a provider to run — add one in{" "}
+            <Link to={llmProvidersRoute} className="font-medium underline">
+              Settings → AI → LLM Providers
+            </Link>{" "}
+            to start chatting.
+          </div>
+        </div>
+      )}
 
       <div className="mb-8 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         {suggestions.map((suggestion: SuggestedQuestion) => {

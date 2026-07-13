@@ -21,6 +21,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
+import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import {
   AIRunEgressManifest,
   AIRunPausedState,
@@ -146,6 +147,30 @@ export default class AIRun extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public runType?: AIRunType = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Code Fix Task Type",
+    description:
+      "For CodeFix runs: which task recipe this run executes (fix the exception, write a regression test, ...). Null means FixException — rows created before task recipes existed.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public codeFixTaskType?: CodeFixTaskType = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -348,6 +373,31 @@ export default class AIRun extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    title: "Triggered By Telemetry Exception ID",
+    description:
+      "The telemetry exception that triggered this run (for code-fix runs).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByTelemetryExceptionId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
     title: "Monitor ID",
     description:
       "The monitor behind the alert that triggered this run — the dedupe key for per-monitor investigation windows.",
@@ -358,6 +408,31 @@ export default class AIRun extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public monitorId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Agent ID",
+    description:
+      "The external AI agent that claimed this run (for code-fix runs executed by an agent container).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiAgentId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -54,6 +54,12 @@ export interface UseAiChat {
   error: string;
   setError: (error: string) => void;
   providers: Array<ChatProvider>;
+  /*
+   * True once the provider list has actually loaded — lets the UI tell "no
+   * providers configured" apart from "still fetching / fetch failed" (the
+   * latter fails open and shows the normal home).
+   */
+  providersLoaded: boolean;
   selectedProviderId: string | undefined;
   setSelectedProviderId: (id: string | undefined) => void;
   selectedProvider: ChatProvider | undefined;
@@ -97,6 +103,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
   const [isAwaitingResponse, setIsAwaitingResponse] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [providers, setProviders] = useState<Array<ChatProvider>>([]);
+  const [providersLoaded, setProvidersLoaded] = useState<boolean>(false);
   const [selectedProviderId, setSelectedProviderId] = useState<
     string | undefined
   >(undefined);
@@ -179,6 +186,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
         });
 
         setProviders(list);
+        setProvidersLoaded(true);
 
         // Default the picker to the project's resolved provider on first load.
         const defaultProviderId: string | undefined =
@@ -381,6 +389,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     setActiveConversationId(undefined);
     activeConversationIdRef.current = undefined;
     setProviders([]);
+    setProvidersLoaded(false);
     setSelectedProviderId(undefined);
     setPermissionMode(AIChatPermissionModeHelper.getDefault());
     resetConversationState();
@@ -750,6 +759,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     error,
     setError,
     providers,
+    providersLoaded,
     selectedProviderId,
     setSelectedProviderId,
     selectedProvider,

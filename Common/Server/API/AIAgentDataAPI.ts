@@ -2,10 +2,15 @@ import AIAgentService from "../Services/AIAgentService";
 import LlmProviderService from "../Services/LlmProviderService";
 import TelemetryExceptionService from "../Services/TelemetryExceptionService";
 import ServiceService from "../Services/ServiceService";
-import ServiceCodeRepositoryService from "../Services/ServiceCodeRepositoryService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
+import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
 import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
-import AIAgentTaskService from "../Services/AIAgentTaskService";
+import AIRunService from "../Services/AIRunService";
+import AIRunEventService from "../Services/AIRunEventService";
+import IncidentService from "../Services/IncidentService";
+import AlertService from "../Services/AlertService";
+import IncidentFeedService from "../Services/IncidentFeedService";
+import AlertFeedService from "../Services/AlertFeedService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -17,10 +22,23 @@ import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
 import Service from "../../Models/DatabaseModels/Service";
-import ServiceCodeRepository from "../../Models/DatabaseModels/ServiceCodeRepository";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
-import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
+import AIRun from "../../Models/DatabaseModels/AIRun";
+import Incident from "../../Models/DatabaseModels/Incident";
+import Alert from "../../Models/DatabaseModels/Alert";
+import IncidentFeed, {
+  IncidentFeedEventType,
+} from "../../Models/DatabaseModels/IncidentFeed";
+import AlertFeed, {
+  AlertFeedEventType,
+} from "../../Models/DatabaseModels/AlertFeed";
+import AIRunEventType from "../../Types/AI/AIRunEventType";
+import AIRunType from "../../Types/AI/AIRunType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -28,7 +46,6 @@ import GitHubUtil, {
   GitHubInstallationToken,
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import URL from "../../Types/API/URL";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
@@ -79,36 +96,26 @@ export default class AIAgentDataAPI {
 
           const projectId: ObjectID = new ObjectID(data["projectId"] as string);
 
-          // Check if this is a Project AI Agent (has a projectId)
-          const isProjectAIAgent: boolean =
-            aiAgent.projectId !== null && aiAgent.projectId !== undefined;
-
-          // Get LLM provider for the project
+          /*
+           * This endpoint hands the raw apiKey to the agent process, whose
+           * LLM calls are made directly by the code agent and are NOT metered
+           * through AIService/LlmLog. On Cloud (billing enabled) that means
+           * only a provider the project OWNS may be returned — the shared
+           * global (OneUptime-billed) provider's usage here would be
+           * unbilled, unlogged, and exempt from the daily token budget. On
+           * self-host (billing disabled) the global provider is the
+           * operator's own key/endpoint (e.g. seeded from the
+           * GLOBAL_LLM_PROVIDER_* env vars), so falling back to it is fine.
+           */
           const llmProvider: LlmProvider | null =
-            await LlmProviderService.getLLMProviderForProject(projectId);
+            await LlmProviderService.getLlmProviderForAgentTasks(projectId);
 
           if (!llmProvider) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                "No LLM provider configured for this project",
-              ),
-            );
-          }
-
-          /*
-           * Security check: Project AI Agents cannot access Global LLM Providers
-           * Only Global AI Agents (projectId is null) can access Global LLM Providers
-           */
-          const isGlobalLLMProvider: boolean = llmProvider.isGlobalLlm === true;
-
-          if (isProjectAIAgent && isGlobalLLMProvider) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "Project AI Agents cannot access Global LLM Providers. Please configure a project-specific LLM Provider.",
+                "No LLM provider is available for AI Agent tasks. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project. (On OneUptime Cloud the provider must be project-owned — the shared global provider is not supported on this path because agent usage is not metered.)",
               ),
             );
           }
@@ -238,7 +245,13 @@ export default class AIAgentDataAPI {
       },
     );
 
-    // Get code repositories linked to a service
+    /*
+     * Resolve the repository the exception's code lives in — AT RUNTIME
+     * (stack-trace path matching over the project's connected repos, with
+     * name-match and only-repository fallbacks). Replaces the old
+     * ServiceCodeRepository mapping-table lookup; the response keeps the
+     * `repositories` array shape the agent already consumes.
+     */
     this.router.post(
       "/ai-agent-data/get-code-repositories",
       async (
@@ -260,43 +273,371 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Get service ID (supports primaryEntityId plus legacy serviceId / telemetryServiceId from older agents)
-          const serviceIdParam: string | undefined =
-            (data["primaryEntityId"] as string) ||
-            (data["serviceId"] as string) ||
-            (data["telemetryServiceId"] as string);
-
-          if (!serviceIdParam) {
+          if (!data["exceptionId"]) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("primaryEntityId is required"),
+              new BadDataException(
+                "exceptionId is required (agents older than the runtime-resolution change must be upgraded)",
+              ),
             );
           }
 
-          const primaryEntityId: ObjectID = new ObjectID(serviceIdParam);
+          const exceptionId: ObjectID = new ObjectID(
+            data["exceptionId"] as string,
+          );
 
-          // Find CodeRepositories linked to this Service
-          const repositories: Array<{
-            id: string;
-            name: string;
-            repositoryHostedAt: string;
-            organizationName: string;
-            repositoryName: string;
-            mainBranchName: string;
-            servicePathInRepository: string | null;
-            gitHubAppInstallationId: string | null;
-          }> = [];
-
-          const serviceCodeRepositories: Array<ServiceCodeRepository> =
-            await ServiceCodeRepositoryService.findBy({
-              query: {
-                serviceId: primaryEntityId,
-              },
+          const exception: TelemetryException | null =
+            await TelemetryExceptionService.findOneById({
+              id: exceptionId,
               select: {
-                codeRepositoryId: true,
-                servicePathInRepository: true,
-                codeRepository: {
+                _id: true,
+                projectId: true,
+                stackTrace: true,
+                primaryEntityId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!exception || !exception.projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Exception not found"),
+            );
+          }
+
+          // Service name feeds the name-match fallback when there is one.
+          const service: Service | null = exception.primaryEntityId
+            ? await ServiceService.findOneById({
+                id: exception.primaryEntityId,
+                select: {
+                  name: true,
+                },
+                props: {
+                  isRoot: true,
+                },
+              })
+            : null;
+
+          const resolution: RepoResolution | null =
+            await CodeRepositoryService.resolveRepositoryForException({
+              projectId: exception.projectId,
+              stackTrace: exception.stackTrace || null,
+              serviceName: service?.name || null,
+            });
+
+          if (!resolution) {
+            logger.debug(
+              `No repository resolved for exception ${exceptionId.toString()}`,
+              getLogAttributesFromRequest(req as any),
+            );
+
+            return Response.sendJsonObjectResponse(req, res, {
+              repositories: [],
+              resolutionError:
+                "Could not resolve a repository for this exception: no connected repository contains the files in its stack trace, no repository name matches the service, and the project has more than one repository. Connect the right repository via the GitHub App.",
+            });
+          }
+
+          const repository: CodeRepository | null =
+            await CodeRepositoryService.findOneById({
+              id: new ObjectID(resolution.codeRepositoryId),
+              select: {
+                _id: true,
+                name: true,
+                repositoryHostedAt: true,
+                organizationName: true,
+                repositoryName: true,
+                mainBranchName: true,
+                gitHubAppInstallationId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!repository) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Resolved repository no longer exists"),
+            );
+          }
+
+          logger.debug(
+            `Resolved repository ${resolution.organizationName}/${resolution.repositoryName} for exception ${exceptionId.toString()} via ${resolution.method}: ${resolution.evidence}`,
+            getLogAttributesFromRequest(req as any),
+          );
+
+          return Response.sendJsonObjectResponse(req, res, {
+            repositories: [
+              {
+                id: repository.id!.toString(),
+                name: repository.name || "",
+                repositoryHostedAt: repository.repositoryHostedAt || "",
+                organizationName: repository.organizationName || "",
+                repositoryName: repository.repositoryName || "",
+                mainBranchName: repository.mainBranchName || "main",
+                servicePathInRepository: resolution.servicePathInRepository,
+                gitHubAppInstallationId:
+                  repository.gitHubAppInstallationId || null,
+                resolutionMethod: resolution.method,
+                resolutionEvidence: resolution.evidence,
+              },
+            ],
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Context for the incident/alert-subject recipes (ImproveInstrumentation
+     * and FixFromIncident): the investigation's posted analysis + subject
+     * metadata + the resolved repository. `taskId` carries the AIRun id of
+     * the CodeFix run (the id get-pending-task returned) — these runs have
+     * NO telemetry exception, so the exception-shaped endpoints above cannot
+     * serve them. The route name predates FixFromIncident and is kept for
+     * agent compatibility; the response shape is recipe-independent.
+     *
+     * The analysis text comes from the subject's latest RootCause feed item:
+     * Sentinel's postAnalysis is the only writer of RootCause feed events,
+     * it writes them for BOTH subjects and for BOTH confident and
+     * inconclusive analyses (quiet mode only mutes the workspace ping), so
+     * the feed item IS the investigation run's persisted output. The
+     * incident internal note is best-effort and incident-only, and
+     * AIRunEvents do not persist the final analysis text — the feed is the
+     * most reliable source.
+     */
+    this.router.post(
+      "/ai-agent-data/get-instrumentation-task-details",
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const data: JSONObject = req.body;
+
+          // Validate AI Agent credentials
+          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+
+          if (!aiAgent) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
+            );
+          }
+
+          if (!data["taskId"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("taskId is required"),
+            );
+          }
+
+          const taskId: ObjectID = new ObjectID(data["taskId"] as string);
+
+          const run: AIRun | null = await AIRunService.findOneById({
+            id: taskId,
+            select: {
+              _id: true,
+              projectId: true,
+              runType: true,
+              codeFixTaskType: true,
+              triggeredByIncidentId: true,
+              triggeredByAlertId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!run || !run.projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Task not found"),
+            );
+          }
+
+          /*
+           * Any recipe whose subject is an incident/alert (rather than a
+           * telemetry exception) is served here — the same recipe grouping
+           * the claim guard uses.
+           */
+          const taskType: CodeFixTaskType =
+            CodeFixTaskTypeHelper.fromDatabaseValue(run.codeFixTaskType);
+
+          if (
+            run.runType !== AIRunType.CodeFix ||
+            CodeFixTaskTypeHelper.requiresTelemetryException(taskType)
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "Task is not an incident/alert-subject code-fix run (ImproveInstrumentation or FixFromIncident)",
+              ),
+            );
+          }
+
+          if (!run.triggeredByIncidentId && !run.triggeredByAlertId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This task has no incident or alert subject",
+              ),
+            );
+          }
+
+          const subjectType: "incident" | "alert" = run.triggeredByIncidentId
+            ? "incident"
+            : "alert";
+
+          let subjectTitle: string = "";
+          /*
+           * Best-effort service attribution from the subject's monitors —
+           * it only feeds the repository name-match fallback, so null is
+           * fine when the subject has no monitor.
+           */
+          let serviceName: string | null = null;
+          let analysisMarkdown: string | null = null;
+
+          if (run.triggeredByIncidentId) {
+            const incident: Incident | null = await IncidentService.findOneById(
+              {
+                id: run.triggeredByIncidentId,
+                select: {
+                  title: true,
+                  monitors: {
+                    name: true,
+                  },
+                },
+                props: {
+                  isRoot: true,
+                },
+              },
+            );
+
+            if (!incident) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "The incident this task was created for no longer exists",
+                ),
+              );
+            }
+
+            subjectTitle = incident.title || "Untitled incident";
+            serviceName =
+              (incident.monitors || [])
+                .map((monitor: { name?: string | undefined }) => {
+                  return monitor.name || "";
+                })
+                .filter(Boolean)[0] || null;
+
+            const feedItem: IncidentFeed | null =
+              await IncidentFeedService.findOneBy({
+                query: {
+                  incidentId: run.triggeredByIncidentId,
+                  incidentFeedEventType: IncidentFeedEventType.RootCause,
+                },
+                select: {
+                  feedInfoInMarkdown: true,
+                },
+                sort: {
+                  createdAt: SortOrder.Descending,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            analysisMarkdown = feedItem?.feedInfoInMarkdown || null;
+          } else {
+            const alert: Alert | null = await AlertService.findOneById({
+              id: run.triggeredByAlertId!,
+              select: {
+                title: true,
+                monitor: {
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (!alert) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "The alert this task was created for no longer exists",
+                ),
+              );
+            }
+
+            subjectTitle = alert.title || "Untitled alert";
+            serviceName = alert.monitor?.name || null;
+
+            const feedItem: AlertFeed | null = await AlertFeedService.findOneBy(
+              {
+                query: {
+                  alertId: run.triggeredByAlertId!,
+                  alertFeedEventType: AlertFeedEventType.RootCause,
+                },
+                select: {
+                  feedInfoInMarkdown: true,
+                },
+                sort: {
+                  createdAt: SortOrder.Descending,
+                },
+                props: {
+                  isRoot: true,
+                },
+              },
+            );
+
+            analysisMarkdown = feedItem?.feedInfoInMarkdown || null;
+          }
+
+          if (!analysisMarkdown) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                `No posted investigation analysis found for this ${subjectType} — the task has nothing to work from (the analysis feed item may have been deleted).`,
+              ),
+            );
+          }
+
+          /*
+           * Resolve the repository WITHOUT a stack trace — these tasks have
+           * no exception, so only the name-match (against the subject's
+           * monitor/service name) and only-repository fallbacks apply. When
+           * nothing resolves the worker fails the run with this guidance.
+           */
+          const resolution: RepoResolution | null =
+            await CodeRepositoryService.resolveRepositoryForException({
+              projectId: run.projectId,
+              stackTrace: null,
+              serviceName,
+            });
+
+          const repository: CodeRepository | null = resolution
+            ? await CodeRepositoryService.findOneById({
+                id: new ObjectID(resolution.codeRepositoryId),
+                select: {
                   _id: true,
                   name: true,
                   repositoryHostedAt: true,
@@ -305,55 +646,56 @@ export default class AIAgentDataAPI {
                   mainBranchName: true,
                   gitHubAppInstallationId: true,
                 },
-              },
-              skip: 0,
-              limit: LIMIT_MAX,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          for (const scr of serviceCodeRepositories) {
-            if (scr.codeRepository) {
-              // Check if we already have this repository
-              const existingRepo: boolean = repositories.some(
-                (r: {
-                  id: string;
-                  name: string;
-                  repositoryHostedAt: string;
-                  organizationName: string;
-                  repositoryName: string;
-                  mainBranchName: string;
-                  servicePathInRepository: string | null;
-                  gitHubAppInstallationId: string | null;
-                }) => {
-                  return r.id === scr.codeRepository?._id?.toString();
+                props: {
+                  isRoot: true,
                 },
-              );
-              if (!existingRepo) {
-                repositories.push({
-                  id: scr.codeRepository._id?.toString() || "",
-                  name: scr.codeRepository.name || "",
-                  repositoryHostedAt:
-                    scr.codeRepository.repositoryHostedAt || "",
-                  organizationName: scr.codeRepository.organizationName || "",
-                  repositoryName: scr.codeRepository.repositoryName || "",
-                  mainBranchName: scr.codeRepository.mainBranchName || "main",
-                  servicePathInRepository: scr.servicePathInRepository || null,
-                  gitHubAppInstallationId:
-                    scr.codeRepository.gitHubAppInstallationId || null,
-                });
-              }
-            }
+              })
+            : null;
+
+          if (!resolution || !repository) {
+            logger.debug(
+              `No repository resolved for ${taskType} task ${taskId.toString()}`,
+              getLogAttributesFromRequest(req as any),
+            );
+
+            return Response.sendJsonObjectResponse(req, res, {
+              subjectType,
+              subjectTitle,
+              analysisMarkdown,
+              serviceName,
+              projectId: run.projectId.toString(),
+              repositories: [],
+              resolutionError:
+                "Could not resolve a repository for this task: no connected repository name matches the affected monitor/service and the project has more than one repository. Connect the right repository via the GitHub App, or rename one to match the service.",
+            });
           }
 
           logger.debug(
-            `Found ${repositories.length} code repositories for service ${primaryEntityId.toString()}`,
+            `Resolved repository ${resolution.organizationName}/${resolution.repositoryName} for ${taskType} task ${taskId.toString()} via ${resolution.method}: ${resolution.evidence}`,
             getLogAttributesFromRequest(req as any),
           );
 
           return Response.sendJsonObjectResponse(req, res, {
-            repositories: repositories,
+            subjectType,
+            subjectTitle,
+            analysisMarkdown,
+            serviceName,
+            projectId: run.projectId.toString(),
+            repositories: [
+              {
+                id: repository.id!.toString(),
+                name: repository.name || "",
+                repositoryHostedAt: repository.repositoryHostedAt || "",
+                organizationName: repository.organizationName || "",
+                repositoryName: repository.repositoryName || "",
+                mainBranchName: repository.mainBranchName || "main",
+                servicePathInRepository: resolution.servicePathInRepository,
+                gitHubAppInstallationId:
+                  repository.gitHubAppInstallationId || null,
+                resolutionMethod: resolution.method,
+                resolutionEvidence: resolution.evidence,
+              },
+            ],
           });
         } catch (err) {
           next(err);
@@ -555,21 +897,22 @@ export default class AIAgentDataAPI {
             | string
             | undefined;
 
-          // Get the task to get the project ID
-          const task: AIAgentTask | null = await AIAgentTaskService.findOneById(
-            {
-              id: taskId,
-              select: {
-                _id: true,
-                projectId: true,
-              },
-              props: {
-                isRoot: true,
-              },
+          /*
+           * `taskId` carries the AIRun id of the code-fix run — get the run
+           * for the project ID and so the PR can be recorded on its trail.
+           */
+          const run: AIRun | null = await AIRunService.findOneById({
+            id: taskId,
+            select: {
+              _id: true,
+              projectId: true,
             },
-          );
+            props: {
+              isRoot: true,
+            },
+          });
 
-          if (!task) {
+          if (!run) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -595,11 +938,11 @@ export default class AIAgentDataAPI {
           const pullRequest: AIAgentTaskPullRequest =
             new AIAgentTaskPullRequest();
 
-          if (task.projectId) {
-            pullRequest.projectId = task.projectId;
+          if (run.projectId) {
+            pullRequest.projectId = run.projectId;
           }
 
-          pullRequest.aiAgentTaskId = taskId;
+          pullRequest.aiRunId = taskId;
           pullRequest.aiAgentId = aiAgent.id!;
           pullRequest.codeRepositoryId = codeRepositoryId;
           pullRequest.pullRequestUrl = URL.fromString(pullRequestUrl);
@@ -644,8 +987,24 @@ export default class AIAgentDataAPI {
               },
             });
 
+          /*
+           * The pull request is the run's headline action — record it on
+           * the run's glass-box trail so the activity feed shows it.
+           */
+          if (run.projectId) {
+            await AIRunEventService.appendEventToRun({
+              projectId: run.projectId,
+              aiRunId: taskId,
+              eventType: AIRunEventType.ActionExecuted,
+              toolName: "open_pull_request",
+              resultSummary: {
+                message: `Opened pull request: ${title} — ${pullRequestUrl}`,
+              },
+            });
+          }
+
           logger.debug(
-            `Recorded pull request ${pullRequestUrl} for task ${taskId.toString()}`,
+            `Recorded pull request ${pullRequestUrl} for run ${taskId.toString()}`,
             getLogAttributesFromRequest(req as any),
           );
 

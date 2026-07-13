@@ -1,9 +1,14 @@
 import AIAgentStatusElement from "../../Components/AIAgent/AIAgentStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -15,16 +20,27 @@ import Label from "Common/Models/DatabaseModels/Label";
 import AIAgent from "Common/Models/DatabaseModels/AIAgent";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Link from "Common/UI/Components/Link/Link";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
-const AIAgentsPage: FunctionComponent<
+const SettingsAIAgents: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const [showKeyModal, setShowKeyModal] = useState<boolean>(false);
+
+  const [currentAIAgent, setCurrentAIAgent] = useState<AIAgent | null>(null);
+
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<AIAgent>({ modelType: AIAgent });
 
@@ -51,12 +67,40 @@ const AIAgentsPage: FunctionComponent<
     showLabelsFacet: true,
   });
 
+  const codeRepositoriesRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.CODE_REPOSITORY] as Route,
+  );
+
+  const llmProvidersRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route,
+  );
+
   return (
     <Fragment>
       <>
+        <Alert
+          type={AlertType.INFO}
+          strongTitle="Prerequisites"
+          className="mb-5"
+          title={
+            <span>
+              To open fix pull requests, the agent needs a{" "}
+              <Link to={codeRepositoriesRoute} className="underline">
+                connected GitHub repository
+              </Link>{" "}
+              and a project{" "}
+              <Link to={llmProvidersRoute} className="underline">
+                LLM provider
+              </Link>
+              . Self-hosted agents always require a project LLM provider to run
+              tasks.
+            </span>
+          }
+        />
+
         <ModelTable<AIAgent>
           modelType={AIAgent}
-          id="ai-agents-table"
+          id="global-ai-agents-table"
           name="Settings > Global AI Agents"
           userPreferencesKey={"admin-ai-agents-table"}
           saveFilterProps={{
@@ -159,6 +203,7 @@ const AIAgentsPage: FunctionComponent<
           documentationLink={Route.fromString("/docs/ai/ai-agent")}
           selectMoreFields={{
             iconFileId: true,
+            key: true,
           }}
           noItemsMessage={"No AI agents found."}
           viewPageRoute={Navigation.getCurrentRoute()}
@@ -241,6 +286,27 @@ const AIAgentsPage: FunctionComponent<
           ]}
           showRefreshButton={true}
           searchableFields={["name", "description"]}
+          actionButtons={[
+            {
+              title: "Show ID and Key",
+              buttonStyleType: ButtonStyleType.NORMAL,
+              onClick: async (
+                item: AIAgent,
+                onCompleteAction: VoidFunction,
+                onError: ErrorFunction,
+              ) => {
+                try {
+                  setCurrentAIAgent(item);
+                  setShowKeyModal(true);
+
+                  onCompleteAction();
+                } catch (err) {
+                  onCompleteAction();
+                  onError(err as Error);
+                }
+              },
+            },
+          ]}
           filters={[
             {
               field: {
@@ -341,9 +407,39 @@ const AIAgentsPage: FunctionComponent<
         />
         {labelBulkActionModals}
         {ownerBulkActionModals}
+
+        {showKeyModal && currentAIAgent ? (
+          <ConfirmModal
+            title={`AI Agent Key`}
+            description={
+              <div>
+                <span>
+                  Here is your AI agent key. Please keep this a secret.
+                </span>
+                <br />
+                <br />
+                <span>
+                  <b>AI Agent ID: </b> {currentAIAgent["_id"]?.toString()}
+                </span>
+                <br />
+                <br />
+                <span>
+                  <b>AI Agent Key: </b> {currentAIAgent["key"]?.toString()}
+                </span>
+              </div>
+            }
+            submitButtonText={"Close"}
+            submitButtonType={ButtonStyleType.NORMAL}
+            onSubmit={async () => {
+              setShowKeyModal(false);
+            }}
+          />
+        ) : (
+          <></>
+        )}
       </>
     </Fragment>
   );
 };
 
-export default AIAgentsPage;
+export default SettingsAIAgents;

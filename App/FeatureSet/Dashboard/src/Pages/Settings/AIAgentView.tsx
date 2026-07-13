@@ -33,12 +33,7 @@ import CustomAIAgentDocumentation from "../../Components/AIAgent/CustomAIAgentDo
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
 
-export enum PermissionType {
-  AllowPermissions = "AllowPermissions",
-  BlockPermissions = "BlockPermissions",
-}
-
-const AIAgentView: FunctionComponent<PageComponentProps> = (
+const SettingsAIAgentView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
@@ -461,7 +456,7 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENTS_AGENTS] as Route,
+              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
               { modelId },
             ),
           );
@@ -471,4 +466,4 @@ const AIAgentView: FunctionComponent<PageComponentProps> = (
   );
 };
 
-export default AIAgentView;
+export default SettingsAIAgentView;

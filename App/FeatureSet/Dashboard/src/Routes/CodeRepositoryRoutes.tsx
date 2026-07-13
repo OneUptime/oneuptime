@@ -19,8 +19,6 @@ import CodeRepositoryViewDelete from "../Pages/CodeRepository/View/Delete";
 
 import CodeRepositoryViewSettings from "../Pages/CodeRepository/View/Settings";
 
-import CodeRepositoryViewServices from "../Pages/CodeRepository/View/Services";
-
 const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -73,20 +71,6 @@ const CodeRepositoryRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.CODE_REPOSITORY_VIEW_SERVICES,
-          )}
-          element={
-            <CodeRepositoryViewServices
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.CODE_REPOSITORY_VIEW_SERVICES] as Route
               }
             />
           }

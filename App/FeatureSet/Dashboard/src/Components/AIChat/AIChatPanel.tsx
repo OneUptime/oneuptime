@@ -219,6 +219,9 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             <ChatHomeView
               conversations={chat.conversations}
               isSending={chat.isSending}
+              showNoProviderNotice={
+                chat.providersLoaded && chat.providers.length === 0
+              }
               onOpenConversation={chat.openConversation}
               onDeleteConversation={chat.deleteConversation}
               onAsk={(question: string) => {

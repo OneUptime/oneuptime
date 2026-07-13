@@ -33,6 +33,7 @@ import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
 import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
+import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
@@ -774,11 +775,6 @@ import ServiceOwnerUserService, {
 import ServiceService, {
   Service as ServiceServiceType,
 } from "Common/Server/Services/ServiceService";
-
-import ServiceCodeRepository from "Common/Models/DatabaseModels/ServiceCodeRepository";
-import ServiceCodeRepositoryService, {
-  Service as ServiceCodeRepositoryServiceType,
-} from "Common/Server/Services/ServiceCodeRepositoryService";
 
 import ShortLinkService, {
   Service as ShortLinkServiceType,
@@ -2539,14 +2535,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceCodeRepository, ServiceCodeRepositoryServiceType>(
-        ServiceCodeRepository,
-        ServiceCodeRepositoryService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<MonitorProbe, MonitorProbeServiceType>(
         MonitorProbe,
         MonitorProbeService,
@@ -3957,6 +3945,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new AIAgentDataAPI().getRouter(),
+    );
+
+    // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CodeFixRunAPI().getRouter(),
     );
 
     // AI Agent Task Telemetry Exception (linking table)

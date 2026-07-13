@@ -1,206 +1,83 @@
-# AI Agents
+# AI Agents — Fix Exceptions with a Pull Request
 
-AI Agents in OneUptime automatically fix errors, performance issues, and database queries in your code. Powered by OpenTelemetry observability data, AI Agents create pull requests with fixes—not just alerts.
+The OneUptime AI Agent turns an unresolved exception into a reviewable pull request. On any unresolved exception, click **Fix with AI Agent**: the agent reads the exception (type, error message, and stack trace), clones the GitHub repository linked to the service that threw it, writes a fix on a new branch, and opens a pull request.
 
-## What Can AI Agents Do?
+Every pull request is reviewed and merged by a human. The agent never merges its own changes — it can push branches and open PRs, nothing more.
 
-AI Agents analyze your observability data (traces, logs, and metrics) to detect and automatically fix issues in your codebase:
+## How a fix run works
 
-- **Fix Errors Automatically**: When AI Agent notices exceptions in your traces or logs, it automatically fixes the issue and creates a pull request.
-- **Fix Performance Issues**: Analyzes traces that take the longest to execute and creates pull requests with performance optimizations.
-- **Fix Database Queries**: Identifies slow or inefficient database queries and optimizes them with proper indexing and query rewrites.
-- **Fix Frontend Issues**: Addresses frontend-specific performance problems, rendering issues, and JavaScript errors automatically.
-- **Add Telemetry Automatically**: Add tracing, metrics, and logs to your codebase with a single click. No manual instrumentation needed.
-- **GitHub & GitLab Integration**: Seamlessly integrates with your existing repositories. PRs are created directly in your workflow.
-- **CI/CD Integration**: Integrates with your existing CI/CD pipelines. Fixes are tested and validated before PR creation.
-- **Terraform Support**: Fix infrastructure issues automatically. Supports Terraform and OpenTofu for infrastructure-as-code.
-- **Issue Tracker Integration**: Connects with Jira, Linear, and other issue trackers. Automatically links fixes to relevant issues.
+1. You click **Fix with AI Agent** on an unresolved exception.
+2. A fix task is created and picked up by an available agent.
+3. The agent fetches the exception details — exception type, error message, and stack trace.
+4. It clones the linked repository into an ephemeral workspace and creates a branch (named like `oneuptime-fix-exception-<task-id>`).
+5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix.
+6. The agent commits, pushes the branch, opens a pull request, and deletes the workspace.
 
-## How It Works
+The exception page shows the task's live status. The task's detail page (under **AI** > **Agents** > **Tasks**) keeps the full run log and links to every pull request the task opened.
 
-1. **Collect Data**: OpenTelemetry collects traces, logs, and metrics from your application
-2. **Detect Issues**: AI identifies errors, performance bottlenecks, and slow queries
-3. **Generate Fix**: AI analyzes your codebase and creates the fix automatically
-4. **Create PR**: Pull request with fix and detailed report ready for review
+## Prerequisites
 
-## LLM Provider Flexibility
+Three things must be in place before the agent can fix anything. The exception page checks all of them up front and shows a readiness checklist, so you can see exactly what is missing before a task is created.
 
-OneUptime works with any LLM provider. You can use:
+### 1. An LLM provider
 
-- **OpenAI GPT** models
-- **Anthropic Claude** models
-- **Meta Llama** (via Ollama or other providers)
-- **Custom self-hosted** models
+- **OneUptime Cloud**: agent tasks always run with an LLM provider your project owns — configure one under **Project Settings** > **AI** > **LLM Providers**. The shared global provider (the one billed as metered AI tokens) is **not** usable for agent tasks.
+- **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a local Ollama:
 
-Self-host your AI model and keep your code completely private.
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+GLOBAL_LLM_PROVIDER_BASE_URL=http://your-ollama-host:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3
+# No GLOBAL_LLM_PROVIDER_API_KEY needed — Ollama is keyless.
+```
 
-## Privacy
+Any supported provider works — see [LLM Providers](/docs/ai/llm-provider) for all providers and the full list of environment variables.
 
-Regardless of your plan, OneUptime never sees, stores, or trains on your code:
+### 2. GitHub connected through the GitHub App
 
-- **No Code Access**: Your code stays on your infrastructure
-- **No Data Storage**: Zero data retention policy
-- **No Training**: Your code is never used for AI training
+Connect GitHub under **Code Repositories** using **Connect with GitHub App** — installing the app imports all of its repositories automatically and keeps them in sync. The GitHub App is the only connection the agent can push through (GitLab is on the roadmap).
 
-## Global AI Agents vs Self-Hosted AI Agents
+You do **not** map repositories to services: OneUptime resolves the right repository at fix time by matching the exception's stack-trace file paths against your connected repositories (falling back to repository-name matching and, when the project has exactly one repository, to that repository). The readiness checklist on the exception page shows which repository resolved and why.
 
-### Global AI Agents
+### 3. An agent online
 
-If you are using **OneUptime SaaS** (cloud-hosted version), Global AI Agents are provided by OneUptime and are pre-configured and ready to use. These agents are managed by OneUptime and require no additional setup.
+- **OneUptime Cloud**: the shared agent fleet is available automatically — there is nothing to run.
+- **Self-hosted**: the agent container runs by default — the Docker Compose install includes the `ai-agent` service, and the Helm chart deploys it (`aiAgent.enabled`, default `true`). It registers itself with your instance automatically (no credentials to copy) and shows up on the agents page. The agent idles cheaply when no LLM provider is configured; tasks fail early with guidance until one is set up.
 
-Global AI Agents are automatically available to all projects unless disabled in your project settings.
-
-### Self-Hosted AI Agents
-
-For organizations that need to run AI agents within their own infrastructure (e.g., for security, compliance, or network access requirements), OneUptime supports self-hosted AI agents.
-
-Self-hosted AI agents:
-
-- Run within your private network
-- Can access internal resources and systems
-- Give you full control over the agent's environment
-- Can be customized for your specific needs
-
-## Setting Up a Self-Hosted AI Agent
-
-### Step 1: Create an AI Agent in OneUptime
-
-1. Log in to your OneUptime dashboard
-2. Go to **Project Settings** > **AI Agents**
-3. Click **Create AI Agent** to add a new agent
-4. Fill in the required fields:
-   - **Name**: A friendly name for your AI agent
-   - **Description** (optional): A description of the agent's purpose
-5. Once created, you will receive an `AI_AGENT_ID` and `AI_AGENT_KEY`
-
-**Important**: Save your `AI_AGENT_KEY` securely. It will only be shown once and cannot be retrieved later.
-
-### Step 2: Deploy the AI Agent
-
-#### Docker
-
-To run an AI agent, make sure you have Docker installed. Run the agent with:
+To run an additional agent elsewhere (for example on a machine closer to your repositories), create an agent under **Settings** > **AI** > **AI Agents**. You will get an `AI_AGENT_ID` and an `AI_AGENT_KEY` (the key is shown once — save it securely). Then run the agent container:
 
 ```bash
 docker run --name oneuptime-ai-agent --network host \
   -e AI_AGENT_KEY=<ai-agent-key> \
   -e AI_AGENT_ID=<ai-agent-id> \
-  -e ONEUPTIME_URL=https://oneuptime.com \
+  -e ONEUPTIME_URL=<your-oneuptime-url> \
   -d oneuptime/ai-agent:release
 ```
 
-If you are self-hosting OneUptime, change `ONEUPTIME_URL` to your custom self-hosted instance URL.
+The agent page in the dashboard shows this command pre-filled with your agent's credentials. Any way of running the container works (Docker Compose, Kubernetes, and so on) as long as these environment variables are set and the container can reach your OneUptime instance over HTTPS:
 
-#### Docker Compose
+| Variable        | Description                                                          |
+| --------------- | -------------------------------------------------------------------- |
+| `AI_AGENT_KEY`  | The agent key shown when the agent was created                       |
+| `AI_AGENT_ID`   | The agent ID from the dashboard                                      |
+| `ONEUPTIME_URL` | Your OneUptime instance URL (`https://oneuptime.com` on Cloud)       |
 
-You can also run the AI agent using docker-compose. Create a `docker-compose.yml` file:
+The agent shows as connected on the **Settings** > **AI** > **AI Agents** page within a few minutes. If it does not, check the container logs (`docker logs oneuptime-ai-agent`) for credential or network errors.
 
-```yaml
-version: "3"
+## When a fix fails
 
-services:
-  oneuptime-ai-agent:
-    image: oneuptime/ai-agent:release
-    container_name: oneuptime-ai-agent
-    environment:
-      - AI_AGENT_KEY=<ai-agent-key>
-      - AI_AGENT_ID=<ai-agent-id>
-      - ONEUPTIME_URL=https://oneuptime.com
-    network_mode: host
-    restart: always
-```
+- **The run errors** (the fix could not be applied, the repository was unreachable, the LLM call failed): the task's error is shown on the exception page with the reason, and you can retry the fix from there. The full run log is on the task's detail page.
+- **The agent crashes mid-run**: a task stuck in progress for more than 30 minutes is automatically reset and retried.
+- **No agent is online**: a queued task that waits more than 30 minutes while no agent is connected is failed automatically, with guidance to check the agent container — it will not show "in progress" forever. (If an agent is online but busy, queued tasks simply wait their turn.)
 
-Then run:
+## Privacy
 
-```bash
-docker compose up -d
-```
+The repository clone lives in an ephemeral workspace inside the agent container and is deleted when the run finishes, whether it succeeded or failed. OneUptime does not store your code or train on it. Run a self-hosted agent with your own LLM provider (including local Ollama) and your code never leaves your infrastructure.
 
-#### Kubernetes
+## On the roadmap
 
-Create a `oneuptime-ai-agent.yaml` file:
+Planned, but **not available today**:
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: oneuptime-ai-agent
-spec:
-  selector:
-    matchLabels:
-      app: oneuptime-ai-agent
-  template:
-    metadata:
-      labels:
-        app: oneuptime-ai-agent
-    spec:
-      containers:
-        - name: oneuptime-ai-agent
-          image: oneuptime/ai-agent:release
-          env:
-            - name: AI_AGENT_KEY
-              value: "<ai-agent-key>"
-            - name: AI_AGENT_ID
-              value: "<ai-agent-id>"
-            - name: ONEUPTIME_URL
-              value: "https://oneuptime.com"
-```
-
-Apply the configuration:
-
-```bash
-kubectl apply -f oneuptime-ai-agent.yaml
-```
-
-### Environment Variables
-
-The AI agent supports the following environment variables:
-
-#### Required Variables
-
-| Variable        | Description                                                         |
-| --------------- | ------------------------------------------------------------------- |
-| `AI_AGENT_KEY`  | The AI agent key from your OneUptime dashboard                      |
-| `AI_AGENT_ID`   | The AI agent ID from your OneUptime dashboard                       |
-| `ONEUPTIME_URL` | The URL of your OneUptime instance (default: https://oneuptime.com) |
-
-## Verifying Your AI Agent
-
-After deploying your AI agent:
-
-1. Go to **Project Settings** > **AI Agents** in your OneUptime dashboard
-2. Your agent should show as **Connected** within a few minutes
-3. If the status shows **Disconnected**, check the container logs for errors
-
-To view container logs:
-
-```bash
-# Docker
-docker logs oneuptime-ai-agent
-
-# Kubernetes
-kubectl logs deployment/oneuptime-ai-agent
-```
-
-## Troubleshooting
-
-### Agent Not Connecting
-
-1. **Verify credentials**: Ensure `AI_AGENT_KEY` and `AI_AGENT_ID` are correct
-2. **Check network**: Ensure the agent can reach your OneUptime instance
-3. **Review logs**: Check container logs for error messages
-4. **Firewall rules**: Ensure outbound HTTPS (port 443) is allowed
-
-### Agent Keeps Disconnecting
-
-1. **Check resource limits**: Ensure the container has sufficient memory and CPU
-2. **Network stability**: Verify network connectivity is stable
-3. **Review logs**: Look for timeout or connection errors in the logs
-
-## Need Help?
-
-If you encounter issues with your AI agent:
-
-1. Check the [OneUptime GitHub Issues](https://github.com/OneUptime/oneuptime/issues) for known problems
-2. Create a new issue if your problem isn't already reported
-3. Contact [support](https://oneuptime.com/support) if you're on an enterprise plan
+- **GitLab support** — repository connections are currently GitHub App only.
+- **Richer telemetry context** — feeding related traces, logs, and metrics around the exception into the fix, beyond the stack trace.
+- **Verification loop** — building the project and running its tests against the fix before the pull request is opened.

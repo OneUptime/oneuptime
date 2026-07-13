@@ -1384,11 +1384,6 @@ enum Permission {
   EditServiceTelemetryService = "EditServiceTelemetryService",
   ReadServiceTelemetryService = "ReadServiceTelemetryService",
 
-  CreateServiceCodeRepository = "CreateServiceCodeRepository",
-  DeleteServiceCodeRepository = "DeleteServiceCodeRepository",
-  EditServiceCodeRepository = "EditServiceCodeRepository",
-  ReadServiceCodeRepository = "ReadServiceCodeRepository",
-
   // Code Repository
   CreateCodeRepository = "CreateCodeRepository",
   DeleteCodeRepository = "DeleteCodeRepository",
@@ -9310,47 +9305,6 @@ export class PermissionHelper {
         title: "Read Service Telemetry Service",
         description:
           "This permission can read Service Telemetry Service of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-
-      {
-        permission: Permission.CreateServiceCodeRepository,
-        title: "Create Service Code Repository",
-        description:
-          "This permission can create Service Code Repository in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.DeleteServiceCodeRepository,
-        title: "Delete Service Code Repository",
-        description:
-          "This permission can delete Service Code Repository of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.EditServiceCodeRepository,
-        title: "Edit Service Code Repository",
-        description:
-          "This permission can edit Service Code Repository of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.ServiceCatalog,
-      },
-      {
-        permission: Permission.ReadServiceCodeRepository,
-        title: "Read Service Code Repository",
-        description:
-          "This permission can read Service Code Repository of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

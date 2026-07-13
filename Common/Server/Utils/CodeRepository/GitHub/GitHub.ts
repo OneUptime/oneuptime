@@ -16,6 +16,7 @@ import {
   GitHubAppWebhookSecret,
 } from "../../../EnvironmentConfig";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import GlobalCache from "../../../Infrastructure/GlobalCache";
 import * as crypto from "crypto";
 
 /**
@@ -421,6 +422,80 @@ export default class GitHubUtil extends HostedCodeRepository {
     };
   }
 
+  /*
+   * Maps GitHub's pull-request JSON to our PullRequestState. GitHub reports
+   * merged PRs as state "closed" with merged_at set — merged must be checked
+   * first or every merge counts as a plain close.
+   */
+  public static mapGitHubPullRequestToState(
+    pullRequest: JSONObject,
+  ): PullRequestState {
+    if (pullRequest["merged_at"] || pullRequest["merged"] === true) {
+      return PullRequestState.Merged;
+    }
+
+    if (pullRequest["state"] === "closed") {
+      return PullRequestState.Closed;
+    }
+
+    return PullRequestState.Open;
+  }
+
+  // Fetches the current state of one pull request via the GitHub App installation.
+  @CaptureSpan()
+  public static async getPullRequestState(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    pullRequestNumber: number;
+  }): Promise<PullRequestState> {
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: {
+          pull_requests: "read",
+          metadata: "read",
+        },
+      });
+
+    return GitHubUtil.getPullRequestStateWithToken({
+      token: tokenData.token,
+      organizationName: data.organizationName,
+      repositoryName: data.repositoryName,
+      pullRequestNumber: data.pullRequestNumber,
+    });
+  }
+
+  /*
+   * Same as getPullRequestState but with a pre-minted installation token, so
+   * callers syncing many PRs in one repository can reuse a single token.
+   */
+  @CaptureSpan()
+  public static async getPullRequestStateWithToken(data: {
+    token: string;
+    organizationName: string;
+    repositoryName: string;
+    pullRequestNumber: number;
+  }): Promise<PullRequestState> {
+    const url: URL = URL.fromString(
+      `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls/${data.pullRequestNumber}`,
+    );
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: url,
+      headers: {
+        Authorization: `Bearer ${data.token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    return GitHubUtil.mapGitHubPullRequestToState(result.data);
+  }
+
   /**
    * Lists repositories accessible to a GitHub App installation
    * @param installationId - The GitHub App installation ID
@@ -485,6 +560,88 @@ export default class GitHubUtil extends HostedCodeRepository {
     }
 
     return allRepositories;
+  }
+
+  /**
+   * Lists every file (blob) path in a repository's tree at the given branch.
+   * Results are cached in GlobalCache for an hour because callers (e.g. the
+   * stack-trace repository resolver) may probe several repositories per
+   * exception and re-run often.
+   * @returns Array of repository-relative file paths
+   */
+  @CaptureSpan()
+  public static async getRepositoryTreePaths(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    branchName: string;
+  }): Promise<Array<string>> {
+    const cacheNamespace: string = "github-repo-tree";
+    const cacheKey: string = `${data.organizationName}/${data.repositoryName}@${data.branchName}`;
+
+    try {
+      const cachedPaths: Array<string> | null =
+        await GlobalCache.getStringArray(cacheNamespace, cacheKey);
+
+      if (cachedPaths !== null) {
+        return cachedPaths;
+      }
+    } catch (err) {
+      // Cache being unavailable must not block the tree fetch.
+      logger.debug(err);
+    }
+
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: {
+          contents: "read",
+          metadata: "read",
+        },
+      });
+
+    const url: URL = URL.fromString(
+      `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/git/trees/${data.branchName}?recursive=1`,
+    );
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: url,
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    if (result.data["truncated"] === true) {
+      logger.warn(
+        `GitHub tree for ${data.organizationName}/${data.repositoryName}@${data.branchName} is truncated - the repository is very large, so path matching may be incomplete.`,
+      );
+    }
+
+    const tree: JSONArray = (result.data["tree"] as JSONArray) || [];
+    const paths: Array<string> = [];
+
+    for (const entry of tree) {
+      const entryData: JSONObject = entry as JSONObject;
+
+      if (entryData["type"] === "blob" && entryData["path"]) {
+        paths.push(entryData["path"] as string);
+      }
+    }
+
+    try {
+      await GlobalCache.setStringArray(cacheNamespace, cacheKey, paths, {
+        expiresInSeconds: 60 * 60, // 1 hour
+      });
+    } catch (err) {
+      logger.debug(err);
+    }
+
+    return paths;
   }
 
   /**

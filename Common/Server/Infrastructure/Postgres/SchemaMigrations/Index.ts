@@ -433,6 +433,10 @@ import { AddTelemetryEntityRelationshipMetrics1783762505482 } from "./1783762505
 import { AddIoTDeviceCredentialTable1783780000000 } from "./1783780000000-AddIoTDeviceCredentialTable";
 import { AddSnmpV3AuthColumnsToNetworkDevice1783790000000 } from "./1783790000000-AddSnmpV3AuthColumnsToNetworkDevice";
 import { AddAdditionalParamsToLlmProvider1783650000000 } from "./1783650000000-AddAdditionalParamsToLlmProvider";
+import { DropServiceCodeRepository1783943300000 } from "./1783943300000-DropServiceCodeRepository";
+import { CodeFixRunsOnAIRun1783947444597 } from "./1783947444597-CodeFixRunsOnAIRun";
+import { AddCodeFixTaskType1783950962813 } from "./1783950962813-AddCodeFixTaskType";
+import { AddInstrumentationFixTasksFlag1783954040984 } from "./1783954040984-AddInstrumentationFixTasksFlag";
 import { MigrationName1783937343400 } from "./1783937343400-MigrationName";
 
 export default [
@@ -872,4 +876,8 @@ export default [
   AddSnmpV3AuthColumnsToNetworkDevice1783790000000,
   AddAdditionalParamsToLlmProvider1783650000000,
   MigrationName1783937343400,
+  DropServiceCodeRepository1783943300000,
+  CodeFixRunsOnAIRun1783947444597,
+  AddCodeFixTaskType1783950962813,
+  AddInstrumentationFixTasksFlag1783954040984,
 ];

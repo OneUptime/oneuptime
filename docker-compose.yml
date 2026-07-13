@@ -43,6 +43,14 @@ services:
     depends_on:
       <<: *common-depends-on
 
+  ai-agent:
+    image: oneuptime/ai-agent:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: ai-agent
+    depends_on:
+      <<: *common-depends-on
+
   ingress:
     image: oneuptime/nginx:${APP_TAG}
     extends:
