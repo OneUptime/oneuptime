@@ -10,7 +10,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 /*
  * Sentinel — the ImproveInstrumentation trigger.
  *
- * When an investigation finishes INCONCLUSIVE ("insufficient signal"), the
+ * When an investigation finishes INCONCLUSIVE — per the structured G6
+ * confidence signal (ConfidenceSignal.ts), never the analysis prose — the
  * telemetry itself is the bug: the code paths involved were not observable
  * enough to diagnose. For projects that opted in
  * (Project.enableInstrumentationFixTasks, default FALSE — G11 posture:

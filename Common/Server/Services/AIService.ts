@@ -39,6 +39,13 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * call per resolved incident, but autonomous, so the budget covers it.
    */
   "Sentinel Investigation Grading",
+  /*
+   * G6 structured confidence signal (ConfidenceSignal) — one constrained
+   * call per completed investigation, outside the per-run caps but inside
+   * this daily budget. A budget rejection degrades the signal to
+   * "classification-failed" (per-consumer fail directions), never a failure.
+   */
+  "Sentinel Confidence Classification",
 ];
 
 export interface AutonomousBudgetStatus {

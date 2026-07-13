@@ -11,6 +11,7 @@ import IncidentAIContextBuilder, {
 } from "../IncidentAIContextBuilder";
 import SentinelInvestigationEngine from "./SentinelInvestigationEngine";
 import SentinelInvestigationQueue from "./InvestigationQueue";
+import SentinelConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import SentinelMemory from "./SentinelMemory";
 import InstrumentationTaskTrigger from "./InstrumentationTaskTrigger";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
@@ -133,7 +134,7 @@ export default class SentinelIncidentInvestigationRunner {
         contextSummary,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
-          isConfident: boolean;
+          confidence: ConfidenceSignal;
           result: ObservabilityAssistantResult;
         }): Promise<void> => {
           await IncidentFeedService.createIncidentFeedItem({
@@ -144,10 +145,15 @@ export default class SentinelIncidentInvestigationRunner {
             feedInfoInMarkdown: postData.analysisMarkdown,
             /*
              * Quiet mode: an inconclusive investigation posts to the timeline
-             * but does NOT loudly ping the workspace / on-call.
+             * but does NOT loudly ping the workspace / on-call. Fail
+             * direction (G6): when the confidence classification itself
+             * failed, the ping SENDS — quiet mode fails louder, not silent.
              */
             workspaceNotification: {
-              sendWorkspaceNotification: postData.isConfident,
+              sendWorkspaceNotification:
+                SentinelConfidenceSignal.shouldSendWorkspaceNotification(
+                  postData.confidence,
+                ),
             },
           });
 
@@ -202,8 +208,15 @@ export default class SentinelIncidentInvestigationRunner {
            * opens a PR adding the missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
            * the investigation can neither be blocked nor failed by it.
+           * Fail direction (G6): only a POSITIVE inconclusive verdict
+           * (deterministic floor or classification) enqueues — a failed
+           * classification does NOT create a PR.
            */
-          if (!postData.isConfident) {
+          if (
+            SentinelConfidenceSignal.shouldEnqueueInstrumentationTask(
+              postData.confidence,
+            )
+          ) {
             await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation(
               {
                 projectId,

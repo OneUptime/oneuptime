@@ -15,6 +15,7 @@ import AIRunEventService from "../../../Services/AIRunEventService";
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import SentinelInvestigationQueue from "./InvestigationQueue";
+import SentinelConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import ObservabilityAssistant, {
   ObservabilityAssistantResult,
   ObservabilityAssistantStep,
@@ -31,7 +32,9 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *   1. records the run as an AIRun(Investigation) + AIRunEvents (audit trail),
  *   2. runs the existing read-only, tool-grounded, citation-minting agent loop
  *      (ObservabilityAssistant) with the Sentinel persona and a larger budget,
- *   3. brands the cited analysis, judges confidence, and
+ *   3. brands the cited analysis, judges confidence via the structured
+ *      ConfidenceSignal (deterministic evidence floor + one constrained
+ *      classification call — G6: no control flow from free-form prose), and
  *   4. hands the finished analysis back to the caller to post to the subject's
  *      timeline.
  *
@@ -44,13 +47,6 @@ const MAX_LLM_CALLS: number = 8;
 const MAX_TOOL_CALLS: number = 12;
 const MAX_WALL_CLOCK_MS: number = 150 * 1000;
 const MAX_OUTPUT_TOKENS: number = 2000;
-
-/*
- * Sentinel's own contract: it writes exactly this phrase when it cannot
- * determine a cause. We match it deterministically to drive "quiet mode" —
- * a non-answer should never loudly page the on-call.
- */
-const INCONCLUSIVE_RE: RegExp = /inconclusive[^.\n]*insufficient signal/i;
 
 /*
  * Failures a retry cannot fix within the run's usefulness window: missing/
@@ -80,7 +76,7 @@ Investigate like a senior on-call engineer:
 
 Write your final answer as a concise incident-response note with exactly these sections (use these markdown headings):
 **Summary** — one or two sentences a paged engineer can read in five seconds.
-**Most likely root cause** — your hypothesis, with only the confidence the evidence actually supports, each factual claim carrying its [C#] citation. If you could not determine it, write "Inconclusive — insufficient signal" and explain what is missing.
+**Most likely root cause** — your hypothesis, with only the confidence the evidence actually supports, each factual claim carrying its [C#] citation. If you could not determine it, say so plainly and explain what is missing.
 **Evidence** — the key findings that support or rule out the hypothesis, each cited.
 **Suggested next steps** — concrete actions for the on-call engineer.
 
@@ -95,14 +91,17 @@ export interface InvestigationRequest {
   // A compact markdown summary of the subject that seeds the investigation.
   contextSummary: string;
   /*
-   * Called with the finished, branded, cited analysis so the caller can post it
-   * to the subject's timeline. `isConfident` is false when Sentinel reported it
-   * could not determine the cause — callers use it to post QUIETLY (no loud
-   * workspace ping) rather than paging a non-answer.
+   * Called with the finished, branded, cited analysis so the caller can post
+   * it to the subject's timeline. `confidence` is the structured,
+   * server-verified G6 signal (see ConfidenceSignal.ts) — callers must route
+   * every control-flow decision through its helpers
+   * (shouldSendWorkspaceNotification / shouldEnqueueInstrumentationTask),
+   * never through the analysis prose; the helpers encode each consumer's
+   * fail direction when the classification itself failed.
    */
   postAnalysis: (data: {
     analysisMarkdown: string;
-    isConfident: boolean;
+    confidence: ConfidenceSignal;
     result: ObservabilityAssistantResult;
   }) => Promise<void>;
 }
@@ -298,16 +297,38 @@ export default class SentinelInvestigationEngine {
         return;
       }
 
-      const isConfident: boolean = !INCONCLUSIVE_RE.test(analysis);
+      /*
+       * G6: judge confidence via the structured signal — the deterministic
+       * evidence floor over this run's own server-minted citations, then
+       * (only when the floor passes) one constrained classification call.
+       * Budget accounting: that call fires AFTER the agent loop finished, so
+       * it is deliberately OUTSIDE the per-run caps above (MAX_LLM_CALLS /
+       * MAX_OUTPUT_TOKENS govern the loop, whose counts were already
+       * persisted at the Completed transition). It is still metered in
+       * LlmLog under an AUTONOMOUS_AI_FEATURES feature, so the G4 daily
+       * autonomous budget covers it; a budget rejection degrades the signal
+       * to "classification-failed" — never a run failure. Running it after
+       * the WON Completed transition also means a falsely-requeued duplicate
+       * attempt can never double-spend it.
+       */
+      const confidence: ConfidenceSignal =
+        await SentinelConfidenceSignal.computeConfidenceSignal({
+          projectId,
+          aiRunId,
+          analysisMarkdown: analysis,
+          evidence: SentinelConfidenceSignal.evidenceFromCitations(
+            result.citations || [],
+          ),
+        });
 
       await request.postAnalysis({
         analysisMarkdown: this.buildBrandedMarkdown(result, analysis),
-        isConfident,
+        confidence,
         result,
       });
 
       logger.debug(
-        `Sentinel: investigation complete (run ${aiRunId.toString()}, confident=${isConfident}, ${result.llmCallCount} LLM calls, ${result.toolCallCount} tools, ${result.totalTokens} tokens).`,
+        `Sentinel: investigation complete (run ${aiRunId.toString()}, confident=${confidence.confident} via ${confidence.source}, ${result.llmCallCount} LLM calls, ${result.toolCallCount} tools, ${result.totalTokens} tokens).`,
       );
     } catch (error) {
       const message: string =
