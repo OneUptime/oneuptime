@@ -444,6 +444,7 @@ import { AddInvestigationVerdictAndGrade1783965945957 } from "./1783965945957-Ad
 import { AddFixGuardrailColumns1783970619301 } from "./1783970619301-AddFixGuardrailColumns";
 import { DropLegacyAIAgentTaskTables1783970619302 } from "./1783970619302-DropLegacyAIAgentTaskTables";
 import { AddCompletionTokensToLlmLog1783990000000 } from "./1783990000000-AddCompletionTokensToLlmLog";
+import { AddCiStatusToFixPullRequests1783977781677 } from "./1783977781677-AddCiStatusToFixPullRequests";
 
 export default [
   InitialMigration,
@@ -892,4 +893,5 @@ export default [
   AddFixGuardrailColumns1783970619301,
   DropLegacyAIAgentTaskTables1783970619302,
   AddCompletionTokensToLlmLog1783990000000,
+  AddCiStatusToFixPullRequests1783977781677,
 ];

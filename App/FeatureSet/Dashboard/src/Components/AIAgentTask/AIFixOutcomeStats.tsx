@@ -20,6 +20,13 @@ interface OutcomeStats {
   merged: number;
   closedUnmerged: number;
   acceptanceRatePercent: number | null;
+  /*
+   * Merged PRs whose CI concluded Green (or expected-failure for should-fail
+   * regression-test PRs). Merged PRs without CI are honestly NOT counted as
+   * verified.
+   */
+  verifiedGreen: number;
+  verifiedGreenRatePercent: number | null;
 }
 
 /*
@@ -53,6 +60,10 @@ const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
           acceptanceRatePercent: response.data?.["acceptanceRatePercent"] as
             | number
             | null,
+          verifiedGreen: (response.data?.["verifiedGreen"] as number) || 0,
+          verifiedGreenRatePercent: response.data?.[
+            "verifiedGreenRatePercent"
+          ] as number | null,
         });
       } catch {
         // Supplementary data — stay silent on failure.
@@ -70,9 +81,9 @@ const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Fix Pull Request Outcomes"
-      description="How the pull requests opened by Sentinel were received. States sync from GitHub every 30 minutes."
+      description="How the pull requests opened by Sentinel were received. States and CI conclusions sync from GitHub every 30 minutes."
     >
-      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100 mt-2">
+      <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-gray-100 mt-2">
         <div className="px-4 py-2">
           <div className="text-sm text-gray-500">Total fix PRs</div>
           <div className="text-2xl font-semibold text-gray-900">
@@ -101,6 +112,27 @@ const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
           {stats.acceptanceRatePercent === null && (
             <div className="text-xs text-gray-400">
               No merged or closed PRs yet
+            </div>
+          )}
+        </div>
+        {/*
+         * CI-verified rate (B4 Tier 1): merged PRs whose CI concluded
+         * green (or expected-failure for should-fail regression tests).
+         * Merged PRs without CI count against the rate — absence of CI is
+         * never presented as verified.
+         */}
+        <div className="px-4 py-2">
+          <div className="text-sm text-gray-500">CI-verified merges</div>
+          <div className="text-2xl font-semibold text-gray-900">
+            {stats.verifiedGreenRatePercent === null
+              ? "—"
+              : `${stats.verifiedGreenRatePercent}%`}
+          </div>
+          {stats.verifiedGreenRatePercent === null ? (
+            <div className="text-xs text-gray-400">No merged PRs yet</div>
+          ) : (
+            <div className="text-xs text-gray-400">
+              {stats.verifiedGreen} of {stats.merged} merged with CI green
             </div>
           )}
         </div>
