@@ -198,7 +198,7 @@ const CodeRepositoryPage: FunctionComponent<
         cardProps={{
           title: "Code Repositories",
           description:
-            "Your connected code repositories. The AI agent analyzes these and opens fix pull requests against them.",
+            "Your connected code repositories. Sentinel analyzes these and opens fix pull requests against them.",
         }}
         showViewIdButton={true}
         noItemsMessage={

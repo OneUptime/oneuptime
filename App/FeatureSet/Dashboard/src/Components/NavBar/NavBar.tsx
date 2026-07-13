@@ -25,7 +25,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   const essentialsCategory: string = t("navbar.categories.essentials");
   const observabilityCategory: string = t("navbar.categories.observability");
-  const aiCategory: string = t("navbar.categories.ai", "AI");
+  const aiCategory: string = t("navbar.categories.ai", "Sentinel");
   const resourcesCategory: string = t("navbar.categories.resources");
   const analyticsAutomationCategory: string = t(
     "navbar.categories.analyticsAutomation",
@@ -170,10 +170,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     // AI
     {
-      title: t("navbar.items.aiChatTitle", "AI Chat"),
+      title: t("navbar.items.aiChatTitle", "Chat"),
       description: t(
         "navbar.items.aiChatDescription",
-        "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+        "Chat with Sentinel — it answers from your logs, traces, metrics, incidents, alerts and monitors, and cites every query.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_COPILOT] as Route,
@@ -184,10 +184,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: aiCategory,
     },
     {
-      title: t("navbar.items.aiAgentsTitle", "Agents"),
+      title: t("navbar.items.aiAgentsTitle", "Tasks"),
       description: t(
         "navbar.items.aiAgentsDescription",
-        "AI agents and their tasks.",
+        "Sentinel's automated tasks — fix pull requests and their status.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_AGENT_TASKS] as Route,
@@ -201,7 +201,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       title: t("navbar.items.codeRepositoriesTitle"),
       description: t(
         "navbar.items.codeRepositoriesDescription",
-        "Connect GitHub so the AI agent can open fix PRs.",
+        "Connect GitHub so Sentinel can open fix PRs.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.CODE_REPOSITORY] as Route,

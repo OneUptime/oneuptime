@@ -17,9 +17,9 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
       <CardModelDetail<Project>
         name="Automatic Alert Investigation"
         cardProps={{
-          title: "Automatic Alert Investigation (Sentinel)",
+          title: "Sentinel: Automatic Alert Investigation",
           description:
-            "When enabled, OneUptime's AI SRE (Sentinel) automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. Alerts can be higher-volume than incidents, so enable this with that in mind. Requires an LLM provider to be configured in Settings > LLM Providers.",
+            "When enabled, Sentinel — OneUptime's AI SRE — automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. Alerts can be higher-volume than incidents, so enable this with that in mind. Requires an LLM provider to be configured in Settings > Sentinel > LLM Providers.",
         }}
         isEditable={true}
         editButtonText={"Update"}
@@ -40,7 +40,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             },
             title: "Instrumentation PRs From Inconclusive Investigations",
             description:
-              "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, the AI agent opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
+              "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, Sentinel opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },

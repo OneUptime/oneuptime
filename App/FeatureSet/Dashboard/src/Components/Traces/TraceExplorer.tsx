@@ -1334,7 +1334,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 strongTitle="Performance fix task created"
                 title={
                   <span>
-                    The AI agent will open a pull request grounded in this
+                    Sentinel will open a pull request grounded in this
                     trace&apos;s span-tree evidence.{" "}
                     <Link
                       className="underline"
@@ -1363,7 +1363,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
                 <Button
-                  title="Fix performance with AI"
+                  title="Fix performance with Sentinel"
                   icon={IconProp.Bolt}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   buttonSize={ButtonSize.Small}

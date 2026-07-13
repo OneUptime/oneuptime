@@ -40,7 +40,7 @@ const AIAgentTaskPullRequestsPage: FunctionComponent<
       cardProps={{
         title: "Pull Requests",
         description:
-          "Pull requests created by the AI agent during this task execution.",
+          "Pull requests created by Sentinel during this task execution.",
       }}
       noItemsMessage={"No pull requests have been created for this task yet."}
       showRefreshButton={true}

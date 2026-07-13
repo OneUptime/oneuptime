@@ -8,8 +8,8 @@ const AskAI: () => JSX.Element = (): ReactElement => {
   return (
     <HeaderIconDropdownButton
       icon={IconProp.Sparkles}
-      name="Ask AI"
-      title="Ask AI"
+      name="Ask Sentinel"
+      title="Ask Sentinel"
       showDropdown={false}
       onClick={() => {
         GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE);
