@@ -3,6 +3,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import AIPlanGate from "../../Components/AI/AIPlanGate";
 import AIAgentTaskTable from "../../Components/AIAgentTask/AIAgentTaskTable";
 import AIFixOutcomeStats from "../../Components/AIAgentTask/AIFixOutcomeStats";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -25,6 +26,8 @@ const AIAgentTasksPage: FunctionComponent<
 
   return (
     <Fragment>
+      <AIPlanGate />
+
       <Alert
         type={AlertType.INFO}
         strongTitle="Prerequisites"

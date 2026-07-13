@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import AIPlanGate from "../../Components/AI/AIPlanGate";
 import ChatActivityFeed from "../../Components/AIChat/ChatActivityFeed";
 import ChatHomeView from "../../Components/AIChat/ChatHomeView";
 import ChatInput from "../../Components/AIChat/ChatInput";
@@ -61,6 +62,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Page title="AI Chat" description={AI_CHAT_DESCRIPTION}>
+      <AIPlanGate />
       <div
         className="flex overflow-hidden rounded-2xl border border-gray-200 bg-white"
         style={{ height: "calc(100vh - 220px)", minHeight: "560px" }}
@@ -212,6 +214,9 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   conversations={chat.conversations}
                   isSending={chat.isSending}
                   hideConversations={true}
+                  showNoProviderNotice={
+                    chat.providersLoaded && chat.providers.length === 0
+                  }
                   onOpenConversation={chat.openConversation}
                   onDeleteConversation={chat.deleteConversation}
                   onAsk={(question: string) => {

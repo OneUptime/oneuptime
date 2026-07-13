@@ -22,6 +22,7 @@ import React, {
 } from "react";
 import { env, HOME_URL } from "Common/UI/Config";
 import UserUtil from "Common/UI/Utils/User";
+import AIPlanGate from "../../Components/AI/AIPlanGate";
 import GitHubRepoSelectorModal from "../../Components/CodeRepository/GitHubRepoSelectorModal";
 import RepositoryConnectionStatus from "../../Components/CodeRepository/RepositoryConnectionStatus";
 import Card from "Common/UI/Components/Card/Card";
@@ -152,6 +153,8 @@ const CodeRepositoryPage: FunctionComponent<
 
   return (
     <>
+      <AIPlanGate />
+
       {/* Connect Repository Card */}
       <Card
         title="Connect Repository"
