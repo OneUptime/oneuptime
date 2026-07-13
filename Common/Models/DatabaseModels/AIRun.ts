@@ -26,6 +26,7 @@ import {
   AIRunEgressManifest,
   AIRunPausedState,
 } from "../../Types/AI/AIChatTypes";
+import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
 
 /*
  * One AI agent execution (a chat turn today; an investigation later). Runs
@@ -657,6 +658,34 @@ export default class AIRun extends BaseModel {
     type: ColumnType.JSON,
   })
   public pausedState?: AIRunPausedState = undefined;
+
+  /*
+   * Trigger-time context for CodeFix recipes that have no subject row
+   * (CodeFixContextKind.TaskContext — today the FixPerformance recipe:
+   * traceId + the deterministic span-tree findings, captured before span
+   * retention can expire them). Server-only like pausedState (empty read
+   * ACL): the evidence embeds span names and normalized db statements,
+   * whose telemetry read permissions are narrower than this table's
+   * project-member read — the agent worker gets it through the
+   * agent-authenticated task-details endpoint instead.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Task Context",
+    description:
+      "Internal: trigger-time context for code-fix recipes without a subject row (e.g. FixPerformance trace evidence).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public taskContext?: CodeFixTaskContext = undefined;
 
   @ColumnAccessControl({
     create: [],

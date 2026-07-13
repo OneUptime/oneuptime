@@ -23,7 +23,19 @@ import Color from "Common/Types/Color";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONObject } from "Common/Types/JSON";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { APP_API_URL } from "Common/UI/Config";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import Link from "Common/UI/Components/Link/Link";
 import Card from "Common/UI/Components/Card/Card";
 import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -111,6 +123,12 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
 
   const [traceId, setTraceId] = React.useState<string | null>(null);
+
+  // "Fix performance with AI" (the FixPerformance recipe) state.
+  const [isCreatingPerfFixTask, setIsCreatingPerfFixTask] =
+    React.useState<boolean>(false);
+  const [perfFixRunId, setPerfFixRunId] = React.useState<string | null>(null);
+  const [perfFixError, setPerfFixError] = React.useState<string | null>(null);
 
   const [ganttChart, setGanttChart] = React.useState<GanttChartProps | null>(
     null,
@@ -275,6 +293,47 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         setError(API.getFriendlyMessage(err));
       }
     }, [fetchServices, fetchSpans]);
+
+  /*
+   * Human-triggered FixPerformance: ask the server to analyze this trace's
+   * span tree deterministically and, when a mechanical pattern is found,
+   * enqueue an AI task that opens a performance-fix pull request. The
+   * server's rejections are a feature, not a failure mode — "no
+   * deterministic performance pattern found" means the button stays honest.
+   */
+  const createPerformanceFixTask: PromiseVoidFunction =
+    React.useCallback(async (): Promise<void> => {
+      setIsCreatingPerfFixTask(true);
+      setPerfFixError(null);
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(
+              APP_API_URL.toString() +
+                "/ai-investigation/create-performance-fix-task",
+            ),
+            data: {
+              traceId: traceIdFromUrl,
+            },
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const aiRunId: string | undefined = (response.data as JSONObject)[
+          "aiRunId"
+        ] as string | undefined;
+
+        setPerfFixRunId(aiRunId || null);
+      } catch (err) {
+        setPerfFixError(API.getFriendlyMessage(err));
+      }
+
+      setIsCreatingPerfFixTask(false);
+    }, [traceIdFromUrl]);
 
   const getBarTooltip: GetBarTooltipFunction = (
     data: BarTooltipFunctionProps,
@@ -541,6 +600,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     setError(null);
     setIsLoading(false);
     setIsLoadingMoreSpans(false);
+    setIsCreatingPerfFixTask(false);
+    setPerfFixRunId(null);
+    setPerfFixError(null);
   }, [traceIdFromUrl]);
 
   React.useEffect(() => {
@@ -1255,6 +1317,65 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 {spanStats.durationString}
               </div>
             </div>
+          </div>
+
+          {/*
+            One quiet action: hand this trace's span tree to the server's
+            deterministic analyzer and, when a mechanical performance
+            pattern is found (N+1, dominant span, sequential siblings),
+            enqueue an AI performance-fix pull request (the FixPerformance
+            recipe). Rejections — including "no deterministic pattern
+            found" — surface inline: the button never pretends.
+          */}
+          <div className="mb-4">
+            {perfFixRunId ? (
+              <Alert
+                type={AlertType.SUCCESS}
+                strongTitle="Performance fix task created"
+                title={
+                  <span>
+                    The AI agent will open a pull request grounded in this
+                    trace&apos;s span-tree evidence.{" "}
+                    <Link
+                      className="underline"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                        { modelId: perfFixRunId },
+                      )}
+                    >
+                      View task progress
+                    </Link>
+                    .
+                  </span>
+                }
+              />
+            ) : (
+              <>
+                {perfFixError ? (
+                  <div className="mb-3">
+                    <Alert
+                      type={AlertType.DANGER}
+                      strongTitle="Could not create the performance fix task"
+                      title={<span>{perfFixError}</span>}
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
+                <Button
+                  title="Fix performance with AI"
+                  icon={IconProp.Bolt}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  isLoading={isCreatingPerfFixTask}
+                  onClick={() => {
+                    createPerformanceFixTask().catch(() => {
+                      // handled inside createPerformanceFixTask
+                    });
+                  }}
+                />
+              </>
+            )}
           </div>
 
           {/* View Mode Toggle */}

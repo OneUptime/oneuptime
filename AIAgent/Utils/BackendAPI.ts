@@ -6,6 +6,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
+import {
+  ImplicatedSpan,
+  PerformanceFinding,
+} from "Common/Types/AI/CodeFixTaskContext";
 import logger from "Common/Server/Utils/Logger";
 
 // API Response types
@@ -54,7 +58,7 @@ interface CodeRepositoriesResponse {
 }
 
 interface SubjectTaskDetailsResponse {
-  subjectType: "incident" | "alert";
+  subjectType: "incident" | "alert" | "trace";
   subjectTitle: string;
   analysisMarkdown: string;
   serviceName: string | null;
@@ -62,6 +66,10 @@ interface SubjectTaskDetailsResponse {
   repositories: Array<CodeRepositoryResponse>;
   resolutionError?: string;
   message?: string;
+  // Trace-evidence recipes (FixPerformance) only.
+  traceId?: string;
+  findings?: Array<PerformanceFinding>;
+  spanSummaries?: Array<ImplicatedSpan>;
 }
 
 interface RepositoryTokenResponse {
@@ -119,19 +127,27 @@ export interface CodeRepositoryInfo {
 }
 
 /*
- * Context for an incident/alert-subject task (ImproveInstrumentation,
- * FixFromIncident): the investigation's posted analysis, its subject, and
- * the repository the server resolved (without a stack trace — name-match /
- * only-repository fallbacks).
+ * Context for a non-exception task, keyed by the run id. For the
+ * incident/alert-subject recipes (ImproveInstrumentation, FixFromIncident)
+ * analysisMarkdown is the investigation's posted analysis; for the
+ * trace-evidence recipe (FixPerformance, subjectType "trace") it is the
+ * server-rendered deterministic span-tree evidence, with the structured
+ * findings alongside. Either way the server resolved the repository
+ * (FixPerformance additionally tries span code.* attributes as a synthetic
+ * stack trace before the name-match / only-repository fallbacks).
  */
 export interface SubjectTaskDetails {
-  subjectType: "incident" | "alert";
+  subjectType: "incident" | "alert" | "trace";
   subjectTitle: string;
   analysisMarkdown: string;
   serviceName: string | null;
   repositories: Array<CodeRepositoryInfo>;
   // Set when repositories is empty: why nothing resolved + what to do.
   resolutionError: string | null;
+  // Trace-evidence recipes (FixPerformance) only.
+  traceId: string | null;
+  performanceFindings: Array<PerformanceFinding>;
+  spanSummaries: Array<ImplicatedSpan>;
 }
 
 export interface RepositoryToken {
@@ -365,6 +381,9 @@ export default class BackendAPI {
         },
       ),
       resolutionError: data.resolutionError || null,
+      traceId: data.traceId || null,
+      performanceFindings: data.findings || [],
+      spanSummaries: data.spanSummaries || [],
     };
   }
 

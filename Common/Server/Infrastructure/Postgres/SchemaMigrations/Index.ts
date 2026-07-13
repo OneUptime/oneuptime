@@ -437,6 +437,7 @@ import { DropServiceCodeRepository1783943300000 } from "./1783943300000-DropServ
 import { CodeFixRunsOnAIRun1783947444597 } from "./1783947444597-CodeFixRunsOnAIRun";
 import { AddCodeFixTaskType1783950962813 } from "./1783950962813-AddCodeFixTaskType";
 import { AddInstrumentationFixTasksFlag1783954040984 } from "./1783954040984-AddInstrumentationFixTasksFlag";
+import { AddTaskContextToAIRun1783958542237 } from "./1783958542237-AddTaskContextToAIRun";
 import { MigrationName1783937343400 } from "./1783937343400-MigrationName";
 
 export default [
@@ -880,4 +881,5 @@ export default [
   CodeFixRunsOnAIRun1783947444597,
   AddCodeFixTaskType1783950962813,
   AddInstrumentationFixTasksFlag1783954040984,
+  AddTaskContextToAIRun1783958542237,
 ];

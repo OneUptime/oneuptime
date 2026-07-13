@@ -19,14 +19,28 @@ import AIRun from "../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Alert from "../../Models/DatabaseModels/Alert";
+import Service from "../../Models/DatabaseModels/Service";
+import Span from "../../Models/AnalyticsModels/Span";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
+import ServiceService from "../Services/ServiceService";
+import SpanService from "../Services/SpanService";
 import FixFromIncidentTaskTrigger from "../Utils/AI/Sentinel/FixFromIncidentTaskTrigger";
+import FixPerformanceTaskTrigger from "../Utils/AI/Sentinel/FixPerformanceTaskTrigger";
+import { AnalyzableSpan } from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * Upper bound on spans analyzed for one performance-fix trigger — mirrors
+ * the trace waterfall's own cap (TraceTools.MAX_TRACE_SPANS). Findings are
+ * computed over the first 500 spans by start time; a truncated giant trace
+ * still yields honest evidence about the loaded portion.
+ */
+const MAX_ANALYZED_TRACE_SPANS: number = 500;
 
 const MAX_EVENTS: number = 500;
 
@@ -294,6 +308,150 @@ router.post(
           ...(subjectType === "incident"
             ? { incidentId: subjectId }
             : { alertId: subjectId }),
+          userId: props.userId!,
+        });
+
+      Response.sendJsonObjectResponse(req, res, {
+        aiRunId: run.id!.toString(),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Human-triggered FixPerformance: from a slow trace, one click opens a
+ * performance-fix PR grounded in deterministic span-tree evidence. The
+ * spans are loaded under the USER's permissions (the same telemetry-read
+ * ACL the trace explorer enforces — a user who cannot read the trace gets
+ * "not found"), the SpanTreeAnalyzer gates on a mechanical finding, and
+ * the trigger's remaining gates (GitHub-App repository, per-trace dedupe)
+ * fail early with a clear message. Body: { traceId }. Response:
+ * { aiRunId } — the Queued CodeFix run the agent worker will claim.
+ */
+router.post(
+  "/ai-investigation/create-performance-fix-task",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const traceId: string | undefined = req.body["traceId"] as
+        | string
+        | undefined;
+
+      if (!traceId) {
+        throw new BadDataException("traceId is required.");
+      }
+
+      const projectId: ObjectID | undefined = props.tenantId;
+
+      if (!projectId) {
+        throw new BadDataException("A project scope is required.");
+      }
+
+      /*
+       * Access check + data load in one: the analytics permission layer
+       * pins this query to the user's tenant and telemetry-read
+       * permissions (the Span model's read ACL — same enforcement the
+       * trace explorer's list API applies). No spans back means the trace
+       * does not exist or the user may not see it.
+       */
+      const spans: Array<Span> = await SpanService.findBy({
+        query: {
+          traceId: traceId,
+        } as never,
+        select: {
+          spanId: true,
+          parentSpanId: true,
+          name: true,
+          startTimeUnixNano: true,
+          endTimeUnixNano: true,
+          durationUnixNano: true,
+          attributes: true,
+          primaryEntityId: true,
+        } as never,
+        sort: {
+          startTimeUnixNano: SortOrder.Ascending,
+        } as never,
+        limit: MAX_ANALYZED_TRACE_SPANS,
+        skip: 0,
+        props: props,
+      });
+
+      if (spans.length === 0) {
+        throw new BadDataException(
+          "Trace not found (or you do not have access to it).",
+        );
+      }
+
+      // Nanoseconds -> milliseconds for the analyzer.
+      const analyzableSpans: Array<AnalyzableSpan> = spans.map(
+        (span: Span): AnalyzableSpan => {
+          const attributes: Record<string, string> = {};
+
+          for (const [key, value] of Object.entries(span.attributes || {})) {
+            if (value !== null && value !== undefined) {
+              attributes[key] = String(value);
+            }
+          }
+
+          return {
+            spanId: span.spanId?.toString() || "",
+            parentSpanId: span.parentSpanId?.toString() || undefined,
+            name: span.name || "",
+            startMs: Number(span.startTimeUnixNano) / 1_000_000,
+            endMs: Number(span.endTimeUnixNano) / 1_000_000,
+            durationMs: Number(span.durationUnixNano) / 1_000_000,
+            attributes,
+          };
+        },
+      );
+
+      /*
+       * Best-effort service attribution: the trace's most frequent
+       * primaryEntityId, resolved to a Service name when it IS a Service
+       * (findOneById returns null for hosts/clusters/unattributed ids).
+       * Only feeds the repository name-match fallback — null is fine.
+       */
+      const entityIdCounts: Map<string, number> = new Map();
+      for (const span of spans) {
+        const entityId: string | undefined = span.primaryEntityId?.toString();
+        if (entityId) {
+          entityIdCounts.set(entityId, (entityIdCounts.get(entityId) || 0) + 1);
+        }
+      }
+
+      let dominantEntityId: string | null = null;
+      let dominantEntityCount: number = 0;
+      for (const [entityId, count] of entityIdCounts) {
+        if (count > dominantEntityCount) {
+          dominantEntityId = entityId;
+          dominantEntityCount = count;
+        }
+      }
+
+      const service: Service | null = dominantEntityId
+        ? await ServiceService.findOneById({
+            id: new ObjectID(dominantEntityId),
+            select: { name: true },
+            props: { isRoot: true },
+          })
+        : null;
+
+      const run: AIRun =
+        await FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace({
+          projectId,
+          traceId,
+          spans: analyzableSpans,
+          serviceName: service?.name,
           userId: props.userId!,
         });
 

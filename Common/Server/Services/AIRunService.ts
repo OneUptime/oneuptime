@@ -4,6 +4,7 @@ import OneUptimeDate from "../../Types/Date";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import CodeFixTaskType, {
+  CodeFixContextKind,
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -89,10 +90,11 @@ export class Service extends DatabaseService<Model> {
    *
    * A claimed run missing its recipe's trigger record cannot be executed —
    * it is finalized as Error and the loop moves on to the next candidate.
-   * Which record that is depends on the task recipe: exception-based
-   * recipes need triggeredByTelemetryExceptionId, while
+   * Which record that is depends on the recipe's context kind:
+   * exception-based recipes need triggeredByTelemetryExceptionId,
    * ImproveInstrumentation / FixFromIncident run against the incident/alert
-   * whose investigation triggered them.
+   * whose investigation triggered them, and FixPerformance carries its
+   * trace evidence in taskContext (no subject row at all).
    */
   @CaptureSpan()
   public async claimNextQueuedCodeFixRun(data: {
@@ -117,6 +119,7 @@ export class Service extends DatabaseService<Model> {
           triggeredByAlertId: true,
           attemptCount: true,
           codeFixTaskType: true,
+          taskContext: true,
         },
         props: {
           isRoot: true,
@@ -156,20 +159,34 @@ export class Service extends DatabaseService<Model> {
       );
 
       /*
-       * Recipe-dependent executability guard: exception-based recipes are
-       * unexecutable without their telemetry exception, but recipes whose
-       * subject is an incident/alert (ImproveInstrumentation,
-       * FixFromIncident) legitimately carry NO exception id — rejecting
-       * those here would Error every run their triggers enqueue.
+       * Recipe-dependent executability guard, grouped by the recipe's
+       * context kind: exception-based recipes are unexecutable without
+       * their telemetry exception; recipes whose subject is an
+       * incident/alert (ImproveInstrumentation, FixFromIncident)
+       * legitimately carry NO exception id; and FixPerformance carries
+       * neither — its trace evidence lives in taskContext. Rejecting a
+       * kind for lacking another kind's record would Error every run its
+       * trigger enqueues.
        */
-      const missingContextMessage: string | null =
-        CodeFixTaskTypeHelper.requiresTelemetryException(run.codeFixTaskType)
-          ? run.triggeredByTelemetryExceptionId
-            ? null
-            : "Queued code-fix run has no telemetry exception to fix."
-          : run.triggeredByIncidentId || run.triggeredByAlertId
+      const contextKind: CodeFixContextKind =
+        CodeFixTaskTypeHelper.getContextKind(run.codeFixTaskType);
+
+      let missingContextMessage: string | null = null;
+
+      if (contextKind === CodeFixContextKind.TelemetryException) {
+        missingContextMessage = run.triggeredByTelemetryExceptionId
+          ? null
+          : "Queued code-fix run has no telemetry exception to fix.";
+      } else if (contextKind === CodeFixContextKind.IncidentOrAlertSubject) {
+        missingContextMessage =
+          run.triggeredByIncidentId || run.triggeredByAlertId
             ? null
             : "Queued code-fix run has no incident or alert subject.";
+      } else {
+        missingContextMessage = run.taskContext?.traceId
+          ? null
+          : "Queued code-fix run has no trace evidence in its task context.";
+      }
 
       if (missingContextMessage) {
         await this.attemptStatusTransition({
