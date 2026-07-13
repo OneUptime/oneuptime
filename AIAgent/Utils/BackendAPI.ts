@@ -53,7 +53,7 @@ interface CodeRepositoriesResponse {
   message?: string;
 }
 
-interface InstrumentationTaskDetailsResponse {
+interface SubjectTaskDetailsResponse {
   subjectType: "incident" | "alert";
   subjectTitle: string;
   analysisMarkdown: string;
@@ -119,11 +119,12 @@ export interface CodeRepositoryInfo {
 }
 
 /*
- * Context for an ImproveInstrumentation task: the inconclusive
- * investigation's analysis, its subject, and the repository the server
- * resolved (without a stack trace — name-match / only-repository fallbacks).
+ * Context for an incident/alert-subject task (ImproveInstrumentation,
+ * FixFromIncident): the investigation's posted analysis, its subject, and
+ * the repository the server resolved (without a stack trace — name-match /
+ * only-repository fallbacks).
  */
-export interface InstrumentationTaskDetails {
+export interface SubjectTaskDetails {
   subjectType: "incident" | "alert";
   subjectTitle: string;
   analysisMarkdown: string;
@@ -309,12 +310,14 @@ export default class BackendAPI {
   }
 
   /*
-   * Context for an ImproveInstrumentation run — `taskId` is the AIRun id
-   * from get-pending-task (these runs carry no exceptionId).
+   * Context for an incident/alert-subject run (ImproveInstrumentation,
+   * FixFromIncident) — `taskId` is the AIRun id from get-pending-task
+   * (these runs carry no exceptionId). The wire route predates
+   * FixFromIncident and kept its historical name.
    */
-  public async getInstrumentationTaskDetails(
+  public async getSubjectTaskDetails(
     taskId: string,
-  ): Promise<InstrumentationTaskDetails> {
+  ): Promise<SubjectTaskDetails> {
     const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-instrumentation-task-details",
     );
@@ -328,18 +331,18 @@ export default class BackendAPI {
     });
 
     if (!response.isSuccess()) {
-      const data: InstrumentationTaskDetailsResponse =
-        response.data as unknown as InstrumentationTaskDetailsResponse;
+      const data: SubjectTaskDetailsResponse =
+        response.data as unknown as SubjectTaskDetailsResponse;
       const errorMessage: string =
-        data?.message || "Failed to get instrumentation task details";
+        data?.message || "Failed to get task details";
       throw new Error(errorMessage);
     }
 
-    const data: InstrumentationTaskDetailsResponse =
-      response.data as unknown as InstrumentationTaskDetailsResponse;
+    const data: SubjectTaskDetailsResponse =
+      response.data as unknown as SubjectTaskDetailsResponse;
 
     logger.debug(
-      `Got instrumentation task details for ${taskId}: ${data.subjectType} "${data.subjectTitle}" (${data.repositories.length} repository(ies))`,
+      `Got subject task details for ${taskId}: ${data.subjectType} "${data.subjectTitle}" (${data.repositories.length} repository(ies))`,
     );
 
     return {

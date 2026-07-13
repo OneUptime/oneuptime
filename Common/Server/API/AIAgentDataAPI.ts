@@ -396,11 +396,13 @@ export default class AIAgentDataAPI {
     );
 
     /*
-     * Context for an ImproveInstrumentation run: the inconclusive
-     * investigation's posted analysis + subject metadata + the resolved
-     * repository. `taskId` carries the AIRun id of the CodeFix run (the id
-     * get-pending-task returned) — these runs have NO telemetry exception,
-     * so the exception-shaped endpoints above cannot serve them.
+     * Context for the incident/alert-subject recipes (ImproveInstrumentation
+     * and FixFromIncident): the investigation's posted analysis + subject
+     * metadata + the resolved repository. `taskId` carries the AIRun id of
+     * the CodeFix run (the id get-pending-task returned) — these runs have
+     * NO telemetry exception, so the exception-shaped endpoints above cannot
+     * serve them. The route name predates FixFromIncident and is kept for
+     * agent compatibility; the response shape is recipe-independent.
      *
      * The analysis text comes from the subject's latest RootCause feed item:
      * Sentinel's postAnalysis is the only writer of RootCause feed events,
@@ -465,15 +467,24 @@ export default class AIAgentDataAPI {
             );
           }
 
+          /*
+           * Any recipe whose subject is an incident/alert (rather than a
+           * telemetry exception) is served here — the same recipe grouping
+           * the claim guard uses.
+           */
+          const taskType: CodeFixTaskType =
+            CodeFixTaskTypeHelper.fromDatabaseValue(run.codeFixTaskType);
+
           if (
             run.runType !== AIRunType.CodeFix ||
-            CodeFixTaskTypeHelper.fromDatabaseValue(run.codeFixTaskType) !==
-              CodeFixTaskType.ImproveInstrumentation
+            CodeFixTaskTypeHelper.requiresTelemetryException(taskType)
           ) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Task is not an ImproveInstrumentation run"),
+              new BadDataException(
+                "Task is not an incident/alert-subject code-fix run (ImproveInstrumentation or FixFromIncident)",
+              ),
             );
           }
 
@@ -482,7 +493,7 @@ export default class AIAgentDataAPI {
               req,
               res,
               new BadDataException(
-                "This instrumentation task has no incident or alert subject",
+                "This task has no incident or alert subject",
               ),
             );
           }
@@ -521,7 +532,7 @@ export default class AIAgentDataAPI {
                 req,
                 res,
                 new BadDataException(
-                  "The incident this instrumentation task was created for no longer exists",
+                  "The incident this task was created for no longer exists",
                 ),
               );
             }
@@ -571,7 +582,7 @@ export default class AIAgentDataAPI {
                 req,
                 res,
                 new BadDataException(
-                  "The alert this instrumentation task was created for no longer exists",
+                  "The alert this task was created for no longer exists",
                 ),
               );
             }
@@ -605,17 +616,16 @@ export default class AIAgentDataAPI {
               req,
               res,
               new BadDataException(
-                `No posted investigation analysis found for this ${subjectType} — the instrumentation task has nothing to work from (the analysis feed item may have been deleted).`,
+                `No posted investigation analysis found for this ${subjectType} — the task has nothing to work from (the analysis feed item may have been deleted).`,
               ),
             );
           }
 
           /*
-           * Resolve the repository WITHOUT a stack trace — instrumentation
-           * tasks have no exception, so only the name-match (against the
-           * subject's monitor/service name) and only-repository fallbacks
-           * apply. When nothing resolves the worker fails the run with
-           * this guidance.
+           * Resolve the repository WITHOUT a stack trace — these tasks have
+           * no exception, so only the name-match (against the subject's
+           * monitor/service name) and only-repository fallbacks apply. When
+           * nothing resolves the worker fails the run with this guidance.
            */
           const resolution: RepoResolution | null =
             await CodeRepositoryService.resolveRepositoryForException({
@@ -644,7 +654,7 @@ export default class AIAgentDataAPI {
 
           if (!resolution || !repository) {
             logger.debug(
-              `No repository resolved for instrumentation task ${taskId.toString()}`,
+              `No repository resolved for ${taskType} task ${taskId.toString()}`,
               getLogAttributesFromRequest(req as any),
             );
 
@@ -656,12 +666,12 @@ export default class AIAgentDataAPI {
               projectId: run.projectId.toString(),
               repositories: [],
               resolutionError:
-                "Could not resolve a repository for this instrumentation task: no connected repository name matches the affected monitor/service and the project has more than one repository. Connect the right repository via the GitHub App, or rename one to match the service.",
+                "Could not resolve a repository for this task: no connected repository name matches the affected monitor/service and the project has more than one repository. Connect the right repository via the GitHub App, or rename one to match the service.",
             });
           }
 
           logger.debug(
-            `Resolved repository ${resolution.organizationName}/${resolution.repositoryName} for instrumentation task ${taskId.toString()} via ${resolution.method}: ${resolution.evidence}`,
+            `Resolved repository ${resolution.organizationName}/${resolution.repositoryName} for ${taskType} task ${taskId.toString()} via ${resolution.method}: ${resolution.evidence}`,
             getLogAttributesFromRequest(req as any),
           );
 

@@ -1,8 +1,11 @@
 import ChatActivityFeed from "../AIChat/ChatActivityFeed";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -10,8 +13,14 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -51,6 +60,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   } | null>(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const signatureRef: React.MutableRefObject<string> = useRef<string>("");
+
+  // "Open Fix PR from this analysis" (the FixFromIncident recipe) state.
+  const [isCreatingFixTask, setIsCreatingFixTask] = useState<boolean>(false);
+  const [fixTaskRunId, setFixTaskRunId] = useState<string | null>(null);
+  const [fixTaskError, setFixTaskError] = useState<string | null>(null);
 
   const fetchData: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -115,6 +129,46 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       // handled inside fetchData
     });
   }, [fetchData]);
+
+  /*
+   * Human-triggered `code_fix`: enqueue a FixFromIncident task that takes
+   * the posted analysis as context and opens a fix pull request. The server
+   * gates (completed investigation, GitHub-App repository, one active run
+   * per subject) fail with a message shown inline.
+   */
+  const createFixTask: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      setIsCreatingFixTask(true);
+      setFixTaskError(null);
+
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(
+              APP_API_URL.toString() + "/ai-investigation/create-fix-task",
+            ),
+            data: {
+              subjectType: props.subjectType,
+              subjectId: props.subjectId.toString(),
+            },
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const aiRunId: string | undefined = (response.data as JSONObject)[
+          "aiRunId"
+        ] as string | undefined;
+
+        setFixTaskRunId(aiRunId || null);
+      } catch (err) {
+        setFixTaskError(API.getFriendlyMessage(err));
+      }
+
+      setIsCreatingFixTask(false);
+    }, [props.subjectType, props.subjectId]);
 
   const isRunning: boolean = runStatus === AIRunStatus.Running;
   const isQueued: boolean = runStatus === AIRunStatus.Queued;
@@ -224,6 +278,79 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             . The full cited root cause is in the {props.subjectType} timeline
             below.
           </p>
+        ) : (
+          <></>
+        )}
+
+        {/*
+          One quiet action under a completed analysis: hand the posted
+          root-cause analysis to the AI agent as context for a fix pull
+          request (the FixFromIncident recipe). Human-triggered by design —
+          the user judges whether the analysis is worth a PR.
+        */}
+        {runStatus === AIRunStatus.Completed ? (
+          <div className="mt-4">
+            {fixTaskRunId ? (
+              <Alert
+                type={AlertType.SUCCESS}
+                strongTitle="Fix task created"
+                title={
+                  <span>
+                    The AI agent will open a pull request from this analysis.{" "}
+                    <Link
+                      className="underline"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                        { modelId: fixTaskRunId },
+                      )}
+                    >
+                      View task progress
+                    </Link>
+                    .
+                  </span>
+                }
+              />
+            ) : (
+              <>
+                {fixTaskError ? (
+                  <div className="mb-3">
+                    <Alert
+                      type={AlertType.DANGER}
+                      strongTitle="Could not create the fix task"
+                      title={
+                        <span>
+                          {fixTaskError}{" "}
+                          <Link
+                            className="underline"
+                            to={RouteUtil.populateRouteParams(
+                              RouteMap[PageMap.AI_AGENT_TASKS] as Route,
+                            )}
+                          >
+                            View AI tasks
+                          </Link>
+                          .
+                        </span>
+                      }
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
+                <Button
+                  title="Open Fix PR from this analysis"
+                  icon={IconProp.Code}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  isLoading={isCreatingFixTask}
+                  onClick={() => {
+                    createFixTask().catch(() => {
+                      // handled inside createFixTask
+                    });
+                  }}
+                />
+              </>
+            )}
+          </div>
         ) : (
           <></>
         )}

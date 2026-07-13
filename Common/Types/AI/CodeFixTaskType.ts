@@ -23,10 +23,17 @@ enum CodeFixTaskType {
    */
   ImproveInstrumentation = "ImproveInstrumentation",
   /*
-   * Declared for upcoming recipes — not user-triggerable yet. The user-facing
-   * create endpoint rejects them until their recipes ship.
+   * Declared for an upcoming recipe — not triggerable yet. The user-facing
+   * create endpoints reject it until its recipe ships.
    */
   FixPerformance = "FixPerformance",
+  /*
+   * Fix the root cause a completed Sentinel investigation identified. Human-
+   * triggered from the investigation panel (POST /ai-investigation/
+   * create-fix-task), NOT from the exception page: its subject is the
+   * investigated incident/alert, and its context is the posted analysis (see
+   * Common/Server/Utils/AI/Sentinel/FixFromIncidentTaskTrigger.ts).
+   */
   FixFromIncident = "FixFromIncident",
 }
 
@@ -34,12 +41,15 @@ export default CodeFixTaskType;
 
 export class CodeFixTaskTypeHelper {
   /*
-   * The recipes a user may start today (from the exception page). Recipes
+   * The recipes a user may start today FROM THE EXCEPTION PAGE. Recipes
    * outside this list exist as enum values so the worker/UI can already
-   * dispatch on them, but creation via the user-facing endpoint is
-   * server-rejected. ImproveInstrumentation stays off this list by design —
-   * it is not exception-triggered at all: its trigger is an inconclusive
-   * Sentinel investigation on an opted-in project.
+   * dispatch on them, but creation via the exception-page endpoint is
+   * server-rejected. ImproveInstrumentation and FixFromIncident stay off
+   * this list by design — they are not exception-triggered at all:
+   * ImproveInstrumentation's trigger is an inconclusive Sentinel
+   * investigation on an opted-in project, and FixFromIncident is user-
+   * triggered from the investigation panel via its own endpoint
+   * (POST /ai-investigation/create-fix-task).
    */
   public static getUserTriggerableTaskTypes(): Array<CodeFixTaskType> {
     return [CodeFixTaskType.FixException, CodeFixTaskType.WriteRegressionTest];

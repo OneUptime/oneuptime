@@ -24,6 +24,7 @@ import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
+import FixFromIncidentTaskTrigger from "../Utils/AI/Sentinel/FixFromIncidentTaskTrigger";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -204,6 +205,100 @@ router.post(
       await sendLatestInvestigation(req, res, {
         triggeredByAlertId: alertId,
         runType: AIRunType.Investigation,
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Human-triggered `code_fix` (the FixFromIncident recipe): after a Sentinel
+ * investigation completes on an incident/alert, the user can ask the agent
+ * to open a fix pull request from the posted analysis. The subject is
+ * access-checked under the USER's permissions first (same idiom as the read
+ * routes above); the trigger's gates (completed investigation, GitHub-App
+ * repository, per-subject dedupe) fail early with a clear message.
+ * Body: { subjectType: "incident" | "alert", subjectId }. Response:
+ * { aiRunId } — the Queued CodeFix run the agent worker will claim.
+ */
+router.post(
+  "/ai-investigation/create-fix-task",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const subjectType: string | undefined = req.body["subjectType"] as
+        | string
+        | undefined;
+
+      if (subjectType !== "incident" && subjectType !== "alert") {
+        throw new BadDataException(
+          'subjectType must be "incident" or "alert".',
+        );
+      }
+
+      const subjectIdString: string | undefined = req.body["subjectId"] as
+        | string
+        | undefined;
+
+      if (!subjectIdString) {
+        throw new BadDataException("subjectId is required.");
+      }
+
+      const subjectId: ObjectID = new ObjectID(subjectIdString);
+
+      // Access check under the USER's permissions (null when not allowed).
+      let projectId: ObjectID | undefined = undefined;
+
+      if (subjectType === "incident") {
+        const incident: Incident | null = await IncidentService.findOneById({
+          id: subjectId,
+          select: { _id: true, projectId: true },
+          props,
+        });
+
+        if (!incident || !incident.projectId) {
+          throw new BadDataException(
+            "Incident not found (or you do not have access to it).",
+          );
+        }
+
+        projectId = incident.projectId;
+      } else {
+        const alert: Alert | null = await AlertService.findOneById({
+          id: subjectId,
+          select: { _id: true, projectId: true },
+          props,
+        });
+
+        if (!alert || !alert.projectId) {
+          throw new BadDataException(
+            "Alert not found (or you do not have access to it).",
+          );
+        }
+
+        projectId = alert.projectId;
+      }
+
+      const run: AIRun =
+        await FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+          projectId,
+          ...(subjectType === "incident"
+            ? { incidentId: subjectId }
+            : { alertId: subjectId }),
+          userId: props.userId!,
+        });
+
+      Response.sendJsonObjectResponse(req, res, {
+        aiRunId: run.id!.toString(),
       });
       return;
     } catch (err) {

@@ -13,6 +13,8 @@ export {
 } from "./TaskHandlerRegistry";
 
 export { default as ExceptionPullRequestTaskHandler } from "./ExceptionPullRequestTaskHandler";
+export { default as SubjectPullRequestTaskHandler } from "./SubjectPullRequestTaskHandler";
 export { default as FixExceptionTaskHandler } from "./FixExceptionTaskHandler";
 export { default as WriteRegressionTestTaskHandler } from "./WriteRegressionTestTaskHandler";
 export { default as ImproveInstrumentationTaskHandler } from "./ImproveInstrumentationTaskHandler";
+export { default as FixFromIncidentTaskHandler } from "./FixFromIncidentTaskHandler";

@@ -91,8 +91,8 @@ export class Service extends DatabaseService<Model> {
    * it is finalized as Error and the loop moves on to the next candidate.
    * Which record that is depends on the task recipe: exception-based
    * recipes need triggeredByTelemetryExceptionId, while
-   * ImproveInstrumentation runs against the incident/alert whose
-   * investigation was inconclusive.
+   * ImproveInstrumentation / FixFromIncident run against the incident/alert
+   * whose investigation triggered them.
    */
   @CaptureSpan()
   public async claimNextQueuedCodeFixRun(data: {
@@ -158,9 +158,9 @@ export class Service extends DatabaseService<Model> {
       /*
        * Recipe-dependent executability guard: exception-based recipes are
        * unexecutable without their telemetry exception, but recipes whose
-       * subject is an incident/alert (ImproveInstrumentation) legitimately
-       * carry NO exception id — rejecting those here would Error every run
-       * the instrumentation trigger enqueues.
+       * subject is an incident/alert (ImproveInstrumentation,
+       * FixFromIncident) legitimately carry NO exception id — rejecting
+       * those here would Error every run their triggers enqueue.
        */
       const missingContextMessage: string | null =
         CodeFixTaskTypeHelper.requiresTelemetryException(run.codeFixTaskType)

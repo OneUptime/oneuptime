@@ -80,10 +80,10 @@ export default class AIAgentTaskAPI extends BaseAPI<
               projectId: run.projectId?.toString(),
               /*
                * exceptionId is present only for exception-based recipes.
-               * ImproveInstrumentation runs carry an incident/alert subject
-               * instead — the worker fetches their context via
-               * /ai-agent-data/get-instrumentation-task-details with the
-               * run id, so this field is optional on the wire.
+               * ImproveInstrumentation / FixFromIncident runs carry an
+               * incident/alert subject instead — the worker fetches their
+               * context via /ai-agent-data/get-instrumentation-task-details
+               * with the run id, so this field is optional on the wire.
                */
               exceptionId: run.triggeredByTelemetryExceptionId?.toString(),
               /*

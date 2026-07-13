@@ -189,6 +189,83 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
     expect(claimed).toBe(run);
   });
 
+  /*
+   * FixFromIncident is the second incident/alert-subject recipe: enqueued
+   * by the user from the investigation panel, no telemetry exception — the
+   * same recipe grouping as ImproveInstrumentation in the guard.
+   */
+  test("a FixFromIncident run without an exception but with an incident subject is claimed, not errored", async () => {
+    const run: AIRun = fakeQueuedRun({
+      exceptionId: null,
+      codeFixTaskType: CodeFixTaskType.FixFromIncident,
+      incidentId: ObjectID.generate(),
+    });
+
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(run);
+    expect(claimed?.codeFixTaskType).toBe(CodeFixTaskType.FixFromIncident);
+    // Exactly the claim CAS — no Error transition.
+    expect(transition).toHaveBeenCalledTimes(1);
+  });
+
+  test("a FixFromIncident run with an alert subject is claimed too", async () => {
+    const run: AIRun = fakeQueuedRun({
+      exceptionId: null,
+      codeFixTaskType: CodeFixTaskType.FixFromIncident,
+      alertId: ObjectID.generate(),
+    });
+
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(run);
+  });
+
+  test("a FixFromIncident run with NO subject at all is finalized as Error and skipped", async () => {
+    const brokenRun: AIRun = fakeQueuedRun({
+      exceptionId: null,
+      codeFixTaskType: CodeFixTaskType.FixFromIncident,
+    });
+    const goodRun: AIRun = fakeQueuedRun();
+
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValueOnce(brokenRun)
+      .mockResolvedValueOnce(goodRun);
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(goodRun);
+    expect(transition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        aiRunId: brokenRun.id,
+        fromStatus: AIRunStatus.Running,
+        set: expect.objectContaining({
+          status: AIRunStatus.Error,
+          errorMessage: expect.stringContaining("incident or alert subject"),
+        }),
+      }),
+    );
+  });
+
   test("an ImproveInstrumentation run with NO subject at all is finalized as Error and skipped", async () => {
     const brokenRun: AIRun = fakeQueuedRun({
       exceptionId: null,

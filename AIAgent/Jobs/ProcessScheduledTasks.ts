@@ -26,8 +26,9 @@ import Sleep from "Common/Types/Sleep";
  * via /api/ai-agent-data/get-exception-details. `taskType` discriminates
  * which handler runs the task ("FixException", "WriteRegressionTest", ...).
  * `exceptionId` is present only for exception-based recipes —
- * ImproveInstrumentation runs have an incident/alert subject instead and
- * fetch their context by run id (get-instrumentation-task-details).
+ * ImproveInstrumentation / FixFromIncident runs have an incident/alert
+ * subject instead and fetch their context by run id
+ * (get-instrumentation-task-details).
  */
 interface PendingTask {
   id: string;

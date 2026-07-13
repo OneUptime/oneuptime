@@ -1,14 +1,9 @@
 import ObjectID from "../../../../Types/ObjectID";
-import AIRunType from "../../../../Types/AI/AIRunType";
-import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
-import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
-import AIRunService from "../../../Services/AIRunService";
 import ProjectService from "../../../Services/ProjectService";
-import CodeRepositoryService from "../../../Services/CodeRepositoryService";
-import QueryHelper from "../../../Types/Database/QueryHelper";
+import SubjectCodeFixRun from "./SubjectCodeFixRun";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -147,47 +142,23 @@ export default class InstrumentationTaskTrigger {
       }
 
       /*
-       * Only GitHub-App-connected repositories can be cloned and pushed by
-       * the agent (mirrors CodeRepositoryService.resolveRepositoryForException).
+       * Repository + per-subject dedupe checks are the enqueue idiom shared
+       * with the FixFromIncident sibling — see SubjectCodeFixRun.
        */
-      const connectedRepositoryCount: number = (
-        await CodeRepositoryService.countBy({
-          query: {
-            projectId,
-            repositoryHostedAt: CodeRepositoryType.GitHub,
-            gitHubAppInstallationId: QueryHelper.notNull(),
-          },
-          props: { isRoot: true },
-        })
-      ).toNumber();
+      const hasConnectedRepository: boolean =
+        await SubjectCodeFixRun.hasGitHubAppConnectedRepository(projectId);
 
-      /*
-       * Per-subject dedupe (mirrors the per-(exception, taskType) guard in
-       * TelemetryExceptionService): one non-terminal ImproveInstrumentation
-       * run per incident/alert.
-       */
-      const existingRun: AIRun | null = await AIRunService.findOneBy({
-        query: {
-          runType: AIRunType.CodeFix,
-          codeFixTaskType: CodeFixTaskType.ImproveInstrumentation,
-          ...(data.incidentId
-            ? { triggeredByIncidentId: data.incidentId }
-            : { triggeredByAlertId: data.alertId! }),
-          status: QueryHelper.notIn([
-            AIRunStatus.Completed,
-            AIRunStatus.Error,
-            AIRunStatus.Cancelled,
-            AIRunStatus.Stale,
-          ]),
-        },
-        select: { _id: true },
-        props: { isRoot: true },
-      });
+      const existingRun: AIRun | null =
+        await SubjectCodeFixRun.findNonTerminalRunForSubject({
+          taskType: CodeFixTaskType.ImproveInstrumentation,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+        });
 
       const decision: InstrumentationTaskGateDecision =
         this.shouldEnqueueInstrumentationTask({
           project,
-          hasConnectedRepository: connectedRepositoryCount > 0,
+          hasConnectedRepository,
           existingRun,
         });
 
@@ -198,22 +169,13 @@ export default class InstrumentationTaskTrigger {
         return;
       }
 
-      const run: AIRun = new AIRun();
-      run.projectId = projectId;
-      run.runType = AIRunType.CodeFix;
-      run.codeFixTaskType = CodeFixTaskType.ImproveInstrumentation;
-      run.status = AIRunStatus.Queued;
-
-      if (data.incidentId) {
-        run.triggeredByIncidentId = data.incidentId;
-      } else if (data.alertId) {
-        run.triggeredByAlertId = data.alertId;
-      }
-
-      const createdRun: AIRun = await AIRunService.create({
-        data: run,
-        props: { isRoot: true },
-      });
+      const createdRun: AIRun =
+        await SubjectCodeFixRun.enqueueSubjectCodeFixRun({
+          projectId,
+          taskType: CodeFixTaskType.ImproveInstrumentation,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+        });
 
       logger.debug(
         `Sentinel: enqueued ImproveInstrumentation run ${createdRun.id?.toString()} for ${
