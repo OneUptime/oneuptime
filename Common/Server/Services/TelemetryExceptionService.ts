@@ -7,6 +7,9 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIRunService from "./AIRunService";
 import AIAgentService from "./AIAgentService";
@@ -35,6 +38,8 @@ export const EXCLUDED_FINGERPRINT_LIMIT: number = 5000;
 export interface CreateCodeFixRunForExceptionParams {
   telemetryExceptionId: ObjectID;
   props: DatabaseCommonInteractionProps;
+  // Which task recipe to run. Defaults to FixException.
+  taskType?: CodeFixTaskType | undefined;
 }
 
 export type AIFixReadinessCheckId =
@@ -215,13 +220,31 @@ export class Service extends DatabaseService<Model> {
    * AIRun (the unified run substrate — same enqueue semantics as the
    * investigation queue: attemptCount defaults to 0 and no events are
    * written until a worker claims the run). An external agent container
-   * claims it via /ai-agent-task/get-pending-task.
+   * claims it via /ai-agent-task/get-pending-task and dispatches on the
+   * run's task recipe (codeFixTaskType).
    */
   @CaptureSpan()
   public async createCodeFixRunForException(
     params: CreateCodeFixRunForExceptionParams,
   ): Promise<AIRun> {
     const { telemetryExceptionId, props } = params;
+
+    const taskType: CodeFixTaskType =
+      params.taskType || CodeFixTaskType.FixException;
+
+    /*
+     * Recipes beyond FixException / WriteRegressionTest are declared in the
+     * enum (so workers and the UI can already dispatch on them) but their
+     * recipes have not shipped — creating a run for them would queue work no
+     * agent can execute.
+     */
+    if (!CodeFixTaskTypeHelper.isUserTriggerable(taskType)) {
+      throw new BadDataException(
+        `Task type "${taskType}" is not user-triggerable yet. Supported task types: ${CodeFixTaskTypeHelper.getUserTriggerableTaskTypes().join(
+          ", ",
+        )}.`,
+      );
+    }
 
     // Get the telemetry exception (also the caller's access check).
     const telemetryException: Model | null = await this.findOneById({
@@ -261,12 +284,16 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    // Check if an active code-fix run already exists for this exception
-    await this.validateNoActiveCodeFixRunExists(telemetryExceptionId);
+    /*
+     * Duplicate guard is per (exception, taskType): an active FixException
+     * run must not block queuing a WriteRegressionTest run and vice versa.
+     */
+    await this.validateNoActiveCodeFixRunExists(telemetryExceptionId, taskType);
 
     const run: AIRun = new AIRun();
     run.projectId = telemetryException.projectId;
     run.runType = AIRunType.CodeFix;
+    run.codeFixTaskType = taskType;
     run.status = AIRunStatus.Queued;
     run.triggeredByTelemetryExceptionId = telemetryExceptionId;
 
@@ -296,11 +323,21 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   private async validateNoActiveCodeFixRunExists(
     telemetryExceptionId: ObjectID,
+    taskType: CodeFixTaskType,
   ): Promise<void> {
     const existingRun: AIRun | null = await AIRunService.findOneBy({
       query: {
         runType: AIRunType.CodeFix,
         triggeredByTelemetryExceptionId: telemetryExceptionId,
+        /*
+         * A null codeFixTaskType means FixException (rows created before
+         * task recipes existed), so the FixException guard must also match
+         * legacy null rows.
+         */
+        codeFixTaskType:
+          taskType === CodeFixTaskType.FixException
+            ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
+            : taskType,
         status: QueryHelper.notIn([
           AIRunStatus.Completed,
           AIRunStatus.Error,
@@ -318,7 +355,7 @@ export class Service extends DatabaseService<Model> {
 
     if (existingRun) {
       throw new BadDataException(
-        "An AI agent task is already in progress for this exception. Please wait for it to complete before creating a new one.",
+        `An AI agent task (${taskType}) is already in progress for this exception. Please wait for it to complete before creating a new one.`,
       );
     }
   }

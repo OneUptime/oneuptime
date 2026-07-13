@@ -9,7 +9,6 @@ import TelemetryExceptionService, {
   DashboardSummaryResult,
   Service as TelemetryExceptionServiceType,
 } from "../Services/TelemetryExceptionService";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import AIRunService from "../Services/AIRunService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
@@ -22,7 +21,9 @@ import {
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIRunStatus, { AIRunStatusHelper } from "../../Types/AI/AIRunStatus";
-import AIRunType from "../../Types/AI/AIRunType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 
 /*
@@ -161,10 +162,37 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+    /*
+     * Optional body: { taskType?: "FixException" | "WriteRegressionTest" }.
+     * Unknown strings are rejected here; known-but-not-yet-triggerable
+     * recipes (ImproveInstrumentation, ...) are rejected by the service.
+     */
+    const body: JSONObject = (req.body as JSONObject) || {};
+
+    let taskType: CodeFixTaskType = CodeFixTaskType.FixException;
+
+    if (body["taskType"] !== undefined && body["taskType"] !== null) {
+      const rawTaskType: unknown = body["taskType"];
+
+      if (
+        typeof rawTaskType !== "string" ||
+        !CodeFixTaskTypeHelper.isValidTaskType(rawTaskType)
+      ) {
+        throw new BadDataException(
+          `Invalid taskType. Valid values: ${Object.values(
+            CodeFixTaskType,
+          ).join(", ")}.`,
+        );
+      }
+
+      taskType = rawTaskType;
+    }
+
     // Create the code-fix AIRun using the service
     const createdRun: AIRun = await this.service.createCodeFixRunForException({
       telemetryExceptionId,
       props,
+      taskType,
     });
 
     /*
@@ -174,6 +202,7 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     return Response.sendJsonObjectResponse(req, res, {
       aiAgentTaskId: createdRun.id!.toString(),
       aiRunId: createdRun.id!.toString(),
+      taskType: taskType,
     });
   }
 
@@ -222,49 +251,52 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     }
 
     /*
-     * Return the LATEST run regardless of status. Errored runs must stay
-     * visible on the exception page (a failed fix must not silently vanish
-     * with the button just reappearing). hasActiveTask reflects only
-     * non-terminal states.
+     * Return the LATEST run PER TASK TYPE (at most one per CodeFixTaskType,
+     * newest first) so the exception page can show a FixException run and a
+     * WriteRegressionTest run side by side. Runs are returned regardless of
+     * status: errored runs must stay visible (a failed fix must not silently
+     * vanish with the button just reappearing).
+     *
+     * Back-compat: `hasActiveTask` / `aiAgentTask` still reflect the latest
+     * run OVERALL, for clients that predate task recipes.
      */
-    const run: AIRun | null = await AIRunService.findOneBy({
-      query: {
-        runType: AIRunType.CodeFix,
-        triggeredByTelemetryExceptionId: telemetryExceptionId,
-      },
-      select: {
-        _id: true,
-        status: true,
-        errorMessage: true,
-        createdAt: true,
-      },
-      sort: {
-        createdAt: SortOrder.Descending,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const runs: Array<AIRun> =
+      await AIRunService.getLatestCodeFixRunPerTaskType({
+        telemetryExceptionId,
+      });
 
-    if (!run) {
+    if (runs.length === 0) {
       return Response.sendJsonObjectResponse(req, res, {
         hasActiveTask: false,
         aiAgentTask: null,
+        aiAgentTasks: [],
       });
     }
 
-    const status: AIRunStatus = run.status || AIRunStatus.Queued;
+    const toTaskJson: (run: AIRun) => JSONObject = (run: AIRun): JSONObject => {
+      const status: AIRunStatus = run.status || AIRunStatus.Queued;
 
-    return Response.sendJsonObjectResponse(req, res, {
-      hasActiveTask: !AIRunStatusHelper.isTerminalStatus(status),
-      aiAgentTask: {
+      return {
         _id: run.id?.toString(),
         status: status,
         statusMessage: run.errorMessage,
         statusTitle: CODE_FIX_STATUS_TEXT[status]?.title,
         statusDescription: CODE_FIX_STATUS_TEXT[status]?.description,
         createdAt: run.createdAt,
-      },
+        // Normalized by the service: legacy null rows read as FixException.
+        taskType: CodeFixTaskTypeHelper.fromDatabaseValue(run.codeFixTaskType),
+      };
+    };
+
+    // Newest first — the first element is the latest run overall.
+    const latestRunOverall: AIRun = runs[0]!;
+    const latestStatus: AIRunStatus =
+      latestRunOverall.status || AIRunStatus.Queued;
+
+    return Response.sendJsonObjectResponse(req, res, {
+      hasActiveTask: !AIRunStatusHelper.isTerminalStatus(latestStatus),
+      aiAgentTask: toTaskJson(latestRunOverall),
+      aiAgentTasks: runs.map(toTaskJson),
     });
   }
 

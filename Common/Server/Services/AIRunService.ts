@@ -3,7 +3,11 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnFind } from "../Types/Database/Hooks";
@@ -106,6 +110,7 @@ export class Service extends DatabaseService<Model> {
           projectId: true,
           triggeredByTelemetryExceptionId: true,
           attemptCount: true,
+          codeFixTaskType: true,
         },
         props: {
           isRoot: true,
@@ -148,10 +153,83 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
+      /*
+       * Normalize the task recipe before handing the run to the worker: a
+       * null codeFixTaskType means FixException (rows created before task
+       * recipes existed), and the worker dispatches on this value.
+       */
+      run.codeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
+        run.codeFixTaskType,
+      );
+
       return run;
     }
 
     return null;
+  }
+
+  /*
+   * The latest CodeFix run of EACH task recipe for an exception — at most
+   * one run per CodeFixTaskType, newest first (so the first element is the
+   * latest run overall). Backs /telemetry-exception/get-ai-agent-task: the
+   * exception page must show a FixException run and a WriteRegressionTest
+   * run side by side, not just whichever was created last.
+   *
+   * codeFixTaskType is normalized on the returned models: legacy null rows
+   * come back as FixException.
+   */
+  @CaptureSpan()
+  public async getLatestCodeFixRunPerTaskType(data: {
+    telemetryExceptionId: ObjectID;
+  }): Promise<Array<Model>> {
+    const taskTypes: Array<CodeFixTaskType> = Object.values(CodeFixTaskType);
+
+    const latestRuns: Array<Model | null> = await Promise.all(
+      taskTypes.map((taskType: CodeFixTaskType): Promise<Model | null> => {
+        return this.findOneBy({
+          query: {
+            runType: AIRunType.CodeFix,
+            triggeredByTelemetryExceptionId: data.telemetryExceptionId,
+            // Null means FixException — see the class comment above.
+            codeFixTaskType:
+              taskType === CodeFixTaskType.FixException
+                ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
+                : taskType,
+          },
+          select: {
+            _id: true,
+            status: true,
+            errorMessage: true,
+            createdAt: true,
+            codeFixTaskType: true,
+          },
+          sort: {
+            createdAt: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }),
+    );
+
+    const runs: Array<Model> = latestRuns.filter(
+      (run: Model | null): boolean => {
+        return Boolean(run);
+      },
+    ) as Array<Model>;
+
+    for (const run of runs) {
+      run.codeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
+        run.codeFixTaskType,
+      );
+    }
+
+    runs.sort((a: Model, b: Model): number => {
+      return (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0);
+    });
+
+    return runs;
   }
 
   protected override async onBeforeFind(

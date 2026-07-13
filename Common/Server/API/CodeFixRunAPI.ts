@@ -17,6 +17,7 @@ import Query from "../../Types/BaseDatabase/Query";
 import Select from "../Types/Database/Select";
 import { JSONObject } from "../../Types/JSON";
 import AIRunType from "../../Types/AI/AIRunType";
+import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import Project from "../../Models/DatabaseModels/Project";
@@ -49,7 +50,23 @@ const RUN_SELECT: Select<AIRun> = {
   errorMessage: true,
   triggeredByTelemetryExceptionId: true,
   totalTokens: true,
+  codeFixTaskType: true,
 };
+
+/*
+ * Serialize a run with codeFixTaskType normalized: a null column means
+ * FixException (rows created before task recipes existed), and clients
+ * should never have to know about the legacy null.
+ */
+function runToJson(run: AIRun): JSONObject {
+  const runJson: JSONObject = BaseModel.toJSONArray([run], AIRun)[0] || {};
+
+  runJson["codeFixTaskType"] = CodeFixTaskTypeHelper.fromDatabaseValue(
+    run.codeFixTaskType,
+  );
+
+  return runJson;
+}
 
 export default class CodeFixRunAPI {
   public router!: ExpressRouter;
@@ -114,7 +131,9 @@ export default class CodeFixRunAPI {
           });
 
           Response.sendJsonObjectResponse(req, res, {
-            runs: BaseModel.toJSONArray(runs, AIRun),
+            runs: runs.map((run: AIRun): JSONObject => {
+              return runToJson(run);
+            }),
             count: count.toNumber(),
           });
           return;
@@ -183,7 +202,7 @@ export default class CodeFixRunAPI {
           });
 
           Response.sendJsonObjectResponse(req, res, {
-            run: BaseModel.toJSONArray([run], AIRun)[0] || null,
+            run: runToJson(run),
             events: BaseModel.toJSONArray(events, AIRunEvent),
           });
           return;

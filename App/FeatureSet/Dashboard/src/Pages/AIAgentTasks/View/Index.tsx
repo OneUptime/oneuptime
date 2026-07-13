@@ -27,6 +27,7 @@ import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import CodeFixRunStatusPill, {
   CodeFixRunStatusText,
   getCodeFixRunStatusText,
+  getCodeFixTaskTypeLabel,
 } from "../../../Components/AIAgentTask/CodeFixRunStatus";
 
 const POLL_INTERVAL_MS: number = 5000;
@@ -45,6 +46,12 @@ const AIAgentTaskViewPage: FunctionComponent<
   const { id } = useParams();
 
   const [run, setRun] = useState<AIRun | undefined>(undefined);
+  /*
+   * The run's task-type discriminator (`codeFixTaskType` on the
+   * /code-fix-run/get response — never null; the server normalizes legacy
+   * rows to "FixException"). Read from the raw JSON, not the AIRun model.
+   */
+  const [taskType, setTaskType] = useState<string | undefined>(undefined);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
   const [error, setError] = useState<string | undefined>(undefined);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
@@ -80,6 +87,7 @@ const AIAgentTaskViewPage: FunctionComponent<
           if (signature !== signatureRef.current) {
             signatureRef.current = signature;
             setRun(AIRun.fromJSONObject(runJson, AIRun));
+            setTaskType(runJson["codeFixTaskType"] as string | undefined);
             setEvents(
               AIRunEvent.fromJSONArray(
                 eventsJson as Array<JSONObject>,
@@ -155,7 +163,7 @@ const AIAgentTaskViewPage: FunctionComponent<
     <div className="space-y-4">
       <Card
         title="Task Status"
-        description="Current state of this AI fix task."
+        description="Current state of this AI agent task."
       >
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -183,7 +191,13 @@ const AIAgentTaskViewPage: FunctionComponent<
             <></>
           )}
 
-          <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div>
+              <div className="text-xs text-gray-500">Task Type</div>
+              <div className="text-sm text-gray-900">
+                {getCodeFixTaskTypeLabel(taskType)}
+              </div>
+            </div>
             <div>
               <div className="text-xs text-gray-500">Created At</div>
               <div className="text-sm text-gray-900">

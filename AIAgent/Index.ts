@@ -6,6 +6,7 @@ import MetricsAPI from "./API/Metrics";
 import {
   getTaskHandlerRegistry,
   FixExceptionTaskHandler,
+  WriteRegressionTestTaskHandler,
 } from "./TaskHandlers/Index";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
@@ -68,6 +69,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       const taskHandlerRegistry: ReturnType<typeof getTaskHandlerRegistry> =
         getTaskHandlerRegistry();
       taskHandlerRegistry.register(new FixExceptionTaskHandler());
+      taskHandlerRegistry.register(new WriteRegressionTestTaskHandler());
       logger.debug(
         `Registered ${taskHandlerRegistry.getHandlerCount()} task handler(s): ${taskHandlerRegistry.getRegisteredTaskTypes().join(", ")}`,
         { serviceName: APP_NAME } as LogAttributes,

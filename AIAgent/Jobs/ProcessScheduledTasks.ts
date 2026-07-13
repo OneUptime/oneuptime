@@ -16,19 +16,21 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
-import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
+import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import ObjectID from "Common/Types/ObjectID";
 import Sleep from "Common/Types/Sleep";
 
 /*
- * Type for a pending task claimed from the API. Fix tasks are AIRun rows on
- * the server, so `id` is the run id; exception details are fetched
- * separately via /api/ai-agent-data/get-exception-details.
+ * Type for a pending task claimed from the API. Tasks are AIRun rows on the
+ * server, so `id` is the run id; exception details are fetched separately
+ * via /api/ai-agent-data/get-exception-details. `taskType` discriminates
+ * which handler runs the task ("FixException", "WriteRegressionTest", ...).
  */
 interface PendingTask {
   id: string;
   projectId: string;
   exceptionId: string;
+  taskType: string;
 }
 
 // Type for API response containing task
@@ -53,13 +55,12 @@ const executeTask: ExecuteTaskFunction = async (
   const projectId: ObjectID = new ObjectID(projectIdString);
 
   /*
-   * Every task the claim endpoint returns today is a code-fix run, so
-   * dispatch is pinned to FixException. The registry stays keyed by task
-   * type because more task types are coming; when they land, the server
-   * will add a runType/taskType discriminator to the get-pending-task
-   * response and this constant should be replaced by that field.
+   * Dispatch on the server's taskType discriminator. Older servers predate
+   * the field and only ever hand out code-fix runs, so an absent taskType
+   * normalizes to FixException — keep this fallback until no pre-taskType
+   * servers remain in the field.
    */
-  const taskType: AIAgentTaskType = AIAgentTaskType.FixException;
+  const taskType: string = task.taskType || CodeFixTaskType.FixException;
 
   // Get the task handler from the registry
   const registry: TaskHandlerRegistry = getTaskHandlerRegistry();
@@ -185,9 +186,10 @@ const startTaskProcessingLoop: () => Promise<void> =
           taskId,
           projectId: task.projectId,
           exceptionId: task.exceptionId,
+          taskType: task.taskType,
         } as LogAttributes;
         logger.info(
-          `Processing task: ${taskId} (exception: ${task.exceptionId})`,
+          `Processing task: ${taskId} (type: ${task.taskType || CodeFixTaskType.FixException}, exception: ${task.exceptionId})`,
           taskLogAttrs,
         );
 

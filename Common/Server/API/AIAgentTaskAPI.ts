@@ -22,6 +22,7 @@ import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
+import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import PositiveNumber from "../../Types/PositiveNumber";
 
 /*
@@ -78,6 +79,14 @@ export default class AIAgentTaskAPI extends BaseAPI<
               id: run.id!.toString(),
               projectId: run.projectId?.toString(),
               exceptionId: run.triggeredByTelemetryExceptionId?.toString(),
+              /*
+               * The worker dispatches its task handler on this. The claim
+               * already normalized legacy null to FixException; normalize
+               * again here so the wire contract can never regress.
+               */
+              taskType: CodeFixTaskTypeHelper.fromDatabaseValue(
+                run.codeFixTaskType,
+              ),
             },
             message: "Task claimed successfully",
           });

@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import Color from "Common/Types/Color";
 import {
   Blue,
@@ -20,6 +21,30 @@ import Pill from "Common/UI/Components/Pill/Pill";
 export interface CodeFixRunStatusText {
   title: string;
   description: string;
+}
+
+/*
+ * Human labels for the task-type discriminator on code-fix runs
+ * (`codeFixTaskType` on the /code-fix-run/list and /get responses — the
+ * server normalizes missing values to FixException, so it is never null on
+ * the wire).
+ */
+const TASK_TYPE_LABEL: { [key in CodeFixTaskType]: string } = {
+  [CodeFixTaskType.FixException]: "Fix Exception",
+  [CodeFixTaskType.WriteRegressionTest]: "Regression Test",
+  [CodeFixTaskType.ImproveInstrumentation]: "Improve Instrumentation",
+  [CodeFixTaskType.FixPerformance]: "Fix Performance",
+  [CodeFixTaskType.FixFromIncident]: "Fix from Incident",
+};
+
+export function getCodeFixTaskTypeLabel(taskType: string | undefined): string {
+  if (!taskType) {
+    // Older servers omit the field — every run they know about is a fix.
+    return TASK_TYPE_LABEL[CodeFixTaskType.FixException];
+  }
+
+  // Unknown (newer) task types fall back to the raw discriminator string.
+  return TASK_TYPE_LABEL[taskType as CodeFixTaskType] || taskType;
 }
 
 const STATUS_TEXT: { [key in AIRunStatus]: CodeFixRunStatusText } = {

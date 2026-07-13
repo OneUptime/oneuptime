@@ -21,6 +21,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
+import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import {
   AIRunEgressManifest,
   AIRunPausedState,
@@ -146,6 +147,30 @@ export default class AIRun extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public runType?: AIRunType = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Code Fix Task Type",
+    description:
+      "For CodeFix runs: which task recipe this run executes (fix the exception, write a regression test, ...). Null means FixException — rows created before task recipes existed.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public codeFixTaskType?: CodeFixTaskType = undefined;
 
   @ColumnAccessControl({
     create: [],

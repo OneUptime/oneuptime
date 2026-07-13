@@ -1,4 +1,3 @@
-import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
 import ObjectID from "Common/Types/ObjectID";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI from "../Utils/BackendAPI";
@@ -20,7 +19,12 @@ export interface TaskContext {
   // Task identification (the id of the AIRun row on the server)
   taskId: ObjectID;
   projectId: ObjectID;
-  taskType: AIAgentTaskType;
+  /*
+   * The wire discriminator from get-pending-task (e.g. "FixException",
+   * "WriteRegressionTest"). Plain string — see Common/Types/AI/
+   * CodeFixTaskType for the wire values.
+   */
+  taskType: string;
 
   // The exception this run should fix
   exceptionId: string;
@@ -53,8 +57,8 @@ export interface TaskResult {
 
 // Interface that all task handlers must implement
 export interface TaskHandler {
-  // The type of task this handler processes
-  readonly taskType: AIAgentTaskType;
+  // The task-type string this handler processes (registry key)
+  readonly taskType: string;
 
   // Human-readable name for the handler
   readonly name: string;
@@ -63,7 +67,7 @@ export interface TaskHandler {
   execute(context: TaskContext): Promise<TaskResult>;
 
   // Check if this handler can process a given task
-  canHandle(taskType: AIAgentTaskType): boolean;
+  canHandle(taskType: string): boolean;
 
   // Optional: Get a description of what this handler does
   getDescription?(): string;
@@ -71,12 +75,12 @@ export interface TaskHandler {
 
 // Abstract base class that provides common functionality for task handlers
 export abstract class BaseTaskHandler implements TaskHandler {
-  public abstract readonly taskType: AIAgentTaskType;
+  public abstract readonly taskType: string;
   public abstract readonly name: string;
 
   public abstract execute(context: TaskContext): Promise<TaskResult>;
 
-  public canHandle(taskType: AIAgentTaskType): boolean {
+  public canHandle(taskType: string): boolean {
     return taskType === this.taskType;
   }
 

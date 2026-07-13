@@ -26,19 +26,33 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import CodeFixRunStatusPill from "./CodeFixRunStatus";
+import CodeFixRunStatusPill, {
+  getCodeFixTaskTypeLabel,
+} from "./CodeFixRunStatus";
 
 const PAGE_SIZE: number = 50;
 const MAX_ERROR_LENGTH: number = 120;
 
 /*
- * The AI Agent Tasks list: exception-fix runs (CodeFix AIRuns), newest
- * first. These are system-authored runs hidden from the generic AIRun CRUD
- * by the per-user privacy pin, so this table reads them through the
- * dedicated /code-fix-run/list endpoint instead of ModelTable.
+ * A row of the list: the AIRun plus its task-type discriminator. The
+ * discriminator rides on the list response as `codeFixTaskType` (never
+ * null — the server normalizes legacy rows to "FixException"), so it is
+ * read from the raw JSON rather than the AIRun model.
+ */
+interface CodeFixRunRow {
+  run: AIRun;
+  taskType: string;
+}
+
+/*
+ * The AI Agent Tasks list: exception code tasks (CodeFix AIRuns — fixes and
+ * regression tests), newest first. These are system-authored runs hidden
+ * from the generic AIRun CRUD by the per-user privacy pin, so this table
+ * reads them through the dedicated /code-fix-run/list endpoint instead of
+ * ModelTable.
  */
 const CodeFixRunsTable: FunctionComponent = (): ReactElement => {
-  const [runs, setRuns] = useState<Array<AIRun>>([]);
+  const [rows, setRows] = useState<Array<CodeFixRunRow>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [skip, setSkip] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -66,7 +80,15 @@ const CodeFixRunsTable: FunctionComponent = (): ReactElement => {
         const data: JSONObject = response.data as JSONObject;
         const runsJson: JSONArray = (data["runs"] as JSONArray) || [];
 
-        setRuns(AIRun.fromJSONArray(runsJson as Array<JSONObject>, AIRun));
+        setRows(
+          runsJson.map((runJson: JSONObject): CodeFixRunRow => {
+            return {
+              run: AIRun.fromJSONObject(runJson, AIRun),
+              taskType:
+                (runJson["codeFixTaskType"] as string) || "FixException",
+            };
+          }),
+        );
         setTotalCount((data["count"] as number) || 0);
       } catch (err) {
         setError(API.getFriendlyMessage(err));
@@ -131,8 +153,8 @@ const CodeFixRunsTable: FunctionComponent = (): ReactElement => {
 
   return (
     <Card
-      title="AI Fix Tasks"
-      description="Exception-fix runs executed by the AI agent, newest first. Open a task to watch what the agent did step by step."
+      title="AI Agent Tasks"
+      description="Exception code tasks executed by the AI agent — fixes and regression tests, newest first. Open a task to watch what the agent did step by step."
       buttons={[
         {
           title: "Refresh",
@@ -150,21 +172,24 @@ const CodeFixRunsTable: FunctionComponent = (): ReactElement => {
 
       {!isLoading && error ? <ErrorMessage message={error} /> : <></>}
 
-      {!isLoading && !error && runs.length === 0 ? (
+      {!isLoading && !error && rows.length === 0 ? (
         <p className="text-sm text-gray-500">
-          No AI fix tasks yet. New tasks will appear here when you start a fix
-          from an exception page (Telemetry &gt; Exceptions &gt; Fix with AI
-          Agent).
+          No AI agent tasks yet. New tasks will appear here when you start a fix
+          or a regression test from an exception page (Telemetry &gt;
+          Exceptions).
         </p>
       ) : (
         <></>
       )}
 
-      {!isLoading && !error && runs.length > 0 ? (
+      {!isLoading && !error && rows.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
               <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Type
+                </th>
                 <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                   Status
                 </th>
@@ -186,9 +211,13 @@ const CodeFixRunsTable: FunctionComponent = (): ReactElement => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {runs.map((run: AIRun): ReactElement => {
+              {rows.map((row: CodeFixRunRow): ReactElement => {
+                const run: AIRun = row.run;
                 return (
                   <tr key={run.id?.toString()}>
+                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
+                      {getCodeFixTaskTypeLabel(row.taskType)}
+                    </td>
                     <td className="px-3 py-3 whitespace-nowrap">
                       <CodeFixRunStatusPill status={run.status} />
                     </td>

@@ -35,16 +35,17 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
-import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
+import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 
 /*
- * The exception's latest AI fix attempt. Fix tasks are CodeFix AIRuns now,
- * so `status` carries AIRunStatus strings (Queued / Running /
+ * The exception's latest AI attempt per task type. AI tasks are CodeFix
+ * AIRuns now, so `status` carries AIRunStatus strings (Queued / Running /
  * WaitingForApproval / Completed / Error / Cancelled / Stale); the endpoint
- * keeps its legacy JSON keys.
+ * keeps its legacy JSON keys and adds `taskType` per task.
  */
 interface AIAgentTaskInfo {
   _id: string;
@@ -53,6 +54,107 @@ interface AIAgentTaskInfo {
   statusTitle: string;
   statusDescription: string;
   createdAt: Date;
+  taskType: string;
+}
+
+// The task types this page can start (FixException is the legacy default).
+type ExceptionAITaskType =
+  | CodeFixTaskType.FixException
+  | CodeFixTaskType.WriteRegressionTest;
+
+// Wording for one task type's card group (active / failed / completed / start).
+interface AITaskPresentation {
+  taskType: ExceptionAITaskType;
+  activeCardTitle: string;
+  activeCardDescription: string;
+  failedCardTitle: string;
+  failedCardDescription: string;
+  retryActionName: string;
+  completedStrongTitle: string;
+  completedTitle: string;
+  startCardTitle: string;
+  startCardDescription: string;
+  startActionName: string;
+  startActionIcon: IconProp;
+}
+
+const AI_TASK_PRESENTATION: {
+  [key in ExceptionAITaskType]: AITaskPresentation;
+} = {
+  [CodeFixTaskType.FixException]: {
+    taskType: CodeFixTaskType.FixException,
+    activeCardTitle: "AI Fix Task Status",
+    activeCardDescription: "An AI agent is working on fixing this exception.",
+    failedCardTitle: "AI fix attempt failed",
+    failedCardDescription:
+      "The last AI Agent fix task for this exception did not complete.",
+    retryActionName: "Retry Fix",
+    completedStrongTitle: "Previous AI fix completed",
+    completedTitle:
+      "An AI Agent has already completed a fix task for this exception. Click to view the completed task.",
+    startCardTitle: "Fix this exception with AI Agent",
+    startCardDescription:
+      "AI Agent will analyze this exception, identify the root cause, and submit a Pull Request with the fix to your code repository.",
+    startActionName: "Fix with AI Agent",
+    startActionIcon: IconProp.Bolt,
+  },
+  [CodeFixTaskType.WriteRegressionTest]: {
+    taskType: CodeFixTaskType.WriteRegressionTest,
+    activeCardTitle: "Regression Test Task Status",
+    activeCardDescription:
+      "An AI agent is writing a failing regression test that reproduces this exception.",
+    failedCardTitle: "Regression test attempt failed",
+    failedCardDescription:
+      "The last regression test task for this exception did not complete.",
+    retryActionName: "Retry Regression Test",
+    completedStrongTitle: "Regression test completed",
+    completedTitle:
+      "An AI Agent has already completed a regression test task for this exception. Click to view the completed task.",
+    startCardTitle: "Generate Regression Test",
+    startCardDescription:
+      "AI Agent will write a failing test that reproduces this exception and open a Pull Request with it. This does not fix the bug — the test should fail until the bug is fixed.",
+    startActionName: "Generate Regression Test",
+    startActionIcon: IconProp.Beaker,
+  },
+};
+
+// A task still making progress (not in a terminal status).
+function isAITaskActive(task: AIAgentTaskInfo): boolean {
+  return !AIRunStatusHelper.isTerminalStatus(task.status);
+}
+
+/*
+ * Failed attempts (agent errored, or stopped reporting progress and went
+ * Stale) stay visible with a retry.
+ */
+function isAITaskFailed(task: AIAgentTaskInfo): boolean {
+  return (
+    !isAITaskActive(task) &&
+    (task.status === AIRunStatus.Error || task.status === AIRunStatus.Stale)
+  );
+}
+
+function isAITaskCompleted(task: AIAgentTaskInfo): boolean {
+  return !isAITaskActive(task) && task.status === AIRunStatus.Completed;
+}
+
+function getAIAgentTaskAlertType(task: AIAgentTaskInfo): AlertType {
+  switch (task.status) {
+    case AIRunStatus.Queued:
+      return AlertType.INFO;
+    case AIRunStatus.Running:
+      return AlertType.INFO;
+    case AIRunStatus.WaitingForApproval:
+      return AlertType.INFO;
+    case AIRunStatus.Completed:
+      return AlertType.SUCCESS;
+    case AIRunStatus.Error:
+      return AlertType.DANGER;
+    case AIRunStatus.Stale:
+      return AlertType.DANGER;
+    default:
+      return AlertType.INFO;
+  }
 }
 
 type AIFixReadinessCheckId =
@@ -97,17 +199,21 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isArchived, setIsArchived] = React.useState<boolean>(false);
   const [isResolved, setIsResolved] = React.useState<boolean>(false);
-  const [isCreateAITaskLoading, setIsCreateAITaskLoading] =
-    React.useState<boolean>(false);
-  const [aiAgentTask, setAIAgentTask] = React.useState<
-    AIAgentTaskInfo | undefined
+  /*
+   * Which task type a create request is in flight for (undefined = none).
+   * Drives the per-button loading spinners — only one create runs at a time.
+   */
+  const [creatingTaskType, setCreatingTaskType] = React.useState<
+    ExceptionAITaskType | undefined
   >(undefined);
   /*
-   * The get-ai-agent-task endpoint returns the LATEST task of any status
-   * (terminal tasks included, so failed fixes stay visible). This tracks the
-   * server's hasActiveTask flag: true only for non-terminal tasks.
+   * The get-ai-agent-task endpoint returns the LATEST task per task type,
+   * any status (terminal tasks included, so failed attempts stay visible).
+   * Whether a task is still active is derived from its status.
    */
-  const [hasActiveAITask, setHasActiveAITask] = React.useState<boolean>(false);
+  const [aiAgentTasks, setAIAgentTasks] = React.useState<
+    Array<AIAgentTaskInfo>
+  >([]);
   const [isAIAgentTaskLoading, setIsAIAgentTaskLoading] =
     React.useState<boolean>(false);
   const [aiFixReadiness, setAIFixReadiness] = React.useState<
@@ -292,6 +398,24 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     return updatedTelemetryException;
   };
 
+  type ParseAIAgentTaskFunction = (taskData: JSONObject) => AIAgentTaskInfo;
+
+  const parseAIAgentTask: ParseAIAgentTaskFunction = (
+    taskData: JSONObject,
+  ): AIAgentTaskInfo => {
+    return {
+      _id: taskData["_id"] as string,
+      status: taskData["status"] as AIRunStatus,
+      statusMessage: taskData["statusMessage"] as string | undefined,
+      statusTitle: taskData["statusTitle"] as string,
+      statusDescription: taskData["statusDescription"] as string,
+      createdAt: new Date(taskData["createdAt"] as string),
+      // Older servers omit taskType — every task they know about is a fix.
+      taskType:
+        (taskData["taskType"] as string) || CodeFixTaskType.FixException,
+    };
+  };
+
   type FetchAIAgentTaskFunction = () => Promise<void>;
 
   const fetchAIAgentTask: FetchAIAgentTaskFunction =
@@ -311,36 +435,31 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           throw response;
         }
 
-        const hasActiveTask: boolean = Boolean(
-          response.data?.["hasActiveTask"],
-        );
-
         /*
-         * The endpoint returns the LATEST task of ANY status — keep terminal
-         * (Completed / Error) tasks in state so failed fixes stay visible
-         * instead of silently vanishing behind the "Fix with AI Agent" button.
+         * The endpoint returns the LATEST task per task type, of ANY status
+         * — keep terminal (Completed / Error) tasks in state so failed
+         * attempts stay visible instead of silently vanishing behind the
+         * start buttons.
          */
-        if (response.data?.["aiAgentTask"]) {
-          const taskData: JSONObject = response.data[
-            "aiAgentTask"
-          ] as JSONObject;
-          setAIAgentTask({
-            _id: taskData["_id"] as string,
-            status: taskData["status"] as AIRunStatus,
-            statusMessage: taskData["statusMessage"] as string | undefined,
-            statusTitle: taskData["statusTitle"] as string,
-            statusDescription: taskData["statusDescription"] as string,
-            createdAt: new Date(taskData["createdAt"] as string),
-          });
-          setHasActiveAITask(hasActiveTask);
+        const tasksJson: JSONArray =
+          (response.data?.["aiAgentTasks"] as JSONArray) || [];
+
+        if (tasksJson.length > 0) {
+          setAIAgentTasks(tasksJson.map(parseAIAgentTask));
+        } else if (response.data?.["aiAgentTask"]) {
+          /*
+           * Older servers only send the single latest task (aiAgentTask) —
+           * implicitly a fix task.
+           */
+          setAIAgentTasks([
+            parseAIAgentTask(response.data["aiAgentTask"] as JSONObject),
+          ]);
         } else {
-          setAIAgentTask(undefined);
-          setHasActiveAITask(false);
+          setAIAgentTasks([]);
         }
       } catch {
         // Silently fail - don't show error for AI task fetch
-        setAIAgentTask(undefined);
-        setHasActiveAITask(false);
+        setAIAgentTasks([]);
       }
 
       setIsAIAgentTaskLoading(false);
@@ -410,10 +529,12 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-  // Poll for AI agent task status updates every 5 seconds if there's an active task
+  const hasAnyActiveAITask: boolean = aiAgentTasks.some(isAITaskActive);
+
+  // Poll for AI agent task status updates every 5 seconds while EITHER task is active
   useEffect(() => {
     // Terminal tasks (Completed / Error) never change again — don't poll them.
-    if (!aiAgentTask || !hasActiveAITask) {
+    if (!hasAnyActiveAITask) {
       return;
     }
 
@@ -426,7 +547,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     return () => {
       clearInterval(interval);
     };
-  }, [aiAgentTask, hasActiveAITask]);
+  }, [aiAgentTasks]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -522,75 +643,57 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     );
   };
 
-  type CreateAIAgentTaskFunction = () => Promise<void>;
+  type CreateAIAgentTaskFunction = (
+    taskType: ExceptionAITaskType,
+  ) => Promise<void>;
 
-  const createAIAgentTask: CreateAIAgentTaskFunction =
-    async (): Promise<void> => {
-      try {
-        setIsCreateAITaskLoading(true);
-        setAITaskError(undefined);
+  const createAIAgentTask: CreateAIAgentTaskFunction = async (
+    taskType: ExceptionAITaskType,
+  ): Promise<void> => {
+    try {
+      setCreatingTaskType(taskType);
+      setAITaskError(undefined);
 
-        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.post({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/telemetry-exception/create-ai-agent-task/${props.telemetryExceptionId.toString()}`,
-            ),
-            data: {},
-            headers: ModelAPI.getCommonHeaders(),
-          });
+      const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/telemetry-exception/create-ai-agent-task/${props.telemetryExceptionId.toString()}`,
+          ),
+          /*
+           * taskType is optional on the wire and FixException is the
+           * server's default — send {} for fixes so older servers (which
+           * predate the field) keep working unchanged.
+           */
+          data: taskType === CodeFixTaskType.FixException ? {} : { taskType },
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        const aiAgentTaskId: string | undefined = response.data?.[
-          "aiAgentTaskId"
-        ] as string | undefined;
-
-        if (aiAgentTaskId) {
-          // Navigate to the AI Agent Task view page
-          navigateToAIAgentTask(aiAgentTaskId);
-        }
-      } catch (err) {
-        // Inline — a failed create must not replace the page with an error.
-        setAITaskError(API.getFriendlyMessage(err));
-
-        /*
-         * The server re-checks prerequisites on create, so a failure here
-         * often means the setup regressed — refresh the checklist to show
-         * exactly what is missing. Never throws (fails open internally).
-         */
-        await fetchAIFixReadiness();
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
       }
 
-      setIsCreateAITaskLoading(false);
-    };
+      const aiAgentTaskId: string | undefined = response.data?.[
+        "aiAgentTaskId"
+      ] as string | undefined;
 
-  type GetAIAgentTaskAlertTypeFunction = () => AlertType;
-
-  const getAIAgentTaskAlertType: GetAIAgentTaskAlertTypeFunction =
-    (): AlertType => {
-      if (!aiAgentTask) {
-        return AlertType.INFO;
+      if (aiAgentTaskId) {
+        // Navigate to the AI Agent Task view page
+        navigateToAIAgentTask(aiAgentTaskId);
       }
+    } catch (err) {
+      // Inline — a failed create must not replace the page with an error.
+      setAITaskError(API.getFriendlyMessage(err));
 
-      switch (aiAgentTask.status) {
-        case AIRunStatus.Queued:
-          return AlertType.INFO;
-        case AIRunStatus.Running:
-          return AlertType.INFO;
-        case AIRunStatus.WaitingForApproval:
-          return AlertType.INFO;
-        case AIRunStatus.Completed:
-          return AlertType.SUCCESS;
-        case AIRunStatus.Error:
-          return AlertType.DANGER;
-        case AIRunStatus.Stale:
-          return AlertType.DANGER;
-        default:
-          return AlertType.INFO;
-      }
-    };
+      /*
+       * The server re-checks prerequisites on create, so a failure here
+       * often means the setup regressed — refresh the checklist to show
+       * exactly what is missing. Never throws (fails open internally).
+       */
+      await fetchAIFixReadiness();
+    }
+
+    setCreatingTaskType(undefined);
+  };
 
   type GetReadinessCheckLinkFunction = (
     checkId: AIFixReadinessCheckId,
@@ -630,31 +733,182 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     return null;
   };
 
-  // The latest task has finished (terminal status) — or there is none.
-  const isAITaskTerminal: boolean = Boolean(aiAgentTask) && !hasActiveAITask;
+  // The latest task per type (the endpoint returns at most one of each).
+  const fixTask: AIAgentTaskInfo | undefined = aiAgentTasks.find(
+    (task: AIAgentTaskInfo) => {
+      return task.taskType === CodeFixTaskType.FixException;
+    },
+  );
+
+  const regressionTestTask: AIAgentTaskInfo | undefined = aiAgentTasks.find(
+    (task: AIAgentTaskInfo) => {
+      return task.taskType === CodeFixTaskType.WriteRegressionTest;
+    },
+  );
+
+  type CanStartAITaskFunction = (task: AIAgentTaskInfo | undefined) => boolean;
 
   /*
-   * Stale runs (agent stopped reporting progress) are failed attempts too —
-   * keep them visible with a retry, like Error.
+   * A new AI task of a type can be started when there is no task of that
+   * type, or the latest one is terminal (the server allows creating a new
+   * task after Completed / Error).
    */
-  const isLatestAITaskError: boolean =
-    isAITaskTerminal &&
-    (aiAgentTask?.status === AIRunStatus.Error ||
-      aiAgentTask?.status === AIRunStatus.Stale);
-
-  const isLatestAITaskCompleted: boolean =
-    isAITaskTerminal && aiAgentTask?.status === AIRunStatus.Completed;
-
-  /*
-   * A new AI fix can be started when there is no task, or the latest task is
-   * terminal (the server allows creating a new task after Completed / Error).
-   */
-  const canStartAIFix: boolean =
-    !isResolved && !isAIAgentTaskLoading && (!aiAgentTask || isAITaskTerminal);
+  const canStartAITask: CanStartAITaskFunction = (
+    task: AIAgentTaskInfo | undefined,
+  ): boolean => {
+    return (
+      !isResolved && !isAIAgentTaskLoading && (!task || !isAITaskActive(task))
+    );
+  };
 
   const isAIFixBlockedBySetup: boolean = Boolean(
     aiFixReadiness && !aiFixReadiness.ready,
   );
+
+  type RenderAITaskCardsFunction = (
+    task: AIAgentTaskInfo | undefined,
+    presentation: AITaskPresentation,
+  ) => ReactElement;
+
+  /*
+   * One task type's card group: active status card, failure card with a
+   * retry, or completed note — mirrors the original fix-only treatment for
+   * both task types.
+   */
+  const renderAITaskCards: RenderAITaskCardsFunction = (
+    task: AIAgentTaskInfo | undefined,
+    presentation: AITaskPresentation,
+  ): ReactElement => {
+    if (!task || isResolved) {
+      return <></>;
+    }
+
+    return (
+      <>
+        {/** A task of this type is scheduled or in progress */}
+
+        {isAITaskActive(task) && (
+          <Card
+            title={presentation.activeCardTitle}
+            description={presentation.activeCardDescription}
+          >
+            <div className="space-y-3">
+              <Alert
+                type={getAIAgentTaskAlertType(task)}
+                strongTitle={task.statusTitle}
+                title={task.statusDescription}
+              />
+              {task.statusMessage && (
+                <p className="text-sm text-gray-600">{task.statusMessage}</p>
+              )}
+              <div className="flex items-center space-x-4">
+                <Button
+                  title="View Task Details"
+                  icon={IconProp.Bolt}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  onClick={() => {
+                    navigateToAIAgentTask(task._id);
+                  }}
+                />
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/** Latest attempt failed — keep it visible and offer a retry. */}
+
+        {isAITaskFailed(task) && (
+          <Card
+            title={presentation.failedCardTitle}
+            description={presentation.failedCardDescription}
+          >
+            <div className="space-y-3">
+              <Alert
+                type={AlertType.DANGER}
+                strongTitle={task.statusTitle}
+                title={task.statusMessage || task.statusDescription}
+              />
+              <div className="flex items-center space-x-4">
+                <Button
+                  title={presentation.retryActionName}
+                  icon={IconProp.Bolt}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  isLoading={creatingTaskType === presentation.taskType}
+                  onClick={() => {
+                    createAIAgentTask(presentation.taskType).catch(() => {
+                      // Errors surface via aiTaskError.
+                    });
+                  }}
+                />
+                <Button
+                  title="View Task Details"
+                  icon={IconProp.ExternalLink}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  onClick={() => {
+                    navigateToAIAgentTask(task._id);
+                  }}
+                />
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/** Latest attempt completed — small note linking to the finished task. */}
+
+        {isAITaskCompleted(task) && (
+          <Alert
+            type={AlertType.SUCCESS}
+            strongTitle={presentation.completedStrongTitle}
+            title={presentation.completedTitle}
+            onClick={() => {
+              navigateToAIAgentTask(task._id);
+            }}
+          />
+        )}
+      </>
+    );
+  };
+
+  type RenderStartAITaskCardFunction = (
+    task: AIAgentTaskInfo | undefined,
+    presentation: AITaskPresentation,
+  ) => ReactElement;
+
+  /*
+   * The "start a task" ActionCard for one task type — shown when a new task
+   * can be started, setup is complete, and the latest attempt did not fail
+   * (retry after an error lives in the failure card).
+   */
+  const renderStartAITaskCard: RenderStartAITaskCardFunction = (
+    task: AIAgentTaskInfo | undefined,
+    presentation: AITaskPresentation,
+  ): ReactElement => {
+    if (
+      !canStartAITask(task) ||
+      isAIFixBlockedBySetup ||
+      (task && isAITaskFailed(task))
+    ) {
+      return <></>;
+    }
+
+    return (
+      <ActionCard
+        title={presentation.startCardTitle}
+        description={presentation.startCardDescription}
+        actions={[
+          {
+            actionName: presentation.startActionName,
+            actionIcon: presentation.startActionIcon,
+            actionButtonStyle: ButtonStyleType.PRIMARY,
+            isLoading: creatingTaskType === presentation.taskType,
+            onConfirmAction: async () => {
+              await createAIAgentTask(presentation.taskType);
+            },
+          },
+        ]}
+      />
+    );
+  };
 
   return (
     <div className="space-y-4 mb-10">
@@ -671,87 +925,15 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         />
       )}
 
-      {/** AI Agent Task Status (a task is scheduled or in progress) */}
+      {/** Per-task-type card groups (active / failed / completed) */}
 
-      {aiAgentTask && hasActiveAITask && !isResolved && (
-        <Card
-          title="AI Agent Task Status"
-          description="An AI agent is working on fixing this exception."
-        >
-          <div className="space-y-3">
-            <Alert
-              type={getAIAgentTaskAlertType()}
-              strongTitle={aiAgentTask.statusTitle}
-              title={aiAgentTask.statusDescription}
-            />
-            {aiAgentTask.statusMessage && (
-              <p className="text-sm text-gray-600">
-                {aiAgentTask.statusMessage}
-              </p>
-            )}
-            <div className="flex items-center space-x-4">
-              <Button
-                title="View Task Details"
-                icon={IconProp.Bolt}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                onClick={() => {
-                  navigateToAIAgentTask(aiAgentTask._id);
-                }}
-              />
-            </div>
-          </div>
-        </Card>
+      {renderAITaskCards(
+        fixTask,
+        AI_TASK_PRESENTATION[CodeFixTaskType.FixException],
       )}
-
-      {/** Latest AI fix attempt failed — keep it visible and offer a retry. */}
-
-      {aiAgentTask && isLatestAITaskError && !isResolved && (
-        <Card
-          title="AI fix attempt failed"
-          description="The last AI Agent task for this exception did not complete."
-        >
-          <div className="space-y-3">
-            <Alert
-              type={AlertType.DANGER}
-              strongTitle={aiAgentTask.statusTitle}
-              title={aiAgentTask.statusMessage || aiAgentTask.statusDescription}
-            />
-            <div className="flex items-center space-x-4">
-              <Button
-                title="Retry Fix"
-                icon={IconProp.Bolt}
-                buttonStyle={ButtonStyleType.PRIMARY}
-                isLoading={isCreateAITaskLoading}
-                onClick={() => {
-                  createAIAgentTask().catch(() => {
-                    // Errors surface via aiTaskError.
-                  });
-                }}
-              />
-              <Button
-                title="View Task Details"
-                icon={IconProp.ExternalLink}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                onClick={() => {
-                  navigateToAIAgentTask(aiAgentTask._id);
-                }}
-              />
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/** Latest AI fix completed — small note linking to the finished task. */}
-
-      {aiAgentTask && isLatestAITaskCompleted && !isResolved && (
-        <Alert
-          type={AlertType.SUCCESS}
-          strongTitle="Previous AI fix completed"
-          title="An AI Agent has already completed a fix task for this exception. Click to view the completed task."
-          onClick={() => {
-            navigateToAIAgentTask(aiAgentTask._id);
-          }}
-        />
+      {renderAITaskCards(
+        regressionTestTask,
+        AI_TASK_PRESENTATION[CodeFixTaskType.WriteRegressionTest],
       )}
 
       {/** Inline error for AI task actions (create / retry) */}
@@ -759,7 +941,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       {aiTaskError && !isResolved && (
         <Alert
           type={AlertType.DANGER}
-          strongTitle="Could not start AI fix"
+          strongTitle="Could not start AI Agent task"
           title={aiTaskError}
           onClose={() => {
             setAITaskError(undefined);
@@ -767,70 +949,65 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         />
       )}
 
-      {/** Setup checklist — prerequisites are missing, so no Fix button yet. */}
+      {/** Setup checklist — prerequisites are missing, so no start buttons yet. Both task types share the gate. */}
 
-      {canStartAIFix && isAIFixBlockedBySetup && aiFixReadiness && (
-        <Card
-          title="Set up AI fix for this exception"
-          description="AI Agent can analyze this exception and submit a Pull Request with the fix — a few things need to be set up first."
-        >
-          <div className="mt-4 space-y-3">
-            {aiFixReadiness.checks.map(
-              (check: AIFixReadinessCheck): ReactElement => {
-                const checkLink: ReadinessCheckLink | null = check.ok
-                  ? null
-                  : getReadinessCheckLink(check.id);
+      {(canStartAITask(fixTask) || canStartAITask(regressionTestTask)) &&
+        isAIFixBlockedBySetup &&
+        aiFixReadiness && (
+          <Card
+            title="Set up AI Agent for this exception"
+            description="AI Agent can analyze this exception and submit a Pull Request — a fix or a failing regression test. A few things need to be set up first."
+          >
+            <div className="mt-4 space-y-3">
+              {aiFixReadiness.checks.map(
+                (check: AIFixReadinessCheck): ReactElement => {
+                  const checkLink: ReadinessCheckLink | null = check.ok
+                    ? null
+                    : getReadinessCheckLink(check.id);
 
-                return (
-                  <div className="flex items-start" key={check.id}>
-                    <Icon
-                      icon={
-                        check.ok ? IconProp.CheckCircle : IconProp.CircleClose
-                      }
-                      className={`h-5 w-5 ${
-                        check.ok ? "text-green-500" : "text-red-500"
-                      } mr-3 mt-0.5 flex-shrink-0`}
-                    />
-                    <div>
-                      <span className="font-medium">{check.title}</span>
-                      {!check.ok && check.detail && (
-                        <p className="text-sm text-gray-500">{check.detail}</p>
-                      )}
-                      {checkLink && (
-                        <Link
-                          to={checkLink.route}
-                          className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-                        >
-                          {checkLink.title}
-                        </Link>
-                      )}
+                  return (
+                    <div className="flex items-start" key={check.id}>
+                      <Icon
+                        icon={
+                          check.ok ? IconProp.CheckCircle : IconProp.CircleClose
+                        }
+                        className={`h-5 w-5 ${
+                          check.ok ? "text-green-500" : "text-red-500"
+                        } mr-3 mt-0.5 flex-shrink-0`}
+                      />
+                      <div>
+                        <span className="font-medium">{check.title}</span>
+                        {!check.ok && check.detail && (
+                          <p className="text-sm text-gray-500">
+                            {check.detail}
+                          </p>
+                        )}
+                        {checkLink && (
+                          <Link
+                            to={checkLink.route}
+                            className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                          >
+                            {checkLink.title}
+                          </Link>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
-        </Card>
+                  );
+                },
+              )}
+            </div>
+          </Card>
+        )}
+
+      {/** Start buttons per task type (retry after an error lives in the failure card) */}
+
+      {renderStartAITaskCard(
+        fixTask,
+        AI_TASK_PRESENTATION[CodeFixTaskType.FixException],
       )}
-
-      {/** Fix with AI Agent Button (retry after an error lives in the failure card) */}
-
-      {canStartAIFix && !isAIFixBlockedBySetup && !isLatestAITaskError && (
-        <ActionCard
-          title="Fix this exception with AI Agent"
-          description="AI Agent will analyze this exception, identify the root cause, and submit a Pull Request with the fix to your code repository."
-          actions={[
-            {
-              actionName: "Fix with AI Agent",
-              actionIcon: IconProp.Bolt,
-              actionButtonStyle: ButtonStyleType.PRIMARY,
-              isLoading: isCreateAITaskLoading,
-              onConfirmAction: async () => {
-                await createAIAgentTask();
-              },
-            },
-          ]}
-        />
+      {renderStartAITaskCard(
+        regressionTestTask,
+        AI_TASK_PRESENTATION[CodeFixTaskType.WriteRegressionTest],
       )}
 
       {/** Resolve / Unresolve Button */}
