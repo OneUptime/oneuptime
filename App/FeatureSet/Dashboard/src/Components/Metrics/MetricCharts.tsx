@@ -34,7 +34,10 @@ import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import {
   AvailableChartColorsKeys,
+  ChartColorValue,
   getColorClassName,
+  getColorHex,
+  isHexColorValue,
 } from "Common/UI/Components/Charts/ChartLibrary/Utils/ChartColors";
 import { LineChartPalette } from "Common/UI/Components/Charts/Line/LineChart";
 import { AreaChartPalette } from "Common/UI/Components/Charts/Area/AreaChart";
@@ -240,6 +243,69 @@ function getChartPalette(
   return LineChartPalette;
 }
 
+/*
+ * Split a composed grouped-series name back into its "key=value" segments,
+ * using the known group keys so it stays correct when a value itself contains
+ * the ", " that also joins multi-key segments. A single-key group-by has
+ * exactly one segment (the whole name), so a comma in the value can never be
+ * mis-split. For multi-key names, a fragment that doesn't start with a known
+ * "key=" prefix is treated as a continuation of the previous value.
+ */
+function splitSeriesNameIntoSegments(
+  seriesName: string,
+  groupByKeys: Array<string>,
+): Array<string> {
+  if (groupByKeys.length <= 1) {
+    return [seriesName];
+  }
+  const startsWithKnownKey: (fragment: string) => boolean = (
+    fragment: string,
+  ): boolean => {
+    return groupByKeys.some((key: string): boolean => {
+      return fragment.startsWith(`${key}=`);
+    });
+  };
+  const segments: Array<string> = [];
+  for (const fragment of seriesName.split(", ")) {
+    if (segments.length > 0 && !startsWithKnownKey(fragment)) {
+      segments[segments.length - 1] += `, ${fragment}`;
+    } else {
+      segments.push(fragment);
+    }
+  }
+  return segments;
+}
+
+/*
+ * Resolve the color for one series. Per-group pins win first: `colorsByGroup`
+ * is keyed by the "key=value" segment the series renderer emits, matched via
+ * the key-aware split above. Otherwise fall back to the effective palette by
+ * position — `effectivePalette` already leads with the query's single `color`,
+ * so a color-only query keeps its exact prior behavior. Used by both the
+ * chart's colors array and the legend chips so they always agree.
+ */
+function resolveSeriesColor(
+  seriesName: string,
+  index: number,
+  opts: {
+    colorsByGroup: Record<string, string>;
+    effectivePalette: Array<ChartColorValue>;
+    groupByKeys: Array<string>;
+  },
+): ChartColorValue {
+  const segments: Array<string> = splitSeriesNameIntoSegments(
+    seriesName,
+    opts.groupByKeys,
+  );
+  for (const segment of segments) {
+    const pinned: string | undefined = opts.colorsByGroup[segment];
+    if (pinned) {
+      return pinned;
+    }
+  }
+  return opts.effectivePalette[index % opts.effectivePalette.length]!;
+}
+
 /**
  * Render the per-chart control panel for a high-cardinality metric
  * chart. Combines a compact toolbar (search, Top-N toggle, reset
@@ -263,6 +329,17 @@ function renderSeriesControls(input: {
   needsTopN: boolean;
   chartType: ChartType;
   /*
+   * The query's single lead color (hex or named key), if any — heads the
+   * palette so the chips match the recolored chart series.
+   */
+  color?: string | undefined;
+  /*
+   * Per-group color pins keyed by "key=value" segment (see resolveSeriesColor).
+   */
+  colorsByGroup?: Record<string, string> | undefined;
+  // The query's group-by attribute keys, for key-aware segment matching.
+  groupByKeys?: Array<string> | undefined;
+  /*
    * Formats a series value (peak/avg/latest) for display next to its name,
    * using the same unit/precision as the chart's y-axis.
    */
@@ -278,6 +355,9 @@ function renderSeriesControls(input: {
     hiddenFromTopN,
     needsTopN,
     chartType,
+    color,
+    colorsByGroup,
+    groupByKeys,
     valueFormatter,
   } = input;
 
@@ -299,13 +379,25 @@ function renderSeriesControls(input: {
    * Series that aren't on the chart right now (hidden by user or
    * filtered out) get no color and render as a muted dot below.
    */
-  const palette: Array<AvailableChartColorsKeys> = getChartPalette(chartType);
-  const colorByName: Map<string, AvailableChartColorsKeys> = new Map<
+  const basePalette: Array<AvailableChartColorsKeys> =
+    getChartPalette(chartType);
+  const effectivePalette: Array<ChartColorValue> = color
+    ? [color, ...basePalette]
+    : basePalette;
+  const chipColorsByGroup: Record<string, string> = colorsByGroup || {};
+  const colorByName: Map<string, ChartColorValue> = new Map<
     string,
-    AvailableChartColorsKeys
+    ChartColorValue
   >();
   displayableSeries.forEach((series: SeriesPoint, i: number) => {
-    colorByName.set(series.seriesName, palette[i % palette.length]!);
+    colorByName.set(
+      series.seriesName,
+      resolveSeriesColor(series.seriesName, i, {
+        colorsByGroup: chipColorsByGroup,
+        effectivePalette,
+        groupByKeys: groupByKeys || [],
+      }),
+    );
   });
 
   /*
@@ -459,10 +551,12 @@ function renderSeriesControls(input: {
             const isHidden: boolean = controls.hiddenSeries.has(
               series.seriesName,
             );
-            const color: AvailableChartColorsKeys | undefined = colorByName.get(
+            const color: ChartColorValue | undefined = colorByName.get(
               series.seriesName,
             );
             const showColor: boolean = Boolean(color) && !isHidden;
+            const showCustomColor: boolean =
+              showColor && isHexColorValue(color);
             const statValue: number | null = computeSeriesStat(
               series,
               displayStat,
@@ -491,8 +585,17 @@ function renderSeriesControls(input: {
                 <span
                   aria-hidden="true"
                   className={`h-2 w-2 shrink-0 rounded-full ${
-                    showColor ? getColorClassName(color!, "bg") : "bg-gray-300"
+                    showColor
+                      ? showCustomColor
+                        ? ""
+                        : getColorClassName(color!, "bg")
+                      : "bg-gray-300"
                   }`}
+                  style={
+                    showCustomColor
+                      ? { backgroundColor: getColorHex(color!) }
+                      : undefined
+                  }
                 />
                 <span
                   className={`max-w-[240px] truncate ${
@@ -1022,6 +1125,38 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
        */
       displayableSeries = displayableSeries.slice().sort(compareSeriesByName);
 
+      /*
+       * Per-series colors. Per-group pins (colorsByGroup) win by "key=value"
+       * segment; otherwise the query's single `color` leads the palette. Built
+       * as an explicit array aligned to displayableSeries order (the chart
+       * library assigns colors by position), so it stays correct under
+       * Top-N/hidden/search filtering. Undefined when nothing is customized, so
+       * the wrapper falls back to its default palette (unchanged for existing
+       * charts). A color-only query yields exactly the prior lead-color array.
+       */
+      const chartBasePalette: Array<AvailableChartColorsKeys> =
+        getChartPalette(chartType);
+      const chartColorsByGroup: Record<string, string> =
+        queryConfig.colorsByGroup || {};
+      const chartGroupByKeys: Array<string> =
+        queryConfig.metricQueryData.groupByAttributeKeys || [];
+      const effectiveChartPalette: Array<ChartColorValue> = queryConfig.color
+        ? [queryConfig.color, ...chartBasePalette]
+        : chartBasePalette;
+      const hasColorCustomization: boolean =
+        Boolean(queryConfig.color) ||
+        Object.keys(chartColorsByGroup).length > 0;
+      const chartColorsOverride: Array<ChartColorValue> | undefined =
+        hasColorCustomization
+          ? displayableSeries.map((s: SeriesPoint, i: number) => {
+              return resolveSeriesColor(s.seriesName, i, {
+                colorsByGroup: chartColorsByGroup,
+                effectivePalette: effectiveChartPalette,
+                groupByKeys: chartGroupByKeys,
+              });
+            })
+          : undefined;
+
       const hiddenFromTopN: number =
         needsTopN && !controls.showAllSeries
           ? Math.max(0, totalSeries - DEFAULT_TOP_N_SERIES)
@@ -1054,6 +1189,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               hiddenFromTopN,
               needsTopN,
               chartType,
+              color: queryConfig.color,
+              colorsByGroup: queryConfig.colorsByGroup,
+              groupByKeys: queryConfig.metricQueryData.groupByAttributeKeys,
               valueFormatter: seriesValueFormatter,
             })
           : undefined;
@@ -1152,6 +1290,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           curve: ChartCurve.MONOTONE,
           sync: true,
+          colors: chartColorsOverride,
           referenceLines:
             referenceLines.length > 0 ? referenceLines : undefined,
         },
@@ -1298,6 +1437,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           curve: ChartCurve.MONOTONE,
           sync: true,
+          colors: formulaConfig.color ? [formulaConfig.color] : undefined,
           referenceLines:
             formulaReferenceLines.length > 0
               ? formulaReferenceLines

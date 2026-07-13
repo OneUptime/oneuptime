@@ -560,10 +560,14 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       aggregateBy.aggregateColumnName.toString();
     const aggregationTimestampColumn: string =
       aggregateBy.aggregationTimestampColumnName.toString();
-    const aggregationInterval: string = AggregateUtil.getAggregationInterval({
-      startDate: aggregateBy.startTimestamp!,
-      endDate: aggregateBy.endTimestamp!,
-    }).toLowerCase();
+    const resolvedInterval: AggregationInterval =
+      AggregateUtil.getAggregationInterval({
+        startDate: aggregateBy.startTimestamp!,
+        endDate: aggregateBy.endTimestamp!,
+        aggregationInterval: aggregateBy.aggregationInterval,
+      });
+    const bucketByTime: boolean =
+      !AggregateUtil.isTotalAggregation(resolvedInterval);
 
     /*
      * Group-by columns from the caller need to be carried through the
@@ -671,7 +675,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * always whole numbers in practice).
      */
     statement.append(
-      `SELECT quantileExactWeighted(${percentileLevel})(__pcl_pair.1, toUInt64(greatest(0, round(__pcl_pair.2)))) as ${aggregationColumn}, date_trunc('${aggregationInterval}', toStartOfInterval(${aggregationTimestampColumn}, INTERVAL 1 ${aggregationInterval})) as ${aggregationTimestampColumn}`,
+      `SELECT quantileExactWeighted(${percentileLevel})(__pcl_pair.1, toUInt64(greatest(0, round(__pcl_pair.2)))) as ${aggregationColumn}, ${AggregateUtil.buildBucketTimestampSelect(resolvedInterval, aggregationTimestampColumn)}`,
     );
 
     for (const key of groupByKeys) {
@@ -699,13 +703,33 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(this.getRetentionReadFilter());
     statement.append(SQL`) `);
 
-    statement.append(SQL` GROUP BY `).append(`${aggregationTimestampColumn}`);
+    /*
+     * `Total` collapses the window into one row per group: the timestamp
+     * becomes an aggregate (`min(...)`) and drops out of GROUP BY, and
+     * when nothing else is grouped the clause is omitted entirely.
+     */
+    const percentileGroupByTerms: Array<string> = [];
+    if (bucketByTime) {
+      percentileGroupByTerms.push(aggregationTimestampColumn);
+    }
     for (const key of groupByKeys) {
-      statement.append(`, ${key}`);
+      percentileGroupByTerms.push(key);
     }
     attributeGroupKeys.forEach((_key: string, index: number) => {
-      statement.append(`, __attr_grp_${index}`);
+      percentileGroupByTerms.push(`__attr_grp_${index}`);
     });
+    if (percentileGroupByTerms.length > 0) {
+      statement
+        .append(SQL` GROUP BY `)
+        .append(percentileGroupByTerms.join(", "));
+    } else {
+      /*
+       * Group-less Total: suppress the single phantom row an empty window
+       * would otherwise return (min(time) → 1970 epoch). Only reachable
+       * under Total — a bucketed query always groups by the time column.
+       */
+      statement.append(SQL` HAVING count() > 0`);
+    }
 
     statement.append(SQL` ORDER BY `).append(sortStatement);
 
@@ -832,10 +856,14 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       aggregateBy.aggregateColumnName.toString();
     const aggregationTimestampColumn: string =
       aggregateBy.aggregationTimestampColumnName.toString();
-    const aggregationInterval: string = AggregateUtil.getAggregationInterval({
-      startDate: aggregateBy.startTimestamp!,
-      endDate: aggregateBy.endTimestamp!,
-    }).toLowerCase();
+    const resolvedInterval: AggregationInterval =
+      AggregateUtil.getAggregationInterval({
+        startDate: aggregateBy.startTimestamp!,
+        endDate: aggregateBy.endTimestamp!,
+        aggregationInterval: aggregateBy.aggregationInterval,
+      });
+    const bucketByTime: boolean =
+      !AggregateUtil.isTotalAggregation(resolvedInterval);
 
     const groupByKeys: Array<string> = [];
     if (aggregateBy.groupBy) {
@@ -871,7 +899,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     const statement: Statement = SQL``;
 
     statement.append(
-      `SELECT ${aggregationExpression} as ${aggregationColumn}, date_trunc('${aggregationInterval}', toStartOfInterval(${aggregationTimestampColumn}, INTERVAL 1 ${aggregationInterval})) as ${aggregationTimestampColumn}`,
+      `SELECT ${aggregationExpression} as ${aggregationColumn}, ${AggregateUtil.buildBucketTimestampSelect(resolvedInterval, aggregationTimestampColumn)}`,
     );
     for (const key of groupByKeys) {
       statement.append(`, ${key}`);
@@ -916,13 +944,32 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       statement.append(this.getRetentionReadFilter());
     }
 
-    statement.append(SQL` GROUP BY `).append(`${aggregationTimestampColumn}`);
+    /*
+     * `Total` drops the time bucket from GROUP BY (it becomes an
+     * aggregate `min(...)`), leaving one row per group — or a single
+     * global row when nothing else is grouped, in which case the GROUP
+     * BY clause is omitted entirely.
+     */
+    const scalarGroupByTerms: Array<string> = [];
+    if (bucketByTime) {
+      scalarGroupByTerms.push(aggregationTimestampColumn);
+    }
     for (const key of groupByKeys) {
-      statement.append(`, ${key}`);
+      scalarGroupByTerms.push(key);
     }
     attributeGroupKeys.forEach((_key: string, index: number) => {
-      statement.append(`, __attr_grp_${index}`);
+      scalarGroupByTerms.push(`__attr_grp_${index}`);
     });
+    if (scalarGroupByTerms.length > 0) {
+      statement.append(SQL` GROUP BY `).append(scalarGroupByTerms.join(", "));
+    } else {
+      /*
+       * Group-less Total: suppress the single phantom row an empty window
+       * would otherwise return (min(time) → 1970 epoch). Only reachable
+       * under Total — a bucketed query always groups by the time column.
+       */
+      statement.append(SQL` HAVING count() > 0`);
+    }
 
     statement.append(SQL` ORDER BY `).append(sortStatement);
 
@@ -1044,16 +1091,52 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       .append(outerWhereStatement)
       .append(SQL` AND retentionDate >= now()`);
 
-    statement
-      .append(SQL` GROUP BY `)
-      .append(`${aggregateBy.aggregationTimestampColumnName.toString()}`);
+    /*
+     * Mirror the base builder's Total handling: the SELECT above (shared
+     * toAggregateSelectStatement) already emits `min(time)` for a `Total`
+     * interval, so the time column must NOT appear in GROUP BY — grouping
+     * by an aggregate alias is a ClickHouse error. Omit the clause
+     * entirely when nothing else is grouped.
+     */
+    const mutableResolvedInterval: AggregationInterval =
+      AggregateUtil.getAggregationInterval({
+        startDate: aggregateBy.startTimestamp!,
+        endDate: aggregateBy.endTimestamp!,
+        aggregationInterval: aggregateBy.aggregationInterval,
+      });
+    const mutableBucketByTime: boolean = !AggregateUtil.isTotalAggregation(
+      mutableResolvedInterval,
+    );
+    const mutableHasGroupBy: boolean = Boolean(
+      aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0,
+    );
 
-    if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+    if (mutableBucketByTime) {
       statement
-        .append(SQL` , `)
+        .append(SQL` GROUP BY `)
+        .append(`${aggregateBy.aggregationTimestampColumnName.toString()}`);
+      if (mutableHasGroupBy) {
+        statement
+          .append(SQL` , `)
+          .append(
+            this.statementGenerator.toGroupByStatement(aggregateBy.groupBy!),
+          );
+      }
+    } else if (mutableHasGroupBy) {
+      statement
+        .append(SQL` GROUP BY `)
         .append(
-          this.statementGenerator.toGroupByStatement(aggregateBy.groupBy),
+          this.statementGenerator.toGroupByStatement(aggregateBy.groupBy!),
         );
+    }
+
+    /*
+     * Group-less Total: suppress the single phantom row an empty window
+     * would otherwise return (min(time) → 1970 epoch). No-op for bucketed
+     * or grouped queries.
+     */
+    if (!mutableBucketByTime && !mutableHasGroupBy) {
+      statement.append(SQL` HAVING count() > 0`);
     }
 
     statement.append(SQL` ORDER BY `).append(sortStatement);
@@ -1236,14 +1319,18 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     const interval: AggregationInterval = AggregateUtil.getAggregationInterval({
       startDate: aggregateBy.startTimestamp!,
       endDate: aggregateBy.endTimestamp!,
+      aggregationInterval: aggregateBy.aggregationInterval,
     });
     /*
-     * The MV is bucketed at 1 minute, so all values of AggregationInterval
-     * (Minute / Hour / Day / Week / Month / Year) are >= MV resolution
-     * and acceptable. Kept as a no-op read so the dependency on
-     * AggregateUtil makes the intent obvious.
+     * The MV is bucketed at 1 minute, so every time-bucketed interval
+     * (Minute / Hour / Day / Week / Month / Year) is >= MV resolution and
+     * acceptable — the honored interval flows into the date_trunc below.
+     * `Total` (whole-window, no bucketing) is the one exception: fall back
+     * to the raw-table builder, which knows how to collapse the window.
      */
-    void interval;
+    if (AggregateUtil.isTotalAggregation(interval)) {
+      return null;
+    }
 
     const queryRecord: Record<string, unknown> =
       (aggregateBy.query as unknown as Record<string, unknown>) || {};
@@ -1510,8 +1597,17 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     const interval: AggregationInterval = AggregateUtil.getAggregationInterval({
       startDate: aggregateBy.startTimestamp!,
       endDate: aggregateBy.endTimestamp!,
+      aggregationInterval: aggregateBy.aggregationInterval,
     });
-    void interval;
+    /*
+     * `Total` (whole-window, no bucketing) is not served by this
+     * time-bucketed per-host MV — fall back to the raw-table builder.
+     * Every other interval is >= the MV's 1-minute resolution and flows
+     * into the date_trunc below.
+     */
+    if (AggregateUtil.isTotalAggregation(interval)) {
+      return null;
+    }
 
     if (!this.database) {
       this.useDefaultDatabase();

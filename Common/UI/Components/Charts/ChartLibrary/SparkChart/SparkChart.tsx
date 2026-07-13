@@ -21,6 +21,7 @@ import type { AxisDomain } from "recharts/types/util/types";
 import {
   AvailableChartColors,
   type AvailableChartColorsKeys,
+  type ChartColorValue,
   constructCategoryColors,
   getColorClassName,
 } from "../Utils/ChartColors";
@@ -64,7 +65,7 @@ const SparkAreaChart: React.ForwardRefExoticComponent<
       ...other
     } = props;
 
-    const categoryColors: Map<string, AvailableChartColorsKeys> =
+    const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
     const yAxisDomain: AxisDomain = getYAxisDomain(
       autoMinValue,
@@ -209,7 +210,7 @@ const SparkLineChart: React.ForwardRefExoticComponent<
       ...other
     } = props;
 
-    const categoryColors: Map<string, AvailableChartColorsKeys> =
+    const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
     const yAxisDomain: AxisDomain = getYAxisDomain(
       autoMinValue,
@@ -304,7 +305,7 @@ const SparkBarChart: React.ForwardRefExoticComponent<
       ...other
     } = props;
 
-    const categoryColors: Map<string, AvailableChartColorsKeys> =
+    const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
 
     const yAxisDomain: AxisDomain = getYAxisDomain(

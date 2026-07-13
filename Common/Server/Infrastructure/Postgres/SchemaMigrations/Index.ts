@@ -433,6 +433,7 @@ import { AddTelemetryEntityRelationshipMetrics1783762505482 } from "./1783762505
 import { AddIoTDeviceCredentialTable1783780000000 } from "./1783780000000-AddIoTDeviceCredentialTable";
 import { AddSnmpV3AuthColumnsToNetworkDevice1783790000000 } from "./1783790000000-AddSnmpV3AuthColumnsToNetworkDevice";
 import { AddAdditionalParamsToLlmProvider1783650000000 } from "./1783650000000-AddAdditionalParamsToLlmProvider";
+import { MigrationName1783937343400 } from "./1783937343400-MigrationName";
 
 export default [
   InitialMigration,
@@ -869,5 +870,6 @@ export default [
   AddTelemetryEntityRelationshipMetrics1783762505482,
   AddIoTDeviceCredentialTable1783780000000,
   AddSnmpV3AuthColumnsToNetworkDevice1783790000000,
-  AddAdditionalParamsToLlmProvider1783650000000
+  AddAdditionalParamsToLlmProvider1783650000000,
+  MigrationName1783937343400
 ];
