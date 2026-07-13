@@ -1,6 +1,5 @@
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
-import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
-import AIAgentTaskTelemetryException from "../../Models/DatabaseModels/AIAgentTaskTelemetryException";
+import AIRun from "../../Models/DatabaseModels/AIRun";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -11,7 +10,7 @@ import TelemetryExceptionService, {
   Service as TelemetryExceptionServiceType,
 } from "../Services/TelemetryExceptionService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import AIAgentTaskTelemetryExceptionService from "../Services/AIAgentTaskTelemetryExceptionService";
+import AIRunService from "../Services/AIRunService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
@@ -22,10 +21,49 @@ import {
 } from "../Utils/Express";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AIAgentTaskStatus, {
-  AIAgentTaskStatusHelper,
-} from "../../Types/AI/AIAgentTaskStatus";
+import AIRunStatus, { AIRunStatusHelper } from "../../Types/AI/AIRunStatus";
+import AIRunType from "../../Types/AI/AIRunType";
 import { JSONArray, JSONObject } from "../../Types/JSON";
+
+/*
+ * User-facing wording for a code-fix run's status on the exception page —
+ * the AIRun analogue of the old AIAgentTaskStatusHelper titles.
+ */
+const CODE_FIX_STATUS_TEXT: {
+  [key in AIRunStatus]: { title: string; description: string };
+} = {
+  [AIRunStatus.Queued]: {
+    title: "Queued",
+    description:
+      "The fix task is queued and waiting to be picked up by an AI agent.",
+  },
+  [AIRunStatus.Running]: {
+    title: "In Progress",
+    description: "An AI agent is working on a fix for this exception.",
+  },
+  [AIRunStatus.WaitingForApproval]: {
+    title: "Waiting for Approval",
+    description: "The run is paused waiting for an approval.",
+  },
+  [AIRunStatus.Completed]: {
+    title: "Completed",
+    description:
+      "The AI agent finished. Review the pull request it opened for the proposed fix.",
+  },
+  [AIRunStatus.Error]: {
+    title: "Error",
+    description: "The AI agent could not complete the fix.",
+  },
+  [AIRunStatus.Cancelled]: {
+    title: "Cancelled",
+    description: "The fix task was cancelled before an agent completed it.",
+  },
+  [AIRunStatus.Stale]: {
+    title: "Stale",
+    description:
+      "The AI agent stopped reporting progress and the run was marked as stale. You can retry the fix.",
+  },
+};
 
 export default class TelemetryExceptionAPI extends BaseAPI<
   TelemetryException,
@@ -123,15 +161,19 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    // Create the AI Agent Task using the service
-    const createdTask: AIAgentTask =
-      await this.service.createAIAgentTaskForException({
-        telemetryExceptionId,
-        props,
-      });
+    // Create the code-fix AIRun using the service
+    const createdRun: AIRun = await this.service.createCodeFixRunForException({
+      telemetryExceptionId,
+      props,
+    });
 
+    /*
+     * `aiAgentTaskId` is the legacy JSON key the dashboard still navigates
+     * with — it now carries the AIRun id. `aiRunId` is the honest name.
+     */
     return Response.sendJsonObjectResponse(req, res, {
-      aiAgentTaskId: createdTask.id!.toString(),
+      aiAgentTaskId: createdRun.id!.toString(),
+      aiRunId: createdRun.id!.toString(),
     });
   }
 
@@ -158,58 +200,70 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
     /*
-     * Return the LATEST task regardless of status. Errored tasks must stay
-     * visible on the exception page (previously they were filtered out, so
-     * a failed fix silently vanished and the button just reappeared).
-     * hasActiveTask reflects only non-terminal states.
+     * Access check under the USER's permissions: code-fix runs are
+     * system-written AIRuns (hidden from the caller by the per-user privacy
+     * pin on the generic CRUD), so confirm the caller can read the
+     * exception first and then read the run as root — the same pattern as
+     * AIInvestigationAPI.
      */
-    const taskLink: AIAgentTaskTelemetryException | null =
-      await AIAgentTaskTelemetryExceptionService.findOneBy({
-        query: {
-          telemetryExceptionId: telemetryExceptionId,
-        },
+    const telemetryException: TelemetryException | null =
+      await this.service.findOneById({
+        id: telemetryExceptionId,
         select: {
           _id: true,
-          aiAgentTaskId: true,
-          aiAgentTask: {
-            _id: true,
-            status: true,
-            statusMessage: true,
-            createdAt: true,
-          },
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
         },
         props,
       });
 
-    if (!taskLink || !taskLink.aiAgentTask) {
+    if (!telemetryException) {
+      throw new BadDataException(
+        "Telemetry Exception not found (or you do not have access to it).",
+      );
+    }
+
+    /*
+     * Return the LATEST run regardless of status. Errored runs must stay
+     * visible on the exception page (a failed fix must not silently vanish
+     * with the button just reappearing). hasActiveTask reflects only
+     * non-terminal states.
+     */
+    const run: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        runType: AIRunType.CodeFix,
+        triggeredByTelemetryExceptionId: telemetryExceptionId,
+      },
+      select: {
+        _id: true,
+        status: true,
+        errorMessage: true,
+        createdAt: true,
+      },
+      sort: {
+        createdAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!run) {
       return Response.sendJsonObjectResponse(req, res, {
         hasActiveTask: false,
         aiAgentTask: null,
       });
     }
 
-    const task: AIAgentTask = taskLink.aiAgentTask;
-
-    const isTerminal: boolean =
-      task.status === AIAgentTaskStatus.Completed ||
-      task.status === AIAgentTaskStatus.Error;
+    const status: AIRunStatus = run.status || AIRunStatus.Queued;
 
     return Response.sendJsonObjectResponse(req, res, {
-      hasActiveTask: !isTerminal,
+      hasActiveTask: !AIRunStatusHelper.isTerminalStatus(status),
       aiAgentTask: {
-        _id: task.id?.toString(),
-        status: task.status,
-        statusMessage: task.statusMessage,
-        statusTitle: task.status
-          ? AIAgentTaskStatusHelper.getTitle(task.status)
-          : undefined,
-        statusDescription: task.status
-          ? AIAgentTaskStatusHelper.getDescription(task.status)
-          : undefined,
-        createdAt: task.createdAt,
+        _id: run.id?.toString(),
+        status: status,
+        statusMessage: run.errorMessage,
+        statusTitle: CODE_FIX_STATUS_TEXT[status]?.title,
+        statusDescription: CODE_FIX_STATUS_TEXT[status]?.description,
+        createdAt: run.createdAt,
       },
     });
   }

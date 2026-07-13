@@ -35,14 +35,20 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
-import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
+import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 
+/*
+ * The exception's latest AI fix attempt. Fix tasks are CodeFix AIRuns now,
+ * so `status` carries AIRunStatus strings (Queued / Running /
+ * WaitingForApproval / Completed / Error / Cancelled / Stale); the endpoint
+ * keeps its legacy JSON keys.
+ */
 interface AIAgentTaskInfo {
   _id: string;
-  status: AIAgentTaskStatus;
+  status: AIRunStatus;
   statusMessage: string | undefined;
   statusTitle: string;
   statusDescription: string;
@@ -320,7 +326,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           ] as JSONObject;
           setAIAgentTask({
             _id: taskData["_id"] as string,
-            status: taskData["status"] as AIAgentTaskStatus,
+            status: taskData["status"] as AIRunStatus,
             statusMessage: taskData["statusMessage"] as string | undefined,
             statusTitle: taskData["statusTitle"] as string,
             statusDescription: taskData["statusDescription"] as string,
@@ -569,13 +575,17 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       }
 
       switch (aiAgentTask.status) {
-        case AIAgentTaskStatus.Scheduled:
+        case AIRunStatus.Queued:
           return AlertType.INFO;
-        case AIAgentTaskStatus.InProgress:
+        case AIRunStatus.Running:
           return AlertType.INFO;
-        case AIAgentTaskStatus.Completed:
+        case AIRunStatus.WaitingForApproval:
+          return AlertType.INFO;
+        case AIRunStatus.Completed:
           return AlertType.SUCCESS;
-        case AIAgentTaskStatus.Error:
+        case AIRunStatus.Error:
+          return AlertType.DANGER;
+        case AIRunStatus.Stale:
           return AlertType.DANGER;
         default:
           return AlertType.INFO;
@@ -620,14 +630,20 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     return null;
   };
 
-  // The latest task has finished (Completed or Error) — or there is none.
+  // The latest task has finished (terminal status) — or there is none.
   const isAITaskTerminal: boolean = Boolean(aiAgentTask) && !hasActiveAITask;
 
+  /*
+   * Stale runs (agent stopped reporting progress) are failed attempts too —
+   * keep them visible with a retry, like Error.
+   */
   const isLatestAITaskError: boolean =
-    isAITaskTerminal && aiAgentTask?.status === AIAgentTaskStatus.Error;
+    isAITaskTerminal &&
+    (aiAgentTask?.status === AIRunStatus.Error ||
+      aiAgentTask?.status === AIRunStatus.Stale);
 
   const isLatestAITaskCompleted: boolean =
-    isAITaskTerminal && aiAgentTask?.status === AIAgentTaskStatus.Completed;
+    isAITaskTerminal && aiAgentTask?.status === AIRunStatus.Completed;
 
   /*
    * A new AI fix can be started when there is no task, or the latest task is

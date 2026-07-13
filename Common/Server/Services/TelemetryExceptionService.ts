@@ -1,17 +1,14 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/TelemetryException";
 import ServiceType from "../../Types/Telemetry/ServiceType";
-import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
-import AIAgentTaskTelemetryException from "../../Models/DatabaseModels/AIAgentTaskTelemetryException";
+import AIRun from "../../Models/DatabaseModels/AIRun";
 import ObjectID from "../../Types/ObjectID";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
-import AIAgentTaskType from "../../Types/AI/AIAgentTaskType";
-import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
-import { FixExceptionTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";
+import AIRunType from "../../Types/AI/AIRunType";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AIAgentTaskService from "./AIAgentTaskService";
-import AIAgentTaskTelemetryExceptionService from "./AIAgentTaskTelemetryExceptionService";
+import AIRunService from "./AIRunService";
 import AIAgentService from "./AIAgentService";
 import LlmProviderService from "./LlmProviderService";
 import ServiceService from "./ServiceService";
@@ -35,7 +32,7 @@ import logger from "../Utils/Logger";
  */
 export const EXCLUDED_FINGERPRINT_LIMIT: number = 5000;
 
-export interface CreateAIAgentTaskForExceptionParams {
+export interface CreateCodeFixRunForExceptionParams {
   telemetryExceptionId: ObjectID;
   props: DatabaseCommonInteractionProps;
 }
@@ -213,22 +210,25 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  /*
+   * "Fix with AI Agent": record the durable intent as a Queued CodeFix
+   * AIRun (the unified run substrate — same enqueue semantics as the
+   * investigation queue: attemptCount defaults to 0 and no events are
+   * written until a worker claims the run). An external agent container
+   * claims it via /ai-agent-task/get-pending-task.
+   */
   @CaptureSpan()
-  public async createAIAgentTaskForException(
-    params: CreateAIAgentTaskForExceptionParams,
-  ): Promise<AIAgentTask> {
+  public async createCodeFixRunForException(
+    params: CreateCodeFixRunForExceptionParams,
+  ): Promise<AIRun> {
     const { telemetryExceptionId, props } = params;
 
-    // Get the telemetry exception
+    // Get the telemetry exception (also the caller's access check).
     const telemetryException: Model | null = await this.findOneById({
       id: telemetryExceptionId,
       select: {
         _id: true,
         projectId: true,
-        message: true,
-        stackTrace: true,
-        primaryEntityId: true,
-        exceptionType: true,
       },
       props,
     });
@@ -238,7 +238,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Fail early with everything that's missing, instead of creating a task
+     * Fail early with everything that's missing, instead of creating a run
      * that dies minutes later inside the agent container.
      */
     const readiness: AIFixReadiness = await this.getAIFixReadiness({
@@ -261,98 +261,66 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    // Check if an active AI agent task already exists for this exception
-    await this.validateNoActiveTaskExists(telemetryExceptionId);
+    // Check if an active code-fix run already exists for this exception
+    await this.validateNoActiveCodeFixRunExists(telemetryExceptionId);
 
-    // Create the AI Agent Task
-    const createdTask: AIAgentTask = await this.createFixExceptionTask({
-      telemetryException,
-      telemetryExceptionId,
-      props,
+    const run: AIRun = new AIRun();
+    run.projectId = telemetryException.projectId;
+    run.runType = AIRunType.CodeFix;
+    run.status = AIRunStatus.Queued;
+    run.triggeredByTelemetryExceptionId = telemetryExceptionId;
+
+    // Attribution: the user who clicked "Fix with AI Agent".
+    if (props.userId) {
+      run.userId = props.userId;
+    }
+
+    /*
+     * Created as root: AIRun rows are server-written only (empty create
+     * ACL); the user's access was already checked by the exception read.
+     */
+    const createdRun: AIRun = await AIRunService.create({
+      data: run,
+      props: {
+        isRoot: true,
+      },
     });
 
-    // Link the task to the telemetry exception
-    await AIAgentTaskTelemetryExceptionService.linkTaskToTelemetryException({
-      projectId: telemetryException.projectId,
-      aiAgentTaskId: createdTask.id!,
-      telemetryExceptionId,
-      props,
-    });
+    if (!createdRun.id) {
+      throw new BadDataException("Failed to create the AI fix run");
+    }
 
-    return createdTask;
+    return createdRun;
   }
 
   @CaptureSpan()
-  private async validateNoActiveTaskExists(
+  private async validateNoActiveCodeFixRunExists(
     telemetryExceptionId: ObjectID,
   ): Promise<void> {
-    const existingTaskLink: AIAgentTaskTelemetryException | null =
-      await AIAgentTaskTelemetryExceptionService.findOneBy({
-        query: {
-          telemetryExceptionId: telemetryExceptionId,
-          aiAgentTask: {
-            status: QueryHelper.notIn([
-              AIAgentTaskStatus.Completed,
-              AIAgentTaskStatus.Error,
-            ]),
-          },
-        },
-        select: {
-          _id: true,
-          aiAgentTaskId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    const existingRun: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        runType: AIRunType.CodeFix,
+        triggeredByTelemetryExceptionId: telemetryExceptionId,
+        status: QueryHelper.notIn([
+          AIRunStatus.Completed,
+          AIRunStatus.Error,
+          AIRunStatus.Cancelled,
+          AIRunStatus.Stale,
+        ]),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
-    if (existingTaskLink) {
+    if (existingRun) {
       throw new BadDataException(
         "An AI agent task is already in progress for this exception. Please wait for it to complete before creating a new one.",
       );
     }
-  }
-
-  @CaptureSpan()
-  private async createFixExceptionTask(params: {
-    telemetryException: Model;
-    telemetryExceptionId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-  }): Promise<AIAgentTask> {
-    const { telemetryException, telemetryExceptionId, props } = params;
-
-    const aiAgentTask: AIAgentTask = new AIAgentTask();
-    aiAgentTask.projectId = telemetryException.projectId!;
-    aiAgentTask.taskType = AIAgentTaskType.FixException;
-    aiAgentTask.status = AIAgentTaskStatus.Scheduled;
-
-    // Set name and description based on exception details
-    const exceptionType: string =
-      telemetryException.exceptionType || "Exception";
-    const exceptionMessage: string =
-      telemetryException.message || "No message available";
-
-    aiAgentTask.name = `Fix ${exceptionType}: ${exceptionMessage}`;
-    aiAgentTask.description = `AI Agent task to fix the exception: ${exceptionMessage}`;
-
-    // Build metadata
-    aiAgentTask.metadata = this.buildFixExceptionMetadata({
-      telemetryException,
-      telemetryExceptionId,
-    });
-
-    const createdTask: AIAgentTask = await AIAgentTaskService.create({
-      data: aiAgentTask,
-      props: {
-        ...props,
-      },
-    });
-
-    if (!createdTask.id) {
-      throw new BadDataException("Failed to create AI Agent Task");
-    }
-
-    return createdTask;
   }
 
   @CaptureSpan()
@@ -645,32 +613,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     return summaries;
-  }
-
-  private buildFixExceptionMetadata(params: {
-    telemetryException: Model;
-    telemetryExceptionId: ObjectID;
-  }): FixExceptionTaskMetadata {
-    const { telemetryException, telemetryExceptionId } = params;
-
-    const metadata: FixExceptionTaskMetadata = {
-      taskType: AIAgentTaskType.FixException,
-      exceptionId: telemetryExceptionId.toString(),
-    };
-
-    if (telemetryException.stackTrace) {
-      metadata.stackTrace = telemetryException.stackTrace;
-    }
-
-    if (telemetryException.message) {
-      metadata.errorMessage = telemetryException.message;
-    }
-
-    if (telemetryException.primaryEntityId) {
-      metadata.serviceId = telemetryException.primaryEntityId.toString();
-    }
-
-    return metadata;
   }
 }
 

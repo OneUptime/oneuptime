@@ -2,7 +2,8 @@ import AIAgentTaskLogService, {
   Service as AIAgentTaskLogServiceType,
 } from "../Services/AIAgentTaskLogService";
 import AIAgentService from "../Services/AIAgentService";
-import AIAgentTaskService from "../Services/AIAgentTaskService";
+import AIRunService from "../Services/AIRunService";
+import AIRunEventService from "../Services/AIRunEventService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -12,10 +13,13 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import AIAgentTaskLog from "../../Models/DatabaseModels/AIAgentTaskLog";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
-import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
+import AIRun from "../../Models/DatabaseModels/AIRun";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunEventType from "../../Types/AI/AIRunEventType";
 import LogSeverity from "../../Types/Log/LogSeverity";
 
 export default class AIAgentTaskLogAPI extends BaseAPI<
@@ -26,8 +30,12 @@ export default class AIAgentTaskLogAPI extends BaseAPI<
     super(AIAgentTaskLog, AIAgentTaskLogService);
 
     /*
-     * Create a log entry for an AI Agent task
-     * Validates aiAgentId and aiAgentKey before creating log
+     * Record a progress log line for a code-fix run. The route name and
+     * request shape are unchanged from the legacy AIAgentTaskLog days, but
+     * `taskId` now carries an AIRun id and the line lands as a ProgressLog
+     * AIRunEvent in the run's glass-box trail (message + severity in
+     * resultSummary). Each log also touches the run heartbeat so a chatty
+     * agent is never swept as stale. Validates aiAgentId and aiAgentKey.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/create-log`,
@@ -71,7 +79,7 @@ export default class AIAgentTaskLogAPI extends BaseAPI<
             );
           }
 
-          const taskId: ObjectID = new ObjectID(data["taskId"] as string);
+          const runId: ObjectID = new ObjectID(data["taskId"] as string);
           const severity: LogSeverity = data["severity"] as LogSeverity;
           const message: string = data["message"] as string;
 
@@ -88,20 +96,19 @@ export default class AIAgentTaskLogAPI extends BaseAPI<
             );
           }
 
-          /* Check if task exists and get project ID */
-          const existingTask: AIAgentTask | null =
-            await AIAgentTaskService.findOneById({
-              id: taskId,
-              select: {
-                _id: true,
-                projectId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+          /* Check if the run exists and get its project ID */
+          const existingRun: AIRun | null = await AIRunService.findOneById({
+            id: runId,
+            select: {
+              _id: true,
+              projectId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
-          if (!existingTask) {
+          if (!existingRun || !existingRun.projectId) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -109,23 +116,32 @@ export default class AIAgentTaskLogAPI extends BaseAPI<
             );
           }
 
-          /* Create the log entry */
-          const logEntry: AIAgentTaskLog = new AIAgentTaskLog();
-          logEntry.projectId = existingTask.projectId!;
-          logEntry.aiAgentTaskId = taskId;
-          logEntry.aiAgentId = aiAgent.id!;
-          logEntry.severity = severity;
-          logEntry.message = message;
+          await AIRunEventService.appendEventToRun({
+            projectId: existingRun.projectId,
+            aiRunId: runId,
+            eventType: AIRunEventType.ProgressLog,
+            resultSummary: {
+              message: message,
+              severity: severity,
+            },
+          });
 
-          await AIAgentTaskLogService.create({
-            data: logEntry,
+          /* A progress report proves the agent is alive — refresh the heartbeat. */
+          await AIRunService.updateOneBy({
+            query: {
+              _id: runId.toString(),
+              status: AIRunStatus.Running,
+            },
+            data: {
+              lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
+            } as never,
             props: {
               isRoot: true,
             },
           });
 
           return Response.sendJsonObjectResponse(req, res, {
-            taskId: taskId.toString(),
+            taskId: runId.toString(),
             message: "Log entry created successfully",
           });
         } catch (err) {

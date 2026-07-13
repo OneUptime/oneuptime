@@ -5,7 +5,8 @@ import ServiceService from "../Services/ServiceService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
 import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
 import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
-import AIAgentTaskService from "../Services/AIAgentTaskService";
+import AIRunService from "../Services/AIRunService";
+import AIRunEventService from "../Services/AIRunEventService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -19,7 +20,8 @@ import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
 import Service from "../../Models/DatabaseModels/Service";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
-import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
+import AIRun from "../../Models/DatabaseModels/AIRun";
+import AIRunEventType from "../../Types/AI/AIRunEventType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -570,21 +572,22 @@ export default class AIAgentDataAPI {
             | string
             | undefined;
 
-          // Get the task to get the project ID
-          const task: AIAgentTask | null = await AIAgentTaskService.findOneById(
-            {
-              id: taskId,
-              select: {
-                _id: true,
-                projectId: true,
-              },
-              props: {
-                isRoot: true,
-              },
+          /*
+           * `taskId` carries the AIRun id of the code-fix run — get the run
+           * for the project ID and so the PR can be recorded on its trail.
+           */
+          const run: AIRun | null = await AIRunService.findOneById({
+            id: taskId,
+            select: {
+              _id: true,
+              projectId: true,
             },
-          );
+            props: {
+              isRoot: true,
+            },
+          });
 
-          if (!task) {
+          if (!run) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -610,11 +613,11 @@ export default class AIAgentDataAPI {
           const pullRequest: AIAgentTaskPullRequest =
             new AIAgentTaskPullRequest();
 
-          if (task.projectId) {
-            pullRequest.projectId = task.projectId;
+          if (run.projectId) {
+            pullRequest.projectId = run.projectId;
           }
 
-          pullRequest.aiAgentTaskId = taskId;
+          pullRequest.aiRunId = taskId;
           pullRequest.aiAgentId = aiAgent.id!;
           pullRequest.codeRepositoryId = codeRepositoryId;
           pullRequest.pullRequestUrl = URL.fromString(pullRequestUrl);
@@ -659,8 +662,24 @@ export default class AIAgentDataAPI {
               },
             });
 
+          /*
+           * The pull request is the run's headline action — record it on
+           * the run's glass-box trail so the activity feed shows it.
+           */
+          if (run.projectId) {
+            await AIRunEventService.appendEventToRun({
+              projectId: run.projectId,
+              aiRunId: taskId,
+              eventType: AIRunEventType.ActionExecuted,
+              toolName: "open_pull_request",
+              resultSummary: {
+                message: `Opened pull request: ${title} — ${pullRequestUrl}`,
+              },
+            });
+          }
+
           logger.debug(
-            `Recorded pull request ${pullRequestUrl} for task ${taskId.toString()}`,
+            `Recorded pull request ${pullRequestUrl} for run ${taskId.toString()}`,
             getLogAttributesFromRequest(req as any),
           );
 

@@ -5,6 +5,10 @@ import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
+ * LEGACY substrate: the get-pending-task route now claims CodeFix AIRuns
+ * (AIRunService.claimNextQueuedCodeFixRun — see AIRunCodeFixClaim.test.ts);
+ * claimNextScheduledTask remains only for old AIAgentTask rows.
+ *
  * claimNextScheduledTask is the atomic-claim fix for the get-pending-task
  * double-processing race: multiple KEDA-scaled AIAgent workers poll the same
  * endpoint, and the old plain findOneBy returned the oldest Scheduled task

@@ -1,6 +1,9 @@
 import PositiveNumber from "../../Types/PositiveNumber";
 import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunType from "../../Types/AI/AIRunType";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnFind } from "../Types/Database/Hooks";
@@ -14,7 +17,8 @@ import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity
 /*
  * The fields a status transition may set. Primitives only — the query-builder
  * update below bypasses column transformers, so ObjectID fields must not be
- * set through this path.
+ * set through this path. ObjectID-backed columns may be set via their
+ * pre-transformed string form (what the transformer would have written).
  */
 export interface AIRunTransitionSet {
   status: AIRunStatus;
@@ -26,6 +30,8 @@ export interface AIRunTransitionSet {
   llmCallCount?: number | undefined;
   toolCallCount?: number | undefined;
   totalTokens?: number | undefined;
+  // The claiming agent's id as a string (ObjectID.toString()) — see above.
+  aiAgentId?: string | undefined;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -68,6 +74,84 @@ export class Service extends DatabaseService<Model> {
     const result: UpdateResult = await queryBuilder.execute();
 
     return result.affected || 0;
+  }
+
+  /*
+   * Atomically claim the oldest Queued code-fix run for an external agent
+   * worker (the /ai-agent-task/get-pending-task route). The Queued -> Running
+   * transition is the same status+attemptCount-guarded CAS the investigation
+   * queue uses, so concurrent agents can never receive the same run. The
+   * returned run is already Running, heartbeated, and owned by the agent.
+   *
+   * A claimed run without a triggering exception cannot be executed — it is
+   * finalized as Error and the loop moves on to the next candidate.
+   */
+  @CaptureSpan()
+  public async claimNextQueuedCodeFixRun(data: {
+    aiAgentId: ObjectID;
+  }): Promise<Model | null> {
+    const maxClaimAttempts: number = 5;
+
+    for (let attempt: number = 0; attempt < maxClaimAttempts; attempt++) {
+      const run: Model | null = await this.findOneBy({
+        query: {
+          runType: AIRunType.CodeFix,
+          status: AIRunStatus.Queued,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          triggeredByTelemetryExceptionId: true,
+          attemptCount: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!run || !run.id) {
+        return null;
+      }
+
+      const claimedCount: number = await this.attemptStatusTransition({
+        aiRunId: run.id,
+        fromStatus: AIRunStatus.Queued,
+        expectedAttemptCount: run.attemptCount || 0,
+        set: {
+          status: AIRunStatus.Running,
+          startedAt: OneUptimeDate.getCurrentDate(),
+          lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
+          attemptCount: (run.attemptCount || 0) + 1,
+          aiAgentId: data.aiAgentId.toString(),
+        },
+      });
+
+      if (claimedCount === 0) {
+        // Another agent won this run — try the next candidate.
+        continue;
+      }
+
+      if (!run.triggeredByTelemetryExceptionId) {
+        await this.attemptStatusTransition({
+          aiRunId: run.id,
+          fromStatus: AIRunStatus.Running,
+          set: {
+            status: AIRunStatus.Error,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            errorMessage:
+              "Queued code-fix run has no telemetry exception to fix.",
+          },
+        });
+        continue;
+      }
+
+      return run;
+    }
+
+    return null;
   }
 
   protected override async onBeforeFind(

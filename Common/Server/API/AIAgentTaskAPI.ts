@@ -2,6 +2,8 @@ import AIAgentService from "../Services/AIAgentService";
 import AIAgentTaskService, {
   Service as AIAgentTaskServiceType,
 } from "../Services/AIAgentTaskService";
+import AIRunService from "../Services/AIRunService";
+import AIRunEventService from "../Services/AIRunEventService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -11,13 +13,24 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
+import AIRun from "../../Models/DatabaseModels/AIRun";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunType from "../../Types/AI/AIRunType";
+import AIRunEventType from "../../Types/AI/AIRunEventType";
 import PositiveNumber from "../../Types/PositiveNumber";
 
+/*
+ * The agent worker's task protocol. The route names and request shapes are
+ * unchanged from the legacy AIAgentTask days, but the substrate underneath
+ * is now the unified AIRun table: `taskId` carries an AIRun id, claims are
+ * CAS status transitions, and progress reports touch the run heartbeat that
+ * the stale-run sweeper watches.
+ */
 export default class AIAgentTaskAPI extends BaseAPI<
   AIAgentTask,
   AIAgentTaskServiceType
@@ -26,10 +39,10 @@ export default class AIAgentTaskAPI extends BaseAPI<
     super(AIAgentTask, AIAgentTaskService);
 
     /*
-     * Claim the next pending (scheduled) task for processing.
-     * Validates aiAgentId and aiAgentKey before claiming. The task is
-     * atomically transitioned Scheduled -> InProgress before it is
-     * returned, so concurrent workers can never receive the same task.
+     * Claim the next pending code-fix run for processing.
+     * Validates aiAgentId and aiAgentKey before claiming. The run is
+     * atomically transitioned Queued -> Running before it is returned, so
+     * concurrent workers can never receive the same run.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/get-pending-task`,
@@ -48,12 +61,12 @@ export default class AIAgentTaskAPI extends BaseAPI<
             );
           }
 
-          const task: AIAgentTask | null =
-            await AIAgentTaskService.claimNextScheduledTask({
+          const run: AIRun | null =
+            await AIRunService.claimNextQueuedCodeFixRun({
               aiAgentId: aiAgent.id,
             });
 
-          if (!task) {
+          if (!run) {
             return Response.sendJsonObjectResponse(req, res, {
               task: null,
               message: "No pending tasks available",
@@ -62,11 +75,9 @@ export default class AIAgentTaskAPI extends BaseAPI<
 
           return Response.sendJsonObjectResponse(req, res, {
             task: {
-              _id: task._id?.toString(),
-              projectId: task.projectId?.toString(),
-              taskType: task.taskType,
-              metadata: task.metadata as JSONObject | undefined,
-              createdAt: task.createdAt,
+              id: run.id!.toString(),
+              projectId: run.projectId?.toString(),
+              exceptionId: run.triggeredByTelemetryExceptionId?.toString(),
             },
             message: "Task claimed successfully",
           });
@@ -77,7 +88,7 @@ export default class AIAgentTaskAPI extends BaseAPI<
     );
 
     /*
-     * Get the count of pending (scheduled) tasks for KEDA autoscaling
+     * Get the count of pending (queued) code-fix runs for KEDA autoscaling
      * Validates aiAgentId and aiAgentKey before returning count
      */
     this.router.post(
@@ -97,10 +108,11 @@ export default class AIAgentTaskAPI extends BaseAPI<
             );
           }
 
-          /* Count scheduled tasks */
-          const count: PositiveNumber = await AIAgentTaskService.countBy({
+          /* Count queued code-fix runs */
+          const count: PositiveNumber = await AIRunService.countBy({
             query: {
-              status: AIAgentTaskStatus.Scheduled,
+              runType: AIRunType.CodeFix,
+              status: AIRunStatus.Queued,
             },
             props: {
               isRoot: true,
@@ -118,8 +130,11 @@ export default class AIAgentTaskAPI extends BaseAPI<
     );
 
     /*
-     * Update task status (InProgress, Completed, Error)
-     * Validates aiAgentId and aiAgentKey before updating
+     * Update task status (InProgress, Completed, Error).
+     * `taskId` is an AIRun id. InProgress is a heartbeat touch (the run is
+     * already Running from the claim); Completed/Error are CAS transitions
+     * Running -> Completed/Error that also write the terminal
+     * RunCompleted/RunFailed event to the run's glass-box trail.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/update-task-status`,
@@ -155,7 +170,7 @@ export default class AIAgentTaskAPI extends BaseAPI<
             );
           }
 
-          const taskId: ObjectID = new ObjectID(data["taskId"] as string);
+          const runId: ObjectID = new ObjectID(data["taskId"] as string);
           const status: AIAgentTaskStatus = data["status"] as AIAgentTaskStatus;
           const statusMessage: string | undefined = data["statusMessage"] as
             | string
@@ -178,20 +193,20 @@ export default class AIAgentTaskAPI extends BaseAPI<
             );
           }
 
-          /* Check if task exists */
-          const existingTask: AIAgentTask | null =
-            await AIAgentTaskService.findOneById({
-              id: taskId,
-              select: {
-                _id: true,
-                status: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+          /* Check if the run exists */
+          const existingRun: AIRun | null = await AIRunService.findOneById({
+            id: runId,
+            select: {
+              _id: true,
+              projectId: true,
+              status: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
-          if (!existingTask) {
+          if (!existingRun) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -199,39 +214,67 @@ export default class AIAgentTaskAPI extends BaseAPI<
             );
           }
 
-          /* Update the task based on status */
           if (status === AIAgentTaskStatus.InProgress) {
-            await AIAgentTaskService.updateOneById({
-              id: taskId,
-              data: {
-                status: status,
-                ...(aiAgent.id && { aiAgentId: aiAgent.id }),
-                startedAt: OneUptimeDate.getCurrentDate(),
-                ...(statusMessage && { statusMessage: statusMessage }),
+            /*
+             * Back-compat no-op refresh: the run went Running at claim time,
+             * so an InProgress report only keeps it visibly alive for the
+             * stale-run sweeper.
+             */
+            await AIRunService.updateOneBy({
+              query: {
+                _id: runId.toString(),
+                status: AIRunStatus.Running,
               },
+              data: {
+                lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
+              } as never,
               props: {
                 isRoot: true,
               },
             });
-          } else if (
-            status === AIAgentTaskStatus.Completed ||
-            status === AIAgentTaskStatus.Error
-          ) {
-            await AIAgentTaskService.updateOneById({
-              id: taskId,
-              data: {
-                status: status,
-                completedAt: OneUptimeDate.getCurrentDate(),
-                ...(statusMessage && { statusMessage: statusMessage }),
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+          } else {
+            const toStatus: AIRunStatus =
+              status === AIAgentTaskStatus.Completed
+                ? AIRunStatus.Completed
+                : AIRunStatus.Error;
+
+            /*
+             * CAS Running -> Completed/Error. Losing the race (0 rows) means
+             * another actor already finalized the run — e.g. the sweeper
+             * marked it Error after a heartbeat gap — and that outcome wins;
+             * we do not clobber it or write a duplicate terminal event.
+             */
+            const transitionedCount: number =
+              await AIRunService.attemptStatusTransition({
+                aiRunId: runId,
+                fromStatus: AIRunStatus.Running,
+                set: {
+                  status: toStatus,
+                  completedAt: OneUptimeDate.getCurrentDate(),
+                  lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
+                  ...(toStatus === AIRunStatus.Error && statusMessage
+                    ? { errorMessage: statusMessage }
+                    : {}),
+                },
+              });
+
+            if (transitionedCount > 0 && existingRun.projectId) {
+              await AIRunEventService.appendEventToRun({
+                projectId: existingRun.projectId,
+                aiRunId: runId,
+                eventType:
+                  toStatus === AIRunStatus.Completed
+                    ? AIRunEventType.RunCompleted
+                    : AIRunEventType.RunFailed,
+                ...(statusMessage
+                  ? { resultSummary: { message: statusMessage } }
+                  : {}),
+              });
+            }
           }
 
           return Response.sendJsonObjectResponse(req, res, {
-            taskId: taskId.toString(),
+            taskId: runId.toString(),
             status: status,
             message: "Task status updated successfully",
           });

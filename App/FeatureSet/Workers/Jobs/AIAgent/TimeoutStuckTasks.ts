@@ -4,6 +4,7 @@ import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AIAgentService from "Common/Server/Services/AIAgentService";
 import AIAgentTaskService from "Common/Server/Services/AIAgentTaskService";
+import CodeFixRunQueue from "Common/Server/Utils/AI/CodeFix/CodeFixRunQueue";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import AIAgent from "Common/Models/DatabaseModels/AIAgent";
 import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
@@ -20,6 +21,11 @@ import logger from "Common/Server/Utils/Logger";
  * their project has no alive agent to pick them up — previously such tasks sat
  * "Scheduled" forever and the exception page showed "AI agent is working"
  * indefinitely, blocking retries.
+ *
+ * The two AIAgentTask jobs below only maintain LEGACY rows — new code-fix
+ * work lives on the AIRun substrate, swept by AIAgent:FailOrphanedQueuedCodeFixRuns
+ * (orphaned Queued runs, same semantics as FailOrphanedScheduledTasks) and by
+ * AIChat:TimeoutStuckRuns (heartbeat-stale Running runs).
  */
 
 const TASK_TIMEOUT_MINUTES: number = 30;
@@ -168,5 +174,22 @@ RunCron(
         logger.error(error, { service: "workers" });
       }
     }
+  },
+);
+
+/*
+ * The AIRun-substrate port of FailOrphanedScheduledTasks: Queued CodeFix
+ * runs older than the timeout in projects with no alive agent -> Error with
+ * the same actionable message. Decision logic lives in CodeFixRunQueue so
+ * it is unit-testable.
+ */
+RunCron(
+  "AIAgent:FailOrphanedQueuedCodeFixRuns",
+  {
+    schedule: EVERY_MINUTE,
+    runOnStartup: false,
+  },
+  async () => {
+    await CodeFixRunQueue.failOrphanedQueuedRuns();
   },
 );

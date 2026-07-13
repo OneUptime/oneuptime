@@ -348,6 +348,31 @@ export default class AIRun extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    title: "Triggered By Telemetry Exception ID",
+    description:
+      "The telemetry exception that triggered this run (for code-fix runs).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByTelemetryExceptionId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
     title: "Monitor ID",
     description:
       "The monitor behind the alert that triggered this run — the dedupe key for per-monitor investigation windows.",
@@ -358,6 +383,31 @@ export default class AIRun extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public monitorId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Agent ID",
+    description:
+      "The external AI agent that claimed this run (for code-fix runs executed by an agent container).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiAgentId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

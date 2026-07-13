@@ -159,11 +159,12 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   })
   @TableColumn({
     type: TableColumnType.Entity,
-    required: true,
+    required: false,
     modelType: AIAgentTask,
     manyToOneRelationColumn: "aiAgentTaskId",
     title: "AI Agent Task",
-    description: "AI Agent Task this pull request belongs to.",
+    description:
+      "Legacy AI Agent Task this pull request belongs to. New rows reference an AIRun via aiRunId instead.",
   })
   @ManyToOne(
     () => {
@@ -172,7 +173,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     {
       cascade: false,
       eager: false,
-      nullable: false,
+      nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
@@ -199,17 +200,50 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "AI Agent Task ID",
-    description: "ID of the AI Agent Task this pull request belongs to.",
+    description:
+      "ID of the legacy AI Agent Task this pull request belongs to. Null for rows created on the AIRun substrate.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public aiAgentTaskId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.CreateProjectAIAgentTask,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Run ID",
+    description:
+      "ID of the AIRun (runType CodeFix) this pull request was opened by.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiRunId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

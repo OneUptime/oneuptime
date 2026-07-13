@@ -30,7 +30,11 @@ const AIAgentTaskPullRequestsPage: FunctionComponent<
       userPreferencesKey="ai-agent-task-pull-requests-table"
       name="Pull Requests"
       query={{
-        aiAgentTaskId: modelId,
+        /*
+         * The route param is a CodeFix AIRun id — new PR rows carry aiRunId
+         * (aiAgentTaskId is only set on legacy AIAgentTask rows).
+         */
+        aiRunId: modelId,
       }}
       isViewable={false}
       cardProps={{

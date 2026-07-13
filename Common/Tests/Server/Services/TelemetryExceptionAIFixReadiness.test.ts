@@ -225,23 +225,23 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
   });
 });
 
-describe("TelemetryExceptionService.createAIAgentTaskForException fail-early", () => {
+describe("TelemetryExceptionService.createCodeFixRunForException fail-early", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("rejects with every missing prerequisite named, before any task is created", async () => {
+  test("rejects with every missing prerequisite named, before any run is created", async () => {
     mockReadiness({ provider: null, agent: null });
 
     await expect(
-      TelemetryExceptionService.createAIAgentTaskForException({
+      TelemetryExceptionService.createCodeFixRunForException({
         telemetryExceptionId: exceptionId,
         props: { isRoot: true },
       }),
     ).rejects.toThrow(BadDataException);
 
     await expect(
-      TelemetryExceptionService.createAIAgentTaskForException({
+      TelemetryExceptionService.createCodeFixRunForException({
         telemetryExceptionId: exceptionId,
         props: { isRoot: true },
       }),

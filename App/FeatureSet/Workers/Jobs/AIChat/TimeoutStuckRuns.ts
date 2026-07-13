@@ -7,6 +7,7 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AIRunService from "Common/Server/Services/AIRunService";
 import AIConversationMessageService from "Common/Server/Services/AIConversationMessageService";
 import SentinelInvestigationQueue from "Common/Server/Utils/AI/Sentinel/InvestigationQueue";
+import CodeFixRunQueue from "Common/Server/Utils/AI/CodeFix/CodeFixRunQueue";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMessage";
@@ -80,6 +81,22 @@ RunCron(
 
           logger.info(
             `Stale investigation run ${run.id?.toString()}: ${outcome}.`,
+            { service: "workers" },
+          );
+          continue;
+        }
+
+        /*
+         * Code-fix runs execute in an EXTERNAL agent container. A silent
+         * heartbeat means that executor died — and it may already have
+         * pushed a partial fix branch, so auto-retrying is not safe. They
+         * are finalized as Error (CAS-guarded), never requeued.
+         */
+        if (run.runType === AIRunType.CodeFix) {
+          await CodeFixRunQueue.markStaleRunAsError({ id: run.id! });
+
+          logger.info(
+            `Stale code-fix run ${run.id?.toString()}: marked as Error (external agent died; not auto-retried).`,
             { service: "workers" },
           );
           continue;

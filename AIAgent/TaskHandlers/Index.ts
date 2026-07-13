@@ -3,7 +3,6 @@ export {
   TaskHandler,
   TaskContext,
   TaskResult,
-  TaskMetadata,
   TaskResultData,
   BaseTaskHandler,
 } from "./TaskHandlerInterface";
