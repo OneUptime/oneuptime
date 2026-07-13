@@ -570,6 +570,163 @@ The service runs under `LocalSystem` by default, which has the privileges needed
 3. Open **Metrics** — host metrics (CPU, memory, filesystem, etc.) should appear within a minute.
 4. Open **Logs** — your file logs / journald entries / Windows Event Logs should be streaming in. Useful searchable attributes include `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id`, and `winlog.provider.name`.
 
+## Reducing the Volume of Data Collected
+
+Because you own the collector config, you decide exactly what leaves the host — nothing is collected unless a receiver you added asks for it. If a host is sending more than you want (which shows up as higher ingest volume, and on OneUptime Cloud, higher cost), tune it here. The two biggest levers are **which log sources you tail** and **how often you scrape metrics**; a `filter` processor handles the rest.
+
+The principle is the same as the config itself: **add only the receivers whose data you will look at**, then trim within them. Each change below is an edit to `config.yaml` — apply it and restart the collector (Step 3).
+
+### Where the volume comes from
+
+| Signal                 | Biggest driver                                       | Turn it down with                                                    |
+| ---------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| **Logs**               | Every line from every file / journald unit / channel | Narrow receivers; `query:` filters; a `filter` processor on severity |
+| **Host metrics**       | Scrape frequency × number of series                  | `collection_interval`; drop the `process` scraper; scraper selection |
+| **Metric cardinality** | Per-process metrics (one series set per process)     | Omit or scope the `process` scraper                                  |
+
+### Lever 1 — Tail only the log sources you need
+
+Logs are almost always the largest slice. The collector only reads what you list, so the fix is to list less:
+
+- **Files** — point `filelog` at specific paths, not broad globs. `/var/log/myapp/error.log` instead of `/var/log/**`.
+- **journald** — restrict `units:` to the services you care about and raise `priority:` so you drop chatty `info`/`debug` entries at the source:
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Windows Event Logs** — the `Security` channel is by far the highest-volume one. Narrow it to the event IDs you actually audit with a `query:` (as shown in [Windows Event Logs](#windows-event-logs) above), or drop the channel entirely if you don't need it.
+
+### Lever 2 — Slow down the metrics interval
+
+`hostmetrics` volume scales directly with `collection_interval`. If you don't need 30-second resolution, 60s halves the number of data points:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### Lever 3 — Drop the per-process scraper (the cardinality driver)
+
+The `process` scraper emits a separate set of series **for every running process** on the host — on a busy machine that is the single largest source of metric cardinality. Unless you need per-process CPU/memory, leave it out of the `scrapers:` list. Keep `processes` (which is just a handful of aggregate process-count metrics) — it's cheap. If you do want per-process metrics, scope them to the processes that matter:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### Lever 4 — Drop low-value records with a `filter` processor
+
+When you want the receiver but not all of its output, add a [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) processor — it evaluates an [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) condition and **drops any record that matches**, before anything is exported.
+
+Drop logs below a severity threshold:
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+Drop a specific noisy metric you don't chart:
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+Then add the processor to the relevant pipeline — order matters, so put `filter` before `batch`:
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### A lean starting point
+
+A **metrics-only** host — no logs, coarse interval, no per-process series — is the smallest useful footprint:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+Add a `logs` pipeline back with a narrowly-scoped `filelog` or `journald` receiver when you need it.
+
+> **Watch what you cut.** Log-based alerts need the logs to arrive: if you filter out a severity or a channel, monitors that key on it go quiet. Trim the sources you don't act on, not the ones a monitor is watching. Change one lever at a time and confirm the drop under **Project Settings → Usage History** (usage is aggregated daily, so give it a day or two) before moving to the next.
+
 ## Self-hosted OneUptime
 
 If you are self-hosting OneUptime, point the exporter at your own host:
@@ -602,7 +759,7 @@ The OpenTelemetry Collector respects the standard `HTTPS_PROXY` / `HTTP_PROXY` /
 - **HTTP 401 from the exporter** — the ingestion token is invalid or revoked. Generate a new one from _Project Settings → Telemetry Ingestion Keys_.
 - **`Security` Windows Event Log returns access denied** — the service is not running with sufficient privileges. Recreate it under `LocalSystem` (the default with `sc.exe create`) or grant the service account the _Manage auditing and security log_ user right.
 - **`journald` receiver fails to start** — make sure `journalctl` is on the collector's `PATH` and that `/var/log/journal` exists (run `sudo systemd-tmpfiles --create --prefix /var/log/journal` if not).
-- **High volume / cost** — narrow the receivers (specific Windows channels, specific systemd units, specific log files), add a `query:` filter on the Windows Event Log receiver, or add a `filter` processor to drop low-severity events before export.
+- **High volume / cost** — see [Reducing the Volume of Data Collected](#reducing-the-volume-of-data-collected): narrow the receivers (specific Windows channels, systemd units, log files), raise the metrics `collection_interval`, drop the per-process scraper, or add a `filter` processor to drop low-severity records before export.
 
 ## Next steps
 

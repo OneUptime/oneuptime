@@ -102,7 +102,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### Namespace 篩選
 
-預設會排除 `kube-system`。若只要監控特定 namespace：
+`namespaceFilters` 會將 **Pod 日誌**（包含 hostPath DaemonSet 與 API 日誌追蹤器兩者）以及 **eBPF 追蹤**的範圍限定在您所選擇的 namespace。預設會排除 `kube-system`。若要將這些訊號限制在特定 namespace：
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -113,6 +113,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set "namespaceFilters.include={default,production,staging}"
 ```
+
+> 這些篩選條件**不會**減少節點 / Pod / 容器**指標**——那些是從 kubelet 依每個節點抓取的，並且一律以叢集範圍收集（節點層級與叢集層級的序列沒有 namespace 可供篩選）。`exclude` 一律優先於 `include`。如需完整的資料量控制項目，請參閱 [減少收集的資料量](#reducing-the-volume-of-data-collected)。
 
 ### 停用日誌收集
 
@@ -261,6 +263,161 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `tcpStats`                | 啟用 | 節點層級的 TCP RTT、連線失敗、重傳計數器             |
 
 跨服務的追蹤 context 傳播也預設啟用——OBI 會將 W3C `traceparent` 注入對外的 HTTP/TCP，因此一個橫跨 pod A → pod B 的請求會顯示為單一追蹤，任何地方都不需要修改 SDK。可用 `--set ebpf.contextPropagation=false` 關閉。
+
+## 減少收集的資料量
+
+agent 在開箱即用時是為了**涵蓋範圍**而調校的——它會傳送整個叢集的指標、Pod 日誌與 eBPF 追蹤，讓每個儀表板與監控從第一天起就能運作。在大型或繁忙的叢集上，這可能會是超出您所需的遙測資料量，並表現為更高的擷取量（在 OneUptime Cloud 上則是更高的成本）。這裡沒有任何項目是必要的，但如果某個叢集傳送的資料超過您想要的量，以下就是可供調整的開關——大致依影響程度排序。
+
+訣竅在於**停止收集您不會查看的資料**，而不是收集全部再付費儲存。下方的每個槓桿都是一個 Helm value，因此您可以在 `helm upgrade --reuse-values` 上用 `--set` 套用它，並以相同方式將其回復。
+
+### 資料量的來源
+
+| 訊號                      | 最大來源                                         | 調降方式                                                                                     |
+| ------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| **Pod 日誌**              | 叢集範圍內每個容器的每一行日誌                   | `logs.enabled`、`logs.mode`、`namespaceFilters`                                              |
+| **eBPF 追蹤與 span 指標** | 每個受 instrument 的處理程序中每個請求各一筆追蹤 | `ebpf.enabled`、`ebpf.features.*`、`ebpf.autoTargetExe`、`ebpf.excludeExePaths`              |
+| **指標資料點**            | 抓取頻率 × Pod/容器的數量                        | `collectionInterval`、`hostMetrics.collectionInterval`、`cadvisor.scrapeInterval`            |
+| **指標 cardinality**      | 不同序列的數量（每個容器、每個 PVC……）           | `cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics`、`kubeletstats.utilizationMetrics` |
+| **選擇性啟用的額外項目**  | Profiling、稽核日誌、control plane、跨區指標     | 讓它們維持關閉（它們預設就是關閉的）                                                         |
+
+### 槓桿 1 — Pod 日誌通常是單一最大來源
+
+容器日誌幾乎總是擷取量中最大的一塊，因為叢集中每個容器的每一行日誌都是一筆記錄。
+
+- **完全不需要 OneUptime 的日誌？** 將它們完全關閉——您仍會保留所有指標、事件與追蹤：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+- **只想要特定 namespace 的日誌？** `namespaceFilters.include` 會在兩種日誌模式下限定 Pod 日誌的範圍（並連同 eBPF 追蹤一起）。比對發生在 Pod 日誌路徑上，因此被篩除的 namespace 根本不會被讀取：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set "namespaceFilters.include={default,production}"
+  ```
+
+  （`kube-system` 預設就已被排除。）
+
+### 槓桿 2 — 精簡 eBPF 自動 instrumentation
+
+eBPF 讓您無需修改程式碼即可取得追蹤、RED 指標、service map 與網路流量指標——但它同時也是第二大的資料來源，因為它每個請求會發出一個 span，且每個服務會發出數個指標族群。您有三個層級的控制方式：
+
+- **已經從 OTel SDK 傳送追蹤，或不想要自動追蹤？** 將 eBPF 完全關閉：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.enabled=false
+  ```
+
+- **保留追蹤，捨棄較重的指標族群。** 上方的[訊號族群表格](#toggle-individual-signal-families)列出了每個 `ebpf.features.*` 旗標。資料量最高的族群是網路與 span 指標——將它們關閉後，追蹤、HTTP RED 指標與 service map 仍會保持完整：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.features.networkMetrics=false \
+    --set ebpf.features.tcpStats=false \
+    --set ebpf.features.spanMetrics=false
+  ```
+
+  讓 `ebpf.features.networkInterZoneMetrics` 維持關閉（其預設值）——它會使網路流量的 cardinality 加倍。
+
+- **只 instrument 您關心的執行階段。** OBI 預設會掛接到它辨識的每個處理程序（`ebpf.autoTargetExe: "*"`）。將它縮小到特定執行階段，或將二進位檔加入略過清單，以減少 agent 產生的「服務」與追蹤數量：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.autoTargetExe='*/python,*/java'
+  ```
+
+  如需完整的預設值，請參閱[切換個別的訊號族群](#toggle-individual-signal-families)以及 chart values 中的 `excludeExePaths` 說明。
+
+### 槓桿 3 — 放慢抓取間隔
+
+指標資料量與 agent 抓取的頻率成正比。將間隔加倍大約會使該指標產生的資料點數量減半，且不會損失涵蓋範圍——只是解析度較粗。如果您不需要 30 秒的精細度，60s 或 120s 是一個幅度大又安全的縮減：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set collectionInterval=60s \
+  --set hostMetrics.collectionInterval=60s \
+  --set cadvisor.scrapeInterval=60s
+```
+
+- `collectionInterval`（預設 `30s`）驅動節點 / Pod / 容器指標（`kubeletstats`）與叢集狀態指標（`k8s_cluster`）——佔指標資料量的大宗。
+- `hostMetrics.collectionInterval` 與 `cadvisor.scrapeInterval` 涵蓋每個節點的 OS 指標以及 throttling / OOM 計數器。
+- `resourceSpecs.interval`（預設 `300s`）控制完整資源規格（labels、annotations、status）被拉取的頻率——如果您不需要規格變更被快速反映，可將它調高。
+- 如果您啟用了任何可選的抓取器，它們也各有自己的調整項：`kubeStateMetrics.scrapeInterval`、`serviceMesh.*.scrapeInterval`、`coreDns.scrapeInterval`、`csi.scrapeInterval`。
+
+### 槓桿 4 — 讓指標 cardinality 維持在可控範圍
+
+Cardinality（不同時間序列的數量）與頻率同樣重要，因為每個序列都是分開儲存與計費的。
+
+- **cAdvisor 是刻意採用允許清單的。** cAdvisor receiver（預設啟用）可能會發出數百個指標；此 chart 只會轉送用來驅動監控的少數幾個（`cadvisor.metricsAllowlist`）。請讓這份清單保持精簡——**每個項目都會依每個容器保留，因此多一個指標就會乘上叢集的容器數量。** kube-state-metrics 預設為關閉，但如果您啟用它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 會以相同方式控管 cardinality。
+- **每個 PVC 的 volume 指標**（`kubeletstats.volumeMetrics.enabled`，預設啟用）會為每個 Pod 的每個 PVC 各發出一個序列。對大多數叢集來說這沒問題，但在具有數千個 PVC 的具狀態工作負載（Kafka、資料庫）上可能會很可觀——如果您不監看 PVC 磁碟空間，請在那裡將它關閉：
+
+  ```bash
+  --set kubeletstats.volumeMetrics.enabled=false
+  ```
+
+- **飽和度指標**（`kubeletstats.utilizationMetrics.enabled`，預設啟用）會新增 8 個衍生的「佔 request/limit 百分比」族群。它們很便宜（不需額外抓取），但如果您不使用 CPU/記憶體對比 limit 的監控，可以用 `--set kubeletstats.utilizationMetrics.enabled=false` 將它們捨棄。
+
+### 槓桿 5 — 讓較重的選擇性啟用功能維持關閉
+
+這些功能**預設為關閉**，正是因為它們會增加負載——只有在您實際使用它所驅動的功能時才啟用某一項，如果您只是試用一下，之後請將它關回去：
+
+| 設定值                                                    | 新增了什麼                                                                       |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `profiling.enabled`                                       | 持續性 CPU profiling DaemonSet——比 eBPF 追蹤更重                                 |
+| `auditLogs.enabled`                                       | 將每個 Kubernetes API 請求作為一筆日誌記錄（高資料量）                           |
+| `controlPlane.enabled`                                    | etcd / API-server / scheduler / controller-manager 指標                          |
+| `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / scheduling-reason 指標（新增一個 KSM Deployment + 抓取） |
+| `ebpf.features.networkInterZoneMetrics`                   | 使網路流量指標的 cardinality 加倍                                                |
+| `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 額外的 Prometheus 抓取工作                                                       |
+
+### 精簡的起始點
+
+如果您想要最小的佔用，並在需要時再把訊號加回來，這個**僅指標 + 事件**的設定檔會捨棄日誌與 eBPF，並將抓取頻率減半：
+
+```yaml
+# lean-values.yaml
+oneuptime:
+  url: YOUR_ONEUPTIME_URL
+  apiKey: YOUR_ONEUPTIME_API_KEY
+clusterName: my-cluster
+
+collectionInterval: 60s
+
+logs:
+  enabled: false # no pod logs
+
+ebpf:
+  enabled: false # no auto-traces
+
+hostMetrics:
+  collectionInterval: 60s
+
+cadvisor:
+  scrapeInterval: 60s
+```
+
+```bash
+helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  -f lean-values.yaml
+```
+
+從那裡開始，再重新啟用您需要的任何項目：以 API 模式為少數幾個 namespace 啟用 `logs.enabled=true`，或以縮小範圍的 `autoTargetExe` 搭配 `ebpf.enabled=true`。
+
+> **注意您所削減的內容。** 有些監控依賴特定的訊號：停用 `cadvisor` 會移除 OOM-kill 與 CPU-throttling 監控；停用 `kubeletstats.volumeMetrics` 會移除 PVC 低磁碟空間監控；停用日誌會移除以日誌為基礎的警示。請削減您不會據以採取行動的訊號，而不是某個監控正在監看的訊號。
+
+### 衡量效果
+
+遙測用量是以每日為單位彙總的，因此請在 **Project Settings → Usage History** 下觀察一兩天的趨勢來確認下降——它不會在您套用變更的當下就立即變化。一次只調整一個槓桿，這樣您才能歸因於差異——先關閉日誌，接著調高間隔，然後精簡 eBPF——而不是一次把所有東西都調降，結果失去一個您實際依賴的監控。
 
 ## 疑難排解
 
