@@ -13,7 +13,6 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
-import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -23,23 +22,16 @@ import React, {
 import { env, HOME_URL } from "Common/UI/Config";
 import UserUtil from "Common/UI/Utils/User";
 import AIPlanGate from "../../Components/AI/AIPlanGate";
-import GitHubRepoSelectorModal from "../../Components/CodeRepository/GitHubRepoSelectorModal";
 import RepositoryConnectionStatus from "../../Components/CodeRepository/RepositoryConnectionStatus";
 import Card from "Common/UI/Components/Card/Card";
 import ObjectID from "Common/Types/ObjectID";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 
 const CodeRepositoryPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const [showGitHubModal, setShowGitHubModal] = useState<boolean>(false);
-  const [gitHubInstallationId, setGitHubInstallationId] = useState<
-    string | null
-  >(null);
-  const [projectInstallationId, setProjectInstallationId] = useState<
-    string | null
-  >(null);
+  const [showGitHubConnectedBanner, setShowGitHubConnectedBanner] =
+    useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
@@ -47,50 +39,26 @@ const CodeRepositoryPage: FunctionComponent<
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  // Fetch GitHub installation ID from project
-  const fetchProjectInstallationId: () => Promise<void> =
-    async (): Promise<void> => {
-      if (!projectId) {
-        return;
-      }
-
-      try {
-        const project: Project | null = await ModelAPI.getItem({
-          modelType: Project,
-          id: projectId,
-          select: {
-            gitHubAppInstallationId: true,
-          },
-        });
-
-        if (project?.gitHubAppInstallationId) {
-          setProjectInstallationId(project.gitHubAppInstallationId);
-        }
-      } catch (err: unknown) {
-        // Silently fail - we'll just redirect to GitHub if we can't get the installation ID
-        API.getFriendlyErrorMessage(err as Error);
-      }
-    };
-
   useEffect(() => {
-    // Check for installation_id in URL query params (returned from GitHub OAuth)
+    /*
+     * Check for installation_id in URL query params (returned from GitHub
+     * after installing the app). The repositories in the installation were
+     * already imported server-side by the install callback, so all that is
+     * left to do here is show a success banner and refresh the table.
+     */
     const urlParams: URLSearchParams = new URLSearchParams(
       window.location.search,
     );
     const installationId: string | null = urlParams.get("installation_id");
 
     if (installationId) {
-      setGitHubInstallationId(installationId);
-      setProjectInstallationId(installationId); // Also update the project installation ID
-      setShowGitHubModal(true);
+      setShowGitHubConnectedBanner(true);
+      setRefreshToggle(Date.now().toString());
 
       // Clean up the URL
       const newUrl: string = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-
-    // Fetch installation ID from project
-    fetchProjectInstallationId();
   }, []);
 
   const handleConnectWithGitHub: () => void = (): void => {
@@ -98,49 +66,14 @@ const CodeRepositoryPage: FunctionComponent<
       return;
     }
 
-    // If project already has an installation ID, show the modal directly
-    if (projectInstallationId) {
-      setGitHubInstallationId(projectInstallationId);
-      setShowGitHubModal(true);
-      return;
-    }
-
-    // Otherwise, redirect to GitHub for fresh installation
+    /*
+     * Redirect to GitHub to install (or update) the GitHub App. Once
+     * installed, all repositories in the installation are imported
+     * automatically and kept in sync via webhooks.
+     */
     const userId: ObjectID = UserUtil.getUserId();
     const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
     window.location.href = installUrl;
-  };
-
-  const handleGitHubModalClose: () => void = (): void => {
-    setShowGitHubModal(false);
-    setGitHubInstallationId(null);
-  };
-
-  const handleRepoConnected: () => void = (): void => {
-    setShowGitHubModal(false);
-    setGitHubInstallationId(null);
-    // Refresh the table
-    setRefreshToggle(Date.now().toString());
-  };
-
-  /**
-   * Called when the GitHub App installation is no longer valid (e.g., uninstalled from GitHub).
-   * This clears the stale installation ID and redirects the user to GitHub for a fresh installation.
-   */
-  const handleInstallationExpired: () => void = (): void => {
-    // Close the modal
-    setShowGitHubModal(false);
-    setGitHubInstallationId(null);
-
-    // Clear the stale project installation ID (backend already cleared it from the database)
-    setProjectInstallationId(null);
-
-    // Redirect to GitHub for a fresh installation
-    if (projectId) {
-      const userId: ObjectID = UserUtil.getUserId();
-      const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
-      window.location.href = installUrl;
-    }
   };
 
   // Read GitHub App Name fresh on each render to avoid module initialization timing issues
@@ -155,13 +88,26 @@ const CodeRepositoryPage: FunctionComponent<
     <>
       <AIPlanGate />
 
+      {showGitHubConnectedBanner && (
+        <Alert
+          type={AlertType.SUCCESS}
+          strongTitle="GitHub connected"
+          title="Your repositories were imported automatically."
+          onClose={() => {
+            setShowGitHubConnectedBanner(false);
+          }}
+        />
+      )}
+
       {/* Connect Repository Card */}
       <Card
-        title="Connect Repository"
+        title="Connect Repositories"
         description={
           <span>
-            Connect your code repositories to enable code analysis and automatic
-            improvements. Connected repositories are what the{" "}
+            Install the GitHub App and all repositories in the installation are
+            imported automatically — no need to pick them one at a time. They
+            stay in sync as repositories are added to or removed from the
+            installation. Connected repositories are what the{" "}
             <Link to={aiAgentsRoute} className="underline">
               AI agent
             </Link>{" "}
@@ -197,8 +143,9 @@ const CodeRepositoryPage: FunctionComponent<
                     Connect with GitHub App
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Recommended for GitHub repositories. Provides seamless
-                    integration with automatic authentication.
+                    Recommended for GitHub repositories. Installing the app
+                    imports all of its repositories automatically and keeps
+                    them in sync.
                   </p>
                   <div className="mt-3">
                     <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
@@ -256,7 +203,7 @@ const CodeRepositoryPage: FunctionComponent<
         showViewIdButton={true}
         noItemsMessage={
           isGitHubAppConfigured
-            ? "No repositories connected. Use the card above to connect a repository."
+            ? "No repositories connected. Use the card above to install the GitHub App — all repositories in the installation are imported automatically."
             : "No repositories connected. Configure the GitHub App on your server to connect repositories."
         }
         showRefreshButton={true}
@@ -379,17 +326,6 @@ const CodeRepositoryPage: FunctionComponent<
       />
 
       {labelBulkActionModals}
-
-      {/* GitHub Repository Selector Modal */}
-      {showGitHubModal && gitHubInstallationId && projectId && (
-        <GitHubRepoSelectorModal
-          projectId={projectId}
-          installationId={gitHubInstallationId}
-          onClose={handleGitHubModalClose}
-          onSuccess={handleRepoConnected}
-          onInstallationExpired={handleInstallationExpired}
-        />
-      )}
     </>
   );
 };

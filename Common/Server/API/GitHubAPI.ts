@@ -9,7 +9,8 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
-import { JSONObject } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import {
   DashboardClientUrl,
   GitHubAppName,
@@ -20,10 +21,13 @@ import GitHubUtil, {
   GitHubRepository,
   GitHubInstallationNotFoundError,
 } from "../Utils/CodeRepository/GitHub/GitHub";
-import CodeRepositoryService from "../Services/CodeRepositoryService";
+import CodeRepositoryService, {
+  ImportReposFromInstallationResult,
+} from "../Services/CodeRepositoryService";
 import ProjectService from "../Services/ProjectService";
 import AccessTokenService from "../Services/AccessTokenService";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
+import Project from "../../Models/DatabaseModels/Project";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import URL from "../../Types/API/URL";
 import UserMiddleware from "../Middleware/UserAuthorization";
@@ -32,6 +36,141 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import { UserTenantAccessPermission } from "../../Types/Permission";
 
 export default class GitHubAPI {
+  /*
+   * Resolves the projects linked to a GitHub App installation. The
+   * installation ID is stored on the Project when the install callback runs
+   * (mirroring how the uninstall webhook resolves projects). As a fallback,
+   * also look at existing CodeRepository rows that carry the installation ID
+   * (e.g. if the ID was cleared from the project but repositories remain).
+   */
+  private static async getProjectIdsForInstallation(
+    installationId: string,
+  ): Promise<Array<ObjectID>> {
+    const projectIds: Array<string> = [];
+
+    const projects: Array<Project> = await ProjectService.findBy({
+      query: {
+        gitHubAppInstallationId: installationId,
+      },
+      select: {
+        _id: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const project of projects) {
+      if (project.id) {
+        projectIds.push(project.id.toString());
+      }
+    }
+
+    const codeRepositories: Array<CodeRepository> =
+      await CodeRepositoryService.findBy({
+        query: {
+          gitHubAppInstallationId: installationId,
+        },
+        select: {
+          projectId: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const codeRepository of codeRepositories) {
+      if (
+        codeRepository.projectId &&
+        !projectIds.includes(codeRepository.projectId.toString())
+      ) {
+        projectIds.push(codeRepository.projectId.toString());
+      }
+    }
+
+    return projectIds.map((projectId: string) => {
+      return new ObjectID(projectId);
+    });
+  }
+
+  // Imports all repositories in an installation into every project linked to it.
+  private static async importInstallationRepositoriesForLinkedProjects(
+    installationId: string,
+  ): Promise<void> {
+    const projectIds: Array<ObjectID> =
+      await GitHubAPI.getProjectIdsForInstallation(installationId);
+
+    if (projectIds.length === 0) {
+      logger.info(
+        `GitHub webhook: no projects linked to installation ${installationId}. Skipping repository import.`,
+      );
+      return;
+    }
+
+    for (const projectId of projectIds) {
+      const importResult: ImportReposFromInstallationResult =
+        await CodeRepositoryService.importReposFromInstallation({
+          projectId: projectId,
+          installationId: installationId,
+        });
+
+      logger.info(
+        `GitHub webhook: imported ${importResult.imported} repositories (${importResult.skipped} skipped) into project ${projectId.toString()} for installation ${installationId}`,
+      );
+    }
+  }
+
+  /*
+   * Deletes CodeRepository rows for repositories that were removed from the
+   * installation. Once a repository is removed we can no longer mint tokens
+   * for it, so keeping the row around is a dead end. Uses the service delete
+   * so cascades / SET NULLs apply.
+   */
+  private static async removeRepositoriesForInstallation(
+    installationId: string,
+    removedRepositories: JSONArray,
+  ): Promise<void> {
+    for (const removedRepository of removedRepositories) {
+      const fullName: string | undefined = (
+        removedRepository as JSONObject
+      )?.["full_name"]?.toString();
+
+      if (!fullName) {
+        continue;
+      }
+
+      const slashIndex: number = fullName.indexOf("/");
+
+      if (slashIndex <= 0) {
+        continue;
+      }
+
+      const organizationName: string = fullName.substring(0, slashIndex);
+      const repositoryName: string = fullName.substring(slashIndex + 1);
+
+      const deletedCount: number = await CodeRepositoryService.deleteBy({
+        query: {
+          gitHubAppInstallationId: installationId,
+          organizationName: organizationName,
+          repositoryName: repositoryName,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      logger.info(
+        `GitHub webhook: removed ${deletedCount} repository record(s) for ${fullName} (installation ${installationId})`,
+      );
+    }
+  }
+
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
@@ -134,6 +273,34 @@ export default class GitHubAPI {
               isRoot: true,
             },
           });
+
+          /*
+           * Import all repositories in the installation automatically so the
+           * user does not have to pick them one at a time. Failures are
+           * logged but do not fail the callback — the import is retried via
+           * the installation_repositories webhook or on reinstall.
+           */
+          try {
+            const importResult: ImportReposFromInstallationResult =
+              await CodeRepositoryService.importReposFromInstallation({
+                projectId: new ObjectID(projectId),
+                installationId: installationId,
+              });
+
+            logger.info(
+              `GitHub App installation ${installationId}: imported ${importResult.imported} repositories (${importResult.skipped} skipped) into project ${projectId}`,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
+          } catch (importError) {
+            logger.error(
+              `GitHub Auth Callback: Failed to import repositories from installation ${installationId} into project ${projectId}:`,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
+            logger.error(
+              importError,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
+          }
 
           // Redirect back to dashboard with installation ID
           const redirectUrl: string = `${DashboardClientUrl.toString()}/${projectId}/code-repository?installation_id=${installationId}`;
@@ -518,7 +685,7 @@ export default class GitHubAPI {
             getLogAttributesFromRequest(req as OneUptimeRequest),
           );
 
-          // Handle installation events - specifically when the app is uninstalled
+          // Handle installation events - install and uninstall of the app
           if (event === "installation") {
             const action: string | undefined = (req.body as JSONObject)?.[
               "action"
@@ -526,6 +693,28 @@ export default class GitHubAPI {
             const installationId: string | undefined = (
               (req.body as JSONObject)?.["installation"] as JSONObject
             )?.["id"]?.toString();
+
+            /*
+             * App installed - import all repositories in the installation
+             * into any project linked to it. This covers installs done
+             * directly from GitHub (marketplace) without our redirect flow.
+             */
+            if (action === "created" && installationId) {
+              try {
+                await GitHubAPI.importInstallationRepositoriesForLinkedProjects(
+                  installationId,
+                );
+              } catch (importError) {
+                logger.error(
+                  `Failed to import repositories for GitHub App installation ${installationId}:`,
+                  getLogAttributesFromRequest(req as OneUptimeRequest),
+                );
+                logger.error(
+                  importError,
+                  getLogAttributesFromRequest(req as OneUptimeRequest),
+                );
+              }
+            }
 
             if (action === "deleted" && installationId) {
               logger.info(
@@ -577,6 +766,60 @@ export default class GitHubAPI {
                   clearError,
                   getLogAttributesFromRequest(req as OneUptimeRequest),
                 );
+              }
+            }
+          }
+
+          /*
+           * Handle repositories being added to / removed from the
+           * installation so connected repositories stay in sync with GitHub
+           * without any manual picking.
+           */
+          if (event === "installation_repositories") {
+            const body: JSONObject = req.body as JSONObject;
+            const installationId: string | undefined = (
+              body["installation"] as JSONObject
+            )?.["id"]?.toString();
+
+            if (installationId) {
+              const repositoriesAdded: JSONArray =
+                (body["repositories_added"] as JSONArray) || [];
+              const repositoriesRemoved: JSONArray =
+                (body["repositories_removed"] as JSONArray) || [];
+
+              if (repositoriesAdded.length > 0) {
+                try {
+                  await GitHubAPI.importInstallationRepositoriesForLinkedProjects(
+                    installationId,
+                  );
+                } catch (importError) {
+                  logger.error(
+                    `Failed to import added repositories for GitHub App installation ${installationId}:`,
+                    getLogAttributesFromRequest(req as OneUptimeRequest),
+                  );
+                  logger.error(
+                    importError,
+                    getLogAttributesFromRequest(req as OneUptimeRequest),
+                  );
+                }
+              }
+
+              if (repositoriesRemoved.length > 0) {
+                try {
+                  await GitHubAPI.removeRepositoriesForInstallation(
+                    installationId,
+                    repositoriesRemoved,
+                  );
+                } catch (removeError) {
+                  logger.error(
+                    `Failed to remove repositories for GitHub App installation ${installationId}:`,
+                    getLogAttributesFromRequest(req as OneUptimeRequest),
+                  );
+                  logger.error(
+                    removeError,
+                    getLogAttributesFromRequest(req as OneUptimeRequest),
+                  );
+                }
               }
             }
           }

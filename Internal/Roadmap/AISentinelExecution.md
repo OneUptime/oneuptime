@@ -250,6 +250,8 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 
 ## 8. Changelog
 
+- **2026-07-13** — **Shipped zero-config setup part 1: GitHub repos auto-import.** Installing the GitHub App now imports every repository in the installation as `CodeRepository` rows (install-callback import + `installation`/`installation_repositories` webhook sync, both idempotent; removals hard-delete). The per-repo picker modal is gone — connecting GitHub is one click total. Part of the "works from the get-go" direction: the repo-picking step of the four-leg setup is eliminated.
+
 - **2026-07-13** — **Shipped UX-overhaul D2: upfront plan gating + chat empty states.** New `AIPlanGate` banner (Growth-plan check via `SubscriptionPlan.isFeatureAccessibleOnCurrentPlan`, billing-page CTA, renders nothing on self-host/unknown plan — fail open) mounted on AI chat, AI tasks, and Code Repositories pages; the chat home and quick-launch panel now show a "No LLM provider is configured" setup notice with a deep link instead of letting the first message fail at send time. Signposting only — no content blocking.
 
 - **2026-07-13** — **Shipped Preventive-lane X-1 (first half): AI-agent PR outcome sync.** New `AIAgent:SyncPullRequestStates` worker (every 30 min) resolves open `AIAgentTaskPullRequest` rows against GitHub via the App installation (token reused per installation, uninstalled apps skipped) and records Merged / Closed — merged-first mapping so merges never count as plain closes. `pullRequestState` previously stayed "Open" forever, making fix-acceptance rates unknowable; the G11 precision baseline now accumulates from real usage. Merged-with-edits detection and rate reporting remain open.
