@@ -5,10 +5,8 @@ import {
   AIChatCitation,
   AIRunEventResultSummary,
 } from "../../../../Types/AI/AIChatTypes";
-import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
-import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import Project from "../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
@@ -16,6 +14,7 @@ import AIRunService from "../../../Services/AIRunService";
 import AIRunEventService from "../../../Services/AIRunEventService";
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
+import SentinelInvestigationQueue from "./InvestigationQueue";
 import ObservabilityAssistant, {
   ObservabilityAssistantResult,
   ObservabilityAssistantStep,
@@ -53,6 +52,14 @@ const MAX_OUTPUT_TOKENS: number = 2000;
  */
 const INCONCLUSIVE_RE: RegExp = /inconclusive[^.\n]*insufficient signal/i;
 
+/*
+ * Failures a retry cannot fix within the run's usefulness window: missing/
+ * broken provider configuration and budget exhaustion (both messages minted
+ * by our own gating in AIService/LLMService, so they are stable to match).
+ */
+const PERMANENT_FAILURE_RE: RegExp =
+  /no llm provider configured|llm provider type is not configured|token budget exhausted/i;
+
 // Maps a live agent step to the AIRunEvent type persisted for the glass-box trail.
 const STEP_EVENT_TYPE: Record<ObservabilityAssistantStepType, AIRunEventType> =
   {
@@ -67,7 +74,7 @@ const INVESTIGATION_PERSONA: string = `You are "Sentinel", OneUptime's autonomou
 
 Investigate like a senior on-call engineer:
 - Start from the affected monitors/services named in the signal.
-- Use your read tools to inspect the telemetry AROUND the signal's creation time: recent exceptions and their trends, error/latency metrics versus their normal range, failing traces, relevant logs, and recent changes / deploys.
+- Use your read tools to inspect the telemetry AROUND the signal's creation time: recent exceptions and their trends, error/latency metrics versus their normal range (use baseline_anomaly to judge a metric against its learned hour-of-week baseline quantitatively instead of eyeballing), failing traces, relevant logs, and recent changes / deploys.
 - Form the single most likely root-cause hypothesis. If the evidence is inconclusive, say so plainly and list what you checked — do NOT guess a cause the data does not support.
 - If the context lists past resolved incidents, check whether this is a RECURRENCE. If the current signal matches one, say so explicitly, reference that incident number, and note how it was resolved before — but still verify against the current telemetry.
 
@@ -83,17 +90,10 @@ Keep it tight and skimmable. You are read-only: never claim to have changed anyt
 export type SentinelSubjectType = "Incident" | "Alert";
 
 export interface InvestigationRequest {
-  projectId: ObjectID;
   // Label recorded on LlmLog, e.g. "Sentinel Incident Investigation".
   feature: string;
   // A compact markdown summary of the subject that seeds the investigation.
   contextSummary: string;
-  /*
-   * The subject that triggered this run — links the AIRun so the live panel can
-   * find "the investigation for this incident/alert". Exactly one is set.
-   */
-  subjectIncidentId?: ObjectID | undefined;
-  subjectAlertId?: ObjectID | undefined;
   /*
    * Called with the finished, branded, cited analysis so the caller can post it
    * to the subject's timeline. `isConfident` is false when Sentinel reported it
@@ -160,43 +160,37 @@ export default class SentinelInvestigationEngine {
   }
 
   /*
-   * Run one investigation end-to-end. Never throws — failures are logged and
-   * recorded on the AIRun.
+   * Execute an already-CLAIMED (Running) investigation run end-to-end.
+   * Called by SentinelInvestigationQueue after a successful CAS claim —
+   * cap/budget gating and run creation live in the queue now. Never throws;
+   * failures are handed to the queue's retry policy (failOrRequeue).
    */
   @CaptureSpan()
-  public static async investigate(
-    request: InvestigationRequest,
-  ): Promise<void> {
-    const { projectId } = request;
+  public static async executeRun(data: {
+    aiRunId: ObjectID;
+    projectId: ObjectID;
+    attemptCount: number;
+    request: InvestigationRequest;
+  }): Promise<void> {
+    const { aiRunId, projectId, request } = data;
 
-    // Record the run up front so it is auditable even if it fails.
-    const run: AIRun = new AIRun();
-    run.projectId = projectId;
-    run.runType = AIRunType.Investigation;
-    run.status = AIRunStatus.Running;
-    run.startedAt = OneUptimeDate.getCurrentDate();
-    run.lastHeartbeatAt = OneUptimeDate.getCurrentDate();
-
-    if (request.subjectIncidentId) {
-      run.triggeredByIncidentId = request.subjectIncidentId;
-    }
-    if (request.subjectAlertId) {
-      run.triggeredByAlertId = request.subjectAlertId;
-    }
-
-    let createdRun: AIRun;
-    try {
-      createdRun = await AIRunService.create({
-        data: run,
-        props: { isRoot: true },
-      });
-    } catch (error) {
-      logger.error(`Sentinel: failed to create investigation run: ${error}`);
-      return;
-    }
-
-    const aiRunId: ObjectID = createdRun.id!;
+    /*
+     * Retried runs already have events from earlier attempts; continue the
+     * sequence so the glass-box trail stays ordered and shows every attempt.
+     */
     let sequence: number = 0;
+    try {
+      sequence = (
+        await AIRunEventService.countBy({
+          query: { aiRunId },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+    } catch (error) {
+      logger.error(
+        `Sentinel: failed to read event count for run ${aiRunId.toString()}; starting sequence at 0: ${error}`,
+      );
+    }
 
     await this.emitEvent({
       projectId,
@@ -234,10 +228,12 @@ export default class SentinelInvestigationEngine {
         citationId: step.citationId,
       });
 
-      // Keep the run visibly alive for the stale-run sweeper + live UI.
-      if (step.type === "llm_started") {
-        await this.touchHeartbeat(aiRunId);
-      }
+      /*
+       * Keep the run visibly alive for the stale-run sweeper + live UI on
+       * EVERY step — a slow self-hosted LLM call can approach the sweeper's
+       * timeout, so the heartbeat must be as frequent as we can make it.
+       */
+      await this.touchHeartbeat(aiRunId);
     };
 
     try {
@@ -256,18 +252,35 @@ export default class SentinelInvestigationEngine {
           onStep,
         });
 
-      await AIRunService.updateOneBy({
-        query: { _id: aiRunId.toString(), status: AIRunStatus.Running },
-        data: {
-          status: AIRunStatus.Completed,
-          completedAt: OneUptimeDate.getCurrentDate(),
-          lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
-          llmCallCount: result.llmCallCount,
-          toolCallCount: result.toolCallCount,
-          totalTokens: result.totalTokens,
-        } as never,
-        props: { isRoot: true },
-      });
+      /*
+       * Atomic Running -> Completed. If we did NOT win this transition,
+       * another actor moved the run while we executed — most likely the
+       * stale sweeper falsely requeued it (slow LLM call outlasting the
+       * heartbeat window) and a second attempt is or will be running. In
+       * that case DO NOT post the analysis: the winning attempt will, and
+       * posting here would duplicate the RCA in the feed and workspace.
+       */
+      const completedCount: number = await AIRunService.attemptStatusTransition(
+        {
+          aiRunId,
+          fromStatus: AIRunStatus.Running,
+          set: {
+            status: AIRunStatus.Completed,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
+            llmCallCount: result.llmCallCount,
+            toolCallCount: result.toolCallCount,
+            totalTokens: result.totalTokens,
+          },
+        },
+      );
+
+      if (completedCount === 0) {
+        logger.warn(
+          `Sentinel: run ${aiRunId.toString()} finished but was no longer Running (likely requeued as stale mid-flight); skipping postAnalysis to avoid a duplicate RCA.`,
+        );
+        return;
+      }
 
       await this.emitEvent({
         projectId,
@@ -300,16 +313,6 @@ export default class SentinelInvestigationEngine {
       const message: string =
         error instanceof Error ? error.message : String(error);
 
-      await AIRunService.updateOneBy({
-        query: { _id: aiRunId.toString(), status: AIRunStatus.Running },
-        data: {
-          status: AIRunStatus.Error,
-          completedAt: OneUptimeDate.getCurrentDate(),
-          errorMessage: message.substring(0, 480),
-        } as never,
-        props: { isRoot: true },
-      });
-
       await this.emitEvent({
         projectId,
         aiRunId,
@@ -317,8 +320,25 @@ export default class SentinelInvestigationEngine {
         eventType: AIRunEventType.RunFailed,
       });
 
+      /*
+       * Hand the failure to the queue's retry policy: transient errors
+       * requeue while attempts remain; permanent ones finalize as Error
+       * since retrying cannot help. Classification is by message, NOT by
+       * exception type: LLMService wraps transient provider failures (429s,
+       * 5xx, timeouts) in BadDataException too, so type-based classification
+       * would wrongly make the exact failures retries exist for permanent.
+       * Only configuration/budget gating — which a retry cannot change
+       * within the run's usefulness window — counts as permanent.
+       */
+      await SentinelInvestigationQueue.failOrRequeue({
+        aiRunId,
+        attemptCount: data.attemptCount,
+        errorMessage: message,
+        isPermanent: PERMANENT_FAILURE_RE.test(message),
+      });
+
       logger.error(
-        `Sentinel: investigation failed (run ${aiRunId.toString()}): ${message}`,
+        `Sentinel: investigation attempt ${data.attemptCount} failed (run ${aiRunId.toString()}): ${message}`,
       );
     }
   }

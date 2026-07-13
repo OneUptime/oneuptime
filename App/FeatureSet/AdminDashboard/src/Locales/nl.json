@@ -321,6 +321,7 @@
         "noItems": "Geen LLM-providers geconfigureerd. Voeg een LLM-provider toe om AI-functies in te schakelen.",
         "stepBasicInfo": "Basisinformatie",
         "stepProviderSettings": "Providerinstellingen",
+        "stepAdvanced": "Geavanceerd",
         "stepCostSettings": "Kosteninstellingen"
       }
     }

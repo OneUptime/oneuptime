@@ -415,7 +415,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return monitorCriteriaInstance;
     }
 
-    if (arg.monitorType === MonitorType.SNMP) {
+    if (arg.monitorType === MonitorType.NetworkDevice) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
         new MonitorCriteriaInstance();
 
@@ -616,7 +616,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       };
     }
 
-    if (arg.monitorType === MonitorType.SNMP) {
+    if (arg.monitorType === MonitorType.NetworkDevice) {
       monitorCriteriaInstance.data = {
         id: ObjectID.generate().toString(),
         monitorStatusId: arg.monitorStatusId,

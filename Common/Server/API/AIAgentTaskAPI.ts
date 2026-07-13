@@ -16,7 +16,6 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import PositiveNumber from "../../Types/PositiveNumber";
 
 export default class AIAgentTaskAPI extends BaseAPI<
@@ -27,8 +26,10 @@ export default class AIAgentTaskAPI extends BaseAPI<
     super(AIAgentTask, AIAgentTaskService);
 
     /*
-     * Get the next pending (scheduled) task for processing
-     * Validates aiAgentId and aiAgentKey before returning task
+     * Claim the next pending (scheduled) task for processing.
+     * Validates aiAgentId and aiAgentKey before claiming. The task is
+     * atomically transitioned Scheduled -> InProgress before it is
+     * returned, so concurrent workers can never receive the same task.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/get-pending-task`,
@@ -39,7 +40,7 @@ export default class AIAgentTaskAPI extends BaseAPI<
           /* Validate AI Agent credentials */
           const aiAgent: AIAgent | null = await this.validateAIAgent(data);
 
-          if (!aiAgent) {
+          if (!aiAgent || !aiAgent.id) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -47,25 +48,10 @@ export default class AIAgentTaskAPI extends BaseAPI<
             );
           }
 
-          /* Fetch one scheduled task, sorted by createdAt (oldest first) */
-          const task: AIAgentTask | null = await AIAgentTaskService.findOneBy({
-            query: {
-              status: AIAgentTaskStatus.Scheduled,
-            },
-            sort: {
-              createdAt: SortOrder.Ascending,
-            },
-            select: {
-              _id: true,
-              projectId: true,
-              taskType: true,
-              metadata: true,
-              createdAt: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          const task: AIAgentTask | null =
+            await AIAgentTaskService.claimNextScheduledTask({
+              aiAgentId: aiAgent.id,
+            });
 
           if (!task) {
             return Response.sendJsonObjectResponse(req, res, {
@@ -82,7 +68,7 @@ export default class AIAgentTaskAPI extends BaseAPI<
               metadata: task.metadata as JSONObject | undefined,
               createdAt: task.createdAt,
             },
-            message: "Task fetched successfully",
+            message: "Task claimed successfully",
           });
         } catch (err) {
           next(err);

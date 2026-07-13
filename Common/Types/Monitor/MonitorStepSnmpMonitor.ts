@@ -15,6 +15,11 @@ export default interface MonitorStepSnmpMonitor {
   oids: Array<SnmpOid>;
   timeout: number;
   retries: number;
+  /*
+   * When true, the probe walks the IF-MIB interface tables on every check
+   * and reports per-interface status, bandwidth, and error metrics.
+   */
+  monitorInterfaces?: boolean | undefined;
 }
 
 export class MonitorStepSnmpMonitorUtil {
@@ -27,6 +32,7 @@ export class MonitorStepSnmpMonitorUtil {
       oids: [],
       timeout: 5000,
       retries: 3,
+      monitorInterfaces: false,
     };
   }
 
@@ -46,6 +52,7 @@ export class MonitorStepSnmpMonitorUtil {
       ),
       timeout: (json["timeout"] as number) || 5000,
       retries: (json["retries"] as number) || 3,
+      monitorInterfaces: Boolean(json["monitorInterfaces"]),
     };
   }
 
@@ -97,6 +104,7 @@ export class MonitorStepSnmpMonitorUtil {
       }),
       timeout: monitor.timeout,
       retries: monitor.retries,
+      monitorInterfaces: monitor.monitorInterfaces,
     };
   }
 }

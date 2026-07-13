@@ -1,5 +1,28 @@
 import { JSONObject } from "Common/Types/JSON";
 import { SpanEvent } from "Common/Models/AnalyticsModels/Span";
+import {
+  LlmAgentNameAttributeKeys,
+  LlmAttributeNamespacePrefixes,
+  LlmCompletionEventNames,
+  LlmCompletionIndexedMessageConventions,
+  LlmCompletionJsonAttributeKeys,
+  LlmCostAttributeKeys,
+  LlmFinishReasonAttributeKeys,
+  LlmInputTokenAttributeKeys,
+  LlmMaxTokensAttributeKeys,
+  LlmOperationAttributeKeys,
+  LlmOutputTokenAttributeKeys,
+  LlmPromptEventNames,
+  LlmPromptIndexedMessageConventions,
+  LlmPromptJsonAttributeKeys,
+  LlmRequestModelAttributeKeys,
+  LlmResponseModelAttributeKeys,
+  LlmSystemAttributeKeys,
+  LlmTemperatureAttributeKeys,
+  LlmToolNameAttributeKeys,
+  LlmTopPAttributeKeys,
+  LlmTotalTokenAttributeKeys,
+} from "Common/Types/Telemetry/LlmConventions";
 
 /*
  * Frontend helper for rendering LLM / GenAI / agent spans in a first-class
@@ -9,10 +32,9 @@ import { SpanEvent } from "Common/Models/AnalyticsModels/Span";
  * the denormalized DB columns and lives in the span attributes/events map, so
  * this parsing happens at render time on whatever the API returned.
  *
- * Recognized conventions:
- *   - OpenTelemetry GenAI (gen_ai.*) attributes + content events
- *   - OpenLLMetry / Traceloop (gen_ai.prompt.N.* / gen_ai.completion.N.*)
- *   - OpenInference / Arize (llm.* + llm.input_messages.N.message.*)
+ * The recognized attribute keys / event names / message conventions all come
+ * from the shared Common/Types/Telemetry/LlmConventions module, which the
+ * server extractor imports too — so the two cannot drift out of sync.
  */
 
 export interface LlmMessage {
@@ -56,64 +78,21 @@ export default class LlmSpanDisplayUtil {
 
     const display: LlmSpanDisplay = {
       isLlmSpan: false,
-      system: this.firstString(flat, [
-        "gen_ai.system",
-        "gen_ai.provider.name",
-        "llm.system",
-        "llm.provider",
-      ]),
-      operation: this.firstString(flat, [
-        "gen_ai.operation.name",
-        "llm.request.type",
-        "openinference.span.kind",
-      ]),
-      requestModel: this.firstString(flat, [
-        "gen_ai.request.model",
-        "llm.model_name",
-        "llm.request.model",
-      ]),
-      responseModel: this.firstString(flat, [
-        "gen_ai.response.model",
-        "llm.response.model",
-      ]),
-      inputTokens: this.firstNumber(flat, [
-        "gen_ai.usage.input_tokens",
-        "gen_ai.usage.prompt_tokens",
-        "llm.token_count.prompt",
-        "llm.usage.prompt_tokens",
-      ]),
-      outputTokens: this.firstNumber(flat, [
-        "gen_ai.usage.output_tokens",
-        "gen_ai.usage.completion_tokens",
-        "llm.token_count.completion",
-        "llm.usage.completion_tokens",
-      ]),
-      totalTokens: this.firstNumber(flat, [
-        "gen_ai.usage.total_tokens",
-        "llm.token_count.total",
-        "llm.usage.total_tokens",
-      ]),
+      system: this.firstString(flat, LlmSystemAttributeKeys),
+      operation: this.firstString(flat, LlmOperationAttributeKeys),
+      requestModel: this.firstString(flat, LlmRequestModelAttributeKeys),
+      responseModel: this.firstString(flat, LlmResponseModelAttributeKeys),
+      inputTokens: this.firstNumber(flat, LlmInputTokenAttributeKeys),
+      outputTokens: this.firstNumber(flat, LlmOutputTokenAttributeKeys),
+      totalTokens: this.firstNumber(flat, LlmTotalTokenAttributeKeys),
       cost: 0,
       hasCost: false,
-      agentName: this.firstString(flat, ["gen_ai.agent.name", "agent.name"]),
-      toolName: this.firstString(flat, ["gen_ai.tool.name", "tool.name"]),
-      temperature: this.firstString(flat, [
-        "gen_ai.request.temperature",
-        "llm.request.temperature",
-      ]),
-      maxTokens: this.firstString(flat, [
-        "gen_ai.request.max_tokens",
-        "llm.request.max_tokens",
-      ]),
-      topP: this.firstString(flat, [
-        "gen_ai.request.top_p",
-        "llm.request.top_p",
-      ]),
-      finishReasons: this.firstString(flat, [
-        "gen_ai.response.finish_reasons",
-        "gen_ai.response.finish_reason",
-        "llm.response.finish_reason",
-      ]),
+      agentName: this.firstString(flat, LlmAgentNameAttributeKeys),
+      toolName: this.firstString(flat, LlmToolNameAttributeKeys),
+      temperature: this.firstString(flat, LlmTemperatureAttributeKeys),
+      maxTokens: this.firstString(flat, LlmMaxTokensAttributeKeys),
+      topP: this.firstString(flat, LlmTopPAttributeKeys),
+      finishReasons: this.firstString(flat, LlmFinishReasonAttributeKeys),
       promptMessages: [],
       completionMessages: [],
     };
@@ -122,13 +101,7 @@ export default class LlmSpanDisplayUtil {
       display.requestModel = display.responseModel;
     }
 
-    const costKeys: Array<string> = [
-      "gen_ai.usage.cost",
-      "gen_ai.usage.cost_usd",
-      "gen_ai.usage.total_cost",
-      "llm.usage.total_cost",
-    ];
-    for (const key of costKeys) {
+    for (const key of LlmCostAttributeKeys) {
       if (flat[key] !== undefined && flat[key] !== "") {
         const parsed: number = Number(flat[key]);
         if (isFinite(parsed)) {
@@ -176,11 +149,9 @@ export default class LlmSpanDisplayUtil {
     }
 
     return Object.keys(flat).some((key: string) => {
-      return (
-        key.startsWith("gen_ai.") ||
-        key.startsWith("llm.") ||
-        key.startsWith("traceloop.")
-      );
+      return LlmAttributeNamespacePrefixes.some((prefix: string) => {
+        return key.startsWith(prefix);
+      });
     });
   }
 
@@ -188,83 +159,57 @@ export default class LlmSpanDisplayUtil {
     flat: FlatAttributes,
     events: Array<SpanEvent> | undefined,
   ): Array<LlmMessage> {
-    // OpenLLMetry indexed prompts.
-    let messages: Array<LlmMessage> = this.collectIndexed(
-      flat,
-      "gen_ai.prompt",
-      "content",
-      "role",
-    );
-    if (messages.length > 0) {
-      return messages;
-    }
-
-    // OpenInference indexed input messages.
-    messages = this.collectIndexed(
-      flat,
-      "llm.input_messages",
-      "message.content",
-      "message.role",
-    );
-    if (messages.length > 0) {
-      return messages;
+    // Indexed prompt conventions (OpenLLMetry, then OpenInference).
+    for (const convention of LlmPromptIndexedMessageConventions) {
+      const messages: Array<LlmMessage> = this.collectIndexed(
+        flat,
+        convention.prefix,
+        convention.contentSuffix,
+        convention.roleSuffix,
+      );
+      if (messages.length > 0) {
+        return messages;
+      }
     }
 
     // JSON-encoded message arrays.
-    messages = this.parseMessagesJson(
-      flat["gen_ai.input.messages"] ||
-        flat["gen_ai.prompt"] ||
-        flat["input.value"],
+    const jsonMessages: Array<LlmMessage> = this.parseMessagesJson(
+      this.firstDefined(flat, LlmPromptJsonAttributeKeys),
     );
-    if (messages.length > 0) {
-      return messages;
+    if (jsonMessages.length > 0) {
+      return jsonMessages;
     }
 
     // Content events (system/user/tool messages).
-    return this.collectEventMessages(events, [
-      "gen_ai.system.message",
-      "gen_ai.user.message",
-      "gen_ai.tool.message",
-    ]);
+    return this.collectEventMessages(events, LlmPromptEventNames);
   }
 
   private static extractCompletionMessages(
     flat: FlatAttributes,
     events: Array<SpanEvent> | undefined,
   ): Array<LlmMessage> {
-    let messages: Array<LlmMessage> = this.collectIndexed(
-      flat,
-      "gen_ai.completion",
-      "content",
-      "role",
-    );
-    if (messages.length > 0) {
-      return messages;
+    // Indexed completion conventions (OpenLLMetry, then OpenInference).
+    for (const convention of LlmCompletionIndexedMessageConventions) {
+      const messages: Array<LlmMessage> = this.collectIndexed(
+        flat,
+        convention.prefix,
+        convention.contentSuffix,
+        convention.roleSuffix,
+      );
+      if (messages.length > 0) {
+        return messages;
+      }
     }
 
-    messages = this.collectIndexed(
-      flat,
-      "llm.output_messages",
-      "message.content",
-      "message.role",
+    // JSON-encoded message arrays.
+    const jsonMessages: Array<LlmMessage> = this.parseMessagesJson(
+      this.firstDefined(flat, LlmCompletionJsonAttributeKeys),
     );
-    if (messages.length > 0) {
-      return messages;
+    if (jsonMessages.length > 0) {
+      return jsonMessages;
     }
 
-    messages = this.parseMessagesJson(
-      flat["gen_ai.output.messages"] ||
-        flat["gen_ai.completion"] ||
-        flat["output.value"],
-    );
-    if (messages.length > 0) {
-      return messages;
-    }
-
-    return this.collectEventMessages(events, [
-      "gen_ai.assistant.message",
-      "gen_ai.choice",
-    ]);
+    return this.collectEventMessages(events, LlmCompletionEventNames);
   }
 
   // Collect `${prefix}.${i}.${contentSuffix}` / `${prefix}.${i}.${roleSuffix}`.
@@ -424,6 +369,20 @@ export default class LlmSpanDisplayUtil {
       }
     }
     return out;
+  }
+
+  // First non-empty value among the candidate keys (mirrors `a || b || c`).
+  private static firstDefined(
+    flat: FlatAttributes,
+    keys: Array<string>,
+  ): string | undefined {
+    for (const key of keys) {
+      const value: string | undefined = flat[key];
+      if (value !== undefined && value !== "") {
+        return value;
+      }
+    }
+    return undefined;
   }
 
   private static firstString(

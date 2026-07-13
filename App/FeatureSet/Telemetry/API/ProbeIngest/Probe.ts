@@ -309,6 +309,39 @@ router.post(
 );
 
 router.post(
+  "/probe/snmp-trap",
+  ProbeAuthorization.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.body["snmpTrap"]) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("snmpTrap not found in request body"),
+        );
+      }
+
+      // Return response immediately — trap fan-out happens in the worker.
+      Response.sendJsonObjectResponse(req, res, {
+        result: "processing",
+      });
+
+      await TelemetryQueueService.addSnmpTrapIngestJob({
+        snmpTrapRequestBody: req.body,
+      });
+
+      return;
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.post(
   "/probe/response/monitor-test-ingest/:testId",
   ProbeAuthorization.isAuthorizedServiceMiddleware,
   async (

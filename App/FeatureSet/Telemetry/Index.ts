@@ -6,6 +6,7 @@ import PyroscopeAPI from "./API/Pyroscope";
 // ProbeIngest routes
 import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
 import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
+import ProbeIngestDiscoveryScanAPI from "./API/ProbeIngest/DiscoveryScan";
 import ProbeIngestAPI from "./API/ProbeIngest/Probe";
 import IncomingEmailAPI from "./API/ProbeIngest/IncomingEmail";
 // ServerMonitorIngest routes
@@ -16,6 +17,7 @@ import IncomingRequestAPI from "./API/IncomingRequestIngest/IncomingRequest";
 import "./Jobs/TelemetryIngest/ProcessTelemetry";
 import { TELEMETRY_CONCURRENCY } from "./Config";
 import { startGrpcServer } from "./GrpcServer";
+import { startMqttServer } from "./MqttServer";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
@@ -55,6 +57,7 @@ const TelemetryFeatureSet: FeatureSet = {
        */
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestRegisterAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestMonitorAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestDiscoveryScanAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
       app.use(["/probe-ingest", "/"], IncomingEmailAPI);
 
@@ -78,6 +81,9 @@ const TelemetryFeatureSet: FeatureSet = {
 
       // Start gRPC OTLP server on port 4317
       startGrpcServer();
+
+      // Start MQTT ingest listeners (TCP 1883 + WebSocket /mqtt)
+      startMqttServer();
     } catch (err) {
       logger.error("Telemetry FeatureSet Init Failed:", {
         service: "telemetry",

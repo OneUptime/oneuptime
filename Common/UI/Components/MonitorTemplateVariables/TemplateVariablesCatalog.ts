@@ -344,9 +344,9 @@ export default class TemplateVariablesCatalog {
           ],
         };
 
-      case MonitorType.SNMP:
+      case MonitorType.NetworkDevice:
         return {
-          title: "SNMP",
+          title: "Network Device (SNMP)",
           variables: [
             {
               key: "isOnline",

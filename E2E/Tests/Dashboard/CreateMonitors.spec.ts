@@ -163,24 +163,13 @@ const recipes: Array<MonitorTypeRecipe> = [
       });
     },
   },
-  {
-    label: "SNMP",
-    cardValue: "SNMP",
-    hasInterval: true,
-    fillCriteria: async ({ page }: { page: Page }) => {
-      await fillByPlaceholder({
-        page,
-        placeholder: /switch\.example\.com/,
-        value: "192.168.1.1",
-      });
-      await page.getByRole("button", { name: "Add OID" }).click();
-      await fillByPlaceholder({
-        page,
-        placeholder: /OID/,
-        value: "1.3.6.1.2.1.1.1.0",
-      });
-    },
-  },
+  /*
+   * The standalone "SNMP" monitor type was retired and replaced by the
+   * "Network Device" monitor type, which references a registered
+   * NetworkDevice resource (see MonitorType.NetworkDevice). There is no
+   * longer an SNMP card in the create form, so this recipe was removed —
+   * Network Device monitoring is covered by the NetworkDevice E2E flow.
+   */
 
   // Code-based probeable types: fill the Monaco editor + interval.
   {

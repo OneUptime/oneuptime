@@ -249,6 +249,12 @@ services:
       # Telemetry ingestion settings (merged from telemetry service)
       TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
+      # MQTT ingest for IoT devices. MQTT-over-WebSocket rides the
+      # ingress at /mqtt out of the box; the raw TCP listener stays
+      # internal to the compose network unless an operator publishes
+      # the port with a compose override.
+      MQTT_INGEST_ENABLED: ${MQTT_INGEST_ENABLED}
+      MQTT_INGEST_PORT: ${MQTT_INGEST_PORT}
     logging:
       driver: "json-file"
       options:

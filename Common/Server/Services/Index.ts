@@ -36,6 +36,13 @@ import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import LabelService from "./LabelService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import DockerHostService from "./DockerHostService";
+import NetworkDeviceService from "./NetworkDeviceService";
+import NetworkDeviceOwnerTeamService from "./NetworkDeviceOwnerTeamService";
+import NetworkDeviceOwnerUserService from "./NetworkDeviceOwnerUserService";
+import NetworkDeviceOwnerRuleService from "./NetworkDeviceOwnerRuleService";
+import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
+import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
+import NetworkInterfaceService from "./NetworkInterfaceService";
 import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
@@ -301,6 +308,13 @@ const services: Array<BaseService> = [
   LabelService,
   KubernetesClusterService,
   DockerHostService,
+  NetworkDeviceService,
+  NetworkDeviceOwnerTeamService,
+  NetworkDeviceOwnerUserService,
+  NetworkDeviceOwnerRuleService,
+  NetworkDeviceLabelRuleService,
+  NetworkDeviceDiscoveryScanService,
+  NetworkInterfaceService,
   PodmanHostService,
   ProxmoxClusterService,
   DockerSwarmClusterService,

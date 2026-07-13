@@ -11,6 +11,7 @@ import DashboardValueComponentType from "Common/Types/Dashboard/DashboardCompone
 import DashboardTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import DashboardGaugeComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardGaugeComponent";
 import DashboardLogStreamComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardLogStreamComponent";
+import DashboardLogChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardLogChartComponent";
 import DashboardTraceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceListComponent";
 import DashboardTraceChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
 import DashboardTraceTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceTableComponent";
@@ -49,6 +50,7 @@ import DashboardTextComponent from "./DashboardTextComponent";
 import DashboardTableComponent from "./DashboardTableComponent";
 import DashboardGaugeComponent from "./DashboardGaugeComponent";
 import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
+import DashboardLogChartComponent from "./DashboardLogChartComponent";
 import DashboardTraceListComponent from "./DashboardTraceListComponent";
 import DashboardTraceChartComponent from "./DashboardTraceChartComponent";
 import DashboardTraceTableComponent from "./DashboardTraceTableComponent";
@@ -679,6 +681,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardLogStreamComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.LogChart && (
+          <DashboardLogChartComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardLogChartComponentType}
           />
         )}
         {component.componentType === DashboardComponentType.TraceList && (

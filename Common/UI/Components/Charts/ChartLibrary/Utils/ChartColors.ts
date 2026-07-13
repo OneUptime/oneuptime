@@ -92,16 +92,38 @@ export const AvailableChartColors: AvailableChartColorsKeys[] = Object.keys(
   chartColors,
 ) as Array<AvailableChartColorsKeys>;
 
+/*
+ * A chart color value can be either a named palette key (e.g. "indigo") or
+ * a raw hex string (e.g. "#6366f1"). Named keys resolve to Tailwind classes;
+ * hex values are applied via inline styles by the chart renderers. This lets
+ * users pick arbitrary custom/brand colors per series while the default
+ * palette continues to use theme-safe named colors.
+ */
+export type ChartColorValue = AvailableChartColorsKeys | string;
+
+/*
+ * True when the value is a raw hex color rather than a named palette key.
+ * The chart renderers use this to decide between an inline style (hex) and
+ * a Tailwind color class (named key). Accepts ChartColorValue (which widens
+ * to `string | number` because `chartColors` has a string index signature) —
+ * only actual `#…` strings return true.
+ */
+export const isHexColorValue: (
+  color: ChartColorValue | undefined | null,
+) => boolean = (color: ChartColorValue | undefined | null): boolean => {
+  return typeof color === "string" && color.trim().startsWith("#");
+};
+
 export const constructCategoryColors: (
   categories: string[],
-  colors: AvailableChartColorsKeys[],
-) => Map<string, AvailableChartColorsKeys> = (
+  colors: Array<ChartColorValue>,
+) => Map<string, ChartColorValue> = (
   categories: string[],
-  colors: AvailableChartColorsKeys[],
-): Map<string, AvailableChartColorsKeys> => {
-  const categoryColors: Map<string, AvailableChartColorsKeys> = new Map<
+  colors: Array<ChartColorValue>,
+): Map<string, ChartColorValue> => {
+  const categoryColors: Map<string, ChartColorValue> = new Map<
     string,
-    AvailableChartColorsKeys
+    ChartColorValue
   >();
   categories.forEach((category: string, index: number) => {
     categoryColors.set(category, colors[index % colors.length]!);
@@ -110,9 +132,9 @@ export const constructCategoryColors: (
 };
 
 export const getColorClassName: (
-  color: AvailableChartColorsKeys,
+  color: ChartColorValue,
   type: ColorUtility,
-) => string = (color: AvailableChartColorsKeys, type: ColorUtility): string => {
+) => string = (color: ChartColorValue, type: ColorUtility): string => {
   const fallbackColor: {
     bg: string;
     stroke: string;
@@ -124,11 +146,27 @@ export const getColorClassName: (
     fill: "fill-gray-500",
     text: "text-gray-500",
   };
+  /*
+   * Hex values have no Tailwind class — callers apply them via inline style,
+   * so return an empty string here rather than the gray fallback (which would
+   * otherwise paint a custom-colored series gray).
+   */
+  if (isHexColorValue(color)) {
+    return "";
+  }
   return chartColors[color]?.[type] ?? fallbackColor[type];
 };
 
-export const getColorHex: (color: AvailableChartColorsKeys) => string = (
-  color: AvailableChartColorsKeys,
+/*
+ * Resolve any chart color value to a concrete hex string. Named palette keys
+ * map to their `chartColors` hex; raw hex values pass through unchanged. Used
+ * for SVG fill/stroke and inline style props where a class name won't work.
+ */
+export const getColorHex: (color: ChartColorValue) => string = (
+  color: ChartColorValue,
 ): string => {
+  if (isHexColorValue(color)) {
+    return color as string;
+  }
   return chartColors[color]?.hex ?? "#6b7280";
 };

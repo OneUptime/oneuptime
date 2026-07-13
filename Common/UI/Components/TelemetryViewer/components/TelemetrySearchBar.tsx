@@ -31,8 +31,16 @@ export interface TelemetrySearchBarProps {
   attributeSuggestions?: Array<string> | undefined;
   // field → allowed value completions (resolved field keys).
   valueSuggestions?: Record<string, Array<string>> | undefined;
-  // Called when the user picks a concrete field:value chip from the dropdown.
-  onFieldValueSelect?: ((fieldKey: string, value: string) => void) | undefined;
+  /*
+   * Called when the user picks a concrete field:value chip from the dropdown.
+   * Return `false` when the field is NOT consumed as a chip (the parent
+   * filters it through the raw search string instead, e.g. `name:` in the
+   * metrics viewer) — the bar then keeps the token in the input and submits
+   * the search as-is rather than clearing the token.
+   */
+  onFieldValueSelect?:
+    | ((fieldKey: string, value: string) => boolean | void)
+    | undefined;
   // User-facing alias → backing field key (e.g. "service" -> "serviceId").
   fieldAliasMap?: Record<string, string> | undefined;
   placeholder?: string | undefined;
@@ -200,7 +208,24 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
                   ? filteredSuggestions[0]!
                   : partialValue);
 
-              props.onFieldValueSelect(fieldPrefix, resolvedMatch);
+              const consumed: boolean | void = props.onFieldValueSelect(
+                fieldPrefix,
+                resolvedMatch,
+              );
+
+              if (consumed === false) {
+                /*
+                 * The parent filters this field through the raw search
+                 * string. Keep the token in the input and submit — clearing
+                 * it here would erase the filter the user just typed.
+                 */
+                props.onSubmit();
+                setShowSuggestions(false);
+                setShowHelp(false);
+                e.preventDefault();
+                return;
+              }
+
               const parts: Array<string> = props.value.split(/\s+/);
               parts.pop();
               const remaining: string = parts.join(" ");
@@ -258,12 +283,32 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
     const applySuggestion: (suggestion: string) => void = useCallback(
       (suggestion: string): void => {
         if (isValueMode) {
+          let consumed: boolean | void = undefined;
           if (props.onFieldValueSelect) {
-            props.onFieldValueSelect(fieldPrefix, suggestion);
+            consumed = props.onFieldValueSelect(fieldPrefix, suggestion);
           }
 
           const parts: Array<string> = props.value.split(/\s+/);
           parts.pop();
+
+          if (consumed === false) {
+            /*
+             * Not consumed as a chip — the parent filters this field via
+             * the raw search string, so complete the token in place
+             * instead of clearing it.
+             */
+            const completedToken: string = `${hasAtPrefix ? "@" : ""}${fieldPrefix}:${suggestion}`;
+            props.onChange(
+              parts.length > 0
+                ? `${parts.join(" ")} ${completedToken}`
+                : completedToken,
+            );
+            setShowSuggestions(false);
+            setShowHelp(false);
+            inputRef.current?.focus();
+            return;
+          }
+
           const remaining: string = parts.join(" ");
           props.onChange(remaining ? remaining + " " : "");
           setShowSuggestions(false);

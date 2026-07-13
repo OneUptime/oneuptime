@@ -59,6 +59,7 @@ import HeaderAlert, {
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
+import InvestigationPanel from "../../../Components/Sentinel/InvestigationPanel";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import AlertAffectedResources from "./AffectedResources";
@@ -88,6 +89,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   >(undefined);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
+  const [alertTitle, setAlertTitle] = useState<string | undefined>(undefined);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -136,6 +138,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         select: {
           telemetryQuery: true,
           isPrivate: true,
+          title: true,
           alertNumber: true,
           alertNumberWithPrefix: true,
           alertSeverity: {
@@ -163,6 +166,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       }
 
       setIsPrivate(alert?.isPrivate || false);
+
+      setAlertTitle(alert?.title || undefined);
 
       setEventNumber(
         alert?.alertNumberWithPrefix ||
@@ -301,6 +306,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ChangeAlertState
           alertId={modelId}
           eventNumber={eventNumber}
+          title={alertTitle}
           severity={severity}
           isPrivate={isPrivate}
           onActionComplete={async () => {
@@ -400,6 +406,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <AlertAffectedResources alertId={modelId} />
 
           <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
+
+          <InvestigationPanel subjectType="alert" subjectId={modelId} />
 
           <AlertFeedElement alertId={modelId} />
         </div>

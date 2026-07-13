@@ -1,5 +1,8 @@
 import { BarChart } from "../ChartLibrary/BarChart/BarChart";
-import { AvailableChartColorsKeys } from "../ChartLibrary/Utils/ChartColors";
+import {
+  AvailableChartColorsKeys,
+  ChartColorValue,
+} from "../ChartLibrary/Utils/ChartColors";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
@@ -29,6 +32,13 @@ export interface ComponentProps {
   heightInPx?: number | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
   showLegend?: boolean | undefined;
+  /*
+   * Optional per-series color override. Each entry may be a named palette key
+   * or a raw hex string. When provided (and non-empty), it replaces the
+   * default BarChartPalette so callers can assign custom colors; the array is
+   * indexed by series position (index % length), matching the default palette.
+   */
+  colors?: Array<ChartColorValue> | undefined;
 }
 
 export interface BarInternalProps extends ComponentProps {
@@ -71,7 +81,11 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
         tickGap={30}
         index={"Time"}
         categories={categories}
-        colors={BarChartPalette}
+        colors={
+          props.colors && props.colors.length > 0
+            ? props.colors
+            : BarChartPalette
+        }
         valueFormatter={props.yAxis.options.formatter || undefined}
         showTooltip={true}
         showLegend={props.showLegend !== false}

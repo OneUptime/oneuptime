@@ -289,6 +289,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/ceph-monitor",
       },
       {
+        title: "IoT Device Monitor",
+        url: "/docs/monitor/iot-device-monitor",
+      },
+      {
         title: "Logs Monitor",
         url: "/docs/monitor/logs-monitor",
       },
@@ -584,6 +588,7 @@ const DocsNav: NavGroup[] = [
   {
     title: "AI",
     links: [
+      { title: "Sentinel AI SRE", url: "/docs/ai/sentinel" },
       { title: "AI Agents", url: "/docs/ai/ai-agent" },
       { title: "LLM Providers", url: "/docs/ai/llm-provider" },
       { title: "MCP Server", url: "/docs/ai/mcp-server" },

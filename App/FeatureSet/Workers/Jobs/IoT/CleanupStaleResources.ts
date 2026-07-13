@@ -20,9 +20,13 @@ import ObjectID from "Common/Types/ObjectID";
  *      threshold equal to the fence flaps healthy fleets between
  *      connected and disconnected. Net SLA: the list-page status pill
  *      flips to Disconnected ≤ ~20 minutes after the agent dies.
- *   2. For each CONNECTED fleet, hard-delete IoTDevice inventory rows
- *      whose last snapshot is older than the stale threshold. Threshold
- *      and delete both live in IoTDeviceService (getStaleThresholdDate /
+ *   2. For each CONNECTED fleet, age out IoTDevice inventory rows
+ *      whose last snapshot is older than the stale threshold:
+ *      REGISTERED devices (an IoTDeviceCredential row on the same
+ *      fleet + externalId) are flipped to Down — registration marks
+ *      them as expected, so a silent device stays visible as offline —
+ *      while unregistered devices are hard-deleted as before. Threshold
+ *      and split both live in IoTDeviceService (getStaleThresholdDate /
  *      deleteStaleForFleet — default 15 minutes = 3x the snapshot
  *      interval; override with IOT_INVENTORY_STALE_MINUTES, minimum 5)
  *      so this cron carries no duplicate policy. The cutoff is anchored
@@ -78,6 +82,7 @@ RunCron(
       }
 
       let totalDeleted: number = 0;
+      let totalMarkedOffline: number = 0;
       for (const fleet of connectedFleets) {
         if (!fleet._id) {
           continue;
@@ -89,20 +94,23 @@ RunCron(
         );
 
         try {
-          totalDeleted += await IoTDeviceService.deleteStaleForFleet({
-            iotFleetId: new ObjectID(fleet._id.toString()),
-            olderThan: cutoff,
-          });
+          const result: { deleted: number; markedOffline: number } =
+            await IoTDeviceService.deleteStaleForFleet({
+              iotFleetId: new ObjectID(fleet._id.toString()),
+              olderThan: cutoff,
+            });
+          totalDeleted += result.deleted;
+          totalMarkedOffline += result.markedOffline;
         } catch (err) {
           logger.error(
-            `IoT:CleanupStaleResources: stale inventory delete failed for fleet ${fleet._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+            `IoT:CleanupStaleResources: stale inventory cleanup failed for fleet ${fleet._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }
 
-      if (totalDeleted > 0) {
+      if (totalDeleted > 0 || totalMarkedOffline > 0) {
         logger.debug(
-          `IoT:CleanupStaleResources: pruned ${totalDeleted} stale IoTDevice row(s) across ${connectedFleets.length} fleet(s)`,
+          `IoT:CleanupStaleResources: pruned ${totalDeleted} unregistered and marked ${totalMarkedOffline} registered IoTDevice row(s) offline across ${connectedFleets.length} fleet(s)`,
         );
       }
     } catch (err) {

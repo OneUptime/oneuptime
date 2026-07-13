@@ -1,0 +1,44 @@
+name: oneuptime-snmp-simulator
+
+# Two simulated switches on a dedicated bridge network with fixed IPs.
+# The OneUptime probe runs with network_mode: host, so it can reach these
+# container IPs directly on UDP/161 - no port publishing needed.
+services:
+  switch-a:
+    build: .
+    image: oneuptime-snmp-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ./data/switch-a:/data:ro
+    networks:
+      snmpsim:
+        ipv4_address: 172.30.99.11
+
+  switch-b:
+    build: .
+    image: oneuptime-snmp-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ./data/switch-b:/data:ro
+    networks:
+      snmpsim:
+        ipv4_address: 172.30.99.12
+
+  # Real net-snmp agent for exercising the SNMPv3 path (snmpsim only answers
+  # v3 requests that carry a context name, which the probe does not send).
+  router-v3:
+    build:
+      context: .
+      dockerfile: Dockerfile.snmpd
+    image: oneuptime-snmp-simulator-snmpd:local
+    restart: unless-stopped
+    networks:
+      snmpsim:
+        ipv4_address: 172.30.99.13
+
+networks:
+  snmpsim:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.99.0/24

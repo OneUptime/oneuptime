@@ -21,6 +21,7 @@ import Permission from "../../Types/Permission";
 import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import LlmType from "../../Types/LLM/LlmType";
+import { JSONObject } from "../../Types/JSON";
 
 @EnableDocumentation()
 @TableBillingAccessControl({
@@ -297,6 +298,38 @@ export default class LlmProvider extends BaseModel {
     length: ColumnLength.ShortURL,
   })
   public baseUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateProjectLlm,
+    ],
+    read: [Permission.Public],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditProjectLlm,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Additional Parameters",
+    description:
+      "Optional JSON object with extra parameters sent directly to the provider API. These are merged last and override any defaults.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public additionalParams?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [

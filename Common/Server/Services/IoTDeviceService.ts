@@ -348,38 +348,81 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Hard-delete all devices in a fleet whose last scrape is older
-   * than olderThan. Returns the number of deleted rows. Only called by
-   * the cleanup worker for fleets that are still connected — a
-   * disconnected fleet keeps its last-known inventory.
+   * Age out devices in a fleet whose last scrape is older than
+   * olderThan. Only called by the cleanup worker for fleets that are
+   * still connected — a disconnected fleet keeps its last-known
+   * inventory.
+   *
+   * REGISTERED devices (a matching IoTDeviceCredential row on
+   * fleet + externalId, kind-agnostic) are flipped to Down instead of
+   * deleted: registration marks the device as expected, so a silent
+   * device must stay visible in the inventory as offline. Unregistered
+   * devices are hard-deleted as before (the inventory is a projection
+   * of what is actively reporting).
+   *
+   * The UPDATE deliberately does NOT touch lastSeenAt: reconnect
+   * recovery relies on the bulkUpsert dominance guard comparing a
+   * fresh scrape against the old timestamp, so the next scrape flips
+   * isUp back to true automatically.
    */
   @CaptureSpan()
   public async deleteStaleForFleet(data: {
     iotFleetId: ObjectID;
     olderThan: Date;
-  }): Promise<number> {
-    const result: Array<{ affected?: number }> | { affected?: number } =
-      await this.getRepository().manager.query(
-        `DELETE FROM "IoTDevice" WHERE "iotFleetId" = $1 AND "lastSeenAt" < $2`,
-        [data.iotFleetId.toString(), data.olderThan],
-      );
-
-    // Postgres driver returns [rows, affected] for DELETE — normalize.
-    let affected: number = 0;
-    if (Array.isArray(result) && result.length >= 2) {
-      const second: unknown = (result as Array<unknown>)[1];
-      if (typeof second === "number") {
-        affected = second;
+  }): Promise<{ deleted: number; markedOffline: number }> {
+    // Postgres driver returns [rows, affected] for UPDATE/DELETE — normalize.
+    const affectedOf: (result: unknown) => number = (
+      result: unknown,
+    ): number => {
+      if (Array.isArray(result) && result.length >= 2) {
+        const second: unknown = (result as Array<unknown>)[1];
+        if (typeof second === "number") {
+          return second;
+        }
       }
-    }
+      return 0;
+    };
 
-    if (affected > STALE_DELETE_WARN_THRESHOLD) {
+    /*
+     * Registered = a live credential on the same PROJECT + fleet +
+     * device id (kind-agnostic — one credential covers every kind the
+     * device reports). The projectId correlation is defense-in-depth
+     * against a credential row that names another project's fleet.
+     */
+    const registeredSubquery: string = `SELECT 1 FROM "IoTDeviceCredential" c WHERE c."projectId" = "IoTDevice"."projectId" AND c."iotFleetId" = "IoTDevice"."iotFleetId" AND c."externalId" = "IoTDevice"."externalId" AND c."deletedAt" IS NULL`;
+
+    /*
+     * A device whose iot.device.kind label drifts mints a second
+     * inventory row (identity is projectId+iotFleetId+kind+externalId).
+     * Without this guard the stale old-kind row would be registered
+     * (same externalId) and pinned as Offline forever. "Shadowed" =
+     * a fresher row exists for the same (fleet, externalId) under a
+     * different kind — keep only the freshest, let shadows self-heal.
+     */
+    const shadowedSubquery: string = `SELECT 1 FROM "IoTDevice" d2 WHERE d2."iotFleetId" = "IoTDevice"."iotFleetId" AND d2."externalId" = "IoTDevice"."externalId" AND d2."kind" <> "IoTDevice"."kind" AND d2."lastSeenAt" > "IoTDevice"."lastSeenAt" AND d2."deletedAt" IS NULL`;
+
+    const params: Array<unknown> = [data.iotFleetId.toString(), data.olderThan];
+
+    const updateResult: unknown = await this.getRepository().manager.query(
+      `UPDATE "IoTDevice" SET "isUp" = false, "updatedAt" = now() WHERE "iotFleetId" = $1 AND "lastSeenAt" < $2 AND "isUp" IS DISTINCT FROM false AND EXISTS (${registeredSubquery}) AND NOT EXISTS (${shadowedSubquery})`,
+      params,
+    );
+
+    const deleteResult: unknown = await this.getRepository().manager.query(
+      `DELETE FROM "IoTDevice" WHERE "iotFleetId" = $1 AND "lastSeenAt" < $2 AND (NOT EXISTS (${registeredSubquery}) OR EXISTS (${shadowedSubquery}))`,
+      params,
+    );
+
+    const deleted: number = affectedOf(deleteResult);
+    const markedOffline: number = affectedOf(updateResult);
+
+    if (deleted > STALE_DELETE_WARN_THRESHOLD) {
       logger.warn(
-        `IoTDevice cleanup deleted ${affected} stale rows for fleet ${data.iotFleetId.toString()} — larger than expected; investigate agent health.`,
+        `IoTDevice cleanup deleted ${deleted} stale rows for fleet ${data.iotFleetId.toString()} — larger than expected; investigate agent health.`,
       );
     }
 
-    return affected;
+    return { deleted, markedOffline };
   }
 
   /**

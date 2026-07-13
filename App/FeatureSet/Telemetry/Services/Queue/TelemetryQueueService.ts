@@ -30,7 +30,8 @@ export enum TelemetryType {
 export type ProbeIngestJobType =
   | "probe-response"
   | "monitor-test"
-  | "incoming-email";
+  | "incoming-email"
+  | "snmp-trap";
 
 export interface IncomingEmailJobData {
   secretKey: string;
@@ -57,6 +58,8 @@ export interface ProbeIngestJobData {
   testId?: string | undefined;
   // For incoming-email
   incomingEmail?: IncomingEmailJobData | undefined;
+  // For snmp-trap: the raw request body ({ probeId, probeKey, snmpTrap })
+  snmpTrap?: JSONObject | undefined;
 }
 
 export interface ServerMonitorIngestJobData {
@@ -379,6 +382,42 @@ export default class TelemetryQueueService {
       logger.debug(`Added probe ingestion job: ${jobId}`);
     } catch (error) {
       logger.error(`Error adding probe ingestion job:`);
+      logger.error(error);
+      throw error;
+    }
+  }
+
+  public static async addSnmpTrapIngestJob(data: {
+    snmpTrapRequestBody: JSONObject;
+  }): Promise<void> {
+    try {
+      const probeData: ProbeIngestJobData = {
+        jobType: "snmp-trap",
+        snmpTrap: data.snmpTrapRequestBody,
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+      };
+
+      const jobData: TelemetryIngestJobData = {
+        type: TelemetryType.ProbeIngest,
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        probeIngest: probeData,
+      };
+
+      const jobId: string = `probe-snmp-trap-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
+
+      await Queue.addJob(
+        QueueName.Telemetry,
+        jobId,
+        "ProcessTelemetry",
+        jobData as unknown as JSONObject,
+        {
+          skipExistenceCheck: true,
+        },
+      );
+
+      logger.debug(`Added SNMP trap ingestion job: ${jobId}`);
+    } catch (error) {
+      logger.error(`Error adding SNMP trap ingestion job:`);
       logger.error(error);
       throw error;
     }

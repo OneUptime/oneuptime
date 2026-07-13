@@ -302,6 +302,62 @@ export default class LlmLog extends BaseModel {
   })
   public totalTokens?: number = undefined;
 
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadLlmLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Number,
+    title: "Cached Input Tokens",
+    description:
+      "Input tokens served from the provider's prompt cache (billed at a discount)",
+    canReadOnRelationQuery: false,
+    isDefaultValueColumn: true,
+    defaultValue: 0,
+  })
+  @Column({
+    nullable: false,
+    default: 0,
+    type: ColumnType.Number,
+  })
+  public cachedInputTokens?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadLlmLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Number,
+    title: "Cache Creation Tokens",
+    description:
+      "Input tokens written to the provider's prompt cache on this call",
+    canReadOnRelationQuery: false,
+    isDefaultValueColumn: true,
+    defaultValue: 0,
+  })
+  @Column({
+    nullable: false,
+    default: 0,
+    type: ColumnType.Number,
+  })
+  public cacheCreationTokens?: number = undefined;
+
   // Cost tracking
 
   @ColumnAccessControl({

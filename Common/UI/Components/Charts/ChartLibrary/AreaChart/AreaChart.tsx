@@ -26,10 +26,11 @@ import { AxisDomain } from "recharts/types/util/types";
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
 import {
   AvailableChartColors,
-  AvailableChartColorsKeys,
+  ChartColorValue,
   constructCategoryColors,
   getColorClassName,
   getColorHex,
+  isHexColorValue,
 } from "../Utils/ChartColors";
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
@@ -40,8 +41,8 @@ import ChartCurve from "../../Types/ChartCurve";
 
 interface LegendItemProps {
   name: string;
-  color: AvailableChartColorsKeys;
-  onClick?: (name: string, color: AvailableChartColorsKeys) => void;
+  color: ChartColorValue;
+  onClick?: (name: string, color: ChartColorValue) => void;
   activeLegend?: string;
 }
 
@@ -76,6 +77,11 @@ const LegendItem: ({
           getColorClassName(color, "bg"),
           activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
         )}
+        style={
+          isHexColorValue(color)
+            ? { backgroundColor: getColorHex(color) }
+            : undefined
+        }
         aria-hidden={true}
       />
       <p
@@ -163,7 +169,7 @@ const ScrollButton: ({
 
 interface LegendProps extends React.OlHTMLAttributes<HTMLOListElement> {
   categories: string[];
-  colors?: AvailableChartColorsKeys[];
+  colors?: ChartColorValue[];
   onClickLegendItem?: (category: string, color: string) => void;
   activeLegend?: string;
   enableLegendSlider?: boolean;
@@ -307,7 +313,7 @@ const Legend: React.ForwardRefExoticComponent<
               <LegendItem
                 key={`item-${index}`}
                 name={category}
-                color={colors[index] as AvailableChartColorsKeys}
+                color={colors[index] as ChartColorValue}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onClick={onClickLegendItem as any}
                 activeLegend={activeLegend!}
@@ -356,7 +362,7 @@ type PayloadItem = {
   category: string;
   value: number;
   index: string;
-  color: AvailableChartColorsKeys;
+  color: ChartColorValue;
   type?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any;
@@ -366,7 +372,7 @@ type PayloadItem = {
 const ChartLegend: (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { payload }: any,
-  categoryColors: Map<string, AvailableChartColorsKeys>,
+  categoryColors: Map<string, ChartColorValue>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
   activeLegend: string | undefined,
   onClick?: (category: string, color: string) => void,
@@ -376,7 +382,7 @@ const ChartLegend: (
 ) => React.JSX.Element = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { payload }: any,
-  categoryColors: Map<string, AvailableChartColorsKeys>,
+  categoryColors: Map<string, ChartColorValue>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
   activeLegend: string | undefined,
   onClick?: (category: string, color: string) => void,
@@ -485,6 +491,11 @@ const ChartTooltip: ({
                         "h-[3px] w-3.5 shrink-0 rounded-full",
                         getColorClassName(color, "bg"),
                       )}
+                      style={
+                        isHexColorValue(color)
+                          ? { backgroundColor: getColorHex(color) }
+                          : undefined
+                      }
                     />
                     <p
                       className={cx(
@@ -534,7 +545,7 @@ interface AreaChartProps extends React.HTMLAttributes<HTMLDivElement> {
   data: Record<string, any>[];
   index: string;
   categories: string[];
-  colors?: AvailableChartColorsKeys[];
+  colors?: ChartColorValue[];
   valueFormatter?: (value: number) => string;
   startEndOnly?: boolean;
   showXAxis?: boolean;
@@ -620,7 +631,7 @@ const AreaChart: React.ForwardRefExoticComponent<
     const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
       undefined,
     );
-    const categoryColors: Map<string, string | number> =
+    const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
 
     const yAxisDomain: (number | "auto")[] = getYAxisDomain(
@@ -716,9 +727,8 @@ const AreaChart: React.ForwardRefExoticComponent<
           >
             <defs>
               {categories.map((category: string, i: number) => {
-                const colorKey: AvailableChartColorsKeys =
-                  (colors[i % colors.length] as AvailableChartColorsKeys) ||
-                  "blue";
+                const colorKey: ChartColorValue =
+                  (colors[i % colors.length] as ChartColorValue) || "blue";
                 const hex: string = getColorHex(colorKey);
                 return (
                   <linearGradient
@@ -833,7 +843,7 @@ const AreaChart: React.ForwardRefExoticComponent<
                         index: item.payload[index],
                         color: categoryColors.get(
                           item.dataKey,
-                        ) as AvailableChartColorsKeys,
+                        ) as ChartColorValue,
                         type: item.type,
                         payload: item.payload,
                       };
@@ -921,10 +931,11 @@ const AreaChart: React.ForwardRefExoticComponent<
             ) : null}
             {categories.map((category: string) => {
               const gradientId: string = `gradient-${category.replace(/[^a-zA-Z0-9]/g, "_")}`;
-              const colorKey: AvailableChartColorsKeys = categoryColors.get(
+              const colorKey: ChartColorValue = categoryColors.get(
                 category,
-              ) as AvailableChartColorsKeys;
+              ) as ChartColorValue;
               const hex: string = getColorHex(colorKey);
+              const isCustomColor: boolean = isHexColorValue(colorKey);
 
               return (
                 <Area
@@ -954,24 +965,18 @@ const AreaChart: React.ForwardRefExoticComponent<
                       strokeLinecap: slc,
                       strokeLinejoin: slj,
                       strokeWidth,
-                      dataKey,
                     } = dotProps;
                     return (
                       <Dot
                         className={cx(
                           "stroke-white",
                           onValueChange ? "cursor-pointer" : "",
-                          getColorClassName(
-                            categoryColors.get(
-                              dataKey,
-                            ) as AvailableChartColorsKeys,
-                            "fill",
-                          ),
+                          getColorClassName(colorKey, "fill"),
                         )}
                         cx={cxCoord}
                         cy={cyCoord}
                         r={5}
-                        fill=""
+                        fill={isCustomColor ? hex : ""}
                         stroke={stroke}
                         strokeLinecap={slc}
                         strokeLinejoin={slj}
@@ -992,7 +997,6 @@ const AreaChart: React.ForwardRefExoticComponent<
                       strokeWidth,
                       cx: cxCoord,
                       cy: cyCoord,
-                      dataKey,
                       index: dotIndex,
                     } = dotProps;
 
@@ -1012,19 +1016,14 @@ const AreaChart: React.ForwardRefExoticComponent<
                           cy={cyCoord}
                           r={5}
                           stroke={stroke}
-                          fill=""
+                          fill={isCustomColor ? hex : ""}
                           strokeLinecap={slc}
                           strokeLinejoin={slj}
                           strokeWidth={strokeWidth}
                           className={cx(
                             "stroke-white",
                             onValueChange ? "cursor-pointer" : "",
-                            getColorClassName(
-                              categoryColors.get(
-                                dataKey,
-                              ) as AvailableChartColorsKeys,
-                              "fill",
-                            ),
+                            getColorClassName(colorKey, "fill"),
                           )}
                         />
                       );

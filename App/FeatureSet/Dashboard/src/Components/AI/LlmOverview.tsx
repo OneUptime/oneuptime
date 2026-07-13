@@ -17,9 +17,12 @@ import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import StartAndEndDate, {
+  StartAndEndDateType,
+} from "Common/UI/Components/Date/StartAndEndDate";
 import LlmCallsTable from "./LlmCallsTable";
 
-const WINDOW_DAYS: number = 7;
+const DEFAULT_WINDOW_DAYS: number = 7;
 
 interface Kpis {
   totalCalls: number | null;
@@ -71,8 +74,24 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
     cost: null,
   });
 
+  const [range, setRange] = useState<InBetween<Date>>(() => {
+    return new InBetween<Date>(
+      OneUptimeDate.getSomeDaysAgo(DEFAULT_WINDOW_DAYS),
+      OneUptimeDate.getCurrentDate(),
+    );
+  });
+
   useEffect(() => {
     let cancelled: boolean = false;
+
+    // Reset to the loading state ("—") whenever the selected range changes.
+    setKpis({
+      totalCalls: null,
+      erroredCalls: null,
+      inputTokens: null,
+      outputTokens: null,
+      cost: null,
+    });
 
     const load: () => Promise<void> = async (): Promise<void> => {
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -80,8 +99,8 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
         return;
       }
 
-      const endDate: Date = OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.getSomeDaysAgo(WINDOW_DAYS);
+      const startDate: Date = range.startValue;
+      const endDate: Date = range.endValue;
 
       const baseQuery: Query<Span> = {
         projectId: projectId,
@@ -159,7 +178,7 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [range]);
 
   const fmt: (value: number | null) => string = (
     value: number | null,
@@ -190,11 +209,26 @@ const LlmOverview: FunctionComponent = (): ReactElement => {
             <div className="mt-0.5 text-sm text-gray-600">
               Token usage, cost, latency and errors for every LLM, embedding,
               agent and tool call your apps emit via the OpenTelemetry GenAI
-              conventions. Figures below cover the last {WINDOW_DAYS} days. Cost
-              is shown only when your instrumentation reports it.
+              conventions. Figures below cover the selected time range. Cost is
+              shown only when your instrumentation reports it.
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Time Range
+        </span>
+        <StartAndEndDate
+          type={StartAndEndDateType.DateTime}
+          value={range}
+          onValueChanged={(value: InBetween<Date> | null) => {
+            if (value) {
+              setRange(value);
+            }
+          }}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">

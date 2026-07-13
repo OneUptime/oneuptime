@@ -23,6 +23,7 @@ import DashboardKubernetesNodeListComponentUtil from "./DashboardKubernetesNodeL
 import DashboardKubernetesPodListComponentUtil from "./DashboardKubernetesPodListComponent";
 import DashboardKubernetesStatefulSetListComponentUtil from "./DashboardKubernetesStatefulSetListComponent";
 import DashboardLogStreamComponentUtil from "./DashboardLogStreamComponent";
+import DashboardLogChartComponentUtil from "./DashboardLogChartComponent";
 import DashboardMonitorListComponentUtil from "./DashboardMonitorListComponent";
 import DashboardPodmanContainerListComponentUtil from "./DashboardPodmanContainerListComponent";
 import DashboardPodmanHostListComponentUtil from "./DashboardPodmanHostListComponent";
@@ -76,6 +77,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.LogStream) {
       return DashboardLogStreamComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.LogChart) {
+      return DashboardLogChartComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

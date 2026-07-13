@@ -1,6 +1,13 @@
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import MetricAlias from "./MetricAlias";
 import MetricQuery from "./MetricQuery";
+import SeriesColorSelector from "./SeriesColorSelector";
+import SeriesGroupColorSelector from "./SeriesGroupColorSelector";
 import Card from "Common/UI/Components/Card/Card";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
@@ -52,6 +59,56 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [showDisplaySettings, setShowDisplaySettings] =
     useState<boolean>(false);
+
+  /*
+   * Group-by attribute keys this query splits into series. Drives the per-group
+   * color editor and its value discovery.
+   */
+  const groupByKeys: Array<string> =
+    props.data?.metricQueryData?.groupByAttributeKeys || [];
+  const groupByKeysDep: string = groupByKeys.join("|");
+  const metricNameForGrouping: string =
+    props.data?.metricQueryData?.filterData?.metricName?.toString() || "";
+
+  /*
+   * Whether any per-group pin belongs to a CURRENT group-by key. Pins for keys
+   * the query no longer groups by are intentionally kept in storage (so they
+   * return if the key is re-added rather than being destroyed on a toggle), but
+   * they are inert and must not light the "customized" indicator.
+   */
+  const groupColorPinsMap: Record<string, string> =
+    props.data?.colorsByGroup || {};
+  const hasActiveGroupColorPins: boolean = groupByKeys.some(
+    (key: string): boolean => {
+      return Object.keys(groupColorPinsMap).some((segment: string): boolean => {
+        return segment.startsWith(`${key}=`);
+      });
+    },
+  );
+
+  /*
+   * Load distinct values for each group-by key so the per-group editor can
+   * suggest them. The Group By multi-select never triggers a value fetch (only
+   * the JSON filter editor does), so kick it off here via onAttributeKeySelected
+   * (which maps to loadAttributeValues in ArgumentsForm and is itself
+   * de-duplicated). Guarded so it doesn't refetch keys already loaded/loading.
+   */
+  useEffect(() => {
+    if (!metricNameForGrouping) {
+      return;
+    }
+    for (const key of groupByKeys) {
+      const hasValues: boolean = Boolean(
+        props.telemetryAttributeValueSuggestions?.[key],
+      );
+      const isLoading: boolean = Boolean(
+        props.loadingAttributeValueKeys?.includes(key),
+      );
+      if (!hasValues && !isLoading) {
+        props.onAttributeKeySelected?.(key);
+      }
+    }
+  }, [groupByKeysDep, metricNameForGrouping]);
 
   const defaultAliasData: MetricAliasData = {
     metricVariable: undefined,
@@ -408,6 +465,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 />
                 <span>Display Settings</span>
                 {(props.data?.metricAliasData?.title ||
+                  props.data?.color ||
+                  hasActiveGroupColorPins ||
                   props.data?.warningThreshold !== undefined ||
                   props.data?.criticalThreshold !== undefined) && (
                   <span className="inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
@@ -432,6 +491,56 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                     hideVariableBadge={true}
                     unitFamilyBasedOn={selectedMetricNativeUnit}
                   />
+
+                  {/* Series color */}
+                  <SeriesColorSelector
+                    label={
+                      groupByKeys.length > 0
+                        ? "Default series color"
+                        : undefined
+                    }
+                    description={
+                      groupByKeys.length > 0
+                        ? "Colors the first unpinned group; the rest use the theme palette."
+                        : undefined
+                    }
+                    value={props.data?.color}
+                    onChange={(color: string | undefined) => {
+                      props.onBlur?.();
+                      props.onFocus?.();
+                      if (props.onChange) {
+                        props.onChange({
+                          ...props.data,
+                          color: color,
+                        });
+                      }
+                    }}
+                  />
+
+                  {/* Per-group color pins (only for group-by queries) */}
+                  {groupByKeys.length > 0 && (
+                    <SeriesGroupColorSelector
+                      groupByKeys={groupByKeys}
+                      valueSuggestions={
+                        props.telemetryAttributeValueSuggestions || {}
+                      }
+                      loadingKeys={props.loadingAttributeValueKeys || []}
+                      value={props.data?.colorsByGroup || {}}
+                      onChange={(colorsByGroup: Record<string, string>) => {
+                        props.onBlur?.();
+                        props.onFocus?.();
+                        if (props.onChange) {
+                          props.onChange({
+                            ...props.data,
+                            colorsByGroup:
+                              Object.keys(colorsByGroup).length > 0
+                                ? colorsByGroup
+                                : undefined,
+                          });
+                        }
+                      }}
+                    />
+                  )}
 
                   {/* Thresholds */}
                   <div className="flex space-x-3">

@@ -48,7 +48,7 @@ import HeaderAlert, {
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
-import IncidentInvestigationPanel from "../../../Components/Incident/IncidentInvestigationPanel";
+import InvestigationPanel from "../../../Components/Sentinel/InvestigationPanel";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import IncidentAffectedResources from "./AffectedResources";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
@@ -90,6 +90,9 @@ const IncidentView: FunctionComponent<
   );
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
+  const [incidentTitle, setIncidentTitle] = useState<string | undefined>(
+    undefined,
+  );
   const [severity, setSeverity] = useState<
     { name: string; color: Color } | undefined
   >(undefined);
@@ -141,6 +144,7 @@ const IncidentView: FunctionComponent<
         select: {
           telemetryQuery: true,
           isPrivate: true,
+          title: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
           incidentSeverity: {
@@ -159,6 +163,8 @@ const IncidentView: FunctionComponent<
       }
 
       setIsPrivate(incident?.isPrivate === true);
+
+      setIncidentTitle(incident?.title || undefined);
 
       setEventNumber(
         incident?.incidentNumberWithPrefix ||
@@ -321,6 +327,7 @@ const IncidentView: FunctionComponent<
         <ChangeIncidentState
           incidentId={modelId}
           eventNumber={eventNumber}
+          title={incidentTitle}
           severity={severity}
           isPrivate={isPrivate}
           onActionComplete={async () => {
@@ -421,7 +428,7 @@ const IncidentView: FunctionComponent<
 
           <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
 
-          <IncidentInvestigationPanel incidentId={modelId} />
+          <InvestigationPanel subjectType="incident" subjectId={modelId} />
 
           <IncidentFeedElement incidentId={modelId} />
         </div>

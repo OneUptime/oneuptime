@@ -7,6 +7,7 @@ import CustomCodeMonitorResponse from "../Monitor/CustomCodeMonitor/CustomCodeMo
 import SslMonitorResponse from "../Monitor/SSLMonitor/SslMonitorResponse";
 import SyntheticMonitorResponse from "../Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import SnmpMonitorResponse from "../Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpTrap from "../Monitor/SnmpMonitor/SnmpTrap";
 import DnsMonitorResponse from "../Monitor/DnsMonitor/DnsMonitorResponse";
 import PingMonitorResponse from "../Monitor/PingMonitor/PingMonitorResponse";
 import DomainMonitorResponse from "../Monitor/DomainMonitor/DomainMonitorResponse";
@@ -38,6 +39,13 @@ export default interface ProbeMonitorResponse {
   syntheticMonitorResponse?: Array<SyntheticMonitorResponse> | undefined;
   customCodeMonitorResponse?: CustomCodeMonitorResponse | undefined;
   snmpResponse?: SnmpMonitorResponse | undefined;
+  /*
+   * Present ONLY on event-driven responses generated when a probe's trap
+   * receiver forwards an SNMP trap matching this monitor. Trap responses
+   * carry no check data: they are evaluated exclusively against
+   * trap-received criteria and never change monitor state on their own.
+   */
+  snmpTrapResponse?: SnmpTrap | undefined;
   pingResponse?: PingMonitorResponse | undefined;
   /*
    * Traceroute + DNS lookup captured by the probe when a Ping/IP/Port check

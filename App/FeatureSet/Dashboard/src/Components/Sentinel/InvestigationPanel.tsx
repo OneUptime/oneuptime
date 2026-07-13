@@ -21,24 +21,29 @@ import React, {
   useState,
 } from "react";
 
+export type InvestigationSubjectType = "incident" | "alert";
+
 export interface ComponentProps {
-  incidentId: ObjectID;
+  subjectType: InvestigationSubjectType;
+  subjectId: ObjectID;
 }
 
 const POLL_INTERVAL_MS: number = 2500;
 
 /*
- * Sentinel's live "watch it think" panel on the incident page. It shows the
- * autonomous investigation narrating its steps in real time (reusing
- * ChatActivityFeed over the run's AIRunEvents) and its status. Renders nothing
- * until an investigation exists for the incident, so it's invisible for projects
- * that haven't enabled Sentinel. The full cited root cause lands in the incident
- * timeline below; this panel is the reasoning trail.
+ * Sentinel's live "watch it think" panel, shared by the incident and alert
+ * view pages. It shows the autonomous investigation narrating its steps in
+ * real time (reusing ChatActivityFeed over the run's AIRunEvents) and its
+ * status. Renders nothing until an investigation exists for the subject, so
+ * it's invisible for projects that haven't enabled Sentinel. The full cited
+ * root cause lands in the subject's timeline below; this panel is the
+ * reasoning trail.
  */
-const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
+const InvestigationPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [runStatus, setRunStatus] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
   const [stats, setStats] = useState<{
     toolCallCount: number;
@@ -53,9 +58,9 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post<JSONObject>({
             url: URL.fromString(
-              APP_API_URL.toString() + "/ai-investigation/incident",
+              APP_API_URL.toString() + `/ai-investigation/${props.subjectType}`,
             ),
-            data: { incidentId: props.incidentId.toString() },
+            data: { [`${props.subjectType}Id`]: props.subjectId.toString() },
             headers: ModelAPI.getCommonHeaders(),
           });
 
@@ -77,6 +82,9 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
         if (signature !== signatureRef.current) {
           signatureRef.current = signature;
           setRunStatus(status);
+          setErrorMessage(
+            (runJson?.["errorMessage"] as string | undefined) || null,
+          );
           setEvents(
             AIRunEvent.fromJSONArray(
               eventsJson as Array<JSONObject>,
@@ -100,7 +108,7 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
         // Best-effort panel — never surface an error here.
         setHasLoadedOnce(true);
       }
-    }, [props.incidentId]);
+    }, [props.subjectType, props.subjectId]);
 
   useEffect(() => {
     fetchData().catch(() => {
@@ -109,9 +117,12 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
   }, [fetchData]);
 
   const isRunning: boolean = runStatus === AIRunStatus.Running;
+  const isQueued: boolean = runStatus === AIRunStatus.Queued;
+  // Poll while the run can still make progress (queued runs get claimed).
+  const isActive: boolean = isRunning || isQueued;
 
   useEffect(() => {
-    if (!isRunning) {
+    if (!isActive) {
       return;
     }
 
@@ -124,9 +135,9 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
     return () => {
       return clearInterval(interval);
     };
-  }, [isRunning, fetchData]);
+  }, [isActive, fetchData]);
 
-  // Nothing to show until an investigation exists for this incident.
+  // Nothing to show until an investigation exists for this subject.
   if (!hasLoadedOnce || !runStatus) {
     return <></>;
   }
@@ -142,6 +153,7 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
     className: "text-red-600",
     icon: IconProp.Alert,
   };
+  let isFailed: boolean = true;
 
   if (runStatus === AIRunStatus.Running) {
     statusMeta = {
@@ -149,18 +161,27 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
       className: "text-indigo-600",
       icon: IconProp.Sparkles,
     };
+    isFailed = false;
+  } else if (runStatus === AIRunStatus.Queued) {
+    statusMeta = {
+      text: "Queued — waiting for a worker…",
+      className: "text-indigo-600",
+      icon: IconProp.Sparkles,
+    };
+    isFailed = false;
   } else if (runStatus === AIRunStatus.Completed) {
     statusMeta = {
       text: "Investigation complete",
       className: "text-green-600",
       icon: IconProp.Check,
     };
+    isFailed = false;
   }
 
   return (
     <Card
       title="AI Investigation"
-      description="Sentinel's live root-cause investigation for this incident."
+      description={`Sentinel's live root-cause investigation for this ${props.subjectType}.`}
     >
       <div className="-mt-4">
         <div
@@ -168,19 +189,25 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
         >
           <Icon icon={statusMeta.icon} className="h-4 w-4" />
           <span>{statusMeta.text}</span>
-          {isRunning ? (
+          {isActive ? (
             <span className="ml-1 inline-block h-2 w-2 animate-ping rounded-full bg-indigo-500" />
           ) : (
             <></>
           )}
         </div>
 
+        {isFailed && errorMessage ? (
+          <p className="mt-1 text-xs text-red-500">{errorMessage}</p>
+        ) : (
+          <></>
+        )}
+
         <div className="mt-3">
           {events.length > 0 ? (
             <ChatActivityFeed events={events} />
           ) : (
             <p className="text-sm text-gray-500">
-              {isRunning
+              {isActive
                 ? "Starting investigation…"
                 : "No investigation steps were recorded."}
             </p>
@@ -194,7 +221,8 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
             {stats.totalTokens > 0
               ? ` · ${stats.totalTokens.toLocaleString()} tokens`
               : ""}
-            . The full cited root cause is in the incident timeline below.
+            . The full cited root cause is in the {props.subjectType} timeline
+            below.
           </p>
         ) : (
           <></>
@@ -204,4 +232,4 @@ const IncidentInvestigationPanel: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default IncidentInvestigationPanel;
+export default InvestigationPanel;

@@ -2938,18 +2938,20 @@ const Icon: FunctionComponent<ComponentProps> = ({
     );
   } else if (icon === IconProp.Podman) {
     /*
-     * Podman mark — a simplified, bold silhouette of Podman's seal mascot.
-     * The official emblem (a finely detailed seal inside a hexagonal frame)
-     * collapses into an illegible blob at small sizes, so this is a cleaner
-     * single-path seal that stays recognizable down to ~16px and sits well
-     * beside the other resource brand logos (Docker / Proxmox / Ceph).
+     * Podman mark — a clean side-profile silhouette of Podman's seal mascot:
+     * head raised with a visible eye, an arched back, and trailing tail
+     * flippers. The official emblem (a finely detailed seal inside a hexagonal
+     * frame) collapses into an illegible blob at small sizes, so this reads as
+     * a recognizable little sea creature down to ~16px and sits well beside the
+     * other resource brand logos (Docker / Proxmox / Ceph). The eye is punched
+     * out via the even-odd fill rule.
      */
     return getSvgWrapper(
       <path
         fill="currentColor"
         stroke="none"
         fillRule="evenodd"
-        d="M6.4 7.2C6.2 5.2 7.8 3.7 9.7 3.9C11.2 4.1 12.2 5.3 12.3 6.8C13 6.4 14 6.6 14.4 7.4C14.8 8.1 14.5 8.9 13.9 9.3C15.4 11 16.2 13.4 16.2 15.7C17.1 15.6 18.2 15.9 18.6 16.7C18.2 17.6 17 18.2 15.7 18.1C14 18 12.7 16.7 12.4 15C11.7 16.9 10.1 18.2 8.3 18.1C7.2 18 6.9 17.1 7.6 16.5C8.7 15.6 9.1 14 8.8 12.4C8.6 11 8 9.6 7.3 8.5C6.8 8.3 6.5 7.8 6.4 7.2ZM8.45 6.4a0.85 0.85 0 1 0 1.7 0a0.85 0.85 0 1 0 -1.7 0z"
+        d="M6.6 8.4C6.2 6.6 7.4 5 9.2 4.9c1.6-.1 2.9 1 3.5 2.2.7-.5 1.7-.7 2.5-.2.6.36.8 1.06.5 1.6 1.9 1.3 3.2 3.4 3.6 5.9.9-.15 1.9.15 2.3.95.35.75-.2 1.45-1.1 1.7-1.5.42-3.2-.15-4.1-1.5-.3.95-.9 1.75-1.7 2.25 1.2.5 2 1.2 1.6 2-.3.6-1.2.7-2.2.4-1.7-.5-3-1.9-3.4-3.6-.9.9-2.2 1.4-3.5 1.3-1-.1-1.5-.8-1.2-1.5.25-.6.9-.9 1.6-1-1-1.5-1.5-3.4-1.4-5.3-.6-.3-1.05-.85-1.1-1.55ZM8.4 8a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"
       />,
     );
   } else if (icon === IconProp.Proxmox) {

@@ -23,6 +23,7 @@ import DashboardTextComponentUtil from "Common/Utils/Dashboard/Components/Dashbo
 import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTableComponent";
 import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
 import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
+import DashboardLogChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogChartComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
 import DashboardTraceChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceChartComponent";
 import DashboardTraceTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceTableComponent";
@@ -545,6 +546,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.LogStream) {
             newComponent =
               DashboardLogStreamComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.LogChart) {
+            newComponent = DashboardLogChartComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.TraceList) {

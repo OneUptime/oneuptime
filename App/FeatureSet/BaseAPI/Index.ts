@@ -93,6 +93,10 @@ import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
+import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
+import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
+import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
+import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import ApiKeyPermissionService, {
   Service as ApiKeyPermissionServiceType,
 } from "Common/Server/Services/ApiKeyPermissionService";
@@ -117,6 +121,9 @@ import StatusPageSCIMLogService, {
 import TelemetryIngestionKeyService, {
   Service as TelemetryIngestionKeyServiceType,
 } from "Common/Server/Services/TelemetryIngestionKeyService";
+import IoTDeviceCredentialService, {
+  Service as IoTDeviceCredentialServiceType,
+} from "Common/Server/Services/IoTDeviceCredentialService";
 import EmailVerificationTokenService, {
   Service as EmailVerificationTokenServiceType,
 } from "Common/Server/Services/EmailVerificationTokenService";
@@ -1124,6 +1131,7 @@ import StatusPageFooterLink from "Common/Models/DatabaseModels/StatusPageFooterL
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
@@ -1345,6 +1353,48 @@ import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import StatusPageSCIMService, {
   Service as StatusPageSCIMServiceType,
 } from "Common/Server/Services/StatusPageSCIMService";
+
+// NetworkDevice
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceService, {
+  Service as NetworkDeviceServiceType,
+} from "Common/Server/Services/NetworkDeviceService";
+
+// NetworkInterface
+import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
+import NetworkInterfaceService, {
+  Service as NetworkInterfaceServiceType,
+} from "Common/Server/Services/NetworkInterfaceService";
+
+// NetworkDeviceOwnerUser
+import NetworkDeviceOwnerUser from "Common/Models/DatabaseModels/NetworkDeviceOwnerUser";
+import NetworkDeviceOwnerUserService, {
+  Service as NetworkDeviceOwnerUserServiceType,
+} from "Common/Server/Services/NetworkDeviceOwnerUserService";
+
+// NetworkDeviceOwnerTeam
+import NetworkDeviceOwnerTeam from "Common/Models/DatabaseModels/NetworkDeviceOwnerTeam";
+import NetworkDeviceOwnerTeamService, {
+  Service as NetworkDeviceOwnerTeamServiceType,
+} from "Common/Server/Services/NetworkDeviceOwnerTeamService";
+
+// NetworkDeviceOwnerRule
+import NetworkDeviceOwnerRule from "Common/Models/DatabaseModels/NetworkDeviceOwnerRule";
+import NetworkDeviceOwnerRuleService, {
+  Service as NetworkDeviceOwnerRuleServiceType,
+} from "Common/Server/Services/NetworkDeviceOwnerRuleService";
+
+// NetworkDeviceLabelRule
+import NetworkDeviceLabelRule from "Common/Models/DatabaseModels/NetworkDeviceLabelRule";
+import NetworkDeviceLabelRuleService, {
+  Service as NetworkDeviceLabelRuleServiceType,
+} from "Common/Server/Services/NetworkDeviceLabelRuleService";
+
+// NetworkDeviceDiscoveryScan
+import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiscoveryScanService, {
+  Service as NetworkDeviceDiscoveryScanServiceType,
+} from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
 
 // Open API Spec
 import OpenAPI from "Common/Server/API/OpenAPI";
@@ -2425,6 +2475,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TelemetryIngestionKey, TelemetryIngestionKeyServiceType>(
         TelemetryIngestionKey,
         TelemetryIngestionKeyService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IoTDeviceCredential, IoTDeviceCredentialServiceType>(
+        IoTDeviceCredential,
+        IoTDeviceCredentialService,
       ).getRouter(),
     );
 
@@ -4136,6 +4194,89 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     //attach api's
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserAPI().getRouter());
+
+    // network device
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDevice, NetworkDeviceServiceType>(
+        NetworkDevice,
+        NetworkDeviceService,
+      ).getRouter(),
+    );
+
+    // network interface
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkInterface, NetworkInterfaceServiceType>(
+        NetworkInterface,
+        NetworkInterfaceService,
+      ).getRouter(),
+    );
+
+    // network device owner user
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceOwnerUser, NetworkDeviceOwnerUserServiceType>(
+        NetworkDeviceOwnerUser,
+        NetworkDeviceOwnerUserService,
+      ).getRouter(),
+    );
+
+    // network device owner team
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceOwnerTeam, NetworkDeviceOwnerTeamServiceType>(
+        NetworkDeviceOwnerTeam,
+        NetworkDeviceOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // network device owner rule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceOwnerRule, NetworkDeviceOwnerRuleServiceType>(
+        NetworkDeviceOwnerRule,
+        NetworkDeviceOwnerRuleService,
+      ).getRouter(),
+    );
+
+    // network device label rule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkDeviceLabelRule, NetworkDeviceLabelRuleServiceType>(
+        NetworkDeviceLabelRule,
+        NetworkDeviceLabelRuleService,
+      ).getRouter(),
+    );
+
+    // network device discovery scan
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkDeviceDiscoveryScan,
+        NetworkDeviceDiscoveryScanServiceType
+      >(
+        NetworkDeviceDiscoveryScan,
+        NetworkDeviceDiscoveryScanService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkDeviceTopologyAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkLatencyMatrixAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ServiceDependencyTimeseriesAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ServiceOperationalStatusAPI().getRouter(),
+    );
   },
 };
 

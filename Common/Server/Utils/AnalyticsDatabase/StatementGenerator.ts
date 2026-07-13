@@ -51,6 +51,7 @@ import JSONFunctions from "../../../Types/JSONFunctions";
 import AggregateBy, {
   AggregateUtil,
 } from "../../Types/AnalyticsDatabase/AggregateBy";
+import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { getPercentileLevel } from "../../../Types/BaseDatabase/AggregationType";
 
@@ -1194,10 +1195,12 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
     const selectStatement: Statement = new Statement();
 
-    const aggregationInterval: string = AggregateUtil.getAggregationInterval({
-      startDate: aggregateBy.startTimestamp!,
-      endDate: aggregateBy.endTimestamp!,
-    });
+    const aggregationInterval: AggregationInterval =
+      AggregateUtil.getAggregationInterval({
+        startDate: aggregateBy.startTimestamp!,
+        endDate: aggregateBy.endTimestamp!,
+        aggregationInterval: aggregateBy.aggregationInterval,
+      });
     const aggregationColumn: string =
       aggregateBy.aggregateColumnName.toString();
     const aggregationTimestampColumn: string =
@@ -1212,7 +1215,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         : `${aggregateBy.aggregationType.toLocaleLowerCase()}(${aggregationColumn})`;
 
     selectStatement.append(
-      `${aggregationExpression} as ${aggregationColumn}, date_trunc('${aggregationInterval.toLowerCase()}', toStartOfInterval(${aggregationTimestampColumn}, INTERVAL 1 ${aggregationInterval.toLowerCase()})) as ${aggregationTimestampColumn}`,
+      `${aggregationExpression} as ${aggregationColumn}, ${AggregateUtil.buildBucketTimestampSelect(aggregationInterval, aggregationTimestampColumn)}`,
     );
 
     const columns: Array<string> = [

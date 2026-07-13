@@ -15,6 +15,7 @@ import IoTSettingsLabelRules from "../Pages/IoT/Settings/LabelRules";
 import IoTArchived from "../Pages/IoT/Archived";
 import IoTFleetOverview from "../Pages/IoT/View/Index";
 import IoTFleetDevices from "../Pages/IoT/View/Devices";
+import IoTFleetDeviceRegistry from "../Pages/IoT/View/DeviceRegistry";
 import IoTFleetDeviceDetail from "../Pages/IoT/View/DeviceDetail";
 import IoTFleetMetrics from "../Pages/IoT/View/Metrics";
 import IoTFleetLogs from "../Pages/IoT/View/Logs";
@@ -101,6 +102,21 @@ const IoTRoutes: FunctionComponent<ComponentProps> = (
             <IoTFleetDevices
               {...props}
               pageRoute={RouteMap[PageMap.IOT_FLEET_VIEW_DEVICES] as Route}
+            />
+          }
+        />
+
+        {/* Device Registry */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY,
+          )}
+          element={
+            <IoTFleetDeviceRegistry
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY] as Route
+              }
             />
           }
         />

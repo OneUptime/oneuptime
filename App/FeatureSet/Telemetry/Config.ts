@@ -86,3 +86,24 @@ export const INCOMING_REQUEST_INGEST_COALESCE_ENABLED: boolean =
 
 // 10 minutes.
 export const TELEMETRY_LOCK_DURATION_MS: number = 10 * 60 * 1000;
+
+/*
+ * MQTT ingestion for IoT devices. On by default (like the gRPC OTLP
+ * listener); set MQTT_INGEST_ENABLED=false to skip starting both the
+ * TCP listener and the WebSocket endpoint without a code change.
+ */
+export const MQTT_INGEST_ENABLED: boolean =
+  process.env["MQTT_INGEST_ENABLED"] !== "false";
+
+// Raw MQTT TCP listener port inside the app container.
+export const MQTT_INGEST_PORT: number = parseBatchSize(
+  "MQTT_INGEST_PORT",
+  1883,
+);
+
+/*
+ * MQTT-over-WebSocket path on the main HTTP server. Rides the
+ * existing Nginx ingress on 80/443 (see the /mqtt location block),
+ * the same way the socket.io /realtime path does.
+ */
+export const MQTT_WEBSOCKET_PATH: string = "/mqtt";

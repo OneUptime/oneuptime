@@ -1,5 +1,9 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/TelemetryEntity";
+import Service from "../../Models/DatabaseModels/Service";
+import ServiceService from "./ServiceService";
+import QueryHelper from "../Types/Database/QueryHelper";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -68,6 +72,51 @@ export class TelemetryEntityService extends DatabaseService<Model> {
     }
   }
 
+  /**
+   * The polymorphic (resourceType, resourceId) pointer for Service
+   * entities: resolve the backing Service row by name (case-insensitive —
+   * entity display names are canonicalized to lowercase while Service
+   * rows keep their original casing, the same matching ingest itself
+   * uses). This is the single place the name join happens; everything
+   * downstream (traces links, overlays) reads the pointer instead of
+   * re-matching names. Best-effort: no Service row means no pointer.
+   */
+  private async resolveServiceResourceId(data: {
+    projectId: ObjectID;
+    entity: ExtractedEntity;
+  }): Promise<ObjectID | null> {
+    if (data.entity.entityType !== EntityType.Service) {
+      return null;
+    }
+    const name: string = TelemetryEntityService.deriveDisplayName(data.entity);
+    if (!name) {
+      return null;
+    }
+    try {
+      /*
+       * createdAt ASC mirrors ingest's findOrCreateTelemetryService: if
+       * case-variant duplicate Service rows exist, telemetry keys to the
+       * OLDEST row, so the pointer must resolve to the same one.
+       */
+      const service: Service | null = await ServiceService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          name: QueryHelper.findWithSameText(name),
+        },
+        select: { _id: true },
+        sort: { createdAt: SortOrder.Ascending },
+        props: { isRoot: true },
+      });
+      return service?._id ? new ObjectID(service._id.toString()) : null;
+    } catch (err) {
+      logger.error(
+        `TelemetryEntityService: failed to resolve Service row for entity name "${name}":`,
+      );
+      logger.error(err as Error);
+      return null;
+    }
+  }
+
   private async upsertEntity(data: {
     projectId: ObjectID;
     entity: ExtractedEntity;
@@ -75,6 +124,9 @@ export class TelemetryEntityService extends DatabaseService<Model> {
   }): Promise<void> {
     const { projectId, entity, countByType } = data;
     const now: Date = OneUptimeDate.getCurrentDate();
+
+    const serviceResourceId: ObjectID | null =
+      await this.resolveServiceResourceId({ projectId, entity });
 
     await reconcileByNaturalKey({
       service: this,
@@ -85,9 +137,23 @@ export class TelemetryEntityService extends DatabaseService<Model> {
       },
       lastSeenAt: now,
       describe: `entity ${entity.entityType}/${entity.entityKey}`,
-      select: { descriptiveAttributes: true, labels: true },
+      select: { descriptiveAttributes: true, labels: true, resourceId: true },
       buildUpdate: (existing: Model): QueryDeepPartialEntity<Model> => {
-        return TelemetryEntityService.buildDescriptiveUpdate(entity, existing);
+        const update: QueryDeepPartialEntity<Model> =
+          TelemetryEntityService.buildDescriptiveUpdate(entity, existing);
+        /*
+         * Stamp / refresh the pointer on the throttled bump too, so
+         * pre-existing rows converge and a deleted+recreated Service
+         * (new id, same name) heals instead of pointing at a dead row.
+         */
+        if (
+          serviceResourceId &&
+          existing.resourceId?.toString() !== serviceResourceId.toString()
+        ) {
+          (update as { resourceType?: string }).resourceType = "Service";
+          (update as { resourceId?: ObjectID }).resourceId = serviceResourceId;
+        }
+        return update;
       },
       /*
        * Entity budget (doc §Edge Cases): existing rows always get their
@@ -145,6 +211,10 @@ export class TelemetryEntityService extends DatabaseService<Model> {
         model.displayName = TelemetryEntityService.deriveDisplayName(
           entity,
         ).substring(0, ColumnLength.ShortText);
+        if (serviceResourceId) {
+          model.resourceType = "Service";
+          model.resourceId = serviceResourceId;
+        }
         model.firstSeenAt = now;
         model.lastSeenAt = now;
         return model;

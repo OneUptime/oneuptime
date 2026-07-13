@@ -32,8 +32,13 @@ enum MonitorType {
   Exceptions = "Exceptions",
   Profiles = "Profiles",
 
-  // Network device monitoring
-  SNMP = "SNMP",
+  /*
+   * Network device monitoring (SNMP-based). Replaced the retired SNMP
+   * monitor type: instead of inline SNMP config, the monitor references a
+   * NetworkDevice resource that owns the credentials and interface
+   * inventory.
+   */
+  NetworkDevice = "Network Device",
 
   // DNS monitoring
   DNS = "DNS",
@@ -95,7 +100,7 @@ export class MonitorTypeHelper {
       },
       {
         label: "Network",
-        monitorTypes: [MonitorType.SNMP],
+        monitorTypes: [MonitorType.NetworkDevice],
       },
       {
         label: "Infrastructure",
@@ -332,10 +337,10 @@ export class MonitorTypeHelper {
         icon: IconProp.Fire,
       },
       {
-        monitorType: MonitorType.SNMP,
-        title: "SNMP",
+        monitorType: MonitorType.NetworkDevice,
+        title: "Network Device",
         description:
-          "This monitor type lets you monitor network devices like switches, routers, and firewalls via SNMP.",
+          "This monitor type lets you monitor a registered Network Device (switch, router, firewall, or access point) via SNMP — availability, interface status, bandwidth, and traps.",
         icon: IconProp.Signal,
       },
       {
@@ -411,7 +416,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.SSLCertificate ||
       monitorType === MonitorType.SyntheticMonitor ||
       monitorType === MonitorType.CustomJavaScriptCode ||
-      monitorType === MonitorType.SNMP ||
+      monitorType === MonitorType.NetworkDevice ||
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
@@ -437,7 +442,7 @@ export class MonitorTypeHelper {
       MonitorType.Traces,
       MonitorType.Exceptions,
       MonitorType.Profiles,
-      MonitorType.SNMP,
+      MonitorType.NetworkDevice,
       MonitorType.DNS,
       MonitorType.DNSSEC,
       MonitorType.Domain,
@@ -482,7 +487,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.SSLCertificate ||
       monitorType === MonitorType.SyntheticMonitor ||
       monitorType === MonitorType.CustomJavaScriptCode ||
-      monitorType === MonitorType.SNMP ||
+      monitorType === MonitorType.NetworkDevice ||
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||

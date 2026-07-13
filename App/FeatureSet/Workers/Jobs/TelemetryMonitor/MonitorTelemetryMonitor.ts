@@ -10,6 +10,13 @@ import {
   monitorStepOptsIntoNoDataDetection,
   queriesScopeHostSubset,
 } from "Common/Server/Utils/Monitor/HostAbsenceSeries";
+import {
+  buildAbsentIoTDeviceSeries,
+  getIoTDeviceAbsenceGroupByKey,
+} from "Common/Server/Utils/Monitor/IoTDeviceAbsenceSeries";
+import IoTDeviceCredentialService from "Common/Server/Services/IoTDeviceCredentialService";
+import IoTFleetService from "Common/Server/Services/IoTFleetService";
+import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -51,6 +58,7 @@ import MetricService from "Common/Server/Services/MetricService";
 import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import { getPercentileLevel } from "Common/Types/BaseDatabase/AggregationType";
 import Dictionary from "Common/Types/Dictionary";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
@@ -580,6 +588,28 @@ const aggregatePerSeriesFromRawMetrics: (input: {
       case MetricsAggregationType.Min:
         aggregated = Math.min(...vs);
         break;
+      case MetricsAggregationType.P50:
+      case MetricsAggregationType.P90:
+      case MetricsAggregationType.P95:
+      case MetricsAggregationType.P99: {
+        /*
+         * Nearest-rank percentile over the bucket's raw values. This
+         * path serves the infra monitors' gauge metrics, where every
+         * row is a single observation — histogram metrics go through
+         * the SQL bucket fanout instead. Previously these fell into
+         * the default branch and were silently computed as Avg.
+         */
+        const sorted: Array<number> = [...vs].sort((a: number, b: number) => {
+          return a - b;
+        });
+        const level: number = getPercentileLevel(input.aggregationType) || 0.5;
+        const rankIndex: number = Math.min(
+          sorted.length - 1,
+          Math.max(0, Math.ceil(level * sorted.length) - 1),
+        );
+        aggregated = sorted[rankIndex]!;
+        break;
+      }
       case MetricsAggregationType.Avg:
       default:
         aggregated =
@@ -757,6 +787,120 @@ const injectExpectedAbsentHostSeries: (input: {
 
   logger.debug(
     `Seeded ${absentSeries.length} absent-host no-data series (expected ${expectedHostIdentifiers.length}, present ${seriesBreakdown.length})`,
+    {
+      service: "workers",
+      projectId: input.projectId.toString(),
+    },
+  );
+
+  return [...seriesBreakdown, ...absentSeries];
+};
+
+/*
+ * IoT analogue of injectExpectedAbsentHostSeries: seed synthetic
+ * "no data" series for REGISTERED devices (IoTDeviceCredential rows,
+ * the explicit expected-list) that are silent in the current window,
+ * so a per-device-grouped IoT monitor detects an individual device
+ * going dark. Same gates as the host path: non-empty breakdown (an
+ * entirely silent window is ambiguous — pipeline down vs everything
+ * down — and is handled by the whole-monitor no-data path), group-by
+ * exactly device.id, a criteria filter opting into no-data detection,
+ * and no query-level attribute subset scoping. The expected set is
+ * FLEET-scoped: the fleet name is resolved to its id case-insensitively
+ * (matching fleet find-or-create), best-effort — an unresolvable fleet
+ * returns the breakdown unchanged.
+ */
+const injectExpectedAbsentIoTDeviceSeries: (input: {
+  monitorStep: MonitorStep;
+  seriesBreakdown: Array<MetricSeriesResult> | undefined;
+  groupByAttributeKeys: Array<string>;
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  projectId: ObjectID;
+  fleetIdentifier: string;
+}) => Promise<Array<MetricSeriesResult> | undefined> = async (input: {
+  monitorStep: MonitorStep;
+  seriesBreakdown: Array<MetricSeriesResult> | undefined;
+  groupByAttributeKeys: Array<string>;
+  queryConfigs: Array<MetricQueryConfigData>;
+  formulaConfigs: Array<MetricFormulaConfigData>;
+  projectId: ObjectID;
+  fleetIdentifier: string;
+}): Promise<Array<MetricSeriesResult> | undefined> => {
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    input.seriesBreakdown;
+
+  if (!seriesBreakdown || seriesBreakdown.length === 0) {
+    return seriesBreakdown;
+  }
+
+  const deviceKey: string | null = getIoTDeviceAbsenceGroupByKey(
+    input.groupByAttributeKeys,
+  );
+  if (!deviceKey) {
+    return seriesBreakdown;
+  }
+
+  if (!monitorStepOptsIntoNoDataDetection(input.monitorStep)) {
+    return seriesBreakdown;
+  }
+
+  if (queriesScopeHostSubset(input.queryConfigs)) {
+    return seriesBreakdown;
+  }
+
+  const fleetIdentifier: string = input.fleetIdentifier?.trim() || "";
+  if (!fleetIdentifier) {
+    return seriesBreakdown;
+  }
+
+  let expectedDeviceExternalIds: Array<string> = [];
+  try {
+    const fleet: IoTFleet | null = await IoTFleetService.findOneBy({
+      query: {
+        projectId: input.projectId,
+        name: DatabaseQueryHelper.findWithSameText(fleetIdentifier),
+      },
+      select: {
+        _id: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!fleet?._id) {
+      return seriesBreakdown;
+    }
+
+    expectedDeviceExternalIds =
+      await IoTDeviceCredentialService.getExpectedDeviceExternalIds({
+        projectId: input.projectId,
+        iotFleetId: new ObjectID(fleet._id.toString()),
+      });
+  } catch (err) {
+    // Best-effort: never fail an evaluation over the expected-set lookup.
+    logger.error(
+      `Failed to resolve expected IoT devices for fleet "${fleetIdentifier}": ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return seriesBreakdown;
+  }
+
+  if (expectedDeviceExternalIds.length === 0) {
+    return seriesBreakdown;
+  }
+
+  const absentSeries: Array<MetricSeriesResult> = buildAbsentIoTDeviceSeries({
+    presentSeries: seriesBreakdown,
+    expectedDeviceExternalIds,
+    deviceKey,
+    slotCount: input.queryConfigs.length + input.formulaConfigs.length,
+  });
+
+  if (absentSeries.length === 0) {
+    return seriesBreakdown;
+  }
+
+  logger.debug(
+    `Seeded ${absentSeries.length} absent-device no-data series for fleet "${fleetIdentifier}" (registered ${expectedDeviceExternalIds.length}, present ${seriesBreakdown.length})`,
     {
       service: "workers",
       projectId: input.projectId.toString(),
@@ -1038,40 +1182,23 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         .aggegationType as MetricsAggregationType) ||
       MetricsAggregationType.Avg;
 
-    let aggregatedResults: AggregatedResult;
-
-    if (groupByAttributeKeys.length > 0) {
-      /*
-       * Per-series path: fetch raw rows including the full
-       * attributes map, then bucket + aggregate in code. We can't
-       * push this through aggregateBy+SQL because the @clickhouse/client
-       * parameterized query returns 0 rows when GROUP BY includes the
-       * Map column. See aggregatePerSeriesFromRawMetrics for details.
-       */
-      const rawMetrics: Array<Metric> = await MetricService.findBy({
-        query: query,
-        select: {
-          attributes: true,
-          value: true,
-          time: true,
-        },
-        sort: {
-          time: SortOrder.Descending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      aggregatedResults = aggregatePerSeriesFromRawMetrics({
-        rawMetrics,
-        attributeKeys: groupByAttributeKeys,
-        aggregationType,
-      });
-    } else {
-      aggregatedResults = await MetricService.aggregateBy({
+    /*
+     * Grouped and ungrouped monitors share the SQL aggregation path.
+     * Per-series grouping goes through `groupByAttributeKeys`, which
+     * MetricService compiles to `GROUP BY attributes['<key>']` — the
+     * previous raw-row JS fallback aggregated the `value` column
+     * directly, which for histogram metrics holds the datapoint SUM
+     * (so an "Avg of http.client.request.duration" monitor evaluated
+     * ~110s instead of ~0.6s and false-alerted), silently computed
+     * percentile aggregations as Avg, and truncated high-cardinality
+     * metrics at the 10k raw-row limit. The SQL path is histogram-
+     * aware for both scalar and percentile aggregations, and returns
+     * one row per (bucket, selected-key values) with an `attributes`
+     * map carrying exactly the grouped keys — the shape
+     * buildSeriesBreakdown already consumes.
+     */
+    const aggregatedResults: AggregatedResult = await MetricService.aggregateBy(
+      {
         query: query,
         aggregationType,
         aggregateColumnName: "value",
@@ -1084,11 +1211,13 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        groupByAttributeKeys:
+          groupByAttributeKeys.length > 0 ? groupByAttributeKeys : undefined,
         props: {
           isRoot: true,
         },
-      });
-    }
+      },
+    );
 
     logger.debug("Aggregated results", {
       service: "workers",
@@ -2631,7 +2760,7 @@ const monitorIoT: MonitorIoTFunction = async (data: {
     projectId: data.projectId,
   });
 
-  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+  let seriesBreakdown: Array<MetricSeriesResult> | undefined =
     groupByAttributeKeys.length > 0
       ? buildSeriesBreakdown({
           queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
@@ -2642,6 +2771,33 @@ const monitorIoT: MonitorIoTFunction = async (data: {
           projectId: data.projectId,
         })
       : undefined;
+
+  /*
+   * Seed synthetic "no data" series for REGISTERED devices that went
+   * silent, so a per-device-grouped IoT monitor detects an individual
+   * device going dark (see injectExpectedAbsentIoTDeviceSeries).
+   * Skipped when resourceFilters scope the query to a device subset:
+   * those filters live on the local query attributes (not
+   * queryConfig.filterData), so the generic subset guard can't see
+   * them, and injecting the full registry would over-report absences
+   * for out-of-scope devices.
+   */
+  if (
+    iotMonitorConfig.fleetIdentifier &&
+    !iotMonitorConfig.resourceFilters?.deviceId &&
+    !iotMonitorConfig.resourceFilters?.deviceType &&
+    !iotMonitorConfig.resourceFilters?.scope
+  ) {
+    seriesBreakdown = await injectExpectedAbsentIoTDeviceSeries({
+      monitorStep: data.monitorStep,
+      seriesBreakdown,
+      groupByAttributeKeys,
+      queryConfigs: iotMonitorConfig.metricViewConfig.queryConfigs,
+      formulaConfigs: iotMonitorConfig.metricViewConfig.formulaConfigs || [],
+      projectId: data.projectId,
+      fleetIdentifier: iotMonitorConfig.fleetIdentifier,
+    });
+  }
 
   return {
     projectId: data.projectId,

@@ -102,7 +102,16 @@ abstract class Navigation {
       (queryString ? `?${queryString}` : "") +
       window.location.hash;
 
-    window.history.replaceState(window.history.state, "", newRelativeUrl);
+    try {
+      window.history.replaceState(window.history.state, "", newRelativeUrl);
+    } catch {
+      /*
+       * Safari throws SecurityError when replaceState is called >100
+       * times / 30s (e.g. fast typing into a URL-synced search box).
+       * React state stays authoritative; the URL re-syncs on the next
+       * successful write.
+       */
+    }
   }
 
   public static getParamByName(

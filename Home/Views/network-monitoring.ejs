@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title>OneUptime | Network Device Monitoring - SNMP, Interfaces & Topology</title>
+  <meta name="description"
+    content="Agentless SNMP monitoring for switches, routers, and firewalls: device and interface health, LLDP topology maps, SNMP traps, subnet discovery, vendor templates, and one-click alert packs wired to on-call. Open source.">
+  <%- include('head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+}) -%>
+</head>
+
+<body>
+  <%- include('nav') -%>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <div class="relative isolate overflow-hidden bg-white" id="network-hero-section">
+      <!-- Subtle grid pattern background -->
+      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+      <!-- Grid glow effect that follows cursor - sky color -->
+      <div id="network-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(2, 132, 199, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(2, 132, 199, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+
+      <div class="py-20 sm:py-28 lg:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+          <div class="mx-auto max-w-3xl text-center">
+            <!-- Minimal badge -->
+            <p class="text-sm font-medium text-sky-600 mb-4">Agentless SNMP Network Device Monitoring</p>
+
+            <h1 class="text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Every switch, router, and firewall. Watched.
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
+              Monitor your whole network estate over SNMP from a single probe: per-interface health, a live LLDP topology map, trap-driven incidents in seconds, and vendor-aware alerting &mdash; with nothing to install on the devices themselves.
+            </p>
+
+            <div class="mt-10 flex items-center justify-center gap-x-6">
+              <a href="/accounts/register"
+                class="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 transition-colors">
+                Get started
+              </a>
+              <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600 transition-colors">
+                Request demo <span aria-hidden="true">&rarr;</span>
+              </a>
+            </div>
+
+            <!-- Subtle feature list -->
+            <div class="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
+              <span>SNMP v1, v2c &amp; v3</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>Interface health</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>LLDP topology</span>
+              <span class="hidden sm:inline text-gray-300">|</span>
+              <span>SNMP traps</span>
+            </div>
+          </div>
+
+          <!-- Hero visual - Network overview mockup -->
+          <div class="mt-16 sm:mt-20">
+            <div class="relative mx-auto max-w-5xl">
+              <div class="rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
+                <!-- Network Dashboard Mockup -->
+                <div class="rounded-lg bg-white shadow-lg overflow-hidden">
+                  <!-- Header bar -->
+                  <div class="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-200">
+                    <div class="flex items-center gap-3">
+                      <div class="flex gap-1.5">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <%- include('./Partials/icons/network-devices', {iconClass: 'h-4 w-4'}) %>
+                        <span class="text-sm text-gray-700 font-semibold">Network Devices</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200 text-xs text-gray-500">
+                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Last 1 hour
+                      </div>
+                      <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-md text-xs font-medium text-emerald-600 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        probe: dc-east-1
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Dashboard content -->
+                  <div class="p-5">
+                    <!-- Top stats row -->
+                    <div class="grid grid-cols-5 gap-3 mb-5">
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Devices</div>
+                          <div class="w-6 h-6 rounded-md bg-sky-50 flex items-center justify-center">
+                            <%- include('./Partials/icons/network-devices', {iconClass: 'w-3.5 h-3.5'}) %>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">48</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                          <span class="text-[10px] text-emerald-600 font-medium">switches, routers &amp; firewalls</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Reachable</div>
+                          <div class="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">47</div>
+                        <div class="flex items-center gap-1.5 mt-1">
+                          <span class="text-[10px] text-emerald-600 font-medium">97.9% up</span>
+                          <span class="text-[10px] text-gray-400">1 unreachable</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Interfaces Up</div>
+                          <div class="w-6 h-6 rounded-md bg-sky-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">1,872</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-amber-500"></span>
+                          <span class="text-[10px] text-amber-600 font-medium">3 down on monitored ports</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Avg Response</div>
+                          <div class="w-6 h-6 rounded-md bg-violet-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">9<span class="text-xs font-medium text-gray-400 ml-1">ms</span></div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                          <span class="text-[10px] text-emerald-600 font-medium">SNMP response time</span>
+                        </div>
+                      </div>
+                      <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                          <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Traps</div>
+                          <div class="w-6 h-6 rounded-md bg-amber-50 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                            </svg>
+                          </div>
+                        </div>
+                        <div class="text-xl font-bold text-gray-900">2</div>
+                        <div class="flex items-center gap-1 mt-1">
+                          <span class="w-1 h-1 rounded-full bg-amber-500"></span>
+                          <span class="text-[10px] text-amber-600 font-medium">linkDown in last hour</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="grid grid-cols-3 gap-3 mb-5">
+                      <!-- Throughput chart -->
+                      <div class="col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="flex items-center justify-between mb-4">
+                          <div>
+                            <div class="text-sm font-semibold text-gray-800">Uplink Throughput &mdash; core-sw-01 Gi1/0/48</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">Computed from IF-MIB 64-bit counters</div>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                              <span class="text-[10px] text-gray-500">In</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                              <span class="w-2 h-2 rounded-full bg-violet-500"></span>
+                              <span class="text-[10px] text-gray-500">Out</span>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- SVG Chart -->
+                        <svg viewBox="0 0 400 100" class="w-full h-24">
+                          <defs>
+                            <linearGradient id="netInGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#0284c7;stop-opacity:0.2"/>
+                              <stop offset="100%" style="stop-color:#0284c7;stop-opacity:0"/>
+                            </linearGradient>
+                            <linearGradient id="netOutGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.15"/>
+                              <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0"/>
+                            </linearGradient>
+                          </defs>
+                          <!-- Grid lines -->
+                          <line x1="0" y1="25" x2="400" y2="25" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="50" x2="400" y2="50" stroke="#f3f4f6" stroke-width="1"/>
+                          <line x1="0" y1="75" x2="400" y2="75" stroke="#f3f4f6" stroke-width="1"/>
+                          <!-- In fill -->
+                          <path d="M0,55 L25,50 L50,58 L75,42 L100,48 L125,38 L150,45 L175,32 L200,40 L225,30 L250,38 L275,28 L300,42 L325,35 L350,30 L375,38 L400,33 L400,100 L0,100 Z" fill="url(#netInGrad)"/>
+                          <!-- In line -->
+                          <path d="M0,55 L25,50 L50,58 L75,42 L100,48 L125,38 L150,45 L175,32 L200,40 L225,30 L250,38 L275,28 L300,42 L325,35 L350,30 L375,38 L400,33" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round"/>
+                          <!-- Out fill -->
+                          <path d="M0,72 L25,70 L50,74 L75,66 L100,70 L125,64 L150,68 L175,60 L200,66 L225,62 L250,68 L275,58 L300,66 L325,62 L350,58 L375,64 L400,60 L400,100 L0,100 Z" fill="url(#netOutGrad)"/>
+                          <!-- Out line -->
+                          <path d="M0,72 L25,70 L50,74 L75,66 L100,70 L125,64 L150,68 L175,60 L200,66 L225,62 L250,68 L275,58 L300,66 L325,62 L350,58 L375,64 L400,60" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"/>
+                          <!-- Y-axis labels -->
+                          <text x="2" y="23" fill="#9ca3af" font-size="8">1 Gbps</text>
+                          <text x="2" y="48" fill="#9ca3af" font-size="8">750 M</text>
+                          <text x="2" y="73" fill="#9ca3af" font-size="8">500 M</text>
+                        </svg>
+                      </div>
+
+                      <!-- Utilization breakdown -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                        <div class="text-sm font-semibold text-gray-800 mb-1">Busiest Ports</div>
+                        <div class="text-[10px] text-gray-400 mb-4">Utilization percent, monitored interfaces</div>
+                        <div class="space-y-3">
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">core-sw-01 Gi1/0/48</span>
+                              <span class="text-[11px] font-semibold text-red-600">91%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-red-400 h-1.5 rounded-full" style="width:91%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">edge-rtr-01 ether1</span>
+                              <span class="text-[11px] font-semibold text-amber-600">78%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-amber-400 h-1.5 rounded-full" style="width:78%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">dist-sw-03 Gi1/0/1</span>
+                              <span class="text-[11px] font-semibold text-gray-700">54%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-sky-400 h-1.5 rounded-full" style="width:54%"></div></div>
+                          </div>
+                          <div>
+                            <div class="flex items-center justify-between mb-1">
+                              <span class="text-[11px] font-mono text-gray-600">fw-hq-01 wan0</span>
+                              <span class="text-[11px] font-semibold text-gray-700">37%</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-sky-400 h-1.5 rounded-full" style="width:37%"></div></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Devices & needs-attention row -->
+                    <div class="grid grid-cols-2 gap-3">
+                      <!-- Devices -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                          <span class="text-xs font-semibold text-gray-700">Devices</span>
+                          <span class="text-[10px] text-gray-400">48 total</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                          <div class="px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">core-sw-01</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <span class="text-[10px] text-gray-400">Cisco IOS-XE</span>
+                              <span class="text-[10px] text-emerald-600 font-medium">52/52 up</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">edge-rtr-01</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <span class="text-[10px] text-gray-400">MikroTik RouterOS</span>
+                              <span class="text-[10px] text-emerald-600 font-medium">10/10 up</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              <span class="text-xs font-mono text-gray-700">dist-sw-03</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <span class="text-[10px] text-gray-400">Ubiquiti EdgeOS</span>
+                              <span class="text-[10px] text-amber-600 font-medium">23/24 up</span>
+                            </div>
+                          </div>
+                          <div class="px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs font-mono text-gray-700">fw-hq-01</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <span class="text-[10px] text-gray-400">pfSense</span>
+                              <span class="text-[10px] text-emerald-600 font-medium">6/6 up</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Needs attention -->
+                      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                          <span class="text-xs font-semibold text-gray-700">Needs Attention</span>
+                          <span class="text-[10px] text-gray-400">3 shown</span>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                              <span class="text-xs font-mono text-gray-700">access-sw-12</span>
+                            </div>
+                            <span class="text-[10px] font-semibold text-red-600 uppercase">Unreachable 4m</span>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                              <span class="text-xs font-mono text-gray-700">dist-sw-03 Gi1/0/7</span>
+                            </div>
+                            <span class="text-[10px] font-semibold text-red-600 uppercase">Interface down</span>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              <span class="text-xs font-mono text-gray-700">core-sw-01 Gi1/0/48</span>
+                            </div>
+                            <span class="text-[10px] font-semibold text-amber-600 uppercase">Saturated 91%</span>
+                          </div>
+                          <div class="px-4 py-2.5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span class="text-xs text-gray-500">All other devices healthy</span>
+                            </div>
+                            <span class="text-[10px] text-emerald-600 font-medium">45 ok</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('logo-roll') -%>
+
+    <!-- How It Works Section -->
+    <div class="relative bg-gray-50 py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="mx-auto max-w-2xl text-center mb-16">
+          <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">How It Works</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+            From one probe to a monitored network in minutes
+          </h2>
+          <p class="mt-4 text-lg text-gray-600">
+            Nothing to install on your switches, routers, or firewalls. One probe inside your network polls everything over SNMP.
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-5xl">
+          <!-- Connecting line for desktop -->
+          <div class="hidden lg:block relative">
+            <div class="absolute top-8 left-[calc(12.5%+24px)] right-[calc(12.5%+24px)] h-px bg-sky-200"></div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Step 1 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-16.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">1</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Deploy a probe</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Run one OneUptime probe as a container inside your network. It polls devices over SNMP and listens for traps &mdash; your switches never need to reach the internet.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">2</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Scan a subnet</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Point discovery at a CIDR range like <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">10.0.1.0/24</code>. Responding SNMP devices show up for review &mdash; import them in one click, or add devices by hand.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">3</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Interfaces inventoried</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Every poll walks the IF-MIB tables and keeps a live inventory of each port: status, speed, throughput, utilization, and errors &mdash; one metric series per interface.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="text-center">
+              <div class="relative inline-flex items-center justify-center h-16 w-16 rounded-full bg-sky-600 text-white mb-6 shadow-sm">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">4</span>
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Turn on the alert pack</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">One click adds the four alerts network operators actually want: device unreachable, interface down, port saturated, and interface errors &mdash; each wired straight to on-call.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why OneUptime Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center mb-20">
+          <div class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-inset ring-sky-600/20 mb-6">
+            <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span class="text-sm font-medium text-sky-700">Why OneUptime for networks</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            More than a ping to port 161
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Reachability is table stakes. OneUptime answers the questions that actually page you at night: which port just went down, which uplink is saturating, what the topology really looks like, and which trap arrived three seconds ago.
+          </p>
+        </div>
+
+        <!-- Feature blocks -->
+        <div class="space-y-24">
+
+          <!-- Feature 1: Interface intelligence -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Interface Intelligence</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Every port, measured &mdash; not just counted</h3>
+              <p class="mt-4 text-lg text-gray-600">OneUptime walks the standard IF-MIB tables on every poll, preferring 64-bit high-capacity counters with a 32-bit fallback for older gear. From the raw counters it computes what you actually want: throughput in bits per second, utilization percent, and errors per second &mdash; per interface, as real time-series metrics.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Status, speed, traffic, errors &amp; discards per port
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  One metric series per interface &mdash; chart and alert on any port
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Mute noisy ports with a per-interface monitoring toggle
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Interface table Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">core-sw-01 &middot; Interfaces</span>
+                    </div>
+                  </div>
+                  <div class="divide-y divide-gray-100">
+                    <div class="px-4 py-2.5 flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <div>
+                          <span class="text-xs font-mono text-gray-700">Gi1/0/48</span>
+                          <div class="text-[10px] text-gray-400 mt-0.5">uplink-to-edge &middot; 1 Gbps</div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-[10px] text-gray-600 font-medium">912 Mbps &darr; &middot; 486 Mbps &uarr;</div>
+                        <div class="w-24 bg-gray-100 rounded-full h-1.5 mt-1 ml-auto"><div class="bg-red-400 h-1.5 rounded-full" style="width:91%"></div></div>
+                      </div>
+                    </div>
+                    <div class="px-4 py-2.5 flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <div>
+                          <span class="text-xs font-mono text-gray-700">Gi1/0/1</span>
+                          <div class="text-[10px] text-gray-400 mt-0.5">ap-floor-1 &middot; 1 Gbps</div>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <div class="text-[10px] text-gray-600 font-medium">96 Mbps &darr; &middot; 22 Mbps &uarr;</div>
+                        <div class="w-24 bg-gray-100 rounded-full h-1.5 mt-1 ml-auto"><div class="bg-sky-400 h-1.5 rounded-full" style="width:12%"></div></div>
+                      </div>
+                    </div>
+                    <div class="px-4 py-2.5 flex items-center justify-between bg-red-50/50">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        <div>
+                          <span class="text-xs font-mono text-gray-700">Gi1/0/7</span>
+                          <div class="text-[10px] text-red-600 font-medium mt-0.5">operationally down &middot; admin up</div>
+                        </div>
+                      </div>
+                      <span class="text-[10px] font-bold text-red-600 uppercase">Down</span>
+                    </div>
+                    <div class="px-4 py-2.5 flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <div>
+                          <span class="text-xs font-mono text-gray-700">Gi1/0/12</span>
+                          <div class="text-[10px] text-amber-600 font-medium mt-0.5">2.4 errors/sec</div>
+                        </div>
+                      </div>
+                      <span class="text-[10px] font-bold text-amber-600 uppercase">Errors</span>
+                    </div>
+                    <div class="px-4 py-2.5 flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                        <div>
+                          <span class="text-xs font-mono text-gray-700">Gi1/0/33</span>
+                          <div class="text-[10px] text-gray-400 mt-0.5">spare &middot; excluded from alerting</div>
+                        </div>
+                      </div>
+                      <span class="text-[10px] font-bold text-gray-400 uppercase">Muted</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: LLDP topology -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Topology Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Network Topology</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <svg viewBox="0 0 360 240" class="w-full">
+                      <!-- Edges -->
+                      <line x1="180" y1="48" x2="80" y2="130" stroke="#bae6fd" stroke-width="2"/>
+                      <line x1="180" y1="48" x2="280" y2="130" stroke="#bae6fd" stroke-width="2"/>
+                      <line x1="80" y1="130" x2="80" y2="204" stroke="#e5e7eb" stroke-width="2" stroke-dasharray="4 3"/>
+                      <line x1="280" y1="130" x2="280" y2="204" stroke="#fca5a5" stroke-width="2"/>
+                      <!-- Edge labels -->
+                      <text x="112" y="86" fill="#9ca3af" font-size="8" font-family="monospace">Gi1/0/48 &#8596; ether1</text>
+                      <text x="238" y="86" fill="#9ca3af" font-size="8" font-family="monospace">Gi1/0/47 &#8596; Gi0/1</text>
+                      <!-- Core node -->
+                      <rect x="132" y="20" width="96" height="28" rx="6" fill="#f0f9ff" stroke="#7dd3fc"/>
+                      <circle cx="145" cy="34" r="3" fill="#10b981"/>
+                      <text x="154" y="37" fill="#374151" font-size="9" font-family="monospace">core-sw-01</text>
+                      <!-- Left node -->
+                      <rect x="32" y="116" width="96" height="28" rx="6" fill="#f0f9ff" stroke="#7dd3fc"/>
+                      <circle cx="45" cy="130" r="3" fill="#10b981"/>
+                      <text x="54" y="133" fill="#374151" font-size="9" font-family="monospace">edge-rtr-01</text>
+                      <!-- Right node -->
+                      <rect x="232" y="116" width="96" height="28" rx="6" fill="#f0f9ff" stroke="#7dd3fc"/>
+                      <circle cx="245" cy="130" r="3" fill="#10b981"/>
+                      <text x="254" y="133" fill="#374151" font-size="9" font-family="monospace">dist-sw-03</text>
+                      <!-- Unmanaged node -->
+                      <rect x="32" y="190" width="96" height="28" rx="6" fill="#f9fafb" stroke="#d1d5db" stroke-dasharray="4 3"/>
+                      <circle cx="45" cy="204" r="3" fill="#9ca3af"/>
+                      <text x="54" y="207" fill="#6b7280" font-size="9" font-family="monospace">isp-cpe</text>
+                      <!-- Down node -->
+                      <rect x="232" y="190" width="96" height="28" rx="6" fill="#fef2f2" stroke="#fca5a5"/>
+                      <circle cx="245" cy="204" r="3" fill="#ef4444"/>
+                      <text x="254" y="207" fill="#374151" font-size="9" font-family="monospace">access-sw-12</text>
+                    </svg>
+                    <div class="mt-2 flex items-center justify-center gap-4 text-[10px] text-gray-400">
+                      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Up</span>
+                      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Down</span>
+                      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Unmanaged LLDP neighbor</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">LLDP Topology Map</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">A network map that draws itself</h3>
+              <p class="mt-4 text-lg text-gray-600">Probes walk each device's LLDP neighbor table and OneUptime assembles the live graph: devices as nodes, physical links as port-labeled edges. Neighbors you don't manage still appear as lightweight nodes, so links never dead-end. The snapshot refreshes on every walk &mdash; stale links clear as readily as new ones appear.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Auto-drawn from LLDP &mdash; no diagram to maintain
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Up/down status and interface counts on every node
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Lives beside your Service Map and Infrastructure views
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Feature 3: SNMP traps -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.348 14.651a3.75 3.75 0 010-5.303m5.304 0a3.75 3.75 0 010 5.303m-7.425 2.122a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.808-3.808-9.98 0-13.789m13.788 0c3.808 3.808 3.808 9.981 0 13.79M12 12h.008v.007H12V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">SNMP Traps</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Link-down incidents in seconds, not next poll</h3>
+              <p class="mt-4 text-lg text-gray-600">Every probe ships with a built-in SNMP trap receiver &mdash; on by default. Point your devices at it and v1/v2c traps and informs are matched to the right device by source IP, so a <code class="text-sm bg-gray-100 px-1 py-0.5 rounded">linkDown</code> fires an incident the moment it happens. Standards-compliant v1-to-v2 notification mapping and a built-in rate limit keep trap storms from becoming alert storms.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Trap receiver on every probe &mdash; UDP 162, configurable
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Alert on any trap with the trap-received criteria
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Storm-safe: per-probe rate limiting built in
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+            <div class="mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Trap feed Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Incoming Traps</span>
+                    </div>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <div class="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-red-100 rounded text-[10px] font-bold text-red-600">linkDown</span>
+                        <span class="text-xs text-gray-500">3 seconds ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">dist-sw-03 &middot; Gi1/0/7</div>
+                      <div class="text-xs text-gray-500 mt-1">matched by source IP 10.0.2.13 &rarr; incident created</div>
+                    </div>
+                    <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-emerald-100 rounded text-[10px] font-bold text-emerald-600">linkUp</span>
+                        <span class="text-xs text-gray-500">14 min ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">access-sw-09 &middot; Gi1/0/2</div>
+                      <div class="text-xs text-gray-500 mt-1">auto-resolved the earlier linkDown incident</div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-bold text-amber-600">authenticationFailure</span>
+                        <span class="text-xs text-gray-500">1 hour ago</span>
+                      </div>
+                      <div class="text-sm font-medium text-gray-900">fw-hq-01</div>
+                      <div class="text-xs text-gray-500 mt-1">wrong community string from 10.0.9.44</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Subnet discovery -->
+          <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+            <div class="order-2 lg:order-1 mt-12 lg:mt-0">
+              <div class="relative">
+                <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+                <!-- Discovery Mockup -->
+                <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
+                  <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                    </div>
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-gray-400">Subnet Discovery</span>
+                    </div>
+                  </div>
+                  <div class="p-4">
+                    <div class="flex items-center gap-2 mb-4">
+                      <div class="flex-1 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-xs font-mono text-gray-700">10.0.2.0/24</div>
+                      <span class="px-3 py-2 bg-sky-600 rounded-lg text-xs font-semibold text-white">Scan</span>
+                    </div>
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="text-xs font-semibold text-gray-700">Responded Hosts</span>
+                      <span class="text-[10px] text-gray-400">254 scanned &middot; 5 responded</span>
+                    </div>
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <div class="text-xs font-mono text-gray-700">10.0.2.11 &middot; core-sw-01</div>
+                          <div class="text-[10px] text-gray-400 mt-0.5">Cisco IOS-XE Software</div>
+                        </div>
+                        <span class="w-3.5 h-3.5 rounded border-2 border-sky-500 bg-sky-500 flex items-center justify-center">
+                          <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <div class="text-xs font-mono text-gray-700">10.0.2.13 &middot; dist-sw-03</div>
+                          <div class="text-[10px] text-gray-400 mt-0.5">EdgeOS v2.0.9</div>
+                        </div>
+                        <span class="w-3.5 h-3.5 rounded border-2 border-sky-500 bg-sky-500 flex items-center justify-center">
+                          <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg border border-gray-200 opacity-60">
+                        <div>
+                          <div class="text-xs font-mono text-gray-700">10.0.2.1 &middot; edge-rtr-01</div>
+                          <div class="text-[10px] text-emerald-600 mt-0.5">Already monitored</div>
+                        </div>
+                        <span class="text-[10px] text-gray-400 uppercase font-semibold">Existing</span>
+                      </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between p-2 bg-sky-50 rounded-lg border border-sky-100">
+                      <span class="text-xs text-gray-600">2 devices selected</span>
+                      <span class="text-xs text-sky-700 font-semibold">Import &rarr;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="order-1 lg:order-2">
+              <div class="flex items-center gap-4 mb-6">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-5 w-5 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Subnet Discovery</span>
+              </div>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Onboard the whole closet in one scan</h3>
+              <p class="mt-4 text-lg text-gray-600">Nobody wants to type in forty switches by hand. Give any probe a CIDR range and it sweeps the subnet with a lightweight SNMP check &mdash; 32 addresses at a time, up to 4,096 hosts per scan. Responding devices come back with their system name and description for review; import the ones you want in one click, and owner and label rules kick in the moment they're created.</p>
+              <ul class="mt-6 space-y-3">
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Already-monitored devices flagged, never duplicated
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Owner &amp; label rules auto-assign on import by name patterns
+                </li>
+                <li class="flex items-center gap-3 text-gray-600">
+                  <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  SNMP credentials live on the device, once &mdash; probes stay stateless
+                </li>
+              </ul>
+              <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
+                Get started
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- More Features Section -->
+    <div class="relative bg-white py-24 sm:py-32 overflow-hidden">
+
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <!-- Section header -->
+        <div class="mx-auto max-w-2xl text-center">
+          <div class="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-inset ring-sky-600/20 mb-6">
+            <svg class="h-4 w-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="text-sm font-medium text-sky-700">Advanced capabilities</span>
+          </div>
+          <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Everything you need to run a network
+          </h2>
+          <p class="mt-6 text-lg leading-8 text-gray-600">
+            Built for network engineers, MSPs, and infrastructure teams who are done exporting MIB files into three different tools.
+          </p>
+        </div>
+
+        <!-- Feature cards grid -->
+        <div class="mx-auto mt-16 max-w-7xl">
+          <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+
+            <!-- Card 1: SNMP versions -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-sky-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 ring-1 ring-sky-200">
+                  <svg class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">SNMP v1, v2c &amp; v3</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Full SNMPv3 security: noAuthNoPriv, authNoPriv, and authPriv levels with MD5, SHA, SHA-256, or SHA-512 authentication and DES, AES, or AES-256 privacy. Older fleets on v1/v2c community strings work just as well.</p>
+              </div>
+            </div>
+
+            <!-- Card 2: Vendor templates -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
+                  <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Vendor Health Templates</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Prebuilt profiles for Cisco IOS/IOS-XE, MikroTik RouterOS, and Ubiquiti EdgeOS/UniFi add CPU, memory, and temperature OIDs without touching a MIB browser &mdash; plus a generic Host Resources profile that covers pfSense, OPNsense, and most Linux/BSD appliances.</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Custom OIDs -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-indigo-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-200">
+                  <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Any OID, Any Alert</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Poll any custom OID on any device and alert on its value, its existence, or the SNMP response time. Eight ready-made criteria cover device up/down, interface down, utilization, errors per second, and trap received.</p>
+              </div>
+            </div>
+
+            <!-- Card 4: Latency matrix -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-violet-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-200">
+                  <svg class="h-6 w-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Probe Latency Matrix</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">A probes-by-targets grid of the latest response time from every probe location to every device, color-graded so slow paths jump out and stale cells dim with age. Built entirely from checks you're already running &mdash; zero added polling.</p>
+              </div>
+            </div>
+
+            <!-- Card 5: Ownership -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-amber-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-200">
+                  <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Ownership &amp; Label Rules</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">Assign owner users and teams to every device, or let rules do it: pattern-match on device names and descriptions to auto-assign owners and labels the moment devices are created &mdash; including everything imported from a discovery scan.</p>
+              </div>
+            </div>
+
+            <!-- Card 6: Whole platform -->
+            <div class="group relative">
+              <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-pink-200 hover:shadow-lg">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-50 ring-1 ring-pink-200">
+                  <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                  </svg>
+                </div>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">On-Call, Status Pages &amp; Incidents</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">A port-down alert is only useful if the right engineer acts on it. Escalation policies, status pages, and incident management ship in the same product &mdash; no PagerDuty bolt-on, no extra bill.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Notifications Section -->
+    <div class="relative overflow-hidden bg-white py-24 sm:py-32">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
+        <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
+          <!-- Content -->
+          <div class="relative">
+            <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">Team Notifications</p>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
+              Network alerts where your team already works
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+              Get instant notifications for unreachable devices, downed interfaces, and saturated uplinks in Slack and Microsoft Teams. Acknowledge and investigate without leaving your chat app.
+            </p>
+
+            <!-- Integration cards -->
+            <div class="mt-10 space-y-3">
+              <!-- Slack -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                    <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                    <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                    <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Slack</h3>
+                  <p class="text-sm text-gray-500">Interactive network alert actions</p>
+                </div>
+              </div>
+
+              <!-- Microsoft Teams -->
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-gray-200">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <path d="M20.16 7.8h-4.736c.103.317.159.654.159 1.005v7.029a3.588 3.588 0 01-3.583 3.583h-4.8v.777c0 .998.81 1.806 1.806 1.806h8.339l2.869 1.912a.452.452 0 00.703-.376V21.2h.646c.997 0 1.806-.809 1.806-1.806v-9.788A1.806 1.806 0 0020.16 7.8z" fill="#5059C9"/>
+                    <circle cx="18.5" cy="4.5" r="2.5" fill="#5059C9"/>
+                    <path d="M13.5 6H3.806A1.806 1.806 0 002 7.806v9.388c0 .997.81 1.806 1.806 1.806h2.611v3.336a.452.452 0 00.703.376L10.5 20h3a3.5 3.5 0 003.5-3.5v-7A3.5 3.5 0 0013.5 6z" fill="#7B83EB"/>
+                    <circle cx="10" cy="3" r="3" fill="#7B83EB"/>
+                    <path d="M6 11h6M6 14h4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <h3 class="text-sm font-semibold text-gray-900">Microsoft Teams</h3>
+                  <p class="text-sm text-gray-500">Native adaptive cards integration</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features list -->
+            <div class="mt-8 grid grid-cols-2 gap-4">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Real-time delivery
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Device-unreachable alerts
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Rich formatting
+              </div>
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Action buttons
+              </div>
+            </div>
+          </div>
+
+          <!-- Slack Demo -->
+          <div class="mt-12 lg:mt-0 relative">
+            <!-- Decorative gradient background -->
+            <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
+
+            <div class="relative rounded-2xl bg-[#1a1d21] shadow-2xl ring-1 ring-white/10 overflow-hidden">
+              <!-- Slack Window Header -->
+              <div class="bg-[#0f1114] px-4 py-3 flex items-center justify-between border-b border-white/5">
+                <div class="flex items-center gap-2">
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
+                    <div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="h-4 w-4 text-white/60" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                  </svg>
+                  <span class="text-white/60 text-sm font-medium">#network-alerts</span>
+                </div>
+                <div class="w-16"></div>
+              </div>
+
+              <!-- Slack Messages Area -->
+              <div class="p-4 space-y-4 min-h-[320px]" id="network-slack-messages">
+                <!-- Main Alert Message -->
+                <div class="flex gap-3" style="animation: fadeSlideIn 0.5s ease-out forwards;">
+                  <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="13.5" width="18" height="6" rx="1" stroke-linecap="round" stroke-linejoin="round"></rect>
+                      <line x1="12" y1="13.5" x2="12" y2="9.5" stroke-linecap="round"></line>
+                      <line x1="12" y1="9.5" x2="6" y2="9.5" stroke-linecap="round"></line>
+                      <line x1="12" y1="9.5" x2="18" y2="9.5" stroke-linecap="round"></line>
+                      <line x1="6" y1="9.5" x2="6" y2="7" stroke-linecap="round"></line>
+                      <line x1="18" y1="9.5" x2="18" y2="7" stroke-linecap="round"></line>
+                    </svg>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-bold text-white text-sm">OneUptime Network</span>
+                      <span class="text-xs text-white/40">3:12 PM</span>
+                    </div>
+                    <!-- Alert Card -->
+                    <div class="mt-2 rounded-lg bg-[#0f1114] border border-white/10 overflow-hidden">
+                      <div class="p-3 border-l-4 border-red-500">
+                        <div class="flex items-center gap-2 mb-2">
+                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-500/20 text-red-400 ring-1 ring-red-500/30">CRITICAL</span>
+                          <span class="text-white/40 text-xs">Interface Down</span>
+                        </div>
+                        <p class="text-white font-semibold">dist-sw-03 Gi1/0/7 went down</p>
+                        <div class="mt-2 flex items-center gap-4 text-xs text-white/50">
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h7.5M8.25 11.25h7.5M6.75 4.5h10.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 17.25V6.75A2.25 2.25 0 016.75 4.5z" />
+                            </svg>
+                            via linkDown trap
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5" />
+                              <circle cx="12" cy="12" r="9" />
+                            </svg>
+                            3 seconds after the port dropped
+                          </span>
+                        </div>
+                        <!-- Action Buttons -->
+                        <div class="mt-3 flex gap-2">
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Acknowledge
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-sky-600 text-white hover:bg-sky-700 transition-colors">
+                            View Device
+                          </button>
+                          <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
+                            Resolve
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Reactions -->
+                    <div class="mt-2 flex items-center gap-1">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>👀</span>
+                        <span class="text-white/60">2</span>
+                      </span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs border border-white/10 hover:bg-white/10 cursor-pointer transition-colors">
+                        <span>🔌</span>
+                        <span class="text-white/60">1</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Thread Replies Container -->
+                <div id="network-thread-container" class="ml-12 space-y-3 hidden">
+                </div>
+              </div>
+
+              <!-- Message Input Area -->
+              <div class="px-4 py-3 border-t border-white/5">
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#0f1114] border border-white/10">
+                  <svg class="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span class="text-white/30 text-sm">Message #network-alerts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('./Partials/enterprise-ready') -%>
+    <%- include('features-table') -%>
+    <%- include('cta') -%>
+  </main>
+
+  <%- include('footer') -%>
+  <%- include('./Partials/video-script') -%>
+
+  <style>
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+
+  <!-- Grid glow cursor effect -->
+  <script>
+    (function() {
+      const heroSection = document.getElementById('network-hero-section');
+      const gridGlow = document.getElementById('network-grid-glow');
+
+      if (heroSection && gridGlow) {
+        heroSection.addEventListener('mousemove', (e) => {
+          const rect = heroSection.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          gridGlow.style.setProperty('--mouse-x', x + 'px');
+          gridGlow.style.setProperty('--mouse-y', y + 'px');
+          gridGlow.style.opacity = '1';
+        });
+
+        heroSection.addEventListener('mouseleave', () => {
+          gridGlow.style.opacity = '0';
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

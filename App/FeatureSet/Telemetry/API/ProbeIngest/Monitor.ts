@@ -1,6 +1,7 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { ProbeExpressRequest } from "../../Types/Request";
 import MonitorUtil from "../../Utils/Monitor";
+import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
@@ -477,6 +478,12 @@ router.post(
           return Boolean(monitor._id);
         });
 
+      /*
+       * Network Device monitors reference a NetworkDevice resource; probes
+       * need the device's concrete SNMP config injected into the steps.
+       */
+      await NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors(monitors);
+
       logger.debug(
         "Populating secrets",
         getLogAttributesFromRequest(req as any),
@@ -641,6 +648,11 @@ router.post(
         getLogAttributesFromRequest(req as any),
       );
       logger.debug(monitorTests, getLogAttributesFromRequest(req as any));
+
+      // Inject device SNMP config into Network Device monitor test steps.
+      await NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors(
+        monitorTests,
+      );
 
       logger.debug(
         "Populating secrets",

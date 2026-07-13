@@ -83,12 +83,7 @@ import Dictionary from "../../Types/Dictionary";
 import ProjectService from "./ProjectService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
-import LLMService, {
-  LLMProviderConfig,
-  LLMCompletionResponse,
-} from "../Utils/LLM/LLMService";
-import LlmProviderService from "./LlmProviderService";
-import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import AIService, { AILogResponse } from "./AIService";
 import SentinelIncidentInvestigationRunner from "../Utils/AI/Sentinel/IncidentInvestigationRunner";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
@@ -3453,22 +3448,6 @@ ${incidentSeverity.name}
       throw new BadDataException("Incident not found");
     }
 
-    // Get LLM provider for the project
-    const llmProvider: LlmProvider | null =
-      await LlmProviderService.getLLMProviderForProject(incident.projectId);
-
-    if (!llmProvider) {
-      throw new BadDataException(
-        "No LLM provider configured for this project. Please configure an LLM provider in Settings > AI > LLM Providers.",
-      );
-    }
-
-    if (!llmProvider.llmType) {
-      throw new BadDataException(
-        "LLM provider type is not configured properly.",
-      );
-    }
-
     // Build incident context - always include workspace messages
     const contextData: IncidentContextData =
       await IncidentAIContextBuilder.buildIncidentContext({
@@ -3484,27 +3463,21 @@ ${incidentSeverity.name}
         data.template,
       );
 
-    // Generate postmortem using LLM
-    const llmConfig: LLMProviderConfig = {
-      llmType: llmProvider.llmType,
-    };
-
-    if (llmProvider.apiKey) {
-      llmConfig.apiKey = llmProvider.apiKey;
-    }
-
-    if (llmProvider.baseUrl) {
-      llmConfig.baseUrl = llmProvider.baseUrl.toString();
-    }
-
-    if (llmProvider.modelName) {
-      llmConfig.modelName = llmProvider.modelName;
-    }
-
-    const response: LLMCompletionResponse = await LLMService.getCompletion({
-      llmProviderConfig: llmConfig,
+    /*
+     * Route through AIService so the call is metered, billed and budget-
+     * checked like every other AI feature — the previous direct
+     * LLMService.getCompletion bypassed LlmLog and cloud billing entirely.
+     * Previews stay off: the prompt embeds incident context (including
+     * private notes and workspace messages) whose read ACLs are narrower
+     * than LlmLog's (G8).
+     */
+    const response: AILogResponse = await AIService.executeWithLogging({
+      projectId: incident.projectId,
+      feature: "Incident Postmortem",
+      incidentId: data.incidentId,
       messages: aiContext.messages,
       temperature: 0.2,
+      storeContentPreviews: false,
     });
 
     return response.content;

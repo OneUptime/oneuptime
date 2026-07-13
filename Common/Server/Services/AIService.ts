@@ -19,9 +19,29 @@ import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import LlmLog from "../../Models/DatabaseModels/LlmLog";
 import LlmLogStatus from "../../Types/LlmLogStatus";
 import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+
+/*
+ * Features that run WITHOUT a human in the loop. The per-project daily token
+ * budget (Project.aiDailyAutonomousTokenLimit, G4) applies only to these —
+ * interactive chat and explicitly user-triggered AI are never budget-blocked.
+ * Auto-postmortem is deliberately excluded for now: it is one call per
+ * resolved incident, not storm-shaped; include it when it moves to the queue.
+ */
+export const AUTONOMOUS_AI_FEATURES: Array<string> = [
+  "Sentinel Incident Investigation",
+  "Sentinel Alert Investigation",
+];
+
+export interface AutonomousBudgetStatus {
+  exhausted: boolean;
+  // null when the project has no limit configured.
+  limitInTokens: number | null;
+  usedTokensToday: number;
+}
 
 export interface AILogRequest {
   projectId: ObjectID;
@@ -57,6 +77,54 @@ export interface AILogResponse {
 export class Service extends BaseService {
   public constructor() {
     super();
+  }
+
+  /*
+   * G4 daily budget: has this project consumed its daily autonomous-token
+   * allowance (UTC day)? Counts only AUTONOMOUS_AI_FEATURES tokens, so chat
+   * usage neither eats the autonomous budget nor is blocked by it.
+   */
+  @CaptureSpan()
+  public async getAutonomousDailyBudgetStatus(
+    projectId: ObjectID,
+  ): Promise<AutonomousBudgetStatus> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: { aiDailyAutonomousTokenLimit: true },
+      props: { isRoot: true },
+    });
+
+    const limitInTokens: number | null =
+      project?.aiDailyAutonomousTokenLimit ?? null;
+
+    if (limitInTokens === null) {
+      return { exhausted: false, limitInTokens: null, usedTokensToday: 0 };
+    }
+
+    /*
+     * A limit of 0 (or negative) pauses autonomous runs entirely — the safe
+     * reading of "0 tokens allowed", and doubles as a spend kill-switch.
+     */
+    if (limitInTokens <= 0) {
+      return { exhausted: true, limitInTokens, usedTokensToday: 0 };
+    }
+
+    const usedTokensToday: number = await LlmLogService.getTotalTokensUsedSince(
+      {
+        projectId,
+        since: OneUptimeDate.getStartOfDay(
+          OneUptimeDate.getCurrentDate(),
+          "UTC",
+        ),
+        features: AUTONOMOUS_AI_FEATURES,
+      },
+    );
+
+    return {
+      exhausted: usedTokensToday >= limitInTokens,
+      limitInTokens,
+      usedTokensToday,
+    };
   }
 
   @CaptureSpan()
@@ -169,6 +237,34 @@ export class Service extends BaseService {
       }
     }
 
+    /*
+     * G4 daily budget enforcement — autonomous features only, mirroring the
+     * InsufficientBalance path above. Autonomous runs fail closed on budget
+     * (G9); interactive features are never blocked here. A run that crosses
+     * the limit mid-flight errors on its next LLM call, which marks the AIRun
+     * Error with this message — visible in the investigation panel.
+     */
+    if (AUTONOMOUS_AI_FEATURES.includes(request.feature)) {
+      const budget: AutonomousBudgetStatus =
+        await this.getAutonomousDailyBudgetStatus(request.projectId);
+
+      if (budget.exhausted) {
+        const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous investigations resume tomorrow (UTC) — raise or unset the limit in the AI settings pages.`;
+
+        logEntry.status = LlmLogStatus.BudgetExceeded;
+        logEntry.statusMessage = budgetMessage.substring(0, 490);
+        logEntry.requestCompletedAt = new Date();
+        logEntry.durationMs = new Date().getTime() - startTime.getTime();
+
+        await LlmLogService.create({
+          data: logEntry,
+          props: { isRoot: true },
+        });
+
+        throw new BadDataException(budgetMessage);
+      }
+    }
+
     try {
       // Build LLM config
       const llmConfig: LLMProviderConfig = {
@@ -194,6 +290,9 @@ export class Service extends BaseService {
         temperature: request.temperature ?? 0.7,
         maxTokens: request.maxTokens,
         tools: request.tools,
+        ...(llmProvider.additionalParams
+          ? { additionalParams: llmProvider.additionalParams }
+          : {}),
       });
 
       const endTime: Date = new Date();
@@ -201,6 +300,8 @@ export class Service extends BaseService {
       // Update log with success info
       logEntry.status = LlmLogStatus.Success;
       logEntry.totalTokens = response.usage?.totalTokens || 0;
+      logEntry.cachedInputTokens = response.usage?.cachedInputTokens || 0;
+      logEntry.cacheCreationTokens = response.usage?.cacheCreationTokens || 0;
       logEntry.responsePreview = storeContentPreviews
         ? response.content.substring(0, 2000) // Store first 2000 chars
         : "[Redacted — this content is private to the requesting user]";

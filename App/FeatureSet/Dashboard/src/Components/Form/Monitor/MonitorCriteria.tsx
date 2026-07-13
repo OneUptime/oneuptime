@@ -5,6 +5,7 @@ import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import Button, {
   ButtonSize,
@@ -381,7 +382,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
           }}
         </Droppable>
       </DragDropContext>
-      <div className="mt-4 -ml-3">
+      <div className="mt-4 -ml-3 flex">
         <Button
           title="Add Criteria"
           buttonSize={ButtonSize.Small}
@@ -401,6 +402,29 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
             );
           }}
         />
+        {props.monitorType === MonitorType.NetworkDevice ? (
+          <Button
+            title="Add Recommended Alerts"
+            buttonSize={ButtonSize.Small}
+            icon={IconProp.Star}
+            onClick={() => {
+              const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
+                ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
+                ...NetworkDeviceAlertPackUtil.buildCriteriaInstances(),
+              ];
+              props.onChange?.(
+                MonitorCriteria.fromJSON({
+                  _type: "MonitorCriteria",
+                  value: {
+                    monitorCriteriaInstanceArray: newMonitorCriterias,
+                  },
+                }),
+              );
+            }}
+          />
+        ) : (
+          <></>
+        )}
       </div>
       {showCantDeleteModal ? (
         <ConfirmModal

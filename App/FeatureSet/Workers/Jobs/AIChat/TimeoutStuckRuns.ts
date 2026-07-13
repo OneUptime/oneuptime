@@ -1,10 +1,12 @@
 import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import AIRunType from "Common/Types/AI/AIRunType";
 import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AIRunService from "Common/Server/Services/AIRunService";
 import AIConversationMessageService from "Common/Server/Services/AIConversationMessageService";
+import SentinelInvestigationQueue from "Common/Server/Utils/AI/Sentinel/InvestigationQueue";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMessage";
@@ -12,8 +14,10 @@ import logger from "Common/Server/Utils/Logger";
 
 /**
  * AI runs heartbeat while executing. A run whose heartbeat is older than the
- * threshold is stale — the pod running it died mid-turn. Mark it (and its
- * assistant message) failed so the UI never shows an eternal spinner.
+ * threshold is stale — the pod running it died mid-turn. Investigation runs
+ * are requeued while retry attempts remain (the durable-queue poller picks
+ * them up); chat runs — and investigations out of attempts — are marked
+ * stale so the UI never shows an eternal spinner.
  */
 
 /*
@@ -42,6 +46,8 @@ RunCron(
       select: {
         _id: true,
         conversationId: true,
+        runType: true,
+        attemptCount: true,
       },
       limit: 100,
       skip: 0,
@@ -55,12 +61,30 @@ RunCron(
     }
 
     logger.info(
-      `Found ${staleRuns.length} stale AI chat run(s). Marking as stale.`,
+      `Found ${staleRuns.length} stale AI run(s). Requeueing or marking as stale.`,
       { service: "workers" },
     );
 
     for (const run of staleRuns) {
       try {
+        /*
+         * Investigations are durable-queue runs: requeue while attempts
+         * remain so a pod restart costs a retry, not the investigation.
+         */
+        if (run.runType === AIRunType.Investigation) {
+          const outcome: "requeued" | "stale" =
+            await SentinelInvestigationQueue.requeueOrMarkStale({
+              id: run.id!,
+              attemptCount: run.attemptCount || 0,
+            });
+
+          logger.info(
+            `Stale investigation run ${run.id?.toString()}: ${outcome}.`,
+            { service: "workers" },
+          );
+          continue;
+        }
+
         await AIRunService.updateOneById({
           id: run.id!,
           data: {

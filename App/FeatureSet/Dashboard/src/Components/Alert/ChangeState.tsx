@@ -36,6 +36,7 @@ export interface ComponentProps {
   alertId: ObjectID;
   onActionComplete: () => void;
   eventNumber?: string | undefined;
+  title?: string | undefined;
   severity?: { name: string; color: Color } | undefined;
   isPrivate?: boolean | undefined;
 }
@@ -348,6 +349,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           };
         })}
         identifier={props.eventNumber}
+        title={props.title}
         currentStateId={currentAlertState?.id?.toString()}
         severity={props.severity}
         isPrivate={props.isPrivate}

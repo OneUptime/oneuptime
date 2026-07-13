@@ -404,9 +404,10 @@ router.post(
         ? (body["spanIds"] as Array<string>)
         : undefined;
 
-      const attributes: Record<string, string> | undefined = body["attributes"]
-        ? (body["attributes"] as Record<string, string>)
-        : undefined;
+      const attributes: Record<string, string | Array<string>> | undefined =
+        body["attributes"]
+          ? (body["attributes"] as Record<string, string | Array<string>>)
+          : undefined;
 
       const request: HistogramRequest = {
         projectId: databaseProps.tenantId,

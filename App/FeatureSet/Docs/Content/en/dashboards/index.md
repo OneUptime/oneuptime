@@ -13,7 +13,7 @@ Put a chart for request latency next to a list of open incidents, next to a gaug
 
 ## What you can put on a dashboard
 
-- **Charts** for trends over time — latency, errors, throughput.
+- **Charts** for trends over time — latency, errors, throughput, and log volume.
 - **Single-value tiles and gauges** — current error rate, CPU, open incidents.
 - **Tables** for breakdowns — top 10 noisiest hosts, error count per service.
 - **Text blocks** for headings, context, and links to runbooks.
@@ -63,8 +63,9 @@ Goal: an on-call page for the checkout service with latency, error rate, open in
 3. Add a **Chart** widget with P95 latency, filtered by the `service` variable.
 4. Next to it, add a **Value** widget for error rate, with warning at 1% and critical at 5%.
 5. Below, add an **Incident List** widget for incidents tagged `checkout`.
-6. Below that, a **Log Stream** widget showing logs from the same service.
-7. Save. Switch the dropdown to `payments` — the same dashboard now shows the payments service.
+6. Below that, add a **Log Chart** to spot log-volume and severity spikes.
+7. Add a **Log Stream** widget showing the matching raw logs.
+8. Save. Switch the dropdown to `payments` — the same dashboard now shows the payments service.
 
 ## How dashboards fit with the rest of OneUptime
 

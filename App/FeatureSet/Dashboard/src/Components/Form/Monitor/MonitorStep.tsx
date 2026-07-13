@@ -107,10 +107,10 @@ import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepFor
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
-import SnmpMonitorStepForm from "./SnmpMonitor/SnmpMonitorStepForm";
-import MonitorStepSnmpMonitor, {
-  MonitorStepSnmpMonitorUtil,
-} from "Common/Types/Monitor/MonitorStepSnmpMonitor";
+import NetworkDeviceMonitorStepForm from "./NetworkDeviceMonitor/NetworkDeviceMonitorStepForm";
+import MonitorStepNetworkDeviceMonitor, {
+  MonitorStepNetworkDeviceMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepNetworkDeviceMonitor";
 import DnsMonitorStepForm from "./DnsMonitor/DnsMonitorStepForm";
 import MonitorStepDnsMonitor, {
   MonitorStepDnsMonitorUtil,
@@ -1492,18 +1492,18 @@ return {
         </Card>
       )}
 
-      {props.monitorType === MonitorType.SNMP && (
+      {props.monitorType === MonitorType.NetworkDevice && (
         <Card
-          title="SNMP Monitor Configuration"
-          description="Configure the SNMP monitoring settings"
+          title="Network Device Monitor Configuration"
+          description="Pick a registered network device and choose what to monitor on it"
         >
-          <SnmpMonitorStepForm
-            monitorStepSnmpMonitor={
-              monitorStep.data?.snmpMonitor ||
-              MonitorStepSnmpMonitorUtil.getDefault()
+          <NetworkDeviceMonitorStepForm
+            monitorStepNetworkDeviceMonitor={
+              monitorStep.data?.networkDeviceMonitor ||
+              MonitorStepNetworkDeviceMonitorUtil.getDefault()
             }
-            onChange={(value: MonitorStepSnmpMonitor) => {
-              monitorStep.setSnmpMonitor(value);
+            onChange={(value: MonitorStepNetworkDeviceMonitor) => {
+              monitorStep.setNetworkDeviceMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />

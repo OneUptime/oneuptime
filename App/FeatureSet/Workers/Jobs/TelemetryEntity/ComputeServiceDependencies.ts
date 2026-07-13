@@ -10,7 +10,10 @@ import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
-import { EntityRelationshipEdge } from "Common/Utils/Telemetry/EntityRelationship";
+import {
+  EntityRelationshipEdge,
+  EntityRelationshipMetrics,
+} from "Common/Utils/Telemetry/EntityRelationship";
 import { keyForService } from "Common/Utils/Telemetry/EntityKey";
 
 /*
@@ -64,6 +67,13 @@ function escapeSql(value: string): string {
 interface DependencyRow {
   callerServiceId: string;
   calleeServiceId: string;
+  /*
+   * ClickHouse serializes UInt64/Float64 aggregates as JSON strings, so
+   * these arrive as strings and are Number()-coerced before use.
+   */
+  callCount: string;
+  errorCount: string;
+  avgDurationNano: string;
 }
 
 async function findProjectsWithRecentSpans(window: {
@@ -109,11 +119,18 @@ async function findServiceDependencyPairs(args: {
    * boundary when the primary entity differs. Both sides prune on the
    * (projectId, startTime) sort-key prefix.
    */
+  /*
+   * Traffic metrics come from the callee side: the child span's status and
+   * duration describe how the callee handled the call. statusCode 2 is the
+   * OTel STATUS_CODE_ERROR (SpanStatus.Error).
+   */
   const sql: string = `
     SELECT
       caller.primaryEntityId AS callerServiceId,
       callee.primaryEntityId AS calleeServiceId,
-      count() AS callCount
+      count() AS callCount,
+      countIf(callee.statusCode = 2) AS errorCount,
+      avg(callee.durationUnixNano) AS avgDurationNano
     FROM
     (
       SELECT traceId, spanId, primaryEntityId
@@ -126,7 +143,7 @@ async function findServiceDependencyPairs(args: {
     ) AS caller
     INNER JOIN
     (
-      SELECT traceId, parentSpanId, primaryEntityId
+      SELECT traceId, parentSpanId, primaryEntityId, statusCode, durationUnixNano
       FROM oneuptime.SpanItemV3
       WHERE projectId = '${projectIdSql}'
         AND startTime >= ${args.startSql}
@@ -205,8 +222,15 @@ async function computeDependenciesForProject(args: {
     );
   }
 
-  const edges: Array<EntityRelationshipEdge> = [];
-  const seen: Set<string> = new Set<string>();
+  /*
+   * Distinct service ids can hash to one entity key (duplicate names), so
+   * rows folding into the same edge merge their metrics: counts sum,
+   * durations combine call-count-weighted.
+   */
+  const edgeByKey: Map<string, EntityRelationshipEdge> = new Map<
+    string,
+    EntityRelationshipEdge
+  >();
   for (const pair of pairs) {
     const fromEntityKey: string | undefined = entityKeyByServiceId.get(
       pair.callerServiceId,
@@ -220,18 +244,48 @@ async function computeDependenciesForProject(args: {
       continue;
     }
 
+    const callCount: number = Math.max(0, Math.round(Number(pair.callCount)));
+    const errorCount: number = Math.max(0, Math.round(Number(pair.errorCount)));
+    const avgDurationMs: number = Number(pair.avgDurationNano) / 1_000_000;
+    const metrics: EntityRelationshipMetrics = {
+      callCount: Number.isFinite(callCount) ? callCount : 0,
+      errorCount: Number.isFinite(errorCount) ? errorCount : 0,
+      avgDurationMs:
+        Number.isFinite(avgDurationMs) && avgDurationMs >= 0
+          ? Math.round(avgDurationMs)
+          : 0,
+    };
+
     const dedupeKey: string = `${fromEntityKey}|${toEntityKey}`;
-    if (seen.has(dedupeKey)) {
+    const existing: EntityRelationshipEdge | undefined =
+      edgeByKey.get(dedupeKey);
+    if (existing && existing.metrics) {
+      const mergedCalls: number =
+        existing.metrics.callCount + metrics.callCount;
+      existing.metrics = {
+        callCount: mergedCalls,
+        errorCount: existing.metrics.errorCount + metrics.errorCount,
+        avgDurationMs:
+          mergedCalls > 0
+            ? Math.round(
+                (existing.metrics.avgDurationMs * existing.metrics.callCount +
+                  metrics.avgDurationMs * metrics.callCount) /
+                  mergedCalls,
+              )
+            : 0,
+      };
       continue;
     }
-    seen.add(dedupeKey);
 
-    edges.push({
+    edgeByKey.set(dedupeKey, {
       fromEntityKey,
       toEntityKey,
       relationshipType: EntityRelationshipType.DependsOn,
+      metrics,
     });
   }
+
+  const edges: Array<EntityRelationshipEdge> = Array.from(edgeByKey.values());
 
   if (edges.length === 0) {
     return 0;

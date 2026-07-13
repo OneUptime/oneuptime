@@ -22,7 +22,14 @@ import Dropdown, {
 import Protocol from "Common/Types/API/Protocol";
 import Card from "Common/UI/Components/Card/Card";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
-import { getIoTInstallationMarkdown } from "../../Pages/IoT/Utils/DocumentationMarkdown";
+import {
+  getIoTIntroMarkdown,
+  getIoTMethodMarkdown,
+  getIoTFooterMarkdown,
+  IOT_INGESTION_METHODS,
+  IoTIngestionMethod,
+  IoTIngestionMethodOption,
+} from "../../Pages/IoT/Utils/DocumentationMarkdown";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 
@@ -41,6 +48,8 @@ const IoTDocumentationCard: FunctionComponent<ComponentProps> = (
   const [isLoadingKeys, setIsLoadingKeys] = useState<boolean>(true);
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [keyError, setKeyError] = useState<string>("");
+  const [selectedMethod, setSelectedMethod] =
+    useState<IoTIngestionMethod>("opentelemetry");
 
   const httpProtocol: string =
     HTTP_PROTOCOL === Protocol.HTTPS ? "https" : "http";
@@ -216,10 +225,57 @@ const IoTDocumentationCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const installationMarkdown: string = getIoTInstallationMarkdown({
+  const introMarkdown: string = getIoTIntroMarkdown();
+
+  const methodMarkdown: string = getIoTMethodMarkdown(
+    {
+      oneuptimeUrl: oneuptimeUrl,
+      apiKey: apiKeyValue,
+    },
+    selectedMethod,
+  );
+
+  const footerMarkdown: string = getIoTFooterMarkdown({
     oneuptimeUrl: oneuptimeUrl,
-    apiKey: apiKeyValue,
   });
+
+  const renderMethodSelector: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="mb-6">
+        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          Choose How to Connect
+        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {IOT_INGESTION_METHODS.map((method: IoTIngestionMethodOption) => {
+            const isSelected: boolean = selectedMethod === method.key;
+            return (
+              <button
+                key={method.key}
+                type="button"
+                onClick={() => {
+                  setSelectedMethod(method.key);
+                }}
+                className={`text-left px-4 py-3 rounded-lg border-2 transition-all ${
+                  isSelected
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <div
+                  className={`text-sm font-semibold ${isSelected ? "text-indigo-700" : "text-gray-900"}`}
+                >
+                  {method.label}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  {method.description}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -232,7 +288,13 @@ const IoTDocumentationCard: FunctionComponent<ComponentProps> = (
             {renderKeySelector()}
           </div>
 
-          <MarkdownViewer text={installationMarkdown} />
+          <MarkdownViewer text={introMarkdown} />
+
+          {renderMethodSelector()}
+
+          <MarkdownViewer text={methodMarkdown} />
+
+          <MarkdownViewer text={footerMarkdown} />
         </div>
       </Card>
 

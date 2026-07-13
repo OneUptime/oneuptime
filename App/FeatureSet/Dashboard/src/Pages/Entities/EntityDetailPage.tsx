@@ -63,9 +63,11 @@ interface TypedRowLink {
 }
 
 /*
- * Cheap interim cross-link to the rich typed detail page: resolve by natural
- * identity (the same identity the entity key is hashed from) instead of the
- * registry's (resourceType, resourceId) pointer, which is not populated yet.
+ * Cross-link to the rich typed detail page. Service entities carry the
+ * registry's (resourceType, resourceId) pointer (stamped at reconcile
+ * time), used directly when present; everything else — and pre-pointer
+ * service rows — falls back to resolution by natural identity (the same
+ * identity the entity key is hashed from).
  */
 async function resolveTypedRowLink(
   entity: TelemetryEntity,
@@ -79,6 +81,15 @@ async function resolveTypedRowLink(
     {}) as JSONObject;
 
   try {
+    if (entity.resourceType === "Service" && entity.resourceId) {
+      return {
+        route: RouteUtil.populateRouteParams(RouteMap[PageMap.SERVICE_VIEW]!, {
+          modelId: new ObjectID(entity.resourceId.toString()),
+        }),
+        label: "View Service",
+      };
+    }
+
     if (entity.entityType === EntityType.Service) {
       const name: string | undefined =
         (identifying["service.name"] as string | undefined) ||
@@ -205,6 +216,8 @@ const EntityDetailPage: FunctionComponent<
               entityKey: true,
               identifyingAttributes: true,
               descriptiveAttributes: true,
+              resourceType: true,
+              resourceId: true,
               firstSeenAt: true,
               lastSeenAt: true,
             },

@@ -29,6 +29,7 @@ It's the same dashboard in both modes. There's no separate "publish" step — ev
 Most widgets read from one of three places:
 
 - **Metrics** — pick a metric and an aggregation (average, max, count, percentile). Add filters. Choose how to group the result. This is the same query builder you see elsewhere in OneUptime.
+- **Logs and traces** — chart log volume or trace performance over time, or show recent matching telemetry in a list. Telemetry widgets can be narrowed by service, severity, body text, and attributes.
 - **Live lists** — incidents, alerts, monitors, Kubernetes pods, Docker containers, hosts. Each list widget takes a filter and shows the matching items, updated live.
 - **Static content** — the **Text** widget takes a block of Markdown. Use it for headings, context, links to runbooks, or temporary notes during an incident.
 
@@ -43,9 +44,9 @@ Charts let you set the Y-axis unit, choose where the legend goes, and pick wheth
 
 ## Time range and refresh
 
-At the top of the dashboard, two controls affect every metric widget:
+At the top of the dashboard, two controls affect every time-based telemetry widget:
 
-- **Time range** — a preset (past hour, 24 hours, 7 days, 30 days) or a custom range. Every chart and number uses this window.
+- **Time range** — a preset (past hour, 24 hours, 7 days, 30 days) or a custom range. Every metric, log, and trace chart uses this window.
 - **Refresh** — how often widgets re-query. Off, 5s, 10s, 30s, 1m, 5m, 15m. Live lists update on their own regardless of this setting.
 
 Widgets that don't use the time range (like a Text widget) ignore both controls.

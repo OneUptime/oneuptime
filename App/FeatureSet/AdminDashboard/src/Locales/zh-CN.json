@@ -321,6 +321,7 @@
         "noItems": "未配置 LLM 提供商。添加 LLM 提供商以启用 AI 功能。",
         "stepBasicInfo": "基本信息",
         "stepProviderSettings": "提供商设置",
+        "stepAdvanced": "高级",
         "stepCostSettings": "成本设置"
       }
     }

@@ -58,6 +58,24 @@ Use it when: you want a section heading, a paragraph of context, a list of links
 
 ## Logs and traces
 
+### Log Chart
+
+A time-series chart of log volume over the dashboard's time range. Each series represents a severity, so error spikes stand out from normal traffic.
+
+**Settings**:
+
+- Bar, line, or area chart visualization. Bar and area charts stack severity series.
+- Optional severity filters.
+- Optional log-body text search.
+- Exact OpenTelemetry attribute filters using searchable key/value rows. Attribute names and known values are suggested as you type, while custom values remain supported.
+- An optional title.
+
+The dashboard time-range and refresh controls automatically re-query the chart. Dashboard telemetry-attribute variables also apply to it, including multi-select variables.
+
+Log Chart currently requires an authenticated dashboard. Public dashboards show the widget as unavailable rather than exposing project log aggregates anonymously.
+
+Use it when: you want to spot changes in log volume or compare errors, warnings, and informational logs without leaving the dashboard.
+
 ### Log Stream
 
 A live tail of log lines matching a filter.
@@ -137,7 +155,8 @@ Hosts monitored by OneUptime's server monitor, with status, CPU, memory, and upt
 
 A few quick rules:
 
-- **Trend over time?** Chart.
+- **Metric trend over time?** Chart.
+- **Log volume or error spikes over time?** Log Chart.
 - **One number that matters right now?** Value (or Gauge if it has a clear min/max).
 - **Breakdown across many things?** Table.
 - **What's happening in the system right now?** Log Stream, Trace List, Incident List.

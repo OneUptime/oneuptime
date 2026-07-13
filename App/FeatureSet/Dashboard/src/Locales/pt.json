@@ -77,6 +77,8 @@
       "kubernetesDescription": "Monitore clusters Kubernetes.",
       "dockerTitle": "Docker",
       "dockerDescription": "Monitore hosts e containers Docker.",
+      "networkDevicesTitle": "Network Devices",
+      "networkDevicesDescription": "Monitor switches, routers, and firewalls via SNMP.",
       "podmanTitle": "Podman",
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",

@@ -11,11 +11,22 @@ import EntityType from "../../Types/Telemetry/EntityType";
  * synchronous: operates on already-computed entity keys, no DB round trip.
  */
 
+/**
+ * Traffic observed over a `depends-on` edge in one computation window.
+ * Co-occurrence edges carry no call semantics and never have these.
+ */
+export interface EntityRelationshipMetrics {
+  callCount: number;
+  errorCount: number;
+  avgDurationMs: number;
+}
+
 /** A single directed relationship edge between two entities. */
 export interface EntityRelationshipEdge {
   fromEntityKey: string;
   toEntityKey: string;
   relationshipType: EntityRelationshipType;
+  metrics?: EntityRelationshipMetrics | undefined;
 }
 
 /*

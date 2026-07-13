@@ -420,6 +420,20 @@ import { AddMigrationFailureTable1783523076215 } from "./1783523076215-AddMigrat
 import { AddEnableAutomaticIncidentInvestigationToProject1783598145111 } from "./1783598145111-AddEnableAutomaticIncidentInvestigationToProject";
 import { AddInvestigationSubjectToAIRun1783615884106 } from "./1783615884106-AddInvestigationSubjectToAIRun";
 import { AddEnableAutomaticAlertInvestigationToProject1783632447975 } from "./1783632447975-AddEnableAutomaticAlertInvestigationToProject";
+import { AddCacheTokenColumnsToLlmLog1783695782697 } from "./1783695782697-AddCacheTokenColumnsToLlmLog";
+import { AddAlertInvestigationGating1783701585317 } from "./1783701585317-AddAlertInvestigationGating";
+import { AddAiDailyAutonomousTokenLimitToProject1783702431535 } from "./1783702431535-AddAiDailyAutonomousTokenLimitToProject";
+import { AddNetworkDeviceTables1783720000000 } from "./1783720000000-AddNetworkDeviceTables";
+import { AddNetworkDeviceOwnersAndRules1783730000000 } from "./1783730000000-AddNetworkDeviceOwnersAndRules";
+import { AddNetworkDeviceDiscoveryScan1783740000000 } from "./1783740000000-AddNetworkDeviceDiscoveryScan";
+import { AddLldpNeighborsToNetworkDevice1783750000000 } from "./1783750000000-AddLldpNeighborsToNetworkDevice";
+import { AddAttemptCountToAIRun1783721121260 } from "./1783721121260-AddAttemptCountToAIRun";
+import { AddInvestigationTuningToProject1783760576655 } from "./1783760576655-AddInvestigationTuningToProject";
+import { AddTelemetryEntityRelationshipMetrics1783762505482 } from "./1783762505482-AddTelemetryEntityRelationshipMetrics";
+import { AddIoTDeviceCredentialTable1783780000000 } from "./1783780000000-AddIoTDeviceCredentialTable";
+import { AddSnmpV3AuthColumnsToNetworkDevice1783790000000 } from "./1783790000000-AddSnmpV3AuthColumnsToNetworkDevice";
+import { AddAdditionalParamsToLlmProvider1783650000000 } from "./1783650000000-AddAdditionalParamsToLlmProvider";
+import { MigrationName1783937343400 } from "./1783937343400-MigrationName";
 
 export default [
   InitialMigration,
@@ -844,4 +858,18 @@ export default [
   AddEnableAutomaticIncidentInvestigationToProject1783598145111,
   AddInvestigationSubjectToAIRun1783615884106,
   AddEnableAutomaticAlertInvestigationToProject1783632447975,
+  AddCacheTokenColumnsToLlmLog1783695782697,
+  AddAlertInvestigationGating1783701585317,
+  AddAiDailyAutonomousTokenLimitToProject1783702431535,
+  AddNetworkDeviceTables1783720000000,
+  AddAttemptCountToAIRun1783721121260,
+  AddNetworkDeviceOwnersAndRules1783730000000,
+  AddNetworkDeviceDiscoveryScan1783740000000,
+  AddLldpNeighborsToNetworkDevice1783750000000,
+  AddInvestigationTuningToProject1783760576655,
+  AddTelemetryEntityRelationshipMetrics1783762505482,
+  AddIoTDeviceCredentialTable1783780000000,
+  AddSnmpV3AuthColumnsToNetworkDevice1783790000000,
+  AddAdditionalParamsToLlmProvider1783650000000,
+  MigrationName1783937343400,
 ];

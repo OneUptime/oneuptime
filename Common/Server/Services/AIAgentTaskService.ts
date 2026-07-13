@@ -11,6 +11,7 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import logger from "../Utils/Logger";
 import OneUptimeDate from "../../Types/Date";
+import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -78,6 +79,67 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * Atomically claim the oldest Scheduled task for a worker: the
+   * Scheduled -> InProgress transition is guarded on status, so when
+   * multiple workers poll concurrently only one claim succeeds
+   * (updateOneBy returns the number of rows changed — zero means another
+   * worker won the race, so we retry with the next candidate). The
+   * returned task is already InProgress and owned by the given agent.
+   */
+  @CaptureSpan()
+  public async claimNextScheduledTask(data: {
+    aiAgentId: ObjectID;
+  }): Promise<Model | null> {
+    const maxClaimAttempts: number = 5;
+
+    for (let attempt: number = 0; attempt < maxClaimAttempts; attempt++) {
+      const task: Model | null = await this.findOneBy({
+        query: {
+          status: AIAgentTaskStatus.Scheduled,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          taskType: true,
+          metadata: true,
+          createdAt: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!task || !task.id) {
+        return null;
+      }
+
+      const claimedCount: number = await this.updateOneBy({
+        query: {
+          _id: task.id.toString(),
+          status: AIAgentTaskStatus.Scheduled,
+        },
+        data: {
+          status: AIAgentTaskStatus.InProgress,
+          aiAgentId: data.aiAgentId,
+          startedAt: OneUptimeDate.getCurrentDate(),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (claimedCount > 0) {
+        return task;
+      }
+    }
+
+    return null;
   }
 
   @CaptureSpan()

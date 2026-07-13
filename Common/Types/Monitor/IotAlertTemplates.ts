@@ -3,7 +3,12 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import FilterCondition from "../Filter/FilterCondition";
-import { CheckOn, FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
+import {
+  CheckOn,
+  FilterType,
+  EvaluateOverTimeType,
+  NoDataPolicy,
+} from "./CriteriaFilter";
 import MonitorStepIoTMonitor from "./MonitorStepIoTMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -102,6 +107,16 @@ export function buildIoTOfflineCriteriaInstance(args: {
   incidentDescription?: string;
   criteriaName?: string;
   criteriaDescription?: string;
+  /*
+   * Evaluate an empty (no data) series as 0 instead of skipping it.
+   * This is what lets REGISTERED devices that go completely silent
+   * trip the criteria: monitor evaluation injects an empty synthetic
+   * series per registered-but-silent device, TreatAsZero folds it to
+   * 0, and e.g. Min(iot_device_up) < 1 fires. Only the Device Offline
+   * template opts in — treating no-data as zero on a battery or
+   * temperature threshold would false-alarm for silent devices.
+   */
+  treatNoDataAsZero?: boolean;
 }): MonitorCriteriaInstance {
   const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
 
@@ -122,6 +137,9 @@ export function buildIoTOfflineCriteriaInstance(args: {
         metricMonitorOptions: {
           metricAggregationType: EvaluateOverTimeType.AnyValue,
           metricAlias: args.metricAlias,
+          ...(args.treatNoDataAsZero
+            ? { onNoDataPolicy: NoDataPolicy.TreatAsZero }
+            : {}),
         },
         value: args.value,
       },
@@ -356,10 +374,11 @@ const deviceOfflineTemplate: IoTAlertTemplate = {
         filterType: FilterType.LessThan,
         value: 1,
         incidentTitle: `[IoT] Device Offline - ${args.monitorName}`,
-        incidentDescription: `An IoT device is reporting as down (iot_device_up = 0). The device is unreachable, powered off, or has lost connectivity to its gateway. Check the root cause for the affected device id, verify the device's power and network state, and confirm its gateway is forwarding telemetry.`,
+        incidentDescription: `An IoT device is reporting as down (iot_device_up = 0) or has stopped reporting entirely. The device is unreachable, powered off, or has lost connectivity to its gateway. Check the root cause for the affected device id, verify the device's power and network state, and confirm its gateway is forwarding telemetry.`,
         criteriaName: "Device Offline - iot_device_up < 1",
         criteriaDescription:
-          "Triggers when any device reports iot_device_up below 1 over the monitoring window.",
+          "Triggers when any device reports iot_device_up below 1 over the monitoring window, or when a registered device goes silent.",
+        treatNoDataAsZero: true,
       }),
       onlineCriteriaInstance: buildIoTOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,

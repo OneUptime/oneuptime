@@ -207,16 +207,16 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
      *   iconColor: "blue",
      *   category: observabilityCategory,
      * },
-     * {
-     *   title: t("navbar.items.topologyTitle"),
-     *   description: t("navbar.items.topologyDescription"),
-     *   route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
-     *   activeRoute: RouteMap[PageMap.TOPOLOGY],
-     *   icon: IconProp.FlowDiagram,
-     *   iconColor: "indigo",
-     *   category: observabilityCategory,
-     * },
      */
+    {
+      title: t("navbar.items.topologyTitle"),
+      description: t("navbar.items.topologyDescription"),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
+      activeRoute: RouteMap[PageMap.TOPOLOGY],
+      icon: IconProp.FlowDiagram,
+      iconColor: "indigo",
+      category: observabilityCategory,
+    },
     {
       title: t("navbar.items.servicesTitle"),
       description: t("navbar.items.servicesDescription"),
@@ -246,6 +246,17 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       activeRoute: RouteMap[PageMap.DOCKER_HOSTS],
       icon: IconProp.Docker,
       iconColor: "blue",
+      category: resourcesCategory,
+    },
+    {
+      title: t("navbar.items.networkDevicesTitle"),
+      description: t("navbar.items.networkDevicesDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.NETWORK_DEVICES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.NETWORK_DEVICES],
+      icon: IconProp.Signal,
+      iconColor: "indigo",
       category: resourcesCategory,
     },
     {

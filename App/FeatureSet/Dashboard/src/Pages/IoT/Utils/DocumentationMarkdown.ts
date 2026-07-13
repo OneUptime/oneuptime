@@ -1,15 +1,35 @@
-export function getIoTInstallationMarkdown(data: {
-  oneuptimeUrl: string;
-  apiKey: string;
-}): string {
+export type IoTIngestionMethod = "opentelemetry" | "mqtt";
+
+export interface IoTIngestionMethodOption {
+  key: IoTIngestionMethod;
+  label: string;
+  description: string;
+}
+
+export const IOT_INGESTION_METHODS: Array<IoTIngestionMethodOption> = [
+  {
+    key: "opentelemetry",
+    label: "OpenTelemetry",
+    description:
+      "Push OTLP/HTTP from an OpenTelemetry SDK on the device, or a Collector on a gateway.",
+  },
+  {
+    key: "mqtt",
+    label: "MQTT",
+    description:
+      "Publish JSON readings straight to OneUptime's built-in MQTT endpoint — no SDK or collector.",
+  },
+];
+
+export function getIoTIntroMarkdown(): string {
   return `
 ## Prerequisites
 
-- A device, gateway, or OpenTelemetry Collector that can send OTLP/HTTP to OneUptime
+- A device, gateway, or OpenTelemetry Collector that can send OTLP/HTTP — or any MQTT client
 - Network reachability from the device/gateway to your OneUptime instance
-- The telemetry ingestion key selected above (sent as the \`x-oneuptime-token\` header)
+- The telemetry ingestion key selected above (sent as the \`x-oneuptime-token\` header for OTLP, or as the MQTT password)
 
-There is **no agent to install on the device side** — anything that can speak OTLP (an OpenTelemetry SDK on the device, or an OpenTelemetry Collector running on a gateway that fans out to many devices) works. For the full ingestion guide, see the [IoT Devices documentation](/docs/telemetry/iot-devices).
+There is **no agent to install on the device side** — anything that can speak OTLP (an OpenTelemetry SDK on the device, or an OpenTelemetry Collector running on a gateway that fans out to many devices) or **MQTT** (publish straight to OneUptime's built-in MQTT endpoint) works. For the full ingestion guide, see the [IoT Devices documentation](/docs/telemetry/iot-devices).
 
 ## How OneUptime Models IoT
 
@@ -27,7 +47,22 @@ Optional attributes refine how each device is classified and scoped in monitors:
 | \`iot.device.kind\` | No | The device class — for example \`Device\`, \`Sensor\`, or \`Gateway\`. Defaults to \`Device\` |
 | \`iot.device.type\` | No | A finer device type/model used for filtering monitors (for example \`temp-sensor\`) |
 | \`iot.device.firmware\` | No | Firmware version reported by the device |
+`;
+}
 
+export function getIoTMethodMarkdown(
+  data: {
+    oneuptimeUrl: string;
+    apiKey: string;
+  },
+  method: IoTIngestionMethod,
+): string {
+  // ws(s):// form of the instance URL for the MQTT-over-WebSocket endpoint.
+  const mqttWebSocketUrl: string = `${data.oneuptimeUrl.replace(/^http/, "ws")}/mqtt`;
+
+  switch (method) {
+    case "opentelemetry":
+      return `
 ## Quick Start — OpenTelemetry SDK
 
 If your device runs an OpenTelemetry SDK directly, point it at OneUptime and stamp the IoT resource attributes via the standard \`OTEL_*\` environment variables. Replace the fleet name and device id with values for your environment:
@@ -42,7 +77,7 @@ Emit your readings as metrics using the \`iot_*\` names below. Within a minute o
 
 ## Quick Start — OpenTelemetry Collector
 
-When many devices report through a gateway, run an OpenTelemetry Collector on the gateway and export to OneUptime. The \`resource\` processor stamps the fleet attributes; receive readings from your devices (OTLP, an MQTT bridge, file logs, etc.) and forward them on:
+When many devices report through a gateway, run an OpenTelemetry Collector on the gateway and export to OneUptime. (If your devices speak MQTT, switch to the **MQTT** tab above — no collector needed.) The \`resource\` processor stamps the fleet attributes; receive readings from your devices (OTLP, file logs, etc.) and forward them on:
 
 \`\`\`yaml
 receivers:
@@ -69,10 +104,7 @@ processors:
 exporters:
   otlphttp:
     endpoint: "${data.oneuptimeUrl}/otlp"
-    # OneUptime requires the JSON encoder instead of the default Proto(buf)
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "${data.apiKey}"
 
 service:
@@ -85,8 +117,58 @@ service:
 
 - **\`resource\`** stamps every record with the fleet attributes. Set \`iot.fleet.name\` (and the matching \`service.name=iot/<fleet>\`) per gateway so each gateway's devices land in the right fleet.
 - Keep \`device.id\` (and optionally \`iot.device.kind\` / \`iot.device.type\` / \`iot.device.firmware\`) on each datapoint so OneUptime can resolve the individual device inside the fleet.
-- **\`otlphttp\`** sends to OneUptime over HTTPS with the ingestion token attached. Note \`encoding: json\` and the \`Content-Type: application/json\` header are required.
+- **\`otlphttp\`** sends to OneUptime over HTTPS with the ingestion token attached. Both the default protobuf encoding and \`encoding: json\` are accepted.
+`;
 
+    case "mqtt":
+      return `
+## Quick Start — MQTT
+
+Devices that already speak MQTT can publish readings directly — no SDK, collector, or bridge. Connect to:
+
+\`\`\`text
+${mqttWebSocketUrl}
+\`\`\`
+
+Authenticate with the ingestion key selected above as the **MQTT password** (the username is ignored) — or better, register each device under the fleet's **Device Registry** tab to get a per-device credential (credential ID as username, secret as password) with topic isolation, individual revocation, and silent-death offline detection. Then publish JSON readings under the \`oneuptime/\` topic prefix:
+
+\`\`\`text
+Topic:   oneuptime/<fleet>/<device>/telemetry
+Payload: {"metrics":{"iot_device_up":1,"iot_battery_percent":87,"iot_temperature_celsius":21.5}}
+\`\`\`
+
+For example, with the Node.js \`mqtt\` client:
+
+\`\`\`javascript
+const mqtt = require("mqtt");
+
+const client = mqtt.connect("${mqttWebSocketUrl}", {
+  username: "oneuptime", // ignored — the key below is what authenticates
+  password: "${data.apiKey}",
+  will: {
+    topic: "oneuptime/building-a-sensors/sensor-001/status",
+    payload: "offline",
+  },
+});
+
+client.on("connect", () => {
+  client.publish("oneuptime/building-a-sensors/sensor-001/status", "online");
+  client.publish(
+    "oneuptime/building-a-sensors/sensor-001/telemetry",
+    JSON.stringify({ metrics: { iot_device_up: 1, iot_temperature_celsius: 21.5 } }),
+  );
+});
+\`\`\`
+
+Register an MQTT **Last Will** on \`oneuptime/<fleet>/<device>/status\` with payload \`offline\` — if the device dies, OneUptime publishes \`iot_device_up = 0\` on its behalf the moment the session drops, which trips the stock Device Offline alert template with no polling. Single values can also go to \`oneuptime/<fleet>/<device>/metrics/<metricName>\` with a bare-number payload. Self-hosted deployments can additionally expose raw MQTT TCP (\`MQTT_INGEST_PORT\`, default \`1883\`).
+
+Keep the MQTT keepalive **under 5 minutes** on the WebSocket endpoint (client-library defaults of 60 s are fine) — idle WebSocket connections are closed after 300 seconds, which would fire the Last Will and a false offline alert.
+`;
+  }
+}
+
+export function getIoTFooterMarkdown(data: { oneuptimeUrl: string }): string {
+  return `
 ## Metric Conventions
 
 OneUptime recognizes the following \`iot_*\` metric names. Each datapoint should carry the \`device.id\` label so the reading is attributed to the right device. You only need to send the metrics that make sense for your device — missing ones are simply not charted.
@@ -105,7 +187,7 @@ OneUptime recognizes the following \`iot_*\` metric names. Each datapoint should
 
 ## Verify the Installation
 
-1. Confirm your device or gateway is exporting without errors (check the SDK/collector logs for export failures and HTTP \`401\`/\`403\` responses).
+1. Confirm your device or gateway is exporting without errors (check the SDK/collector logs for export failures and HTTP \`401\`/\`403\` responses, or the MQTT client for connection/auth failures).
 2. In the OneUptime dashboard, open the **IoT** section — your fleet should appear within a minute or so.
 3. Open the fleet's **Devices** tab — each \`device.id\` you sent should be listed with its latest battery, signal, temperature, CPU, memory, and up/down status.
 4. Open **Metrics** under the fleet to chart any of the \`iot_*\` series above.
@@ -116,7 +198,7 @@ OneUptime recognizes the following \`iot_*\` metric names. Each datapoint should
 
 1. Verify \`iot.fleet.name\` is set as a **resource** attribute (not a datapoint label), and that \`service.name\` is \`iot/<fleet>\`.
 2. Confirm the exporter endpoint is \`${data.oneuptimeUrl}/otlp\` and the \`x-oneuptime-token\` header carries a valid ingestion key.
-3. If using a collector, ensure \`encoding: json\` and \`Content-Type: application/json\` are set on the \`otlphttp\` exporter.
+3. If using MQTT, confirm the topic follows \`oneuptime/<fleet>/<device>/…\` exactly — the fleet segment of the topic is what creates the fleet.
 
 ### Devices Missing from the Inventory
 

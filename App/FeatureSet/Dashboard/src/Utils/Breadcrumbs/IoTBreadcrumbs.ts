@@ -21,6 +21,12 @@ export function getIoTBreadcrumbs(path: string): Array<Link> | undefined {
       "View Fleet",
       "Devices",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY, [
+      "Project",
+      "IoT",
+      "View Fleet",
+      "Device Registry",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL, [
       "Project",
       "IoT",

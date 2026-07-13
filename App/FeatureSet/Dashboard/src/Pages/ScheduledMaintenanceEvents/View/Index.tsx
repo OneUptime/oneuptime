@@ -63,6 +63,7 @@ const ScheduledMaintenanceView: FunctionComponent<
             select: {
               startsAt: true,
               endsAt: true,
+              title: true,
               scheduledMaintenanceNumber: true,
               scheduledMaintenanceNumberWithPrefix: true,
             },
@@ -82,6 +83,8 @@ const ScheduledMaintenanceView: FunctionComponent<
 
   const eventStartsAt: Date | undefined = scheduledMaintenance?.startsAt;
   const eventEndsAt: Date | undefined = scheduledMaintenance?.endsAt;
+  const eventTitle: string | undefined =
+    scheduledMaintenance?.title || undefined;
   const eventNumber: string | undefined =
     scheduledMaintenance?.scheduledMaintenanceNumberWithPrefix ||
     (scheduledMaintenance?.scheduledMaintenanceNumber
@@ -115,6 +118,7 @@ const ScheduledMaintenanceView: FunctionComponent<
       <ChangeScheduledMaintenanceState
         scheduledMaintenanceId={modelId}
         eventNumber={eventNumber}
+        title={eventTitle}
         eventStartsAt={eventStartsAt}
         eventEndsAt={eventEndsAt}
         onActionComplete={() => {

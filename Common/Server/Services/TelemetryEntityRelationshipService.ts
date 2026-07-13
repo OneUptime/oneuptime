@@ -6,6 +6,7 @@ import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { EntityRelationshipEdge } from "../../Utils/Telemetry/EntityRelationship";
 import { reconcileByNaturalKey } from "../Utils/Telemetry/EntityRegistry";
+import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 
 export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
   public constructor() {
@@ -62,7 +63,29 @@ export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
         model.relationshipType = edge.relationshipType;
         model.firstSeenAt = now;
         model.lastSeenAt = now;
+        if (edge.metrics) {
+          model.callCount = edge.metrics.callCount;
+          model.errorCount = edge.metrics.errorCount;
+          model.avgDurationMs = edge.metrics.avgDurationMs;
+        }
         return model;
+      },
+      /*
+       * Metrics describe the latest window only, so each bump replaces
+       * them wholesale. Metric-less edges (co-occurrence) keep whatever
+       * is stored — always null for them. Cast like the scaffold's own
+       * buildBump: checking the literal against the unresolved mapped
+       * type trips TS2589 on this model.
+       */
+      buildUpdate: (): QueryDeepPartialEntity<Model> => {
+        if (!edge.metrics) {
+          return {} as QueryDeepPartialEntity<Model>;
+        }
+        return {
+          callCount: edge.metrics.callCount,
+          errorCount: edge.metrics.errorCount,
+          avgDurationMs: edge.metrics.avgDurationMs,
+        } as unknown as QueryDeepPartialEntity<Model>;
       },
     });
   }

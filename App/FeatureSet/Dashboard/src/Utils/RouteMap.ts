@@ -121,6 +121,19 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_ARCHIVED]: `archived`,
 };
 
+export const NetworkDeviceRoutePath: Dictionary<string> = {
+  [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.NETWORK_DEVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.NETWORK_DEVICE_ARCHIVED]: `archived`,
+  [PageMap.NETWORK_DEVICE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
+  [PageMap.NETWORK_DEVICE_TOPOLOGY]: `topology`,
+  [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
+};
+
 export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.DOCKER_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
@@ -193,6 +206,7 @@ export const ProxmoxRoutePath: Dictionary<string> = {
 export const IoTRoutePath: Dictionary<string> = {
   [PageMap.IOT_FLEET_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.IOT_FLEET_VIEW_DEVICES]: `${RouteParams.ModelID}/devices`,
+  [PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY]: `${RouteParams.ModelID}/device-registry`,
   [PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL]: `${RouteParams.ModelID}/devices/${RouteParams.SubModelID}`,
   [PageMap.IOT_FLEET_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.IOT_FLEET_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -2396,6 +2410,76 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // Network Devices
+
+  [PageMap.NETWORK_DEVICE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/*`,
+  ),
+
+  [PageMap.NETWORK_DEVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_DISCOVERY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_DISCOVERY]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_TOPOLOGY]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_LATENCY_MATRIX]
+    }`,
+  ),
+
   // Docker
 
   [PageMap.DOCKER_ROOT]: new Route(
@@ -2798,6 +2882,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.IOT_FLEET_VIEW_DEVICES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/iot/${
       IoTRoutePath[PageMap.IOT_FLEET_VIEW_DEVICES]
+    }`,
+  ),
+
+  [PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_FLEET_VIEW_DEVICE_REGISTRY]
     }`,
   ),
 

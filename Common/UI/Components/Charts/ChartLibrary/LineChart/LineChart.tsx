@@ -27,9 +27,11 @@ import { AxisDomain } from "recharts/types/util/types";
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
 import {
   AvailableChartColors,
-  AvailableChartColorsKeys,
+  ChartColorValue,
   constructCategoryColors,
   getColorClassName,
+  getColorHex,
+  isHexColorValue,
 } from "../Utils/ChartColors";
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
@@ -40,8 +42,8 @@ import ChartCurve from "../../Types/ChartCurve";
 
 interface LegendItemProps {
   name: string;
-  color: AvailableChartColorsKeys;
-  onClick?: (name: string, color: AvailableChartColorsKeys) => void;
+  color: ChartColorValue;
+  onClick?: (name: string, color: ChartColorValue) => void;
   activeLegend?: string;
 }
 
@@ -77,6 +79,11 @@ const LegendItem: ({
           getColorClassName(color, "bg"),
           activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
         )}
+        style={
+          isHexColorValue(color)
+            ? { backgroundColor: getColorHex(color) }
+            : undefined
+        }
         aria-hidden={true}
       />
       <p
@@ -166,7 +173,7 @@ const ScrollButton: ({
 
 interface LegendProps extends React.OlHTMLAttributes<HTMLOListElement> {
   categories: string[];
-  colors?: AvailableChartColorsKeys[];
+  colors?: ChartColorValue[];
   onClickLegendItem?: (category: string, color: string) => void;
   activeLegend?: string;
   enableLegendSlider?: boolean;
@@ -310,7 +317,7 @@ const Legend: React.ForwardRefExoticComponent<
               <LegendItem
                 key={`item-${index}`}
                 name={category}
-                color={colors[index] as AvailableChartColorsKeys}
+                color={colors[index] as ChartColorValue}
                 onClick={onClickLegendItem as any}
                 activeLegend={activeLegend!}
               />
@@ -356,7 +363,7 @@ Legend.displayName = "Legend";
 
 const ChartLegend: (
   { payload }: any,
-  categoryColors: Map<string, AvailableChartColorsKeys>,
+  categoryColors: Map<string, ChartColorValue>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
   activeLegend: string | undefined,
   onClick?: (category: string, color: string) => void,
@@ -365,7 +372,7 @@ const ChartLegend: (
   yAxisWidth?: number,
 ) => React.JSX.Element = (
   { payload }: any,
-  categoryColors: Map<string, AvailableChartColorsKeys>,
+  categoryColors: Map<string, ChartColorValue>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
   activeLegend: string | undefined,
   onClick?: (category: string, color: string) => void,
@@ -432,7 +439,7 @@ export type PayloadItem = {
   // eslint-disable-next-line react/no-unused-prop-types
   index: string;
   // eslint-disable-next-line react/no-unused-prop-types
-  color: AvailableChartColorsKeys;
+  color: ChartColorValue;
   // eslint-disable-next-line react/no-unused-prop-types
   type?: string;
   // eslint-disable-next-line react/no-unused-prop-types
@@ -499,6 +506,11 @@ const ChartTooltip: ({
                         "h-[3px] w-3.5 shrink-0 rounded-full",
                         getColorClassName(color, "bg"),
                       )}
+                      style={
+                        isHexColorValue(color)
+                          ? { backgroundColor: getColorHex(color) }
+                          : undefined
+                      }
                     />
                     <p
                       className={cx(
@@ -551,7 +563,7 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   data: Record<string, any>[];
   index: string;
   categories: string[];
-  colors?: AvailableChartColorsKeys[];
+  colors?: ChartColorValue[];
   valueFormatter?: (value: number) => string;
   startEndOnly?: boolean;
   showXAxis?: boolean;
@@ -628,7 +640,7 @@ const LineChart: React.ForwardRefExoticComponent<
     const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
       undefined,
     );
-    const categoryColors: Map<string, string | number> =
+    const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
 
     const yAxisDomain: (number | "auto")[] = getYAxisDomain(
@@ -828,7 +840,7 @@ const LineChart: React.ForwardRefExoticComponent<
                         index: item.payload[index],
                         color: categoryColors.get(
                           item.dataKey,
-                        ) as AvailableChartColorsKeys,
+                        ) as ChartColorValue,
                         type: item.type,
                         payload: item.payload,
                       };
@@ -887,14 +899,14 @@ const LineChart: React.ForwardRefExoticComponent<
               />
             ) : null}
             {categories.map((category: string) => {
+              const lineColor: ChartColorValue = categoryColors.get(
+                category,
+              ) as ChartColorValue;
+              const isCustomColor: boolean = isHexColorValue(lineColor);
+              const lineHex: string = getColorHex(lineColor);
               return (
                 <Line
-                  className={cx(
-                    getColorClassName(
-                      categoryColors.get(category) as AvailableChartColorsKeys,
-                      "stroke",
-                    ),
-                  )}
+                  className={cx(getColorClassName(lineColor, "stroke"))}
                   strokeOpacity={
                     activeDot || (activeLegend && activeLegend !== category)
                       ? 0.3
@@ -908,24 +920,18 @@ const LineChart: React.ForwardRefExoticComponent<
                       strokeLinecap,
                       strokeLinejoin,
                       strokeWidth,
-                      dataKey,
                     } = props;
                     return (
                       <Dot
                         className={cx(
                           "stroke-white",
                           onValueChange ? "cursor-pointer" : "",
-                          getColorClassName(
-                            categoryColors.get(
-                              dataKey,
-                            ) as AvailableChartColorsKeys,
-                            "fill",
-                          ),
+                          getColorClassName(lineColor, "fill"),
                         )}
                         cx={cxCoord}
                         cy={cyCoord}
                         r={5}
-                        fill=""
+                        fill={isCustomColor ? lineHex : ""}
                         stroke={stroke}
                         strokeLinecap={strokeLinecap}
                         strokeLinejoin={strokeLinejoin}
@@ -944,7 +950,6 @@ const LineChart: React.ForwardRefExoticComponent<
                       strokeWidth,
                       cx: cxCoord,
                       cy: cyCoord,
-                      dataKey,
                       index,
                     } = props;
 
@@ -964,19 +969,14 @@ const LineChart: React.ForwardRefExoticComponent<
                           cy={cyCoord}
                           r={5}
                           stroke={stroke}
-                          fill=""
+                          fill={isCustomColor ? lineHex : ""}
                           strokeLinecap={strokeLinecap}
                           strokeLinejoin={strokeLinejoin}
                           strokeWidth={strokeWidth}
                           className={cx(
                             "stroke-white",
                             onValueChange ? "cursor-pointer" : "",
-                            getColorClassName(
-                              categoryColors.get(
-                                dataKey,
-                              ) as AvailableChartColorsKeys,
-                              "fill",
-                            ),
+                            getColorClassName(lineColor, "fill"),
                           )}
                         />
                       );
@@ -987,7 +987,11 @@ const LineChart: React.ForwardRefExoticComponent<
                   name={category}
                   type={props.curve || ChartCurve.LINEAR}
                   dataKey={category}
-                  stroke=""
+                  /*
+                   * Custom hex → set the stroke inline; named palette → keep ""
+                   * so the `stroke-*` Tailwind class on the Line applies.
+                   */
+                  stroke={isCustomColor ? lineHex : ""}
                   strokeWidth={2}
                   strokeLinejoin="round"
                   strokeLinecap="round"

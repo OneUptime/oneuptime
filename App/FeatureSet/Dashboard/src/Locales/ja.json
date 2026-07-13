@@ -77,6 +77,8 @@
       "kubernetesDescription": "Kubernetesクラスターを監視。",
       "dockerTitle": "Docker",
       "dockerDescription": "Dockerホストとコンテナを監視。",
+      "networkDevicesTitle": "Network Devices",
+      "networkDevicesDescription": "Monitor switches, routers, and firewalls via SNMP.",
       "podmanTitle": "Podman",
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",

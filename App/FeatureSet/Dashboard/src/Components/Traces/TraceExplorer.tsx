@@ -1599,6 +1599,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 <TraceServiceMap
                   spans={displaySpans}
                   telemetryServices={telemetryServices}
+                  onSpanSelect={(spanId: string) => {
+                    setSelectedSpans([spanId]);
+                  }}
                 />
               </div>
             ) : (

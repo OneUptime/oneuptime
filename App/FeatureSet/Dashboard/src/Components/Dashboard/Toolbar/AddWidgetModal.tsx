@@ -72,6 +72,13 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         description: "Tail recent log records matching a filter.",
       },
       {
+        type: DashboardComponentType.LogChart,
+        label: "Log Chart",
+        icon: IconProp.ChartBar,
+        description:
+          "Log volume over time by severity, with bar, line, or area visualization and friendly attribute filters.",
+      },
+      {
         type: DashboardComponentType.TraceList,
         label: "Trace List",
         icon: IconProp.Waterfall,

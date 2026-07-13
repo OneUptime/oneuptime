@@ -6,6 +6,13 @@ import KubernetesClusterOwnerUser from "./KubernetesClusterOwnerUser";
 import KubernetesResource from "./KubernetesResource";
 import KubernetesContainer from "./KubernetesContainer";
 import DockerHost from "./DockerHost";
+import NetworkDevice from "./NetworkDevice";
+import NetworkDeviceOwnerTeam from "./NetworkDeviceOwnerTeam";
+import NetworkDeviceOwnerUser from "./NetworkDeviceOwnerUser";
+import NetworkDeviceOwnerRule from "./NetworkDeviceOwnerRule";
+import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
+import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
+import NetworkInterface from "./NetworkInterface";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
@@ -25,6 +32,7 @@ import IoTFleet from "./IoTFleet";
 import IoTFleetOwnerTeam from "./IoTFleetOwnerTeam";
 import IoTFleetOwnerUser from "./IoTFleetOwnerUser";
 import IoTDevice from "./IoTDevice";
+import IoTDeviceCredential from "./IoTDeviceCredential";
 import CephCluster from "./CephCluster";
 import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
 import CephClusterOwnerUser from "./CephClusterOwnerUser";
@@ -768,6 +776,13 @@ const AllModelTypes: Array<{
   KubernetesResource,
   KubernetesContainer,
   DockerHost,
+  NetworkDevice,
+  NetworkDeviceOwnerTeam,
+  NetworkDeviceOwnerUser,
+  NetworkDeviceOwnerRule,
+  NetworkDeviceLabelRule,
+  NetworkDeviceDiscoveryScan,
+  NetworkInterface,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,
@@ -787,6 +802,7 @@ const AllModelTypes: Array<{
   IoTFleetOwnerTeam,
   IoTFleetOwnerUser,
   IoTDevice,
+  IoTDeviceCredential,
   CephCluster,
   CephClusterOwnerTeam,
   CephClusterOwnerUser,
