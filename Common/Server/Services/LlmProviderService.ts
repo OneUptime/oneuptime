@@ -158,6 +158,68 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Resolve a provider the project OWNS — never the global fallback. The AI
+   * Agent path hands the raw apiKey to an external process whose LLM calls
+   * are not metered through AIService/LlmLog, so the shared global (billed)
+   * provider must never be returned here: its usage would be unbilled and
+   * uncapped. Prefers the project default, else any project-owned provider.
+   */
+  @CaptureSpan()
+  public async getProjectOwnedLlmProvider(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    const select: {
+      _id: boolean;
+      name: boolean;
+      llmType: boolean;
+      apiKey: boolean;
+      baseUrl: boolean;
+      modelName: boolean;
+      additionalParams: boolean;
+      isGlobalLlm: boolean;
+      costPerMillionTokensInUSDCents: boolean;
+    } = {
+      _id: true,
+      name: true,
+      llmType: true,
+      apiKey: true,
+      baseUrl: true,
+      modelName: true,
+      additionalParams: true,
+      isGlobalLlm: true,
+      costPerMillionTokensInUSDCents: true,
+    };
+
+    const defaultProvider: Model | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isDefault: true,
+      },
+      select,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (defaultProvider) {
+      return defaultProvider;
+    }
+
+    return this.findOneBy({
+      query: {
+        projectId: projectId,
+      },
+      sort: {
+        createdAt: SortOrder.Ascending,
+      },
+      select,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
    * Resolve the provider to use for a chat turn. When the user has explicitly
    * chosen a provider (llmProviderId), use it — but only if it is actually
    * usable by this project: either a global provider, or one owned by the

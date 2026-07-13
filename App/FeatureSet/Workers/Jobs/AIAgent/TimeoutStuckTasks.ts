@@ -2,8 +2,10 @@ import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import AIAgentService from "Common/Server/Services/AIAgentService";
 import AIAgentTaskService from "Common/Server/Services/AIAgentTaskService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import AIAgent from "Common/Models/DatabaseModels/AIAgent";
 import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
 import logger from "Common/Server/Utils/Logger";
 
@@ -13,6 +15,11 @@ import logger from "Common/Server/Utils/Logger";
  * or is deleted while processing a task.
  *
  * This job resets stuck tasks back to "Scheduled" status so they can be retried.
+ *
+ * It also fails Scheduled tasks that have waited longer than the timeout while
+ * their project has no alive agent to pick them up — previously such tasks sat
+ * "Scheduled" forever and the exception page showed "AI agent is working"
+ * indefinitely, blocking retries.
  */
 
 const TASK_TIMEOUT_MINUTES: number = 30;
@@ -75,6 +82,87 @@ RunCron(
       } catch (error) {
         logger.error(
           `Failed to reset stuck AI Agent task ${task.id?.toString()}:`,
+          { service: "workers" },
+        );
+        logger.error(error, { service: "workers" });
+      }
+    }
+  },
+);
+
+RunCron(
+  "AIAgent:FailOrphanedScheduledTasks",
+  {
+    schedule: EVERY_MINUTE,
+    runOnStartup: false,
+  },
+  async () => {
+    const waitThreshold: Date =
+      OneUptimeDate.getSomeMinutesAgo(TASK_TIMEOUT_MINUTES);
+
+    const waitingTasks: Array<AIAgentTask> = await AIAgentTaskService.findAllBy(
+      {
+        query: {
+          status: AIAgentTaskStatus.Scheduled,
+          createdAt: QueryHelper.lessThan(waitThreshold),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      },
+    );
+
+    if (waitingTasks.length === 0) {
+      return;
+    }
+
+    /*
+     * One alive-agent lookup per project, not per task. A project with an
+     * alive agent just has a deep queue — leave its tasks alone; the agent
+     * will get to them.
+     */
+    const projectHasAliveAgent: Map<string, boolean> = new Map();
+
+    for (const task of waitingTasks) {
+      if (!task.projectId) {
+        continue;
+      }
+
+      const projectIdStr: string = task.projectId.toString();
+
+      if (!projectHasAliveAgent.has(projectIdStr)) {
+        const aliveAgent: AIAgent | null =
+          await AIAgentService.getConnectedAIAgentForProject(task.projectId);
+        projectHasAliveAgent.set(projectIdStr, Boolean(aliveAgent));
+      }
+
+      if (projectHasAliveAgent.get(projectIdStr)) {
+        continue;
+      }
+
+      try {
+        await AIAgentTaskService.updateOneById({
+          id: task.id!,
+          data: {
+            status: AIAgentTaskStatus.Error,
+            statusMessage: `No AI agent picked this task up within ${TASK_TIMEOUT_MINUTES} minutes and none is currently online. Check that your agent container is running (AI > Agents), then retry the fix from the exception page.`,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        logger.info(
+          `Failed orphaned Scheduled AI Agent task ${task.id?.toString()} (no alive agent for project ${projectIdStr})`,
+          { service: "workers" },
+        );
+      } catch (error) {
+        logger.error(
+          `Failed to mark orphaned AI Agent task ${task.id?.toString()} as Error:`,
           { service: "workers" },
         );
         logger.error(error, { service: "workers" });

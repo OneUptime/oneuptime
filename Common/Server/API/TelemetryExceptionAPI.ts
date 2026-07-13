@@ -5,10 +5,12 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TelemetryExceptionService, {
+  AIFixReadiness,
   DashboardServiceSummary,
   DashboardSummaryResult,
   Service as TelemetryExceptionServiceType,
 } from "../Services/TelemetryExceptionService";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import AIAgentTaskTelemetryExceptionService from "../Services/AIAgentTaskTelemetryExceptionService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
@@ -23,7 +25,6 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import AIAgentTaskStatus, {
   AIAgentTaskStatusHelper,
 } from "../../Types/AI/AIAgentTaskStatus";
-import QueryHelper from "../Types/Database/QueryHelper";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 
 export default class TelemetryExceptionAPI extends BaseAPI<
@@ -57,6 +58,25 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getAIAgentTaskForException(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Everything "Fix with AI Agent" needs, checked up front so the
+     * dashboard can render a setup checklist instead of a button that
+     * fails minutes later inside the agent container.
+     */
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/ai-fix-readiness/:telemetryExceptionId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getAIFixReadiness(req, res);
         } catch (err) {
           next(err);
         }
@@ -137,17 +157,16 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    // Find the most recent AI agent task for this exception that is not completed or errored
+    /*
+     * Return the LATEST task regardless of status. Errored tasks must stay
+     * visible on the exception page (previously they were filtered out, so
+     * a failed fix silently vanished and the button just reappeared).
+     * hasActiveTask reflects only non-terminal states.
+     */
     const taskLink: AIAgentTaskTelemetryException | null =
       await AIAgentTaskTelemetryExceptionService.findOneBy({
         query: {
           telemetryExceptionId: telemetryExceptionId,
-          aiAgentTask: {
-            status: QueryHelper.notIn([
-              AIAgentTaskStatus.Completed,
-              AIAgentTaskStatus.Error,
-            ]),
-          },
         },
         select: {
           _id: true,
@@ -158,6 +177,9 @@ export default class TelemetryExceptionAPI extends BaseAPI<
             statusMessage: true,
             createdAt: true,
           },
+        },
+        sort: {
+          createdAt: SortOrder.Descending,
         },
         props,
       });
@@ -171,8 +193,12 @@ export default class TelemetryExceptionAPI extends BaseAPI<
 
     const task: AIAgentTask = taskLink.aiAgentTask;
 
+    const isTerminal: boolean =
+      task.status === AIAgentTaskStatus.Completed ||
+      task.status === AIAgentTaskStatus.Error;
+
     return Response.sendJsonObjectResponse(req, res, {
-      hasActiveTask: true,
+      hasActiveTask: !isTerminal,
       aiAgentTask: {
         _id: task.id?.toString(),
         status: task.status,
@@ -185,6 +211,39 @@ export default class TelemetryExceptionAPI extends BaseAPI<
           : undefined,
         createdAt: task.createdAt,
       },
+    });
+  }
+
+  private async getAIFixReadiness(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const telemetryExceptionIdParam: string | undefined =
+      req.params["telemetryExceptionId"];
+
+    if (!telemetryExceptionIdParam) {
+      throw new BadDataException("Telemetry Exception ID is required");
+    }
+
+    let telemetryExceptionId: ObjectID;
+
+    try {
+      telemetryExceptionId = new ObjectID(telemetryExceptionIdParam);
+    } catch {
+      throw new BadDataException("Invalid Telemetry Exception ID");
+    }
+
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const readiness: AIFixReadiness = await this.service.getAIFixReadiness({
+      telemetryExceptionId,
+      props,
+    });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      ready: readiness.ready,
+      checks: readiness.checks as unknown as JSONArray,
     });
   }
 

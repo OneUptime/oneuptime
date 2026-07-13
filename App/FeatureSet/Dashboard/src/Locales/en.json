@@ -104,7 +104,7 @@
       "aiAgentsTitle": "Agents",
       "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "Code Repositories",
-      "codeRepositoriesDescription": "GitHub and GitLab integrations.",
+      "codeRepositoriesDescription": "Connect GitHub so the AI agent can open fix PRs.",
       "usersTitle": "Users",
       "usersDescription": "Manage project users and invites.",
       "teamsTitle": "Teams",
