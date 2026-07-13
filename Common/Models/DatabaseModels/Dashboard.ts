@@ -790,7 +790,7 @@ export default class Dashboard extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Enable Master Password",
     description:
-      "Require visitors to enter a master password before viewing a private dashboard.",
+      "Require visitors to enter a master password before viewing a public dashboard.",
     defaultValue: false,
   })
   @Column({
@@ -824,7 +824,7 @@ export default class Dashboard extends BaseModel {
   @TableColumn({
     title: "Master Password",
     description:
-      "Password required to unlock a private dashboard. This value is stored as a secure hash.",
+      "Password required to unlock a public dashboard. This value is stored as a secure hash.",
     hashed: true,
     type: TableColumnType.HashedString,
     placeholder: "Enter a new master password",
@@ -865,7 +865,7 @@ export default class Dashboard extends BaseModel {
     type: TableColumnType.VeryLongText,
     title: "IP Whitelist",
     description:
-      "IP Whitelist for this Dashboard. One IP per line. Only used if the dashboard is private.",
+      "IP Whitelist for this dashboard. One IP per line. Only used when the dashboard is public.",
   })
   @Column({
     type: ColumnType.VeryLongText,
