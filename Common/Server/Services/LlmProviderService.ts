@@ -222,6 +222,15 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * DEPRECATED with the raw-key protocol (see
+   * Internal/Roadmap/CodeFixSandboxDesign.md, Tier 0): this resolver backs
+   * the legacy get-llm-config endpoint, which hands the raw apiKey to the
+   * worker for UNMETERED direct LLM calls (the CODE_AGENT_TYPE=OpenCode
+   * fallback, kept for one release). New code must use
+   * getLlmProviderForMeteredAgentPath — the server-mediated completion
+   * endpoint's resolution, where metering makes the global provider safe on
+   * cloud. This method keeps the old restriction until it is removed.
+   *
    * Resolve the provider handed to the AI Agent for a task. A project-owned
    * provider (getProjectOwnedLlmProvider) always wins. When the project owns
    * none, what happens next depends on where this instance runs:
@@ -252,6 +261,56 @@ export class Service extends DatabaseService<Model> {
 
     if (billingEnabled) {
       return null;
+    }
+
+    return this.findOneBy({
+      query: {
+        projectId: QueryHelper.isNull(),
+        isGlobalLlm: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        llmType: true,
+        apiKey: true,
+        baseUrl: true,
+        modelName: true,
+        additionalParams: true,
+        isGlobalLlm: true,
+        costPerMillionTokensInUSDCents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * Resolve the provider for the METERED agent path (B4 Tier 0): the
+   * server-mediated /ai-agent-data/llm-completion endpoint, whose calls run
+   * through AIService.executeWithLogging — logged to LlmLog, billed when the
+   * global provider is costed, and inside the daily autonomous token budget.
+   *
+   * Because metering is universal on this path, the Workstream-A restriction
+   * lifts THE RIGHT WAY: a project-owned provider still wins, but when the
+   * project owns none the shared global provider is returned ON CLOUD TOO —
+   * its usage here is billed as metered AI tokens, so the "unbilled and
+   * uncapped" rationale that forbids it on the raw-key path does not apply.
+   * Cloud zero-config completes: fix tasks work with no per-project provider.
+   *
+   * The OLD raw-key path (get-llm-config → getLlmProviderForAgentTasks)
+   * keeps the project-owned-only cloud restriction until it is removed —
+   * its calls bypass AIService/LlmLog entirely.
+   */
+  @CaptureSpan()
+  public async getLlmProviderForMeteredAgentPath(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    const projectOwnedProvider: Model | null =
+      await this.getProjectOwnedLlmProvider(projectId);
+
+    if (projectOwnedProvider) {
+      return projectOwnedProvider;
     }
 
     return this.findOneBy({

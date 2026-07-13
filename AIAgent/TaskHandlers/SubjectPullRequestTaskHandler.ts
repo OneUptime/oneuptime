@@ -87,15 +87,29 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
     let workspace: WorkspaceInfo | null = null;
 
     try {
-      // Step 1: Get LLM configuration for the project
-      await this.log(context, "Fetching LLM provider configuration...");
-      const llmConfig: LLMConfig = await context.backendAPI.getLLMConfig(
-        context.projectId.toString(),
-      );
-      await this.log(
-        context,
-        `Using LLM provider: ${llmConfig.llmType}${llmConfig.modelName ? ` (${llmConfig.modelName})` : ""}`,
-      );
+      /*
+       * Step 1: LLM access. The default in-house agent needs NO provider
+       * config on the worker — its completions are server-mediated and
+       * metered (B4 Tier 0). Only the deprecated OpenCode fallback
+       * (CODE_AGENT_TYPE=OpenCode) still fetches the raw provider key.
+       */
+      let llmConfig: LLMConfig | null = null;
+
+      if (CodeAgentFactory.getDefaultAgentType() === CodeAgentType.OpenCode) {
+        await this.log(context, "Fetching LLM provider configuration...");
+        llmConfig = await context.backendAPI.getLLMConfig(
+          context.projectId.toString(),
+        );
+        await this.log(
+          context,
+          `Using LLM provider: ${llmConfig.llmType}${llmConfig.modelName ? ` (${llmConfig.modelName})` : ""}`,
+        );
+      } else {
+        await this.log(
+          context,
+          "Using server-mediated, metered LLM completions (no provider key on this worker)",
+        );
+      }
 
       // Step 2: Get the task context (keyed by the run id).
       await this.log(context, "Fetching task context...");
@@ -222,7 +236,7 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
     context: TaskContext,
     repo: CodeRepositoryInfo,
     details: SubjectTaskDetails,
-    llmConfig: LLMConfig,
+    llmConfig: LLMConfig | null,
     workspace: WorkspaceInfo,
   ): Promise<string | null> {
     // Get access token for the repository
@@ -268,25 +282,29 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
       repo.servicePathInRepository,
     );
 
-    // Initialize code agent
+    // Initialize code agent (in-house by default; OpenCode via env fallback)
     await this.log(context, "Initializing code agent...");
-    const agent: CodeAgent = CodeAgentFactory.createAgent(
-      CodeAgentType.OpenCode,
-    );
+    const agent: CodeAgent = CodeAgentFactory.createDefaultAgent();
     const agentConfig: CodeAgentLLMConfig = {
-      llmType: llmConfig.llmType,
+      // The in-house agent's completions are validated against this run.
+      taskId: context.taskId.toString(),
     };
 
-    if (llmConfig.apiKey) {
-      agentConfig.apiKey = llmConfig.apiKey;
-    }
+    // Raw provider fields: deprecated OpenCode fallback only.
+    if (llmConfig) {
+      agentConfig.llmType = llmConfig.llmType;
 
-    if (llmConfig.baseUrl) {
-      agentConfig.baseUrl = llmConfig.baseUrl;
-    }
+      if (llmConfig.apiKey) {
+        agentConfig.apiKey = llmConfig.apiKey;
+      }
 
-    if (llmConfig.modelName) {
-      agentConfig.modelName = llmConfig.modelName;
+      if (llmConfig.baseUrl) {
+        agentConfig.baseUrl = llmConfig.baseUrl;
+      }
+
+      if (llmConfig.modelName) {
+        agentConfig.modelName = llmConfig.modelName;
+      }
     }
 
     await agent.initialize(agentConfig, context.logger);

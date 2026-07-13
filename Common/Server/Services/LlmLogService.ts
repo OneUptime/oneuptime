@@ -35,6 +35,33 @@ export class Service extends DatabaseService<Model> {
 
     return Number(rows[0]?.total || 0);
   }
+
+  /*
+   * Per-run LLM usage for the server-mediated code-fix agent loop budgets
+   * (B4 Tier 0): how many completion calls a run has made and how many
+   * output tokens they produced. One SQL aggregate over the run's LlmLog
+   * rows — executeWithLogging writes exactly one row per call (success,
+   * error, or budget rejection), so the count is the honest call count and
+   * errored calls conservatively consume a slot. Runs are bounded to ~30
+   * minutes, far inside the 3-day cloud LlmLog retention.
+   */
+  @CaptureSpan()
+  public async getRunCompletionUsage(data: {
+    aiRunId: ObjectID;
+  }): Promise<{ completionCalls: number; outputTokens: number }> {
+    const rows: Array<{
+      calls: string | number | null;
+      outputTokens: string | number | null;
+    }> = await this.getRepository().manager.query(
+      `SELECT COUNT(*) AS "calls", COALESCE(SUM("completionTokens"), 0) AS "outputTokens" FROM "LlmLog" WHERE "aiRunId" = $1 AND "deletedAt" IS NULL`,
+      [data.aiRunId.toString()],
+    );
+
+    return {
+      completionCalls: Number(rows[0]?.calls || 0),
+      outputTokens: Number(rows[0]?.outputTokens || 0),
+    };
+  }
 }
 
 export default new Service();

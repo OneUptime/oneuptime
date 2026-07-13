@@ -48,6 +48,14 @@ import SpanTreeAnalyzer from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 import OpenPullRequestCap, {
   OpenPullRequestCapDecision,
 } from "../Utils/AI/CodeFix/OpenPullRequestCap";
+import CodeFixAgentCompletion, {
+  AgentCompletionResult,
+} from "../Utils/AI/CodeFix/CodeFixAgentCompletion";
+import {
+  LLMMessage,
+  LLMToolCall,
+  LLMToolDefinition,
+} from "../Utils/LLM/LLMService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -73,7 +81,17 @@ export default class AIAgentDataAPI {
   }
 
   private initRoutes(): void {
-    // Get LLM configuration for a project
+    /*
+     * DEPRECATED (B4 Tier 0, Internal/Roadmap/CodeFixSandboxDesign.md):
+     * this endpoint hands the RAW provider apiKey to the worker for
+     * unmetered direct LLM calls. It only serves the legacy OpenCode
+     * fallback (CODE_AGENT_TYPE=OpenCode), kept for one release; the
+     * in-house agent routes completions through
+     * /ai-agent-data/llm-completion instead and never sees a provider
+     * secret. Remove together with OpenCodeAgent.
+     *
+     * Get LLM configuration for a project.
+     */
     this.router.post(
       "/ai-agent-data/get-llm-config",
       async (
@@ -141,6 +159,86 @@ export default class AIAgentDataAPI {
             baseUrl: llmProvider.baseUrl,
             modelName: llmProvider.modelName,
           });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Server-mediated LLM completion for the in-house code-fix agent (B4
+     * Tier 0, Internal/Roadmap/CodeFixSandboxDesign.md). One call = one
+     * completion of the worker's tool loop, executed through
+     * AIService.executeWithLogging: metered, LlmLog-linked to the run,
+     * inside the G4 daily budget, and under per-run loop budgets (max
+     * completion calls / output tokens) enforced server-side. The worker
+     * never receives a provider secret on this path.
+     *
+     * Request:  { aiAgentId, aiAgentKey, taskId, messages, tools?, maxTokens? }
+     * Response: { message: { role: "assistant", content, toolCalls },
+     *             stopReason: "stop" | "tool_use",
+     *             budget: { completionCallsUsed, maxCompletionCalls,
+     *                       outputTokensUsed, maxOutputTokens } }
+     */
+    this.router.post(
+      "/ai-agent-data/llm-completion",
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const data: JSONObject = req.body;
+
+          // Validate AI Agent credentials
+          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+
+          if (!aiAgent || !aiAgent.id) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
+            );
+          }
+
+          if (!data["taskId"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("taskId is required"),
+            );
+          }
+
+          const taskId: ObjectID = new ObjectID(data["taskId"] as string);
+
+          const messages: Array<LLMMessage> = this.parseCompletionMessages(
+            data["messages"],
+          );
+          const tools: Array<LLMToolDefinition> | undefined =
+            this.parseCompletionTools(data["tools"]);
+          const maxTokens: number | undefined =
+            typeof data["maxTokens"] === "number" && data["maxTokens"] > 0
+              ? data["maxTokens"]
+              : undefined;
+
+          const result: AgentCompletionResult =
+            await CodeFixAgentCompletion.execute({
+              aiAgentId: aiAgent.id,
+              aiRunId: taskId,
+              messages,
+              tools,
+              maxTokens,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            message: {
+              role: "assistant",
+              content: result.content,
+              toolCalls: result.toolCalls,
+            },
+            stopReason: result.stopReason,
+            budget: result.budget,
+          } as unknown as JSONObject);
         } catch (err) {
           next(err);
         }
@@ -1198,6 +1296,116 @@ export default class AIAgentDataAPI {
         }
       },
     );
+  }
+
+  /*
+   * Parse the completion request's messages into the LLMMessage shape —
+   * strict on structure (role whitelist, string content) so malformed
+   * worker payloads fail with a clear 4xx instead of a provider error.
+   */
+  private parseCompletionMessages(raw: unknown): Array<LLMMessage> {
+    if (!Array.isArray(raw) || raw.length === 0) {
+      throw new BadDataException("messages must be a non-empty array");
+    }
+
+    const validRoles: Array<string> = ["system", "user", "assistant", "tool"];
+
+    return raw.map((entry: unknown, index: number): LLMMessage => {
+      if (!entry || typeof entry !== "object") {
+        throw new BadDataException(`messages[${index}] must be an object`);
+      }
+
+      const messageObject: JSONObject = entry as JSONObject;
+      const role: string = messageObject["role"] as string;
+
+      if (!validRoles.includes(role)) {
+        throw new BadDataException(
+          `messages[${index}].role must be one of: ${validRoles.join(", ")}`,
+        );
+      }
+
+      const message: LLMMessage = {
+        role: role as LLMMessage["role"],
+        content:
+          typeof messageObject["content"] === "string"
+            ? (messageObject["content"] as string)
+            : "",
+      };
+
+      if (Array.isArray(messageObject["toolCalls"])) {
+        message.toolCalls = (
+          messageObject["toolCalls"] as Array<JSONObject>
+        ).map((toolCall: JSONObject, toolCallIndex: number): LLMToolCall => {
+          if (
+            typeof toolCall["id"] !== "string" ||
+            typeof toolCall["name"] !== "string"
+          ) {
+            throw new BadDataException(
+              `messages[${index}].toolCalls[${toolCallIndex}] must carry string id and name`,
+            );
+          }
+
+          return {
+            id: toolCall["id"] as string,
+            name: toolCall["name"] as string,
+            arguments:
+              toolCall["arguments"] &&
+              typeof toolCall["arguments"] === "object" &&
+              !Array.isArray(toolCall["arguments"])
+                ? (toolCall["arguments"] as JSONObject)
+                : {},
+          };
+        });
+      }
+
+      if (typeof messageObject["toolCallId"] === "string") {
+        message.toolCallId = messageObject["toolCallId"] as string;
+      }
+
+      return message;
+    });
+  }
+
+  // Parse the completion request's tool definitions (optional).
+  private parseCompletionTools(
+    raw: unknown,
+  ): Array<LLMToolDefinition> | undefined {
+    if (raw === undefined || raw === null) {
+      return undefined;
+    }
+
+    if (!Array.isArray(raw)) {
+      throw new BadDataException("tools must be an array when provided");
+    }
+
+    if (raw.length === 0) {
+      return undefined;
+    }
+
+    return raw.map((entry: unknown, index: number): LLMToolDefinition => {
+      if (!entry || typeof entry !== "object") {
+        throw new BadDataException(`tools[${index}] must be an object`);
+      }
+
+      const toolObject: JSONObject = entry as JSONObject;
+
+      if (
+        typeof toolObject["name"] !== "string" ||
+        typeof toolObject["description"] !== "string" ||
+        !toolObject["inputSchema"] ||
+        typeof toolObject["inputSchema"] !== "object"
+      ) {
+        throw new BadDataException(
+          `tools[${index}] must carry string name, string description and an inputSchema object`,
+        );
+      }
+
+      return {
+        name: toolObject["name"] as string,
+        description: toolObject["description"] as string,
+        inputSchema: toolObject["inputSchema"] as JSONObject,
+      };
+    });
   }
 
   // Validate AI Agent credentials from request body

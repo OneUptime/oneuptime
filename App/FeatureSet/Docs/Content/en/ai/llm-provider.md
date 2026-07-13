@@ -188,7 +188,7 @@ If you self-host OneUptime with the Helm chart, you can run [vLLM](https://docs.
    ```
 
 2. Run `helm upgrade` and wait for the vLLM pod to become Ready (the first start downloads the model)
-3. That's it — vLLM is registered automatically as a Global LLM Provider at startup (`vllm.globalProvider.enabled`, default `true`), so AI features work for all projects, including Sentinel fix tasks. (On OneUptime Cloud, agent tasks cannot use the shared global provider and need a project-owned one — on self-hosted instances the global provider is your own, so agents use it as the fallback.)
+3. That's it — vLLM is registered automatically as a Global LLM Provider at startup (`vllm.globalProvider.enabled`, default `true`), so AI features work for all projects, including Sentinel fix tasks. (Everywhere — Cloud and self-hosted — agent fix tasks use the global provider when the project owns no provider of its own; on Cloud that usage is billed as metered AI tokens. A project-owned provider always takes precedence.)
 
 If you disabled auto-registration (`vllm.globalProvider.enabled: false`), create the provider manually:
 
