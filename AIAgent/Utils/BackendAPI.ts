@@ -53,6 +53,17 @@ interface CodeRepositoriesResponse {
   message?: string;
 }
 
+interface InstrumentationTaskDetailsResponse {
+  subjectType: "incident" | "alert";
+  subjectTitle: string;
+  analysisMarkdown: string;
+  serviceName: string | null;
+  projectId: string;
+  repositories: Array<CodeRepositoryResponse>;
+  resolutionError?: string;
+  message?: string;
+}
+
 interface RepositoryTokenResponse {
   token: string;
   expiresAt: string;
@@ -105,6 +116,21 @@ export interface CodeRepositoryInfo {
   mainBranchName: string;
   servicePathInRepository: string | null;
   gitHubAppInstallationId: string | null;
+}
+
+/*
+ * Context for an ImproveInstrumentation task: the inconclusive
+ * investigation's analysis, its subject, and the repository the server
+ * resolved (without a stack trace — name-match / only-repository fallbacks).
+ */
+export interface InstrumentationTaskDetails {
+  subjectType: "incident" | "alert";
+  subjectTitle: string;
+  analysisMarkdown: string;
+  serviceName: string | null;
+  repositories: Array<CodeRepositoryInfo>;
+  // Set when repositories is empty: why nothing resolved + what to do.
+  resolutionError: string | null;
 }
 
 export interface RepositoryToken {
@@ -280,6 +306,63 @@ export default class BackendAPI {
         gitHubAppInstallationId: repo.gitHubAppInstallationId,
       };
     });
+  }
+
+  /*
+   * Context for an ImproveInstrumentation run — `taskId` is the AIRun id
+   * from get-pending-task (these runs carry no exceptionId).
+   */
+  public async getInstrumentationTaskDetails(
+    taskId: string,
+  ): Promise<InstrumentationTaskDetails> {
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
+      "/api/ai-agent-data/get-instrumentation-task-details",
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.post({
+      url,
+      data: {
+        ...AIAgentAPIRequest.getDefaultRequestBody(),
+        taskId: taskId,
+      },
+    });
+
+    if (!response.isSuccess()) {
+      const data: InstrumentationTaskDetailsResponse =
+        response.data as unknown as InstrumentationTaskDetailsResponse;
+      const errorMessage: string =
+        data?.message || "Failed to get instrumentation task details";
+      throw new Error(errorMessage);
+    }
+
+    const data: InstrumentationTaskDetailsResponse =
+      response.data as unknown as InstrumentationTaskDetailsResponse;
+
+    logger.debug(
+      `Got instrumentation task details for ${taskId}: ${data.subjectType} "${data.subjectTitle}" (${data.repositories.length} repository(ies))`,
+    );
+
+    return {
+      subjectType: data.subjectType,
+      subjectTitle: data.subjectTitle,
+      analysisMarkdown: data.analysisMarkdown,
+      serviceName: data.serviceName || null,
+      repositories: (data.repositories || []).map(
+        (repo: CodeRepositoryResponse) => {
+          return {
+            id: repo.id,
+            name: repo.name,
+            repositoryHostedAt: repo.repositoryHostedAt,
+            organizationName: repo.organizationName,
+            repositoryName: repo.repositoryName,
+            mainBranchName: repo.mainBranchName,
+            servicePathInRepository: repo.servicePathInRepository,
+            gitHubAppInstallationId: repo.gitHubAppInstallationId,
+          };
+        },
+      ),
+      resolutionError: data.resolutionError || null,
+    };
   }
 
   // Get access token for a code repository

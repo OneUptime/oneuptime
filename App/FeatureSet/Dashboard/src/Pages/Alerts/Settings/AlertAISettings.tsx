@@ -36,6 +36,16 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              enableInstrumentationFixTasks: true,
+            },
+            title: "Instrumentation PRs From Inconclusive Investigations",
+            description:
+              "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, the AI agent opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+          {
+            field: {
               alertInvestigationMinimumSeverity: true,
             },
             title: "Minimum Severity To Investigate",
@@ -93,6 +103,14 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
                 enableAutomaticAlertInvestigation: true,
               },
               title: "Automatically Investigate Alerts",
+              placeholder: "Disabled",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                enableInstrumentationFixTasks: true,
+              },
+              title: "Instrumentation PRs From Inconclusive Investigations",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
             },

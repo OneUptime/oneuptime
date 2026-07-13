@@ -7,6 +7,10 @@ import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
 import AIAgentTaskPullRequestService from "../Services/AIAgentTaskPullRequestService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
+import IncidentService from "../Services/IncidentService";
+import AlertService from "../Services/AlertService";
+import IncidentFeedService from "../Services/IncidentFeedService";
+import AlertFeedService from "../Services/AlertFeedService";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -21,7 +25,20 @@ import Service from "../../Models/DatabaseModels/Service";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../Models/DatabaseModels/AIRun";
+import Incident from "../../Models/DatabaseModels/Incident";
+import Alert from "../../Models/DatabaseModels/Alert";
+import IncidentFeed, {
+  IncidentFeedEventType,
+} from "../../Models/DatabaseModels/IncidentFeed";
+import AlertFeed, {
+  AlertFeedEventType,
+} from "../../Models/DatabaseModels/AlertFeed";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
+import AIRunType from "../../Types/AI/AIRunType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -356,6 +373,304 @@ export default class AIAgentDataAPI {
           );
 
           return Response.sendJsonObjectResponse(req, res, {
+            repositories: [
+              {
+                id: repository.id!.toString(),
+                name: repository.name || "",
+                repositoryHostedAt: repository.repositoryHostedAt || "",
+                organizationName: repository.organizationName || "",
+                repositoryName: repository.repositoryName || "",
+                mainBranchName: repository.mainBranchName || "main",
+                servicePathInRepository: resolution.servicePathInRepository,
+                gitHubAppInstallationId:
+                  repository.gitHubAppInstallationId || null,
+                resolutionMethod: resolution.method,
+                resolutionEvidence: resolution.evidence,
+              },
+            ],
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Context for an ImproveInstrumentation run: the inconclusive
+     * investigation's posted analysis + subject metadata + the resolved
+     * repository. `taskId` carries the AIRun id of the CodeFix run (the id
+     * get-pending-task returned) — these runs have NO telemetry exception,
+     * so the exception-shaped endpoints above cannot serve them.
+     *
+     * The analysis text comes from the subject's latest RootCause feed item:
+     * Sentinel's postAnalysis is the only writer of RootCause feed events,
+     * it writes them for BOTH subjects and for BOTH confident and
+     * inconclusive analyses (quiet mode only mutes the workspace ping), so
+     * the feed item IS the investigation run's persisted output. The
+     * incident internal note is best-effort and incident-only, and
+     * AIRunEvents do not persist the final analysis text — the feed is the
+     * most reliable source.
+     */
+    this.router.post(
+      "/ai-agent-data/get-instrumentation-task-details",
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const data: JSONObject = req.body;
+
+          // Validate AI Agent credentials
+          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+
+          if (!aiAgent) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
+            );
+          }
+
+          if (!data["taskId"]) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("taskId is required"),
+            );
+          }
+
+          const taskId: ObjectID = new ObjectID(data["taskId"] as string);
+
+          const run: AIRun | null = await AIRunService.findOneById({
+            id: taskId,
+            select: {
+              _id: true,
+              projectId: true,
+              runType: true,
+              codeFixTaskType: true,
+              triggeredByIncidentId: true,
+              triggeredByAlertId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (!run || !run.projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Task not found"),
+            );
+          }
+
+          if (
+            run.runType !== AIRunType.CodeFix ||
+            CodeFixTaskTypeHelper.fromDatabaseValue(run.codeFixTaskType) !==
+              CodeFixTaskType.ImproveInstrumentation
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Task is not an ImproveInstrumentation run"),
+            );
+          }
+
+          if (!run.triggeredByIncidentId && !run.triggeredByAlertId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This instrumentation task has no incident or alert subject",
+              ),
+            );
+          }
+
+          const subjectType: "incident" | "alert" = run.triggeredByIncidentId
+            ? "incident"
+            : "alert";
+
+          let subjectTitle: string = "";
+          /*
+           * Best-effort service attribution from the subject's monitors —
+           * it only feeds the repository name-match fallback, so null is
+           * fine when the subject has no monitor.
+           */
+          let serviceName: string | null = null;
+          let analysisMarkdown: string | null = null;
+
+          if (run.triggeredByIncidentId) {
+            const incident: Incident | null = await IncidentService.findOneById(
+              {
+                id: run.triggeredByIncidentId,
+                select: {
+                  title: true,
+                  monitors: {
+                    name: true,
+                  },
+                },
+                props: {
+                  isRoot: true,
+                },
+              },
+            );
+
+            if (!incident) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "The incident this instrumentation task was created for no longer exists",
+                ),
+              );
+            }
+
+            subjectTitle = incident.title || "Untitled incident";
+            serviceName =
+              (incident.monitors || [])
+                .map((monitor: { name?: string | undefined }) => {
+                  return monitor.name || "";
+                })
+                .filter(Boolean)[0] || null;
+
+            const feedItem: IncidentFeed | null =
+              await IncidentFeedService.findOneBy({
+                query: {
+                  incidentId: run.triggeredByIncidentId,
+                  incidentFeedEventType: IncidentFeedEventType.RootCause,
+                },
+                select: {
+                  feedInfoInMarkdown: true,
+                },
+                sort: {
+                  createdAt: SortOrder.Descending,
+                },
+                props: {
+                  isRoot: true,
+                },
+              });
+
+            analysisMarkdown = feedItem?.feedInfoInMarkdown || null;
+          } else {
+            const alert: Alert | null = await AlertService.findOneById({
+              id: run.triggeredByAlertId!,
+              select: {
+                title: true,
+                monitor: {
+                  name: true,
+                },
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (!alert) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "The alert this instrumentation task was created for no longer exists",
+                ),
+              );
+            }
+
+            subjectTitle = alert.title || "Untitled alert";
+            serviceName = alert.monitor?.name || null;
+
+            const feedItem: AlertFeed | null = await AlertFeedService.findOneBy(
+              {
+                query: {
+                  alertId: run.triggeredByAlertId!,
+                  alertFeedEventType: AlertFeedEventType.RootCause,
+                },
+                select: {
+                  feedInfoInMarkdown: true,
+                },
+                sort: {
+                  createdAt: SortOrder.Descending,
+                },
+                props: {
+                  isRoot: true,
+                },
+              },
+            );
+
+            analysisMarkdown = feedItem?.feedInfoInMarkdown || null;
+          }
+
+          if (!analysisMarkdown) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                `No posted investigation analysis found for this ${subjectType} — the instrumentation task has nothing to work from (the analysis feed item may have been deleted).`,
+              ),
+            );
+          }
+
+          /*
+           * Resolve the repository WITHOUT a stack trace — instrumentation
+           * tasks have no exception, so only the name-match (against the
+           * subject's monitor/service name) and only-repository fallbacks
+           * apply. When nothing resolves the worker fails the run with
+           * this guidance.
+           */
+          const resolution: RepoResolution | null =
+            await CodeRepositoryService.resolveRepositoryForException({
+              projectId: run.projectId,
+              stackTrace: null,
+              serviceName,
+            });
+
+          const repository: CodeRepository | null = resolution
+            ? await CodeRepositoryService.findOneById({
+                id: new ObjectID(resolution.codeRepositoryId),
+                select: {
+                  _id: true,
+                  name: true,
+                  repositoryHostedAt: true,
+                  organizationName: true,
+                  repositoryName: true,
+                  mainBranchName: true,
+                  gitHubAppInstallationId: true,
+                },
+                props: {
+                  isRoot: true,
+                },
+              })
+            : null;
+
+          if (!resolution || !repository) {
+            logger.debug(
+              `No repository resolved for instrumentation task ${taskId.toString()}`,
+              getLogAttributesFromRequest(req as any),
+            );
+
+            return Response.sendJsonObjectResponse(req, res, {
+              subjectType,
+              subjectTitle,
+              analysisMarkdown,
+              serviceName,
+              projectId: run.projectId.toString(),
+              repositories: [],
+              resolutionError:
+                "Could not resolve a repository for this instrumentation task: no connected repository name matches the affected monitor/service and the project has more than one repository. Connect the right repository via the GitHub App, or rename one to match the service.",
+            });
+          }
+
+          logger.debug(
+            `Resolved repository ${resolution.organizationName}/${resolution.repositoryName} for instrumentation task ${taskId.toString()} via ${resolution.method}: ${resolution.evidence}`,
+            getLogAttributesFromRequest(req as any),
+          );
+
+          return Response.sendJsonObjectResponse(req, res, {
+            subjectType,
+            subjectTitle,
+            analysisMarkdown,
+            serviceName,
+            projectId: run.projectId.toString(),
             repositories: [
               {
                 id: repository.id!.toString(),

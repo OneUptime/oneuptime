@@ -6,7 +6,7 @@ import {
 } from "./TaskHandlerInterface";
 import {
   LLMConfig,
-  ExceptionDetails,
+  InstrumentationTaskDetails,
   CodeRepositoryInfo,
   RepositoryToken,
 } from "../Utils/BackendAPI";
@@ -27,64 +27,38 @@ import {
   CodeAgentProgressEvent,
   CodeAgentLLMConfig,
 } from "../CodeAgents/Index";
+import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
+
+// Default timeout for code agent execution (30 minutes)
+const CODE_AGENT_TIMEOUT_MS: number = 30 * 60 * 1000;
+
+// Single-line subject-title length caps for commit subjects / PR titles.
+const COMMIT_SUBJECT_TITLE_LENGTH: number = 50;
+const PR_TITLE_SUBJECT_LENGTH: number = 70;
+
+// The embedded analysis in PR bodies is truncated to keep the PR readable.
+const PR_BODY_ANALYSIS_LENGTH: number = 6000;
 
 /*
- * Shared pipeline for exception-driven tasks that end in a pull request:
- * LLM config -> exception details -> resolve repo -> clone -> code agent ->
- * commit -> push -> PR. Subclasses (FixException, WriteRegressionTest) only
- * supply the code-agent prompt and the branch / commit / PR wording.
+ * ImproveInstrumentation: an inconclusive Sentinel investigation (root cause
+ * undeterminable — insufficient telemetry) becomes a pull request that adds
+ * the missing observability, so the NEXT investigation of a similar signal
+ * can reach a conclusion.
+ *
+ * Unlike the exception-driven recipes, this task has no telemetry exception:
+ * its subject is the investigated incident/alert, and its context (the
+ * inconclusive analysis + the repository resolved without a stack trace)
+ * comes from /ai-agent-data/get-instrumentation-task-details keyed by the
+ * run id.
  */
-export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHandler {
-  // Default timeout for code agent execution (30 minutes)
-  protected static readonly CODE_AGENT_TIMEOUT_MS: number = 30 * 60 * 1000;
-
-  // Branch names are `<branchPrefix><first 8 chars of the task id>`.
-  protected abstract readonly branchPrefix: string;
-
-  // Failure message when no repository yielded a pull request.
-  protected abstract readonly noActionMessage: string;
-
-  // Build the prompt for the code agent.
-  protected abstract buildPrompt(
-    exceptionDetails: ExceptionDetails,
-    servicePathInRepository: string | null,
-  ): string;
-
-  // Build the commit message for the change.
-  protected abstract buildCommitMessage(
-    exceptionDetails: ExceptionDetails,
-  ): string;
-
-  // Build the pull request title.
-  protected abstract buildPullRequestTitle(
-    exceptionDetails: ExceptionDetails,
-  ): string;
-
-  // Build the pull request body.
-  protected abstract buildPullRequestBody(
-    exceptionDetails: ExceptionDetails,
-    agentSummary: string,
-  ): string;
+export default class ImproveInstrumentationTaskHandler extends BaseTaskHandler {
+  public readonly taskType: string = CodeFixTaskType.ImproveInstrumentation;
+  public readonly name: string = "Improve Instrumentation Handler";
 
   public async execute(context: TaskContext): Promise<TaskResult> {
-    /*
-     * exceptionId is optional on TaskContext (instrumentation runs carry an
-     * incident/alert subject instead), but every recipe built on THIS
-     * pipeline is exception-driven — fail clearly rather than calling the
-     * exception endpoints with undefined.
-     */
-    const exceptionId: string | undefined = context.exceptionId;
-
-    if (!exceptionId) {
-      return this.createFailureResult(
-        `${this.name} requires a telemetry exception, but the claimed task carries none.`,
-        { isError: true },
-      );
-    }
-
     await this.log(
       context,
-      `Starting ${this.name} for exception: ${exceptionId} (taskId: ${context.taskId.toString()})`,
+      `Starting ${this.name} (taskId: ${context.taskId.toString()})`,
     );
 
     let workspace: WorkspaceInfo | null = null;
@@ -100,44 +74,34 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
         `Using LLM provider: ${llmConfig.llmType}${llmConfig.modelName ? ` (${llmConfig.modelName})` : ""}`,
       );
 
-      // Step 2: Get exception details
-      await this.log(context, "Fetching exception details...");
-      const exceptionDetails: ExceptionDetails =
-        await context.backendAPI.getExceptionDetails(exceptionId);
+      // Step 2: Get the instrumentation task context (keyed by the run id).
+      await this.log(context, "Fetching instrumentation task details...");
+      const details: InstrumentationTaskDetails =
+        await context.backendAPI.getInstrumentationTaskDetails(
+          context.taskId.toString(),
+        );
 
       await this.log(
         context,
-        `Exception: ${exceptionDetails.exception.message.substring(0, 100)}...`,
+        `Subject: ${details.subjectType} "${details.subjectTitle}"${details.serviceName ? ` (service: ${details.serviceName})` : ""}`,
       );
 
-      if (exceptionDetails.service) {
-        await this.log(context, `Service: ${exceptionDetails.service.name}`);
-      }
-
       /*
-       * Step 3: Resolve the repository — the server matches the exception's
-       * stack-trace files against the project's connected repos at runtime.
-       * No Service Catalog link is required.
+       * Step 3: The repository was resolved server-side WITHOUT a stack
+       * trace (name-match / only-repository fallbacks). Nothing resolved
+       * means the task cannot proceed — fail with the server's guidance.
        */
-      await this.log(context, "Resolving the repository for this exception...");
-      const repositories: Array<CodeRepositoryInfo> =
-        await context.backendAPI.getCodeRepositories(exceptionId);
-
-      if (repositories.length === 0) {
-        await this.log(
-          context,
-          "Could not resolve a repository for this exception",
-          "error",
-        );
-        return this.createFailureResult(
-          "Could not resolve a repository for this exception: its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository through the GitHub App.",
-          { isError: true },
-        );
+      if (details.repositories.length === 0) {
+        const message: string =
+          details.resolutionError ||
+          "Could not resolve a repository for this instrumentation task. Connect the right repository through the GitHub App.";
+        await this.log(context, message, "error");
+        return this.createFailureResult(message, { isError: true });
       }
 
       await this.log(
         context,
-        `Found ${repositories.length} linked code repository(ies)`,
+        `Found ${details.repositories.length} resolved code repository(ies)`,
       );
 
       // Step 4: Create workspace for the task
@@ -150,7 +114,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       const pullRequestUrls: Array<string> = [];
       const errors: Array<string> = [];
 
-      for (const repo of repositories) {
+      for (const repo of details.repositories) {
         try {
           await this.log(
             context,
@@ -160,7 +124,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
           const prUrl: string | null = await this.processRepository(
             context,
             repo,
-            exceptionDetails,
+            details,
             llmConfig,
             workspace,
           );
@@ -207,19 +171,19 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
         };
       }
 
-      // No PRs created - mark as error
-      await this.log(context, this.noActionMessage, "error");
+      const noActionMessage: string =
+        "No instrumentation could be added to any repository";
+      await this.log(context, noActionMessage, "error");
       return this.createFailureResult(
         errors.length > 0
-          ? `${this.noActionMessage}. Errors: ${errors.join("; ")}`
-          : this.noActionMessage,
+          ? `${noActionMessage}. Errors: ${errors.join("; ")}`
+          : noActionMessage,
         { isError: true },
       );
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
       await this.log(context, `Task failed: ${errorMessage}`, "error");
-      // Mark as an actual error (not just "no action taken") so task gets Error status
       return this.createFailureResult(errorMessage, { isError: true });
     } finally {
       // Cleanup workspace
@@ -233,11 +197,11 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
     }
   }
 
-  // Process a single repository
+  // Clone one repository, run the code agent, and open the PR.
   private async processRepository(
     context: TaskContext,
     repo: CodeRepositoryInfo,
-    exceptionDetails: ExceptionDetails,
+    details: InstrumentationTaskDetails,
     llmConfig: LLMConfig,
     workspace: WorkspaceInfo,
   ): Promise<string | null> {
@@ -272,13 +236,15 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
     );
 
     // Create a working branch
-    const branchName: string = `${this.branchPrefix}${context.taskId.toString().substring(0, 8)}`;
+    const branchName: string = `oneuptime-instrumentation-${context.taskId
+      .toString()
+      .substring(0, 8)}`;
     await this.log(context, `Creating branch: ${branchName}`);
     await repoManager.createBranch(cloneResult.repositoryPath, branchName);
 
     // Build the prompt for the code agent
     const prompt: string = this.buildPrompt(
-      exceptionDetails,
+      details,
       repo.servicePathInRepository,
     );
 
@@ -315,7 +281,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
     const codeAgentTask: CodeAgentTask = {
       workingDirectory: cloneResult.repositoryPath,
       prompt,
-      timeoutMs: ExceptionPullRequestTaskHandler.CODE_AGENT_TIMEOUT_MS,
+      timeoutMs: CODE_AGENT_TIMEOUT_MS,
     };
 
     if (repo.servicePathInRepository) {
@@ -344,7 +310,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
     await this.log(context, "Committing changes...");
     await repoManager.addAllChanges(cloneResult.repositoryPath);
 
-    const commitMessage: string = this.buildCommitMessage(exceptionDetails);
+    const commitMessage: string = this.buildCommitMessage(details);
     await repoManager.commitChanges(cloneResult.repositoryPath, commitMessage);
 
     // Push the branch
@@ -361,10 +327,9 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       context.logger,
     );
 
-    const prTitle: string = this.buildPullRequestTitle(exceptionDetails);
-
+    const prTitle: string = this.buildPullRequestTitle(details);
     const prBody: string = this.buildPullRequestBody(
-      exceptionDetails,
+      details,
       agentResult.summary,
     );
 
@@ -399,12 +364,112 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
     return prResult.htmlUrl;
   }
 
+  // Build the prompt for the code agent
+  private buildPrompt(
+    details: InstrumentationTaskDetails,
+    servicePathInRepository: string | null,
+  ): string {
+    let prompt: string = `You are a software engineer improving the observability of a codebase.
+
+OneUptime's autonomous AI SRE ("Sentinel") investigated a production ${details.subjectType} titled "${details.subjectTitle}"${
+      details.serviceName
+        ? ` affecting the service "${details.serviceName}"`
+        : ""
+    } and could NOT determine the root cause — the available telemetry was INSUFFICIENT. Its full inconclusive analysis is below: it lists what was checked, what the evidence showed, and what was missing.
+
+## Inconclusive Investigation Analysis
+
+${details.analysisMarkdown}
+
+## Task
+
+Add the missing observability to the code paths the analysis implicates, so the NEXT investigation of a similar signal can reach a conclusion. Steps:
+
+1. Read the analysis carefully: identify which operations, services, or code paths it discusses and — most importantly — which questions it could NOT answer for lack of telemetry
+2. Find those code paths in this repository
+3. Add structured log statements at the decision points where the analysis lacked visibility, including the relevant identifiers/attributes a future investigation would query by
+4. Wrap the operations the analysis discusses in OpenTelemetry spans (or the repository's existing tracing idiom) where they are missing, with span attributes covering the unknowns the analysis calls out
+5. Add metric counters or histograms ONLY where the analysis explicitly mentions an unmeasured rate, count, or duration
+
+## Requirements
+
+- Follow the repository's EXISTING telemetry idioms exactly — use the logger, tracer, and metrics libraries already in use; do NOT introduce new dependencies or frameworks
+- Do NOT change any business logic, control flow, error handling behavior, or return values — this change is instrumentation only
+- Keep the diff small and focused: instrument the code paths the analysis implicates, not the whole codebase
+- Never log secrets, credentials, tokens, or full request/response bodies
+- If you cannot find the implicated code paths in this repository, explain why and make no changes
+
+Please proceed with adding the missing instrumentation.`;
+
+    if (servicePathInRepository) {
+      prompt = `The service code is located in the \`${servicePathInRepository}\` directory.\n\n${prompt}`;
+    }
+
+    return prompt;
+  }
+
+  // Build commit message for the instrumentation change
+  private buildCommitMessage(details: InstrumentationTaskDetails): string {
+    const shortTitle: string = this.cleanSubjectTitle(
+      details.subjectTitle,
+      COMMIT_SUBJECT_TITLE_LENGTH,
+    );
+
+    return `chore(observability): add instrumentation for ${shortTitle}
+
+Sentinel's automated investigation of this ${details.subjectType} was
+inconclusive because the telemetry was insufficient. This commit adds the
+missing logs/spans/metrics to the implicated code paths — no business
+logic is changed.
+
+Automatically generated by OneUptime AI Agent.`;
+  }
+
+  // Build the pull request title
+  private buildPullRequestTitle(details: InstrumentationTaskDetails): string {
+    const shortTitle: string = this.cleanSubjectTitle(
+      details.subjectTitle,
+      PR_TITLE_SUBJECT_LENGTH,
+    );
+
+    return `chore(observability): add instrumentation for ${shortTitle}`;
+  }
+
+  // Build the pull request body — the inconclusive analysis IS the rationale.
+  private buildPullRequestBody(
+    details: InstrumentationTaskDetails,
+    agentSummary: string,
+  ): string {
+    const analysis: string = details.analysisMarkdown;
+
+    return `## Observability Improvement
+
+This pull request was automatically generated by OneUptime AI Agent because Sentinel's automated investigation of a production ${details.subjectType} was **inconclusive** — the available telemetry was insufficient to determine a root cause. The changes add the missing instrumentation (structured logs, spans, metrics) to the implicated code paths so the next investigation of a similar signal can reach a conclusion.
+
+**${details.subjectType === "incident" ? "Incident" : "Alert"}:** ${details.subjectTitle}
+**Service:** ${details.serviceName || "Unknown"}
+
+### Why: the inconclusive investigation
+
+${analysis.substring(0, PR_BODY_ANALYSIS_LENGTH)}${analysis.length > PR_BODY_ANALYSIS_LENGTH ? "\n...(truncated)" : ""}
+
+### Summary of Changes
+
+${agentSummary}
+
+---
+
+> **Instrumentation only** — this PR must not change business logic. Please review before merging; nothing is merged automatically.
+
+*This PR was automatically generated by [OneUptime AI Agent](https://oneuptime.com)*`;
+  }
+
   /*
-   * Clean an exception message into a single line suitable for commit
-   * subjects and PR titles.
+   * Clean a subject title into a single line suitable for commit subjects
+   * and PR titles.
    */
-  protected cleanExceptionMessage(message: string, maxLength: number): string {
-    const cleaned: string = message
+  private cleanSubjectTitle(title: string, maxLength: number): string {
+    const cleaned: string = title
       .replace(/\n/g, " ")
       .replace(/\s+/g, " ")
       .trim();
@@ -414,5 +479,10 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
     }
 
     return `${cleaned.substring(0, maxLength - 3)}...`;
+  }
+
+  // Get handler description
+  public getDescription(): string {
+    return "Turns an inconclusive Sentinel investigation into a pull request that adds the missing observability (structured logs, OpenTelemetry spans, metrics) to the implicated code paths, without changing business logic.";
   }
 }

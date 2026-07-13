@@ -25,11 +25,14 @@ import Sleep from "Common/Types/Sleep";
  * server, so `id` is the run id; exception details are fetched separately
  * via /api/ai-agent-data/get-exception-details. `taskType` discriminates
  * which handler runs the task ("FixException", "WriteRegressionTest", ...).
+ * `exceptionId` is present only for exception-based recipes —
+ * ImproveInstrumentation runs have an incident/alert subject instead and
+ * fetch their context by run id (get-instrumentation-task-details).
  */
 interface PendingTask {
   id: string;
   projectId: string;
-  exceptionId: string;
+  exceptionId?: string | undefined;
   taskType: string;
 }
 
@@ -189,7 +192,7 @@ const startTaskProcessingLoop: () => Promise<void> =
           taskType: task.taskType,
         } as LogAttributes;
         logger.info(
-          `Processing task: ${taskId} (type: ${task.taskType || CodeFixTaskType.FixException}, exception: ${task.exceptionId})`,
+          `Processing task: ${taskId} (type: ${task.taskType || CodeFixTaskType.FixException}${task.exceptionId ? `, exception: ${task.exceptionId}` : ""})`,
           taskLogAttrs,
         );
 

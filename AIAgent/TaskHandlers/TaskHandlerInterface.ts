@@ -26,8 +26,13 @@ export interface TaskContext {
    */
   taskType: string;
 
-  // The exception this run should fix
-  exceptionId: string;
+  /*
+   * The exception this run should fix — present only for exception-based
+   * recipes. ImproveInstrumentation runs have an incident/alert subject
+   * instead and fetch their context by run id
+   * (get-instrumentation-task-details).
+   */
+  exceptionId?: string | undefined;
 
   // Utilities
   logger: TaskLogger;

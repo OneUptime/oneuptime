@@ -87,8 +87,12 @@ export class Service extends DatabaseService<Model> {
    * queue uses, so concurrent agents can never receive the same run. The
    * returned run is already Running, heartbeated, and owned by the agent.
    *
-   * A claimed run without a triggering exception cannot be executed — it is
-   * finalized as Error and the loop moves on to the next candidate.
+   * A claimed run missing its recipe's trigger record cannot be executed —
+   * it is finalized as Error and the loop moves on to the next candidate.
+   * Which record that is depends on the task recipe: exception-based
+   * recipes need triggeredByTelemetryExceptionId, while
+   * ImproveInstrumentation runs against the incident/alert whose
+   * investigation was inconclusive.
    */
   @CaptureSpan()
   public async claimNextQueuedCodeFixRun(data: {
@@ -109,6 +113,8 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           projectId: true,
           triggeredByTelemetryExceptionId: true,
+          triggeredByIncidentId: true,
+          triggeredByAlertId: true,
           attemptCount: true,
           codeFixTaskType: true,
         },
@@ -139,28 +145,44 @@ export class Service extends DatabaseService<Model> {
         continue;
       }
 
-      if (!run.triggeredByTelemetryExceptionId) {
+      /*
+       * Normalize the task recipe BEFORE the executability guard: a null
+       * codeFixTaskType means FixException (rows created before task
+       * recipes existed), the worker dispatches on this value, and the
+       * guard below is recipe-dependent.
+       */
+      run.codeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
+        run.codeFixTaskType,
+      );
+
+      /*
+       * Recipe-dependent executability guard: exception-based recipes are
+       * unexecutable without their telemetry exception, but recipes whose
+       * subject is an incident/alert (ImproveInstrumentation) legitimately
+       * carry NO exception id — rejecting those here would Error every run
+       * the instrumentation trigger enqueues.
+       */
+      const missingContextMessage: string | null =
+        CodeFixTaskTypeHelper.requiresTelemetryException(run.codeFixTaskType)
+          ? run.triggeredByTelemetryExceptionId
+            ? null
+            : "Queued code-fix run has no telemetry exception to fix."
+          : run.triggeredByIncidentId || run.triggeredByAlertId
+            ? null
+            : "Queued code-fix run has no incident or alert subject.";
+
+      if (missingContextMessage) {
         await this.attemptStatusTransition({
           aiRunId: run.id,
           fromStatus: AIRunStatus.Running,
           set: {
             status: AIRunStatus.Error,
             completedAt: OneUptimeDate.getCurrentDate(),
-            errorMessage:
-              "Queued code-fix run has no telemetry exception to fix.",
+            errorMessage: missingContextMessage,
           },
         });
         continue;
       }
-
-      /*
-       * Normalize the task recipe before handing the run to the worker: a
-       * null codeFixTaskType means FixException (rows created before task
-       * recipes existed), and the worker dispatches on this value.
-       */
-      run.codeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
-        run.codeFixTaskType,
-      );
 
       return run;
     }

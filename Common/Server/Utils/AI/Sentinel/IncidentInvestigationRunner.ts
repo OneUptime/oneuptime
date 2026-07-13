@@ -11,6 +11,7 @@ import IncidentAIContextBuilder, {
 import SentinelInvestigationEngine from "./SentinelInvestigationEngine";
 import SentinelInvestigationQueue from "./InvestigationQueue";
 import SentinelMemory from "./SentinelMemory";
+import InstrumentationTaskTrigger from "./InstrumentationTaskTrigger";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -174,6 +175,23 @@ export default class SentinelIncidentInvestigationRunner {
           } catch (error) {
             logger.error(
               `Sentinel: failed to post RCA internal note for incident ${incidentId.toString()}: ${error}`,
+            );
+          }
+
+          /*
+           * Inconclusive means the telemetry was insufficient — for
+           * opted-in projects (Project.enableInstrumentationFixTasks,
+           * default false), queue an ImproveInstrumentation fix task that
+           * opens a PR adding the missing observability. Runs strictly
+           * AFTER the analysis is posted, and the trigger never throws, so
+           * the investigation can neither be blocked nor failed by it.
+           */
+          if (!postData.isConfident) {
+            await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation(
+              {
+                projectId,
+                incidentId,
+              },
             );
           }
         },

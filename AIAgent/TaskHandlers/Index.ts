@@ -15,3 +15,4 @@ export {
 export { default as ExceptionPullRequestTaskHandler } from "./ExceptionPullRequestTaskHandler";
 export { default as FixExceptionTaskHandler } from "./FixExceptionTaskHandler";
 export { default as WriteRegressionTestTaskHandler } from "./WriteRegressionTestTaskHandler";
+export { default as ImproveInstrumentationTaskHandler } from "./ImproveInstrumentationTaskHandler";

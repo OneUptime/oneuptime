@@ -1,6 +1,7 @@
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
@@ -16,6 +17,9 @@ import { describe, expect, test, afterEach } from "@jest/globals";
 function fakeQueuedRun(data?: {
   exceptionId?: ObjectID | null;
   attemptCount?: number;
+  codeFixTaskType?: CodeFixTaskType;
+  incidentId?: ObjectID;
+  alertId?: ObjectID;
 }): AIRun {
   return {
     id: ObjectID.generate(),
@@ -24,7 +28,10 @@ function fakeQueuedRun(data?: {
       data?.exceptionId === null
         ? undefined
         : data?.exceptionId || ObjectID.generate(),
+    triggeredByIncidentId: data?.incidentId,
+    triggeredByAlertId: data?.alertId,
     attemptCount: data?.attemptCount || 0,
+    codeFixTaskType: data?.codeFixTaskType,
   } as unknown as AIRun;
 }
 
@@ -104,7 +111,7 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
     expect(claimed).toBe(wonRun);
   });
 
-  test("a claimed run without a triggering exception is finalized as Error and skipped", async () => {
+  test("an exception-based run without a triggering exception is finalized as Error and skipped", async () => {
     const brokenRun: AIRun = fakeQueuedRun({ exceptionId: null });
     const goodRun: AIRun = fakeQueuedRun();
 
@@ -130,6 +137,86 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
         fromStatus: AIRunStatus.Running,
         set: expect.objectContaining({
           status: AIRunStatus.Error,
+        }),
+      }),
+    );
+  });
+
+  /*
+   * The executability guard is recipe-dependent: ImproveInstrumentation
+   * runs are enqueued by the inconclusive-investigation trigger with an
+   * incident/alert subject and NO telemetry exception — the claim must
+   * hand them to the worker, not Error them for lacking an exception.
+   */
+  test("an ImproveInstrumentation run without an exception but with an incident subject is claimed, not errored", async () => {
+    const run: AIRun = fakeQueuedRun({
+      exceptionId: null,
+      codeFixTaskType: CodeFixTaskType.ImproveInstrumentation,
+      incidentId: ObjectID.generate(),
+    });
+
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(run);
+    expect(claimed?.codeFixTaskType).toBe(
+      CodeFixTaskType.ImproveInstrumentation,
+    );
+    // Exactly the claim CAS — no Error transition.
+    expect(transition).toHaveBeenCalledTimes(1);
+  });
+
+  test("an ImproveInstrumentation run with an alert subject is claimed too", async () => {
+    const run: AIRun = fakeQueuedRun({
+      exceptionId: null,
+      codeFixTaskType: CodeFixTaskType.ImproveInstrumentation,
+      alertId: ObjectID.generate(),
+    });
+
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(run);
+  });
+
+  test("an ImproveInstrumentation run with NO subject at all is finalized as Error and skipped", async () => {
+    const brokenRun: AIRun = fakeQueuedRun({
+      exceptionId: null,
+      codeFixTaskType: CodeFixTaskType.ImproveInstrumentation,
+    });
+    const goodRun: AIRun = fakeQueuedRun();
+
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValueOnce(brokenRun)
+      .mockResolvedValueOnce(goodRun);
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(goodRun);
+    expect(transition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        aiRunId: brokenRun.id,
+        fromStatus: AIRunStatus.Running,
+        set: expect.objectContaining({
+          status: AIRunStatus.Error,
+          errorMessage: expect.stringContaining("incident or alert subject"),
         }),
       }),
     );
