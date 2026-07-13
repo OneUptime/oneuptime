@@ -1,4 +1,17 @@
 import Dictionary from "../../../Types/Dictionary";
+import {
+  LlmAgentNameAttributeKeys,
+  LlmAttributeNamespacePrefixes,
+  LlmCostAttributeKeys,
+  LlmInputTokenAttributeKeys,
+  LlmOperationAttributeKeys,
+  LlmOutputTokenAttributeKeys,
+  LlmRequestModelAttributeKeys,
+  LlmResponseModelAttributeKeys,
+  LlmSystemAttributeKeys,
+  LlmToolNameAttributeKeys,
+  LlmTotalTokenAttributeKeys,
+} from "../../../Types/Telemetry/LlmConventions";
 import { AttributeType } from "./Telemetry";
 
 /*
@@ -7,11 +20,9 @@ import { AttributeType } from "./Telemetry";
  * OneUptime ingests OpenTelemetry spans generically. To make LLM and agent
  * telemetry a first-class signal (filterable lists, token/cost/latency
  * rollups) we denormalize a small set of values out of the span attributes at
- * ingest time. We recognize the OpenTelemetry GenAI semantic conventions
- * (gen_ai.*) as primary, with cheap fallbacks for the two dominant
- * instrumentation libraries:
- *   - OpenLLMetry / Traceloop  (gen_ai.* + traceloop.*)
- *   - OpenInference / Arize    (llm.* + openinference.span.kind)
+ * ingest time. The set of recognized attribute keys lives in the shared
+ * Common/Types/Telemetry/LlmConventions module so this server-side extractor
+ * and the client-side display parser cannot drift out of sync.
  *
  * Prompt/completion CONTENT is intentionally NOT denormalized here — it stays
  * in the span's attributes/events map (already captured + scrubbed) and is
@@ -79,29 +90,19 @@ export default class LlmSpanUtil {
       return fields;
     }
 
-    fields.llmSystem = this.getString(attributes, [
-      "gen_ai.system",
-      "gen_ai.provider.name",
-      "llm.system",
-      "llm.provider",
-    ]);
+    fields.llmSystem = this.getString(attributes, LlmSystemAttributeKeys);
 
-    fields.llmOperation = this.getString(attributes, [
-      "gen_ai.operation.name",
-      "llm.request.type",
-      "openinference.span.kind",
-    ]);
+    fields.llmOperation = this.getString(attributes, LlmOperationAttributeKeys);
 
-    fields.llmRequestModel = this.getString(attributes, [
-      "gen_ai.request.model",
-      "llm.model_name",
-      "llm.request.model",
-    ]);
+    fields.llmRequestModel = this.getString(
+      attributes,
+      LlmRequestModelAttributeKeys,
+    );
 
-    fields.llmResponseModel = this.getString(attributes, [
-      "gen_ai.response.model",
-      "llm.response.model",
-    ]);
+    fields.llmResponseModel = this.getString(
+      attributes,
+      LlmResponseModelAttributeKeys,
+    );
 
     // Fall back to the response model when no request model was reported.
     if (!fields.llmRequestModel && fields.llmResponseModel) {
@@ -114,29 +115,15 @@ export default class LlmSpanUtil {
      * reject the row and fail the whole span batch.
      */
     fields.llmInputTokens = Math.trunc(
-      this.getNumber(attributes, [
-        "gen_ai.usage.input_tokens",
-        "gen_ai.usage.prompt_tokens",
-        "llm.token_count.prompt",
-        "llm.usage.prompt_tokens",
-      ]),
+      this.getNumber(attributes, LlmInputTokenAttributeKeys),
     );
 
     fields.llmOutputTokens = Math.trunc(
-      this.getNumber(attributes, [
-        "gen_ai.usage.output_tokens",
-        "gen_ai.usage.completion_tokens",
-        "llm.token_count.completion",
-        "llm.usage.completion_tokens",
-      ]),
+      this.getNumber(attributes, LlmOutputTokenAttributeKeys),
     );
 
     fields.llmTotalTokens = Math.trunc(
-      this.getNumber(attributes, [
-        "gen_ai.usage.total_tokens",
-        "llm.token_count.total",
-        "llm.usage.total_tokens",
-      ]),
+      this.getNumber(attributes, LlmTotalTokenAttributeKeys),
     );
 
     // Derive total when only the parts were reported.
@@ -147,22 +134,11 @@ export default class LlmSpanUtil {
       fields.llmTotalTokens = fields.llmInputTokens + fields.llmOutputTokens;
     }
 
-    fields.llmCost = this.getNumber(attributes, [
-      "gen_ai.usage.cost",
-      "gen_ai.usage.cost_usd",
-      "gen_ai.usage.total_cost",
-      "llm.usage.total_cost",
-    ]);
+    fields.llmCost = this.getNumber(attributes, LlmCostAttributeKeys);
 
-    fields.llmAgentName = this.getString(attributes, [
-      "gen_ai.agent.name",
-      "agent.name",
-    ]);
+    fields.llmAgentName = this.getString(attributes, LlmAgentNameAttributeKeys);
 
-    fields.llmToolName = this.getString(attributes, [
-      "gen_ai.tool.name",
-      "tool.name",
-    ]);
+    fields.llmToolName = this.getString(attributes, LlmToolNameAttributeKeys);
 
     fields.isLlmSpan = this.detectIsLlmSpan(keys, fields);
 
@@ -187,11 +163,9 @@ export default class LlmSpanUtil {
 
     // Last-resort: any GenAI/LLM-namespaced attribute at all.
     return keys.some((key: string) => {
-      return (
-        key.startsWith("gen_ai.") ||
-        key.startsWith("llm.") ||
-        key.startsWith("traceloop.")
-      );
+      return LlmAttributeNamespacePrefixes.some((prefix: string) => {
+        return key.startsWith(prefix);
+      });
     });
   }
 
