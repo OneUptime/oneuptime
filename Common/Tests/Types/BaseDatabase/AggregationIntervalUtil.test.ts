@@ -53,6 +53,34 @@ describe("AggregationIntervalUtil", () => {
       },
     );
 
+    test("an explicit override wins over the window-derived interval", () => {
+      // A 2-hour window derives Minute, but the override pins Day.
+      expect(
+        AggregationIntervalUtil.getAggregationIntervalForWindow({
+          ...windowOf(2 * HOUR),
+          aggregationInterval: AggregationInterval.Day,
+        }),
+      ).toBe(AggregationInterval.Day);
+    });
+
+    test("the None override is returned verbatim (whole-window bucketing)", () => {
+      expect(
+        AggregationIntervalUtil.getAggregationIntervalForWindow({
+          ...windowOf(14 * DAY),
+          aggregationInterval: AggregationInterval.None,
+        }),
+      ).toBe(AggregationInterval.None);
+    });
+
+    test("an invalid override falls through to the window-derived interval", () => {
+      expect(
+        AggregationIntervalUtil.getAggregationIntervalForWindow({
+          ...windowOf(2 * HOUR),
+          aggregationInterval: "NotAnInterval" as AggregationInterval,
+        }),
+      ).toBe(AggregationInterval.Minute);
+    });
+
     test("returns the widest interval as the window grows", () => {
       const order: Array<AggregationInterval> = [
         AggregationInterval.Minute,
@@ -104,6 +132,18 @@ describe("AggregationIntervalUtil", () => {
         );
       },
     );
+
+    test("None has no fixed width, so it maps to a very large sentinel > Year", () => {
+      expect(
+        AggregationIntervalUtil.getAggregationIntervalMs(
+          AggregationInterval.None,
+        ),
+      ).toBeGreaterThan(
+        AggregationIntervalUtil.getAggregationIntervalMs(
+          AggregationInterval.Year,
+        ),
+      );
+    });
 
     test("intervals are strictly increasing in width", () => {
       const ordered: Array<AggregationInterval> = [

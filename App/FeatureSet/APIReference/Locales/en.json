@@ -235,7 +235,7 @@
       "countRequestTitle": "Count Request",
       "aggregateHeading": "Aggregate",
       "aggregateIntro": "This endpoint runs server-side aggregations (sum, average, count, and percentiles) over your {{title}} and groups the results into time buckets. It powers charts and dashboards.",
-      "aggregateByDescription": "The aggregation to run. Specify aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp, and an optional query and groupBy.",
+      "aggregateByDescription": "The aggregation to run. Specify aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp, and an optional query and groupBy. By default the time-bucket size is derived from the window; set the optional aggregationInterval to pin it (Minute, Hour, Day, Week, Month, Year) — for example Day buckets over a one-week window — or to None to return a single aggregate per group over the whole window with no time bucketing.",
       "aggregateRequestTitle": "Aggregate Request",
       "createHeading": "Create {{title}}",
       "createIntro": "This endpoint allows you to create a new object.",

@@ -246,6 +246,17 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     }
 
     /*
+     * This projection path derives its bucket interval from the window
+     * and buckets by minute; it does not implement the explicit
+     * `aggregationInterval` override (nor the `None` whole-window mode).
+     * When a caller pins an interval, fall back to the generic base
+     * builder, which honors it.
+     */
+    if (aggregateBy.aggregationInterval !== undefined) {
+      return null;
+    }
+
+    /*
      * Only the aggregates whose states the projection stores. P95 etc.
      * must fall back: the projection has no quantile(0.95) state and
      * quantile states for different levels do not merge into each other.

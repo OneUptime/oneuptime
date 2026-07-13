@@ -64,7 +64,10 @@ import Text from "../../Types/Text";
 import Typeof from "../../Types/Typeof";
 import API from "../../Utils/API";
 import { Stream } from "node:stream";
-import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
+import AggregateBy, {
+  AggregateUtil,
+} from "../Types/AnalyticsDatabase/AggregateBy";
+import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import Sort from "../Types/AnalyticsDatabase/Sort";
@@ -744,6 +747,17 @@ export default class AnalyticsDatabaseService<
         );
       }
 
+      if (
+        aggregateBy.aggregationInterval !== undefined &&
+        !Object.values(AggregationInterval).includes(
+          aggregateBy.aggregationInterval,
+        )
+      ) {
+        throw new BadDataException(
+          `Invalid aggregationInterval: ${aggregateBy.aggregationInterval}. Allowed values: ${Object.values(AggregationInterval).join(", ")}`,
+        );
+      }
+
       if (!aggregateBy.aggregationTimestampColumnName) {
         throw new BadDataException(
           "aggregationTimestampColumnName is required",
@@ -1224,16 +1238,54 @@ export default class AnalyticsDatabaseService<
       .append(whereStatement)
       .append(this.getRetentionReadFilter());
 
-    statement
-      .append(SQL` GROUP BY `)
-      .append(`${aggregateBy.aggregationTimestampColumnName.toString()}`);
+    /*
+     * The time bucket is a grouping key only when we ARE bucketing by
+     * time. For a `None` (whole-window) aggregation the timestamp is
+     * emitted as `min(...)` — an aggregate, not a group key — so it must
+     * be left out of GROUP BY. When there is no group-by column either,
+     * the GROUP BY clause is omitted entirely (a single global row).
+     */
+    const resolvedInterval: AggregationInterval =
+      AggregateUtil.getAggregationInterval({
+        startDate: aggregateBy.startTimestamp!,
+        endDate: aggregateBy.endTimestamp!,
+        aggregationInterval: aggregateBy.aggregationInterval,
+      });
+    const bucketByTime: boolean =
+      !AggregateUtil.isTotalAggregation(resolvedInterval);
+    const hasGroupBy: boolean = Boolean(
+      aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0,
+    );
 
-    if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {
+    if (bucketByTime) {
       statement
-        .append(SQL` , `)
+        .append(SQL` GROUP BY `)
+        .append(`${aggregateBy.aggregationTimestampColumnName.toString()}`);
+      if (hasGroupBy) {
+        statement
+          .append(SQL` , `)
+          .append(
+            this.statementGenerator.toGroupByStatement(aggregateBy.groupBy!),
+          );
+      }
+    } else if (hasGroupBy) {
+      statement
+        .append(SQL` GROUP BY `)
         .append(
-          this.statementGenerator.toGroupByStatement(aggregateBy.groupBy),
+          this.statementGenerator.toGroupByStatement(aggregateBy.groupBy!),
         );
+    }
+
+    /*
+     * A group-less None aggregation (`SELECT agg(...), min(ts) ...` with no
+     * GROUP BY) returns exactly one row even over an empty window —
+     * ClickHouse fills the aggregates with type defaults, so min(ts)
+     * surfaces as a 1970 epoch point. Suppress that phantom row. This is a
+     * no-op for every bucketed/grouped query (they only ever emit rows for
+     * groups that actually have data).
+     */
+    if (!bucketByTime && !hasGroupBy) {
+      statement.append(SQL` HAVING count() > 0`);
     }
 
     statement.append(SQL` ORDER BY `).append(sortStatement);

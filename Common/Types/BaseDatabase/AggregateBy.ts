@@ -1,5 +1,6 @@
 import GroupBy from "../../Server/Types/Database/GroupBy";
 import GenericObject from "../GenericObject";
+import AggregationInterval from "./AggregationInterval";
 import AggregationType from "./AggregationType";
 import Query from "./Query";
 import Sort from "./Sort";
@@ -7,7 +8,16 @@ import Sort from "./Sort";
 export default interface AggregateBy<TBaseModel extends GenericObject> {
   aggregateColumnName: keyof TBaseModel;
   aggregationType: AggregationType;
-  // aggregationInterval?: AggregationInterval;
+  /**
+   * Optional explicit time-bucket size. When omitted (the default), the
+   * bucket size is derived from the query window (≤3h → minute, ≤7d →
+   * hour, ≤6w → day, …) — see AggregationIntervalUtil. Set this to pin a
+   * granularity independent of the window (e.g. `Day` buckets over a
+   * one-week window), or to `None` to aggregate the whole window into a
+   * single value per group (no time bucketing). Invalid values are
+   * rejected with a 400 in AnalyticsDatabaseService.aggregateBy.
+   */
+  aggregationInterval?: AggregationInterval | undefined;
   aggregationTimestampColumnName: keyof TBaseModel;
   startTimestamp: Date;
   endTimestamp: Date;

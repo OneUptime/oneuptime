@@ -11,6 +11,7 @@ import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTabl
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import ObjectID from "../../../Types/ObjectID";
@@ -313,6 +314,89 @@ describe("AnalyticsDatabaseService", () => {
           }),
         ),
       ).rejects.toThrow("Invalid aggregationTimestampColumnName");
+    });
+
+    test("should reject an unrecognized aggregationInterval", async () => {
+      await expect(
+        service.aggregateBy(
+          makeAggregateBy({ aggregationInterval: "NotAnInterval" }),
+        ),
+      ).rejects.toThrow("Invalid aggregationInterval");
+    });
+  });
+
+  /*
+   * The base AnalyticsDatabaseService.toAggregateStatement is what every
+   * analytics model that does NOT override aggregation (Log, AuditLog, …)
+   * uses. Exercise its aggregationInterval / None GROUP BY assembly here,
+   * since MetricService's own builders bypass it.
+   */
+  describe("toAggregateStatement aggregationInterval (base path)", () => {
+    beforeEach(() => {
+      jest.spyOn(logger, "debug").mockImplementation(() => {
+        return undefined!;
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const makeBaseAggregateBy: (overrides?: Record<string, unknown>) => any = (
+      overrides: Record<string, unknown> = {},
+    ): any => {
+      return {
+        aggregationType: AggregationType.Sum,
+        aggregateColumnName: "column_2",
+        aggregationTimestampColumnName: "column_ObjectID",
+        startTimestamp: new Date("2024-01-01"),
+        endTimestamp: new Date("2024-01-02"),
+        query: {},
+        sort: { column_ObjectID: SortOrder.Ascending },
+        limit: 10,
+        skip: 0,
+        props: { isRoot: true },
+        ...overrides,
+      };
+    };
+
+    test("derives the window bucket and groups by time when interval is omitted", () => {
+      const query: string = service.toAggregateStatement(makeBaseAggregateBy())
+        .statement.query;
+
+      // 1-day window derives an Hour bucket, grouped by the time column.
+      expect(query).toContain(
+        "date_trunc('hour', toStartOfInterval(column_ObjectID, INTERVAL 1 hour))",
+      );
+      expect(query).toContain("GROUP BY column_ObjectID");
+      expect(query).not.toContain("min(column_ObjectID)");
+    });
+
+    test("None with no group-by drops the time bucket and guards empty windows", () => {
+      const query: string = service.toAggregateStatement(
+        makeBaseAggregateBy({ aggregationInterval: "None" }),
+      ).statement.query;
+
+      expect(query).toContain("min(column_ObjectID) as column_ObjectID");
+      expect(query).not.toContain("date_trunc");
+      expect(query).not.toContain("GROUP BY");
+      expect(query).toContain("HAVING count() > 0");
+    });
+
+    test("None with a model-column group-by keeps the column, drops the time bucket", () => {
+      const query: string = service.toAggregateStatement(
+        makeBaseAggregateBy({
+          aggregationInterval: "None",
+          groupBy: { column_1: true },
+        }),
+      ).statement.query;
+
+      expect(query).toContain("min(column_ObjectID) as column_ObjectID");
+      expect(query).toContain("GROUP BY");
+      // The time column must not be a grouping key under None.
+      expect(query).not.toContain("GROUP BY column_ObjectID");
+      // A grouped query never needs the empty-window guard.
+      expect(query).not.toContain("HAVING count() > 0");
     });
   });
 
