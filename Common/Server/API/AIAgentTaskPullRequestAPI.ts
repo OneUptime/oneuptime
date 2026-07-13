@@ -23,7 +23,8 @@ export default class AIAgentTaskPullRequestAPI extends BaseAPI<
 
     /*
      * Outcome counts for the project's AI-authored fix PRs (merged /
-     * closed-unmerged / open + acceptance rate) — the G11 baseline surface.
+     * closed-unmerged / open + acceptance rate + CI-verified-green rate)
+     * — the G11 baseline surface.
      */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/outcome-stats`,
@@ -42,6 +43,8 @@ export default class AIAgentTaskPullRequestAPI extends BaseAPI<
             merged: stats.merged,
             closedUnmerged: stats.closedUnmerged,
             acceptanceRatePercent: stats.acceptanceRatePercent,
+            verifiedGreen: stats.verifiedGreen,
+            verifiedGreenRatePercent: stats.verifiedGreenRatePercent,
           });
         } catch (err) {
           next(err);
