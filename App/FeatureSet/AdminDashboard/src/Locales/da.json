@@ -321,6 +321,7 @@
         "noItems": "Ingen LLM-udbydere konfigureret. Tilføj en LLM-udbyder for at aktivere AI-funktioner.",
         "stepBasicInfo": "Grundlæggende info",
         "stepProviderSettings": "Udbyderindstillinger",
+        "stepAdvanced": "Avanceret",
         "stepCostSettings": "Omkostningsindstillinger"
       }
     }

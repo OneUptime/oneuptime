@@ -321,6 +321,7 @@
         "noItems": "No LLM Providers configured. Add an LLM Provider to enable AI features.",
         "stepBasicInfo": "Basic Info",
         "stepProviderSettings": "Provider Settings",
+        "stepAdvanced": "Advanced",
         "stepCostSettings": "Cost Settings"
       }
     }

@@ -321,6 +321,7 @@
         "noItems": "Ingen LLM-leverandører konfigurert. Legg til en LLM-leverandør for å aktivere AI-funksjoner.",
         "stepBasicInfo": "Grunnleggende informasjon",
         "stepProviderSettings": "Leverandørinnstillinger",
+        "stepAdvanced": "Avansert",
         "stepCostSettings": "Kostnadsinnstillinger"
       }
     }

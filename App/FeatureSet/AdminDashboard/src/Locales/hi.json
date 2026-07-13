@@ -321,6 +321,7 @@
         "noItems": "कोई LLM प्रदाता कॉन्फ़िगर नहीं किए गए। AI सुविधाओं को सक्षम करने के लिए एक LLM प्रदाता जोड़ें।",
         "stepBasicInfo": "मूल जानकारी",
         "stepProviderSettings": "प्रदाता सेटिंग्स",
+        "stepAdvanced": "उन्नत",
         "stepCostSettings": "लागत सेटिंग्स"
       }
     }

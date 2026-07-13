@@ -321,6 +321,7 @@
         "noItems": "Nessun fornitore LLM configurato. Aggiungi un fornitore LLM per abilitare le funzionalità IA.",
         "stepBasicInfo": "Informazioni di base",
         "stepProviderSettings": "Impostazioni del fornitore",
+        "stepAdvanced": "Avanzato",
         "stepCostSettings": "Impostazioni dei costi"
       }
     }

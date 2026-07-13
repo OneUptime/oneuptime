@@ -321,6 +321,7 @@
         "noItems": "LLMプロバイダーが設定されていません。AI機能を有効にするにはLLMプロバイダーを追加してください。",
         "stepBasicInfo": "基本情報",
         "stepProviderSettings": "プロバイダー設定",
+        "stepAdvanced": "詳細",
         "stepCostSettings": "コスト設定"
       }
     }

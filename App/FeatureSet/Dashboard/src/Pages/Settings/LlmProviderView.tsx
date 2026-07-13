@@ -88,6 +88,10 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
             title: "Provider Settings",
             id: "provider-settings",
           },
+          {
+            title: "Advanced",
+            id: "advanced",
+          },
         ]}
         formFields={[
           {
@@ -165,7 +169,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
               additionalParams: true,
             },
             title: "Additional Parameters",
-            stepId: "provider-settings",
+            stepId: "advanced",
             fieldType: FormFieldSchemaType.JSON,
             required: false,
             description:

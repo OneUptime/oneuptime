@@ -284,6 +284,10 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Provider Settings",
               id: "provider-settings",
             },
+            {
+              title: "Advanced",
+              id: "advanced",
+            },
           ]}
           formFields={[
             {
@@ -361,7 +365,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 additionalParams: true,
               },
               title: "Additional Parameters",
-              stepId: "provider-settings",
+              stepId: "advanced",
               fieldType: FormFieldSchemaType.JSON,
               required: false,
               description:

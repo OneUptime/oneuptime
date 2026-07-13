@@ -137,6 +137,10 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: t("pages.settings.llmProviders.stepProviderSettings"),
             id: "provider-settings",
           },
+          {
+            title: t("pages.settings.llmProviders.stepAdvanced"),
+            id: "advanced",
+          },
           ...(BILLING_ENABLED
             ? [
                 {
@@ -217,6 +221,17 @@ const Settings: FunctionComponent = (): ReactElement => {
             placeholder: "http://localhost:11434",
             description:
               "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
+          },
+          {
+            field: {
+              additionalParams: true,
+            },
+            title: "Additional Parameters",
+            stepId: "advanced",
+            fieldType: FormFieldSchemaType.JSON,
+            required: false,
+            description:
+              'Optional JSON object with extra parameters sent directly to the provider API. These override any defaults. Leave empty unless you need model-specific parameters. Presets — OpenAI / Azure OpenAI (gpt-5 family): {"max_completion_tokens": 2048} | OpenAI o1/o3 reasoning models: {"reasoning_effort": "high", "max_completion_tokens": 10000} | Override temperature: {"temperature": 0.2} | Top-p sampling: {"top_p": 0.9}',
           },
           ...(BILLING_ENABLED
             ? [

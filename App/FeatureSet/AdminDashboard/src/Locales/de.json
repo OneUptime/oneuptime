@@ -321,6 +321,7 @@
         "noItems": "Keine LLM-Anbieter konfiguriert. Fügen Sie einen LLM-Anbieter hinzu, um KI-Funktionen zu aktivieren.",
         "stepBasicInfo": "Grundinformationen",
         "stepProviderSettings": "Anbietereinstellungen",
+        "stepAdvanced": "Erweitert",
         "stepCostSettings": "Kosteneinstellungen"
       }
     }

@@ -321,6 +321,7 @@
         "noItems": "未設定 LLM 供應商。新增 LLM 供應商以啟用 AI 功能。",
         "stepBasicInfo": "基本資訊",
         "stepProviderSettings": "供應商設定",
+        "stepAdvanced": "進階",
         "stepCostSettings": "成本設定"
       }
     }

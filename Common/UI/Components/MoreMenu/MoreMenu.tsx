@@ -142,7 +142,12 @@ const MoreMenu: React.ForwardRefExoticComponent<
             aria-expanded={isComponentVisible}
             aria-controls={isComponentVisible ? menuId : undefined}
             onKeyDown={(e: React.KeyboardEvent) => {
-              if (e.key === "Enter" || e.key === " ") {
+              // Only respond to the wrapper's own keys, never a focusable child's
+              // (e.g. an input inside a custom trigger), so typing isn't hijacked.
+              if (
+                (e.key === "Enter" || e.key === " ") &&
+                e.target === e.currentTarget
+              ) {
                 e.preventDefault();
                 setIsComponentVisible(!isDropdownVisible);
               }
