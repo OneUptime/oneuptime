@@ -775,10 +775,7 @@ import ServiceService, {
   Service as ServiceServiceType,
 } from "Common/Server/Services/ServiceService";
 
-import ServiceCodeRepository from "Common/Models/DatabaseModels/ServiceCodeRepository";
-import ServiceCodeRepositoryService, {
-  Service as ServiceCodeRepositoryServiceType,
-} from "Common/Server/Services/ServiceCodeRepositoryService";
+import ServiceCodeRepositoryAPI from "Common/Server/API/ServiceCodeRepositoryAPI";
 
 import ShortLinkService, {
   Service as ShortLinkServiceType,
@@ -2539,10 +2536,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceCodeRepository, ServiceCodeRepositoryServiceType>(
-        ServiceCodeRepository,
-        ServiceCodeRepositoryService,
-      ).getRouter(),
+      new ServiceCodeRepositoryAPI().getRouter(),
     );
 
     app.use(

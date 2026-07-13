@@ -2,21 +2,35 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ServiceCodeRepository from "Common/Models/DatabaseModels/ServiceCodeRepository";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Service from "Common/Models/DatabaseModels/Service";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import SuggestedServiceRepoLinks from "../../../Components/CodeRepository/SuggestedServiceRepoLinks";
 
 const CodeRepositoryServices: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
+  const [refreshToggle, setRefreshToggle] = useState<string>("");
+
   return (
     <Fragment>
+      <SuggestedServiceRepoLinks
+        codeRepositoryId={modelId}
+        onLinked={() => {
+          setRefreshToggle(Date.now().toString());
+        }}
+      />
       <ModelTable<ServiceCodeRepository>
         modelType={ServiceCodeRepository}
         id="table-code-repository-service"
@@ -78,6 +92,7 @@ const CodeRepositoryServices: FunctionComponent<
           },
         ]}
         showRefreshButton={true}
+        refreshToggle={refreshToggle}
         viewPageRoute={Navigation.getCurrentRoute()}
         filters={[
           {
