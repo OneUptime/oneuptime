@@ -1,6 +1,8 @@
 import AIAgentStatusElement from "../../Components/AIAgent/AIAgentStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -16,6 +18,8 @@ import AIAgent from "Common/Models/DatabaseModels/AIAgent";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Link from "Common/UI/Components/Link/Link";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
@@ -51,12 +55,39 @@ const AIAgentsPage: FunctionComponent<
     showLabelsFacet: true,
   });
 
+  const codeRepositoriesRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.CODE_REPOSITORY] as Route,
+  );
+
+  const llmProvidersRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route,
+  );
+
   return (
     <Fragment>
       <>
+        <Alert
+          type={AlertType.INFO}
+          strongTitle="Prerequisites"
+          className="mb-5"
+          title={
+            <span>
+              To open fix pull requests, the agent needs a{" "}
+              <Link to={codeRepositoriesRoute} className="underline">
+                connected GitHub repository
+              </Link>{" "}
+              and a project{" "}
+              <Link to={llmProvidersRoute} className="underline">
+                LLM provider
+              </Link>
+              .
+            </span>
+          }
+        />
+
         <ModelTable<AIAgent>
           modelType={AIAgent}
-          id="ai-agents-table"
+          id="global-ai-agents-table"
           name="Settings > Global AI Agents"
           userPreferencesKey={"admin-ai-agents-table"}
           saveFilterProps={{

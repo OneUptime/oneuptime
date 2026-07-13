@@ -571,6 +571,38 @@ export class Service extends DatabaseService<Model> {
 
     return null;
   }
+
+  /*
+   * Like getAIAgentForProject, but only returns an agent that is actually
+   * alive (recent heartbeat or Connected status). Used by readiness checks
+   * and the stuck-task sweeper so a task is never created — or left queued
+   * forever — for a fleet that isn't running.
+   */
+  @CaptureSpan()
+  public async getConnectedAIAgentForProject(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    const agent: Model | null = await this.getAIAgentForProject(projectId);
+
+    if (!agent) {
+      return null;
+    }
+
+    return this.isAgentAlive(agent) ? agent : null;
+  }
+
+  public isAgentAlive(agent: Model): boolean {
+    if (agent.connectionStatus === AIAgentConnectionStatus.Connected) {
+      return true;
+    }
+
+    if (!agent.lastAlive) {
+      return false;
+    }
+
+    const fiveMinutesAgo: Date = OneUptimeDate.getSomeMinutesAgo(5);
+    return OneUptimeDate.isAfter(agent.lastAlive, fiveMinutesAgo);
+  }
 }
 
 export default new Service();

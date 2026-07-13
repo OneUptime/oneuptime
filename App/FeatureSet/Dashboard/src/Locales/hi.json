@@ -104,7 +104,7 @@
       "aiAgentsTitle": "Agents",
       "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "कोड रिपॉजिटरी",
-      "codeRepositoriesDescription": "GitHub और GitLab एकीकरण।",
+      "codeRepositoriesDescription": "Connect GitHub so the AI agent can open fix PRs.",
       "usersTitle": "उपयोगकर्ता",
       "usersDescription": "प्रोजेक्ट उपयोगकर्ताओं और आमंत्रणों का प्रबंधन करें।",
       "teamsTitle": "टीमें",

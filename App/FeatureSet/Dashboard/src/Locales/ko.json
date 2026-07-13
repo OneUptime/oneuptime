@@ -104,7 +104,7 @@
       "aiAgentsTitle": "Agents",
       "aiAgentsDescription": "AI agents and their tasks.",
       "codeRepositoriesTitle": "코드 저장소",
-      "codeRepositoriesDescription": "GitHub 및 GitLab 통합.",
+      "codeRepositoriesDescription": "Connect GitHub so the AI agent can open fix PRs.",
       "usersTitle": "사용자",
       "usersDescription": "프로젝트 사용자 및 초대를 관리합니다.",
       "teamsTitle": "팀",

@@ -871,5 +871,5 @@ export default [
   AddIoTDeviceCredentialTable1783780000000,
   AddSnmpV3AuthColumnsToNetworkDevice1783790000000,
   AddAdditionalParamsToLlmProvider1783650000000,
-  MigrationName1783937343400
+  MigrationName1783937343400,
 ];

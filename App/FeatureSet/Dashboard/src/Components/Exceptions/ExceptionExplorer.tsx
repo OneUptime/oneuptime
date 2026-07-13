@@ -32,11 +32,13 @@ import OccouranceTable from "./OccuranceTable";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import Card from "Common/UI/Components/Card/Card";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 
 interface AIAgentTaskInfo {
   _id: string;
@@ -45,6 +47,31 @@ interface AIAgentTaskInfo {
   statusTitle: string;
   statusDescription: string;
   createdAt: Date;
+}
+
+type AIFixReadinessCheckId =
+  | "llmProvider"
+  | "serviceLinked"
+  | "repositoryLinked"
+  | "agentAvailable";
+
+interface AIFixReadinessCheck {
+  id: AIFixReadinessCheckId;
+  ok: boolean;
+  title: string;
+  // Empty when ok — otherwise says exactly what to do next.
+  detail: string;
+}
+
+interface AIFixReadinessInfo {
+  ready: boolean;
+  checks: Array<AIFixReadinessCheck>;
+}
+
+// A deep link that takes the user to the page where a failing check is fixed.
+interface ReadinessCheckLink {
+  title: string;
+  route: Route;
 }
 
 export interface ComponentProps {
@@ -70,8 +97,29 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [aiAgentTask, setAIAgentTask] = React.useState<
     AIAgentTaskInfo | undefined
   >(undefined);
+  /*
+   * The get-ai-agent-task endpoint returns the LATEST task of any status
+   * (terminal tasks included, so failed fixes stay visible). This tracks the
+   * server's hasActiveTask flag: true only for non-terminal tasks.
+   */
+  const [hasActiveAITask, setHasActiveAITask] = React.useState<boolean>(false);
   const [isAIAgentTaskLoading, setIsAIAgentTaskLoading] =
     React.useState<boolean>(false);
+  const [aiFixReadiness, setAIFixReadiness] = React.useState<
+    AIFixReadinessInfo | undefined
+  >(undefined);
+  /*
+   * Errors from AI-task actions render inline in the AI card area. The
+   * page-level `error` state is reserved for page-load failures only —
+   * a failed button click must not blank the whole page.
+   */
+  const [aiTaskError, setAITaskError] = React.useState<string | undefined>(
+    undefined,
+  );
+  // Same idea for resolve/archive actions: inline alert, not a page takeover.
+  const [actionError, setActionError] = React.useState<string | undefined>(
+    undefined,
+  );
   const [latestInstance, setLatestInstance] = React.useState<
     ExceptionInstance | undefined
   >(undefined);
@@ -106,7 +154,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     void loadServices();
   }, []);
 
-  type RefeshExceptionItemFunction = () => Promise<void>;
+  type RefeshExceptionItemFunction = () => Promise<TelemetryException>;
 
   const refreshExceptionItem: RefeshExceptionItemFunction = async () => {
     const updatedTelemetryException: TelemetryException | null =
@@ -235,6 +283,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         // Silently fail instance fetch - it's supplementary data
       }
     }
+
+    return updatedTelemetryException;
   };
 
   type FetchAIAgentTaskFunction = () => Promise<void>;
@@ -256,11 +306,16 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           throw response;
         }
 
-        const hasActiveTask: boolean = response.data?.[
-          "hasActiveTask"
-        ] as boolean;
+        const hasActiveTask: boolean = Boolean(
+          response.data?.["hasActiveTask"],
+        );
 
-        if (hasActiveTask && response.data?.["aiAgentTask"]) {
+        /*
+         * The endpoint returns the LATEST task of ANY status — keep terminal
+         * (Completed / Error) tasks in state so failed fixes stay visible
+         * instead of silently vanishing behind the "Fix with AI Agent" button.
+         */
+        if (response.data?.["aiAgentTask"]) {
           const taskData: JSONObject = response.data[
             "aiAgentTask"
           ] as JSONObject;
@@ -272,21 +327,70 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             statusDescription: taskData["statusDescription"] as string,
             createdAt: new Date(taskData["createdAt"] as string),
           });
+          setHasActiveAITask(hasActiveTask);
         } else {
           setAIAgentTask(undefined);
+          setHasActiveAITask(false);
         }
       } catch {
         // Silently fail - don't show error for AI task fetch
         setAIAgentTask(undefined);
+        setHasActiveAITask(false);
       }
 
       setIsAIAgentTaskLoading(false);
     };
 
+  type FetchAIFixReadinessFunction = () => Promise<void>;
+
+  const fetchAIFixReadiness: FetchAIFixReadinessFunction =
+    async (): Promise<void> => {
+      try {
+        const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+          await API.get({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/telemetry-exception/ai-fix-readiness/${props.telemetryExceptionId.toString()}`,
+            ),
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const checksJson: JSONArray =
+          (response.data?.["checks"] as JSONArray) || [];
+
+        setAIFixReadiness({
+          ready: Boolean(response.data?.["ready"]),
+          checks: checksJson.map((check: JSONObject): AIFixReadinessCheck => {
+            return {
+              id: check["id"] as AIFixReadinessCheckId,
+              ok: Boolean(check["ok"]),
+              title: (check["title"] as string) || "",
+              detail: (check["detail"] as string) || "",
+            };
+          }),
+        });
+      } catch {
+        /*
+         * Fail open: without readiness data, fall back to the plain
+         * "Fix with AI Agent" card — the server re-checks on create anyway.
+         */
+        setAIFixReadiness(undefined);
+      }
+    };
+
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
-      await refreshExceptionItem();
+      const exceptionItem: TelemetryException = await refreshExceptionItem();
+
+      // Readiness only matters while the exception is unresolved.
+      if (!exceptionItem.isResolved) {
+        await fetchAIFixReadiness();
+      }
+
       await fetchAIAgentTask();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -303,7 +407,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
   // Poll for AI agent task status updates every 5 seconds if there's an active task
   useEffect(() => {
-    if (!aiAgentTask) {
+    // Terminal tasks (Completed / Error) never change again — don't poll them.
+    if (!aiAgentTask || !hasActiveAITask) {
       return;
     }
 
@@ -316,7 +421,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     return () => {
       clearInterval(interval);
     };
-  }, [aiAgentTask]);
+  }, [aiAgentTask, hasActiveAITask]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -339,6 +444,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   ): Promise<void> => {
     try {
       setIsResolveUnresolveLoading(true);
+      setActionError(undefined);
 
       await ModelAPI.updateById<TelemetryException>({
         id: props.telemetryExceptionId,
@@ -355,9 +461,13 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       });
 
       await refreshExceptionItem();
-      setTelemetryException(telemetryException);
+
+      // Unresolving brings the AI fix section back — refresh its readiness.
+      if (!isResolved) {
+        await fetchAIFixReadiness();
+      }
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setActionError(API.getFriendlyMessage(err));
     }
 
     setIsResolveUnresolveLoading(false);
@@ -372,6 +482,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   ): Promise<void> => {
     try {
       setIsArchiveLoading(true);
+      setActionError(undefined);
 
       await ModelAPI.updateById<TelemetryException>({
         id: props.telemetryExceptionId,
@@ -385,10 +496,25 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
       await refreshExceptionItem();
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setActionError(API.getFriendlyMessage(err));
     }
 
     setIsArchiveLoading(false);
+  };
+
+  type NavigateToAIAgentTaskFunction = (aiAgentTaskId: string) => void;
+
+  const navigateToAIAgentTask: NavigateToAIAgentTaskFunction = (
+    aiAgentTaskId: string,
+  ): void => {
+    Navigation.navigate(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+        {
+          modelId: aiAgentTaskId,
+        },
+      ),
+    );
   };
 
   type CreateAIAgentTaskFunction = () => Promise<void>;
@@ -397,6 +523,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     async (): Promise<void> => {
       try {
         setIsCreateAITaskLoading(true);
+        setAITaskError(undefined);
 
         const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
           await API.post({
@@ -417,17 +544,18 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
         if (aiAgentTaskId) {
           // Navigate to the AI Agent Task view page
-          Navigation.navigate(
-            RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-              {
-                modelId: aiAgentTaskId,
-              },
-            ),
-          );
+          navigateToAIAgentTask(aiAgentTaskId);
         }
       } catch (err) {
-        setError(API.getFriendlyMessage(err));
+        // Inline — a failed create must not replace the page with an error.
+        setAITaskError(API.getFriendlyMessage(err));
+
+        /*
+         * The server re-checks prerequisites on create, so a failure here
+         * often means the setup regressed — refresh the checklist to show
+         * exactly what is missing. Never throws (fails open internally).
+         */
+        await fetchAIFixReadiness();
       }
 
       setIsCreateAITaskLoading(false);
@@ -455,11 +583,117 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       }
     };
 
+  type GetReadinessCheckLinkFunction = (
+    checkId: AIFixReadinessCheckId,
+  ) => ReadinessCheckLink | null;
+
+  // Where the user fixes a failing readiness check.
+  const getReadinessCheckLink: GetReadinessCheckLinkFunction = (
+    checkId: AIFixReadinessCheckId,
+  ): ReadinessCheckLink | null => {
+    if (checkId === "llmProvider") {
+      return {
+        title: "Configure LLM Providers",
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route,
+        ),
+      };
+    }
+
+    if (checkId === "serviceLinked") {
+      return {
+        title: "View Service Catalog",
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SERVICES] as Route,
+        ),
+      };
+    }
+
+    if (checkId === "repositoryLinked") {
+      /*
+       * Deep-link into the exception's own service when it resolves to a
+       * real Service (primaryEntityId is polymorphic — only real Services
+       * are in the loaded list). Otherwise fall back to the repository root.
+       */
+      const exceptionService: Service | undefined = services.find(
+        (service: Service) => {
+          return (
+            service.id?.toString() ===
+            telemetryException.primaryEntityId?.toString()
+          );
+        },
+      );
+
+      if (exceptionService?.id) {
+        return {
+          title: "Link a Code Repository to this Service",
+          route: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route,
+            {
+              modelId: exceptionService.id,
+            },
+          ),
+        };
+      }
+
+      return {
+        title: "View Code Repositories",
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.CODE_REPOSITORY] as Route,
+        ),
+      };
+    }
+
+    if (checkId === "agentAvailable") {
+      return {
+        title: "View AI Agents",
+        route: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.AI_AGENTS_AGENTS] as Route,
+        ),
+      };
+    }
+
+    return null;
+  };
+
+  // The latest task has finished (Completed or Error) — or there is none.
+  const isAITaskTerminal: boolean = Boolean(aiAgentTask) && !hasActiveAITask;
+
+  const isLatestAITaskError: boolean =
+    isAITaskTerminal && aiAgentTask?.status === AIAgentTaskStatus.Error;
+
+  const isLatestAITaskCompleted: boolean =
+    isAITaskTerminal && aiAgentTask?.status === AIAgentTaskStatus.Completed;
+
+  /*
+   * A new AI fix can be started when there is no task, or the latest task is
+   * terminal (the server allows creating a new task after Completed / Error).
+   */
+  const canStartAIFix: boolean =
+    !isResolved && !isAIAgentTaskLoading && (!aiAgentTask || isAITaskTerminal);
+
+  const isAIFixBlockedBySetup: boolean = Boolean(
+    aiFixReadiness && !aiFixReadiness.ready,
+  );
+
   return (
     <div className="space-y-4 mb-10">
-      {/** AI Agent Task Status */}
+      {/** Inline error for resolve / archive actions (page error is load-only) */}
 
-      {aiAgentTask && !isResolved && (
+      {actionError && (
+        <Alert
+          type={AlertType.DANGER}
+          strongTitle="Action failed"
+          title={actionError}
+          onClose={() => {
+            setActionError(undefined);
+          }}
+        />
+      )}
+
+      {/** AI Agent Task Status (a task is scheduled or in progress) */}
+
+      {aiAgentTask && hasActiveAITask && !isResolved && (
         <Card
           title="AI Agent Task Status"
           description="An AI agent is working on fixing this exception."
@@ -481,14 +715,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Bolt}
                 buttonStyle={ButtonStyleType.OUTLINE}
                 onClick={() => {
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-                      {
-                        modelId: aiAgentTask._id,
-                      },
-                    ),
-                  );
+                  navigateToAIAgentTask(aiAgentTask._id);
                 }}
               />
             </div>
@@ -496,9 +723,119 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         </Card>
       )}
 
-      {/** Fix with AI Agent Button */}
+      {/** Latest AI fix attempt failed — keep it visible and offer a retry. */}
 
-      {!isResolved && !aiAgentTask && !isAIAgentTaskLoading && (
+      {aiAgentTask && isLatestAITaskError && !isResolved && (
+        <Card
+          title="AI fix attempt failed"
+          description="The last AI Agent task for this exception did not complete."
+        >
+          <div className="space-y-3">
+            <Alert
+              type={AlertType.DANGER}
+              strongTitle={aiAgentTask.statusTitle}
+              title={aiAgentTask.statusMessage || aiAgentTask.statusDescription}
+            />
+            <div className="flex items-center space-x-4">
+              <Button
+                title="Retry Fix"
+                icon={IconProp.Bolt}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                isLoading={isCreateAITaskLoading}
+                onClick={() => {
+                  createAIAgentTask().catch(() => {
+                    // Errors surface via aiTaskError.
+                  });
+                }}
+              />
+              <Button
+                title="View Task Details"
+                icon={IconProp.ExternalLink}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                onClick={() => {
+                  navigateToAIAgentTask(aiAgentTask._id);
+                }}
+              />
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/** Latest AI fix completed — small note linking to the finished task. */}
+
+      {aiAgentTask && isLatestAITaskCompleted && !isResolved && (
+        <Alert
+          type={AlertType.SUCCESS}
+          strongTitle="Previous AI fix completed"
+          title="An AI Agent has already completed a fix task for this exception. Click to view the completed task."
+          onClick={() => {
+            navigateToAIAgentTask(aiAgentTask._id);
+          }}
+        />
+      )}
+
+      {/** Inline error for AI task actions (create / retry) */}
+
+      {aiTaskError && !isResolved && (
+        <Alert
+          type={AlertType.DANGER}
+          strongTitle="Could not start AI fix"
+          title={aiTaskError}
+          onClose={() => {
+            setAITaskError(undefined);
+          }}
+        />
+      )}
+
+      {/** Setup checklist — prerequisites are missing, so no Fix button yet. */}
+
+      {canStartAIFix && isAIFixBlockedBySetup && aiFixReadiness && (
+        <Card
+          title="Set up AI fix for this exception"
+          description="AI Agent can analyze this exception and submit a Pull Request with the fix — a few things need to be set up first."
+        >
+          <div className="mt-4 space-y-3">
+            {aiFixReadiness.checks.map(
+              (check: AIFixReadinessCheck): ReactElement => {
+                const checkLink: ReadinessCheckLink | null = check.ok
+                  ? null
+                  : getReadinessCheckLink(check.id);
+
+                return (
+                  <div className="flex items-start" key={check.id}>
+                    <Icon
+                      icon={
+                        check.ok ? IconProp.CheckCircle : IconProp.CircleClose
+                      }
+                      className={`h-5 w-5 ${
+                        check.ok ? "text-green-500" : "text-red-500"
+                      } mr-3 mt-0.5 flex-shrink-0`}
+                    />
+                    <div>
+                      <span className="font-medium">{check.title}</span>
+                      {!check.ok && check.detail && (
+                        <p className="text-sm text-gray-500">{check.detail}</p>
+                      )}
+                      {checkLink && (
+                        <Link
+                          to={checkLink.route}
+                          className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                        >
+                          {checkLink.title}
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              },
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/** Fix with AI Agent Button (retry after an error lives in the failure card) */}
+
+      {canStartAIFix && !isAIFixBlockedBySetup && !isLatestAITaskError && (
         <ActionCard
           title="Fix this exception with AI Agent"
           description="AI Agent will analyze this exception, identify the root cause, and submit a Pull Request with the fix to your code repository."

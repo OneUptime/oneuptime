@@ -197,6 +197,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       iconColor: "violet",
       category: aiCategory,
     },
+    {
+      title: t("navbar.items.codeRepositoriesTitle"),
+      description: t(
+        "navbar.items.codeRepositoriesDescription",
+        "Connect GitHub so the AI agent can open fix PRs.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CODE_REPOSITORY] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CODE_REPOSITORY],
+      icon: IconProp.Code,
+      iconColor: "violet",
+      category: aiCategory,
+    },
     /*
      * {
      *   title: t("navbar.items.entitiesTitle"),
@@ -398,17 +412,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       activeRoute: RouteMap[PageMap.RUNBOOKS],
       icon: IconProp.BookOpen,
       iconColor: "teal",
-      category: analyticsAutomationCategory,
-    },
-    {
-      title: t("navbar.items.codeRepositoriesTitle"),
-      description: t("navbar.items.codeRepositoriesDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CODE_REPOSITORY] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.CODE_REPOSITORY],
-      icon: IconProp.Code,
-      iconColor: "gray",
       category: analyticsAutomationCategory,
     },
     // Settings

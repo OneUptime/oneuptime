@@ -79,36 +79,24 @@ export default class AIAgentDataAPI {
 
           const projectId: ObjectID = new ObjectID(data["projectId"] as string);
 
-          // Check if this is a Project AI Agent (has a projectId)
-          const isProjectAIAgent: boolean =
-            aiAgent.projectId !== null && aiAgent.projectId !== undefined;
-
-          // Get LLM provider for the project
+          /*
+           * AI Agent tasks require a provider the project OWNS. This endpoint
+           * hands the raw apiKey to the agent process, whose LLM calls are
+           * made directly by the code agent and are NOT metered through
+           * AIService/LlmLog — so the shared global (OneUptime-billed)
+           * provider must never be returned to ANY agent, global or
+           * project-scoped: its usage would be unbilled, unlogged, and
+           * exempt from the daily token budget.
+           */
           const llmProvider: LlmProvider | null =
-            await LlmProviderService.getLLMProviderForProject(projectId);
+            await LlmProviderService.getProjectOwnedLlmProvider(projectId);
 
           if (!llmProvider) {
             return Response.sendErrorResponse(
               req,
               res,
               new BadDataException(
-                "No LLM provider configured for this project",
-              ),
-            );
-          }
-
-          /*
-           * Security check: Project AI Agents cannot access Global LLM Providers
-           * Only Global AI Agents (projectId is null) can access Global LLM Providers
-           */
-          const isGlobalLLMProvider: boolean = llmProvider.isGlobalLlm === true;
-
-          if (isProjectAIAgent && isGlobalLLMProvider) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "Project AI Agents cannot access Global LLM Providers. Please configure a project-specific LLM Provider.",
+                "AI Agent tasks require a project-owned LLM provider (the shared global provider is not supported on this path because agent usage is not metered). Add one in Project Settings > AI > LLM Providers.",
               ),
             );
           }

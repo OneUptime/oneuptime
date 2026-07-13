@@ -12,6 +12,16 @@ import { FixExceptionTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIAgentTaskService from "./AIAgentTaskService";
 import AIAgentTaskTelemetryExceptionService from "./AIAgentTaskTelemetryExceptionService";
+import AIAgentService from "./AIAgentService";
+import LlmProviderService from "./LlmProviderService";
+import ServiceService from "./ServiceService";
+import ServiceCodeRepositoryService from "./ServiceCodeRepositoryService";
+import AIAgent from "../../Models/DatabaseModels/AIAgent";
+import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import TelemetryService from "../../Models/DatabaseModels/Service";
+import ServiceCodeRepository from "../../Models/DatabaseModels/ServiceCodeRepository";
+import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -30,6 +40,25 @@ export const EXCLUDED_FINGERPRINT_LIMIT: number = 5000;
 export interface CreateAIAgentTaskForExceptionParams {
   telemetryExceptionId: ObjectID;
   props: DatabaseCommonInteractionProps;
+}
+
+export type AIFixReadinessCheckId =
+  | "llmProvider"
+  | "serviceLinked"
+  | "repositoryLinked"
+  | "agentAvailable";
+
+export interface AIFixReadinessCheck {
+  id: AIFixReadinessCheckId;
+  ok: boolean;
+  title: string;
+  // Shown to the user when ok is false — says exactly what to do next.
+  detail: string;
+}
+
+export interface AIFixReadiness {
+  ready: boolean;
+  checks: Array<AIFixReadinessCheck>;
 }
 
 export interface DashboardServiceSummary {
@@ -58,6 +87,163 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * Everything "Fix with AI Agent" needs, checked BEFORE a task is created
+   * (and consumed by the dashboard to render a setup checklist instead of a
+   * button that fails minutes later inside the agent container).
+   */
+  @CaptureSpan()
+  public async getAIFixReadiness(params: {
+    telemetryExceptionId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<AIFixReadiness> {
+    const telemetryException: Model | null = await this.findOneById({
+      id: params.telemetryExceptionId,
+      select: {
+        _id: true,
+        projectId: true,
+        primaryEntityId: true,
+        primaryEntityType: true,
+      },
+      props: params.props,
+    });
+
+    if (!telemetryException || !telemetryException.projectId) {
+      throw new BadDataException("Telemetry Exception not found");
+    }
+
+    const projectId: ObjectID = telemetryException.projectId;
+
+    // 1. Project-owned LLM provider (the agent path never uses the global one).
+    const llmProvider: LlmProvider | null =
+      await LlmProviderService.getProjectOwnedLlmProvider(projectId);
+
+    const llmCheck: AIFixReadinessCheck = {
+      id: "llmProvider",
+      ok: Boolean(llmProvider),
+      title: "Project LLM provider",
+      detail: llmProvider
+        ? ""
+        : "AI fix tasks run with your own LLM provider (the shared global provider is not supported on this path). Add one in Project Settings > AI > LLM Providers.",
+    };
+
+    // 2. The exception must be attributed to a real Service.
+    const service: TelemetryService | null = telemetryException.primaryEntityId
+      ? await ServiceService.findOneById({
+          id: telemetryException.primaryEntityId,
+          select: {
+            _id: true,
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      : null;
+
+    const serviceCheck: AIFixReadinessCheck = {
+      id: "serviceLinked",
+      ok: Boolean(service),
+      title: "Exception attributed to a service",
+      detail: service
+        ? ""
+        : `This exception is not attributed to a service in the Service Catalog${
+            telemetryException.primaryEntityType
+              ? ` (it came from ${telemetryException.primaryEntityType} telemetry)`
+              : ""
+          }, so there is no repository to fix. Set service.name on the SDK/resource that emits this telemetry.`,
+    };
+
+    // 3. That service must be linked to a GitHub-App-connected repository.
+    let repoCheck: AIFixReadinessCheck;
+
+    if (!service) {
+      repoCheck = {
+        id: "repositoryLinked",
+        ok: false,
+        title: "Repository linked to the service",
+        detail:
+          "Once the exception is attributed to a service, link that service to a code repository (Service > Code Repositories).",
+      };
+    } else {
+      const links: Array<ServiceCodeRepository> =
+        await ServiceCodeRepositoryService.findBy({
+          query: {
+            serviceId: service.id!,
+          },
+          select: {
+            _id: true,
+            codeRepository: {
+              _id: true,
+              name: true,
+              repositoryHostedAt: true,
+              gitHubAppInstallationId: true,
+            },
+          },
+          skip: 0,
+          limit: LIMIT_MAX,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const hasUsableRepo: boolean = links.some(
+        (link: ServiceCodeRepository) => {
+          return (
+            link.codeRepository?.repositoryHostedAt ===
+              CodeRepositoryType.GitHub &&
+            Boolean(link.codeRepository?.gitHubAppInstallationId)
+          );
+        },
+      );
+
+      repoCheck = {
+        id: "repositoryLinked",
+        ok: hasUsableRepo,
+        title: "Repository linked to the service",
+        detail: hasUsableRepo
+          ? ""
+          : links.length > 0
+            ? `Repositories are linked to ${service.name || "this service"}, but none is connected through the GitHub App (the only connection the agent can push to). Reconnect the repository with the GitHub App.`
+            : `Link a GitHub-App-connected repository to ${service.name || "this service"} so the agent knows where to open the fix PR.`,
+      };
+    }
+
+    // 4. An agent must be alive to pick the task up.
+    const anyAgent: AIAgent | null =
+      await AIAgentService.getAIAgentForProject(projectId);
+    const connectedAgent: AIAgent | null = anyAgent
+      ? AIAgentService.isAgentAlive(anyAgent)
+        ? anyAgent
+        : null
+      : null;
+
+    const agentCheck: AIFixReadinessCheck = {
+      id: "agentAvailable",
+      ok: Boolean(connectedAgent),
+      title: "AI agent online",
+      detail: connectedAgent
+        ? ""
+        : anyAgent
+          ? `The AI agent "${anyAgent.name || "agent"}" has not reported in — check that its container is running.`
+          : "No AI agent is available for this project. Self-hosted: create an agent under AI > Agents and run its container. Cloud: the shared fleet appears here automatically once enabled.",
+    };
+
+    const checks: Array<AIFixReadinessCheck> = [
+      llmCheck,
+      serviceCheck,
+      repoCheck,
+      agentCheck,
+    ];
+
+    return {
+      ready: checks.every((check: AIFixReadinessCheck) => {
+        return check.ok;
+      }),
+      checks,
+    };
+  }
+
   @CaptureSpan()
   public async createAIAgentTaskForException(
     params: CreateAIAgentTaskForExceptionParams,
@@ -80,6 +266,30 @@ export class Service extends DatabaseService<Model> {
 
     if (!telemetryException || !telemetryException.projectId) {
       throw new BadDataException("Telemetry Exception not found");
+    }
+
+    /*
+     * Fail early with everything that's missing, instead of creating a task
+     * that dies minutes later inside the agent container.
+     */
+    const readiness: AIFixReadiness = await this.getAIFixReadiness({
+      telemetryExceptionId,
+      props,
+    });
+
+    if (!readiness.ready) {
+      const missing: string = readiness.checks
+        .filter((check: AIFixReadinessCheck) => {
+          return !check.ok;
+        })
+        .map((check: AIFixReadinessCheck) => {
+          return check.title;
+        })
+        .join(", ");
+
+      throw new BadDataException(
+        `Cannot start the AI fix — missing prerequisites: ${missing}.`,
+      );
     }
 
     // Check if an active AI agent task already exists for this exception
