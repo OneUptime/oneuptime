@@ -570,6 +570,163 @@ sc.exe query "OneUptimeHostCollector"
 3. Откройте **Metrics** — метрики хоста (CPU, память, файловая система и т. д.) должны появиться в течение минуты.
 4. Откройте **Logs** — ваши файловые логи / записи journald / журналы событий Windows должны поступать в потоке. Полезные для поиска атрибуты включают `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` и `winlog.provider.name`.
 
+## Уменьшение объёма собираемых данных
+
+Поскольку конфигурация коллектора принадлежит вам, вы точно решаете, что покидает хост — ничего не собирается, пока добавленный вами приёмник этого не запросит. Если хост отправляет больше, чем вам нужно (что проявляется как более высокий объём приёма данных, а в OneUptime Cloud — как более высокая стоимость), настройте его здесь. Два самых больших рычага — это **какие источники логов вы считываете** и **как часто вы собираете метрики**; процессор `filter` берёт на себя остальное.
+
+Принцип тот же, что и у самой конфигурации: **добавляйте только те приёмники, данные которых вы будете смотреть**, а затем сокращайте объём внутри них. Каждое изменение ниже — это правка `config.yaml`; примените его и перезапустите коллектор (Шаг 3).
+
+### Откуда берётся объём
+
+| Сигнал                    | Крупнейший источник                                      | Как уменьшить                                                      |
+| ------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Логи**                  | Каждая строка из каждого файла / юнита journald / канала | Сузьте приёмники; фильтры `query:`; процессор `filter` по важности |
+| **Метрики хоста**         | Частота сбора × количество рядов                         | `collection_interval`; уберите scraper `process`; выбор scraper'ов |
+| **Кардинальность метрик** | Метрики по процессам (один набор рядов на процесс)       | Уберите или ограничьте scraper `process`                           |
+
+### Рычаг 1 — Считывайте только нужные источники логов
+
+Логи почти всегда — самая большая доля. Коллектор читает только то, что вы перечислили, поэтому решение — перечислять меньше:
+
+- **Файлы** — направляйте `filelog` на конкретные пути, а не на широкие маски. `/var/log/myapp/error.log` вместо `/var/log/**`.
+- **journald** — ограничьте `units:` службами, которые вам важны, и повысьте `priority:`, чтобы отбрасывать болтливые записи `info`/`debug` у источника:
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Журналы событий Windows** — канал `Security` безусловно самый высоконагруженный. Сузьте его до идентификаторов событий, которые вы действительно аудируете, с помощью `query:` (как показано в разделе [Журналы событий Windows](#windows-event-logs) выше), или уберите канал целиком, если он вам не нужен.
+
+### Рычаг 2 — Замедлите интервал сбора метрик
+
+Объём `hostmetrics` напрямую масштабируется с `collection_interval`. Если вам не нужно 30-секундное разрешение, 60s вдвое сокращает количество точек данных:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### Рычаг 3 — Уберите scraper по каждому процессу (источник кардинальности)
+
+Scraper `process` выдаёт отдельный набор рядов **для каждого запущенного процесса** на хосте — на нагруженной машине это самый крупный источник кардинальности метрик. Если вам не нужны CPU/память по каждому процессу, не включайте его в список `scrapers:`. Оставьте `processes` (это всего лишь несколько агрегированных метрик количества процессов) — это дёшево. Если вам всё же нужны метрики по процессам, ограничьте их процессами, которые действительно важны:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### Рычаг 4 — Отбрасывайте малоценные записи процессором `filter`
+
+Когда вам нужен приёмник, но не весь его вывод, добавьте процессор [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) — он вычисляет условие [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) и **отбрасывает любую запись, которая ему соответствует**, до того как что-либо будет экспортировано.
+
+Отбрасывайте логи ниже порога важности:
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+Отбрасывайте конкретную шумную метрику, которую вы не отображаете на графиках:
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+Затем добавьте процессор в соответствующий конвейер — порядок имеет значение, поэтому поставьте `filter` перед `batch`:
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### Экономная отправная точка
+
+Хост **только с метриками** — без логов, с грубым интервалом, без рядов по каждому процессу — это наименьший полезный объём:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+Верните конвейер `logs` с узко ограниченным приёмником `filelog` или `journald`, когда он вам понадобится.
+
+> **Следите за тем, что вырезаете.** Оповещения на основе логов требуют, чтобы логи поступали: если вы отфильтруете важность или канал, мониторы, завязанные на них, замолчат. Сокращайте источники, на которые вы не реагируете, а не те, за которыми следит монитор. Меняйте по одному рычагу за раз и подтверждайте снижение в **Project Settings → Usage History** (использование агрегируется ежедневно, поэтому дайте день-два) перед переходом к следующему.
+
 ## Self-hosted OneUptime
 
 Если вы размещаете OneUptime самостоятельно, направьте экспортёр на ваш собственный хост:
@@ -602,7 +759,7 @@ OpenTelemetry Collector учитывает стандартные перемен
 - **HTTP 401 от экспортёра** — токен приёма данных недействителен или отозван. Сгенерируйте новый в _Project Settings → Telemetry Ingestion Keys_.
 - **Журнал событий Windows `Security` возвращает «access denied»** — служба работает с недостаточными привилегиями. Пересоздайте её под `LocalSystem` (по умолчанию при `sc.exe create`) или предоставьте учётной записи службы право пользователя _Manage auditing and security log_.
 - **Приёмник `journald` не запускается** — убедитесь, что `journalctl` находится в `PATH` коллектора и что `/var/log/journal` существует (выполните `sudo systemd-tmpfiles --create --prefix /var/log/journal`, если нет).
-- **Большой объём / стоимость** — сузьте приёмники (конкретные каналы Windows, конкретные юниты systemd, конкретные файлы логов), добавьте фильтр `query:` на приёмнике журнала событий Windows или добавьте процессор `filter`, чтобы отбрасывать события низкой важности перед экспортом.
+- **Большой объём / стоимость** — см. [Уменьшение объёма собираемых данных](#reducing-the-volume-of-data-collected): сузьте приёмники (конкретные каналы Windows, конкретные юниты systemd, конкретные файлы логов), увеличьте `collection_interval` метрик, уберите scraper по каждому процессу или добавьте процессор `filter`, чтобы отбрасывать записи низкой важности перед экспортом.
 
 ## Дальнейшие шаги
 

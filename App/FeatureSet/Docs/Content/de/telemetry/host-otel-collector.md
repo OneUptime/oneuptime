@@ -570,6 +570,163 @@ Der Dienst läuft standardmäßig unter `LocalSystem`, das über die nötigen Be
 3. Öffnen Sie **Metrics** — Host-Metriken (CPU, Arbeitsspeicher, Dateisystem usw.) sollten innerhalb einer Minute erscheinen.
 4. Öffnen Sie **Logs** — Ihre Dateilogs / journald-Einträge / Windows Event Logs sollten eintreffen. Nützliche durchsuchbare Attribute sind u. a. `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` und `winlog.provider.name`.
 
+## Das erfasste Datenvolumen reduzieren
+
+Da Ihnen die Collector-Konfiguration gehört, entscheiden Sie genau, was den Host verlässt — nichts wird erfasst, sofern es nicht ein von Ihnen hinzugefügter Receiver anfordert. Wenn ein Host mehr sendet, als Sie möchten (was sich als höheres Ingest-Volumen und in OneUptime Cloud als höhere Kosten zeigt), passen Sie es hier an. Die beiden größten Hebel sind, **welche Log-Quellen Sie tailen** und **wie oft Sie Metriken scrapen**; ein `filter`-Processor erledigt den Rest.
+
+Das Prinzip ist dasselbe wie bei der Konfiguration selbst: **Fügen Sie nur die Receiver hinzu, deren Daten Sie sich ansehen werden**, und trimmen Sie dann innerhalb dieser. Jede Änderung unten ist eine Bearbeitung von `config.yaml` — wenden Sie sie an und starten Sie den Collector neu (Schritt 3).
+
+### Woher das Volumen kommt
+
+| Signal                  | Größter Treiber                                          | Reduzieren mit                                                                   |
+| ----------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Logs**                | Jede Zeile aus jeder Datei / journald-Unit / jedem Kanal | Receiver eingrenzen; `query:`-Filter; ein `filter`-Processor auf den Schweregrad |
+| **Host-Metriken**       | Scrape-Frequenz × Anzahl der Serien                      | `collection_interval`; den `process`-Scraper weglassen; Scraper-Auswahl          |
+| **Metrik-Kardinalität** | Per-Prozess-Metriken (ein Serien-Satz pro Prozess)       | Den `process`-Scraper weglassen oder eingrenzen                                  |
+
+### Hebel 1 — Nur die benötigten Log-Quellen tailen
+
+Logs sind fast immer der größte Anteil. Der Collector liest nur, was Sie auflisten, daher besteht die Lösung darin, weniger aufzulisten:
+
+- **Dateien** — richten Sie `filelog` auf bestimmte Pfade aus, nicht auf weit gefasste Globs. `/var/log/myapp/error.log` statt `/var/log/**`.
+- **journald** — beschränken Sie `units:` auf die Dienste, die Sie interessieren, und erhöhen Sie `priority:`, sodass Sie geschwätzige `info`/`debug`-Einträge bereits an der Quelle verwerfen:
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Windows Event Logs** — der `Security`-Kanal ist bei Weitem der volumenstärkste. Grenzen Sie ihn mit einem `query:` auf die Event-IDs ein, die Sie tatsächlich auditieren (wie oben unter [Windows Event Logs](#windows-event-logs) gezeigt), oder lassen Sie den Kanal ganz weg, wenn Sie ihn nicht benötigen.
+
+### Hebel 2 — Das Metriken-Intervall verlangsamen
+
+Das Volumen von `hostmetrics` skaliert direkt mit `collection_interval`. Wenn Sie keine 30-Sekunden-Auflösung benötigen, halbiert 60s die Anzahl der Datenpunkte:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### Hebel 3 — Den Per-Prozess-Scraper weglassen (der Kardinalitätstreiber)
+
+Der `process`-Scraper gibt einen separaten Satz von Serien **für jeden laufenden Prozess** auf dem Host aus — auf einem ausgelasteten Rechner ist das die mit Abstand größte Quelle für Metrik-Kardinalität. Sofern Sie keine Per-Prozess-CPU/-Arbeitsspeicher benötigen, lassen Sie ihn aus der `scrapers:`-Liste weg. Behalten Sie `processes` (das nur eine Handvoll aggregierter Prozess-Zähl-Metriken ist) — das ist günstig. Wenn Sie doch Per-Prozess-Metriken möchten, grenzen Sie sie auf die Prozesse ein, die wichtig sind:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### Hebel 4 — Datensätze mit geringem Wert mit einem `filter`-Processor verwerfen
+
+Wenn Sie den Receiver wollen, aber nicht seine gesamte Ausgabe, fügen Sie einen [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor)-Processor hinzu — er wertet eine [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md)-Bedingung aus und **verwirft jeden Datensatz, der zutrifft**, bevor irgendetwas exportiert wird.
+
+Logs unterhalb eines Schweregrad-Schwellenwerts verwerfen:
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+Eine bestimmte störende Metrik verwerfen, die Sie nicht als Diagramm darstellen:
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+Fügen Sie den Processor dann der entsprechenden Pipeline hinzu — die Reihenfolge ist wichtig, setzen Sie `filter` also vor `batch`:
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### Ein schlanker Ausgangspunkt
+
+Ein Host **nur mit Metriken** — keine Logs, grobes Intervall, keine Per-Prozess-Serien — ist der kleinste nützliche Fußabdruck:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+Fügen Sie bei Bedarf eine `logs`-Pipeline mit einem eng abgegrenzten `filelog`- oder `journald`-Receiver wieder hinzu.
+
+> **Achten Sie darauf, was Sie streichen.** Log-basierte Alerts benötigen die ankommenden Logs: Wenn Sie einen Schweregrad oder einen Kanal herausfiltern, verstummen Monitore, die darauf abstellen. Trimmen Sie die Quellen, auf die Sie nicht reagieren, nicht die, die ein Monitor überwacht. Ändern Sie jeweils nur einen Hebel und bestätigen Sie den Rückgang unter **Project Settings → Usage History** (die Nutzung wird täglich aggregiert, geben Sie ihr also ein bis zwei Tage), bevor Sie zum nächsten übergehen.
+
 ## Selbst gehostetes OneUptime
 
 Wenn Sie OneUptime selbst hosten, richten Sie den Exporter auf Ihren eigenen Host aus:
@@ -602,7 +759,7 @@ Der OpenTelemetry Collector berücksichtigt die standardmäßigen Umgebungsvaria
 - **HTTP 401 vom Exporter** — das Ingestion-Token ist ungültig oder widerrufen. Erstellen Sie ein neues unter _Project Settings → Telemetry Ingestion Keys_.
 - **Der Windows-Event-Log-Kanal `Security` gibt „access denied“ zurück** — der Dienst läuft nicht mit ausreichenden Berechtigungen. Erstellen Sie ihn unter `LocalSystem` neu (der Standard bei `sc.exe create`) oder erteilen Sie dem Dienstkonto das Benutzerrecht _Manage auditing and security log_.
 - **Der `journald`-Receiver startet nicht** — stellen Sie sicher, dass `journalctl` im `PATH` des Collectors liegt und dass `/var/log/journal` existiert (führen Sie andernfalls `sudo systemd-tmpfiles --create --prefix /var/log/journal` aus).
-- **Hohes Volumen / hohe Kosten** — grenzen Sie die Receiver ein (bestimmte Windows-Kanäle, bestimmte systemd-Units, bestimmte Logdateien), fügen Sie einen `query:`-Filter zum Windows-Event-Log-Receiver hinzu oder fügen Sie einen `filter`-Processor hinzu, um Ereignisse mit niedrigem Schweregrad vor dem Export zu verwerfen.
+- **Hohes Volumen / hohe Kosten** — siehe [Das erfasste Datenvolumen reduzieren](#reducing-the-volume-of-data-collected): grenzen Sie die Receiver ein (bestimmte Windows-Kanäle, systemd-Units, Logdateien), erhöhen Sie das `collection_interval` der Metriken, lassen Sie den Per-Prozess-Scraper weg oder fügen Sie einen `filter`-Processor hinzu, um Datensätze mit niedrigem Schweregrad vor dem Export zu verwerfen.
 
 ## Nächste Schritte
 

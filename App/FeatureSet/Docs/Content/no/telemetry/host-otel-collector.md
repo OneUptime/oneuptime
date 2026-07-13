@@ -570,6 +570,163 @@ Tjenesten kjorer under `LocalSystem` som standard, som har privilegiene som tren
 3. Apne **Metrics** — host-metrikker (CPU, minne, filsystem osv.) bor vises innen et minutt.
 4. Apne **Logs** — filloggene / journald-oppforingene / Windows Event Logs bor streame inn. Nyttige sokbare attributter inkluderer `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` og `winlog.provider.name`.
 
+## Redusere volumet av innsamlede data
+
+Fordi du eier collector-konfigurasjonen, bestemmer du noyaktig hva som forlater hosten — ingenting samles inn med mindre en receiver du la til ber om det. Hvis en host sender mer enn du onsker (noe som viser seg som hoyere ingest-volum, og pa OneUptime Cloud, hoyere kostnad), juster det her. De to storste spakene er **hvilke loggkilder du tailer** og **hvor ofte du scraper metrikker**; en `filter`-prosessor tar seg av resten.
+
+Prinsippet er det samme som selve konfigurasjonen: **legg bare til receiverne hvis data du kommer til a se pa**, og trim deretter innenfor dem. Hver endring nedenfor er en redigering av `config.yaml` — bruk den og start collectoren pa nytt (Trinn 3).
+
+### Hvor volumet kommer fra
+
+| Signal                   | Storste driver                                    | Skru det ned med                                                                |
+| ------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **Logger**               | Hver linje fra hver fil / journald-enhet / kanal  | Innsnevre receivere; `query:`-filtre; en `filter`-prosessor pa alvorlighetsgrad |
+| **Host-metrikker**       | Scrape-frekvens × antall serier                   | `collection_interval`; drop `process`-scraperen; scraper-valg                   |
+| **Metrikk-kardinalitet** | Per-prosess-metrikker (ett seriesett per prosess) | Utelat eller avgrens `process`-scraperen                                        |
+
+### Spak 1 — Tail bare loggkildene du trenger
+
+Logger er nesten alltid den storste andelen. Collectoren leser bare det du lister opp, sa losningen er a liste mindre:
+
+- **Filer** — pek `filelog` mot spesifikke stier, ikke brede glob-monstre. `/var/log/myapp/error.log` i stedet for `/var/log/**`.
+- **journald** — begrens `units:` til tjenestene du bryr deg om og hev `priority:` slik at du dropper pratsomme `info`/`debug`-oppforinger ved kilden:
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Windows Event Logs** — `Security`-kanalen er den klart mest hoyvolumiske. Innsnevre den til hendelses-ID-ene du faktisk reviderer med en `query:` (som vist i [Windows Event Logs](#windows-event-logs) ovenfor), eller drop kanalen helt hvis du ikke trenger den.
+
+### Spak 2 — Senk metrikk-intervallet
+
+`hostmetrics`-volum skalerer direkte med `collection_interval`. Hvis du ikke trenger 30-sekunders opplosning, halverer 60s antallet datapunkter:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### Spak 3 — Drop per-prosess-scraperen (kardinalitetsdriveren)
+
+`process`-scraperen sender ut et separat sett med serier **for hver kjorende prosess** pa hosten — pa en travel maskin er det den enkeltstorste kilden til metrikk-kardinalitet. Med mindre du trenger CPU/minne per prosess, la den vaere ute av `scrapers:`-listen. Behold `processes` (som bare er en handfull aggregerte prosess-antallmetrikker) — den er billig. Hvis du faktisk vil ha per-prosess-metrikker, avgrens dem til prosessene som betyr noe:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### Spak 4 — Drop poster med lav verdi med en `filter`-prosessor
+
+Nar du vil ha receiveren, men ikke all utdataen dens, legg til en [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor)-prosessor — den evaluerer en [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md)-betingelse og **dropper enhver post som matcher**, for noe eksporteres.
+
+Drop logger under en alvorlighetsgrad-terskel:
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+Drop en spesifikk stoyende metrikk du ikke plotter:
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+Legg deretter prosessoren til i den relevante pipelinen — rekkefolge betyr noe, sa plasser `filter` for `batch`:
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### Et slankt utgangspunkt
+
+En **kun metrikker**-host — ingen logger, grovt intervall, ingen per-prosess-serier — er det minste nyttige fotavtrykket:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+Legg en `logs`-pipeline tilbake med en snevert avgrenset `filelog`- eller `journald`-receiver nar du trenger det.
+
+> **Pass pa hva du kutter.** Loggbaserte varsler trenger at loggene ankommer: hvis du filtrerer ut en alvorlighetsgrad eller en kanal, blir monitorer som baserer seg pa det stille. Trim kildene du ikke handler pa, ikke de en monitor overvaker. Endre en spak om gangen og bekreft nedgangen under **Project Settings → Usage History** (bruk aggregeres daglig, sa gi det en dag eller to) for du gar videre til neste.
+
 ## Selvhostet OneUptime
 
 Hvis du selvhoster OneUptime, pek eksportoren mot din egen host:
@@ -602,7 +759,7 @@ OpenTelemetry Collector respekterer standardmiljovariablene `HTTPS_PROXY` / `HTT
 - **HTTP 401 fra eksportoren** — ingestion-tokenet er ugyldig eller tilbakekalt. Generer et nytt fra _Project Settings → Telemetry Ingestion Keys_.
 - **`Security`-kanalen i Windows Event Log returnerer access denied** — tjenesten kjorer ikke med tilstrekkelige privilegier. Gjenopprett den under `LocalSystem` (standarden med `sc.exe create`) eller gi tjenestekontoen brukerrettigheten _Manage auditing and security log_.
 - **`journald`-receiveren klarer ikke a starte** — pass pa at `journalctl` er pa collectorens `PATH` og at `/var/log/journal` finnes (kjor `sudo systemd-tmpfiles --create --prefix /var/log/journal` hvis ikke).
-- **Hoyt volum / kostnad** — innsnevre receiverne (spesifikke Windows-kanaler, spesifikke systemd-enheter, spesifikke loggfiler), legg til et `query:`-filter pa Windows Event Log-receiveren, eller legg til en `filter`-prosessor for a slippe hendelser med lav alvorlighetsgrad for eksport.
+- **Hoyt volum / kostnad** — se [Redusere volumet av innsamlede data](#reducing-the-volume-of-data-collected): innsnevre receiverne (spesifikke Windows-kanaler, systemd-enheter, loggfiler), hev metrikkenes `collection_interval`, drop per-prosess-scraperen, eller legg til en `filter`-prosessor for a droppe poster med lav alvorlighetsgrad for eksport.
 
 ## Neste trinn
 

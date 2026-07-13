@@ -570,6 +570,163 @@ sc.exe query "OneUptimeHostCollector"
 3. **Metrics** を開きます — ホストメトリクス（CPU、メモリ、ファイルシステムなど）が 1 分以内に表示されるはずです。
 4. **Logs** を開きます — ファイルログ / journald のエントリ / Windows イベントログがストリーミングされてくるはずです。検索に役立つ属性には、`log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id`、`winlog.provider.name` などがあります。
 
+## 収集するデータ量を削減する
+
+コレクターの設定はあなたが所有しているため、ホストから何が送信されるかを正確に決められます — あなたが追加したレシーバーが要求しない限り、何も収集されません。ホストが望む以上のデータを送信している場合（これは取り込み量の増加として、そして OneUptime Cloud ではコストの増加として現れます）、ここで調整します。最も大きな 2 つのレバーは、**どのログソースを tail するか**と、**どのくらいの頻度でメトリクスをスクレイプするか**です。残りは `filter` プロセッサが処理します。
+
+原則は設定そのものと同じです。**実際に見るデータのレシーバーだけを追加し**、その中で削っていきます。以下の各変更は `config.yaml` の編集です — 適用したらコレクターを再起動してください（ステップ 3）。
+
+### 量はどこから来るのか
+
+| シグナル                         | 最大の要因                                                        | 抑える方法                                                                    |
+| -------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **ログ**                         | すべてのファイル / journald ユニット / チャンネルからのすべての行 | レシーバーの絞り込み、`query:` フィルター、重要度に対する `filter` プロセッサ |
+| **ホストメトリクス**             | スクレイプ頻度 × シリーズ数                                       | `collection_interval`、`process` スクレイパーの削除、スクレイパーの選択       |
+| **メトリクスのカーディナリティ** | プロセスごとのメトリクス（プロセスごとに 1 つのシリーズセット）   | `process` スクレイパーを省略するか対象を限定する                              |
+
+### レバー 1 — 必要なログソースだけを tail する
+
+ログはほとんどの場合、最も大きな割合を占めます。コレクターはあなたが列挙したものだけを読み取るので、対処法は列挙を減らすことです。
+
+- **ファイル** — `filelog` を広範なグロブではなく特定のパスに向けます。`/var/log/**` ではなく `/var/log/myapp/error.log`。
+- **journald** — `units:` を関心のあるサービスに限定し、`priority:` を上げて、冗長な `info`/`debug` エントリをソースの時点で破棄します。
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Windows イベントログ** — `Security` チャンネルは群を抜いて最も大量です。実際に監査するイベント ID に `query:` で絞り込むか（上記の [Windows イベントログ](#windows-event-logs) を参照）、不要ならチャンネルごと削除します。
+
+### レバー 2 — メトリクスの間隔を長くする
+
+`hostmetrics` の量は `collection_interval` に正比例します。30 秒の解像度が不要なら、60s にすればデータポイント数が半分になります。
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### レバー 3 — プロセスごとのスクレイパーを削除する（カーディナリティの要因）
+
+`process` スクレイパーは、ホスト上の**実行中のすべてのプロセス**ごとに個別のシリーズセットを出力します — 稼働の激しいマシンでは、これがメトリクスのカーディナリティの単一で最大の発生源になります。プロセスごとの CPU / メモリが必要でない限り、`scrapers:` リストから外しておいてください。`processes`（これはわずかな集計プロセス数メトリクスにすぎません）は残します — 安価です。プロセスごとのメトリクスが必要な場合は、重要なプロセスに対象を限定してください。
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### レバー 4 — `filter` プロセッサで価値の低いレコードを破棄する
+
+レシーバーは欲しいがその出力すべてが欲しいわけではない場合は、[`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) プロセッサを追加します — これは [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) 条件を評価し、何かがエクスポートされる前に**一致するレコードをすべて破棄します**。
+
+重要度のしきい値未満のログを破棄する。
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+チャート化しない特定のノイズの多いメトリクスを破棄する。
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+その後、該当するパイプラインにプロセッサを追加します — 順序が重要なので、`filter` を `batch` の前に置きます。
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### 無駄のない開始点
+
+**メトリクスのみ**のホスト — ログなし、粗い間隔、プロセスごとのシリーズなし — が、実用的な最小のフットプリントです。
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+必要になったら、狭くスコープした `filelog` または `journald` レシーバーで `logs` パイプラインを戻してください。
+
+> **何を削るかに注意してください。** ログベースのアラートには、ログが到達する必要があります。重要度やチャンネルをフィルターで除外すると、それをキーにしているモニターは沈黙します。モニターが監視しているソースではなく、あなたが対応しないソースを削ってください。一度に 1 つのレバーだけを変更し、次に進む前に **Project Settings → Usage History** で減少を確認してください（使用量は日次で集計されるため、1〜2 日の余裕を見てください）。
+
 ## セルフホストの OneUptime
 
 OneUptime をセルフホストしている場合は、エクスポーターを自分のホストに向けます。
@@ -602,7 +759,7 @@ OpenTelemetry Collector は、標準の `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。_Project Settings → Telemetry Ingestion Keys_ から新しいものを生成してください。
 - **`Security` の Windows イベントログでアクセス拒否が返る** — サービスが十分な権限で実行されていません。`LocalSystem`（`sc.exe create` のデフォルト）の下で再作成するか、サービスアカウントに _Manage auditing and security log_（監査とセキュリティログの管理）ユーザー権利を付与してください。
 - **`journald` レシーバーが起動に失敗する** — `journalctl` がコレクターの `PATH` 上にあること、および `/var/log/journal` が存在することを確認してください（存在しない場合は `sudo systemd-tmpfiles --create --prefix /var/log/journal` を実行）。
-- **大量データ / コスト** — レシーバーを絞り込むか（特定の Windows チャンネル、特定の systemd ユニット、特定のログファイル）、Windows イベントログレシーバーに `query:` フィルターを追加するか、エクスポート前に低重要度のイベントを破棄する `filter` プロセッサを追加します。
+- **大量データ / コスト** — [収集するデータ量を削減する](#reducing-the-volume-of-data-collected) を参照してください。レシーバーを絞り込む（特定の Windows チャンネル、systemd ユニット、ログファイル）、メトリクスの `collection_interval` を上げる、プロセスごとのスクレイパーを削除する、またはエクスポート前に低重要度のレコードを破棄する `filter` プロセッサを追加します。
 
 ## 次のステップ
 

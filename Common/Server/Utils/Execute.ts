@@ -27,22 +27,30 @@ export default class Execute {
           {
             ...options,
           },
-          (err: ExecException | null, stdout: string, stderr: string) => {
+          (
+            err: ExecException | null,
+            stdout: string | Buffer,
+            stderr: string | Buffer,
+          ) => {
+            // See executeCommandFile: string | Buffer for @types/node drift.
+            const stdoutText: string = stdout.toString();
+            const stderrText: string = stderr.toString();
+
             if (err) {
               logger.error(`Error executing command: ${command}`);
               logger.error(err);
-              logger.error(stdout);
-              if (stderr) {
-                logger.error(stderr);
+              logger.error(stdoutText);
+              if (stderrText) {
+                logger.error(stderrText);
               }
               return reject(err);
             }
 
-            if (stderr) {
-              logger.debug(stderr);
+            if (stderrText) {
+              logger.debug(stderrText);
             }
 
-            return resolve(stdout);
+            return resolve(stdoutText);
           },
         );
       },
@@ -81,22 +89,34 @@ export default class Execute {
               ? { timeout: data.timeoutInMS, killSignal: "SIGKILL" }
               : {}),
           },
-          (err: ExecException | null, stdout: string, stderr: string) => {
+          (
+            err: ExecException | null,
+            stdout: string | Buffer,
+            stderr: string | Buffer,
+          ) => {
+            /*
+             * Newer @types/node type execFile's callback output as
+             * string | Buffer — coerce so this compiles on both the pinned
+             * and freshly-resolved typings (caret ranges drift in CI).
+             */
+            const stdoutText: string = stdout.toString();
+            const stderrText: string = stderr.toString();
+
             if (err) {
               logger.error(
                 `Error executing command: ${data.command} ${data.args.join(" ")}`,
               );
               logger.error(err);
-              logger.error(stdout);
-              logger.error(stderr);
+              logger.error(stdoutText);
+              logger.error(stderrText);
               return reject(err);
             }
 
-            if (stderr) {
-              logger.debug(stderr);
+            if (stderrText) {
+              logger.debug(stderrText);
             }
 
-            return resolve(stdout);
+            return resolve(stdoutText);
           },
         );
       },

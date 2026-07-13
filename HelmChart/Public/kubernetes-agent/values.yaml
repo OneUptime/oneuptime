@@ -48,11 +48,17 @@ oneuptime:
 # Required: Unique name for this cluster (used as k8s.cluster.name attribute)
 clusterName: ""
 
-# Namespace filters — limit which namespaces are monitored
+# Namespace filters — limit which namespaces are observed.
+#
+# These apply to **pod logs** (both the hostPath DaemonSet and the API
+# log-tailer) and to **eBPF traces**. They do NOT filter node / pod /
+# container metrics: those are scraped per-node from the kubelet and are
+# always collected cluster-wide (node- and cluster-level series have no
+# namespace to filter on). Exclude always wins over include.
 namespaceFilters:
-  # If set, only these namespaces are monitored (empty = all namespaces)
+  # If set, only these namespaces are observed (empty = all namespaces)
   include: []
-  # Namespaces to exclude from monitoring
+  # Namespaces to exclude (applied on top of include)
   exclude:
     - kube-system
 

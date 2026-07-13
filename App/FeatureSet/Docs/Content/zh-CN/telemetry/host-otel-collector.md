@@ -570,6 +570,163 @@ sc.exe query "OneUptimeHostCollector"
 3. 打开 **Metrics**——主机指标（CPU、内存、文件系统等）应在一分钟内出现。
 4. 打开 **Logs**——你的文件日志 / journald 条目 / Windows 事件日志应正在流式传入。有用的可搜索属性包括 `log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id` 和 `winlog.provider.name`。
 
+## 减少采集的数据量
+
+由于 collector 配置由你掌控，你可以精确决定哪些数据离开主机——除非你添加的某个接收器主动请求，否则不会采集任何数据。如果某台主机发送的数据超出了你的需要（表现为更高的接入量，在 OneUptime Cloud 上还意味着更高的成本），请在此进行调优。两个最大的调节杠杆是**你 tail 哪些日志源**以及**你抓取指标的频率**；其余的交给 `filter` 处理器。
+
+其原则与配置本身相同：**只添加你会查看其数据的接收器**，然后在这些接收器内部进行削减。下面的每项更改都是对 `config.yaml` 的一次编辑——应用它并重启 collector（第 3 步）。
+
+### 数据量的来源
+
+| 信号         | 最大来源                                | 如何降低                                                      |
+| ------------ | --------------------------------------- | ------------------------------------------------------------- |
+| **日志**     | 每个文件 / journald 单元 / 通道的每一行 | 缩小接收器范围；`query:` 过滤器；针对严重性的 `filter` 处理器 |
+| **主机指标** | 抓取频率 × 时间序列数量                 | `collection_interval`；丢弃 `process` 抓取器；抓取器选择      |
+| **指标基数** | 每进程指标（每个进程一组时间序列）      | 省略或限定 `process` 抓取器                                   |
+
+### 杠杆 1——只 tail 你需要的日志源
+
+日志几乎总是最大的一块。collector 只读取你列出的内容，所以解决办法就是少列一些：
+
+- **文件**——将 `filelog` 指向具体路径，而不是宽泛的通配符。用 `/var/log/myapp/error.log` 而不是 `/var/log/**`。
+- **journald**——将 `units:` 限制为你关心的服务，并提高 `priority:`，从而在源头丢弃啰嗦的 `info`/`debug` 条目：
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Windows 事件日志**——`Security` 通道的流量远高于其他通道。用 `query:` 将其缩小到你确实会审计的事件 ID（如上文 [Windows 事件日志](#windows-event-logs) 所示），如果不需要则直接丢弃整个通道。
+
+### 杠杆 2——放慢指标的采集间隔
+
+`hostmetrics` 的数据量与 `collection_interval` 直接成正比。如果你不需要 30 秒的分辨率，60s 可将数据点数量减半：
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### 杠杆 3——丢弃每进程抓取器（基数的驱动因素）
+
+`process` 抓取器会为主机上**每一个正在运行的进程**发出一组独立的时间序列——在繁忙的机器上，这是指标基数的最大单一来源。除非你需要每进程的 CPU/内存，否则请将它从 `scrapers:` 列表中省去。保留 `processes`（它只是少数几个聚合的进程计数指标）——它很廉价。如果你确实想要每进程指标，请将它们限定到真正重要的进程：
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### 杠杆 4——用 `filter` 处理器丢弃低价值记录
+
+当你想要某个接收器但不想要它的全部输出时，添加一个 [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) 处理器——它会评估一个 [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) 条件，并在导出任何内容之前**丢弃任何匹配的记录**。
+
+丢弃低于某个严重性阈值的日志：
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+丢弃某个你不绘制图表的、噪声较大的特定指标：
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+然后将该处理器添加到相关的流水线中——顺序很重要，所以要把 `filter` 放在 `batch` 之前：
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### 一个精简的起点
+
+一个**仅指标**的主机——没有日志、粗粒度的间隔、没有每进程时间序列——是最小的有用占用：
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+当你需要时，再用一个范围狭窄的 `filelog` 或 `journald` 接收器把 `logs` 流水线加回来。
+
+> **注意你所削减的内容。** 基于日志的告警需要日志能够到达：如果你过滤掉某个严重性或某个通道，那么以它为依据的监控器就会陷入沉默。请削减你不采取行动的日志源，而不是监控器正在监视的那些。每次只改动一个杠杆，并在 **Project Settings → Usage History** 下确认数据量下降（用量按天聚合，因此请等待一两天）后再进行下一步。
+
 ## 自托管 OneUptime
 
 如果你正在自托管 OneUptime，请将导出器指向你自己的主机：
@@ -602,7 +759,7 @@ OpenTelemetry Collector 遵循标准的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _Project Settings → Telemetry Ingestion Keys_ 生成一个新令牌。
 - **`Security` Windows 事件日志返回拒绝访问（access denied）**——该服务未以足够的权限运行。在 `LocalSystem` 身份下重新创建它（`sc.exe create` 的默认设置），或为服务账户授予 _Manage auditing and security log_ 用户权限。
 - **`journald` 接收器无法启动**——确保 `journalctl` 在 collector 的 `PATH` 中，并且 `/var/log/journal` 存在（如不存在，请运行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
-- **流量 / 成本过高**——缩小接收器范围（特定的 Windows 通道、特定的 systemd 单元、特定的日志文件），在 Windows 事件日志接收器上添加 `query:` 过滤器，或添加一个 `filter` 处理器以在导出前丢弃低严重性事件。
+- **流量 / 成本过高**——参见[减少采集的数据量](#reducing-the-volume-of-data-collected)：缩小接收器范围（特定的 Windows 通道、特定的 systemd 单元、特定的日志文件），提高指标的 `collection_interval`，丢弃每进程抓取器，或添加一个 `filter` 处理器以在导出前丢弃低严重性记录。
 
 ## 后续步骤
 

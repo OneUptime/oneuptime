@@ -570,6 +570,163 @@ El servicio se ejecuta bajo `LocalSystem` de forma predeterminada, que tiene los
 3. Abre **Metrics** — las métricas del host (CPU, memoria, sistema de archivos, etc.) deberían aparecer en un minuto.
 4. Abre **Logs** — tus logs de archivos / entradas de journald / Windows Event Logs deberían estar transmitiéndose. Entre los atributos útiles para búsquedas se incluyen `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` y `winlog.provider.name`.
 
+## Reducir el volumen de datos recopilados
+
+Como tú controlas la configuración del recolector, tú decides exactamente qué sale del host — no se recopila nada a menos que un receptor que hayas añadido lo solicite. Si un host envía más de lo que quieres (lo que se traduce en un mayor volumen de ingestión y, en OneUptime Cloud, en un mayor coste), ajústalo aquí. Las dos palancas más importantes son **qué fuentes de logs capturas** y **con qué frecuencia haces scrape de las métricas**; un procesador `filter` se encarga del resto.
+
+El principio es el mismo que el de la propia configuración: **añade solo los receptores cuyos datos vayas a mirar** y luego recórtalos por dentro. Cada cambio de los siguientes es una edición de `config.yaml` — aplícalo y reinicia el recolector (Paso 3).
+
+### De dónde viene el volumen
+
+| Señal                        | Principal factor                                         | Reducirlo con                                                               |
+| ---------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Logs**                     | Cada línea de cada archivo / unidad de journald / canal  | Acota los receptores; filtros `query:`; un procesador `filter` por gravedad |
+| **Métricas del host**        | Frecuencia de scrape × número de series                  | `collection_interval`; eliminar el scraper `process`; selección de scrapers |
+| **Cardinalidad de métricas** | Métricas por proceso (un conjunto de series por proceso) | Omitir o acotar el scraper `process`                                        |
+
+### Palanca 1 — Captura solo las fuentes de logs que necesitas
+
+Los logs son casi siempre la mayor porción. El recolector solo lee lo que listas, así que la solución es listar menos:
+
+- **Archivos** — apunta `filelog` a rutas específicas, no a globs amplios. `/var/log/myapp/error.log` en lugar de `/var/log/**`.
+- **journald** — restringe `units:` a los servicios que te interesan y sube `priority:` para descartar en el origen las entradas ruidosas de `info`/`debug`:
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Windows Event Logs** — el canal `Security` es con diferencia el de mayor volumen. Acótalo a los IDs de evento que realmente auditas con un `query:` (como se muestra en [Windows Event Logs](#windows-event-logs) más arriba), o descarta el canal por completo si no lo necesitas.
+
+### Palanca 2 — Ralentiza el intervalo de las métricas
+
+El volumen de `hostmetrics` escala directamente con `collection_interval`. Si no necesitas una resolución de 30 segundos, 60s reduce a la mitad el número de puntos de datos:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### Palanca 3 — Elimina el scraper por proceso (el causante de la cardinalidad)
+
+El scraper `process` emite un conjunto de series independiente **por cada proceso en ejecución** del host — en una máquina con mucha actividad, esa es la mayor fuente individual de cardinalidad de métricas. A menos que necesites CPU/memoria por proceso, déjalo fuera de la lista `scrapers:`. Conserva `processes` (que son solo un puñado de métricas agregadas de recuento de procesos) — es barato. Si sí quieres métricas por proceso, acótalas a los procesos que importan:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### Palanca 4 — Descarta registros de bajo valor con un procesador `filter`
+
+Cuando quieres el receptor pero no toda su salida, añade un procesador [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) — evalúa una condición [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) y **descarta cualquier registro que coincida**, antes de que se exporte nada.
+
+Descarta los logs por debajo de un umbral de gravedad:
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+Descarta una métrica ruidosa concreta que no representas en gráficos:
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+Luego añade el procesador a la canalización correspondiente — el orden importa, así que pon `filter` antes de `batch`:
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### Un punto de partida ligero
+
+Un host **solo de métricas** — sin logs, intervalo grueso, sin series por proceso — es la huella útil más pequeña:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+Vuelve a añadir una canalización de `logs` con un receptor `filelog` o `journald` de alcance reducido cuando lo necesites.
+
+> **Ten cuidado con lo que recortas.** Las alertas basadas en logs necesitan que los logs lleguen: si filtras una gravedad o un canal, los monitores que dependen de ello se quedan en silencio. Recorta las fuentes sobre las que no actúas, no las que un monitor está vigilando. Cambia una palanca cada vez y confirma la reducción en **Project Settings → Usage History** (el uso se agrega a diario, así que dale un día o dos) antes de pasar a la siguiente.
+
 ## OneUptime autoalojado
 
 Si estás autoalojando OneUptime, apunta el exportador a tu propio host:
@@ -602,7 +759,7 @@ El OpenTelemetry Collector respeta las variables de entorno estándar `HTTPS_PRO
 - **HTTP 401 desde el exportador** — el token de ingestión es inválido o ha sido revocado. Genera uno nuevo desde _Project Settings → Telemetry Ingestion Keys_.
 - **El canal `Security` de Windows Event Log devuelve acceso denegado** — el servicio no se ejecuta con privilegios suficientes. Recréalo bajo `LocalSystem` (el valor predeterminado con `sc.exe create`) o concede a la cuenta del servicio el derecho de usuario _Manage auditing and security log_.
 - **El receptor `journald` no arranca** — asegúrate de que `journalctl` esté en el `PATH` del recolector y de que exista `/var/log/journal` (ejecuta `sudo systemd-tmpfiles --create --prefix /var/log/journal` si no es así).
-- **Alto volumen / coste** — acota los receptores (canales específicos de Windows, unidades específicas de systemd, archivos de log específicos), añade un filtro `query:` en el receptor de Windows Event Log o añade un procesador `filter` para descartar eventos de baja gravedad antes de exportar.
+- **Alto volumen / coste** — consulta [Reducir el volumen de datos recopilados](#reducing-the-volume-of-data-collected): acota los receptores (canales específicos de Windows, unidades de systemd, archivos de log), sube el `collection_interval` de las métricas, elimina el scraper por proceso o añade un procesador `filter` para descartar registros de baja gravedad antes de exportar.
 
 ## Próximos pasos
 

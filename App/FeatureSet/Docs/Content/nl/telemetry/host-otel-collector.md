@@ -570,6 +570,163 @@ De service draait standaard onder `LocalSystem`, dat de rechten heeft die nodig 
 3. Open **Metrics** — host-metrieken (CPU, geheugen, bestandssysteem, enz.) zouden binnen een minuut moeten verschijnen.
 4. Open **Logs** — je bestandslogs / journald-vermeldingen / Windows Event Logs zouden moeten binnenstromen. Nuttige doorzoekbare attributen zijn onder andere `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` en `winlog.provider.name`.
 
+## Het volume aan verzamelde gegevens verminderen
+
+Omdat je de collector-configuratie zelf beheert, bepaal jij precies wat de host verlaat — er wordt niets verzameld tenzij een receiver die je hebt toegevoegd erom vraagt. Als een host meer verstuurt dan je wilt (wat zich uit als hoger ingest-volume, en op OneUptime Cloud, hogere kosten), stem het dan hier af. De twee grootste hefbomen zijn **welke logbronnen je tailt** en **hoe vaak je metrieken scrapet**; een `filter`-processor doet de rest.
+
+Het principe is hetzelfde als de configuratie zelf: **voeg alleen de receivers toe waarvan je de gegevens gaat bekijken**, en snoei daarbinnen. Elke wijziging hieronder is een aanpassing aan `config.yaml` — pas hem toe en herstart de collector (Stap 3).
+
+### Waar het volume vandaan komt
+
+| Signaal                  | Grootste aanjager                                   | Terugschroeven met                                                    |
+| ------------------------ | --------------------------------------------------- | --------------------------------------------------------------------- |
+| **Logs**                 | Elke regel van elk bestand / journald-unit / kanaal | Receivers beperken; `query:`-filters; een `filter`-processor op ernst |
+| **Host-metrieken**       | Scrapefrequentie × aantal series                    | `collection_interval`; de `process`-scraper weglaten; scraperselectie |
+| **Metriekcardinaliteit** | Per-proces metrieken (één set series per proces)    | De `process`-scraper weglaten of afbakenen                            |
+
+### Hefboom 1 — Tail alleen de logbronnen die je nodig hebt
+
+Logs zijn bijna altijd het grootste deel. De collector leest alleen wat je opgeeft, dus de oplossing is minder opgeven:
+
+- **Bestanden** — richt `filelog` op specifieke paden, niet op brede globs. `/var/log/myapp/error.log` in plaats van `/var/log/**`.
+- **journald** — beperk `units:` tot de services waar je om geeft en verhoog `priority:` zodat je spraakzame `info`/`debug`-vermeldingen bij de bron laat vallen:
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Windows Event Logs** — het `Security`-kanaal heeft verreweg het hoogste volume. Beperk het tot de event-ID's die je daadwerkelijk auditeert met een `query:` (zoals getoond in [Windows Event Logs](#windows-event-logs) hierboven), of laat het kanaal helemaal vallen als je het niet nodig hebt.
+
+### Hefboom 2 — Vertraag het metrieken-interval
+
+`hostmetrics`-volume schaalt rechtstreeks mee met `collection_interval`. Als je geen resolutie van 30 seconden nodig hebt, halveert 60s het aantal datapunten:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### Hefboom 3 — Laat de per-proces scraper vallen (de cardinaliteitsaanjager)
+
+De `process`-scraper zendt een aparte set series uit **voor elk draaiend proces** op de host — op een drukke machine is dat de grootste enkele bron van metriekcardinaliteit. Tenzij je per-proces CPU/geheugen nodig hebt, laat je hem weg uit de `scrapers:`-lijst. Behoud `processes` (dat slechts een handvol geaggregeerde proces-telmetrieken is) — dat is goedkoop. Als je toch per-proces metrieken wilt, baken ze dan af tot de processen die ertoe doen:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### Hefboom 4 — Laat records met lage waarde vallen met een `filter`-processor
+
+Wanneer je de receiver wilt maar niet al zijn uitvoer, voeg dan een [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor)-processor toe — hij evalueert een [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md)-conditie en **laat elk record vallen dat overeenkomt**, voordat er iets wordt geëxporteerd.
+
+Laat logs onder een ernstdrempel vallen:
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+Laat een specifieke luidruchtige metriek vallen die je niet in een grafiek zet:
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+Voeg de processor vervolgens toe aan de betreffende pipeline — de volgorde is van belang, dus plaats `filter` vóór `batch`:
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### Een sober startpunt
+
+Een host met **alleen metrieken** — geen logs, grof interval, geen per-proces series — is de kleinste nuttige voetafdruk:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+Voeg een `logs`-pipeline weer toe met een strak afgebakende `filelog`- of `journald`-receiver wanneer je die nodig hebt.
+
+> **Let op wat je wegsnijdt.** Log-gebaseerde waarschuwingen hebben de logs nodig om binnen te komen: als je een ernst of een kanaal wegfiltert, vallen monitors die daarop afgaan stil. Snoei de bronnen waar je niet op reageert, niet die welke een monitor in de gaten houdt. Wijzig één hefboom tegelijk en bevestig de daling onder **Project Settings → Usage History** (gebruik wordt dagelijks geaggregeerd, dus geef het een dag of twee) voordat je naar de volgende gaat.
+
 ## Zelf-gehost OneUptime
 
 Als je OneUptime zelf host, wijs de exporter dan naar je eigen host:
@@ -602,7 +759,7 @@ De OpenTelemetry Collector respecteert de standaard omgevingsvariabelen `HTTPS_P
 - **HTTP 401 van de exporter** — het ingestion-token is ongeldig of ingetrokken. Genereer een nieuw token via _Project Settings → Telemetry Ingestion Keys_.
 - **`Security` Windows Event Log geeft toegang geweigerd** — de service draait niet met voldoende rechten. Maak hem opnieuw aan onder `LocalSystem` (de standaard met `sc.exe create`) of verleen het serviceaccount het gebruikersrecht _Manage auditing and security log_.
 - **`journald`-receiver start niet** — zorg ervoor dat `journalctl` op de `PATH` van de collector staat en dat `/var/log/journal` bestaat (voer `sudo systemd-tmpfiles --create --prefix /var/log/journal` uit als dat niet zo is).
-- **Hoog volume / kosten** — beperk de receivers (specifieke Windows-kanalen, specifieke systemd-units, specifieke logbestanden), voeg een `query:`-filter toe op de Windows Event Log-receiver, of voeg een `filter`-processor toe om gebeurtenissen met lage ernst vóór de export te laten vallen.
+- **Hoog volume / kosten** — zie [Het volume aan verzamelde gegevens verminderen](#reducing-the-volume-of-data-collected): beperk de receivers (specifieke Windows-kanalen, systemd-units, logbestanden), verhoog de `collection_interval` van de metrieken, laat de per-proces scraper vallen, of voeg een `filter`-processor toe om records met lage ernst vóór de export te laten vallen.
 
 ## Volgende stappen
 

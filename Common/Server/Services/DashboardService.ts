@@ -214,11 +214,20 @@ export class Service extends DatabaseService<Model> {
       const shouldEnforceMasterPassword: boolean = Boolean(
         dashboard &&
           dashboard.isPublicDashboard &&
-          dashboard.enableMasterPassword &&
-          dashboard.masterPassword,
+          dashboard.enableMasterPassword,
       );
 
       if (shouldEnforceMasterPassword) {
+        // Fail closed if protection was enabled before a password was set.
+        if (!dashboard?.masterPassword) {
+          return {
+            hasReadAccess: false,
+            error: new MasterPasswordRequiredException(
+              DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
+            ),
+          };
+        }
+
         const hasValidMasterPassword: boolean =
           this.hasValidMasterPasswordCookie({
             req,

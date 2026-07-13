@@ -102,7 +102,7 @@ När agenten ansluter visas ditt kluster automatiskt i avsnittet **Kubernetes** 
 
 ### Namnrymdsfiltrering
 
-Som standard exkluderas `kube-system`. För att övervaka endast specifika namnrymder:
+`namespaceFilters` avgränsar **pod-loggar** (både hostPath-DaemonSet:en och API-loggläsaren) och **eBPF-spårningar** till de namnrymder du väljer. `kube-system` exkluderas som standard. För att begränsa dessa signaler till specifika namnrymder:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -113,6 +113,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set "namespaceFilters.include={default,production,staging}"
 ```
+
+> Dessa filter minskar **inte** nod- / pod- / container**mått** — dessa skrapas per nod från kubelet och samlas alltid in i hela klustret (serier på nod- och klusternivå har ingen namnrymd att filtrera på). `exclude` vinner alltid över `include`. Se [Minska volymen av insamlad data](#reducing-the-volume-of-data-collected) för hela uppsättningen volymkontroller.
 
 ### Inaktivera logginsamling
 
@@ -261,6 +263,161 @@ Alla på som standard. Stäng av någon med `--set ebpf.features.<name>=false`:
 | `tcpStats`                | på       | Nodnivå TCP RTT, misslyckade anslutningar, retransmit-räknare  |
 
 Spårningskontextpropagering mellan tjänster är också på som standard — OBI injicerar W3C `traceparent` i utgående HTTP/TCP så att en begäran som korsar pod A → pod B visas som en enda spårning, inga SDK-ändringar någonstans. Stäng av med `--set ebpf.contextPropagation=false`.
+
+## Minska volymen av insamlad data
+
+Direkt ur lådan är agenten inställd för **täckning** — den levererar mått, pod-loggar och eBPF-spårningar från hela klustret så att varje instrumentpanel och monitor fungerar från dag ett. På stora eller upptagna kluster kan det vara mer telemetri än du behöver, vilket visar sig som högre ingestvolym (och, på OneUptime Cloud, högre kostnad). Inget här är obligatoriskt, men om ett kluster skickar mer än du vill är detta rattarna att vrida på — ungefär i ordning efter påverkan.
+
+Tricket är att **sluta samla in det du inte kommer att titta på**, i stället för att samla in allt och betala för att lagra det. Varje spak nedan är ett Helm-värde, så du kan tillämpa det med `--set` på `helm upgrade --reuse-values` och rulla tillbaka det på samma sätt.
+
+### Varifrån volymen kommer
+
+| Signal                            | Största drivkraft                                          | Minska den med                                                                               |
+| --------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Pod-loggar**                    | Varje rad från varje container, i hela klustret            | `logs.enabled`, `logs.mode`, `namespaceFilters`                                              |
+| **eBPF-spårningar och span-mått** | En spårning per begäran från varje instrumenterad process  | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **Måttdatapunkter**               | Skrapfrekvens × antal poddar/containrar                    | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
+| **Måttkardinalitet**              | Antal distinkta serier (per container, per PVC, …)         | `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics`, `kubeletstats.utilizationMetrics` |
+| **Opt-in-tillägg**                | Profilering, revisionsloggar, kontrollplan, inter-zon-mått | Låt dem vara avstängda (det är de redan som standard)                                        |
+
+### Spak 1 — Pod-loggar är oftast den enskilt största källan
+
+Containerloggar är nästan alltid den största delen av ingesten, eftersom det är en post per loggrad från varje container i klustret.
+
+- **Behöver du inte loggar från OneUptime alls?** Stäng av dem helt — du behåller alla mått, händelser och spårningar:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+- **Vill du bara ha loggar från vissa namnrymder?** `namespaceFilters.include` avgränsar pod-loggar i båda logglägena (och eBPF-spårningar tillsammans med dem). Matchning sker på pod-loggvägen, så filtrerade namnrymder läses aldrig ens:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set "namespaceFilters.include={default,production}"
+  ```
+
+  (`kube-system` är redan exkluderat som standard.)
+
+### Spak 2 — Trimma eBPF-autoinstrumentering
+
+eBPF ger dig spårningar, RED-mått, tjänstekartan och nätverksflödesmått utan kodändringar — men det är också den näst största datakällan eftersom det avger en span per begäran och flera måttfamiljer per tjänst. Du har tre kontrollnivåer:
+
+- **Levererar du redan spårningar från OTel-SDK:er, eller vill du inte ha auto-spårningar?** Stäng av eBPF helt:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.enabled=false
+  ```
+
+- **Behåll spårningarna, släng de tunga måttfamiljerna.** [Signalfamiljetabellen ovan](#toggle-individual-signal-families) listar varje `ebpf.features.*`-flagga. Familjerna med högst volym är nätverks- och span-mått — att stänga av dem lämnar spårningar, HTTP RED-mått och tjänstekartan intakta:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.features.networkMetrics=false \
+    --set ebpf.features.tcpStats=false \
+    --set ebpf.features.spanMetrics=false
+  ```
+
+  Låt `ebpf.features.networkInterZoneMetrics` vara avstängt (dess standard) — det dubblerar nätverksflödeskardinaliteten.
+
+- **Instrumentera bara de körtider du bryr dig om.** Som standard kopplas OBI till varje process den känner igen (`ebpf.autoTargetExe: "*"`). Begränsa den till specifika körtider, eller lägg till binärer i hoppa-över-listan, för att minska antalet "tjänster" och spårningar agenten producerar:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.autoTargetExe='*/python,*/java'
+  ```
+
+  Se [Växla enskilda signalfamiljer](#toggle-individual-signal-families) och `excludeExePaths`-noten i diagramvärdena för de fullständiga standardvärdena.
+
+### Spak 3 — Öka skrapintervallen
+
+Måttvolymen är direkt proportionell mot hur ofta agenten skrapar. Att dubbla ett intervall halverar ungefär antalet datapunkter det måttet producerar, utan förlust av täckning — bara grövre upplösning. Om du inte behöver 30-sekundersgranularitet är 60s eller 120s en stor, säker minskning:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set collectionInterval=60s \
+  --set hostMetrics.collectionInterval=60s \
+  --set cadvisor.scrapeInterval=60s
+```
+
+- `collectionInterval` (standard `30s`) driver nod- / pod- / containermått (`kubeletstats`) och klustertillståndsmått (`k8s_cluster`) — merparten av måttvolymen.
+- `hostMetrics.collectionInterval` och `cadvisor.scrapeInterval` täcker OS-mått per nod och throttling- / OOM-räknarna.
+- `resourceSpecs.interval` (standard `300s`) styr hur ofta fullständiga resursspecifikationer (etiketter, annoteringar, status) hämtas — höj det om du inte behöver att specifikationsändringar återspeglas snabbt.
+- Om du aktiverade någon av de valfria skraparna har de egna rattar också: `kubeStateMetrics.scrapeInterval`, `serviceMesh.*.scrapeInterval`, `coreDns.scrapeInterval`, `csi.scrapeInterval`.
+
+### Spak 4 — Håll måttkardinaliteten begränsad
+
+Kardinalitet (antalet distinkta tidsserier) spelar lika stor roll som frekvens, eftersom varje serie lagras och faktureras separat.
+
+- **cAdvisor är tillåtelselistad med avsikt.** cAdvisor-mottagaren (på som standard) kan avge hundratals mått; diagrammet vidarebefordrar bara den handfull som driver monitorer (`cadvisor.metricsAllowlist`). Håll listan snäv — **varje post behålls per container, så ett extra mått multipliceras med klustrets containerantal.** kube-state-metrics är avstängt som standard, men om du aktiverar det (`kubeStateMetrics.enabled=true`) begränsar dess `kubeStateMetrics.metricsAllowlist` kardinaliteten på samma sätt.
+- **Volymmått per PVC** (`kubeletstats.volumeMetrics.enabled`, på som standard) avger en serie per PVC per pod. Det är okej för de flesta kluster men kan vara betydande på tillståndskänsliga arbetsbelastningar (Kafka, databaser) med tusentals PVC:er — stäng av det där om du inte bevakar PVC-diskutrymme:
+
+  ```bash
+  --set kubeletstats.volumeMetrics.enabled=false
+  ```
+
+- **Mättnadsmått** (`kubeletstats.utilizationMetrics.enabled`, på som standard) lägger till 8 härledda "% av request/limit"-familjer. De är billiga (ingen extra skrapning) men om du inte använder CPU/Minne-mot-gräns-monitorerna kan du släppa dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
+
+### Spak 5 — Låt de tunga opt-in-funktionerna vara avstängda
+
+Dessa är **avstängda som standard** just för att de lägger till belastning — aktivera bara en när du aktivt använder det den driver, och stäng av den igen om du bara testade den:
+
+| Värde                                                     | Lägger till                                                                                     |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `profiling.enabled`                                       | Kontinuerlig CPU-profilerings-DaemonSet — tyngre än eBPF-spårningar                             |
+| `auditLogs.enabled`                                       | Varje Kubernetes-API-begäran som en loggpost (hög volym)                                        |
+| `controlPlane.enabled`                                    | etcd- / API-server- / scheduler- / controller-manager-mått                                      |
+| `kubeStateMetrics.enabled`                                | CrashLoop- / ImagePull- / schemaläggningsorsak-mått (lägger till en KSM-Deployment + skrapning) |
+| `ebpf.features.networkInterZoneMetrics`                   | Dubblerar nätverksflödesmåttkardinaliteten                                                      |
+| `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Extra Prometheus-skrapjobb                                                                      |
+
+### En slimmad utgångspunkt
+
+Om du vill ha ett minimalt fotavtryck och kommer att lägga tillbaka signaler efter behov, släpper den här profilen med **enbart mått + händelser** loggar och eBPF och halverar skrapfrekvensen:
+
+```yaml
+# lean-values.yaml
+oneuptime:
+  url: YOUR_ONEUPTIME_URL
+  apiKey: YOUR_ONEUPTIME_API_KEY
+clusterName: my-cluster
+
+collectionInterval: 60s
+
+logs:
+  enabled: false # no pod logs
+
+ebpf:
+  enabled: false # no auto-traces
+
+hostMetrics:
+  collectionInterval: 60s
+
+cadvisor:
+  scrapeInterval: 60s
+```
+
+```bash
+helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  -f lean-values.yaml
+```
+
+Därifrån, återaktivera vad du behöver: `logs.enabled=true` för några namnrymder i API-läge, eller `ebpf.enabled=true` med en avgränsad `autoTargetExe`.
+
+> **Var uppmärksam på vad du skär bort.** Vissa monitorer är beroende av specifika signaler: att inaktivera `cadvisor` tar bort OOM-kill- och CPU-throttling-monitorerna; att inaktivera `kubeletstats.volumeMetrics` tar bort monitorn för lågt PVC-diskutrymme; att inaktivera loggar tar bort loggbaserade varningar. Trimma de signaler du inte agerar på, inte de som en monitor bevakar.
+
+### Mät effekten
+
+Telemetrianvändning aggregeras per dag, så kontrollera trenden över en dag eller två under **Project Settings → Usage History** för att bekräfta minskningen — den ändras inte i samma ögonblick som du tillämpar en ändring. Ändra en spak i taget så att du kan tillskriva skillnaden — loggar av, sedan intervall upp, sedan eBPF trimmat — i stället för att vrida ner allt på en gång och förlora en monitor du faktiskt förlitade dig på.
 
 ## Felsökning
 

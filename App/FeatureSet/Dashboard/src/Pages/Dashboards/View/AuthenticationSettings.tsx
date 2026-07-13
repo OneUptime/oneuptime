@@ -121,6 +121,9 @@ const DashboardAuthenticationSettings: FunctionComponent<
                   placeholder: "No",
                 },
                 {
+                  field: {
+                    masterPassword: true,
+                  },
                   title: "Master Password",
                   fieldType: FieldType.Element,
                   getElement: (): ReactElement => {
