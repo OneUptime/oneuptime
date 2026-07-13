@@ -144,3 +144,64 @@ describe("LlmProviderService.getLlmProviderForAgentTasks", () => {
     expect(query["projectId"]).not.toBe(projectId);
   });
 });
+
+/*
+ * getLlmProviderForMeteredAgentPath backs the SERVER-MEDIATED completion
+ * endpoint (B4 Tier 0), whose calls run through AIService.executeWithLogging
+ * — metered, logged, budgeted. Because metering is universal there, the
+ * global provider is a legitimate fallback ON CLOUD TOO (usage is billed as
+ * metered AI tokens). These tests lock in the lift on the metered path while
+ * the raw-key path's tests above keep refusing the global provider on cloud.
+ */
+describe("LlmProviderService.getLlmProviderForMeteredAgentPath", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a project-owned provider always wins, without a global query", async () => {
+    const owned: LlmProvider = fakeProvider("owned");
+    jest
+      .spyOn(LlmProviderService, "getProjectOwnedLlmProvider")
+      .mockResolvedValue(owned);
+    const findSpy: jest.SpiedFunction<typeof LlmProviderService.findOneBy> =
+      jest.spyOn(LlmProviderService, "findOneBy");
+
+    const result: LlmProvider | null =
+      await LlmProviderService.getLlmProviderForMeteredAgentPath(projectId);
+
+    expect(result).toBe(owned);
+    expect(findSpy).not.toHaveBeenCalled();
+  });
+
+  test("falls back to the global provider when the project owns none — cloud included", async () => {
+    const globalProvider: LlmProvider = fakeProvider("global");
+    jest
+      .spyOn(LlmProviderService, "getProjectOwnedLlmProvider")
+      .mockResolvedValue(null);
+    const findSpy: jest.SpiedFunction<typeof LlmProviderService.findOneBy> =
+      jest
+        .spyOn(LlmProviderService, "findOneBy")
+        .mockResolvedValue(globalProvider);
+
+    const result: LlmProvider | null =
+      await LlmProviderService.getLlmProviderForMeteredAgentPath(projectId);
+
+    expect(result).toBe(globalProvider);
+    expect(findSpy).toHaveBeenCalledTimes(1);
+    const query: Query<LlmProvider> = findSpy.mock.calls[0]![0]!.query;
+    expect(query["isGlobalLlm"]).toBe(true);
+    // Global rows have no projectId — the query must target the null tenant.
+    expect(query["projectId"]).not.toBe(projectId);
+  });
+
+  test("returns null when neither a project-owned nor a global provider exists", async () => {
+    jest
+      .spyOn(LlmProviderService, "getProjectOwnedLlmProvider")
+      .mockResolvedValue(null);
+    jest.spyOn(LlmProviderService, "findOneBy").mockResolvedValue(null);
+
+    expect(
+      await LlmProviderService.getLlmProviderForMeteredAgentPath(projectId),
+    ).toBeNull();
+  });
+});

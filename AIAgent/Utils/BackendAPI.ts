@@ -10,6 +10,11 @@ import {
   ImplicatedSpan,
   PerformanceFinding,
 } from "Common/Types/AI/CodeFixTaskContext";
+import {
+  LLMMessage,
+  LLMToolCall,
+  LLMToolDefinition,
+} from "Common/Server/Utils/LLM/LLMService";
 import logger from "Common/Server/Utils/Logger";
 
 // API Response types
@@ -175,6 +180,44 @@ export interface RecordPullRequestResult {
   pullRequestId: string;
 }
 
+/*
+ * Server-mediated LLM completion (B4 Tier 0): the in-house code agent's
+ * tool loop calls POST /api/ai-agent-data/llm-completion per turn. The
+ * server validates the run (claimed, Running, owned by this agent),
+ * resolves the provider, meters the call, and enforces the per-run loop
+ * budgets — the worker never holds a provider secret.
+ */
+export interface LlmCompletionBudget {
+  completionCallsUsed: number;
+  maxCompletionCalls: number;
+  outputTokensUsed: number;
+  maxOutputTokens: number;
+}
+
+export interface LlmCompletionResult {
+  content: string;
+  toolCalls: Array<LLMToolCall>;
+  stopReason: "stop" | "tool_use";
+  budget: LlmCompletionBudget;
+}
+
+/*
+ * Success bodies carry `message` as the assistant-message OBJECT; error
+ * bodies carry `message` as the error STRING — the union below captures
+ * both, and llmCompletion() discriminates on response.isSuccess().
+ */
+interface LlmCompletionResponse {
+  message?:
+    | {
+        role: string;
+        content: string;
+        toolCalls?: Array<LLMToolCall>;
+      }
+    | string;
+  stopReason?: "stop" | "tool_use";
+  budget?: LlmCompletionBudget;
+}
+
 export default class BackendAPI {
   private baseUrl: URL;
 
@@ -182,7 +225,15 @@ export default class BackendAPI {
     this.baseUrl = URL.fromString(ONEUPTIME_URL.toString());
   }
 
-  // Get LLM configuration for a project
+  /*
+   * DEPRECATED (B4 Tier 0, Internal/Roadmap/CodeFixSandboxDesign.md): only
+   * the legacy OpenCode fallback (CODE_AGENT_TYPE=OpenCode) calls this —
+   * it fetches the RAW provider apiKey for unmetered direct LLM calls.
+   * The default in-house agent uses llmCompletion() instead and never
+   * receives a provider secret. Remove together with OpenCodeAgent.
+   *
+   * Get LLM configuration for a project.
+   */
   public async getLLMConfig(projectId: string): Promise<LLMConfig> {
     const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-llm-config",
@@ -467,6 +518,65 @@ export default class BackendAPI {
     return {
       success: data.success,
       pullRequestId: data.pullRequestId,
+    };
+  }
+
+  /*
+   * One server-mediated LLM completion for a claimed code-fix run (B4 Tier
+   * 0). `taskId` is the AIRun id from get-pending-task. Over-budget and
+   * guard failures come back as 4xx with a clear message, thrown here as an
+   * Error the tool loop turns into an honest run failure.
+   */
+  public async llmCompletion(data: {
+    taskId: string;
+    messages: Array<LLMMessage>;
+    tools?: Array<LLMToolDefinition> | undefined;
+    maxTokens?: number | undefined;
+  }): Promise<LlmCompletionResult> {
+    const url: URL = URL.fromURL(this.baseUrl).addRoute(
+      "/api/ai-agent-data/llm-completion",
+    );
+
+    const response: HTTPResponse<JSONObject> = await API.post({
+      url,
+      data: {
+        ...AIAgentAPIRequest.getDefaultRequestBody(),
+        taskId: data.taskId,
+        messages: data.messages as unknown as JSONObject[],
+        ...(data.tools ? { tools: data.tools as unknown as JSONObject[] } : {}),
+        ...(data.maxTokens ? { maxTokens: data.maxTokens } : {}),
+      },
+    });
+
+    const responseData: LlmCompletionResponse =
+      response.data as unknown as LlmCompletionResponse;
+
+    if (!response.isSuccess()) {
+      const errorMessage: string =
+        typeof responseData?.message === "string"
+          ? responseData.message
+          : "LLM completion request failed";
+      throw new Error(errorMessage);
+    }
+
+    const message: { content: string; toolCalls?: Array<LLMToolCall> } =
+      typeof responseData.message === "object" && responseData.message !== null
+        ? responseData.message
+        : { content: "" };
+
+    const toolCalls: Array<LLMToolCall> = message.toolCalls || [];
+
+    return {
+      content: message.content || "",
+      toolCalls,
+      stopReason:
+        responseData.stopReason || (toolCalls.length > 0 ? "tool_use" : "stop"),
+      budget: responseData.budget || {
+        completionCallsUsed: 0,
+        maxCompletionCalls: Number.MAX_SAFE_INTEGER,
+        outputTokensUsed: 0,
+        maxOutputTokens: Number.MAX_SAFE_INTEGER,
+      },
     };
   }
 

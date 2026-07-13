@@ -25,6 +25,13 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
 /*
+ * The LlmLog feature name for server-mediated code-fix agent completions
+ * (B4 Tier 0) — the in-house coding agent's tool loop routes every LLM call
+ * through /ai-agent-data/llm-completion, which executes under this feature.
+ */
+export const SENTINEL_CODE_FIX_FEATURE: string = "Sentinel Code Fix";
+
+/*
  * Features that run WITHOUT a human in the loop. The per-project daily token
  * budget (Project.aiDailyAutonomousTokenLimit, G4) applies only to these —
  * interactive chat and explicitly user-triggered AI are never budget-blocked.
@@ -46,6 +53,14 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * "classification-failed" (per-consumer fail directions), never a failure.
    */
   "Sentinel Confidence Classification",
+  /*
+   * Server-mediated code-fix agent completions (B4 Tier 0). Fix runs are
+   * user-triggered, but the tool loop then runs unattended for up to ~40
+   * calls — storm-shaped enough that the daily budget must cover it. The
+   * per-run loop budgets (CodeFixAgentCompletion) cap a single run; this
+   * daily pool caps all of them together.
+   */
+  SENTINEL_CODE_FIX_FEATURE,
 ];
 
 export interface AutonomousBudgetStatus {
@@ -312,6 +327,7 @@ export class Service extends BaseService {
       // Update log with success info
       logEntry.status = LlmLogStatus.Success;
       logEntry.totalTokens = response.usage?.totalTokens || 0;
+      logEntry.completionTokens = response.usage?.completionTokens || 0;
       logEntry.cachedInputTokens = response.usage?.cachedInputTokens || 0;
       logEntry.cacheCreationTokens = response.usage?.cacheCreationTokens || 0;
       logEntry.responsePreview = storeContentPreviews

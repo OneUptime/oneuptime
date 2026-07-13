@@ -10,10 +10,12 @@ Every pull request is reviewed and merged by a human. The agent never merges its
 2. A fix task is created and picked up by an available agent.
 3. The agent fetches the exception details — exception type, error message, and stack trace.
 4. It clones the linked repository into an ephemeral workspace and creates a branch (named like `oneuptime-fix-exception-<task-id>`).
-5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix.
+5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix. The agent's LLM calls are executed by the OneUptime server — the worker container never holds your provider's API key — and every call is metered and logged in the AI logs.
 6. The agent commits, pushes the branch, opens a pull request, and deletes the workspace.
 
-The exception page shows the task's live status. The task's detail page (under **Sentinel** > **Tasks**) keeps the full run log and links to every pull request the task opened.
+The exception page shows the task's live status. The task's detail page (under **Sentinel** > **Tasks**) keeps the full run log — including a line for every file the agent read or wrote and every command it ran — and links to every pull request the task opened.
+
+Each fix run is capped by server-enforced loop budgets: at most **40 LLM calls** and **100,000 output tokens** per run. A run that hits its budget finishes with a summary of the work done so far instead of looping forever. Fix runs also count against the project's daily autonomous AI token budget, if one is set.
 
 ## Prerequisites
 
@@ -21,7 +23,7 @@ Three things must be in place before the agent can fix anything. The exception p
 
 ### 1. An LLM provider
 
-- **OneUptime Cloud**: agent tasks always run with an LLM provider your project owns — configure one under **Project Settings** > **Sentinel** > **LLM Providers**. The shared global provider (the one billed as metered AI tokens) is **not** usable for agent tasks.
+- **OneUptime Cloud**: zero-config — if your project has no LLM provider of its own, agent tasks use the shared global provider and the usage is billed as metered AI tokens, exactly like every other AI feature. To use your own keys instead, configure a provider under **Project Settings** > **Sentinel** > **LLM Providers** — a project-owned provider always takes precedence.
 - **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a local Ollama:
 
 ```bash
@@ -72,7 +74,7 @@ The agent shows as connected on the **Settings** > **Sentinel** > **AI Agents** 
 
 ## Privacy
 
-The repository clone lives in an ephemeral workspace inside the agent container and is deleted when the run finishes, whether it succeeded or failed. OneUptime does not store your code or train on it. Run a self-hosted agent with your own LLM provider (including local Ollama) and your code never leaves your infrastructure.
+The repository clone lives in an ephemeral workspace inside the agent container and is deleted when the run finishes, whether it succeeded or failed. The agent container never holds your LLM provider's API key — LLM calls are executed by the OneUptime server on the agent's behalf. OneUptime does not store your code or train on it. Run a self-hosted agent with your own LLM provider (including local Ollama) and your code never leaves your infrastructure.
 
 ## On the roadmap
 
