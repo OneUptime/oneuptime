@@ -4,8 +4,7 @@ import logger from "Common/Server/Utils/Logger";
 /*
  * Registry for task handlers.
  * Keyed by the plain task-type string the server sends on pending tasks
- * (the Common/Types/AI/CodeFixTaskType wire values) — NOT the legacy Common
- * AIAgentTaskType enum, which is frozen at FixException.
+ * (the Common/Types/AI/CodeFixTaskType wire values).
  */
 export default class TaskHandlerRegistry {
   private static instance: TaskHandlerRegistry | null = null;

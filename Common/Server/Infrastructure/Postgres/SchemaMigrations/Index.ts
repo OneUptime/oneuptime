@@ -441,6 +441,8 @@ import { AddTaskContextToAIRun1783958542237 } from "./1783958542237-AddTaskConte
 import { MigrationName1783937343400 } from "./1783937343400-MigrationName";
 import { MigrationName1783957160597 } from "./1783957160597-MigrationName";
 import { AddInvestigationVerdictAndGrade1783965945957 } from "./1783965945957-AddInvestigationVerdictAndGrade";
+import { AddFixGuardrailColumns1783970619301 } from "./1783970619301-AddFixGuardrailColumns";
+import { DropLegacyAIAgentTaskTables1783970619302 } from "./1783970619302-DropLegacyAIAgentTaskTables";
 
 export default [
   InitialMigration,
@@ -886,4 +888,6 @@ export default [
   MigrationName1783957160597,
   AddTaskContextToAIRun1783958542237,
   AddInvestigationVerdictAndGrade1783965945957,
+  AddFixGuardrailColumns1783970619301,
+  DropLegacyAIAgentTaskTables1783970619302,
 ];

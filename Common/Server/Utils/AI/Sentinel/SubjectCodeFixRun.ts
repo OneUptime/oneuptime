@@ -8,6 +8,7 @@ import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunService from "../../../Services/AIRunService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
+import FixRunBudget from "../CodeFix/FixRunBudget";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -125,6 +126,12 @@ export default class SubjectCodeFixRun {
    *
    * Created as root: AIRun rows are server-written only (empty create ACL);
    * callers must have gated access before enqueueing.
+   *
+   * Throws BadDataException when the project is over its daily fix-run
+   * budget (G11 guardrail, enforced here so EVERY subject/perf recipe is
+   * covered). User-triggered callers surface the message; the automatic
+   * instrumentation trigger pre-checks the budget and skips quietly, with
+   * its never-throws wrapper as the backstop.
    */
   @CaptureSpan()
   public static async enqueueSubjectCodeFixRun(data: {
@@ -135,6 +142,8 @@ export default class SubjectCodeFixRun {
     userId?: ObjectID | undefined;
     taskContext?: CodeFixTaskContext | undefined;
   }): Promise<AIRun> {
+    await FixRunBudget.assertWithinBudget(data.projectId);
+
     const run: AIRun = new AIRun();
     run.projectId = data.projectId;
     run.runType = AIRunType.CodeFix;

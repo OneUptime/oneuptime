@@ -93,6 +93,17 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Number,
             placeholder: "No limit",
           },
+          {
+            field: {
+              aiDailyFixTaskLimit: true,
+            },
+            title: "Daily AI Fix Task Limit",
+            description:
+              "Maximum AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across every fix recipe — manual and automatic. Leave empty for the default of 25 per day; set 0 to pause AI fix tasks entirely.",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "25",
+          },
         ]}
         modelDetailProps={{
           modelType: Project,
@@ -146,6 +157,14 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Daily Autonomous Token Limit",
               placeholder: "No limit",
+              fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                aiDailyFixTaskLimit: true,
+              },
+              title: "Daily AI Fix Task Limit",
+              placeholder: "Default (25)",
               fieldType: FieldType.Number,
             },
           ],

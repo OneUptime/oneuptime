@@ -1,17 +1,13 @@
 import AIAgentService from "../Services/AIAgentService";
-import AIAgentTaskService, {
-  Service as AIAgentTaskServiceType,
-} from "../Services/AIAgentTaskService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
-import {
+import Express, {
   ExpressRequest,
   ExpressResponse,
+  ExpressRouter,
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import BaseAPI from "./BaseAPI";
-import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -27,17 +23,21 @@ import PositiveNumber from "../../Types/PositiveNumber";
 
 /*
  * The agent worker's task protocol. The route names and request shapes are
- * unchanged from the legacy AIAgentTask days, but the substrate underneath
- * is now the unified AIRun table: `taskId` carries an AIRun id, claims are
- * CAS status transitions, and progress reports touch the run heartbeat that
- * the stale-run sweeper watches.
+ * unchanged from the legacy AIAgentTask days (the wire keeps the
+ * AIAgentTaskStatus strings), but the substrate underneath is the unified
+ * AIRun table: `taskId` carries an AIRun id, claims are CAS status
+ * transitions, and progress reports touch the run heartbeat that the
+ * stale-run sweeper watches. The legacy AIAgentTask MODEL is gone — this is
+ * a plain protocol router, not a CRUD API.
  */
-export default class AIAgentTaskAPI extends BaseAPI<
-  AIAgentTask,
-  AIAgentTaskServiceType
-> {
+
+const API_BASE_PATH: string = "/ai-agent-task";
+
+export default class AIAgentTaskAPI {
+  public router!: ExpressRouter;
+
   public constructor() {
-    super(AIAgentTask, AIAgentTaskService);
+    this.router = Express.getRouter();
 
     /*
      * Claim the next pending code-fix run for processing.
@@ -46,7 +46,7 @@ export default class AIAgentTaskAPI extends BaseAPI<
      * concurrent workers can never receive the same run.
      */
     this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/get-pending-task`,
+      `${API_BASE_PATH}/get-pending-task`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const data: JSONObject = req.body;
@@ -108,7 +108,7 @@ export default class AIAgentTaskAPI extends BaseAPI<
      * Validates aiAgentId and aiAgentKey before returning count
      */
     this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/get-pending-task-count`,
+      `${API_BASE_PATH}/get-pending-task-count`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const data: JSONObject = req.body;
@@ -153,7 +153,7 @@ export default class AIAgentTaskAPI extends BaseAPI<
      * RunCompleted/RunFailed event to the run's glass-box trail.
      */
     this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/update-task-status`,
+      `${API_BASE_PATH}/update-task-status`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const data: JSONObject = req.body;
@@ -299,6 +299,10 @@ export default class AIAgentTaskAPI extends BaseAPI<
         }
       },
     );
+  }
+
+  public getRouter(): ExpressRouter {
+    return this.router;
   }
 
   /*

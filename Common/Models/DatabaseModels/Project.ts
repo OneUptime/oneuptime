@@ -1619,6 +1619,33 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Number,
+    title: "Daily AI Fix Task Limit",
+    description:
+      "Maximum AI fix tasks (agent runs that open pull requests) that may be created per UTC day for this project, across every fix recipe and trigger. Unset means the default of 25 per day; 0 pauses AI fix tasks entirely.",
+    example: 25,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiDailyFixTaskLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
     title: "Alert Re-investigation Cooldown (Minutes)",
     description:
       "Repeat alerts from the same monitor within this many minutes are not re-investigated by Sentinel — the first analysis stands. Unset means the default of 30 minutes; 0 disables the cooldown.",

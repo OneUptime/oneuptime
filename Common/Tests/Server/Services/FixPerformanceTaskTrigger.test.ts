@@ -1,4 +1,5 @@
 import FixPerformanceTaskTrigger from "../../../Server/Utils/AI/Sentinel/FixPerformanceTaskTrigger";
+import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import { AnalyzableSpan } from "../../../Server/Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -10,7 +11,7 @@ import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The FixPerformance trigger: the user clicks "Fix performance with AI" on
@@ -77,6 +78,11 @@ function healthySpans(): Array<AnalyzableSpan> {
 }
 
 describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
+  beforeEach(() => {
+    // The daily fix-run budget has its own suite (FixRunBudget.test.ts).
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

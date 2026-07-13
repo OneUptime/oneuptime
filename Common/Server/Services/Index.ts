@@ -105,7 +105,6 @@ import ProbeService from "./ProbeService";
 import AIAgentService from "./AIAgentService";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
 import AIAgentOwnerTeamService from "./AIAgentOwnerTeamService";
-import AIAgentTaskLogService from "./AIAgentTaskLogService";
 import AIAgentTaskPullRequestService from "./AIAgentTaskPullRequestService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
@@ -366,7 +365,6 @@ const services: Array<BaseService> = [
   AIAgentService,
   AIAgentOwnerUserService,
   AIAgentOwnerTeamService,
-  AIAgentTaskLogService,
   AIAgentTaskPullRequestService,
   ProjectSsoService,
   ProjectOidcService,
