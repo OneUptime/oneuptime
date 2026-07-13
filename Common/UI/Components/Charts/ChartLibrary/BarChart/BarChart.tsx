@@ -22,9 +22,11 @@ import type { AxisDomain } from "recharts/types/util/types";
 
 import {
   AvailableChartColors,
-  type AvailableChartColorsKeys,
+  type ChartColorValue,
   constructCategoryColors,
   getColorClassName,
+  getColorHex,
+  isHexColorValue,
 } from "../Utils/ChartColors";
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
@@ -73,7 +75,7 @@ const renderShape: (
   activeLegend: string | undefined,
   layout: string,
 ): React.ReactElement => {
-  const { fillOpacity, name, payload, value } = props;
+  const { fillOpacity, name, payload, value, fill } = props;
   let { x, width, y, height } = props;
 
   if (layout === "horizontal" && height < 0) {
@@ -120,6 +122,12 @@ const renderShape: (
   return (
     <path
       d={path}
+      /*
+       * A custom hex color is passed through as the Bar's `fill` prop; apply
+       * it directly on the path. For named palette colors `fill` is "" and the
+       * path inherits the Tailwind `fill-*` class set on the parent Bar.
+       */
+      {...(fill ? { fill } : {})}
       opacity={
         activeBar || (activeLegend && activeLegend !== name)
           ? deepEqual(activeBar, { ...payload, value })
@@ -135,7 +143,7 @@ const renderShape: (
 
 interface LegendItemProps {
   name: string;
-  color: AvailableChartColorsKeys;
+  color: ChartColorValue;
   onClick?: (name: string, color: string) => void;
   activeLegend?: string;
 }
@@ -167,6 +175,11 @@ const LegendItem: React.FunctionComponent<LegendItemProps> = ({
           getColorClassName(color, "bg"),
           activeLegend && activeLegend !== name ? "opacity-40" : "opacity-100",
         )}
+        style={
+          isHexColorValue(color)
+            ? { backgroundColor: getColorHex(color) }
+            : undefined
+        }
         aria-hidden={true}
       />
       <p
@@ -252,7 +265,7 @@ const ScrollButton: React.FunctionComponent<ScrollButtonProps> = ({
 
 interface LegendProps extends React.OlHTMLAttributes<HTMLOListElement> {
   categories: string[];
-  colors?: AvailableChartColorsKeys[];
+  colors?: ChartColorValue[];
   onClickLegendItem?: (category: string, color: string) => void;
   activeLegend?: string;
   enableLegendSlider?: boolean;
@@ -398,7 +411,7 @@ const Legend: React.ForwardRefExoticComponent<
               <LegendItem
                 key={`item-${index}`}
                 name={category}
-                color={colors[index] as AvailableChartColorsKeys}
+                color={colors[index] as ChartColorValue}
                 {...(onClickLegendItem ? { onClick: onClickLegendItem } : {})}
                 {...(activeLegend ? { activeLegend: activeLegend } : {})}
               />
@@ -443,7 +456,7 @@ Legend.displayName = "Legend";
 
 const ChartLegend: (
   payload: any,
-  categoryColors: Map<string, AvailableChartColorsKeys>,
+  categoryColors: Map<string, ChartColorValue>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
   activeLegend: string | undefined,
   onClick?: (category: string, color: string) => void,
@@ -452,7 +465,7 @@ const ChartLegend: (
   yAxisWidth?: number,
 ) => React.ReactElement = (
   { payload }: any,
-  categoryColors: Map<string, AvailableChartColorsKeys>,
+  categoryColors: Map<string, ChartColorValue>,
   setLegendHeight: React.Dispatch<React.SetStateAction<number>>,
   activeLegend: string | undefined,
   onClick?: (category: string, color: string) => void,
@@ -497,7 +510,7 @@ const ChartLegend: (
           return entry.value;
         })}
         colors={filteredPayload.map((entry: any) => {
-          return categoryColors.get(entry.value) as AvailableChartColorsKeys;
+          return categoryColors.get(entry.value) as ChartColorValue;
         })}
         {...(onClick ? { onClickLegendItem: onClick } : {})}
         {...(activeLegend ? { activeLegend: activeLegend } : {})}
@@ -518,7 +531,7 @@ type PayloadItem = {
   category: string; // eslint-disable-line react/no-unused-prop-types
   value: number; // eslint-disable-line react/no-unused-prop-types
   index: string; // eslint-disable-line react/no-unused-prop-types
-  color: AvailableChartColorsKeys; // eslint-disable-line react/no-unused-prop-types
+  color: ChartColorValue; // eslint-disable-line react/no-unused-prop-types
   type?: string; // eslint-disable-line react/no-unused-prop-types
   payload: any;
 };
@@ -575,6 +588,11 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
                         "size-2 shrink-0 rounded-xs",
                         getColorClassName(color, "bg"),
                       )}
+                      style={
+                        isHexColorValue(color)
+                          ? { backgroundColor: getColorHex(color) }
+                          : undefined
+                      }
                     />
                     <p
                       className={cx(
@@ -622,7 +640,7 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   data: Record<string, any>[];
   index: string;
   categories: string[];
-  colors?: AvailableChartColorsKeys[];
+  colors?: ChartColorValue[];
   valueFormatter?: (value: number) => string;
   startEndOnly?: boolean;
   showXAxis?: boolean;
@@ -699,7 +717,7 @@ const BarChart: React.ForwardRefExoticComponent<
     const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
       undefined,
     );
-    const categoryColors: Map<string, AvailableChartColorsKeys> =
+    const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
     const [activeBar, setActiveBar] = React.useState<any | undefined>(
       undefined,
@@ -942,7 +960,7 @@ const BarChart: React.ForwardRefExoticComponent<
                         index: item.payload[index],
                         color: categoryColors.get(
                           item.dataKey,
-                        ) as AvailableChartColorsKeys,
+                        ) as ChartColorValue,
                         type: item.type,
                         payload: item.payload,
                       };
@@ -1000,13 +1018,14 @@ const BarChart: React.ForwardRefExoticComponent<
               />
             ) : null}
             {categories.map((category: string) => {
+              const barColor: ChartColorValue = categoryColors.get(
+                category,
+              ) as ChartColorValue;
+              const isCustomColor: boolean = isHexColorValue(barColor);
               return (
                 <Bar
                   className={cx(
-                    getColorClassName(
-                      categoryColors.get(category) as AvailableChartColorsKeys,
-                      "fill",
-                    ),
+                    getColorClassName(barColor, "fill"),
                     onValueChange ? "cursor-pointer" : "",
                   )}
                   key={category}
@@ -1015,7 +1034,12 @@ const BarChart: React.ForwardRefExoticComponent<
                   dataKey={category}
                   {...(stacked ? { stackId: "stack" } : {})}
                   isAnimationActive={false}
-                  fill=""
+                  /*
+                   * Custom hex → apply the color inline (Tailwind has no class
+                   * for arbitrary user hex); named palette → keep "" so the
+                   * `fill-*` class on the Bar cascades to the shape path.
+                   */
+                  fill={isCustomColor ? getColorHex(barColor) : ""}
                   shape={shapeRenderer}
                   onClick={onBarClick}
                 />

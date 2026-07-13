@@ -34,7 +34,10 @@ import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import {
   AvailableChartColorsKeys,
+  ChartColorValue,
   getColorClassName,
+  getColorHex,
+  isHexColorValue,
 } from "Common/UI/Components/Charts/ChartLibrary/Utils/ChartColors";
 import { LineChartPalette } from "Common/UI/Components/Charts/Line/LineChart";
 import { AreaChartPalette } from "Common/UI/Components/Charts/Area/AreaChart";
@@ -263,6 +266,11 @@ function renderSeriesControls(input: {
   needsTopN: boolean;
   chartType: ChartType;
   /*
+   * Optional user-chosen lead color for this chart (hex or named key). When
+   * set, it heads the palette so the chips match the recolored chart series.
+   */
+  colorsOverride?: string | undefined;
+  /*
    * Formats a series value (peak/avg/latest) for display next to its name,
    * using the same unit/precision as the chart's y-axis.
    */
@@ -278,6 +286,7 @@ function renderSeriesControls(input: {
     hiddenFromTopN,
     needsTopN,
     chartType,
+    colorsOverride,
     valueFormatter,
   } = input;
 
@@ -299,10 +308,14 @@ function renderSeriesControls(input: {
    * Series that aren't on the chart right now (hidden by user or
    * filtered out) get no color and render as a muted dot below.
    */
-  const palette: Array<AvailableChartColorsKeys> = getChartPalette(chartType);
-  const colorByName: Map<string, AvailableChartColorsKeys> = new Map<
+  const basePalette: Array<AvailableChartColorsKeys> =
+    getChartPalette(chartType);
+  const palette: Array<ChartColorValue> = colorsOverride
+    ? [colorsOverride, ...basePalette]
+    : basePalette;
+  const colorByName: Map<string, ChartColorValue> = new Map<
     string,
-    AvailableChartColorsKeys
+    ChartColorValue
   >();
   displayableSeries.forEach((series: SeriesPoint, i: number) => {
     colorByName.set(series.seriesName, palette[i % palette.length]!);
@@ -459,10 +472,12 @@ function renderSeriesControls(input: {
             const isHidden: boolean = controls.hiddenSeries.has(
               series.seriesName,
             );
-            const color: AvailableChartColorsKeys | undefined = colorByName.get(
+            const color: ChartColorValue | undefined = colorByName.get(
               series.seriesName,
             );
             const showColor: boolean = Boolean(color) && !isHidden;
+            const showCustomColor: boolean =
+              showColor && isHexColorValue(color);
             const statValue: number | null = computeSeriesStat(
               series,
               displayStat,
@@ -491,8 +506,17 @@ function renderSeriesControls(input: {
                 <span
                   aria-hidden="true"
                   className={`h-2 w-2 shrink-0 rounded-full ${
-                    showColor ? getColorClassName(color!, "bg") : "bg-gray-300"
+                    showColor
+                      ? showCustomColor
+                        ? ""
+                        : getColorClassName(color!, "bg")
+                      : "bg-gray-300"
                   }`}
+                  style={
+                    showCustomColor
+                      ? { backgroundColor: getColorHex(color!) }
+                      : undefined
+                  }
                 />
                 <span
                   className={`max-w-[240px] truncate ${
@@ -864,6 +888,17 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         chartType = ChartType.AREA;
       }
 
+      /*
+       * Per-chart color override. When the query specifies a color, it leads
+       * the chart-type palette so the (single) series renders in that color;
+       * grouped multi-series charts keep the palette for the remaining series.
+       * Undefined = fall back to the wrapper's default palette.
+       */
+      const chartColorsOverride: Array<ChartColorValue> | undefined =
+        queryConfig.color
+          ? [queryConfig.color, ...getChartPalette(chartType)]
+          : undefined;
+
       // Resolve the unit for formatting
       const metricType: MetricType | undefined = props.metricTypes.find(
         (m: MetricType) => {
@@ -1054,6 +1089,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               hiddenFromTopN,
               needsTopN,
               chartType,
+              colorsOverride: queryConfig.color,
               valueFormatter: seriesValueFormatter,
             })
           : undefined;
@@ -1152,6 +1188,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           curve: ChartCurve.MONOTONE,
           sync: true,
+          colors: chartColorsOverride,
           referenceLines:
             referenceLines.length > 0 ? referenceLines : undefined,
         },
@@ -1298,6 +1335,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           curve: ChartCurve.MONOTONE,
           sync: true,
+          colors: formulaConfig.color ? [formulaConfig.color] : undefined,
           referenceLines:
             formulaReferenceLines.length > 0
               ? formulaReferenceLines

@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import MetricAlias from "./MetricAlias";
 import MetricQuery from "./MetricQuery";
+import SeriesColorSelector from "./SeriesColorSelector";
 import Card from "Common/UI/Components/Card/Card";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
@@ -408,6 +409,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 />
                 <span>Display Settings</span>
                 {(props.data?.metricAliasData?.title ||
+                  props.data?.color ||
                   props.data?.warningThreshold !== undefined ||
                   props.data?.criticalThreshold !== undefined) && (
                   <span className="inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
@@ -431,6 +433,21 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                     isFormula={false}
                     hideVariableBadge={true}
                     unitFamilyBasedOn={selectedMetricNativeUnit}
+                  />
+
+                  {/* Series color */}
+                  <SeriesColorSelector
+                    value={props.data?.color}
+                    onChange={(color: string | undefined) => {
+                      props.onBlur?.();
+                      props.onFocus?.();
+                      if (props.onChange) {
+                        props.onChange({
+                          ...props.data,
+                          color: color,
+                        });
+                      }
+                    }}
                   />
 
                   {/* Thresholds */}

@@ -32,6 +32,15 @@ export default interface MetricQueryConfigData {
   warningThreshold?: number | undefined;
   criticalThreshold?: number | undefined;
   /*
+   * Optional user-chosen color for this query's series. Stored as a hex
+   * string (e.g. "#6366f1") — the preset swatches write their palette hex
+   * and the custom picker writes an arbitrary hex. When set, it becomes the
+   * lead color for this query's chart (single-series → the series color;
+   * grouped multi-series → the first series, with the default palette filling
+   * the rest). Unset = auto-assigned from the chart-type palette.
+   */
+  color?: string | undefined;
+  /*
    * When true, the post-aggregation series points are transformed into
    * a per-second rate of change: `(value - previousValue) / Δt`. This is
    * the right view for OTel cumulative counters (e.g. `system.disk.io`,

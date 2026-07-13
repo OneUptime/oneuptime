@@ -1,5 +1,8 @@
 import { AreaChart } from "../ChartLibrary/AreaChart/AreaChart";
-import { AvailableChartColorsKeys } from "../ChartLibrary/Utils/ChartColors";
+import {
+  AvailableChartColorsKeys,
+  ChartColorValue,
+} from "../ChartLibrary/Utils/ChartColors";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -51,6 +54,12 @@ export interface ComponentProps {
    */
   anomalyBandLowerSeriesName?: string | undefined;
   anomalyBandUpperSeriesName?: string | undefined;
+  /*
+   * Optional per-series color override (named palette keys or hex strings).
+   * When provided, replaces the default AreaChartPalette. Indexed by series
+   * position (index % length).
+   */
+  colors?: Array<ChartColorValue> | undefined;
 }
 
 export interface AreaInternalProps extends ComponentProps {
@@ -138,7 +147,11 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         tickGap={30}
         index={"Time"}
         categories={categories}
-        colors={AreaChartPalette}
+        colors={
+          props.colors && props.colors.length > 0
+            ? props.colors
+            : AreaChartPalette
+        }
         valueFormatter={props.yAxis.options.formatter || undefined}
         showTooltip={true}
         showLegend={props.showLegend !== false}
