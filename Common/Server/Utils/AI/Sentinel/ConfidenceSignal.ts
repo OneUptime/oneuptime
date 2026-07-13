@@ -102,13 +102,28 @@ export interface EvidenceInput {
 }
 
 export default class SentinelConfidenceSignal {
+  /*
+   * THE single definition of "data-bearing" (shared with the eval harness in
+   * Utils/AI/Eval): a tool result that carried at least one row of data.
+   * rowCount 0 is still server-verified evidence — proof of absence ("checked,
+   * found nothing") — but it is not data-BEARING. Both the live confidence
+   * floor (over minted citations) and the offline corpus derivation (over
+   * recorded AIRunEvent resultSummary.rowCount) route through this helper so
+   * the two can never drift apart.
+   */
+  public static isDataBearingRowCount(
+    rowCount: number | null | undefined,
+  ): boolean {
+    return (rowCount || 0) > 0;
+  }
+
   // Derive the deterministic evidence inputs from the run's minted citations.
   public static evidenceFromCitations(
     citations: Array<AIChatCitation>,
   ): EvidenceInput {
     const dataBearingToolCallCount: number = citations.filter(
       (citation: AIChatCitation) => {
-        return (citation.rowCount || 0) > 0;
+        return this.isDataBearingRowCount(citation.rowCount);
       },
     ).length;
 
