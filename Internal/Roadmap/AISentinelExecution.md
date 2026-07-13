@@ -2,7 +2,7 @@
 
 > The **living** companion to [AISentinelVision.md](./AISentinelVision.md). Vision says why; this doc says what is built, what is next, and what gates what.
 > **Rule:** any PR that changes behavior under `Common/Server/Utils/AI/` (or the legacy `AIAgent/`) must update the relevant status row and, if it re-sequences work, add a line to the Deviations log. Stale status is worse than no status.
-> Status last verified against the codebase: **2026-07-11**.
+> Status last verified against the codebase: **2026-07-13** (six-check verification of the Phase 1/2 status rows + five-reader substrate audit for the Preventive lane).
 
 ---
 
@@ -61,6 +61,9 @@ Legend: ✅ Shipped · 🟡 Partial · ❌ Not started · 🔪 To be removed/abs
 | Egress redaction of tool results (JWTs, bearer/AWS/git tokens, credential patterns) | ✅ | `Common/Server/Utils/AI/Toolbox/Serializer.ts` |
 | Per-run egress manifest | 🟡 chat only | `ChatAgentRunner.ts`; autonomous Sentinel runs record `AIRunEvent`s but no manifest |
 | MTTR raw metrics (TimeToAcknowledge/TimeToResolve per incident) — no `aiInvestigated` dimension, no time-to-RCA metric | 🟡 | `Common/Server/Services/IncidentService.ts` (~2971), `Common/Types/Incident/IncidentMetricType.ts` |
+| Deterministic detection surface: hour-of-week metric baseline bands (ClickHouse MV, per-entity cells, 90-day TTL) on 9 monitor types + the `baseline_anomaly` tool. Gaps (verified 2026-07-13): monitor evaluator ignores `primaryEntityId`; `MedianMad` enum never wired; band-violation only — no drift/trend, log-novelty, trace-regression, or exception-rate anomaly anywhere; no SLO/error-budget model (Q9) | 🟡 | `Common/Models/AnalyticsModels/MetricBaselineHourly.ts`, `Common/Server/Utils/Monitor/Criteria/MetricMonitorCriteria.ts` (`evaluateAnomaly`) |
+| Preventive guardrail schema on `ServiceCodeRepository` (`enableAutomaticImprovements` default **true**, `maxOpenPullRequests` 3, `restrictedImprovementActions`) + `Service`↔repo mapping with `servicePathInRepository` | 🟡 schema only — zero server-side consumers (verified 2026-07-13); the default-true column is a footgun the Preventive lane must flip before shipping an engine | `Common/Models/DatabaseModels/ServiceCodeRepository.ts` |
+| Release awareness: `service.version` → `ExceptionInstance.release` (indexed), `TelemetryException.firstSeenInRelease`/`lastSeenInRelease`, `Service.serviceVersion` last-seen overwrite — but version changes emit NO event (hook-bypassing write), keep no history; no Deployment/Release model, GitHub webhook handles only `installation` | 🟡 | `Common/Server/Services/ServiceService.ts` (`updateLastSeen`), `Common/Server/API/GitHubAPI.ts` |
 
 ### Legacy AIAgent (FixException) — 🔪 to be absorbed
 
@@ -69,6 +72,7 @@ Legend: ✅ Shipped · 🟡 Partial · ❌ Not started · 🔪 To be removed/abs
 | Standalone worker still fully deployed (compose, Helm, KEDA) with OpenCode CLI shell-out | 🔪 running in prod | `AIAgent/`, `docker-compose.base.yml`, `HelmChart/Public/oneuptime/templates/ai-agent.yaml` |
 | `get-pending-task` double-processing race — fixed via atomic Scheduled→InProgress claim (status-guarded `updateOneBy`, bounded retry over next candidates; CAS pattern generalized from `ChatAgentRunner.ts`). Worker's follow-up InProgress update kept as a no-op refresh for rolling-upgrade compat with pre-claim servers | ✅ | `AIAgentTaskService.claimNextScheduledTask`, `Common/Server/API/AIAgentTaskAPI.ts` (`get-pending-task`), tests in `Common/Tests/Server/Services/AIAgentTaskServiceClaim.test.ts` |
 | Git/PR/workspace plumbing to keep (fold into future `code_fix` tool; GitHub-only today, generalize via `CodeRepository.repositoryHostedAt`) | ✅ exists | `AIAgent/Utils/PullRequestCreator.ts` and related |
+| Fix-context ceiling + no verify loop (honesty row, verified 2026-07-13): handler reads ONLY exception message/stackTrace/type/fingerprint + service name — never logs, traces, spans, or occurrence history; only gate before the non-draft PR is `filesModified.length > 0` (no build/test/lint); trigger is user-click-only; stuck-task reset retries with no cap | 🔪 to fix in the code-fix track + Preventive lane X-items | `Common/Server/API/AIAgentDataAPI.ts` (~135), `AIAgent/TaskHandlers/FixExceptionTaskHandler.ts` (~299) |
 
 ---
 
@@ -88,6 +92,7 @@ The vision doc's §6 commitments, tracked honestly. **None of the first four are
 | G8 | Audit-trail lifecycle: configurable `LlmLog` retention + restrict prompt/response preview reads to admin-tier; same review for `AIRunEvent` payloads | 🟡 PARTIAL | Since 2026-07-10 NO path stores prompt/response previews: chat/investigations already opted out, and the five one-shot endpoints + auto-postmortem now do too (their prompts embed content with narrower ACLs than LlmLog). Retention remains hard-coded 3-day on cloud / indefinite self-host — the configurable, access-tiered lifecycle is still open | Enterprise/SOC2 packaging |
 | G9 | Failure semantics per capability (pages fail open; mutations/comms fail closed; verification fails to "unverified"; failures visibly surfaced) | 🟡 PARTIAL | Investigation failures mark the AIRun `Error` and log; since 2026-07-10 the investigation panel (incident + alert) shows the run's `errorMessage` detail on failure; still nothing posted to the feed or workspace | Phase 3 verify/rollback; §4.9 comms |
 | G10 | Memory safety (tenant isolation at storage layer, provenance + review on writes, quarantine/expiry, retrieved-memory-as-untrusted) | 🟡 N/A today (memory v1 is read-only, project-scoped, stores nothing) | `SentinelMemory.ts` scopes by `projectId`, no writes | Phase 4 persisted cases, pgvector RAG, correction memory, runbook registry |
+| G11 | Preventive precision + noise budget (vision §4.14/§6): per-finding-type measured precision (human confirm/dismiss rates) gates any automation; per-repo `maxOpenPullRequests` + per-project daily fix-task budget + fingerprint dedupe enforced; fix PRs human-reviewed always — auto-merge is a non-goal, not a setting | ❌ NOT MET (lane not built; first step is outcome instrumentation on the existing manual fix path) | Fix path is manual-only: user click per exception, one active task per exception, and PRs require a manually linked `ServiceCodeRepository` (repo connection is Growth-plan gated; task creation itself carries no plan check); findings inbox does not exist, so nothing to be noisy yet | Any auto-created fix task; any preventive PR automation; any "incidents prevented" claim |
 
 ---
 
@@ -128,7 +133,7 @@ Ordering changed from the original roadmap — rationale in the Deviations log. 
 
 ### Phase 3 — Proactive detection, active verify, legacy absorption
 
-- [ ] Pre-incident detection as **anomaly-monitor-triggered investigation enrichment** — existing anomaly monitors fire, Sentinel investigates proactively; explicitly NOT a second anomaly cron (original BUILD note stands); gated on the queue + circuit breaker
+- [ ] Pre-incident detection as **anomaly-monitor-triggered investigation enrichment** — existing anomaly monitors fire, Sentinel investigates proactively; explicitly NOT a second anomaly cron (original BUILD note stands); gated on the queue + circuit breaker *(complementary to the Preventive lane below: this item opens/enriches incidents from loud anomalies; the lane files quiet findings with no incident at all)*
 - [ ] Alert-storm collapse ("47 alerts, 1 root cause") — rule-based grouping + AI root-cause grouping, on the queue
 - [ ] Active verification: re-run the exact failed probe/synthetic monitor on demand; report "verified recovered" / "unverified" only (G9)
 - [ ] Deterministic deploy correlation + one-click rollback of the identified release
@@ -143,6 +148,34 @@ Ordering changed from the original roadmap — rationale in the Deviations log. 
 - [ ] In-house `LLMService` coding sub-agent replaces the OpenCode CLI shell-out; reuse `RepositoryManager`/`PullRequestCreator`/`WorkspaceManager` plumbing
 - [ ] Regression test generated from the real production error; build/test/lint verify loop until green
 - [ ] GitLab support (honor `CodeRepository.repositoryHostedAt`)
+
+### Preventive lane — silent watch → finding → fix-before-incident (added 2026-07-13; runs parallel to Phases 2–4)
+
+> Vision §4.14. Architecture rule: **no LLM in the watch loop** — deterministic sensors do the always-on watching; the LLM engages per-finding (budgeted, read-only, on the durable queue); the coding agent engages only for finding types that have earned it (G11). Substrate audit 2026-07-13: the guardrail schema already shipped with **no engine** — `ServiceCodeRepository.enableAutomaticImprovements` (default **true**), `maxOpenPullRequests` (default 3), `restrictedImprovementActions` ({Fix Exceptions, Improve Logs, Improve Spans, Improve Metrics, Fix Performance Issues}) have zero server-side consumers. The manual `Fix with AI Agent` flow is the only fix path today: user-click-only, context ceiling = stack trace + exception message + service name (never logs/traces/occurrences — `AIAgentDataAPI.ts:135`), no CI verify before the non-draft PR, GitHub-only. The detection surface is metric-band-only: no drift/trend, no log novelty, no trace-latency regression, no exception-rate anomaly, no SLO model (Q9).
+
+**W — deterministic watchers (product features, no LLM, can ship independently):**
+
+- [ ] Per-entity baseline fix: `evaluateAnomaly` calls `getBaseline` without `primaryEntityId` (`MetricMonitorCriteria.ts:~850`), so the band aggregates across every entity emitting the metric name even though the MV stores per-entity cells — fix before building anything on top
+- [ ] Week-over-week drift detector over the existing `MetricBaselineHourly` per-day rows (anchored-window vs rolling comparison; the rolling band re-learns slow decay and structurally cannot see it) — new criteria filter type on existing monitors + a finding source, NOT a second anomaly scheduler
+- [ ] Release-change signal: `ServiceService.updateLastSeen` writes `serviceVersion` via `updateColumnsByIdWithoutHooks` (no event, no history) — emit a first-class release-changed event + short version history, then a post-deploy regression watch (post-deploy window vs same-hour baseline; also strengthens the reactive §4.4 deploy correlation)
+- [ ] Exception novelty/regression detectors: new-fingerprint signal + regressed-in-newer-release (`TelemetryException.firstSeenInRelease`/`lastSeenInRelease` exist; recurrence today re-opens with no release-aware logic)
+- [ ] Trace p95 latency regression per (service, operation) — needs a spans baseline MV modeled on `MetricBaselineHourly`
+- [ ] Log-pattern novelty (template mining / clustering) — biggest net-new detector; design spike first (Q8)
+
+**F — findings substrate:**
+
+- [ ] `ReliabilityFinding` model + quiet triage inbox — clone the `TelemetryException` lifecycle shape (fingerprint dedupe, firstSeen/lastSeen, occurrenceCount, assign, resolve/dismiss + audit fields); **findings never page** (non-goal below); feeds the Phase 4 reliability-debt report
+- [ ] Preventive Sentinel triage on the durable AIRun queue: read-only, budgeted, cited enrichment per finding (service attribution → repo via `ServiceCodeRepository`, impact estimate, suggested action); human confirm/dismiss instrumentation from day one (this IS the G11 measurement)
+
+**X — fix-before-incident:**
+
+- [ ] Outcome instrumentation on the EXISTING manual fix path first (PR merged / closed-unmerged / merged-with-edits, from `AIAgentTaskPullRequest` state) — zero-risk, starts the G11 precision baseline immediately
+- [ ] Flip `enableAutomaticImprovements` default to **false** + explicit project-level preventive opt-in flag (the column shipped default-true with no engine; when an engine lands it must not become silent default-on — same opt-in posture as the investigation flags)
+- [ ] Auto-created fix tasks for graduated finding types only (new-fingerprint exceptions first — highest precision, handler exists), honoring `restrictedImprovementActions` + `maxOpenPullRequests` + a per-project daily fix-task budget + a retry cap (the 30-min stuck-task reset currently retries forever); **draft PRs, human review always**; requires the code-fix track's sandbox + verify loop (today's path commits the agent diff and opens a non-draft PR with zero build/test/lint)
+- [ ] Widen the fix context beyond the stack trace: fix tasks read the finding's cited evidence (logs/traces/spans/occurrence history) — the "grounded in full telemetry" differentiator, currently absent even from the manual path
+- [ ] Prevented-incident accounting, conservatively defined (finding fixed → signal returned to band → no correlated incident within N days, Q10) — no public "incidents prevented" claim before this exists
+
+Hard prerequisites: code-fix track design spike (sandbox) before any X-lane automation; G11 before any auto-created fix task; G1 circuit breaker before fix-task fan-out; G4 budgets (already in force) cover the LLM triage spend.
 
 ### Phase 4 — Memory, multi-agent, graduated autonomy
 
@@ -182,9 +215,12 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 
 - **MCP `ToolGenerator` tools (~155) will not be exposed to autonomous agents.** Autonomous runs see the curated read-only toolbox, period. (The original "unified behind one `ObservabilityTool` interface" framing is retired — isolation is the feature, not a gap.)
 - **No big-bang cutover of the legacy AIAgent.** Absorption per the Phase 3 milestone; the standalone worker keeps running (with the race fixed) until `code_fix` replaces it.
-- **No second anomaly-detection scheduler.** Proactive detection triggers off existing anomaly monitors.
+- **No second *metric*-anomaly scheduler.** Incident-opening proactive detection (Phase 3) triggers off existing anomaly monitors, and the metric-band evaluator is never re-implemented elsewhere. The Preventive lane's new watchers (drift filter, spans baseline, log novelty, post-deploy watch) are *new* deterministic sensors under the lane's own rules — they extend the sensor surface; they do not duplicate it.
 - **No public accuracy/MTTR marketing claims before their instrumentation exists.**
 - **No page cancellation, ever.** The most Sentinel may do is delay-with-dead-man's-switch (G7).
+- **No LLM in the watch loop.** The always-on preventive watchers are deterministic; the LLM engages per-finding under G4 budgets. "AI reads every log line" is the tokenpocalypse we attack Datadog for — we will not build it.
+- **The preventive lane never pages.** Findings are a quiet inbox; only incidents/alerts page, and only through the existing notification pipeline.
+- **No auto-merge of AI-authored PRs, ever.** Human review is the permanent safety boundary of fix-before-incident (vision §6: code-from-telemetry supply-chain risk).
 
 ## 6. Open questions
 
@@ -197,6 +233,9 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 | Q5 | Default-on criterion for new projects: which measured precision bar over how many graded runs? | product | activation |
 | Q6 | `LlmLog` retention: should the hard-coded 3-day cloud delete become a configurable default that also covers self-host (which has none)? Which roles may read prompt previews? | eng+security | G8 |
 | Q7 | Code-fix sandbox: build on existing Workflow/Worker infra vs dedicated runner pool vs external CI triggers? | eng | Code-fix track |
+| Q8 | Log-novelty technique: Drain-style template mining in ClickHouse vs embedding clustering — storage + cost envelope, per-tenant cardinality limits | eng | Preventive lane (last watcher) |
+| Q9 | SLO/error-budget as a product feature: burn-rate is the canonical preventive signal, and marketing already claims "SLO tracking / error budgets" that do not exist in the product (`Home/Views/solutions/sre.ejs`, `Home/Utils/ProductCompare.ts` — verified 2026-07-13). Build SLOs, or correct the pages? | product | Preventive-lane detectors; marketing honesty either way |
+| Q10 | Prevented-incident metric: counterfactual window and correlation rule — what may we honestly count and publish? | product+eng | G11, preventive-lane GTM claims |
 
 ## 7. Deviations log
 
@@ -210,6 +249,8 @@ Opsgenie EOL is **April 5, 2027**; migrating teams choose destinations 6–18 mo
 | 2026-07 | **D5:** Roadmap restructured: original `AISentinelReliabilityBrain.md` split into Vision + this tracker | The single doc's execution claims were stale at merge time ("zero implementation" shipped in the same commit); vision content had not drifted at all |
 
 ## 8. Changelog
+
+- **2026-07-13** — **Added the Preventive lane** (vision §4.14: deterministic silent watchers → Reliability Findings inbox → fix-before-incident PRs), a new track parallel to Phases 2–4 with W/F/X sequencing; new gate **G11** (preventive precision + noise budget); three new non-goals (no LLM in the watch loop; the preventive lane never pages; no auto-merge of AI PRs, ever); vision §6 gains the code-from-telemetry supply-chain threat; Q8–Q10 opened. Substrate audit recorded: `ServiceCodeRepository`'s automatic-improvement guardrail columns (`enableAutomaticImprovements`/`maxOpenPullRequests`/`restrictedImprovementActions`) shipped with zero server-side consumers — and a default-**true** enable flag; the manual fix path has a stack-trace-only context ceiling, no CI verify, and a capless retry; rolling baselines structurally cannot see slow drift (no week-over-week query exists); version changes emit no event (hook-bypassing `serviceVersion` write); marketing claims SLOs the product does not have (Q9).
 
 - **2026-07-11** — The alert re-investigation cooldown (default 30 min, 0 disables, clamp ≤24h) and the concurrent-investigation cap (default 3, clamp 1–25) are now per-project settings (`Project.alertInvestigationDedupeWindowMinutes`, `Project.aiMaxConcurrentInvestigations`) with UI on the AI settings pages; docs table updated.
 
