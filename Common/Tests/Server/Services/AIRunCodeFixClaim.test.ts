@@ -2,6 +2,7 @@ import AIRunService from "../../../Server/Services/AIRunService";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
@@ -20,6 +21,7 @@ function fakeQueuedRun(data?: {
   codeFixTaskType?: CodeFixTaskType;
   incidentId?: ObjectID;
   alertId?: ObjectID;
+  taskContext?: CodeFixTaskContext;
 }): AIRun {
   return {
     id: ObjectID.generate(),
@@ -32,6 +34,7 @@ function fakeQueuedRun(data?: {
     triggeredByAlertId: data?.alertId,
     attemptCount: data?.attemptCount || 0,
     codeFixTaskType: data?.codeFixTaskType,
+    taskContext: data?.taskContext,
   } as unknown as AIRun;
 }
 
@@ -261,6 +264,103 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
         set: expect.objectContaining({
           status: AIRunStatus.Error,
           errorMessage: expect.stringContaining("incident or alert subject"),
+        }),
+      }),
+    );
+  });
+
+  /*
+   * FixPerformance is the third context kind: no exception AND no
+   * incident/alert subject — its trace evidence lives in taskContext. The
+   * guard must accept it when taskContext carries a traceId and Error it
+   * when the evidence is missing.
+   */
+  test("a FixPerformance run with trace evidence in taskContext is claimed — no exception, no subject", async () => {
+    const run: AIRun = fakeQueuedRun({
+      exceptionId: null,
+      codeFixTaskType: CodeFixTaskType.FixPerformance,
+      taskContext: {
+        traceId: "abc123trace",
+        performanceFindings: [],
+      },
+    });
+
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(run);
+    expect(claimed?.codeFixTaskType).toBe(CodeFixTaskType.FixPerformance);
+    // Exactly the claim CAS — no Error transition.
+    expect(transition).toHaveBeenCalledTimes(1);
+  });
+
+  test("a FixPerformance run with NO trace evidence is finalized as Error and skipped", async () => {
+    const brokenRun: AIRun = fakeQueuedRun({
+      exceptionId: null,
+      codeFixTaskType: CodeFixTaskType.FixPerformance,
+    });
+    const goodRun: AIRun = fakeQueuedRun();
+
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValueOnce(brokenRun)
+      .mockResolvedValueOnce(goodRun);
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(goodRun);
+    expect(transition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        aiRunId: brokenRun.id,
+        fromStatus: AIRunStatus.Running,
+        set: expect.objectContaining({
+          status: AIRunStatus.Error,
+          errorMessage: expect.stringContaining("trace evidence"),
+        }),
+      }),
+    );
+  });
+
+  test("a FixPerformance run carrying an incident id but no taskContext is still errored — the guard groups by context kind, not by whatever record happens to exist", async () => {
+    const brokenRun: AIRun = fakeQueuedRun({
+      exceptionId: null,
+      codeFixTaskType: CodeFixTaskType.FixPerformance,
+      incidentId: ObjectID.generate(),
+    });
+    const goodRun: AIRun = fakeQueuedRun();
+
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValueOnce(brokenRun)
+      .mockResolvedValueOnce(goodRun);
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    const claimed: AIRun | null = await AIRunService.claimNextQueuedCodeFixRun({
+      aiAgentId: ObjectID.generate(),
+    });
+
+    expect(claimed).toBe(goodRun);
+    expect(transition).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        aiRunId: brokenRun.id,
+        set: expect.objectContaining({
+          status: AIRunStatus.Error,
+          errorMessage: expect.stringContaining("trace evidence"),
         }),
       }),
     );
