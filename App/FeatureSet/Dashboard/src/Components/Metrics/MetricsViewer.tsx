@@ -1241,9 +1241,11 @@ const MetricsViewer: FunctionComponent<Props> = (
 
       /*
        * Propagate the list's attribute filters — the prop-injected scope
-       * (e.g. resource.host.name on entity pages) plus any search/facet
-       * attribute chips the user added, all merged in effectiveAttributes —
-       * so the detail chart is narrowed the same way the list was.
+       * (e.g. the service view's `oneuptime.service.name`, or a host page's
+       * `resource.host.name`) plus any search/facet attribute chips the user
+       * added, all merged in effectiveAttributes — so the detail chart is
+       * scoped to the same entity the list was, instead of aggregating the
+       * metric across every service in the project.
        */
       const presetAttributes: Record<string, string> = {};
       for (const [key, value] of Object.entries(effectiveAttributes)) {
@@ -1252,33 +1254,12 @@ const MetricsViewer: FunctionComponent<Props> = (
         }
       }
 
-      /*
-       * Propagate the service scope: the prop-level service ids (service view)
-       * plus any service facet chips selected in the list. These compile to a
-       * `primaryEntityId IN (...)` filter on the detail aggregate so the chart
-       * shows the same service's data — previously the detail page aggregated
-       * the metric across every service in the project.
-       */
-      const serviceIdSet: Set<string> = new Set<string>();
-      for (const serviceId of props.serviceIds || []) {
-        serviceIdSet.add(serviceId.toString());
-      }
-      for (const filter of activeFilters) {
-        if (filter.facetKey === "primaryEntityId") {
-          serviceIdSet.add(filter.value);
-        }
-      }
-      const serviceIds: Array<string> = Array.from(serviceIdSet);
-
       const queryPayload: Record<string, unknown> = {
         metricName: metric.name || "",
         aggregationType: MetricsAggregationType.Avg,
       };
       if (Object.keys(presetAttributes).length > 0) {
         queryPayload["attributes"] = presetAttributes;
-      }
-      if (serviceIds.length > 0) {
-        queryPayload["serviceIds"] = serviceIds;
       }
       const metricQueriesPayload: Array<Record<string, unknown>> = [
         queryPayload,
@@ -1308,7 +1289,7 @@ const MetricsViewer: FunctionComponent<Props> = (
 
       Navigation.navigate(metricUrl);
     },
-    [effectiveAttributes, props.serviceIds, activeFilters, timeRange],
+    [effectiveAttributes, timeRange],
   );
 
   // Whether the URL already carried filter state (deep link) on first mount.

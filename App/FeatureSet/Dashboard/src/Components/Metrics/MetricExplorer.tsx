@@ -59,9 +59,6 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               aggegationType:
                 metricQuery.aggregationType || MetricsAggregationType.Avg,
             },
-            ...(metricQuery.serviceIds && metricQuery.serviceIds.length > 0
-              ? { serviceIds: metricQuery.serviceIds }
-              : {}),
           },
         };
       },
@@ -206,12 +203,6 @@ type MetricQueryFromUrl = {
   attributes: Dictionary<string | number | boolean>;
   aggregationType?: MetricsAggregationType;
   alias?: MetricQueryAliasFromUrl;
-  /*
-   * Service ids this query is scoped to (propagated from a service-scoped
-   * metric list). Compiles to a `primaryEntityId IN (...)` filter on the
-   * aggregate so the detail chart shows the same service's data the list did.
-   */
-  serviceIds?: Array<string>;
 };
 
 type MetricQueryAliasFromUrl = {
@@ -255,16 +246,11 @@ function buildMetricQueriesFromState(
       const aliasData: MetricQueryAliasFromUrl | undefined =
         buildAliasFromMetricAliasData(queryConfig.metricAliasData);
 
-      const serviceIds: Array<string> = sanitizeServiceIds(
-        queryConfig.metricQueryData.serviceIds,
-      );
-
       return {
         metricName,
         attributes,
         ...(aggregationType ? { aggregationType } : {}),
         ...(aliasData ? { alias: aliasData } : {}),
-        ...(serviceIds.length > 0 ? { serviceIds } : {}),
       };
     },
   );
@@ -313,16 +299,11 @@ function getMetricQueriesFromQuery(): Array<MetricQueryFromUrl> {
         entryRecord,
       );
 
-      const serviceIds: Array<string> = sanitizeServiceIds(
-        entryRecord["serviceIds"],
-      );
-
       sanitizedQueries.push({
         metricName,
         attributes,
         ...(aggregationType ? { aggregationType } : {}),
         ...(alias ? { alias } : {}),
-        ...(serviceIds.length > 0 ? { serviceIds } : {}),
       });
     }
 
@@ -399,37 +380,6 @@ function sanitizeAttributes(
   }
 
   return attributes;
-}
-
-function sanitizeServiceIds(value: unknown): Array<string> {
-  if (value === null || value === undefined) {
-    return [];
-  }
-
-  let candidate: unknown = value;
-
-  // Tolerate a JSON-encoded array string, mirroring sanitizeAttributes.
-  if (typeof value === "string") {
-    try {
-      candidate = JSONFunctions.parse(value);
-    } catch {
-      return [];
-    }
-  }
-
-  if (!Array.isArray(candidate)) {
-    return [];
-  }
-
-  const serviceIds: Array<string> = [];
-
-  for (const entry of candidate) {
-    if (typeof entry === "string" && entry.trim().length > 0) {
-      serviceIds.push(entry);
-    }
-  }
-
-  return serviceIds;
 }
 
 function buildAliasFromMetricAliasData(
@@ -631,16 +581,6 @@ function isMeaningfulMetricQuery(query: MetricQueryFromUrl): boolean {
   }
 
   if (query.alias && Object.keys(query.alias).length > 0) {
-    return true;
-  }
-
-  /*
-   * A service scope is meaningful on its own: keep the entry in the URL so a
-   * scope-only query (e.g. the user cleared the metric name) survives reload
-   * instead of silently reverting to project-wide. Mirrors the serialize path,
-   * which already emits serviceIds.
-   */
-  if (query.serviceIds && query.serviceIds.length > 0) {
     return true;
   }
 
