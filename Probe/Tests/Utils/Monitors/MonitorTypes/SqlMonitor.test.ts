@@ -5,6 +5,7 @@ process.env["PROBE_KEY"] = "test-probe-key";
 import SqlMonitor, {
   SqlQueryValidator,
 } from "../../../../Utils/Monitors/MonitorTypes/SqlMonitor";
+import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
 import { describe, expect, it } from "@jest/globals";
 
 describe("SqlQueryValidator.getRejectionReason", () => {
@@ -266,7 +267,7 @@ describe("SqlMonitor.shapeRows", () => {
 
 describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
   it("returns a failure for a write query without connecting", async () => {
-    const response = await SqlMonitor.execute(
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
       {
         databaseType: "PostgreSQL" as any,
         host: "db.internal",
@@ -291,7 +292,7 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
   });
 
   it("returns a failure for an unsupported database type without connecting", async () => {
-    const response = await SqlMonitor.execute(
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
       {
         databaseType: "OracleDatabase" as any,
         host: "db.internal",
@@ -320,7 +321,7 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
       "MySQL",
       "Microsoft SQL Server",
     ]) {
-      const response = await SqlMonitor.execute(
+      const response: SqlMonitorResponse | null = await SqlMonitor.execute(
         {
           databaseType: databaseType as any,
           host: "db.internal",
