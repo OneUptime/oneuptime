@@ -300,8 +300,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title="Sentinel Investigation"
-      description={`Sentinel's live root-cause investigation for this ${props.subjectType}.`}
+      title="AI Investigation"
+      description={`OneUptime AI's live root-cause investigation for this ${props.subjectType}.`}
     >
       <div className="-mt-4">
         <div
@@ -364,7 +364,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 strongTitle="Fix task created"
                 title={
                   <span>
-                    Sentinel will open a pull request from this analysis.{" "}
+                    AI will open a pull request from this analysis.{" "}
                     <Link
                       className="underline"
                       to={RouteUtil.populateRouteParams(
@@ -394,7 +394,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                               RouteMap[PageMap.AI_AGENT_TASKS] as Route,
                             )}
                           >
-                            View Sentinel tasks
+                            View AI tasks
                           </Link>
                           .
                         </span>
@@ -500,7 +500,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 </div>
               )}
               <p className="mt-1.5 text-xs text-gray-400">
-                Verdicts train Sentinel&apos;s public accuracy score.
+                Verdicts train OneUptime AI&apos;s public accuracy score.
               </p>
             </div>
           </div>

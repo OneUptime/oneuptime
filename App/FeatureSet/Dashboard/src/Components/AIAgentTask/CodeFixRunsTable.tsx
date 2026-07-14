@@ -153,8 +153,8 @@ const CodeFixRunsTable: FunctionComponent = (): ReactElement => {
 
   return (
     <Card
-      title="Sentinel Tasks"
-      description="Exception code tasks executed by Sentinel — fixes and regression tests, newest first. Open a task to watch what Sentinel did step by step."
+      title="AI Tasks"
+      description="Exception code tasks executed by AI — fixes and regression tests, newest first. Open a task to watch what AI did step by step."
       buttons={[
         {
           title: "Refresh",

@@ -60,7 +60,7 @@ Hvis den valgte agenten er offline når runbook'et når dette trinnet, venter tr
 
 ### AI
 
-Be AI om å analysere, oppsummere eller avgjøre noe midt i kjøringen. Prompten sendes til prosjektets LLM-leverandør (**Innstillinger → Sentinel → LLM Providers**), og modellens svar blir trinnets output på kjøringstidslinjen. AI-trinn kjører på OneUptime-Worker'en; ingen agent påkrevd.
+Be AI om å analysere, oppsummere eller avgjøre noe midt i kjøringen. Prompten sendes til prosjektets LLM-leverandør (**Innstillinger → AI → LLM Providers**), og modellens svar blir trinnets output på kjøringstidslinjen. AI-trinn kjører på OneUptime-Worker'en; ingen agent påkrevd.
 
 Konfigurer på et AI-trinn:
 

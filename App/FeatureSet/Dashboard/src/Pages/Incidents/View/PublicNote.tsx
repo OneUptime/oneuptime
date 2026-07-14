@@ -82,9 +82,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
       });
 
     if (response instanceof HTTPErrorResponse) {
-      throw new Error(
-        response.message || "Failed to generate note with Sentinel",
-      );
+      throw new Error(response.message || "Failed to generate note with AI");
     }
 
     return response.data["note"] as string;
@@ -216,7 +214,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           title: "Public Notes",
           buttons: [
             {
-              title: "Generate with Sentinel",
+              title: "Generate with AI",
               icon: IconProp.Bolt,
               buttonStyle: ButtonStyleType.OUTLINE,
               onClick: async (): Promise<void> => {
@@ -483,8 +481,8 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
       {showGenerateFromAIModal && (
         <GenerateFromAIModal
-          title="Generate Public Note with Sentinel"
-          description="Sentinel will analyze the incident data and generate a customer-facing public note."
+          title="Generate Public Note with AI"
+          description="AI will analyze the incident data and generate a customer-facing public note."
           templates={PUBLIC_NOTE_TEMPLATES}
           onClose={() => {
             setShowGenerateFromAIModal(false);

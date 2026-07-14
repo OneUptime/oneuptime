@@ -624,7 +624,7 @@ const Pricing: Array<PricingCategory> = [
     ],
   },
   {
-    name: "Sentinel AI",
+    name: "AI",
     data: [
       {
         name: "LLM Token Pricing",

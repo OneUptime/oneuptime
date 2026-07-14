@@ -14,7 +14,7 @@ const SentinelInsightsLayout: FunctionComponent<LayoutPageComponentProps> = (
 
   return (
     <Page
-      title={"Sentinel Insights"}
+      title={"AI Insights"}
       sideMenu={<SideMenu />}
       breadcrumbLinks={getSentinelInsightsBreadcrumbs(path)}
     >

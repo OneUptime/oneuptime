@@ -318,9 +318,9 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/ai-agent": {
-    title: "Sentinel | Code Fixes as Pull Requests | OneUptime",
+    title: "AI SRE | Code Fixes as Pull Requests | OneUptime",
     description:
-      "Sentinel turns production exceptions, incident investigations, and slow traces into pull requests with code fixes. Supports OpenAI, Anthropic, Ollama, and self-hosted LLMs. Privacy-first: no code stored or trained on.",
+      "OneUptime AI turns production exceptions, incident investigations, and slow traces into pull requests with code fixes. Supports OpenAI, Anthropic, Ollama, and self-hosted LLMs. Privacy-first: no code stored or trained on.",
     canonicalPath: "/product/ai-agent",
     ogImage: "/img/ai-agent.png",
     twitterCard: "summary_large_image",
@@ -328,10 +328,10 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     breadcrumbs: [
       { name: "Home", url: "/" },
       { name: "Products", url: "/#products" },
-      { name: "Sentinel", url: "/product/ai-agent" },
+      { name: "AI", url: "/product/ai-agent" },
     ],
     softwareApplication: {
-      name: "OneUptime Sentinel",
+      name: "OneUptime AI",
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:

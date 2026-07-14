@@ -72,7 +72,7 @@ export default class FixFromIncidentTaskTrigger {
 
     if (!completedInvestigation) {
       throw new BadDataException(
-        `No completed AI investigation exists for this ${subjectLabel} — the fix task uses the investigation's posted analysis as its context. Wait for the investigation to complete, or enable Sentinel investigations in the AI settings.`,
+        `No completed AI investigation exists for this ${subjectLabel} — the fix task uses the investigation's posted analysis as its context. Wait for the investigation to complete, or enable AI investigations in the AI settings.`,
       );
     }
 

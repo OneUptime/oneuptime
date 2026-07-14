@@ -50,12 +50,11 @@ export function getCodeFixTaskTypeLabel(taskType: string | undefined): string {
 const STATUS_TEXT: { [key in AIRunStatus]: CodeFixRunStatusText } = {
   [AIRunStatus.Queued]: {
     title: "Queued",
-    description:
-      "The fix task is queued and waiting to be picked up by Sentinel.",
+    description: "The fix task is queued and waiting to be picked up by AI.",
   },
   [AIRunStatus.Running]: {
     title: "In Progress",
-    description: "Sentinel is working on a fix for this exception.",
+    description: "AI is working on a fix for this exception.",
   },
   [AIRunStatus.WaitingForApproval]: {
     title: "Waiting for Approval",
@@ -64,20 +63,20 @@ const STATUS_TEXT: { [key in AIRunStatus]: CodeFixRunStatusText } = {
   [AIRunStatus.Completed]: {
     title: "Completed",
     description:
-      "Sentinel finished. Review the pull request it opened for the proposed fix.",
+      "AI finished. Review the pull request it opened for the proposed fix.",
   },
   [AIRunStatus.Error]: {
     title: "Error",
-    description: "Sentinel could not complete the fix.",
+    description: "AI could not complete the fix.",
   },
   [AIRunStatus.Cancelled]: {
     title: "Cancelled",
-    description: "The fix task was cancelled before Sentinel completed it.",
+    description: "The fix task was cancelled before AI completed it.",
   },
   [AIRunStatus.Stale]: {
     title: "Stale",
     description:
-      "Sentinel stopped reporting progress and the run was marked as stale. You can retry the fix.",
+      "AI stopped reporting progress and the run was marked as stale. You can retry the fix.",
   },
 };
 

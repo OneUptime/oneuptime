@@ -183,7 +183,7 @@ export default class CodeFixAgentCompletion {
 
     if (!llmProvider || !llmProvider.id) {
       throw new BadDataException(
-        "No LLM provider is available for this fix run. Add one in Project Settings > Sentinel > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project.",
+        "No LLM provider is available for this fix run. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project.",
       );
     }
 

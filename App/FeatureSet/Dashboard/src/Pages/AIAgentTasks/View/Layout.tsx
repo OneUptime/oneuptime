@@ -23,7 +23,7 @@ const AIAgentTaskViewLayout: FunctionComponent<
 
   return (
     <Page
-      title="Sentinel Fix Task"
+      title="AI Fix Task"
       breadcrumbLinks={getAIAgentTasksBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >

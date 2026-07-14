@@ -60,7 +60,7 @@ If the selected agent is offline when the runbook reaches this step, the step wa
 
 ### AI
 
-Ask AI to analyze, summarize or decide something mid-run. The prompt is sent to your project's LLM provider (**Settings → Sentinel → LLM Providers**) and the model's response becomes the step output on the execution timeline. AI steps run on the OneUptime Worker; no agent is required.
+Ask AI to analyze, summarize or decide something mid-run. The prompt is sent to your project's LLM provider (**Settings → AI → LLM Providers**) and the model's response becomes the step output on the execution timeline. AI steps run on the OneUptime Worker; no agent is required.
 
 Configure on an AI step:
 

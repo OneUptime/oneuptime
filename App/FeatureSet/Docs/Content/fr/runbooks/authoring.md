@@ -60,7 +60,7 @@ Si l'agent sélectionné est hors ligne lorsque le runbook atteint cette étape,
 
 ### AI
 
-Demandez à l'IA d'analyser, de résumer ou de décider quelque chose en cours d'exécution. Le prompt est envoyé au fournisseur LLM de votre projet (**Paramètres → Sentinel → LLM Providers**) et la réponse du modèle devient la sortie de l'étape sur la chronologie d'exécution. Les étapes AI tournent sur le Worker OneUptime ; aucun agent requis.
+Demandez à l'IA d'analyser, de résumer ou de décider quelque chose en cours d'exécution. Le prompt est envoyé au fournisseur LLM de votre projet (**Paramètres → AI → LLM Providers**) et la réponse du modèle devient la sortie de l'étape sur la chronologie d'exécution. Les étapes AI tournent sur le Worker OneUptime ; aucun agent requis.
 
 Configurez sur une étape AI :
 

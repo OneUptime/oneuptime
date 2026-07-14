@@ -86,7 +86,7 @@ export default class InsightTriageRunner {
 
       if (!insight) {
         throw new Error(
-          "Sentinel insight not found — it may have been deleted after the triage run was enqueued.",
+          "AI insight not found — it may have been deleted after the triage run was enqueued.",
         );
       }
 
@@ -149,7 +149,7 @@ export default class InsightTriageRunner {
 
     lines.push(PREVENTIVE_TRIAGE_FRAMING);
     lines.push("");
-    lines.push("# Sentinel finding");
+    lines.push("# Insight finding");
     lines.push(`Finding type: ${insight.insightType || "N/A"}`);
     lines.push(`Title: ${insight.title || "N/A"}`);
     lines.push(`Severity: ${insight.severity || "N/A"}`);

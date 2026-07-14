@@ -72,7 +72,7 @@ async function findAccessibleInsight(
 
   if (!insight || !insight.id) {
     throw new BadDataException(
-      "Sentinel insight not found (or you do not have access to it).",
+      "AI insight not found (or you do not have access to it).",
     );
   }
 

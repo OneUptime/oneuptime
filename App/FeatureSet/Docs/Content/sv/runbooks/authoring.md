@@ -60,7 +60,7 @@ Om den valda agenten är offline när runbooket når detta steg väntar steget u
 
 ### AI
 
-Be AI analysera, sammanfatta eller avgöra något mitt i körningen. Prompten skickas till ditt projekts LLM-leverantör (**Settings → Sentinel → LLM Providers**) och modellens svar blir stegets utdata på körningstidslinjen. AI-steg körs direkt på OneUptime-Worker'n; ingen agent krävs.
+Be AI analysera, sammanfatta eller avgöra något mitt i körningen. Prompten skickas till ditt projekts LLM-leverantör (**Settings → AI → LLM Providers**) och modellens svar blir stegets utdata på körningstidslinjen. AI-steg körs direkt på OneUptime-Worker'n; ingen agent krävs.
 
 Konfigurera på ett AI-steg:
 

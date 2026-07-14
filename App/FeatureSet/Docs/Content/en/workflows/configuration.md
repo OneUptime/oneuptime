@@ -61,7 +61,7 @@ API and other HTTP blocks make their requests from OneUptime. If you self-host, 
 
 ## AI components
 
-**Generate Text with AI** sends one request through OneUptime's configured LLM gateway. It uses the project's default LLM provider, or the installation's global provider when the project does not have one. Configure providers under **Project Settings → Sentinel → LLM Providers**; never put a provider API key or an arbitrary model endpoint in the workflow itself.
+**Generate Text with AI** sends one request through OneUptime's configured LLM gateway. It uses the project's default LLM provider, or the installation's global provider when the project does not have one. Configure providers under **Project Settings → AI → LLM Providers**; never put a provider API key or an arbitrary model endpoint in the workflow itself.
 
 The AI component has an explicit egress boundary:
 
@@ -73,7 +73,7 @@ The AI component has an explicit egress boundary:
 
 Treat every referenced variable as data you are intentionally sending to the provider. In particular, do not insert a secret global variable into the prompt or context unless that disclosure is required and the provider is approved to receive it. A self-hosted local provider such as Ollama can keep the request inside your own infrastructure; a hosted provider receives the request under that provider's data-processing terms.
 
-Each call is recorded in **Project Settings → Sentinel → AI Logs**, including provider, model, status, tokens, cost, and billing information. Prompt and response previews and raw provider error details are not stored in the AI log. Calls through a costed global provider consume the project's AI credit balance. Workflow AI also counts toward the project's daily autonomous AI token budget; when the budget is exhausted, the component takes its **Error** path without contacting the model. Project AI must be enabled. On OneUptime Cloud, the subscription must be paid and the Growth plan (or a plan that includes Growth features) is required; self-hosted installations with billing disabled do not have this plan gate.
+Each call is recorded in **Project Settings → AI → AI Logs**, including provider, model, status, tokens, cost, and billing information. Prompt and response previews and raw provider error details are not stored in the AI log. Calls through a costed global provider consume the project's AI credit balance. Workflow AI also counts toward the project's daily autonomous AI token budget; when the budget is exhausted, the component takes its **Error** path without contacting the model. Project AI must be enabled. On OneUptime Cloud, the subscription must be paid and the Growth plan (or a plan that includes Growth features) is required; self-hosted installations with billing disabled do not have this plan gate.
 
 Built-in bounds keep unattended calls finite: System Instructions, Prompt, and serialized Context are capped at 50,000 combined characters; Temperature must be from `0` through `1`; Maximum Output Tokens must be from `1` through `4096` (default `1024`); and the provider request is attempted once and times out after at most 60 seconds. No more than three workflow AI calls run concurrently per project; additional calls take the **Error** path and can be retried by a later workflow run. Validation, configuration, access, budget, balance, concurrency, provider, and timeout failures all take the **Error** path and populate the **Error** output. Connect that path before enabling a production workflow.
 

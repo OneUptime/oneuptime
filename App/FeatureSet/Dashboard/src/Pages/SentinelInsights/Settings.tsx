@@ -19,11 +19,11 @@ const SentinelInsightsSettings: FunctionComponent<ComponentProps> = (
   return (
     <>
       <CardModelDetail<Project>
-        name="Sentinel Insights Settings"
+        name="AI Insights Settings"
         cardProps={{
-          title: "Sentinel Insights",
+          title: "AI Insights",
           description:
-            "Sentinel's proactive telemetry watch: deterministic statistical sensors file quiet insights — they never page and never open incidents. Requires an LLM provider only for the optional AI triage analysis, not for detection.",
+            "OneUptime AI's proactive telemetry watch: deterministic statistical sensors file quiet insights — they never page and never open incidents. Requires an LLM provider only for the optional AI triage analysis, not for detection.",
         }}
         isEditable={true}
         editButtonText={"Update"}
@@ -32,9 +32,9 @@ const SentinelInsightsSettings: FunctionComponent<ComponentProps> = (
             field: {
               enableSentinelInsights: true,
             },
-            title: "Enable Sentinel Insights (proactive telemetry watch)",
+            title: "Enable AI Insights (proactive telemetry watch)",
             description:
-              "When enabled, Sentinel continuously watches this project's telemetry with deterministic statistical sensors (error-log spikes, exception novelty and spikes, trace-latency regressions, week-over-week metric drift) and files quiet Insights — never pages, never opens incidents. Each new insight also gets a budgeted, read-only AI triage analysis when an LLM provider is configured.",
+              "When enabled, OneUptime AI continuously watches this project's telemetry with deterministic statistical sensors (error-log spikes, exception novelty and spikes, trace-latency regressions, week-over-week metric drift) and files quiet Insights — never pages, never opens incidents. Each new insight also gets a budgeted, read-only AI triage analysis when an LLM provider is configured.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },
@@ -57,7 +57,7 @@ const SentinelInsightsSettings: FunctionComponent<ComponentProps> = (
               field: {
                 enableSentinelInsights: true,
               },
-              title: "Enable Sentinel Insights (proactive telemetry watch)",
+              title: "Enable AI Insights (proactive telemetry watch)",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
             },

@@ -161,10 +161,7 @@ const AIAgentTaskViewPage: FunctionComponent<
 
   return (
     <div className="space-y-4">
-      <Card
-        title="Task Status"
-        description="Current state of this Sentinel task."
-      >
+      <Card title="Task Status" description="Current state of this AI task.">
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <CodeFixRunStatusPill status={run.status} />
@@ -227,8 +224,8 @@ const AIAgentTaskViewPage: FunctionComponent<
       </Card>
 
       <Card
-        title="Sentinel Activity"
-        description="What Sentinel did, step by step — the run's glass-box event trail."
+        title="AI Activity"
+        description="What AI did, step by step — the run's glass-box event trail."
       >
         {events.length > 0 ? (
           <ChatActivityFeed
@@ -240,7 +237,7 @@ const AIAgentTaskViewPage: FunctionComponent<
         ) : (
           <p className="text-sm text-gray-500">
             {isActive
-              ? "Waiting for Sentinel to report its first step…"
+              ? "Waiting for AI to report its first step…"
               : "No activity was recorded for this task."}
           </p>
         )}

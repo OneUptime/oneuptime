@@ -115,16 +115,16 @@ const SentinelInsightsPage: FunctionComponent<
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
-        name="Sentinel Insights"
+        name="AI Insights"
         isViewable={true}
         cardProps={{
-          title: "Sentinel Insights",
+          title: "AI Insights",
           description:
-            "Proactive findings from Sentinel's deterministic telemetry sensors — new or spiking exceptions, error-log spikes, latency regressions and metric drift. Insights never page and never open incidents.",
+            "Proactive findings from OneUptime AI's deterministic telemetry sensors — new or spiking exceptions, error-log spikes, latency regressions and metric drift. Insights never page and never open incidents.",
         }}
         noItemsMessage={
           <span>
-            No insights yet. When Sentinel Insights is enabled, Sentinel
+            No insights yet. When AI Insights is enabled, OneUptime AI
             continuously watches this project&apos;s telemetry and files a quiet
             insight whenever a deterministic sensor finds something — without
             paging anyone or opening incidents. Turn it on in{" "}

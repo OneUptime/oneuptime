@@ -49,7 +49,7 @@
     "Integrations": "Integrasjoner",
     "Probe": "Sonde",
     "Telemetry": "Telemetri",
-    "Sentinel": "Sentinel",
+    "AI": "AI",
     "API Reference": "API-referanse",
     "Self Hosted": "Selv-hostet"
   },
@@ -110,7 +110,7 @@
     "JavaScript Expressions": "JavaScript-uttrykk",
     "Incident & Alert Templating": "Hendelse- og varslingsmaler",
     "Monitor Secrets": "Overvåkingshemmeligheter",
-    "Sentinel AI SRE": "Sentinel AI SRE",
+    "AI SRE": "AI SRE",
     "Incoming Call Policy": "Policy for innkommende anrop",
     "Phone Number Whitelist": "Hviteliste for telefonnumre",
     "Runbooks Overview": "Runbooks – Oversikt",

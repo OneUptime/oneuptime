@@ -98,16 +98,14 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
       title={props.title}
       description={
         props.description ||
-        "Sentinel will generate content based on the available data."
+        "AI will generate content based on the available data."
       }
       onClose={() => {
         if (!isGenerating) {
           props.onClose();
         }
       }}
-      submitButtonText={
-        isGenerating ? "Generating..." : "Generate with Sentinel"
-      }
+      submitButtonText={isGenerating ? "Generating..." : "Generate with AI"}
       submitButtonStyleType={ButtonStyleType.PRIMARY}
       submitButtonType={ButtonType.Button}
       isLoading={isGenerating}

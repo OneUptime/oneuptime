@@ -60,7 +60,7 @@ return { durationMs: Date.now() - start };
 
 ### AI
 
-在執行過程中請 AI 分析、彙整或做出判斷。提示（prompt）會傳送到你專案的 LLM 供應商（**Settings → Sentinel → LLM Providers**），模型的回應會成為執行時間軸上該步驟的輸出。AI 步驟在 OneUptime Worker 上執行；不需要 agent。
+在執行過程中請 AI 分析、彙整或做出判斷。提示（prompt）會傳送到你專案的 LLM 供應商（**Settings → AI → LLM Providers**），模型的回應會成為執行時間軸上該步驟的輸出。AI 步驟在 OneUptime Worker 上執行；不需要 agent。
 
 在 AI 步驟上設定：
 

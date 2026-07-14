@@ -25,7 +25,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
   const essentialsCategory: string = t("navbar.categories.essentials");
   const observabilityCategory: string = t("navbar.categories.observability");
-  const aiCategory: string = t("navbar.categories.ai", "Sentinel");
+  const aiCategory: string = t("navbar.categories.ai", "AI");
   const resourcesCategory: string = t("navbar.categories.resources");
   const analyticsAutomationCategory: string = t(
     "navbar.categories.analyticsAutomation",
@@ -173,7 +173,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       title: t("navbar.items.aiChatTitle", "Chat"),
       description: t(
         "navbar.items.aiChatDescription",
-        "Chat with Sentinel — it answers from your logs, traces, metrics, incidents, alerts and monitors, and cites every query.",
+        "Chat with AI — it answers from your logs, traces, metrics, incidents, alerts and monitors, and cites every query.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_COPILOT] as Route,
@@ -187,7 +187,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       title: t("navbar.items.aiAgentsTitle", "Tasks"),
       description: t(
         "navbar.items.aiAgentsDescription",
-        "Sentinel's automated tasks — fix pull requests and their status.",
+        "Automated AI tasks — fix pull requests and their status.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_AGENT_TASKS] as Route,
@@ -201,7 +201,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       title: t("navbar.items.sentinelInsightsTitle", "Insights"),
       description: t(
         "navbar.items.sentinelInsightsDescription",
-        "Proactive findings from Sentinel's telemetry watch — new exceptions, spikes, latency regressions and metric drift.",
+        "Proactive findings from OneUptime AI's telemetry watch — new exceptions, spikes, latency regressions and metric drift.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.SENTINEL_INSIGHTS] as Route,
@@ -215,7 +215,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       title: t("navbar.items.codeRepositoriesTitle"),
       description: t(
         "navbar.items.codeRepositoriesDescription",
-        "Connect GitHub so Sentinel can open fix PRs.",
+        "Connect GitHub so AI can open fix PRs.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.CODE_REPOSITORY] as Route,

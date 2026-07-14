@@ -9,28 +9,28 @@ export function getAIAgentTasksBreadcrumbs(
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASKS, [
       "Project",
-      "Sentinel Tasks",
+      "AI Tasks",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASK_VIEW, [
       "Project",
-      "Sentinel Tasks",
+      "AI Tasks",
       "View Task",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASK_VIEW_LOGS, [
       "Project",
-      "Sentinel Tasks",
+      "AI Tasks",
       "View Task",
       "Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS, [
       "Project",
-      "Sentinel Tasks",
+      "AI Tasks",
       "View Task",
       "Pull Requests",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.AI_AGENT_TASK_VIEW_DELETE, [
       "Project",
-      "Sentinel Tasks",
+      "AI Tasks",
       "View Task",
       "Delete Task",
     ]),

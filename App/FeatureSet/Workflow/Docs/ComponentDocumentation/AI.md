@@ -7,9 +7,9 @@ The request is tool-free: it contains no tool definitions or provider-native cap
 ## Before you use it
 
 - AI must be enabled for the project. On OneUptime Cloud, the subscription must be paid and the Growth plan (or a plan that includes Growth features) is required. Self-hosted installations with billing disabled do not have this plan gate.
-- Configure a provider under **Project Settings → Sentinel → LLM Providers**. The project default is used first; an installation-wide global provider is the fallback when available.
+- Configure a provider under **Project Settings → AI → LLM Providers**. The project default is used first; an installation-wide global provider is the fallback when available.
 - On OneUptime Cloud, a costed global provider consumes the project's AI credit balance. Project-owned providers use the credentials configured for that provider.
-- The call counts toward the project's daily autonomous AI token budget and appears in **Project Settings → Sentinel → AI Logs**.
+- The call counts toward the project's daily autonomous AI token budget and appears in **Project Settings → AI → AI Logs**.
 
 You do not supply a provider key, model endpoint, or provider choice in the component. Provider configuration stays centralized so credentials never become workflow arguments.
 

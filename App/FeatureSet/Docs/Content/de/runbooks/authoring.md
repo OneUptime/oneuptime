@@ -60,7 +60,7 @@ Wenn der ausgewählte Agent offline ist, wenn das Runbook diesen Schritt erreich
 
 ### AI
 
-Bitten Sie eine KI, mitten im Lauf etwas zu analysieren, zusammenzufassen oder zu entscheiden. Der Prompt wird an den LLM-Provider Ihres Projekts gesendet (**Settings → Sentinel → LLM Providers**), und die Antwort des Modells wird zur Schrittausgabe auf der Ausführungs-Timeline. AI-Schritte laufen auf dem OneUptime-Worker; kein Agent nötig.
+Bitten Sie eine KI, mitten im Lauf etwas zu analysieren, zusammenzufassen oder zu entscheiden. Der Prompt wird an den LLM-Provider Ihres Projekts gesendet (**Settings → AI → LLM Providers**), und die Antwort des Modells wird zur Schrittausgabe auf der Ausführungs-Timeline. AI-Schritte laufen auf dem OneUptime-Worker; kein Agent nötig.
 
 Konfigurieren Sie an einem AI-Schritt:
 

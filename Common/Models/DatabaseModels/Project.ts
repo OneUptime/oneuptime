@@ -1442,7 +1442,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Incident Investigation",
     description:
-      "When enabled, OneUptime's AI SRE (Sentinel) automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. Requires AI to be enabled and an LLM provider to be configured.",
+      "When enabled, OneUptime's AI SRE automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. Requires AI to be enabled and an LLM provider to be configured.",
     defaultValue: false,
     example: true,
   })
@@ -1472,7 +1472,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Alert Investigation",
     description:
-      "When enabled, OneUptime's AI SRE (Sentinel) automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. Requires AI to be enabled and an LLM provider to be configured.",
+      "When enabled, OneUptime's AI SRE automatically investigates every new alert and posts a cited root cause analysis to the alert timeline. Requires AI to be enabled and an LLM provider to be configured.",
     defaultValue: false,
     example: true,
   })
@@ -1502,7 +1502,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Instrumentation Fix Tasks",
     description:
-      "When enabled, a Sentinel investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically.",
     defaultValue: false,
     example: true,
   })
@@ -1530,9 +1530,9 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Enable Sentinel Insights",
+    title: "Enable AI Insights",
     description:
-      "When enabled, Sentinel continuously watches this project's telemetry with deterministic statistical sensors (error-log spikes, exception novelty and spikes, trace-latency regressions, week-over-week metric drift) and files quiet Insights — never pages, never opens incidents. Each new insight also gets a budgeted, read-only AI triage analysis when an LLM provider is configured.",
+      "When enabled, OneUptime AI continuously watches this project's telemetry with deterministic statistical sensors (error-log spikes, exception novelty and spikes, trace-latency regressions, week-over-week metric drift) and files quiet Insights — never pages, never opens incidents. Each new insight also gets a budgeted, read-only AI triage analysis when an LLM provider is configured.",
     defaultValue: false,
     example: true,
   })
@@ -1592,7 +1592,7 @@ export default class Project extends TenantModel {
     modelType: AlertSeverity,
     title: "Alert Investigation Minimum Severity",
     description:
-      "Only alerts at or above this severity are investigated automatically by Sentinel. When unset, the top two severity tiers (by order) are investigated by default.",
+      "Only alerts at or above this severity are investigated automatically by AI. When unset, the top two severity tiers (by order) are investigated by default.",
   })
   @ManyToOne(
     () => {
@@ -1654,7 +1654,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily Autonomous AI Token Limit",
     description:
-      "Maximum tokens per UTC day that autonomous Sentinel investigations may consume for this project. When the limit is reached, new autonomous investigations are skipped until the next day — interactive AI chat is never blocked. Unset means no limit.",
+      "Maximum tokens per UTC day that autonomous AI investigations may consume for this project. When the limit is reached, new autonomous investigations are skipped until the next day — interactive AI chat is never blocked. Unset means no limit.",
     example: 500000,
   })
   @Column({
@@ -1708,7 +1708,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Alert Re-investigation Cooldown (Minutes)",
     description:
-      "Repeat alerts from the same monitor within this many minutes are not re-investigated by Sentinel — the first analysis stands. Unset means the default of 30 minutes; 0 disables the cooldown.",
+      "Repeat alerts from the same monitor within this many minutes are not re-investigated by AI — the first analysis stands. Unset means the default of 30 minutes; 0 disables the cooldown.",
     example: 30,
   })
   @Column({
@@ -1735,7 +1735,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Investigations",
     description:
-      "How many Sentinel investigations may run at the same time for this project, shared across incidents and alerts. Unset means the default of 3. Minimum 1 — pause investigations with the opt-in toggles or a daily token limit of 0 instead.",
+      "How many AI investigations may run at the same time for this project, shared across incidents and alerts. Unset means the default of 3. Minimum 1 — pause investigations with the opt-in toggles or a daily token limit of 0 instead.",
     example: 3,
   })
   @Column({

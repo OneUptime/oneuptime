@@ -60,7 +60,7 @@ Si el agente seleccionado está offline cuando el runbook llega a este paso, el 
 
 ### AI
 
-Pide a la IA que analice, resuma o decida algo a mitad de la ejecución. El prompt se envía al proveedor LLM de tu proyecto (**Settings → Sentinel → LLM Providers**) y la respuesta del modelo se convierte en la salida del paso en la línea de tiempo de la ejecución. Los pasos AI corren en el Worker de OneUptime; no se necesita agente.
+Pide a la IA que analice, resuma o decida algo a mitad de la ejecución. El prompt se envía al proveedor LLM de tu proyecto (**Settings → AI → LLM Providers**) y la respuesta del modelo se convierte en la salida del paso en la línea de tiempo de la ejecución. Los pasos AI corren en el Worker de OneUptime; no se necesita agente.
 
 Configura en un paso AI:
 

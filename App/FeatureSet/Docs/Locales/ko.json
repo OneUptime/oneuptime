@@ -49,7 +49,7 @@
     "Integrations": "통합",
     "Probe": "프로브",
     "Telemetry": "텔레메트리",
-    "Sentinel": "Sentinel",
+    "AI": "AI",
     "API Reference": "API 참조",
     "Self Hosted": "자체 호스팅"
   },
@@ -110,7 +110,7 @@
     "JavaScript Expressions": "JavaScript 표현식",
     "Incident & Alert Templating": "인시던트 및 알림 템플릿",
     "Monitor Secrets": "모니터 시크릿",
-    "Sentinel AI SRE": "Sentinel AI SRE",
+    "AI SRE": "AI SRE",
     "Incoming Call Policy": "수신 전화 정책",
     "Phone Number Whitelist": "전화번호 화이트리스트",
     "Runbooks Overview": "Runbook 개요",

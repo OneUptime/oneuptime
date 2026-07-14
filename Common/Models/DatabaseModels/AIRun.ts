@@ -405,9 +405,9 @@ export default class AIRun extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
-    title: "Triggered By Sentinel Insight ID",
+    title: "Triggered By AI Insight ID",
     description:
-      "The preventive Sentinel insight that triggered this run (for insight triage and insight-created fix runs).",
+      "The preventive AI insight that triggered this run (for insight triage and insight-created fix runs).",
   })
   @Column({
     type: ColumnType.ObjectID,

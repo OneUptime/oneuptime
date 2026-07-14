@@ -30,7 +30,7 @@ const AIAgentTasksPage: FunctionComponent<
         className="mb-5"
         title={
           <span>
-            To open fix pull requests, Sentinel needs a{" "}
+            To open fix pull requests, AI needs a{" "}
             <Link to={codeRepositoriesRoute} className="underline">
               connected GitHub repository
             </Link>{" "}

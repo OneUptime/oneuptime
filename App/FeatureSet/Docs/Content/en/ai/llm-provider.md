@@ -6,7 +6,7 @@ OneUptime supports integrating with various Large Language Model (LLM) providers
 
 LLM Providers in OneUptime help you automate and enhance your incident management workflow:
 
-- **Autonomous Investigations (Sentinel)**: Automatically investigate new incidents and alerts and post a cited root cause analysis to the timeline — see [Sentinel AI SRE](/docs/ai/sentinel)
+- **Autonomous Investigations**: Automatically investigate new incidents and alerts and post a cited root cause analysis to the timeline — see [AI SRE](/docs/ai/sentinel)
 - **Incident Notes**: Automatically generate detailed incident notes and updates
 - **Alert Notes**: Create meaningful alert descriptions and context
 - **Scheduled Maintenance Notes**: Generate maintenance event notes automatically
@@ -21,7 +21,7 @@ If you prefer to use your own API keys or a specific provider, you can still con
 
 ## Self-Hosted: Zero-Config via Environment Variables
 
-On a self-hosted instance, the fastest way to enable AI features for **every project at once** is to set the `GLOBAL_LLM_PROVIDER_*` environment variables on your OneUptime server — in `config.env` for Docker Compose, or through Helm values. At startup, OneUptime registers (and keeps in sync) a Global LLM Provider from them; no per-project dashboard setup is needed, and Sentinel fix tasks use it too when a project has no provider of its own.
+On a self-hosted instance, the fastest way to enable AI features for **every project at once** is to set the `GLOBAL_LLM_PROVIDER_*` environment variables on your OneUptime server — in `config.env` for Docker Compose, or through Helm values. At startup, OneUptime registers (and keeps in sync) a Global LLM Provider from them; no per-project dashboard setup is needed, and AI fix tasks use it too when a project has no provider of its own.
 
 | Variable                         | Description                                                                                                       |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -48,7 +48,7 @@ GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
 GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-4o
 ```
 
-The sync is declarative: changing the variables updates the provider on the next restart, and unsetting `GLOBAL_LLM_PROVIDER_TYPE` removes it. Global providers created manually in the Admin Dashboard are never touched. Projects can still add their own provider under **Project Settings** > **Sentinel** > **LLM Providers** — a project-owned provider always takes precedence over the global one.
+The sync is declarative: changing the variables updates the provider on the next restart, and unsetting `GLOBAL_LLM_PROVIDER_TYPE` removes it. Global providers created manually in the Admin Dashboard are never touched. Projects can still add their own provider under **Project Settings** > **AI** > **LLM Providers** — a project-owned provider always takes precedence over the global one.
 
 ## Supported Providers
 
@@ -69,7 +69,7 @@ OneUptime currently supports the following LLM providers:
 ### Step 1: Navigate to LLM Providers Settings
 
 1. Log in to your OneUptime dashboard
-2. Go to **Project Settings** > **Sentinel** > **LLM Providers**
+2. Go to **Project Settings** > **AI** > **LLM Providers**
 3. Click **Create LLM Provider** to add a new provider
 
 ### Step 2: Configure Your Provider
@@ -188,7 +188,7 @@ If you self-host OneUptime with the Helm chart, you can run [vLLM](https://docs.
    ```
 
 2. Run `helm upgrade` and wait for the vLLM pod to become Ready (the first start downloads the model)
-3. That's it — vLLM is registered automatically as a Global LLM Provider at startup (`vllm.globalProvider.enabled`, default `true`), so AI features work for all projects, including Sentinel fix tasks. (Everywhere — Cloud and self-hosted — agent fix tasks use the global provider when the project owns no provider of its own; on Cloud that usage is billed as metered AI tokens. A project-owned provider always takes precedence.)
+3. That's it — vLLM is registered automatically as a Global LLM Provider at startup (`vllm.globalProvider.enabled`, default `true`), so AI features work for all projects, including AI fix tasks. (Everywhere — Cloud and self-hosted — agent fix tasks use the global provider when the project owns no provider of its own; on Cloud that usage is billed as metered AI tokens. A project-owned provider always takes precedence.)
 
 If you disabled auto-registration (`vllm.globalProvider.enabled: false`), create the provider manually:
 

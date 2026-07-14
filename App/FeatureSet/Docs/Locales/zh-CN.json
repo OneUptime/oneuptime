@@ -49,7 +49,7 @@
     "Integrations": "集成",
     "Probe": "探针",
     "Telemetry": "遥测",
-    "Sentinel": "Sentinel",
+    "AI": "AI",
     "API Reference": "API 参考",
     "Self Hosted": "自托管"
   },
@@ -110,7 +110,7 @@
     "JavaScript Expressions": "JavaScript 表达式",
     "Incident & Alert Templating": "事件与告警模板",
     "Monitor Secrets": "监控密钥",
-    "Sentinel AI SRE": "Sentinel AI SRE",
+    "AI SRE": "AI SRE",
     "Incoming Call Policy": "来电策略",
     "Phone Number Whitelist": "电话号码白名单",
     "Runbooks Overview": "Runbook 概览",

@@ -60,7 +60,7 @@ Als de gekozen agent offline is wanneer het runbook deze stap bereikt, wacht de 
 
 ### AI
 
-Vraag AI om midden in een run iets te analyseren, samen te vatten of te beslissen. De prompt wordt naar de LLM-provider van je project gestuurd (**Settings → Sentinel → LLM Providers**) en het antwoord van het model wordt de stapoutput op de uitvoeringstijdlijn. AI-stappen draaien op de OneUptime Worker; er is geen agent nodig.
+Vraag AI om midden in een run iets te analyseren, samen te vatten of te beslissen. De prompt wordt naar de LLM-provider van je project gestuurd (**Settings → AI → LLM Providers**) en het antwoord van het model wordt de stapoutput op de uitvoeringstijdlijn. AI-stappen draaien op de OneUptime Worker; er is geen agent nodig.
 
 Configureer op een AI-stap:
 

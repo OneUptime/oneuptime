@@ -46,7 +46,7 @@ const AIPlanGate: FunctionComponent = (): ReactElement => {
   return (
     <Alert
       type={AlertType.WARNING}
-      strongTitle="Sentinel requires the Growth plan"
+      strongTitle="AI requires the Growth plan"
       className="mb-5"
       title={
         <span>
@@ -55,7 +55,7 @@ const AIPlanGate: FunctionComponent = (): ReactElement => {
           <Link to={billingRoute} className="underline">
             Upgrade your plan in Billing settings
           </Link>{" "}
-          to use Sentinel chat, tasks, and code repositories.
+          to use AI chat, tasks, and code repositories.
         </span>
       }
     />

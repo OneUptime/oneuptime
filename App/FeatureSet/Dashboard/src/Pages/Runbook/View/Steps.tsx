@@ -1156,15 +1156,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
                                                 Runs on your project&rsquo;s LLM
-                                                provider (Settings &rsaquo;
-                                                Sentinel &rsaquo; LLM
-                                                Providers). Calls are metered
-                                                like any other AI feature. Pair
-                                                with &ldquo;Require
-                                                approval&rdquo; below to have a
-                                                human review the AI&rsquo;s
-                                                answer before the next step
-                                                runs.
+                                                provider (Settings &rsaquo; AI
+                                                &rsaquo; LLM Providers). Calls
+                                                are metered like any other AI
+                                                feature. Pair with
+                                                &ldquo;Require approval&rdquo;
+                                                below to have a human review the
+                                                AI&rsquo;s answer before the
+                                                next step runs.
                                               </p>
                                               <div className="mt-2">
                                                 {renderScriptExamples({

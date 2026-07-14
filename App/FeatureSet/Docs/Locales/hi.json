@@ -49,7 +49,7 @@
     "Integrations": "इंटिग्रेशन",
     "Probe": "प्रोब",
     "Telemetry": "टेलीमेट्री",
-    "Sentinel": "Sentinel",
+    "AI": "AI",
     "API Reference": "API संदर्भ",
     "Self Hosted": "स्व-होस्टेड"
   },
@@ -110,7 +110,7 @@
     "JavaScript Expressions": "JavaScript अभिव्यक्तियाँ",
     "Incident & Alert Templating": "घटना और अलर्ट टेम्पलेट",
     "Monitor Secrets": "मॉनिटर रहस्य",
-    "Sentinel AI SRE": "Sentinel AI SRE",
+    "AI SRE": "AI SRE",
     "Incoming Call Policy": "आने वाली कॉल नीति",
     "Phone Number Whitelist": "फ़ोन नंबर श्वेतसूची",
     "Runbooks Overview": "Runbook का अवलोकन",

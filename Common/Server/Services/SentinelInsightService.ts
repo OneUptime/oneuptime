@@ -84,7 +84,7 @@ export class Service extends DatabaseService<SentinelInsight> {
     });
 
     if (!insight || !insight.id) {
-      throw new BadDataException("Sentinel insight not found.");
+      throw new BadDataException("AI insight not found.");
     }
 
     await this.updateOneById({

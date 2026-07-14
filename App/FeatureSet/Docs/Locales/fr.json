@@ -49,7 +49,7 @@
     "Integrations": "Intégrations",
     "Probe": "Sonde",
     "Telemetry": "Télémétrie",
-    "Sentinel": "Sentinel",
+    "AI": "AI",
     "API Reference": "Référence API",
     "Self Hosted": "Auto-hébergé"
   },
@@ -110,7 +110,7 @@
     "JavaScript Expressions": "Expressions JavaScript",
     "Incident & Alert Templating": "Modèles d'incident et d'alerte",
     "Monitor Secrets": "Secrets de surveillance",
-    "Sentinel AI SRE": "Sentinel AI SRE",
+    "AI SRE": "AI SRE",
     "Incoming Call Policy": "Politique d'appels entrants",
     "Phone Number Whitelist": "Liste blanche de numéros",
     "Runbooks Overview": "Vue d'ensemble des Runbooks",

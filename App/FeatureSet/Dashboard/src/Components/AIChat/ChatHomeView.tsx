@@ -72,10 +72,10 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.Sparkles} className="h-5 w-5 text-white" />
         </div>
         <h3 className="text-lg font-semibold tracking-tight text-gray-900">
-          Ask Sentinel about your data — or tell it to act
+          Ask AI about your data — or tell it to act
         </h3>
         <p className="mt-1.5 max-w-md text-sm leading-relaxed text-gray-500">
-          Sentinel runs real queries against your logs, traces, metrics,
+          OneUptime AI runs real queries against your logs, traces, metrics,
           incidents and monitors — rendering charts and tables inline — and can
           create incidents or acknowledge alerts, always with your approval.
         </p>
@@ -93,7 +93,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
             </span>{" "}
             Messages need a provider to run — add one in{" "}
             <Link to={llmProvidersRoute} className="font-medium underline">
-              Settings → Sentinel → LLM Providers
+              Settings → AI → LLM Providers
             </Link>{" "}
             to start chatting.
           </div>

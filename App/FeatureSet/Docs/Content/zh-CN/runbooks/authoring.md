@@ -60,7 +60,7 @@ Bash 步骤上需要配置两件事：
 
 ### AI
 
-让 AI 在运行中途分析、总结或做出判断。提示词会发送给你项目的 LLM 提供商（**设置 → Sentinel → LLM Providers**），模型的回复会成为执行时间线上该步骤的输出。AI 步骤直接在 OneUptime Worker 上运行；不需要代理。
+让 AI 在运行中途分析、总结或做出判断。提示词会发送给你项目的 LLM 提供商（**设置 → AI → LLM Providers**），模型的回复会成为执行时间线上该步骤的输出。AI 步骤直接在 OneUptime Worker 上运行；不需要代理。
 
 AI 步骤上可配置：
 

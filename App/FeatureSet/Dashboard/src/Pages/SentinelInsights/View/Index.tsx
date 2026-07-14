@@ -350,7 +350,7 @@ const SentinelInsightViewPage: FunctionComponent<
         cardProps={{
           title: "Insight Details",
           description:
-            "What Sentinel's deterministic sensors found, and where this insight stands.",
+            "What OneUptime AI's deterministic sensors found, and where this insight stands.",
         }}
         refresher={detailRefresher}
         modelDetailProps={{
@@ -456,8 +456,8 @@ const SentinelInsightViewPage: FunctionComponent<
 
       {triageRun || insight.triageSummaryMarkdown ? (
         <Card
-          title="Sentinel Triage"
-          description="Sentinel's budgeted, read-only AI analysis of this insight — probable root cause, blast radius and suggested action, with citations."
+          title="AI Triage"
+          description="A budgeted, read-only AI analysis of this insight — probable root cause, blast radius and suggested action, with citations."
         >
           <div className="space-y-3">
             {insight.triageSummaryMarkdown ? (
@@ -515,7 +515,7 @@ const SentinelInsightViewPage: FunctionComponent<
       {insight.fixAiRunId ? (
         <Card
           title="Fix Task"
-          description="Sentinel queued an AI agent task for this insight. Fix pull requests are always drafts and always human-reviewed."
+          description="OneUptime AI queued an agent task for this insight. Fix pull requests are always drafts and always human-reviewed."
         >
           <Link
             className="text-sm underline"
