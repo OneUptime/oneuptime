@@ -324,13 +324,17 @@ describe("MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage — Evaluatio
         matchMessage: null,
       });
 
-    // Whole-message assertion: the dimensionless "1" is suppressed on both the
-    // observed value and the threshold, even though "1.00" appears in the text.
+    /*
+     * Whole-message assertion: the dimensionless "1" is suppressed on both the
+     * observed value and the threshold, even though "1.00" appears in the text.
+     */
     expect(message).toBe(
       "Metric Value (a) recorded latest 1.00 (min 0.95, max 1.00) across 3 data points. (expected to be greater than 0.9 using average).",
     );
-    // Neither the value nor the threshold carries a unit: each number is
-    // immediately followed by punctuation/wording, never a " 1" unit suffix.
+    /*
+     * Neither the value nor the threshold carries a unit: each number is
+     * immediately followed by punctuation/wording, never a " 1" unit suffix.
+     */
     expect(message).toContain("latest 1.00 (min 0.95, max 1.00)");
     expect(message).toContain("greater than 0.9 using average");
   });

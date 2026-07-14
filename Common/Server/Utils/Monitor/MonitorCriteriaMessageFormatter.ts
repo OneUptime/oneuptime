@@ -150,8 +150,10 @@ export default class MonitorCriteriaMessageFormatter {
       return null;
     }
 
-    // Suffix each value with its unit (e.g. "0.06 sec") so the reader knows
-    // what the numbers mean. Empty when the metric has no known unit.
+    /*
+     * Suffix each value with its unit (e.g. "0.06 sec") so the reader knows
+     * what the numbers mean. Empty when the metric has no known unit.
+     */
     const unitSuffix: string = unit ? ` ${unit}` : "";
 
     const latestFormatted: string | null =
