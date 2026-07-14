@@ -5,7 +5,7 @@ Runbooks zijn herbruikbare responsprocedures — geordende lijsten van handmatig
 ## In één oogopslag
 
 - **Top-level feature** in het OneUptime-dashboard onder **Analytics & Automation → Runbooks**.
-- **Vier staptypes**: Handmatige checklist, JavaScript (in sandbox) en Bash (beide draaien op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur), HTTP-verzoek.
+- **Vijf staptypes**: Handmatige checklist, JavaScript (in sandbox) en Bash (beide draaien op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur), HTTP-verzoek, en AI (analyseert incident- en stapcontext met de LLM-provider van je project).
 - **Drie triggerpaden**: regels die matchen op incidenten/alerts/gepland onderhoud, of een handmatige "Runbook uitvoeren"-knop op elk event.
 - **Snapshot-semantiek**: zodra een runbook start, worden zijn stappen naar de uitvoering gekopieerd. Het later bewerken van de template wijzigt nooit een lopende run.
 - **Volledig audit-spoor**: status, output, foutmelding en duur van elke stap worden voor altijd op de uitvoering vastgelegd.
@@ -27,14 +27,14 @@ Een paar termen komen telkens terug in de rest van de runbook-docs. Krijg deze e
 | Term              | Betekenis                                                                                                                                                                                                                                      |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**       | De template. Een benoemde, herbruikbare procedure met een geordende staplijst en een `isEnabled`-vlag.                                                                                                                                         |
-| **Stap**          | Eén item in een runbook. Heeft een type (Handmatig / JavaScript / HTTP / Bash), een titel, een beschrijving en typespecifieke configuratie.                                                                                                    |
+| **Stap**          | Eén item in een runbook. Heeft een type (Handmatig / JavaScript / HTTP / Bash / AI), een titel, een beschrijving en typespecifieke configuratie.                                                                                                    |
 | **Runbook-regel** | Een patroon dat één of meer runbooks automatisch koppelt aan incidenten, alerts of geplande onderhoudsmomenten wanneer hun titel of beschrijving matcht met een regex.                                                                         |
 | **Uitvoering**    | Eén run van een runbook. Wordt aangemaakt wanneer een regel afgaat, iemand op "Runbook uitvoeren" klikt op een event, of iemand op "Nu uitvoeren" klikt op het runbook zelf. Bevat een snapshot van de stappen en de status / output per stap. |
 | **Snapshot**      | De bevroren kopie van de stappen van het runbook die op elke uitvoering leeft. Hiermee kun je de template later bewerken zonder de geschiedenis te herschrijven.                                                                               |
 
 ## De levenscyclus van een runbook
 
-1. **Schrijven** — Maak een runbook aan en zet er een mix van Handmatige, JavaScript-, HTTP- en Bash-stappen in. Opslaan.
+1. **Schrijven** — Maak een runbook aan en zet er een mix van Handmatige, JavaScript-, HTTP-, Bash- en AI-stappen in. Opslaan.
 2. **(Optioneel) Een regel toevoegen** — Vertel OneUptime in de instellingen van Incidenten, Alerts of Gepland Onderhoud om dit runbook te starten zodra de titel of beschrijving van een event matcht met een regex.
 3. **Triggeren** — Of de regel gaat automatisch af bij het aanmaken van een passend event, of een responder klikt handmatig op **Runbook uitvoeren** op het event.
 4. **Uitvoeren** — Er wordt een nieuwe uitvoering aangemaakt met een snapshot van de stappen. Geautomatiseerde stappen draaien inline op de Runbook-worker; de uitvoering pauzeert bij elke handmatige stap totdat iemand hem afvinkt.
@@ -50,8 +50,9 @@ Een snelle beslissingsgids. De langere uitleg staat in [Een runbook schrijven](/
 | **JavaScript**   | Je hebt een kleine, afgesloten berekening nodig — een configuratieservice bevragen, een payload transformeren, logica draaien vóór de volgende stap. Draait in sandbox op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur. | Huidige replica-lag berekenen en beslissen of doorgegaan wordt.                           |
 | **HTTP-verzoek** | Je roept een bestaande API aan — je eigen admin-endpoint, een cloudprovider, PagerDuty, Slack.                                                                                                                                                   | `POST` naar je failover-orchestrator.                                                     |
 | **Bash**         | Je moet shell-commando's draaien op je eigen infrastructuur — een service herstarten, `kubectl` aanroepen, een deploy-script aanroepen. Vereist een [Runbook-agent](/docs/runbooks/agents) die in je omgeving is geïnstalleerd.                  | Een service herstarten, `kubectl rollout restart` draaien, een recovery-script aanroepen. |
+| **AI**           | Je wilt halverwege de run een analyse, samenvatting of afweging — redeneren over het triggerende incident en de output van eerdere stappen via de LLM-provider van je project.                                                                   | "Beoordeel de diagnostiek hierboven — is het veilig om door te gaan met de failover?"     |
 
-Je kunt alle vier mixen in één runbook — de kracht van runbooks is dat je menselijke verificatie afwisselt met automatisering.
+Je kunt alle vijf mixen in één runbook — de kracht van runbooks is dat je menselijke verificatie afwisselt met automatisering en AI-analyse.
 
 ## Waar runbooks leven in het dashboard
 
@@ -114,7 +115,7 @@ Runbooks:       [DB primary failover]
 
 ## Waar verder lezen
 
-- [Een runbook schrijven](/docs/runbooks/authoring) — runbooks maken, de vier staptypes en wat elke doet.
+- [Een runbook schrijven](/docs/runbooks/authoring) — runbooks maken, de vijf staptypes en wat elke doet.
 - [Runbook-regels](/docs/runbooks/rules) — runbooks automatisch koppelen aan incidenten, alerts en geplande onderhoudsmomenten.
 - [Een runbook uitvoeren](/docs/runbooks/running) — handmatige triggers, de uitvoeringsweergave en hoe handmatige stappen samenwerken met geautomatiseerde.
 - [Runbook-agents](/docs/runbooks/agents) — de agents installeren die Bash-stappen in je eigen infrastructuur uitvoeren.

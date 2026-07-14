@@ -32,6 +32,13 @@ import logger, { LogAttributes } from "../Utils/Logger";
 export const SENTINEL_CODE_FIX_FEATURE: string = "Sentinel Code Fix";
 
 /*
+ * The LlmLog feature name for AI runbook steps. Runbooks are triggered by
+ * incident/alert/maintenance rules, so these calls are storm-shaped: one
+ * flapping monitor can start many executions.
+ */
+export const RUNBOOK_AI_STEP_FEATURE: string = "Runbook AI Step";
+
+/*
  * Features that run WITHOUT a human in the loop. The per-project daily token
  * budget (Project.aiDailyAutonomousTokenLimit, G4) applies only to these —
  * interactive chat and explicitly user-triggered AI are never budget-blocked.
@@ -61,6 +68,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * daily pool caps all of them together.
    */
   SENTINEL_CODE_FIX_FEATURE,
+  /*
+   * AI runbook steps run unattended once the runbook starts, and rule
+   * triggers make them storm-shaped (see the constant above) — even
+   * manually started runs proceed without a human approving each LLM call.
+   */
+  RUNBOOK_AI_STEP_FEATURE,
 ];
 
 export interface AutonomousBudgetStatus {

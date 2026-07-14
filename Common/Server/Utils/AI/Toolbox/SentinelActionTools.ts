@@ -261,6 +261,27 @@ export const RunRunbookTool: ObservabilityTool = {
       );
     }
 
+    /*
+     * Only link an incident the caller can actually read in this project.
+     * Looking it up under the user's RBAC (not isRoot) rejects both a
+     * cross-tenant id and one the user has no access to — so the tool cannot
+     * be used to staple another project's incident onto an execution.
+     */
+    if (incidentId) {
+      const linkedIncident: Incident | null = await IncidentService.findOneById(
+        {
+          id: incidentId,
+          select: { _id: true },
+          props: ctx.props,
+        },
+      );
+      if (!linkedIncident) {
+        throw new BadDataException(
+          "Incident not found (or you do not have access to it).",
+        );
+      }
+    }
+
     const execution: RunbookExecution | null =
       await RunbookRuleEngineService.startRunbookFor({
         projectId: ctx.projectId,

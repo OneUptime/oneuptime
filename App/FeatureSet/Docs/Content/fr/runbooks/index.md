@@ -5,7 +5,7 @@ Les runbooks sont des procédures de réponse réutilisables — des listes ordo
 ## En un coup d'œil
 
 - **Fonctionnalité de premier niveau** dans le tableau de bord OneUptime, sous **Analyse & Automatisation → Runbooks**.
-- **Quatre types d'étapes** : liste manuelle, JavaScript (en bac à sable) et Bash (tous deux tournent sur un [Agent de runbook](/docs/runbooks/agents) dans votre propre infrastructure), requête HTTP.
+- **Cinq types d'étapes** : liste manuelle, JavaScript (en bac à sable) et Bash (tous deux tournent sur un [Agent de runbook](/docs/runbooks/agents) dans votre propre infrastructure), requête HTTP, et AI (analyse le contexte de l'incident et des étapes avec le fournisseur LLM de votre projet).
 - **Trois voies de déclenchement** : règles qui correspondent à des incidents/alertes/maintenances planifiées, ou bouton manuel « Exécuter le runbook » sur tout événement.
 - **Sémantique de snapshot** : au démarrage d'un runbook, ses étapes sont copiées dans l'exécution. Modifier le modèle ensuite ne change jamais une exécution en cours.
 - **Piste d'audit complète** : le statut, la sortie, le message d'erreur et la durée de chaque étape sont conservés à jamais sur l'exécution.
@@ -27,14 +27,14 @@ Quelques termes reviennent dans toute la documentation runbook. Clarifions-les d
 | Terme                | Signification                                                                                                                                                                                                                                                                      |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**          | Le modèle. Une procédure nommée et réutilisable, avec une liste ordonnée d'étapes et un drapeau `isEnabled`.                                                                                                                                                                       |
-| **Étape**            | Un élément d'un runbook. Possède un type (Manuelle / JavaScript / HTTP / Bash), un titre, une description et une configuration spécifique au type.                                                                                                                                 |
+| **Étape**            | Un élément d'un runbook. Possède un type (Manuelle / JavaScript / HTTP / Bash / AI), un titre, une description et une configuration spécifique au type.                                                                                                                                 |
 | **Règle de runbook** | Un motif qui attache automatiquement un ou plusieurs runbooks à des incidents, alertes ou maintenances planifiées lorsque leur titre ou description correspond à une expression régulière.                                                                                         |
 | **Exécution**        | Une exécution d'un runbook. Créée lorsqu'une règle se déclenche, lorsqu'on clique « Exécuter le runbook » sur un événement, ou lorsqu'on clique « Exécuter maintenant » sur le runbook lui-même. Contient un snapshot des étapes ainsi que le statut et la sortie de chaque étape. |
 | **Snapshot**         | La copie figée des étapes du runbook qui vit sur chaque exécution. Permet de modifier le modèle plus tard sans réécrire l'historique.                                                                                                                                              |
 
 ## Le cycle de vie d'un runbook
 
-1. **Rédiger** — Créez un runbook, mélangez des étapes Manuelles, JavaScript, HTTP et Bash. Enregistrez.
+1. **Rédiger** — Créez un runbook, mélangez des étapes Manuelles, JavaScript, HTTP, Bash et AI. Enregistrez.
 2. **(Optionnel) Ajouter une règle** — Depuis les paramètres des Incidents, Alertes ou Maintenances Planifiées, dites à OneUptime de démarrer ce runbook chaque fois que le titre ou la description d'un événement correspond à une regex.
 3. **Déclencher** — Soit la règle se déclenche automatiquement lors de la création d'un événement correspondant, soit un répondeur clique manuellement **Exécuter le runbook** sur l'événement.
 4. **Exécuter** — Une nouvelle exécution est créée avec un snapshot des étapes. Les étapes automatisées s'exécutent en ligne sur le worker Runbook ; l'exécution se met en pause à chaque étape manuelle jusqu'à ce que quelqu'un la valide.
@@ -50,8 +50,9 @@ Un guide rapide de décision. La présentation complète se trouve dans [Rédige
 | **JavaScript**   | Vous avez besoin d'un petit calcul contenu — interroger un service de configuration, transformer une charge utile, exécuter une logique avant l'étape suivante. Tourne en bac à sable sur un [Agent de runbook](/docs/runbooks/agents) dans votre propre infrastructure. | Calculer le retard de réplication actuel et décider si l'on continue.                              |
 | **Requête HTTP** | Vous appelez une API existante — votre endpoint d'administration, un fournisseur cloud, PagerDuty, Slack.                                                                                                                                                                | `POST` vers votre orchestrateur de bascule.                                                        |
 | **Bash**         | Vous devez exécuter des commandes shell sur votre propre infrastructure — redémarrer un service, lancer `kubectl`, appeler un script de déploiement. Nécessite un [Agent de runbook](/docs/runbooks/agents) installé dans votre environnement.                           | Redémarrer un service, `kubectl rollout restart`, exécuter un script de récupération.              |
+| **AI**           | Vous voulez une analyse, un résumé ou un jugement en cours d'exécution — un raisonnement sur l'incident déclencheur et la sortie des étapes précédentes via le fournisseur LLM de votre projet.                                                | « Examinez les diagnostics ci-dessus — est-il sûr de procéder à la bascule ? »                     |
 
-Vous pouvez mélanger les quatre types dans un même runbook — la force des runbooks réside dans l'entrelacement de la vérification humaine et de l'automatisation.
+Vous pouvez mélanger les cinq types dans un même runbook — la force des runbooks réside dans l'entrelacement de la vérification humaine, de l'automatisation et de l'analyse AI.
 
 ## Où vivent les runbooks dans le tableau de bord
 
@@ -114,7 +115,7 @@ Runbooks :      [Bascule DB primary]
 
 ## Où lire ensuite
 
-- [Rédiger un runbook](/docs/runbooks/authoring) — créer des runbooks, les quatre types d'étapes et ce que chacun fait.
+- [Rédiger un runbook](/docs/runbooks/authoring) — créer des runbooks, les cinq types d'étapes et ce que chacun fait.
 - [Règles de runbook](/docs/runbooks/rules) — attacher automatiquement des runbooks aux incidents, alertes et maintenances planifiées.
 - [Exécuter un runbook](/docs/runbooks/running) — déclenchements manuels, vue d'exécution et interaction entre étapes manuelles et automatisées.
 - [Agents de runbook](/docs/runbooks/agents) — installer les agents qui exécutent les étapes Bash dans votre propre infrastructure.

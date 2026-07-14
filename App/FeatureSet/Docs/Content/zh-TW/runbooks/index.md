@@ -5,7 +5,7 @@ Runbook 是可重複使用的回應程序——由一系列依序排列的手動
 ## 一覽
 
 - OneUptime 儀表板中的**頂層功能**，位於 **Analytics & Automation → Runbooks** 之下。
-- **四種步驟類型**：手動檢查清單、JavaScript（沙箱化）與 Bash（兩者皆在你自有基礎架構內的 [Runbook Agent](/docs/runbooks/agents) 上執行）、HTTP 請求。
+- **五種步驟類型**：手動檢查清單、JavaScript（沙箱化）與 Bash（兩者皆在你自有基礎架構內的 [Runbook Agent](/docs/runbooks/agents) 上執行）、HTTP 請求，以及 AI（使用你專案的 LLM 供應商分析事件與步驟情境）。
 - **三種觸發路徑**：比對事件／警示／排程維護的規則，或任何事件上的手動「Run Runbook」按鈕。
 - **快照語意**：當 runbook 啟動時，其步驟會被複製到該次執行上。日後編輯範本永遠不會變更進行中的執行。
 - **完整稽核軌跡**：每個步驟的狀態、輸出、錯誤訊息與耗時都會永久記錄在該次執行上。
@@ -27,14 +27,14 @@ Runbook 是可重複使用的回應程序——由一系列依序排列的手動
 | 術語                     | 意義                                                                                                                                                      |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**              | 範本。一個具名、可重複使用的程序，包含一系列依序排列的步驟以及一個 `isEnabled` 旗標。                                                                     |
-| **Step（步驟）**         | runbook 中的一個項目。具有類型（Manual／JavaScript／HTTP／Bash）、標題、描述，以及各類型特定的設定。                                                      |
+| **Step（步驟）**         | runbook 中的一個項目。具有類型（Manual／JavaScript／HTTP／Bash／AI）、標題、描述，以及各類型特定的設定。                                                      |
 | **Runbook Rule（規則）** | 一種模式，當事件、警示或排程維護事件的標題或描述符合某個正規表示式時，自動將一個或多個 runbook 附加到其上。                                               |
 | **Execution（執行）**    | runbook 的一次執行。當規則被觸發、有人在事件上點擊「Run Runbook」、或有人在 runbook 本身上點擊「Run Now」時建立。它保有步驟的快照以及各步驟的狀態／輸出。 |
 | **Snapshot（快照）**     | 存在於每次執行上的 runbook 步驟凍結副本。讓你日後可以編輯範本而不必改寫歷史紀錄。                                                                         |
 
 ## runbook 的生命週期
 
-1. **撰寫**——建立一個 runbook，放入手動、JavaScript、HTTP 與 Bash 步驟的組合。儲存。
+1. **撰寫**——建立一個 runbook，放入手動、JavaScript、HTTP、Bash 與 AI 步驟的組合。儲存。
 2. **（選用）新增規則**——在事件、警示或排程維護的設定中，告訴 OneUptime 只要某事件的標題或描述符合某個正規表示式，就啟動這個 runbook。
 3. **觸發**——當符合條件的事件被建立時，規則會自動觸發；或由回應者在事件上手動點擊 **Run Runbook**。
 4. **執行**——建立一次新的執行，內含步驟的快照。自動步驟在 Runbook worker 上內嵌執行；執行會在每個手動步驟暫停，直到有人勾選完成。
@@ -50,8 +50,9 @@ Runbook 是可重複使用的回應程序——由一系列依序排列的手動
 | **JavaScript**   | 你需要一段小型、受限的運算——查詢設定服務、轉換負載資料，或在下一步驟之前執行邏輯。在你自有基礎架構中的 [Runbook Agent](/docs/runbooks/agents) 上以沙箱方式執行。 | 計算目前的複本延遲並決定是否繼續。                       |
 | **HTTP request** | 你正在呼叫既有的 API——你自己的管理端點、雲端供應商、PagerDuty、Slack。                                                                                           | 對你的故障轉移協調器發出 `POST`。                        |
 | **Bash**         | 你需要在自有基礎架構上執行 shell 指令——重啟服務、執行 `kubectl`、呼叫部署腳本。需要在你的環境中安裝 [Runbook Agent](/docs/runbooks/agents)。                     | 重啟服務、執行 `kubectl rollout restart`、執行還原腳本。 |
+| **AI**           | 你希望在執行過程中取得分析、摘要或判斷——透過你專案的 LLM 供應商，對觸發的事件與先前步驟的輸出進行推理。                                                          | 「檢視上方的診斷結果——現在進行故障轉移安全嗎？」         |
 
-你可以在單一 runbook 中混用全部四種類型——runbook 的優勢正在於將人工驗證與自動化交錯運用。
+你可以在單一 runbook 中混用全部五種類型——runbook 的優勢正在於將人工驗證與自動化及 AI 分析交錯運用。
 
 ## runbook 在儀表板中的位置
 
@@ -114,7 +115,7 @@ Runbooks:       [DB primary failover]
 
 ## 接下來閱讀什麼
 
-- [撰寫 Runbook](/docs/runbooks/authoring)——建立 runbook、四種步驟類型，以及各自的作用。
+- [撰寫 Runbook](/docs/runbooks/authoring)——建立 runbook、五種步驟類型，以及各自的作用。
 - [Runbook Rules](/docs/runbooks/rules)——將 runbook 自動附加到事件、警示與排程維護事件。
 - [執行 Runbook](/docs/runbooks/running)——手動觸發、執行檢視，以及手動步驟如何與自動步驟互動。
 - [Runbook Agents](/docs/runbooks/agents)——安裝在你自有基礎架構內執行 Bash 步驟的代理程式。

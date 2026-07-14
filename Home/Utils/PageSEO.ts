@@ -288,7 +288,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/product/runbooks": {
     title: "Runbooks | Automated Incident Response Procedures | OneUptime",
     description:
-      "Runbooks that combine manual checklists with sandboxed JavaScript, HTTP, and bash steps. Auto-trigger on incidents, alerts, and scheduled maintenance. Open source incident response automation.",
+      "Runbooks that combine manual checklists with sandboxed JavaScript, HTTP, bash, and AI steps. Auto-trigger on incidents, alerts, and scheduled maintenance. Open source incident response automation.",
     canonicalPath: "/product/runbooks",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -302,12 +302,13 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:
-        "Automated incident response runbooks that mix manual checklists with sandboxed JavaScript, HTTP, and bash steps, auto-triggered on incidents, alerts, and scheduled maintenance.",
+        "Automated incident response runbooks that mix manual checklists with sandboxed JavaScript, HTTP, bash, and AI steps, auto-triggered on incidents, alerts, and scheduled maintenance.",
       features: [
         "Manual checklist steps",
         "Sandboxed JavaScript steps",
         "HTTP request steps",
         "Bash script steps",
+        "AI analysis steps",
         "Auto-trigger on incidents and alerts",
         "Trigger on scheduled maintenance",
         "Reusable response procedures",

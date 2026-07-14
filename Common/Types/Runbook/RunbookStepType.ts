@@ -3,6 +3,7 @@ enum RunbookStepType {
   JavaScript = "JavaScript",
   HttpRequest = "HttpRequest",
   Bash = "Bash",
+  AI = "AI",
 }
 
 export default RunbookStepType;

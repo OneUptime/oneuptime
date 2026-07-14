@@ -58,6 +58,22 @@ Konfigurer to ting på et Bash-trin:
 
 Hvis den valgte agent er offline, når runbook'et når dette trin, venter trinnet op til **claim timeout** (standard 2 minutter) og fejler så med `TimedOut`. Tilføj en agent under **Runbooks → Indstillinger → Agents**, før du regner med et Bash-trin.
 
+### AI
+
+Bed AI om at analysere, opsummere eller beslutte noget midt i en kørsel. Prompten sendes til dit projekts LLM-udbyder (**Indstillinger → Sentinel → LLM Providers**), og modellens svar bliver trinnets output på eksekveringstidslinjen. AI-trin kører på OneUptime Worker'en; ingen agent påkrævet.
+
+Konfigurer på et AI-trin:
+
+- **Prompt** — hvad AI'en skal gøre. For eksempel: "Gennemgå outputtet fra de forrige trin og angiv, om det er sikkert at fortsætte med afhjælpning."
+- **Inkludér kontekst fra forrige trin** — hvis aktiveret ser AI'en alt om de trin, der kørte før dette: titel, type, status, output og fejlmeddelelser.
+- **Inkludér udløser-kontekst** — hvis aktiveret ser AI'en, hvad der startede kørslen: den tilknyttede hændelse, alarm eller planlagte vedligeholdelsesbegivenhed (dens beskrivelse, alvorlighed, aktuelle status, berørte monitorer, grundårsag, statustidslinje og offentlige noter), eller hvem der kørte runbook'et manuelt.
+
+Kombinér et AI-trin med **Kræv godkendelse** for at holde et menneske i loopet: AI'en analyserer, en responder læser dens svar og godkender, og først derefter kører næste (afhjælpnings-)trin.
+
+**Hvad AI'en aldrig ser.** Et AI-trins svar gemmes som trinnets output på eksekveringen, og eksekveringer kan læses af alle med runbook-læserettigheder — et bredere publikum end hændelsens ACL. Derfor udelader udløser-konteksten bevidst **private interne noter** og **Slack/Teams-kanalbeskeder**: de forbliver inde i hændelsen, hvor de eksisterende postmortem- og notatgeneratorer holder deres afledte tekst. Output fra tidligere trin scannes for hemmeligheder (tokens, nøgler, legitimationsoplysninger) og redigeres, før det sendes til modellen.
+
+AI-trin måles og afregnes som enhver anden AI-funktion. Hvis ingen LLM-udbyder er konfigureret for projektet, fejler trinnet med en klar fejl (slå **Fortsæt ved fejl** til, hvis resten af runbook'et stadig skal køre).
+
 ## Gem og rediger
 
 Tryk på **Gem trin** for at persistere. Igangværende kørsler af ældre versioner af runbook'et er upåvirkede — de bruger fortsat deres snapshot.

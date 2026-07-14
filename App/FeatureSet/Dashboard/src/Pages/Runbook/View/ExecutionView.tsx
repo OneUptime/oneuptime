@@ -144,6 +144,7 @@ const STEP_TYPE_ICON: Record<RunbookStepType, IconProp> = {
   [RunbookStepType.JavaScript]: IconProp.Code,
   [RunbookStepType.HttpRequest]: IconProp.Globe,
   [RunbookStepType.Bash]: IconProp.Terminal,
+  [RunbookStepType.AI]: IconProp.Sparkles,
 };
 
 const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
@@ -151,6 +152,7 @@ const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
   [RunbookStepType.JavaScript]: "JavaScript",
   [RunbookStepType.HttpRequest]: "HTTP",
   [RunbookStepType.Bash]: "Bash",
+  [RunbookStepType.AI]: "AI",
 };
 
 function isTerminal(status?: RunbookExecutionStatus): boolean {
@@ -883,20 +885,42 @@ const ExecutionView: FunctionComponent<
                             >
                               <summary className="cursor-pointer text-xs font-medium text-gray-600 hover:text-gray-800 select-none flex items-center gap-1.5">
                                 <Icon
-                                  icon={IconProp.Terminal}
+                                  icon={
+                                    stepExec.step.type === RunbookStepType.AI
+                                      ? IconProp.Sparkles
+                                      : IconProp.Terminal
+                                  }
                                   size={SizeProp.Smaller}
                                   className="text-gray-500"
                                 />
                                 <span className="group-open:hidden">
-                                  Show output / logs
+                                  {stepExec.step.type === RunbookStepType.AI
+                                    ? "Show AI response"
+                                    : "Show output / logs"}
                                 </span>
                                 <span className="hidden group-open:inline">
-                                  Hide output / logs
+                                  {stepExec.step.type === RunbookStepType.AI
+                                    ? "Hide AI response"
+                                    : "Hide output / logs"}
                                 </span>
                               </summary>
-                              <pre className="mt-2 text-xs bg-gray-900 text-gray-100 rounded-md px-3 py-2 overflow-auto whitespace-pre-wrap max-h-72 font-mono">
-                                {stepExec.output}
-                              </pre>
+                              {stepExec.step.type === RunbookStepType.AI ? (
+                                <div className="mt-2 text-sm rounded-md border border-violet-100 bg-violet-50/50 px-4 py-3 overflow-auto max-h-96 prose prose-sm max-w-none">
+                                  {/*
+                                   * The model wrote this from incident text and
+                                   * earlier step output — untrusted input. safeMode
+                                   * defuses injected links and zero-click images.
+                                   */}
+                                  <MarkdownViewer
+                                    text={stepExec.output}
+                                    safeMode={true}
+                                  />
+                                </div>
+                              ) : (
+                                <pre className="mt-2 text-xs bg-gray-900 text-gray-100 rounded-md px-3 py-2 overflow-auto whitespace-pre-wrap max-h-72 font-mono">
+                                  {stepExec.output}
+                                </pre>
+                              )}
                             </details>
                           )}
                         </div>

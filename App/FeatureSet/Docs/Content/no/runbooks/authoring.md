@@ -58,6 +58,22 @@ Konfigurer to ting på et Bash-trinn:
 
 Hvis den valgte agenten er offline når runbook'et når dette trinnet, venter trinnet opp til **claim timeout** (standard 2 minutter) og feiler så med `TimedOut`. Legg til en agent under **Runbooks → Innstillinger → Agents** før du baserer deg på et Bash-trinn.
 
+### AI
+
+Be AI om å analysere, oppsummere eller avgjøre noe midt i kjøringen. Prompten sendes til prosjektets LLM-leverandør (**Innstillinger → Sentinel → LLM Providers**), og modellens svar blir trinnets output på kjøringstidslinjen. AI-trinn kjører på OneUptime-Worker'en; ingen agent påkrevd.
+
+Konfigurer på et AI-trinn:
+
+- **Prompt** — hva AI-en skal gjøre. For eksempel: "Gjennomgå outputen fra de foregående trinnene og angi om det er trygt å fortsette med utbedring."
+- **Inkluder kontekst fra tidligere trinn** — hvis på, ser AI-en alt om trinnene som kjørte før dette: tittel, type, status, output og feilmeldinger.
+- **Inkluder trigger-kontekst** — hvis på, ser AI-en hva som startet kjøringen: den tilknyttede hendelsen, varselet eller det planlagte vedlikeholdet (beskrivelse, alvorlighetsgrad, gjeldende tilstand, berørte monitorer, rotårsak, tilstandstidslinje og offentlige notater), eller hvem som kjørte runbook'et manuelt.
+
+Kombiner et AI-trinn med **Krev godkjenning** for å ha et menneske i loopen: AI-en analyserer, en responder leser svaret og godkjenner, og først da kjører neste (utbedrings-)trinn.
+
+**Hva AI-en aldri ser.** Svaret fra et AI-trinn lagres som trinn-output på kjøringen, og kjøringer kan leses av alle med lesetilgang til runbooks — et bredere publikum enn hendelsens ACL. Derfor utelater trigger-konteksten bevisst **private interne notater** og **Slack/Teams-kanalmeldinger**: de forblir inne i hendelsen, der de eksisterende postmortem- og notatgeneratorene beholder sin avledede tekst. Output fra tidligere trinn skannes for hemmeligheter (tokens, nøkler, påloggingsinformasjon) og maskeres før det sendes til modellen.
+
+AI-trinn måles og faktureres som enhver annen AI-funksjon. Hvis ingen LLM-leverandør er konfigurert for prosjektet, feiler trinnet med en tydelig feilmelding (slå på **Fortsett ved feil** hvis resten av runbook'et likevel skal kjøre).
+
 ## Lagre og redigere
 
 Trykk **Lagre trinn** for å lagre. Pågående kjøringer av eldre versjoner av runbook'et er upåvirket — de fortsetter med sitt snapshot.
