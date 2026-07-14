@@ -45,6 +45,20 @@ export interface BandPoint {
 }
 
 /**
+ * One (metric, entity) cell's finalized mean/sample-count for one of the
+ * two week-over-week drift windows. The Sentinel MetricDrift detector
+ * joins the "recent" and "prior" rows in JS (the join stays app-side so
+ * the drift decision is a pure, unit-testable function).
+ */
+export interface MetricDriftWindowRow {
+  name: string;
+  primaryEntityId: string;
+  mean: number;
+  sampleCount: number;
+  window: "recent" | "prior";
+}
+
+/**
  * Read-side service for the `MetricBaselineHourly` MV target table.
  *
  * The table itself is declared by the {@link MetricBaselineHourly}
@@ -96,6 +110,14 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   public static readonly WINDOW_DAYS_OPTIONS: ReadonlyArray<number> = [
     14, 28, 60, 90,
   ];
+  /**
+   * Hard cap on rows returned per drift window. Params travel in the
+   * ClickHouse HTTP URI and the detector joins both windows in JS, so an
+   * unbounded GROUP BY over a high-cardinality tenant would be both a
+   * memory and a transfer problem. Ranked by sampleCount so the busiest
+   * (most statistically trustworthy) cells always make the cut.
+   */
+  public static readonly DRIFT_MAX_ROWS_PER_WINDOW: number = 500;
 
   /**
    * Fetch the rolling-window baseline for one (metric, [entity],
@@ -283,6 +305,107 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       ? null
       : oldestDayParsed;
     return { totalSamples, oldestDay };
+  }
+
+  /**
+   * Week-over-week drift feed for the Sentinel MetricDrift detector: the
+   * finalized mean + sample count per (metric name, entity) cell for two
+   * adjacent 7-day windows — "recent" (last 7 days including today) and
+   * "prior" (the 7 days before that). Two GROUP BY finalization queries
+   * over the MetricBaselineHourly states (same *Merge idiom as
+   * getBaseline); the recent/prior JOIN deliberately happens in the
+   * caller's pure decision function, not in SQL, so it is unit-testable.
+   * Each window is capped at `limitPerWindow` rows (≤
+   * DRIFT_MAX_ROWS_PER_WINDOW) ranked by sampleCount descending.
+   */
+  public async getWeekOverWeekDrift(data: {
+    projectId: ObjectID;
+    limitPerWindow: number;
+  }): Promise<Array<MetricDriftWindowRow>> {
+    const projectIdStr: string = this.escapeString(data.projectId.toString());
+    const limit: number = Math.max(
+      1,
+      Math.min(
+        Math.floor(data.limitPerWindow),
+        MetricBaselineService.DRIFT_MAX_ROWS_PER_WINDOW,
+      ),
+    );
+
+    const windows: Array<{ window: "recent" | "prior"; dayFilter: string }> = [
+      {
+        window: "recent",
+        dayFilter: "day >= today() - INTERVAL 7 DAY",
+      },
+      {
+        window: "prior",
+        dayFilter:
+          "day BETWEEN today() - INTERVAL 14 DAY AND today() - INTERVAL 8 DAY",
+      },
+    ];
+
+    const out: Array<MetricDriftWindowRow> = [];
+
+    for (const windowSpec of windows) {
+      const sql: string = `
+        SELECT
+          name,
+          primaryEntityId,
+          avgMerge(meanState)          AS mean,
+          countMerge(sampleCountState) AS sampleCount
+        FROM MetricBaselineHourly
+        WHERE projectId = '${projectIdStr}'
+          AND ${windowSpec.dayFilter}
+        GROUP BY name, primaryEntityId
+        ORDER BY sampleCount DESC
+        LIMIT ${limit}
+      `;
+
+      const resultSet: {
+        json: () => Promise<{
+          data: Array<{
+            name: string;
+            primaryEntityId: string;
+            mean: number | string;
+            sampleCount: number | string;
+          }>;
+        }>;
+      } = (await this.executeQuery(sql)) as unknown as {
+        json: () => Promise<{
+          data: Array<{
+            name: string;
+            primaryEntityId: string;
+            mean: number | string;
+            sampleCount: number | string;
+          }>;
+        }>;
+      };
+
+      const parsed: {
+        data: Array<{
+          name: string;
+          primaryEntityId: string;
+          mean: number | string;
+          sampleCount: number | string;
+        }>;
+      } = await resultSet.json();
+
+      for (const row of parsed.data) {
+        out.push({
+          name: String(row.name || ""),
+          primaryEntityId: String(row.primaryEntityId || ""),
+          mean: this.toNumber(row.mean),
+          sampleCount: this.toNumber(row.sampleCount),
+          window: windowSpec.window,
+        });
+      }
+    }
+
+    logger.debug("MetricBaselineService.getWeekOverWeekDrift", {
+      projectId: projectIdStr,
+      rowCount: out.length,
+    } as LogAttributes);
+
+    return out;
   }
 
   /**

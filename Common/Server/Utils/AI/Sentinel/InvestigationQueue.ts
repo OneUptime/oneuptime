@@ -62,6 +62,30 @@ const MIN_CONCURRENT_INVESTIGATIONS: number = 1;
 const MAX_CONCURRENT_INVESTIGATIONS: number = 25;
 
 /*
+ * Lane priority. Two kinds of run share this queue and the per-project
+ * concurrency cap above:
+ *   - the INTERACTIVE lane (incident/alert RCA) — a human is waiting;
+ *   - the PREVENTIVE lane (Sentinel-insight triage, identified by
+ *     triggeredBySentinelInsightId) — nobody is waiting, and one scan tick
+ *     can file up to MAX_NEW_INSIGHTS_PER_PROJECT_PER_SCAN (10) of them.
+ *
+ * Without a sub-cap the preventive lane can hold every slot, and since the
+ * poller drains oldest-first, an incident that fires after a scan queues
+ * BEHIND that backlog — the exact RCA latency the product promises.
+ *
+ * So the preventive lane may hold at most (cap - RESERVED) slots: at least
+ * one slot is always unreachable by triage. Combined with the inline kick
+ * that enqueue() fires for every run, that reserved slot is enough on its
+ * own — an incident/alert enqueue calls processRun immediately, passes the
+ * gates against a cap that triage cannot have saturated, and dispatches
+ * without ever touching the poller (so it can also never be TTL-expired
+ * behind triage). Splitting the poller's oldest-first query into two lane
+ * queries would therefore only re-order runs that are ALREADY late, at the
+ * cost of an extra query every tick — deliberately not done.
+ */
+export const INSIGHT_TRIAGE_RESERVED_SLOTS: number = 1;
+
+/*
  * A first-pass RCA is only useful while the incident is fresh. Queued runs
  * older than this are expired rather than run late — this also caps queue
  * growth when the daily budget blocks claiming for hours.
@@ -77,6 +101,7 @@ export interface QueuedRunRef {
   attemptCount: number;
   triggeredByIncidentId?: ObjectID | undefined;
   triggeredByAlertId?: ObjectID | undefined;
+  triggeredBySentinelInsightId?: ObjectID | undefined;
 }
 
 export default class SentinelInvestigationQueue {
@@ -85,6 +110,10 @@ export default class SentinelInvestigationQueue {
    * immediately (detached — the poller is the safety net if this pod dies).
    * Callers have already passed the subject-specific gates (opt-in,
    * severity floor, dedupe window).
+   *
+   * Returns the created run's id (so subject rows can link back to it), or
+   * null when the enqueue was quiet-skipped (budget) or failed — enqueue
+   * itself never throws.
    */
   @CaptureSpan()
   public static async enqueue(data: {
@@ -92,7 +121,8 @@ export default class SentinelInvestigationQueue {
     subjectIncidentId?: ObjectID | undefined;
     subjectAlertId?: ObjectID | undefined;
     subjectMonitorId?: ObjectID | undefined;
-  }): Promise<void> {
+    subjectSentinelInsightId?: ObjectID | undefined;
+  }): Promise<ObjectID | null> {
     const { projectId } = data;
 
     /*
@@ -108,13 +138,13 @@ export default class SentinelInvestigationQueue {
         logger.debug(
           `Sentinel: not enqueueing investigation for project ${projectId.toString()} — daily autonomous token budget exhausted (${budget.usedTokensToday} of ${budget.limitInTokens} tokens used today).`,
         );
-        return;
+        return null;
       }
     } catch (error) {
       logger.error(
         `Sentinel: budget check failed, not enqueueing investigation: ${error}`,
       );
-      return;
+      return null;
     }
 
     const run: AIRun = new AIRun();
@@ -131,6 +161,9 @@ export default class SentinelInvestigationQueue {
     if (data.subjectMonitorId) {
       run.monitorId = data.subjectMonitorId;
     }
+    if (data.subjectSentinelInsightId) {
+      run.triggeredBySentinelInsightId = data.subjectSentinelInsightId;
+    }
 
     let createdRun: AIRun;
     try {
@@ -140,7 +173,7 @@ export default class SentinelInvestigationQueue {
       });
     } catch (error) {
       logger.error(`Sentinel: failed to enqueue investigation run: ${error}`);
-      return;
+      return null;
     }
 
     // Inline kick — preserves the 1-3 minute RCA latency on the happy path.
@@ -150,11 +183,14 @@ export default class SentinelInvestigationQueue {
       attemptCount: 0,
       triggeredByIncidentId: data.subjectIncidentId,
       triggeredByAlertId: data.subjectAlertId,
+      triggeredBySentinelInsightId: data.subjectSentinelInsightId,
     }).catch((error: Error) => {
       logger.error(
         `Sentinel: inline processing of queued run ${createdRun.id?.toString()} failed: ${error}`,
       );
     });
+
+    return createdRun.id || null;
   }
 
   /*
@@ -233,6 +269,7 @@ export default class SentinelInvestigationQueue {
         attemptCount: true,
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
+        triggeredBySentinelInsightId: true,
       },
       sort: { createdAt: SortOrder.Ascending },
       limit: POLLER_BATCH_SIZE,
@@ -247,6 +284,7 @@ export default class SentinelInvestigationQueue {
         attemptCount: queued.attemptCount || 0,
         triggeredByIncidentId: queued.triggeredByIncidentId,
         triggeredByAlertId: queued.triggeredByAlertId,
+        triggeredBySentinelInsightId: queued.triggeredBySentinelInsightId,
       };
 
       try {
@@ -361,9 +399,10 @@ export default class SentinelInvestigationQueue {
   }
 
   /*
-   * The claim-time cost gates: concurrency cap and daily budget. A run
-   * failing these stays Queued — the poller retries and the TTL expires
-   * what never fits. Fails cheap (skip) on gate errors.
+   * The claim-time cost gates: concurrency cap, the preventive-lane sub-cap
+   * and the daily budget. A run failing these stays Queued — the poller
+   * retries and the TTL expires what never fits. Fails cheap (skip) on gate
+   * errors.
    */
   private static async passesClaimGates(run: QueuedRunRef): Promise<boolean> {
     // Per-project cap override, defaulting to 3 and clamped to [1, 25].
@@ -398,6 +437,42 @@ export default class SentinelInvestigationQueue {
         `Sentinel: leaving run ${run.id.toString()} queued — ${runningCount} investigations already running (cap: ${concurrencyCap}).`,
       );
       return false;
+    }
+
+    /*
+     * The preventive lane's sub-cap: insight triage may never occupy the
+     * slot(s) reserved for incident/alert RCA (see
+     * INSIGHT_TRIAGE_RESERVED_SLOTS). Floored at 1 so a project running at
+     * the minimum cap of 1 still triages its insights (slower, one at a
+     * time) instead of deadlocking the lane entirely — the interactive lane
+     * keeps its priority through the global cap check above, which a single
+     * running triage run cannot outlast for long (triage is read-only and
+     * short).
+     */
+    if (run.triggeredBySentinelInsightId) {
+      const triageCap: number = Math.max(
+        1,
+        concurrencyCap - INSIGHT_TRIAGE_RESERVED_SLOTS,
+      );
+
+      const runningTriageCount: number = (
+        await AIRunService.countBy({
+          query: {
+            projectId: run.projectId,
+            runType: AIRunType.Investigation,
+            status: AIRunStatus.Running,
+            triggeredBySentinelInsightId: QueryHelper.notNull(),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (runningTriageCount >= triageCap) {
+        logger.debug(
+          `Sentinel: leaving insight triage run ${run.id.toString()} queued — ${runningTriageCount} triage runs already running (triage lane cap: ${triageCap} of ${concurrencyCap}).`,
+        );
+        return false;
+      }
     }
 
     const budget: AutonomousBudgetStatus =
@@ -474,6 +549,26 @@ export default class SentinelInvestigationQueue {
         aiRunId: run.id,
         projectId: run.projectId,
         alertId: run.triggeredByAlertId,
+        attemptCount: attempt,
+      });
+      return;
+    }
+
+    /*
+     * Sentinel-insight triage runs carry their subject in
+     * triggeredBySentinelInsightId — they must be recognized here as
+     * subject-BEARING, or the fallthrough below would fail every one of
+     * them as subject-less.
+     */
+    if (run.triggeredBySentinelInsightId) {
+      const insightTriageRunner: typeof import("./Insights/InsightTriageRunner").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("./Insights/InsightTriageRunner").default;
+
+      await insightTriageRunner.executeTriage({
+        aiRunId: run.id,
+        projectId: run.projectId,
+        sentinelInsightId: run.triggeredBySentinelInsightId,
         attemptCount: attempt,
       });
       return;

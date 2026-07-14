@@ -387,6 +387,35 @@ export default class AIRun extends BaseModel {
   })
   public triggeredByTelemetryExceptionId?: ObjectID = undefined;
 
+  /*
+   * Set when the run was woken by a preventive SentinelInsight (triage runs
+   * and insight-created fix runs).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Triggered By Sentinel Insight ID",
+    description:
+      "The preventive Sentinel insight that triggered this run (for insight triage and insight-created fix runs).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredBySentinelInsightId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

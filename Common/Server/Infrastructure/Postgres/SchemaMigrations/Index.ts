@@ -445,6 +445,8 @@ import { AddFixGuardrailColumns1783970619301 } from "./1783970619301-AddFixGuard
 import { DropLegacyAIAgentTaskTables1783970619302 } from "./1783970619302-DropLegacyAIAgentTaskTables";
 import { AddCompletionTokensToLlmLog1783990000000 } from "./1783990000000-AddCompletionTokensToLlmLog";
 import { AddCiStatusToFixPullRequests1783977781677 } from "./1783977781677-AddCiStatusToFixPullRequests";
+import { AddSentinelInsight1784010274993 } from "./1784010274993-AddSentinelInsight";
+import { AddSentinelInsightFlags1784010274994 } from "./1784010274994-AddSentinelInsightFlags";
 
 export default [
   InitialMigration,
@@ -894,4 +896,6 @@ export default [
   DropLegacyAIAgentTaskTables1783970619302,
   AddCompletionTokensToLlmLog1783990000000,
   AddCiStatusToFixPullRequests1783977781677,
+  AddSentinelInsight1784010274993,
+  AddSentinelInsightFlags1784010274994,
 ];

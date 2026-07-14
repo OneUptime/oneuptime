@@ -59,6 +59,33 @@ Alert volume can be much higher than incident volume, so autonomous investigatio
 
 Separately from investigations, Sentinel can draft a postmortem automatically when an incident is resolved. The draft never overwrites an existing postmortem note. This uses the same LLM provider and appears in the incident's postmortem tab for human review.
 
+## Insights — proactive detection
+
+Investigations react to incidents and alerts. **Sentinel Insights** watch for problems before anything pages: every 15 minutes, deterministic detectors scan your telemetry for trouble that has not (yet) tripped a monitor. There is **no AI in the watch loop** — the detectors are statistical checks with fixed thresholds, so the always-on part of the feature spends no tokens and cannot hallucinate a finding. The thresholds are deliberately conservative: an insight means something genuinely moved, not that a number wiggled.
+
+What the detectors watch:
+
+| Detector | Fires when | Severity |
+|---|---|---|
+| New exceptions | An exception first seen in the last 24 hours has already occurred 3+ times | Medium; High at 50+ occurrences |
+| Exception spikes | An established exception jumps to 10+ occurrences in the last hour, at 5×+ its normal hourly rate — including a long-dormant exception waking up | Medium; High at 10× |
+| Error-log spikes | Project-wide Error/Fatal log volume reaches 100+ in the last hour, at 3×+ the prior day's hourly average; the insight names the top contributing services | Medium; High at 10× |
+| Trace latency regressions | A service's p99 latency over the last hour is at least 1 second and 2×+ its prior-24-hour p99, with enough traffic to be meaningful. Sentinel drills into a representative slow trace and records what it found — N+1 query patterns, dominant slow spans — as evidence on the insight | Medium; High at 4× |
+| Metric drift | A metric's average this week has moved 50%+ versus the same metric last week | Always Low — drift direction says nothing about whether the change is bad, so drift is never auto-fixed |
+
+Each finding becomes an **insight** in a quiet inbox — **Sentinel > Insights** in the dashboard. Insights **never page anyone and never open incidents**; they wait until someone looks. A recurring finding refreshes its existing insight (last seen, occurrence count) instead of piling up duplicates, a finding you dismiss stays out of your inbox for 7 days, and each scan files at most 10 new insights per project.
+
+When an LLM provider is configured, each new insight also gets a **triage analysis**: a read-only, cited Sentinel investigation — same engine, same audit trail, same per-run budget and daily token limit as autonomous investigations — that assesses the likely root cause, the blast radius, and the one next action worth taking. The result is saved to the insight page. Without a provider you still get the insights; you just skip the AI triage.
+
+Optionally, Sentinel can also open a **draft fix pull request** for the insight types with the strongest evidence: new and spiking exceptions (through the existing exception-fix pipeline) and trace latency regressions (grounded in the span evidence recorded on the insight). Error-log spikes and metric drift are never auto-fixed. Every automatic fix PR opens as a draft, counts against the project's daily fix-task budget and each repository's open-PR cap, and requires human review — auto-merge does not exist.
+
+Both settings are **off by default**, at **Sentinel > Insights > Settings**:
+
+1. **Enable Sentinel Insights** — turns on the watch loop, the inbox, and triage.
+2. **Automatically open draft fix PRs from insights** — turns on fix-task creation for eligible insights. This needs the same setup as the manual "Fix with AI" flow: a GitHub-App-connected repository and an LLM provider.
+
+Every insight has **Confirm** and **Dismiss** buttons — use them even when you don't act on the finding. Your confirm/dismiss votes are how each detector's precision gets measured, and that measured precision is what decides which insight types earn more automation over time. Dismissing also keeps the same finding out of your inbox for the next 7 days.
+
 ## Requirements and limits
 
 - An LLM provider must be configured (project-specific or the cloud global provider).

@@ -117,6 +117,39 @@ export interface TraceAnalyticsTableRow {
   maxDurationMs: number;
 }
 
+/*
+ * Per-service latency profile over a whole window (no time buckets). Only
+ * the two aggregates proj_agg_by_service stores — see
+ * getServiceLatencyProfile for why nothing else may be added here.
+ */
+export interface ServiceLatencyProfileRequest {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  // Services returned, ranked by span volume (busiest first).
+  limit: number;
+}
+
+export interface ServiceLatencyProfileRow {
+  primaryEntityId: string;
+  count: number;
+  p99DurationMs: number;
+}
+
+export interface ServiceLatencyProfile {
+  rows: Array<ServiceLatencyProfileRow>;
+  /*
+   * TRUE when the rows may be incomplete: ClickHouse ran with
+   * timeout_overflow_mode='break', which returns whatever it aggregated so
+   * far — no exception, no marker in the payload. A partial aggregate is
+   * WRONG data, not less data (a p99 over a fraction of the spans), so
+   * unattended callers that compare windows MUST discard the result rather
+   * than reason over it. Never a reason to throw: user-facing callers may
+   * still choose to render partial rows.
+   */
+  isPartial: boolean;
+}
+
 export interface FacetValue {
   value: string;
   count: number;
@@ -1358,6 +1391,149 @@ export class TraceAggregationService {
         maxDurationMs: Number(row["max_ms"] || 0),
       };
     });
+  }
+
+  /*
+   * Wall-clock cap for the latency-profile query — same 45s ceiling as the
+   * other projection-served reads (below nginx's 60s proxy_read_timeout).
+   */
+  private static readonly LATENCY_PROFILE_MAX_EXECUTION_SECONDS: number = 45;
+
+  /*
+   * Partial-result heuristic. With timeout_overflow_mode='break' ClickHouse
+   * checks the deadline BETWEEN blocks and then returns a well-formed JSON
+   * body holding partial aggregates — there is no flag in the payload and no
+   * exception to catch. The only signal available on the response is
+   * `statistics.elapsed`: a query that was cut off necessarily burned (very
+   * nearly) its whole budget, while a projection-served profile completes in
+   * single-digit ms. Anything at or past this fraction of the cap is treated
+   * as "may be partial". False positives are harmless here — the caller skips
+   * one 15-minute tick; false negatives are what we must not have.
+   */
+  private static readonly LATENCY_PROFILE_PARTIAL_ELAPSED_RATIO: number = 0.9;
+
+  /**
+   * Per-service span volume + p99 latency over the whole window, served by
+   * the proj_agg_by_service aggregate projection (projectId,
+   * primaryEntityId, toStartOfMinute(startTime) -> count() /
+   * avg(durationUnixNano) / quantile(0.99)(durationUnixNano)).
+   *
+   * This exists because getAnalyticsTable CANNOT be projection-served: its
+   * stat set (countIf / p50 / p90 / p95 / min / max) has no stored state,
+   * its time predicate is on raw startTime, and it carries the
+   * retentionDate filter — any one of those forces a full base-table scan.
+   * That is fine for a human staring at the trace explorer and fatal for an
+   * unattended 15-minute scanner: a 25-hour raw-span GROUP BY per project
+   * per tick, which on the largest tenants hits the execution cap and comes
+   * back silently partial.
+   *
+   * Four things are load-bearing for the optimizer to pick the projection —
+   * changing any of them silently reverts this to a full scan:
+   *   1. The time predicates must be written over toStartOfMinute(startTime)
+   *      — the projection's key expression — never raw startTime.
+   *   2. The aggregates must BYTE-MATCH stored expressions: count() and
+   *      quantile(0.99)(durationUnixNano). The ns->ms division is therefore
+   *      done in TS below, NOT folded into the aggregate expression.
+   *   3. GROUP BY must stay a subset of the projection's grouping keys.
+   *      Dropping `minute` merges the per-minute aggregate STATES into a
+   *      whole-window value (the same subset-group-by getResourceFacetCounts
+   *      does against proj_hist_by_minute).
+   *   4. Every predicate must be on a projection column — so NO
+   *      RETENTION_FILTER (retentionDate is not stored by this projection)
+   *      and no statusCode / name / attribute filters.
+   *
+   * Trade-off, identical to the other projection paths: window edges round
+   * to the minute, and rows past their per-service retention that have not
+   * yet dropped with their part are still counted. Irrelevant to a p99
+   * ratio between two windows.
+   */
+  @CaptureSpan()
+  public static async getServiceLatencyProfile(
+    request: ServiceLatencyProfileRequest,
+  ): Promise<ServiceLatencyProfile> {
+    const statement: Statement = new Statement();
+    statement.append(
+      `SELECT primaryEntityId, count() AS cnt, quantile(0.99)(durationUnixNano) AS p99_ns FROM ${TraceAggregationService.TABLE_NAME}`,
+    );
+
+    /*
+     * Half-open window (`<` on the end). The caller runs two adjacent
+     * windows (recent hour, prior 24h) whose boundary minute would
+     * otherwise be counted in BOTH.
+     */
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }}) AND toStartOfMinute(startTime) < toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }})`,
+    );
+
+    // Ranked by volume: a p99 regression on the busiest services is the one that hurts.
+    statement.append(
+      SQL` GROUP BY primaryEntityId ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: request.limit,
+      }}`,
+    );
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds:
+          TraceAggregationService.LATENCY_PROFILE_MAX_EXECUTION_SECONDS,
+        timeoutOverflowMode: "break",
+        additionalSettings: { optimize_use_projections: 1 },
+      }),
+    );
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    let rows: Array<JSONObject> = [];
+    let elapsedSeconds: number = 0;
+
+    try {
+      const response: DbJSONResponse = await dbResult.json<{
+        data?: Array<JSONObject>;
+      }>();
+      rows = response.data || [];
+      elapsedSeconds = Number(response.statistics?.elapsed || 0);
+    } catch {
+      /*
+       * 'break' mode can also truncate the JSON body outright. Unparseable
+       * IS partial — report it as such rather than handing back an empty
+       * profile the caller would read as "this project has no traffic".
+       */
+      logger.warn(
+        "Service latency profile query returned unparseable response, reporting a partial result",
+      );
+      return { rows: [], isPartial: true };
+    }
+
+    const isPartial: boolean =
+      elapsedSeconds >=
+      TraceAggregationService.LATENCY_PROFILE_MAX_EXECUTION_SECONDS *
+        TraceAggregationService.LATENCY_PROFILE_PARTIAL_ELAPSED_RATIO;
+
+    return {
+      rows: rows
+        .map((row: JSONObject): ServiceLatencyProfileRow => {
+          return {
+            primaryEntityId: String(row["primaryEntityId"] ?? ""),
+            count: Number(row["cnt"] || 0),
+            // ns -> ms here, NOT in the aggregate expression (see above).
+            p99DurationMs: Number(row["p99_ns"] || 0) / 1000000,
+          };
+        })
+        .filter((row: ServiceLatencyProfileRow): boolean => {
+          return row.primaryEntityId.length > 0;
+        }),
+      isPartial,
+    };
   }
 
   private static groupByAlias(key: string, index: number): string {

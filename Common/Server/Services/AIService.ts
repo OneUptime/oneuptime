@@ -46,6 +46,15 @@ export const WORKFLOW_AI_FEATURE: string = "Workflow AI";
 export const RUNBOOK_AI_STEP_FEATURE: string = "Runbook AI Step";
 
 /*
+ * The LlmLog feature name for per-insight Sentinel triage: the budgeted,
+ * read-only Investigation AIRun a newly filed SentinelInsight enqueues.
+ * Insights are filed by deterministic detectors on a scheduled scan, so
+ * these runs are storm-shaped by construction and fully autonomous.
+ */
+export const SENTINEL_INSIGHT_TRIAGE_FEATURE: string =
+  "Sentinel Insight Triage";
+
+/*
  * Features that run WITHOUT a human in the loop. The per-project daily token
  * budget (Project.aiDailyAutonomousTokenLimit, G4) applies only to these —
  * interactive chat and explicitly user-triggered AI are never budget-blocked.
@@ -83,6 +92,13 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
   RUNBOOK_AI_STEP_FEATURE,
   // Workflow components also execute without per-request human approval.
   WORKFLOW_AI_FEATURE,
+  /*
+   * Per-insight preventive triage (InsightTriageRunner). One read-only
+   * Investigation run per new SentinelInsight, with no human in the loop —
+   * a noisy scan tick can file several insights at once, so the daily
+   * budget must cover these runs too.
+   */
+  SENTINEL_INSIGHT_TRIAGE_FEATURE,
 ];
 
 export interface AutonomousBudgetStatus {

@@ -129,6 +129,9 @@ export default class FixPerformanceTaskTrigger {
     /*
      * Gate 1 — the deterministic evidence gate, and the recipe's whole
      * point: no mechanical pattern in the span tree means no fix task.
+     * This gate lives HERE, not in the findings entry point below: callers
+     * of that entry point (insight fix routing) hand over findings that
+     * were already computed — and gated on — at detect time.
      */
     const findings: Array<PerformanceFinding> = SpanTreeAnalyzer.analyzeTrace(
       data.spans,
@@ -140,7 +143,44 @@ export default class FixPerformanceTaskTrigger {
       );
     }
 
-    // Gate 2 — a repository the agent can actually open a PR against.
+    return this.createPerformanceFixTaskFromFindings({
+      projectId: data.projectId,
+      traceId: data.traceId,
+      serviceName: data.serviceName,
+      findings,
+      codeLocations: this.collectCodeLocations(data.spans, findings),
+      userId: data.userId,
+    });
+  }
+
+  /*
+   * The findings-based entry point: gate and enqueue a FixPerformance run
+   * for ALREADY-COMPUTED deterministic findings (the spans path above after
+   * its analyzer gate, and Sentinel insight fix routing whose findings were
+   * drilled — and stored as evidence — at detect time, because the spans
+   * are likely gone by now). `userId` is attribution for human-triggered
+   * callers; automatic triggers pass none and the run stays system-authored.
+   *
+   * Throws BadDataException naming the failed gate: no GitHub-App
+   * repository, a duplicate active run for the same trace, or (via
+   * enqueueSubjectCodeFixRun) the daily fix-run budget.
+   */
+  @CaptureSpan()
+  public static async createPerformanceFixTaskFromFindings(data: {
+    projectId: ObjectID;
+    traceId: string;
+    serviceName?: string | undefined;
+    findings: Array<PerformanceFinding>;
+    codeLocations: Array<PerformanceCodeLocation>;
+    userId?: ObjectID | undefined;
+  }): Promise<AIRun> {
+    if (!data.traceId) {
+      throw new BadDataException(
+        "A traceId is required to create a performance fix task.",
+      );
+    }
+
+    // Gate — a repository the agent can actually open a PR against.
     const hasConnectedRepository: boolean =
       await SubjectCodeFixRun.hasGitHubAppConnectedRepository(data.projectId);
 
@@ -151,7 +191,7 @@ export default class FixPerformanceTaskTrigger {
     }
 
     /*
-     * Gate 3 — per-trace dedupe: at most one non-terminal FixPerformance
+     * Gate — per-trace dedupe: at most one non-terminal FixPerformance
      * run per trace (repeated clicks must not fan out into duplicate PRs).
      */
     const existingRun: AIRun | null =
@@ -169,8 +209,8 @@ export default class FixPerformanceTaskTrigger {
     const taskContext: CodeFixTaskContext = {
       traceId: data.traceId,
       serviceName: data.serviceName,
-      performanceFindings: findings,
-      codeLocations: this.collectCodeLocations(data.spans, findings),
+      performanceFindings: data.findings,
+      codeLocations: data.codeLocations,
     };
 
     return SubjectCodeFixRun.enqueueSubjectCodeFixRun({

@@ -198,6 +198,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: aiCategory,
     },
     {
+      title: t("navbar.items.sentinelInsightsTitle", "Insights"),
+      description: t(
+        "navbar.items.sentinelInsightsDescription",
+        "Proactive findings from Sentinel's telemetry watch — new exceptions, spikes, latency regressions and metric drift.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SENTINEL_INSIGHTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SENTINEL_INSIGHTS],
+      icon: IconProp.LightBulb,
+      iconColor: "violet",
+      category: aiCategory,
+    },
+    {
       title: t("navbar.items.codeRepositoriesTitle"),
       description: t(
         "navbar.items.codeRepositoriesDescription",

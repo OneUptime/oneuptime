@@ -378,6 +378,16 @@ export const AIAgentTasksRoutePath: Dictionary<string> = {
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
 
+/*
+ * The static "settings" segment must be declared alongside the dynamic
+ * ":id" segment — the router ranks static segments higher, so
+ * /ai/insights/settings never falls through to the insight detail page.
+ */
+export const SentinelInsightsRoutePath: Dictionary<string> = {
+  [PageMap.SENTINEL_INSIGHTS_SETTINGS]: "settings",
+  [PageMap.SENTINEL_INSIGHT_VIEW]: `${RouteParams.ModelID}`,
+};
+
 // Logs product routes
 export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS]: "",
@@ -4984,6 +4994,27 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai/agents/${
       AIAgentTasksRoutePath[PageMap.AI_AGENT_TASK_VIEW_DELETE]
+    }`,
+  ),
+
+  // Sentinel Insights section (proactive telemetry findings)
+  [PageMap.SENTINEL_INSIGHTS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/insights/*`,
+  ),
+
+  [PageMap.SENTINEL_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/insights`,
+  ),
+
+  [PageMap.SENTINEL_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/insights/${
+      SentinelInsightsRoutePath[PageMap.SENTINEL_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.SENTINEL_INSIGHTS_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/insights/${
+      SentinelInsightsRoutePath[PageMap.SENTINEL_INSIGHTS_SETTINGS]
     }`,
   ),
 
