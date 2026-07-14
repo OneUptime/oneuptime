@@ -9,14 +9,14 @@
 - [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)를 통한 **systemd journal** (Linux)
 - 테일링된 `log stream` 출력을 래핑하는 [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor)를 통한 **Apple Unified Log** (macOS)
 - [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)를 통한 **Windows Event Logs**
-- [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)를 통한 **Windows 서비스 상태** (호스트 **Services** 탭을 구동) — _업스트림 사전 빌드 Collector에는 포함되어 있지 않습니다. 사전 빌드된 **OneUptime Host Collector** 또는 사용자 지정 빌드를 사용하세요 (아래의 "Windows Services (메트릭)" 참조)_
+- [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)를 통한 **Windows 서비스 상태** (호스트 **Services** 탭을 구동) — **v0.155.0**부터 업스트림 `otelcol-contrib` 빌드에 번들로 포함됩니다 (아래의 "Windows Services (메트릭)" 참조)
 
 > **OneUptime Infrastructure Agent는 어떤가요?** 그 에이전트는 기본 메트릭과 _Server / VM Monitor_ 기능(상태, 프로세스, 알림)에 중점을 둔 별도의 경량 Go 데몬입니다. 여기에서 설명하는 OpenTelemetry Collector는 독립적이며, 로그(파일 로그, journald, Windows Event Logs)나 표준 OTLP로 수집되는 더 풍부한 호스트 메트릭을 원할 때 적합한 도구입니다. 둘 다 서로 간섭하지 않고 동일한 호스트에서 실행할 수 있습니다.
 
 ## 사전 요구 사항
 
 - **OneUptime Telemetry Ingestion Token** — *Project Settings → Telemetry Ingestion Keys*에서 생성하고 `x-oneuptime-token` 값을 복사합니다.
-- **OpenTelemetry Collector Contrib** 배포판(`otelcol-contrib`). 기본 `otelcol` 빌드에는 `windowseventlogreceiver`, `journaldreceiver` 또는 `hostmetrics` 추가 기능과 같은 receiver가 **포함되어 있지 않습니다** — 반드시 `contrib` 배포판을 사용하세요. 미리 알아두면 좋은 예외가 하나 있습니다: Windows **Services** 탭을 구동하는 alpha `windowsservicereceiver`는 업스트림 사전 빌드 `contrib` 바이너리에 번들로 포함되어 있지 **않습니다** — 이를 포함하는 사전 빌드된 **OneUptime Host Collector**를 사용하거나 직접 빌드하세요. 아래의 "Windows Services (메트릭)"를 참조하세요.
+- **OpenTelemetry Collector Contrib** 배포판(`otelcol-contrib`). 기본 `otelcol` 빌드에는 `windowseventlogreceiver`, `journaldreceiver` 또는 `hostmetrics` 추가 기능과 같은 receiver가 **포함되어 있지 않습니다** — 반드시 `contrib` 배포판을 사용하세요. Windows **Services** 탭을 구동하는 alpha `windowsservicereceiver`는 **v0.155.0**부터 `otelcol-contrib`에 번들로 포함되어 있으므로, 최신 릴리스를 설치하세요. 아래의 "Windows Services (메트릭)"를 참조하세요.
 - Collector를 서비스로 설치하고 (해당되는 경우) 권한이 필요한 로그 소스를 읽으려면 호스트에 대한 Root / Administrator 권한이 필요합니다.
 
 ## 1단계 — OpenTelemetry Collector 설치
@@ -27,7 +27,7 @@
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.154.0                      # pick the latest release tag
+VERSION=0.156.0                      # pick the latest release tag
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -41,7 +41,7 @@ Debian 패키지는 바이너리를 `/usr/bin/otelcol-contrib`에, 기본 구성
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.154.0
+VERSION=0.156.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -53,7 +53,7 @@ sudo rpm -ivh \
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.154.0
+VERSION=0.156.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -68,20 +68,21 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-Windows에서는 **OneUptime Host Collector**를 설치하세요 — 이것은 `windows_service` receiver(호스트 **Services** 탭을 구동하며 업스트림 `otelcol-contrib` 빌드에는 _포함되어 있지 않음_)를 번들로 포함하는 OneUptime의 사전 빌드 Collector입니다. **권한이 상승된** PowerShell 프롬프트에서:
+Windows에서는 업스트림 **`otelcol-contrib`** 릴리스를 다운로드하세요 — 이것은 (**v0.155.0**부터) 호스트 **Services** 탭을 구동하는 `windows_service` receiver를 번들로 포함합니다. **권한이 상승된** PowerShell 프롬프트에서:
 
 ```powershell
-$dest = "C:\Program Files\OneUptimeHostCollector"
-$zip  = "$env:TEMP\oneuptime-host-collector.zip"
+$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$dest    = "C:\Program Files\otelcol-contrib"
+$tar     = "$env:TEMP\otelcol-contrib.tar.gz"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _arm64.zip asset on ARM
-Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
-Expand-Archive -Path $zip -DestinationPath $dest -Force
+# amd64; use the _windows_arm64.tar.gz asset on ARM
+Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
 ```
 
-2단계에서 `C:\Program Files\OneUptimeHostCollector\config.yaml`을 생성하고 3단계에서 Windows 서비스를 등록하게 됩니다.
+이것은 `otelcol-contrib.exe`를 `C:\Program Files\otelcol-contrib`에 압축 해제합니다. 2단계에서 같은 폴더에 `config.yaml`을 생성하고 3단계에서 Windows 서비스를 등록하게 됩니다.
 
-> 업스트림 `otelcol-contrib`를 선호하시나요? 대신 [OpenTelemetry 릴리스 페이지](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)에서 `otelcol-contrib_*_windows_amd64.zip`을 다운로드하세요 — 아래의 모든 내용이 동일하게 작동하지만, `windows_service`(업스트림 빌드에 없음. "Windows Services (메트릭)" 참조)를 필요로 하는 호스트 **Services** 탭만은 **예외**입니다.
+> 네이티브 설치 프로그램을 선호하시나요? OpenTelemetry는 동일한 [릴리스 페이지](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)에서 서명된 **`.msi`**(`otelcol-contrib_<version>_windows_x64.msi`)도 게시하며, 이는 Collector를 Windows 서비스로 자동 등록해 줍니다. 이를 사용하는 경우, 2단계의 `config.yaml`을 가리키도록 하고, **Services** 탭이 Service Control Manager를 읽을 수 있도록 서비스가 `LocalSystem`으로 실행되는지 확인하세요.
 
 ## 2단계 — Collector 구성
 
@@ -91,7 +92,7 @@ Expand-Archive -Path $zip -DestinationPath $dest -Force
 | ------- | ----------------------------------------------------- |
 | Linux   | `/etc/otelcol-contrib/config.yaml`                    |
 | macOS   | `/etc/otelcol-contrib/config.yaml`                    |
-| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
+| Windows | `C:\Program Files\otelcol-contrib\config.yaml` |
 
 모든 구성은 동일한 형태를 따릅니다 — 원하는 receiver를 선택하고, `batch` 및 `resource` 프로세서를 추가한 다음, OTLP HTTP를 통해 OneUptime으로 내보냅니다. 아래 예제는 OS별로 완전하고 복사하여 붙여넣을 수 있는 구성을 보여준 다음, 자유롭게 조합할 수 있도록 각 receiver 블록을 설명합니다.
 
@@ -268,7 +269,7 @@ windowseventlog/iis:
 
 호스트 **Services** 탭은 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)(구성 유형 `windows_service`)에 의해 구동되며, 이는 Windows 서비스의 실행 상태와 시작 유형을 메트릭으로 보고합니다.
 
-**OneUptime Host Collector(1단계에서 설치, Windows의 기본값)에는 이미 이 receiver가 포함되어 있습니다.** `config.yaml`에서 이를 활성화하고 메트릭 파이프라인에 추가하세요:
+**이 receiver는 v0.155.0부터 업스트림 `otelcol-contrib` 바이너리에 포함되어 있습니다** — 이전 릴리스에서는 `windows_service`를 추가하면 `'receivers' unknown type: "windows_service"` 오류와 함께 시작에 실패합니다. 최신 릴리스를 설치한 다음(1단계), `config.yaml`에서 이를 활성화하고 메트릭 파이프라인에 추가하세요:
 
 ```yaml
 receivers:
@@ -289,37 +290,7 @@ service:
 
 receiver는 서비스당 하나의 `windows.service.status` 게이지를 내보냅니다 — 정수는 Win32 서비스 상태(`4` = 실행 중, `1` = 중지됨)입니다 — `name` 및 `startup_mode` 속성과 함께. 모든 서비스를 읽을 수 있도록 Collector를 `LocalSystem`(`sc.exe` 기본값)으로 실행하세요. 열 수 없는 서비스는 건너뜁니다. 이 receiver는 **alpha** 단계이며 **Windows 전용**입니다. 알려진 문제로는 Collector를 충돌시킬 수 있는 스크레이프 오류와 한 서비스의 `access denied`가 다른 서비스에 영향을 미치는 문제가 있습니다 — 이러한 문제가 발생하면 `include_services`로 제한하세요.
 
-#### 업스트림 Collector를 대신 사용하시나요?
-
-업스트림 사전 빌드 `otelcol-contrib` 바이너리에는 `windowsservicereceiver`가 포함되어 있지 **않습니다** — `windows_service`를 추가하면 `'receivers' unknown type: "windows_service"` 오류와 함께 시작에 실패하며, **어떤 버전 업그레이드로도 이 문제는 해결되지 않습니다**(출시된 어떤 `otelcol-contrib` 빌드에도 포함되어 있지 않습니다). OneUptime Host Collector(1단계)로 전환하거나, [OpenTelemetry Collector Builder (`ocb`)](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder)로 직접 빌드하세요 — `builder-config.yaml`을 생성하세요(모든 버전을 동일한 Collector 릴리스로 유지하세요):
-
-```yaml
-dist:
-  name: otelcol-oneuptime
-  description: OpenTelemetry Collector with the Windows service receiver
-  output_path: ./otelcol-oneuptime
-  otelcol_version: 0.154.0
-
-receivers:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver v0.154.0
-
-processors:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.154.0
-  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.154.0
-
-exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
-```
-
-```powershell
-go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
-builder --config builder-config.yaml
-```
-
-그런 다음 결과로 생성된 `otelcol-oneuptime.exe`를 실행하고 위에서 보여준 대로 `windows_service`를 활성화하세요.
+> **`include_services`가 효과가 없나요?** 이 필터는 집합을 *좁히기*만 할 수 있으므로, 서비스를 나열했는데도 여전히 모든 서비스가 보인다면, 편집한 구성이 실행 중인 Collector에 거의 확실히 반영되지 않은 것입니다. 편집 후 서비스를 재시작하세요(3단계); `include_services`가 `collection_interval`과 동일한 들여쓰기 수준에서 값이 채워진 목록인지 확인하세요(주석 처리되거나 비어 있지 않도록); 그리고 변경 전에 보고된 서비스가 롤링 윈도우에서 만료되도록 **Services** 탭에 몇 분의 시간을 주세요. 이름은 정확한 대소문자 구분 Windows 서비스 _키_ 이름(예: `Spooler`, `W3SVC`)이며, `Get-Service | Select-Object Name`으로 나열할 수 있습니다.
 
 ### 완전한 예제 — Linux 호스트
 
@@ -432,7 +403,7 @@ service:
 
 ### 완전한 예제 — Windows 호스트
 
-`C:\Program Files\OneUptimeHostCollector\config.yaml`:
+`C:\Program Files\otelcol-contrib\config.yaml`:
 
 ```yaml
 receivers:
@@ -461,7 +432,7 @@ receivers:
     channel: Security
     start_at: end
 
-  # Powers the Services tab. Included in the OneUptime Host Collector (Step 1).
+  # Powers the Services tab (otelcol-contrib v0.155.0+).
   windows_service:
     collection_interval: 30s
 
@@ -548,15 +519,15 @@ sudo launchctl list | grep otelcol-contrib
 **권한이 상승된** PowerShell 프롬프트에서:
 
 ```powershell
-sc.exe create "OneUptimeHostCollector" `
-  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
+sc.exe create "otelcol-contrib" `
+  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
   start= auto `
-  DisplayName= "OneUptime Host Collector"
+  DisplayName= "OpenTelemetry Collector (OneUptime)"
 
-sc.exe description "OneUptimeHostCollector" "Collects host telemetry and forwards it to OneUptime over OTLP."
+sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
 
-sc.exe start "OneUptimeHostCollector"
-sc.exe query "OneUptimeHostCollector"
+sc.exe start "otelcol-contrib"
+sc.exe query "otelcol-contrib"
 ```
 
 서비스는 기본적으로 `LocalSystem`으로 실행되며, 이는 `Security` Windows Event Log 채널과 모든 Windows 서비스를 읽는 데 필요한 권한을 가지고 있습니다.

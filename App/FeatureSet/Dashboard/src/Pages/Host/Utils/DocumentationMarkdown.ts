@@ -42,7 +42,7 @@ export const HOST_INSTALL_METHODS: Array<HostInstallMethodOption> = [
   {
     key: "windows",
     label: "Windows",
-    description: "OneUptime Host Collector, registered as a Windows service.",
+    description: "Upstream otelcol-contrib, registered as a Windows service.",
   },
   {
     key: "kubernetes",
@@ -338,35 +338,36 @@ Logs: \`tail -F $(brew --prefix)/var/log/opentelemetry-collector.log\` (path var
 
     case "windows":
       return `
-## Step 2 — Install on Windows (OneUptime Host Collector)
+## Step 2 — Install on Windows (otelcol-contrib)
 
-On Windows, install the **OneUptime Host Collector** — a prebuilt OpenTelemetry Collector that bundles the \`windows_service\` receiver (which powers the host **Services** tab and is *not* in the upstream \`otelcol-contrib\` build). It's a drop-in collector that runs the same \`config.yaml\` from Step 1.
+On Windows, install the upstream **\`otelcol-contrib\`** collector — from **v0.155.0** it bundles the \`windows_service\` receiver that powers the host **Services** tab. It runs the same \`config.yaml\` from Step 1.
 
 Run from an elevated PowerShell prompt:
 
 \`\`\`powershell
-# Download the latest OneUptime Host Collector for Windows (amd64; use _arm64.zip on ARM)
-$dest = "C:\\Program Files\\OneUptimeHostCollector"
-$zip  = "$env:TEMP\\oneuptime-host-collector.zip"
+# Download otelcol-contrib for Windows (amd64; use _windows_arm64.tar.gz on ARM)
+$version = "0.156.0"   # use v0.155.0 or later for the Services tab
+$dest = "C:\\Program Files\\otelcol-contrib"
+$tar  = "$env:TEMP\\otelcol-contrib.tar.gz"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
-Expand-Archive -Path $zip -DestinationPath $dest -Force
+Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$version/otelcol-contrib_\${version}_windows_amd64.tar.gz" -OutFile $tar
+tar -xf $tar -C $dest   # tar.exe ships with Windows 10 1803+ / Server 2019+
 
 # Use the config.yaml you saved in Step 1
 Copy-Item config.yaml "$dest\\config.yaml" -Force
 
 # Register and start it as a Windows service (runs as LocalSystem)
-sc.exe create "OneUptimeHostCollector" binPath= "\\"$dest\\oneuptime-host-collector.exe\\" --config=\\"$dest\\config.yaml\\"" start= auto DisplayName= "OneUptime Host Collector"
-sc.exe start "OneUptimeHostCollector"
+sc.exe create "otelcol-contrib" binPath= "\\"$dest\\otelcol-contrib.exe\\" --config=\\"$dest\\config.yaml\\"" start= auto DisplayName= "OpenTelemetry Collector (OneUptime)"
+sc.exe start "otelcol-contrib"
 \`\`\`
 
 Logs are written to the Windows Application event log; view them in **Event Viewer → Windows Logs → Application**.
 
-> **Note:** The service runs as \`LocalSystem\` so it can read every Windows service. On Windows the \`load\` scraper only emulates a load average from the *Processor Queue Length* counter (it starts at 0); if it can't read the counter it is logged and skipped, so the rest of the \`hostmetrics\` config runs unchanged. Prefer the upstream collector or building your own? See the [Host OpenTelemetry Collector docs](https://oneuptime.com/docs/telemetry/host-otel-collector).
+> **Note:** The service runs as \`LocalSystem\` so it can read every Windows service. On Windows the \`load\` scraper only emulates a load average from the *Processor Queue Length* counter (it starts at 0); if it can't read the counter it is logged and skipped, so the rest of the \`hostmetrics\` config runs unchanged. See the [Host OpenTelemetry Collector docs](https://oneuptime.com/docs/telemetry/host-otel-collector) for the tarball, MSI, and self-build options.
 
 ## Step 3 — Enable the Windows Services tab
 
-The OneUptime Host Collector from Step 2 already includes the \`windows_service\` receiver — turn it on by adding it to your \`config.yaml\` and the metrics pipeline, then restart the service:
+From **v0.155.0** \`otelcol-contrib\` includes the \`windows_service\` receiver — turn it on by adding it to your \`config.yaml\` and the metrics pipeline, then restart the service:
 
 \`\`\`yaml
 receivers:
@@ -384,10 +385,10 @@ service:
 \`\`\`
 
 \`\`\`powershell
-Restart-Service OneUptimeHostCollector
+Restart-Service otelcol-contrib
 \`\`\`
 
-The receiver is **Windows-only** and **alpha**. Once metrics arrive, the host **Services** tab populates automatically with each service's running state and startup type.
+The receiver is **Windows-only** and **alpha**. Once metrics arrive, the host **Services** tab populates automatically with each service's running state and startup type. If you set \`include_services\` but still see every service, the collector hasn't picked up the edit — restart the service and give the Services tab a few minutes to refresh its rolling window.
 `;
 
     case "kubernetes":
