@@ -40,7 +40,8 @@ export default class APIRequestCriteria {
         });
 
         if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
-          overTimeValue = undefined;
+          // No historical data yet — don't evaluate until the window fills up.
+          return null;
         }
       } catch (err) {
         logger.error(
