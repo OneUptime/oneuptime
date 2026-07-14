@@ -142,6 +142,7 @@ receivers:
       processes:
       process:
         mute_process_name_error: true
+        mute_process_user_error: true
 ```
 
 > On Linux, the collector reads `/proc` and `/sys`. When the collector runs in a container, mount the host's `/proc` and `/sys` and set the `HOST_PROC` / `HOST_SYS` environment variables. When it runs directly as a systemd service (as installed above), no extra setup is needed.
@@ -309,6 +310,9 @@ receivers:
       load:
       paging:
       processes:
+      process:
+        mute_process_name_error: true
+        mute_process_user_error: true
 
   filelog/syslog:
     include:
@@ -366,6 +370,9 @@ receivers:
       load:
       paging:
       processes:
+      process:
+        mute_process_name_error: true
+        mute_process_user_error: true
 
   filelog/system:
     include:
@@ -419,6 +426,9 @@ receivers:
       # Processor Queue Length counter (it starts at 0) — omitted here.
       paging:
       processes:
+      process:
+        mute_process_name_error: true
+        mute_process_user_error: true
 
   windowseventlog/system:
     channel: System
