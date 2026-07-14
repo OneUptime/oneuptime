@@ -15,15 +15,18 @@ import AIRunService from "./AIRunService";
 import FixRunBudget from "../Utils/AI/CodeFix/FixRunBudget";
 import AIAgentService from "./AIAgentService";
 import LlmProviderService from "./LlmProviderService";
+import ProjectService from "./ProjectService";
 import ServiceService from "./ServiceService";
 import CodeRepositoryService from "./CodeRepositoryService";
 import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import Project from "../../Models/DatabaseModels/Project";
 import TelemetryService from "../../Models/DatabaseModels/Service";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import Query from "../Types/Database/Query";
 import Includes from "../../Types/BaseDatabase/Includes";
 import logger from "../Utils/Logger";
@@ -96,6 +99,11 @@ export class Service extends DatabaseService<Model> {
   public async getAIFixReadiness(params: {
     telemetryExceptionId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    /*
+     * Overrides the IsBillingEnabled env flag for the balance check — exists
+     * so tests can exercise both modes without mocking the module.
+     */
+    billingEnabled?: boolean;
   }): Promise<AIFixReadiness> {
     const telemetryException: Model | null = await this.findOneById({
       id: params.telemetryExceptionId,
@@ -116,20 +124,53 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID = telemetryException.projectId;
 
     /*
-     * 1. An LLM provider the agent may use: project-owned on Cloud, with a
-     * global-provider fallback on self-host (billing disabled) where the
-     * global provider is the operator's own key.
+     * 1. An LLM provider the agent may use. Agent completions are
+     * server-mediated and metered (B4 Tier 0), so the shared global
+     * provider is a valid fallback on cloud too — a project-owned provider
+     * simply wins when one exists.
      */
     const llmProvider: LlmProvider | null =
-      await LlmProviderService.getLlmProviderForAgentTasks(projectId);
+      await LlmProviderService.getLlmProviderForMeteredAgentPath(projectId);
+
+    let llmOk: boolean = Boolean(llmProvider);
+    let llmDetail: string = llmOk
+      ? ""
+      : "AI fix tasks need an LLM provider. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project.";
+
+    /*
+     * A resolved provider must also be PAYABLE, or the run passes readiness
+     * here and dies at its first completion call instead. Mirrors the
+     * billing gate in AIService.executeWithLogging: only a COSTED global
+     * provider on cloud bills the project's AI balance per call —
+     * project-owned and free-global providers consume no balance and must
+     * not require one.
+     */
+    const billingEnabled: boolean = params.billingEnabled ?? IsBillingEnabled;
+
+    if (
+      llmProvider &&
+      billingEnabled &&
+      (llmProvider.isGlobalLlm || false) &&
+      (llmProvider.costPerMillionTokensInUSDCents || 0) > 0
+    ) {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: { aiCurrentBalanceInUSDCents: true },
+        props: { isRoot: true },
+      });
+
+      if (!project || (project.aiCurrentBalanceInUSDCents || 0) <= 0) {
+        llmOk = false;
+        llmDetail =
+          "AI fix tasks would use the OneUptime-hosted LLM provider, which is billed against your AI balance — and the project's balance is empty. Recharge it in Project Settings > AI Credits, or add your own LLM provider in Project Settings > AI > LLM Providers.";
+      }
+    }
 
     const llmCheck: AIFixReadinessCheck = {
       id: "llmProvider",
-      ok: Boolean(llmProvider),
+      ok: llmOk,
       title: "LLM provider",
-      detail: llmProvider
-        ? ""
-        : "AI fix tasks need an LLM provider. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project. (On OneUptime Cloud the provider must be project-owned — the shared global provider is not supported on this path.)",
+      detail: llmDetail,
     };
 
     /*

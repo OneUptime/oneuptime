@@ -5,7 +5,6 @@ import {
   TaskResultData,
 } from "./TaskHandlerInterface";
 import {
-  LLMConfig,
   ExceptionDetails,
   CodeRepositoryInfo,
   RepositoryToken,
@@ -21,7 +20,6 @@ import WorkspaceManager, { WorkspaceInfo } from "../Utils/WorkspaceManager";
 import {
   CodeAgentFactory,
   CodeAgent,
-  CodeAgentType,
   CodeAgentTask,
   CodeAgentResult,
   CodeAgentProgressEvent,
@@ -30,9 +28,9 @@ import {
 
 /*
  * Shared pipeline for exception-driven tasks that end in a pull request:
- * LLM config -> exception details -> resolve repo -> clone -> code agent ->
- * commit -> push -> PR. Subclasses (FixException, WriteRegressionTest) only
- * supply the code-agent prompt and the branch / commit / PR wording.
+ * exception details -> resolve repo -> clone -> code agent -> commit ->
+ * push -> PR. Subclasses (FixException, WriteRegressionTest) only supply
+ * the code-agent prompt and the branch / commit / PR wording.
  */
 export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHandler {
   // Default timeout for code agent execution (30 minutes)
@@ -91,28 +89,14 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
 
     try {
       /*
-       * Step 1: LLM access. The default in-house agent needs NO provider
-       * config on the worker — its completions are server-mediated and
-       * metered (B4 Tier 0). Only the deprecated OpenCode fallback
-       * (CODE_AGENT_TYPE=OpenCode) still fetches the raw provider key.
+       * Step 1: LLM access. The agent needs NO provider config on the
+       * worker — its completions are server-mediated and metered (B4 Tier
+       * 0), so no provider secret ever reaches this process.
        */
-      let llmConfig: LLMConfig | null = null;
-
-      if (CodeAgentFactory.getDefaultAgentType() === CodeAgentType.OpenCode) {
-        await this.log(context, "Fetching LLM provider configuration...");
-        llmConfig = await context.backendAPI.getLLMConfig(
-          context.projectId.toString(),
-        );
-        await this.log(
-          context,
-          `Using LLM provider: ${llmConfig.llmType}${llmConfig.modelName ? ` (${llmConfig.modelName})` : ""}`,
-        );
-      } else {
-        await this.log(
-          context,
-          "Using server-mediated, metered LLM completions (no provider key on this worker)",
-        );
-      }
+      await this.log(
+        context,
+        "Using server-mediated, metered LLM completions (no provider key on this worker)",
+      );
 
       // Step 2: Get exception details
       await this.log(context, "Fetching exception details...");
@@ -175,7 +159,6 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
             context,
             repo,
             exceptionDetails,
-            llmConfig,
             workspace,
           );
 
@@ -252,7 +235,6 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
     context: TaskContext,
     repo: CodeRepositoryInfo,
     exceptionDetails: ExceptionDetails,
-    llmConfig: LLMConfig | null,
     workspace: WorkspaceInfo,
   ): Promise<string | null> {
     // Get access token for the repository
@@ -296,30 +278,13 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       repo.servicePathInRepository,
     );
 
-    // Initialize code agent (in-house by default; OpenCode via env fallback)
+    // Initialize code agent
     await this.log(context, "Initializing code agent...");
     const agent: CodeAgent = CodeAgentFactory.createDefaultAgent();
     const agentConfig: CodeAgentLLMConfig = {
-      // The in-house agent's completions are validated against this run.
+      // The agent's completions are validated against this run.
       taskId: context.taskId.toString(),
     };
-
-    // Raw provider fields: deprecated OpenCode fallback only.
-    if (llmConfig) {
-      agentConfig.llmType = llmConfig.llmType;
-
-      if (llmConfig.apiKey) {
-        agentConfig.apiKey = llmConfig.apiKey;
-      }
-
-      if (llmConfig.baseUrl) {
-        agentConfig.baseUrl = llmConfig.baseUrl;
-      }
-
-      if (llmConfig.modelName) {
-        agentConfig.modelName = llmConfig.modelName;
-      }
-    }
 
     await agent.initialize(agentConfig, context.logger);
 

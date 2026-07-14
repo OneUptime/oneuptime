@@ -5,15 +5,15 @@ import {
   isValidCodeAgentType,
 } from "./CodeAgentInterface";
 import InHouseCodeAgent from "./InHouseCodeAgent";
-import OpenCodeAgent from "./OpenCodeAgent";
 import logger from "Common/Server/Utils/Logger";
 
 // Factory class to create code agents
 export default class CodeAgentFactory {
   /*
    * Default agent type: the in-house server-mediated agent (B4 Tier 0).
-   * CODE_AGENT_TYPE=OpenCode selects the deprecated raw-key OpenCode
-   * shell-out for one release — see Internal/Roadmap/CodeFixSandboxDesign.md.
+   * CODE_AGENT_TYPE can select a different agent when more than one exists;
+   * the deprecated OpenCode raw-key fallback was removed after its one
+   * grace release — see Internal/Roadmap/CodeFixSandboxDesign.md.
    */
   private static defaultAgentType: CodeAgentType =
     CodeAgentFactory.resolveDefaultAgentTypeFromEnvironment();
@@ -22,17 +22,12 @@ export default class CodeAgentFactory {
     const configuredType: string | undefined = process.env["CODE_AGENT_TYPE"];
 
     if (configuredType && isValidCodeAgentType(configuredType)) {
-      if (configuredType === CodeAgentType.OpenCode) {
-        logger.warn(
-          "CODE_AGENT_TYPE=OpenCode selects the DEPRECATED raw-key OpenCode fallback (kept for one release). The in-house metered agent is the default — unset CODE_AGENT_TYPE to use it.",
-        );
-      }
       return configuredType;
     }
 
     if (configuredType) {
       logger.warn(
-        `Unknown CODE_AGENT_TYPE "${configuredType}" — using the default in-house code agent.`,
+        `Unknown CODE_AGENT_TYPE "${configuredType}" — using the default in-house code agent. (The deprecated OpenCode fallback has been removed.)`,
       );
     }
 
@@ -46,9 +41,6 @@ export default class CodeAgentFactory {
     switch (type) {
       case CodeAgentType.InHouse:
         return new InHouseCodeAgent();
-
-      case CodeAgentType.OpenCode:
-        return new OpenCodeAgent();
 
       default:
         throw new Error(`Unknown code agent type: ${type}`);
