@@ -54,7 +54,6 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.SERVICE_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
   [PageMap.SERVICE_VIEW_EXCEPTIONS]: `${RouteParams.ModelID}/exceptions`,
-  [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: `${RouteParams.ModelID}/code-repositories`,
   [PageMap.SERVICE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.SERVICE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.SERVICE_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
@@ -68,7 +67,6 @@ export const CodeRepositoryRoutePath: Dictionary<string> = {
   [PageMap.CODE_REPOSITORY_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
-  [PageMap.CODE_REPOSITORY_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
 };
 
 export const KubernetesRoutePath: Dictionary<string> = {
@@ -378,8 +376,16 @@ export const AIAgentTasksRoutePath: Dictionary<string> = {
   [PageMap.AI_AGENT_TASK_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.AI_AGENT_TASK_VIEW_PULL_REQUESTS]: `${RouteParams.ModelID}/pull-requests`,
   [PageMap.AI_AGENT_TASK_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
-  [PageMap.AI_AGENTS_AGENTS]: "agents",
-  [PageMap.AI_AGENTS_AGENT_VIEW]: `agents/${RouteParams.ModelID}`,
+};
+
+/*
+ * The static "settings" segment must be declared alongside the dynamic
+ * ":id" segment — the router ranks static segments higher, so
+ * /ai/insights/settings never falls through to the insight detail page.
+ */
+export const AIInsightsRoutePath: Dictionary<string> = {
+  [PageMap.AI_INSIGHTS_SETTINGS]: "settings",
+  [PageMap.AI_INSIGHT_VIEW]: `${RouteParams.ModelID}`,
 };
 
 // Logs product routes
@@ -697,6 +703,8 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_MOBILE_APPS]: "mobile-apps",
   [PageMap.SETTINGS_AI_LLM_PROVIDERS]: "llm-providers",
   [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
+  [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_CREDITS]: "ai-credits",
   [PageMap.SETTINGS_AI_LOGS]: "ai-logs",
   [PageMap.SETTINGS_MCP_SERVER]: "mcp-server",
@@ -2055,12 +2063,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SERVICE_VIEW_CODE_REPOSITORIES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/service/${
-      ServiceRoutePath[PageMap.SERVICE_VIEW_CODE_REPOSITORIES]
-    }`,
-  ),
-
   [PageMap.SERVICE_VIEW_INCIDENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_VIEW_INCIDENTS]
@@ -2110,12 +2112,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code-repository/${
       CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_SETTINGS]
-    }`,
-  ),
-
-  [PageMap.CODE_REPOSITORY_VIEW_SERVICES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/code-repository/${
-      CodeRepositoryRoutePath[PageMap.CODE_REPOSITORY_VIEW_SERVICES]
     }`,
   ),
 
@@ -4632,6 +4628,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SETTINGS_AI_AGENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_AGENTS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AI_AGENT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AI_AGENT_VIEW]
+    }`,
+  ),
+
   [PageMap.SETTINGS_AI_CREDITS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AI_CREDITS]
@@ -4989,15 +4997,24 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.AI_AGENTS_AGENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENTS_AGENTS]
+  // AI Insights section (proactive telemetry findings)
+  [PageMap.AI_INSIGHTS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/insights/*`,
+  ),
+
+  [PageMap.AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/insights`,
+  ),
+
+  [PageMap.AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/insights/${
+      AIInsightsRoutePath[PageMap.AI_INSIGHT_VIEW]
     }`,
   ),
 
-  [PageMap.AI_AGENTS_AGENT_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/ai/agents/${
-      AIAgentTasksRoutePath[PageMap.AI_AGENTS_AGENT_VIEW]
+  [PageMap.AI_INSIGHTS_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/insights/${
+      AIInsightsRoutePath[PageMap.AI_INSIGHTS_SETTINGS]
     }`,
   ),
 

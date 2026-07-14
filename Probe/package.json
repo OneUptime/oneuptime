@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/probe",
-  "version": "11.5.4",
+  "version": "11.5.5",
   "description": "",
   "repository": {
     "type": "git",
@@ -28,7 +28,10 @@
     "fast-xml-parser": "^5.3.7",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.5",
+    "mssql": "^12.7.0",
+    "mysql2": "^3.22.6",
     "net-snmp": "^3.26.1",
+    "pg": "^8.22.0",
     "ping": "^0.4.4",
     "playwright": "^1.60.0",
     "ts-node": "^10.9.1",
@@ -36,8 +39,10 @@
   },
   "devDependencies": {
     "@types/jest": "^27.5.2",
+    "@types/mssql": "^12.3.0",
     "@types/net-snmp": "^3.23.0",
     "@types/node": "^17.0.31",
+    "@types/pg": "^8.20.0",
     "@types/whois-json": "^2.0.4",
     "jest": "^28.1.0",
     "nodemon": "^3.1.14",

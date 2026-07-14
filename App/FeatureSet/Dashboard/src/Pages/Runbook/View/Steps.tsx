@@ -30,6 +30,7 @@ import { JSONArray } from "Common/Types/JSON";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
+  AIStepConfig,
   BashStepConfig,
   HttpRequestMethod,
   HttpRequestStepConfig,
@@ -138,6 +139,19 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     numberBg: "bg-slate-700",
     borderL: "border-l-slate-500",
   },
+  [RunbookStepType.AI]: {
+    type: RunbookStepType.AI,
+    label: "AI step",
+    shortLabel: "AI",
+    description:
+      "Ask AI to analyze, summarize or decide — using the trigger and earlier step results.",
+    icon: IconProp.Sparkles,
+    bg: "bg-violet-50",
+    ring: "ring-violet-100",
+    iconColor: "text-violet-600",
+    numberBg: "bg-violet-600",
+    borderL: "border-l-violet-500",
+  },
 };
 
 const ALL_STEP_TYPES: RunbookStepType[] = [
@@ -145,6 +159,7 @@ const ALL_STEP_TYPES: RunbookStepType[] = [
   RunbookStepType.JavaScript,
   RunbookStepType.HttpRequest,
   RunbookStepType.Bash,
+  RunbookStepType.AI,
 ];
 
 interface ScriptExample {
@@ -240,6 +255,28 @@ fi`,
   },
 ];
 
+/*
+ * AI prompts run on the OneUptime Worker via the project's LLM provider.
+ * The response becomes the step output on the execution timeline.
+ */
+const AI_PROMPT_EXAMPLES: Array<ScriptExample> = [
+  {
+    label: "Summarize the incident",
+    description: "Digest the triggering incident for responders.",
+    code: `Summarize what we know about the triggering incident so far: impact, timeline, and current state. End with the single most useful next diagnostic action.`,
+  },
+  {
+    label: "Analyze previous steps",
+    description: "Review earlier step output before remediation.",
+    code: `Review the output of the previous steps. State what they reveal, whether anything looks abnormal, and whether it is safe to proceed with the remediation steps that follow. Answer PROCEED or INVESTIGATE first, then explain.`,
+  },
+  {
+    label: "Draft a status update",
+    description: "Draft a public status-page update.",
+    code: `Draft a short, calm status-page update about the triggering incident. Stick to confirmed facts; do not speculate about root cause. Two sentences maximum.`,
+  },
+];
+
 function isAutomatedStep(type: RunbookStepType): boolean {
   return type !== RunbookStepType.Manual;
 }
@@ -268,7 +305,13 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
                 script: BASH_EXAMPLES[0]!.code,
                 agentId: "",
               } as BashStepConfig)
-            : {},
+            : type === RunbookStepType.AI
+              ? ({
+                  prompt: AI_PROMPT_EXAMPLES[0]!.code,
+                  includePreviousStepContext: true,
+                  includeTriggerContext: true,
+                } as AIStepConfig)
+              : {},
   };
   if (isAutomatedStep(type)) {
     base.continueOnFailure = false;
@@ -289,6 +332,13 @@ function summarizeStep(step: RunbookStep): string {
   }
   if (step.type === RunbookStepType.Bash) {
     return "Bash script on agent";
+  }
+  if (step.type === RunbookStepType.AI) {
+    const cfg: AIStepConfig = step.config as AIStepConfig;
+    const firstLine: string = (cfg.prompt || "").split("\n")[0] || "";
+    return firstLine
+      ? `AI: ${firstLine.slice(0, 80)}${firstLine.length > 80 ? "…" : ""}`
+      : "AI prompt";
   }
   return "Manual checklist item";
 }
@@ -664,7 +714,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     Add the first step. You can reorder and edit at any time.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 max-w-5xl mx-auto">
                   {ALL_STEP_TYPES.map((t: RunbookStepType) => {
                     const meta: StepTypeMeta = STEP_TYPE_META[t];
                     return (
@@ -1086,6 +1136,75 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                           </div>
                                         )}
 
+                                        {step.type === RunbookStepType.AI && (
+                                          <div className="flex flex-col gap-3">
+                                            <div>
+                                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                                Prompt
+                                              </label>
+                                              <TextArea
+                                                value={
+                                                  (step.config as AIStepConfig)
+                                                    .prompt || ""
+                                                }
+                                                onChange={(v: string) => {
+                                                  return updateConfig(idx, {
+                                                    prompt: v,
+                                                  });
+                                                }}
+                                                placeholder="What should the AI analyze, summarize or decide? Its response becomes this step's output."
+                                              />
+                                              <p className="text-xs text-gray-500 mt-1.5">
+                                                Runs on your project&rsquo;s LLM
+                                                provider (Settings &rsaquo; AI
+                                                &rsaquo; LLM Providers). Calls
+                                                are metered like any other AI
+                                                feature. Pair with
+                                                &ldquo;Require approval&rdquo;
+                                                below to have a human review the
+                                                AI&rsquo;s answer before the
+                                                next step runs.
+                                              </p>
+                                              <div className="mt-2">
+                                                {renderScriptExamples({
+                                                  examples: AI_PROMPT_EXAMPLES,
+                                                  onInsert: (code: string) => {
+                                                    updateConfig(idx, {
+                                                      prompt: code,
+                                                    });
+                                                  },
+                                                })}
+                                              </div>
+                                            </div>
+                                            <Toggle
+                                              title="Include previous step context"
+                                              description="Give the AI everything about the steps that ran before this one — title, type, status, output and errors."
+                                              value={Boolean(
+                                                (step.config as AIStepConfig)
+                                                  .includePreviousStepContext,
+                                              )}
+                                              onChange={(v: boolean) => {
+                                                return updateConfig(idx, {
+                                                  includePreviousStepContext: v,
+                                                });
+                                              }}
+                                            />
+                                            <Toggle
+                                              title="Include trigger context"
+                                              description="Give the AI context about what started this run — the linked incident, alert or scheduled maintenance, or who ran it manually. Private internal notes and Slack/Teams messages are never included, because the AI's answer is stored on the execution, which anyone with runbook-read access can see."
+                                              value={Boolean(
+                                                (step.config as AIStepConfig)
+                                                  .includeTriggerContext,
+                                              )}
+                                              onChange={(v: boolean) => {
+                                                return updateConfig(idx, {
+                                                  includeTriggerContext: v,
+                                                });
+                                              }}
+                                            />
+                                          </div>
+                                        )}
+
                                         {isAutomatedStep(step.type) && (
                                           <div className="flex flex-col gap-3 pt-1">
                                             <Toggle
@@ -1135,7 +1254,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <div className="text-xs font-medium text-gray-500 mb-3 text-center uppercase tracking-wide">
                   Add another step
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                   {ALL_STEP_TYPES.map((t: RunbookStepType) => {
                     const meta: StepTypeMeta = STEP_TYPE_META[t];
                     return (

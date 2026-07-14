@@ -187,6 +187,14 @@ export interface AIRunEventResultSummary {
   isTruncated?: boolean | undefined;
   bytesSentToLlm?: number | undefined;
   errorMessage?: string | undefined;
+  /*
+   * Human-readable text for events that carry a message rather than query
+   * stats — e.g. ProgressLog lines from the code-fix agent, or "Opened pull
+   * request …" on ActionExecuted. Rendered by the run activity feed.
+   */
+  message?: string | undefined;
+  // Log severity for ProgressLog events (Info/Warning/Error/…).
+  severity?: string | undefined;
 }
 
 // What was sent to which LLM during a run — the per-run egress manifest.

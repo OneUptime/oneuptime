@@ -58,6 +58,22 @@ Configureer twee dingen op een Bash-stap:
 
 Als de gekozen agent offline is wanneer het runbook deze stap bereikt, wacht de stap tot de **claim-timeout** (standaard 2 minuten) en faalt dan met `TimedOut`. Voeg een agent toe via **Runbooks → Settings → Agents** voordat je op een Bash-stap leunt.
 
+### AI
+
+Vraag AI om midden in een run iets te analyseren, samen te vatten of te beslissen. De prompt wordt naar de LLM-provider van je project gestuurd (**Settings → AI → LLM Providers**) en het antwoord van het model wordt de stapoutput op de uitvoeringstijdlijn. AI-stappen draaien op de OneUptime Worker; er is geen agent nodig.
+
+Configureer op een AI-stap:
+
+- **Prompt** — wat de AI moet doen. Bijvoorbeeld: "Beoordeel de output van de vorige stappen en geef aan of het veilig is om door te gaan met remediëren."
+- **Context van vorige stappen meesturen** — indien aan ziet de AI alles over de stappen die vóór deze stap draaiden: titel, type, status, output en foutmeldingen.
+- **Triggercontext meesturen** — indien aan ziet de AI wat de uitvoering startte: het gekoppelde incident, de alert of het geplande onderhoudsevent (de beschrijving, ernst, huidige status, getroffen monitors, hoofdoorzaak, statustijdlijn en publieke notities), of wie het runbook handmatig heeft gestart.
+
+Combineer een AI-stap met **Goedkeuring vereist** om een mens in de lus te houden: de AI analyseert, een responder leest het antwoord en keurt goed, en pas dan draait de volgende (remediërende) stap.
+
+**Wat de AI nooit ziet.** Het antwoord van een AI-stap wordt opgeslagen als stapoutput op de uitvoering, en uitvoeringen zijn leesbaar voor iedereen met leesrechten op runbooks — een breder publiek dan de ACL van het incident. Daarom sluit de triggercontext bewust **privé interne notities** en **Slack/Teams-kanaalberichten** uit: die blijven binnen het incident, waar de bestaande postmortem- en notitiegeneratoren hun afgeleide tekst bewaren. Stapoutput van eerdere stappen wordt gescand op geheimen (tokens, sleutels, credentials) en geredigeerd voordat deze naar het model wordt gestuurd.
+
+AI-stappen worden gemeterd en gefactureerd zoals elke andere AI-functie. Als er geen LLM-provider is geconfigureerd voor het project, faalt de stap met een duidelijke foutmelding (zet **Doorgaan bij fout** aan als de rest van het runbook toch moet draaien).
+
 ## Opslaan en bewerken
 
 Druk op **Stappen opslaan** om te persisteren. Lopende uitvoeringen van oudere versies van het runbook worden niet beïnvloed — ze blijven hun snapshot gebruiken.

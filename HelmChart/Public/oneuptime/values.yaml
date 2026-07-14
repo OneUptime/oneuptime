@@ -1113,6 +1113,7 @@ letsEncrypt:
 
 script:
   workflowScriptTimeoutInMs: 5000
+  workflowTimeoutInMs: 120000
 
 # extraTemplates -- Array of extra objects to deploy with the release. Strings
 # are evaluated as a template and can use template expansions and functions. All
@@ -1386,10 +1387,13 @@ worker:
       replicas: 2
 
 # AI Agent Configuration
-# Deploy this to run an AI Agent within your Kubernetes cluster
-# Note: This is disabled by default. To enable, set enabled to true and provide the AI Agent credentials
+# Runs the OneUptime AI Agent within your Kubernetes cluster.
+# Note: This is enabled by default so AI fix tasks work out of the box. The
+# agent registers itself automatically (no credentials needed) and idles
+# cheaply when no LLM provider is configured — tasks fail early with guidance
+# until one is set up. Set enabled to false to not run the agent.
 aiAgent:
-  enabled: false
+  enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
   enableProfiling: false
@@ -1403,9 +1407,11 @@ aiAgent:
   #   maxReplicas: 10
   #   targetCPUUtilizationPercentage: 80
   #   targetMemoryUtilizationPercentage: 80
-  # AI Agent ID from OneUptime dashboard (required when enabled)
+  # AI Agent ID from OneUptime dashboard (optional — by default the agent
+  # auto-registers itself using the key below)
   id:
-  # AI Agent Key from OneUptime dashboard (will be stored in secrets if not provided)
+  # AI Agent Key (optional — auto-generated and stored in the release
+  # secrets when not provided)
   key:
   ports:
     http: 3875

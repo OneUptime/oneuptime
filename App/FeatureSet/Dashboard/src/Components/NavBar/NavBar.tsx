@@ -170,10 +170,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     },
     // AI
     {
-      title: t("navbar.items.aiChatTitle", "AI Chat"),
+      title: t("navbar.items.aiChatTitle", "Chat"),
       description: t(
         "navbar.items.aiChatDescription",
-        "Chat with an AI that answers from your logs, traces, metrics, incidents, alerts and monitors — and cites every query.",
+        "Chat with AI — it answers from your logs, traces, metrics, incidents, alerts and monitors, and cites every query.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_COPILOT] as Route,
@@ -184,16 +184,44 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: aiCategory,
     },
     {
-      title: t("navbar.items.aiAgentsTitle", "Agents"),
+      title: t("navbar.items.aiAgentsTitle", "Tasks"),
       description: t(
         "navbar.items.aiAgentsDescription",
-        "AI agents and their tasks.",
+        "Automated AI tasks — fix pull requests and their status.",
       ),
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.AI_AGENT_TASKS] as Route,
       ),
       activeRoute: RouteMap[PageMap.AI_AGENT_TASKS],
       icon: IconProp.CPUChip,
+      iconColor: "violet",
+      category: aiCategory,
+    },
+    {
+      title: t("navbar.items.sentinelInsightsTitle", "Insights"),
+      description: t(
+        "navbar.items.sentinelInsightsDescription",
+        "Proactive findings from OneUptime AI's telemetry watch — new exceptions, spikes, latency regressions and metric drift.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.AI_INSIGHTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.AI_INSIGHTS],
+      icon: IconProp.LightBulb,
+      iconColor: "violet",
+      category: aiCategory,
+    },
+    {
+      title: t("navbar.items.codeRepositoriesTitle"),
+      description: t(
+        "navbar.items.codeRepositoriesDescription",
+        "Connect GitHub so AI can open fix PRs.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CODE_REPOSITORY] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CODE_REPOSITORY],
+      icon: IconProp.Code,
       iconColor: "violet",
       category: aiCategory,
     },
@@ -398,17 +426,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       activeRoute: RouteMap[PageMap.RUNBOOKS],
       icon: IconProp.BookOpen,
       iconColor: "teal",
-      category: analyticsAutomationCategory,
-    },
-    {
-      title: t("navbar.items.codeRepositoriesTitle"),
-      description: t("navbar.items.codeRepositoriesDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CODE_REPOSITORY] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.CODE_REPOSITORY],
-      icon: IconProp.Code,
-      iconColor: "gray",
       category: analyticsAutomationCategory,
     },
     // Settings

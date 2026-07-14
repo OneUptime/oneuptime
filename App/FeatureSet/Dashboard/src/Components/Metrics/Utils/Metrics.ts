@@ -23,6 +23,7 @@ import ObjectID from "Common/Types/ObjectID";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
 import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConverter";
@@ -282,6 +283,14 @@ export default class MetricUtil {
   public static async fetchResults(data: {
     metricViewData: MetricViewData;
     metricTypes?: Array<MetricType> | undefined;
+    /*
+     * Pin the time-bucket size instead of letting the server re-derive it
+     * from the query window. Callers that align the window to the bucket
+     * grid (flooring the start) pass the interval derived from the RAW
+     * window here so the slight widening can't bump the bucketing into a
+     * coarser tier. Omitted → server derives it from the window as before.
+     */
+    aggregationInterval?: AggregationInterval | undefined;
   }): Promise<Array<AggregatedResult>> {
     const metricViewData: MetricViewData = data.metricViewData;
 
@@ -352,6 +361,9 @@ export default class MetricUtil {
             MetricsAggregationType.Avg,
           aggregateColumnName: "value",
           aggregationTimestampColumnName: "time",
+          ...(data.aggregationInterval
+            ? { aggregationInterval: data.aggregationInterval }
+            : {}),
           startTimestamp:
             (metricViewData.startAndEndDate?.startValue as Date) ||
             OneUptimeDate.getCurrentDate(),

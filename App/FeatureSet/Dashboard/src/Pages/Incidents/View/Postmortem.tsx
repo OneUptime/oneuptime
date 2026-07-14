@@ -265,7 +265,7 @@ const IncidentPostmortem: FunctionComponent<
     ] as string;
 
     if (!postmortemNote) {
-      throw new Error("Failed to generate postmortem note from AI.");
+      throw new Error("Failed to generate postmortem note with AI.");
     }
 
     return postmortemNote;

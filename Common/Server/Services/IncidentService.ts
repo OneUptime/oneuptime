@@ -6,6 +6,9 @@ import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import AIRunService from "./AIRunService";
+import AIRunType from "../../Types/AI/AIRunType";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
 import IncidentStateService from "./IncidentStateService";
@@ -84,7 +87,7 @@ import ProjectService from "./ProjectService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 import AIService, { AILogResponse } from "./AIService";
-import SentinelIncidentInvestigationRunner from "../Utils/AI/Sentinel/IncidentInvestigationRunner";
+import AIIncidentInvestigationRunner from "../Utils/AI/SRE/IncidentInvestigationRunner";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
@@ -1239,21 +1242,21 @@ export class Service extends DatabaseService<Model> {
       })
       .then(async () => {
         /*
-         * Sentinel (AI SRE): automatically investigate the new incident and post
+         * AI (AI SRE): automatically investigate the new incident and post
          * a cited root cause analysis to the incident timeline + Slack/Teams.
          * Runs last so the workspace channels already exist, and is gated per
          * project (opt-in) + requires a configured LLM provider. Read-only.
          */
         try {
           if (createdItem.projectId && createdItem.id) {
-            await SentinelIncidentInvestigationRunner.investigateNewIncident({
+            await AIIncidentInvestigationRunner.investigateNewIncident({
               incidentId: createdItem.id,
               projectId: createdItem.projectId,
             });
           }
         } catch (error) {
           logger.error(
-            `Sentinel incident investigation failed in IncidentService.onCreateSuccess: ${error}`,
+            `AI incident investigation failed in IncidentService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               incidentId: createdItem.id?.toString(),
@@ -2795,14 +2798,23 @@ ${incidentSeverity.name}
     return Service.DEFAULT_METRIC_RETENTION_DAYS;
   }
 
+  /*
+   * Load the incident + its owners and build the attribute set shared by
+   * every incident metric (all values strings for ClickHouse
+   * Map(String, String) storage; arrays joined comma-separated). Factored
+   * out of refreshIncidentMetrics so one-off metric writers — e.g. the
+   * AI time-to-rca metric recorded when an investigation posts its
+   * analysis — record the exact same attribute shape.
+   */
   @CaptureSpan()
-  public async refreshIncidentMetrics(data: {
+  public async getIncidentMetricContext(data: {
     incidentId: ObjectID;
-  }): Promise<void> {
+  }): Promise<{ incident: Model; baseMetricAttributes: JSONObject }> {
     const incident: Model | null = await this.findOneById({
       id: data.incidentId,
       select: {
         projectId: true,
+        createdAt: true,
         declaredAt: true,
         postmortemPostedAt: true,
         monitors: {
@@ -2898,6 +2910,161 @@ ${incidentSeverity.name}
         return Boolean(name);
       }) as Array<string>;
 
+    /*
+     * common attributes shared by all incident metrics
+     * All values must be strings for ClickHouse Map(String, String) storage.
+     * Arrays are joined as comma-separated strings.
+     */
+    const baseMetricAttributes: JSONObject = {
+      incidentId: data.incidentId.toString(),
+      projectId: incident.projectId.toString(),
+      monitorIds: (
+        incident.monitors
+          ?.map((monitor: Monitor) => {
+            return monitor._id?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      monitorNames: (
+        incident.monitors
+          ?.map((monitor: Monitor) => {
+            return monitor.name?.toString();
+          })
+          .filter(Boolean) || []
+      ).join(", "),
+      incidentSeverityId: incident.incidentSeverity?._id?.toString(),
+      incidentSeverityName: incident.incidentSeverity?.name?.toString(),
+      ownerUserIds: ownerUserIds.join(", "),
+      ownerUserNames: ownerUserNames.join(", "),
+      ownerTeamIds: ownerTeamIds.join(", "),
+      ownerTeamNames: ownerTeamNames.join(", "),
+    };
+
+    return { incident, baseMetricAttributes };
+  }
+
+  /*
+   * AI measurement layer: record how long the incident waited for its
+   * AI root-cause analysis — seconds from incident creation to now, written
+   * once from IncidentInvestigationRunner.postAnalysis. Deliberately NOT
+   * part of refreshIncidentMetrics: the refresh's replace-list excludes
+   * this metric name, so refreshes never tombstone it.
+   */
+  @CaptureSpan()
+  public async recordTimeToRootCausePostedMetric(data: {
+    incidentId: ObjectID;
+  }): Promise<void> {
+    const {
+      incident,
+      baseMetricAttributes,
+    }: { incident: Model; baseMetricAttributes: JSONObject } =
+      await this.getIncidentMetricContext({ incidentId: data.incidentId });
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const incidentCreatedAt: Date =
+      incident.createdAt || incident.declaredAt || now;
+
+    const metricRetentionDays: number = await this.getMetricRetentionDays();
+    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+      OneUptimeDate.getCurrentDate(),
+      metricRetentionDays,
+    );
+
+    const timeToRcaMetric: MutableMetric = new MutableMetric();
+
+    timeToRcaMetric.projectId = incident.projectId!;
+    timeToRcaMetric.primaryEntityId = incident.id!;
+    timeToRcaMetric.primaryEntityType = ServiceType.Incident;
+    timeToRcaMetric.name = IncidentMetricType.TimeToRootCausePosted;
+    timeToRcaMetric.metricPointId = IncidentMetricType.TimeToRootCausePosted;
+    timeToRcaMetric.value = OneUptimeDate.getDifferenceInSeconds(
+      now,
+      incidentCreatedAt,
+    );
+    timeToRcaMetric.attributes = {
+      ...baseMetricAttributes,
+      // Every time-to-rca point is AI-posted by construction.
+      aiInvestigated: "true",
+    };
+    timeToRcaMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
+      timeToRcaMetric.attributes,
+    );
+    timeToRcaMetric.time = now;
+    timeToRcaMetric.timeUnixNano = OneUptimeDate.toUnixNano(now);
+    timeToRcaMetric.metricPointType = MetricPointType.Sum;
+    timeToRcaMetric.retentionDate = retentionDate;
+
+    await MutableMetricService.createMutableMetrics({
+      metrics: [timeToRcaMetric],
+    });
+
+    // Register the metric type so it shows up in the type catalog.
+    const metricType: MetricType = new MetricType();
+    metricType.name = IncidentMetricType.TimeToRootCausePosted;
+    metricType.description =
+      "Time from incident creation to the AI investigation's posted root-cause analysis";
+    metricType.unit = "seconds";
+
+    TelemetryUtil.indexMetricNameServiceNameMap({
+      metricNameServiceNameMap: {
+        [IncidentMetricType.TimeToRootCausePosted]: metricType,
+      },
+      projectId: incident.projectId!,
+    }).catch((err: Error) => {
+      logger.error(err, {
+        projectId: incident.projectId?.toString(),
+        incidentId: incident.id?.toString(),
+      } as LogAttributes);
+    });
+  }
+
+  @CaptureSpan()
+  public async refreshIncidentMetrics(data: {
+    incidentId: ObjectID;
+  }): Promise<void> {
+    const {
+      incident,
+      baseMetricAttributes,
+    }: { incident: Model; baseMetricAttributes: JSONObject } =
+      await this.getIncidentMetricContext({ incidentId: data.incidentId });
+
+    // getIncidentMetricContext guarantees this; re-checked for TS narrowing.
+    if (!incident.projectId) {
+      throw new BadDataException("Incident Project ID not found");
+    }
+
+    /*
+     * aiInvestigated dimension for MTTA/MTTR (AI measurement layer):
+     * did a completed AI investigation run for this incident? One
+     * indexed countBy per metric refresh (triggeredByIncidentId is indexed)
+     * — acceptable at refresh frequency. Failure must never break metric
+     * recording, so this is best-effort false.
+     */
+    let aiInvestigated: boolean = false;
+    try {
+      const completedInvestigationCount: PositiveNumber =
+        await AIRunService.countBy({
+          query: {
+            runType: AIRunType.Investigation,
+            status: AIRunStatus.Completed,
+            triggeredByIncidentId: data.incidentId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      aiInvestigated = completedInvestigationCount.toNumber() > 0;
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+
     // get incident state timeline
 
     const incidentStateTimelines: Array<IncidentStateTimeline> =
@@ -2973,36 +3140,6 @@ ${incidentSeverity.name}
 
       const metricTypesMap: Dictionary<MetricType> = {};
 
-      /*
-       * common attributes shared by all incident metrics
-       * All values must be strings for ClickHouse Map(String, String) storage.
-       * Arrays are joined as comma-separated strings.
-       */
-      const baseMetricAttributes: JSONObject = {
-        incidentId: data.incidentId.toString(),
-        projectId: incident.projectId.toString(),
-        monitorIds: (
-          incident.monitors
-            ?.map((monitor: Monitor) => {
-              return monitor._id?.toString();
-            })
-            .filter(Boolean) || []
-        ).join(", "),
-        monitorNames: (
-          incident.monitors
-            ?.map((monitor: Monitor) => {
-              return monitor.name?.toString();
-            })
-            .filter(Boolean) || []
-        ).join(", "),
-        incidentSeverityId: incident.incidentSeverity?._id?.toString(),
-        incidentSeverityName: incident.incidentSeverity?.name?.toString(),
-        ownerUserIds: ownerUserIds.join(", "),
-        ownerUserNames: ownerUserNames.join(", "),
-        ownerTeamIds: ownerTeamIds.join(", "),
-        ownerTeamNames: ownerTeamNames.join(", "),
-      };
-
       const incidentCountMetric: MutableMetric = new MutableMetric();
 
       incidentCountMetric.projectId = incident.projectId;
@@ -3068,7 +3205,11 @@ ${incidentSeverity.name}
               OneUptimeDate.getCurrentDate(),
             incidentStartsAt,
           );
-          timeToAcknowledgeMetric.attributes = { ...baseMetricAttributes };
+          // aiInvestigated: the MTTA with/without-AI dimension.
+          timeToAcknowledgeMetric.attributes = {
+            ...baseMetricAttributes,
+            aiInvestigated: aiInvestigated.toString(),
+          };
           timeToAcknowledgeMetric.attributeKeys =
             TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
 
@@ -3119,7 +3260,11 @@ ${incidentSeverity.name}
             OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
-        timeToResolveMetric.attributes = { ...baseMetricAttributes };
+        // aiInvestigated: the MTTR with/without-AI dimension.
+        timeToResolveMetric.attributes = {
+          ...baseMetricAttributes,
+          aiInvestigated: aiInvestigated.toString(),
+        };
         timeToResolveMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
           timeToResolveMetric.attributes,
         );

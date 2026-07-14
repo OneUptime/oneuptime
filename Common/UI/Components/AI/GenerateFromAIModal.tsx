@@ -98,7 +98,7 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
       title={props.title}
       description={
         props.description ||
-        "Generate content using AI based on the available data."
+        "AI will generate content based on the available data."
       }
       onClose={() => {
         if (!isGenerating) {

@@ -288,7 +288,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/product/runbooks": {
     title: "Runbooks | Automated Incident Response Procedures | OneUptime",
     description:
-      "Runbooks that combine manual checklists with sandboxed JavaScript, HTTP, and bash steps. Auto-trigger on incidents, alerts, and scheduled maintenance. Open source incident response automation.",
+      "Runbooks that combine manual checklists with sandboxed JavaScript, HTTP, bash, and AI steps. Auto-trigger on incidents, alerts, and scheduled maintenance. Open source incident response automation.",
     canonicalPath: "/product/runbooks",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -302,12 +302,13 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:
-        "Automated incident response runbooks that mix manual checklists with sandboxed JavaScript, HTTP, and bash steps, auto-triggered on incidents, alerts, and scheduled maintenance.",
+        "Automated incident response runbooks that mix manual checklists with sandboxed JavaScript, HTTP, bash, and AI steps, auto-triggered on incidents, alerts, and scheduled maintenance.",
       features: [
         "Manual checklist steps",
         "Sandboxed JavaScript steps",
         "HTTP request steps",
         "Bash script steps",
+        "AI analysis steps",
         "Auto-trigger on incidents and alerts",
         "Trigger on scheduled maintenance",
         "Reusable response procedures",
@@ -317,9 +318,9 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/ai-agent": {
-    title: "AI Agent | Automatic Code Fixes & PRs | OneUptime",
+    title: "AI SRE | Code Fixes as Pull Requests | OneUptime",
     description:
-      "AI Agent automatically fixes errors, performance issues, and database queries in your codebase. Creates ready-to-merge pull requests. Supports OpenAI, Anthropic, Ollama, and self-hosted LLMs. Privacy-first: no code stored or trained on.",
+      "OneUptime AI turns production exceptions, incident investigations, and slow traces into pull requests with code fixes. Supports OpenAI, Anthropic, Ollama, and self-hosted LLMs. Privacy-first: no code stored or trained on.",
     canonicalPath: "/product/ai-agent",
     ogImage: "/img/ai-agent.png",
     twitterCard: "summary_large_image",
@@ -327,23 +328,22 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     breadcrumbs: [
       { name: "Home", url: "/" },
       { name: "Products", url: "/#products" },
-      { name: "AI Agent", url: "/product/ai-agent" },
+      { name: "AI", url: "/product/ai-agent" },
     ],
     softwareApplication: {
-      name: "OneUptime AI Agent",
+      name: "OneUptime AI",
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:
-        "AI-powered agent that automatically detects and fixes code issues, creating ready-to-merge pull requests.",
+        "AI SRE that investigates production issues and opens human-reviewed pull requests with code fixes.",
       features: [
-        "Automatic error fixes",
-        "Performance issue resolution",
-        "Database query optimization",
-        "Frontend issue fixes",
-        "GitHub and GitLab integration",
-        "CI/CD pipeline integration",
-        "Terraform support",
-        "Issue tracker integration",
+        "Fix PRs from unresolved exceptions",
+        "Fix PRs from trace performance findings",
+        "Fix PRs from incident investigations",
+        "Regression test generation",
+        "Instrumentation PRs for missing telemetry",
+        "GitHub App integration",
+        "Human-reviewed: the agent never merges",
         "Multiple LLM provider support",
         "Self-hosted LLM option",
         "Privacy-first: no code storage",

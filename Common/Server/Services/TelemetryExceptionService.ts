@@ -1,20 +1,32 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/TelemetryException";
 import ServiceType from "../../Types/Telemetry/ServiceType";
-import AIAgentTask from "../../Models/DatabaseModels/AIAgentTask";
-import AIAgentTaskTelemetryException from "../../Models/DatabaseModels/AIAgentTaskTelemetryException";
+import AIRun from "../../Models/DatabaseModels/AIRun";
 import ObjectID from "../../Types/ObjectID";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
-import AIAgentTaskType from "../../Types/AI/AIAgentTaskType";
-import AIAgentTaskStatus from "../../Types/AI/AIAgentTaskStatus";
-import { FixExceptionTaskMetadata } from "../../Types/AI/AIAgentTaskMetadata";
+import AIRunType from "../../Types/AI/AIRunType";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import AIAgentTaskService from "./AIAgentTaskService";
-import AIAgentTaskTelemetryExceptionService from "./AIAgentTaskTelemetryExceptionService";
+import AIRunService from "./AIRunService";
+import FixRunBudget from "../Utils/AI/CodeFix/FixRunBudget";
+import AIAgentService from "./AIAgentService";
+import LlmProviderService from "./LlmProviderService";
+import ProjectService from "./ProjectService";
+import ServiceService from "./ServiceService";
+import CodeRepositoryService from "./CodeRepositoryService";
+import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
+import AIAgent from "../../Models/DatabaseModels/AIAgent";
+import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import Project from "../../Models/DatabaseModels/Project";
+import TelemetryService from "../../Models/DatabaseModels/Service";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import Query from "../Types/Database/Query";
 import Includes from "../../Types/BaseDatabase/Includes";
 import logger from "../Utils/Logger";
@@ -27,9 +39,29 @@ import logger from "../Utils/Logger";
  */
 export const EXCLUDED_FINGERPRINT_LIMIT: number = 5000;
 
-export interface CreateAIAgentTaskForExceptionParams {
+export interface CreateCodeFixRunForExceptionParams {
   telemetryExceptionId: ObjectID;
   props: DatabaseCommonInteractionProps;
+  // Which task recipe to run. Defaults to FixException.
+  taskType?: CodeFixTaskType | undefined;
+}
+
+export type AIFixReadinessCheckId =
+  | "llmProvider"
+  | "repositoryResolved"
+  | "agentAvailable";
+
+export interface AIFixReadinessCheck {
+  id: AIFixReadinessCheckId;
+  ok: boolean;
+  title: string;
+  // Shown to the user when ok is false — says exactly what to do next.
+  detail: string;
+}
+
+export interface AIFixReadiness {
+  ready: boolean;
+  checks: Array<AIFixReadinessCheck>;
 }
 
 export interface DashboardServiceSummary {
@@ -58,22 +90,210 @@ export class Service extends DatabaseService<Model> {
     super(Model);
   }
 
+  /*
+   * Everything "Fix with AI Agent" needs, checked BEFORE a task is created
+   * (and consumed by the dashboard to render a setup checklist instead of a
+   * button that fails minutes later inside the agent container).
+   */
   @CaptureSpan()
-  public async createAIAgentTaskForException(
-    params: CreateAIAgentTaskForExceptionParams,
-  ): Promise<AIAgentTask> {
+  public async getAIFixReadiness(params: {
+    telemetryExceptionId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    /*
+     * Overrides the IsBillingEnabled env flag for the balance check — exists
+     * so tests can exercise both modes without mocking the module.
+     */
+    billingEnabled?: boolean;
+  }): Promise<AIFixReadiness> {
+    const telemetryException: Model | null = await this.findOneById({
+      id: params.telemetryExceptionId,
+      select: {
+        _id: true,
+        projectId: true,
+        stackTrace: true,
+        primaryEntityId: true,
+        primaryEntityType: true,
+      },
+      props: params.props,
+    });
+
+    if (!telemetryException || !telemetryException.projectId) {
+      throw new BadDataException("Telemetry Exception not found");
+    }
+
+    const projectId: ObjectID = telemetryException.projectId;
+
+    /*
+     * 1. An LLM provider the agent may use. Agent completions are
+     * server-mediated and metered (B4 Tier 0), so the shared global
+     * provider is a valid fallback on cloud too — a project-owned provider
+     * simply wins when one exists.
+     */
+    const llmProvider: LlmProvider | null =
+      await LlmProviderService.getLlmProviderForMeteredAgentPath(projectId);
+
+    let llmOk: boolean = Boolean(llmProvider);
+    let llmDetail: string = llmOk
+      ? ""
+      : "AI fix tasks need an LLM provider. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project.";
+
+    /*
+     * A resolved provider must also be PAYABLE, or the run passes readiness
+     * here and dies at its first completion call instead. Mirrors the
+     * billing gate in AIService.executeWithLogging: only a COSTED global
+     * provider on cloud bills the project's AI balance per call —
+     * project-owned and free-global providers consume no balance and must
+     * not require one.
+     */
+    const billingEnabled: boolean = params.billingEnabled ?? IsBillingEnabled;
+
+    if (
+      llmProvider &&
+      billingEnabled &&
+      (llmProvider.isGlobalLlm || false) &&
+      (llmProvider.costPerMillionTokensInUSDCents || 0) > 0
+    ) {
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: { aiCurrentBalanceInUSDCents: true },
+        props: { isRoot: true },
+      });
+
+      if (!project || (project.aiCurrentBalanceInUSDCents || 0) <= 0) {
+        llmOk = false;
+        llmDetail =
+          "AI fix tasks would use the OneUptime-hosted LLM provider, which is billed against your AI balance — and the project's balance is empty. Recharge it in Project Settings > AI Credits, or add your own LLM provider in Project Settings > AI > LLM Providers.";
+      }
+    }
+
+    const llmCheck: AIFixReadinessCheck = {
+      id: "llmProvider",
+      ok: llmOk,
+      title: "LLM provider",
+      detail: llmDetail,
+    };
+
+    /*
+     * 2. A repository must RESOLVE for this exception — computed at runtime
+     * from the stack trace (path matching over connected repos), falling
+     * back to service-name matching and the only-repository rule. No manual
+     * mapping table, no Service Catalog prerequisite.
+     */
+    const service: TelemetryService | null = telemetryException.primaryEntityId
+      ? await ServiceService.findOneById({
+          id: telemetryException.primaryEntityId,
+          select: {
+            _id: true,
+            name: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        })
+      : null;
+
+    let repoCheck: AIFixReadinessCheck;
+
+    try {
+      const resolution: RepoResolution | null =
+        await CodeRepositoryService.resolveRepositoryForException({
+          projectId,
+          stackTrace: telemetryException.stackTrace || null,
+          serviceName: service?.name || null,
+        });
+
+      repoCheck = {
+        id: "repositoryResolved",
+        ok: Boolean(resolution),
+        title: resolution
+          ? `Repository resolved: ${resolution.organizationName}/${resolution.repositoryName}`
+          : "Repository resolved",
+        detail: resolution
+          ? ""
+          : "No connected repository could be matched to this exception — its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository through the GitHub App (installing it imports all its repositories automatically).",
+      };
+    } catch (err) {
+      repoCheck = {
+        id: "repositoryResolved",
+        ok: false,
+        title: "Repository resolved",
+        detail: `Could not check the connected repositories: ${
+          err instanceof Error ? err.message : "unknown error"
+        }`,
+      };
+    }
+
+    // 4. An agent must be alive to pick the task up.
+    const anyAgent: AIAgent | null =
+      await AIAgentService.getAIAgentForProject(projectId);
+    const connectedAgent: AIAgent | null = anyAgent
+      ? AIAgentService.isAgentAlive(anyAgent)
+        ? anyAgent
+        : null
+      : null;
+
+    const agentCheck: AIFixReadinessCheck = {
+      id: "agentAvailable",
+      ok: Boolean(connectedAgent),
+      title: "AI agent online",
+      detail: connectedAgent
+        ? ""
+        : anyAgent
+          ? `The AI agent "${anyAgent.name || "agent"}" has not reported in — check that its container is running.`
+          : "No AI agent is available for this project. Self-hosted: create an agent under Settings > AI > AI Agents and run its container. Cloud: the shared fleet appears here automatically once enabled.",
+    };
+
+    const checks: Array<AIFixReadinessCheck> = [
+      llmCheck,
+      repoCheck,
+      agentCheck,
+    ];
+
+    return {
+      ready: checks.every((check: AIFixReadinessCheck) => {
+        return check.ok;
+      }),
+      checks,
+    };
+  }
+
+  /*
+   * "Fix with AI Agent": record the durable intent as a Queued CodeFix
+   * AIRun (the unified run substrate — same enqueue semantics as the
+   * investigation queue: attemptCount defaults to 0 and no events are
+   * written until a worker claims the run). An external agent container
+   * claims it via /ai-agent-task/get-pending-task and dispatches on the
+   * run's task recipe (codeFixTaskType).
+   */
+  @CaptureSpan()
+  public async createCodeFixRunForException(
+    params: CreateCodeFixRunForExceptionParams,
+  ): Promise<AIRun> {
     const { telemetryExceptionId, props } = params;
 
-    // Get the telemetry exception
+    const taskType: CodeFixTaskType =
+      params.taskType || CodeFixTaskType.FixException;
+
+    /*
+     * Recipes beyond FixException / WriteRegressionTest are declared in the
+     * enum (so workers and the UI can already dispatch on them) but their
+     * recipes have not shipped — creating a run for them would queue work no
+     * agent can execute.
+     */
+    if (!CodeFixTaskTypeHelper.isUserTriggerable(taskType)) {
+      throw new BadDataException(
+        `Task type "${taskType}" is not user-triggerable yet. Supported task types: ${CodeFixTaskTypeHelper.getUserTriggerableTaskTypes().join(
+          ", ",
+        )}.`,
+      );
+    }
+
+    // Get the telemetry exception (also the caller's access check).
     const telemetryException: Model | null = await this.findOneById({
       id: telemetryExceptionId,
       select: {
         _id: true,
         projectId: true,
-        message: true,
-        stackTrace: true,
-        primaryEntityId: true,
-        exceptionType: true,
       },
       props,
     });
@@ -82,98 +302,111 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Telemetry Exception not found");
     }
 
-    // Check if an active AI agent task already exists for this exception
-    await this.validateNoActiveTaskExists(telemetryExceptionId);
+    /*
+     * G11 guardrail: the per-project daily fix-run budget. Checked before
+     * the (more expensive) readiness probes — an over-budget project gets
+     * the budget message, not a readiness one.
+     */
+    await FixRunBudget.assertWithinBudget(telemetryException.projectId);
 
-    // Create the AI Agent Task
-    const createdTask: AIAgentTask = await this.createFixExceptionTask({
-      telemetryException,
+    /*
+     * Fail early with everything that's missing, instead of creating a run
+     * that dies minutes later inside the agent container.
+     */
+    const readiness: AIFixReadiness = await this.getAIFixReadiness({
       telemetryExceptionId,
       props,
     });
 
-    // Link the task to the telemetry exception
-    await AIAgentTaskTelemetryExceptionService.linkTaskToTelemetryException({
-      projectId: telemetryException.projectId,
-      aiAgentTaskId: createdTask.id!,
-      telemetryExceptionId,
-      props,
-    });
+    if (!readiness.ready) {
+      const missing: string = readiness.checks
+        .filter((check: AIFixReadinessCheck) => {
+          return !check.ok;
+        })
+        .map((check: AIFixReadinessCheck) => {
+          return check.title;
+        })
+        .join(", ");
 
-    return createdTask;
-  }
-
-  @CaptureSpan()
-  private async validateNoActiveTaskExists(
-    telemetryExceptionId: ObjectID,
-  ): Promise<void> {
-    const existingTaskLink: AIAgentTaskTelemetryException | null =
-      await AIAgentTaskTelemetryExceptionService.findOneBy({
-        query: {
-          telemetryExceptionId: telemetryExceptionId,
-          aiAgentTask: {
-            status: QueryHelper.notIn([
-              AIAgentTaskStatus.Completed,
-              AIAgentTaskStatus.Error,
-            ]),
-          },
-        },
-        select: {
-          _id: true,
-          aiAgentTaskId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (existingTaskLink) {
       throw new BadDataException(
-        "An AI agent task is already in progress for this exception. Please wait for it to complete before creating a new one.",
+        `Cannot start the AI fix — missing prerequisites: ${missing}.`,
       );
     }
-  }
 
-  @CaptureSpan()
-  private async createFixExceptionTask(params: {
-    telemetryException: Model;
-    telemetryExceptionId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-  }): Promise<AIAgentTask> {
-    const { telemetryException, telemetryExceptionId, props } = params;
+    /*
+     * Duplicate guard is per (exception, taskType): an active FixException
+     * run must not block queuing a WriteRegressionTest run and vice versa.
+     */
+    await this.validateNoActiveCodeFixRunExists(telemetryExceptionId, taskType);
 
-    const aiAgentTask: AIAgentTask = new AIAgentTask();
-    aiAgentTask.projectId = telemetryException.projectId!;
-    aiAgentTask.taskType = AIAgentTaskType.FixException;
-    aiAgentTask.status = AIAgentTaskStatus.Scheduled;
+    const run: AIRun = new AIRun();
+    run.projectId = telemetryException.projectId;
+    run.runType = AIRunType.CodeFix;
+    run.codeFixTaskType = taskType;
+    run.status = AIRunStatus.Queued;
+    run.triggeredByTelemetryExceptionId = telemetryExceptionId;
 
-    // Set name and description based on exception details
-    const exceptionType: string =
-      telemetryException.exceptionType || "Exception";
-    const exceptionMessage: string =
-      telemetryException.message || "No message available";
+    // Attribution: the user who clicked "Fix with AI Agent".
+    if (props.userId) {
+      run.userId = props.userId;
+    }
 
-    aiAgentTask.name = `Fix ${exceptionType}: ${exceptionMessage}`;
-    aiAgentTask.description = `AI Agent task to fix the exception: ${exceptionMessage}`;
-
-    // Build metadata
-    aiAgentTask.metadata = this.buildFixExceptionMetadata({
-      telemetryException,
-      telemetryExceptionId,
-    });
-
-    const createdTask: AIAgentTask = await AIAgentTaskService.create({
-      data: aiAgentTask,
+    /*
+     * Created as root: AIRun rows are server-written only (empty create
+     * ACL); the user's access was already checked by the exception read.
+     */
+    const createdRun: AIRun = await AIRunService.create({
+      data: run,
       props: {
-        ...props,
+        isRoot: true,
       },
     });
 
-    if (!createdTask.id) {
-      throw new BadDataException("Failed to create AI Agent Task");
+    if (!createdRun.id) {
+      throw new BadDataException("Failed to create the AI fix run");
     }
 
-    return createdTask;
+    return createdRun;
+  }
+
+  @CaptureSpan()
+  private async validateNoActiveCodeFixRunExists(
+    telemetryExceptionId: ObjectID,
+    taskType: CodeFixTaskType,
+  ): Promise<void> {
+    const existingRun: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        runType: AIRunType.CodeFix,
+        triggeredByTelemetryExceptionId: telemetryExceptionId,
+        /*
+         * A null codeFixTaskType means FixException (rows created before
+         * task recipes existed), so the FixException guard must also match
+         * legacy null rows.
+         */
+        codeFixTaskType:
+          taskType === CodeFixTaskType.FixException
+            ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
+            : taskType,
+        status: QueryHelper.notIn([
+          AIRunStatus.Completed,
+          AIRunStatus.Error,
+          AIRunStatus.Cancelled,
+          AIRunStatus.Stale,
+        ]),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (existingRun) {
+      throw new BadDataException(
+        `An AI agent task (${taskType}) is already in progress for this exception. Please wait for it to complete before creating a new one.`,
+      );
+    }
   }
 
   @CaptureSpan()
@@ -466,32 +699,6 @@ export class Service extends DatabaseService<Model> {
     }
 
     return summaries;
-  }
-
-  private buildFixExceptionMetadata(params: {
-    telemetryException: Model;
-    telemetryExceptionId: ObjectID;
-  }): FixExceptionTaskMetadata {
-    const { telemetryException, telemetryExceptionId } = params;
-
-    const metadata: FixExceptionTaskMetadata = {
-      taskType: AIAgentTaskType.FixException,
-      exceptionId: telemetryExceptionId.toString(),
-    };
-
-    if (telemetryException.stackTrace) {
-      metadata.stackTrace = telemetryException.stackTrace;
-    }
-
-    if (telemetryException.message) {
-      metadata.errorMessage = telemetryException.message;
-    }
-
-    if (telemetryException.primaryEntityId) {
-      metadata.serviceId = telemetryException.primaryEntityId.toString();
-    }
-
-    return metadata;
   }
 }
 

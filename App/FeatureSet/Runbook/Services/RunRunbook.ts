@@ -15,6 +15,7 @@ import {
   StepExecutionContext,
   StepRunResult,
 } from "./StepExecutors";
+import { runAiStep } from "./AIStepExecutor";
 import QueueRunbook from "./QueueRunbook";
 
 export default class RunRunbook {
@@ -28,9 +29,14 @@ export default class RunRunbook {
           _id: true,
           projectId: true,
           runbookId: true,
+          runbookNameSnapshot: true,
           status: true,
           stepExecutions: true,
           startedAt: true,
+          incidentId: true,
+          alertId: true,
+          scheduledMaintenanceId: true,
+          triggeredByUserId: true,
         },
         props: { isRoot: true },
       });
@@ -132,6 +138,12 @@ export default class RunRunbook {
         result = await this.runAutomatedStep(stepExec.step, {
           projectId: execution.projectId!,
           runbookExecutionId: new ObjectID(execution._id!),
+          runbookName: execution.runbookNameSnapshot,
+          incidentId: execution.incidentId,
+          alertId: execution.alertId,
+          scheduledMaintenanceId: execution.scheduledMaintenanceId,
+          triggeredByUserId: execution.triggeredByUserId,
+          previousStepExecutions: stepExecutions.slice(0, i),
         });
       } catch (err) {
         result = {
@@ -225,6 +237,8 @@ export default class RunRunbook {
         return runHttpStep(step);
       case RunbookStepType.Bash:
         return runBashStep(step, ctx);
+      case RunbookStepType.AI:
+        return runAiStep(step, ctx);
       default:
         return {
           success: false,

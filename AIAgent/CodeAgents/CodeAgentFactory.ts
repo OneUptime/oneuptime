@@ -2,30 +2,45 @@ import {
   CodeAgent,
   CodeAgentType,
   getCodeAgentDisplayName,
+  isValidCodeAgentType,
 } from "./CodeAgentInterface";
-import OpenCodeAgent from "./OpenCodeAgent";
+import InHouseCodeAgent from "./InHouseCodeAgent";
 import logger from "Common/Server/Utils/Logger";
 
 // Factory class to create code agents
 export default class CodeAgentFactory {
-  // Default agent type to use
-  private static defaultAgentType: CodeAgentType = CodeAgentType.OpenCode;
+  /*
+   * Default agent type: the in-house server-mediated agent (B4 Tier 0).
+   * CODE_AGENT_TYPE can select a different agent when more than one exists;
+   * the deprecated OpenCode raw-key fallback was removed after its one
+   * grace release — see Internal/Roadmap/CodeFixSandboxDesign.md.
+   */
+  private static defaultAgentType: CodeAgentType =
+    CodeAgentFactory.resolveDefaultAgentTypeFromEnvironment();
+
+  private static resolveDefaultAgentTypeFromEnvironment(): CodeAgentType {
+    const configuredType: string | undefined = process.env["CODE_AGENT_TYPE"];
+
+    if (configuredType && isValidCodeAgentType(configuredType)) {
+      return configuredType;
+    }
+
+    if (configuredType) {
+      logger.warn(
+        `Unknown CODE_AGENT_TYPE "${configuredType}" — using the default in-house code agent. (The deprecated OpenCode fallback has been removed.)`,
+      );
+    }
+
+    return CodeAgentType.InHouse;
+  }
 
   // Create an agent of the specified type
   public static createAgent(type: CodeAgentType): CodeAgent {
     logger.debug(`Creating code agent: ${getCodeAgentDisplayName(type)}`);
 
     switch (type) {
-      case CodeAgentType.OpenCode:
-        return new OpenCodeAgent();
-
-      /*
-       * Future agents can be added here:
-       * case CodeAgentType.Goose:
-       *   return new GooseAgent();
-       * case CodeAgentType.ClaudeCode:
-       *   return new ClaudeCodeAgent();
-       */
+      case CodeAgentType.InHouse:
+        return new InHouseCodeAgent();
 
       default:
         throw new Error(`Unknown code agent type: ${type}`);

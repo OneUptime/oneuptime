@@ -1,4 +1,8 @@
 import PositiveNumber from "../../Types/PositiveNumber";
+import ObjectID from "../../Types/ObjectID";
+import { JSONObject } from "../../Types/JSON";
+import AIRunEventType from "../../Types/AI/AIRunEventType";
+import { AIRunEventResultSummary } from "../../Types/AI/AIChatTypes";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnFind } from "../Types/Database/Hooks";
@@ -6,10 +10,69 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/AIRunEvent";
 import { pinQueryToRequestingUser } from "../Utils/AI/AIChatPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Append one event to a run's glass-box trail, allocating the next
+   * sequence number from the run's current event count — the same idiom
+   * AIInvestigationEngine uses, factored out for callers that emit
+   * events one at a time (the code-fix agent's HTTP protocol) rather than
+   * holding a sequence counter across a whole in-process run.
+   *
+   * Best-effort: events are telemetry, so failures are logged and swallowed
+   * rather than failing the operation that produced them.
+   */
+  @CaptureSpan()
+  public async appendEventToRun(data: {
+    projectId: ObjectID;
+    aiRunId: ObjectID;
+    eventType: AIRunEventType;
+    toolName?: string | undefined;
+    toolArguments?: JSONObject | undefined;
+    resultSummary?: AIRunEventResultSummary | undefined;
+    citationId?: string | undefined;
+  }): Promise<void> {
+    try {
+      const sequence: number = (
+        await this.countBy({
+          query: { aiRunId: data.aiRunId },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      const event: Model = new Model();
+      event.projectId = data.projectId;
+      event.aiRunId = data.aiRunId;
+      event.sequence = sequence;
+      event.eventType = data.eventType;
+
+      if (data.toolName) {
+        event.toolName = data.toolName;
+      }
+      if (data.toolArguments) {
+        event.toolArguments = data.toolArguments;
+      }
+      if (data.resultSummary) {
+        event.resultSummary = data.resultSummary;
+      }
+      if (data.citationId) {
+        event.citationId = data.citationId;
+      }
+
+      await this.create({
+        data: event,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      logger.error(
+        `Failed to append AIRunEvent (${data.eventType}) to run ${data.aiRunId.toString()}: ${error}`,
+      );
+    }
   }
 
   protected override async onBeforeFind(

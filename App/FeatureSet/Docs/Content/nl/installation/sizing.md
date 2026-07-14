@@ -88,7 +88,7 @@ De in de chart ingebouwde datastores draaien standaard als **enkele instanties**
 
 - **PostgreSQL** — schakel de meegeleverde [CloudNativePG](https://cloudnative-pg.io)-operator in (`postgresOperator.cnpg.enabled`) met **3 instanties** (1 primary + 2 hot standbys) voor automatische failover.
 - **ClickHouse** — schakel de meegeleverde [Altinity](https://github.com/Altinity/clickhouse-operator)-operator in (`clickhouseOperator.altinity.enabled`) met **≥2 replicas per shard** en **3 ClickHouse Keeper**-nodes voor quorum. Voeg shards toe zodra de schijf of het RAM van een enkele node de beperking wordt.
-- **Redis** — de chart heeft geen replicatie binnen de chart. Wijs OneUptime voor HA naar een **extern beheerd Redis** (of een Sentinel-/cluster-deployment).
+- **Redis** — de chart heeft geen replicatie binnen de chart. Wijs OneUptime voor HA naar een **extern beheerd Redis** (of een AI-/cluster-deployment).
 
 ## Retentie en hoe het de opslag beïnvloedt
 

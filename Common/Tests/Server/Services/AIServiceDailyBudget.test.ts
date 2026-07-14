@@ -1,8 +1,17 @@
 import AIService, {
   AUTONOMOUS_AI_FEATURES,
   AutonomousBudgetStatus,
+  LEGACY_AUTONOMOUS_AI_FEATURES,
+  AI_ALERT_INVESTIGATION_FEATURE,
+  AI_CODE_FIX_FEATURE,
+  AI_CONFIDENCE_CLASSIFICATION_FEATURE,
+  AI_INCIDENT_INVESTIGATION_FEATURE,
+  AI_INSIGHT_TRIAGE_FEATURE,
+  AI_INVESTIGATION_GRADING_FEATURE,
+  RUNBOOK_AI_STEP_FEATURE,
+  WORKFLOW_AI_FEATURE,
 } from "../../../Server/Services/AIService";
-import SentinelInvestigationQueue from "../../../Server/Utils/AI/Sentinel/InvestigationQueue";
+import AIInvestigationQueue from "../../../Server/Utils/AI/SRE/InvestigationQueue";
 import LlmLogService from "../../../Server/Services/LlmLogService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -31,6 +40,87 @@ function fakeProject(limit: number | undefined): Project {
     aiDailyAutonomousTokenLimit: limit,
   } as unknown as Project;
 }
+
+/*
+ * The budget is enforced by matching PERSISTED LlmLog.feature strings against
+ * AUTONOMOUS_AI_FEATURES, so these labels are data, not display text. Changing
+ * one silently rewrites a project's usage history for the current UTC day:
+ * older rows stop matching, usedTokensToday collapses toward zero, and an
+ * already-exhausted project gets a fresh full budget. These tests pin the
+ * exact wire values and the legacy aliases so no rename can do that quietly.
+ */
+describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
+  test("each label has its exact persisted value", () => {
+    expect(AI_INCIDENT_INVESTIGATION_FEATURE).toBe("AI Incident Investigation");
+    expect(AI_ALERT_INVESTIGATION_FEATURE).toBe("AI Alert Investigation");
+    expect(AI_INVESTIGATION_GRADING_FEATURE).toBe("AI Investigation Grading");
+    expect(AI_CONFIDENCE_CLASSIFICATION_FEATURE).toBe(
+      "AI Confidence Classification",
+    );
+    expect(AI_CODE_FIX_FEATURE).toBe("AI Code Fix");
+    expect(AI_INSIGHT_TRIAGE_FEATURE).toBe("AI Insight Triage");
+    expect(RUNBOOK_AI_STEP_FEATURE).toBe("Runbook AI Step");
+    expect(WORKFLOW_AI_FEATURE).toBe("Workflow AI");
+  });
+
+  test("the budget match-list covers every autonomous feature", () => {
+    for (const feature of [
+      AI_INCIDENT_INVESTIGATION_FEATURE,
+      AI_ALERT_INVESTIGATION_FEATURE,
+      AI_INVESTIGATION_GRADING_FEATURE,
+      AI_CONFIDENCE_CLASSIFICATION_FEATURE,
+      AI_CODE_FIX_FEATURE,
+      AI_INSIGHT_TRIAGE_FEATURE,
+      RUNBOOK_AI_STEP_FEATURE,
+      WORKFLOW_AI_FEATURE,
+    ]) {
+      expect(AUTONOMOUS_AI_FEATURES).toContain(feature);
+    }
+  });
+
+  /*
+   * The budget hole this guards: the six labels below were persisted by the
+   * pre-rename code. Dropping them from the match-list stops LlmLog rows that
+   * ALREADY carry them from counting — during the deploy window (old and new
+   * pods write different labels into the same UTC day) and for any row the
+   * backfill migration missed. A future cleanup must fail here and go read the
+   * retention argument in AIService before deleting them.
+   */
+  test("the six legacy Sentinel labels are still counted by the budget", () => {
+    expect(LEGACY_AUTONOMOUS_AI_FEATURES).toEqual([
+      "Sentinel Incident Investigation",
+      "Sentinel Alert Investigation",
+      "Sentinel Investigation Grading",
+      "Sentinel Confidence Classification",
+      "Sentinel Code Fix",
+      "Sentinel Insight Triage",
+    ]);
+
+    for (const legacyFeature of LEGACY_AUTONOMOUS_AI_FEATURES) {
+      expect(AUTONOMOUS_AI_FEATURES).toContain(legacyFeature);
+    }
+  });
+
+  /*
+   * Nothing but the constants and the legacy aliases may reach the list — a
+   * raw literal here is how a writer and the budget silently drift apart.
+   */
+  test("the match-list is exactly the current labels plus the legacy aliases", () => {
+    expect([...AUTONOMOUS_AI_FEATURES].sort()).toEqual(
+      [
+        AI_INCIDENT_INVESTIGATION_FEATURE,
+        AI_ALERT_INVESTIGATION_FEATURE,
+        AI_INVESTIGATION_GRADING_FEATURE,
+        AI_CONFIDENCE_CLASSIFICATION_FEATURE,
+        AI_CODE_FIX_FEATURE,
+        AI_INSIGHT_TRIAGE_FEATURE,
+        RUNBOOK_AI_STEP_FEATURE,
+        WORKFLOW_AI_FEATURE,
+        ...LEGACY_AUTONOMOUS_AI_FEATURES,
+      ].sort(),
+    );
+  });
+});
 
 describe("AIService.getAutonomousDailyBudgetStatus", () => {
   const projectId: ObjectID = ObjectID.generate();
@@ -107,7 +197,7 @@ describe("AIService.getAutonomousDailyBudgetStatus", () => {
   });
 });
 
-describe("SentinelInvestigationQueue budget skip", () => {
+describe("AIInvestigationQueue budget skip", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -120,7 +210,7 @@ describe("SentinelInvestigationQueue budget skip", () => {
     });
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
-    await SentinelInvestigationQueue.enqueue({
+    await AIInvestigationQueue.enqueue({
       projectId: ObjectID.generate(),
       subjectAlertId: ObjectID.generate(),
     });
@@ -134,7 +224,7 @@ describe("SentinelInvestigationQueue budget skip", () => {
       .mockRejectedValue(new Error("db down"));
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
-    await SentinelInvestigationQueue.enqueue({
+    await AIInvestigationQueue.enqueue({
       projectId: ObjectID.generate(),
       subjectAlertId: ObjectID.generate(),
     });
@@ -161,7 +251,7 @@ describe("SentinelInvestigationQueue budget skip", () => {
       "attemptStatusTransition",
     );
 
-    await SentinelInvestigationQueue.processRun({
+    await AIInvestigationQueue.processRun({
       id: ObjectID.generate(),
       projectId: ObjectID.generate(),
       attemptCount: 0,

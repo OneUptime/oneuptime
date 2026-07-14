@@ -1,5 +1,4 @@
 import AIAgent from "./AIAgent";
-import AIAgentTask from "./AIAgentTask";
 import CodeRepository from "./CodeRepository";
 import Project from "./Project";
 import User from "./User";
@@ -21,6 +20,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
+import FixPullRequestCiStatus from "../../Types/AI/FixPullRequestCiStatus";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 
@@ -157,59 +157,21 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     ],
     update: [],
   })
-  @TableColumn({
-    type: TableColumnType.Entity,
-    required: true,
-    modelType: AIAgentTask,
-    manyToOneRelationColumn: "aiAgentTaskId",
-    title: "AI Agent Task",
-    description: "AI Agent Task this pull request belongs to.",
-  })
-  @ManyToOne(
-    () => {
-      return AIAgentTask;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: false,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "aiAgentTaskId" })
-  public aiAgentTask?: AIAgentTask = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.CreateProjectAIAgentTask,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProjectAIAgentTask,
-    ],
-    update: [],
-  })
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
-    title: "AI Agent Task ID",
-    description: "ID of the AI Agent Task this pull request belongs to.",
+    title: "AI Run ID",
+    description:
+      "ID of the AIRun (runType CodeFix) this pull request was opened by.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public aiAgentTaskId?: ObjectID = undefined;
+  public aiRunId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -550,6 +512,55 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     default: PullRequestState.Open,
   })
   public pullRequestState?: PullRequestState = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "CI Status",
+    description:
+      "Rolled-up conclusion of the repository's own CI check runs on this pull request (Pending, Green, Red, ExpectedFailureObserved for should-fail regression-test PRs, NoCiConfigured). Null until the sync job first polls check runs. Written by AIAgent:SyncPullRequestStates — never by users.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public ciStatus?: FixPullRequestCiStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "CI Status At",
+    description: "When the CI status last changed.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public ciStatusAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [

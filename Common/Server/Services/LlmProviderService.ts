@@ -158,6 +158,114 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Resolve a provider the project OWNS — never the global fallback.
+   * Callers that may also use the shared global provider layer that
+   * fallback themselves (see getLlmProviderForMeteredAgentPath). Prefers
+   * the project default, else any project-owned provider.
+   */
+  @CaptureSpan()
+  public async getProjectOwnedLlmProvider(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    const select: {
+      _id: boolean;
+      name: boolean;
+      llmType: boolean;
+      apiKey: boolean;
+      baseUrl: boolean;
+      modelName: boolean;
+      additionalParams: boolean;
+      isGlobalLlm: boolean;
+      costPerMillionTokensInUSDCents: boolean;
+    } = {
+      _id: true,
+      name: true,
+      llmType: true,
+      apiKey: true,
+      baseUrl: true,
+      modelName: true,
+      additionalParams: true,
+      isGlobalLlm: true,
+      costPerMillionTokensInUSDCents: true,
+    };
+
+    const defaultProvider: Model | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isDefault: true,
+      },
+      select,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (defaultProvider) {
+      return defaultProvider;
+    }
+
+    return this.findOneBy({
+      query: {
+        projectId: projectId,
+      },
+      sort: {
+        createdAt: SortOrder.Ascending,
+      },
+      select,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * Resolve the provider for the METERED agent path (B4 Tier 0): the
+   * server-mediated /ai-agent-data/llm-completion endpoint, whose calls run
+   * through AIService.executeWithLogging — logged to LlmLog, billed when the
+   * global provider is costed, and inside the daily autonomous token budget.
+   *
+   * Because metering is universal on this path, a project-owned provider
+   * still wins, but when the project owns none the shared global provider
+   * is returned ON CLOUD TOO — its usage is billed as metered AI tokens.
+   * Cloud zero-config completes: fix tasks work with no per-project
+   * provider. (The old raw-key path — get-llm-config handing the provider
+   * apiKey to the worker for unmetered direct calls — is removed; this is
+   * the only agent provider resolution left.)
+   */
+  @CaptureSpan()
+  public async getLlmProviderForMeteredAgentPath(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    const projectOwnedProvider: Model | null =
+      await this.getProjectOwnedLlmProvider(projectId);
+
+    if (projectOwnedProvider) {
+      return projectOwnedProvider;
+    }
+
+    return this.findOneBy({
+      query: {
+        projectId: QueryHelper.isNull(),
+        isGlobalLlm: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        llmType: true,
+        apiKey: true,
+        baseUrl: true,
+        modelName: true,
+        additionalParams: true,
+        isGlobalLlm: true,
+        costPerMillionTokensInUSDCents: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
    * Resolve the provider to use for a chat turn. When the user has explicitly
    * chosen a provider (llmProviderId), use it — but only if it is actually
    * usable by this project: either a global provider, or one owned by the

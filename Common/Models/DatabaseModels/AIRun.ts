@@ -21,10 +21,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunHumanVerdict from "../../Types/AI/AIRunHumanVerdict";
+import AIRunAutoGrade from "../../Types/AI/AIRunAutoGrade";
+import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import {
   AIRunEgressManifest,
   AIRunPausedState,
 } from "../../Types/AI/AIChatTypes";
+import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
 
 /*
  * One AI agent execution (a chat turn today; an investigation later). Runs
@@ -146,6 +150,30 @@ export default class AIRun extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public runType?: AIRunType = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Code Fix Task Type",
+    description:
+      "For CodeFix runs: which task recipe this run executes (fix the exception, write a regression test, ...). Null means FixException — rows created before task recipes existed.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public codeFixTaskType?: CodeFixTaskType = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -348,6 +376,60 @@ export default class AIRun extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    title: "Triggered By Telemetry Exception ID",
+    description:
+      "The telemetry exception that triggered this run (for code-fix runs).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByTelemetryExceptionId?: ObjectID = undefined;
+
+  /*
+   * Set when the run was woken by a preventive AIInsight (triage runs
+   * and insight-created fix runs).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Triggered By AI Insight ID",
+    description:
+      "The preventive AI insight that triggered this run (for insight triage and insight-created fix runs).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByAiInsightId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
     title: "Monitor ID",
     description:
       "The monitor behind the alert that triggered this run — the dedupe key for per-monitor investigation windows.",
@@ -358,6 +440,31 @@ export default class AIRun extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public monitorId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Agent ID",
+    description:
+      "The external AI agent that claimed this run (for code-fix runs executed by an agent container).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiAgentId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -583,6 +690,34 @@ export default class AIRun extends BaseModel {
   })
   public pausedState?: AIRunPausedState = undefined;
 
+  /*
+   * Trigger-time context for CodeFix recipes that have no subject row
+   * (CodeFixContextKind.TaskContext — today the FixPerformance recipe:
+   * traceId + the deterministic span-tree findings, captured before span
+   * retention can expire them). Server-only like pausedState (empty read
+   * ACL): the evidence embeds span names and normalized db statements,
+   * whose telemetry read permissions are narrower than this table's
+   * project-member read — the agent worker gets it through the
+   * agent-authenticated task-details endpoint instead.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Task Context",
+    description:
+      "Internal: trigger-time context for code-fix recipes without a subject row (e.g. FixPerformance trace evidence).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public taskContext?: CodeFixTaskContext = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -604,6 +739,133 @@ export default class AIRun extends BaseModel {
     length: ColumnLength.LongText,
   })
   public errorMessage?: string = undefined;
+
+  /*
+   * Measurement layer (Phase 2): the one-click human verdict on a completed
+   * investigation's posted analysis. Written only by the server via
+   * POST /ai-investigation/verdict (empty create/update ACL, like every
+   * other column on this table); overwriting is allowed — a user may change
+   * their mind.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Human Verdict",
+    description:
+      "For investigation runs: the one-click human verdict on the posted analysis (Confirmed or Rejected). Null until a user weighs in.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public humanVerdict?: AIRunHumanVerdict = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Human Verdict At",
+    description: "When the human verdict was recorded (or last changed).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public humanVerdictAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Human Verdict By User ID",
+    description: "The user who recorded (or last changed) the human verdict.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public humanVerdictByUserId?: ObjectID = undefined;
+
+  /*
+   * Measurement layer (Phase 2): the automatic grade assigned when the
+   * incident behind this investigation resolves with a human-recorded root
+   * cause — one constrained LLM comparison of the posted analysis against
+   * Incident.rootCause (see AI/InvestigationGrader.ts). Null means
+   * not graded (yet); a set value also serves as the grading dedupe.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Auto Grade",
+    description:
+      "For investigation runs: how the posted analysis compared to the incident's final recorded root cause (Match, Partial or Mismatch).",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public autoGrade?: AIRunAutoGrade = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Auto Graded At",
+    description: "When the automatic grade was recorded.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public autoGradeAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

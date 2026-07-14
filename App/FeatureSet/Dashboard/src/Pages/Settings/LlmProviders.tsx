@@ -1,5 +1,7 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -25,6 +27,7 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green } from "Common/Types/BrandColors";
 
@@ -33,6 +36,10 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
   const [testMessage, setTestMessage] = useState<string>("");
+
+  const codeRepositoriesRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.CODE_REPOSITORY] as Route,
+  );
 
   const runTest: (item: LlmProvider) => Promise<void> = async (
     item: LlmProvider,
@@ -126,8 +133,10 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <span className="text-gray-500">
                   {" "}
                   - Analyze telemetry data (logs, traces, metrics, exceptions)
-                  and suggest code improvements when connected to your code
-                  repository
+                  and suggest code improvements when connected to your{" "}
+                  <Link to={codeRepositoriesRoute} className="underline">
+                    code repository
+                  </Link>
                 </span>
               </div>
             </div>
@@ -379,8 +388,14 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               stepId: "provider-settings",
               fieldType: FormFieldSchemaType.Toggle,
               required: false,
+              /*
+               * Defaults to on: an untouched toggle submits false, which
+               * silently leaves the new provider unused (AI features only
+               * pick the default provider).
+               */
+              defaultValue: true,
               description:
-                "Set this as the default LLM provider for the project. When a default is set, the global LLM provider will not be used.",
+                "Use this provider for AI features in this project. Only the default provider is used — if you turn this off (and no other provider is the default), this provider will not be used by AI features.",
             },
           ]}
           showRefreshButton={true}

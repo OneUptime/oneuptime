@@ -1,178 +1,248 @@
 import PageComponentProps from "../../PageComponentProps";
-import React, { FunctionComponent, ReactElement } from "react";
-import ObjectID from "Common/Types/ObjectID";
-import AIAgentTask from "Common/Models/DatabaseModels/AIAgentTask";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useParams } from "react-router-dom";
-import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
-import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red, Yellow, Blue } from "Common/Types/BrandColors";
-import AIAgentTaskTypeElement from "../../../Components/AIAgentTask/AIAgentTaskTypeElement";
-import AIAgentElement from "Common/UI/Components/AIAgent/AIAgent";
+import AIRun from "Common/Models/DatabaseModels/AIRun";
+import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
+import { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import OneUptimeDate from "Common/Types/Date";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Card from "Common/UI/Components/Card/Card";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { APP_API_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
+import CodeFixRunStatusPill, {
+  CodeFixRunStatusText,
+  getCodeFixRunStatusText,
+  getCodeFixTaskTypeLabel,
+} from "../../../Components/AIAgentTask/CodeFixRunStatus";
 
+const POLL_INTERVAL_MS: number = 5000;
+// The server caps the event trail at 500 — show all of it.
+const MAX_VISIBLE_STEPS: number = 500;
+
+/*
+ * The AI fix task detail: the CodeFix AIRun's status plus its glass-box
+ * event trail (the same ChatActivityFeed rendering AI investigations
+ * use). Data comes from the dedicated /code-fix-run/get endpoint because
+ * system-authored runs are hidden from the generic AIRun CRUD.
+ */
 const AIAgentTaskViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { id } = useParams();
-  const modelId: ObjectID = new ObjectID(id || "");
+
+  const [run, setRun] = useState<AIRun | undefined>(undefined);
+  /*
+   * The run's task-type discriminator (`codeFixTaskType` on the
+   * /code-fix-run/get response — never null; the server normalizes legacy
+   * rows to "FixException"). Read from the raw JSON, not the AIRun model.
+   */
+  const [taskType, setTaskType] = useState<string | undefined>(undefined);
+  const [events, setEvents] = useState<Array<AIRunEvent>>([]);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  const signatureRef: React.MutableRefObject<string> = useRef<string>("");
+
+  const fetchData: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      try {
+        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              `/code-fix-run/get/${id || ""}`,
+            ),
+            data: {},
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (response instanceof HTTPErrorResponse) {
+          throw response;
+        }
+
+        const data: JSONObject = response.data as JSONObject;
+        const runJson: JSONObject | null =
+          (data["run"] as JSONObject | null) || null;
+        const eventsJson: JSONArray = (data["events"] as JSONArray) || [];
+
+        if (runJson) {
+          const status: string =
+            (runJson["status"] as string | undefined) || "none";
+
+          // Skip re-render when nothing changed (status + event count).
+          const signature: string = `${status}:${eventsJson.length}`;
+          if (signature !== signatureRef.current) {
+            signatureRef.current = signature;
+            setRun(AIRun.fromJSONObject(runJson, AIRun));
+            setTaskType(runJson["codeFixTaskType"] as string | undefined);
+            setEvents(
+              AIRunEvent.fromJSONArray(
+                eventsJson as Array<JSONObject>,
+                AIRunEvent,
+              ),
+            );
+          }
+          setError(undefined);
+        }
+
+        setHasLoadedOnce(true);
+      } catch (err) {
+        // Keep already-loaded data on transient poll failures.
+        if (!signatureRef.current) {
+          setError(API.getFriendlyMessage(err));
+        }
+        setHasLoadedOnce(true);
+      }
+    }, [id]);
+
+  useEffect(() => {
+    fetchData().catch(() => {
+      // handled inside fetchData
+    });
+  }, [fetchData]);
+
+  // Poll while the run can still make progress.
+  const isActive: boolean = Boolean(
+    run?.status && !AIRunStatusHelper.isTerminalStatus(run.status),
+  );
+
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
+    const interval: ReturnType<typeof setInterval> = setInterval(() => {
+      fetchData().catch(() => {
+        // handled inside fetchData
+      });
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      return clearInterval(interval);
+    };
+  }, [isActive, fetchData]);
+
+  type FormatDateFunction = (date: Date | undefined) => string;
+
+  const formatDate: FormatDateFunction = (date: Date | undefined): string => {
+    if (!date) {
+      return "-";
+    }
+
+    return OneUptimeDate.getDateAsLocalFormattedString(date);
+  };
+
+  if (!hasLoadedOnce) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error && !run) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (!run) {
+    return <ErrorMessage message="Task not found" />;
+  }
+
+  const statusText: CodeFixRunStatusText = getCodeFixRunStatusText(run.status);
 
   return (
-    <CardModelDetail<AIAgentTask>
-      name="AI Agent Task Details"
-      cardProps={{
-        title: "Task Details",
-        description: "View details about this AI agent task.",
-      }}
-      isEditable={false}
-      modelDetailProps={{
-        modelType: AIAgentTask,
-        id: "model-detail-ai-agent-task",
-        fields: [
-          {
-            field: {
-              taskNumber: true,
-            },
-            title: "Task Number",
-            fieldType: FieldType.Element,
-            getElement: (item: AIAgentTask): ReactElement => {
-              if (!item.taskNumber) {
-                return <>-</>;
-              }
+    <div className="space-y-4">
+      <Card title="Task Status" description="Current state of this AI task.">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <CodeFixRunStatusPill status={run.status} />
+            {isActive ? (
+              <span className="inline-block h-2 w-2 animate-ping rounded-full bg-indigo-500" />
+            ) : (
+              <></>
+            )}
+          </div>
 
-              return (
-                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 border border-gray-200">
-                  <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-100">
-                    <svg
-                      className="w-3.5 h-3.5 text-gray-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5l-3.9 19.5m-2.1-19.5l-3.9 19.5"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-lg font-semibold text-gray-700">
-                    {item.taskNumber}
-                  </span>
-                </div>
-              );
-            },
-          },
-          {
-            field: {
-              _id: true,
-            },
-            title: "Task ID",
-            fieldType: FieldType.ObjectID,
-          },
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FieldType.LongText,
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FieldType.LongText,
-          },
-          {
-            field: {
-              taskType: true,
-            },
-            title: "Task Type",
-            fieldType: FieldType.Element,
-            getElement: (item: AIAgentTask): ReactElement => {
-              return (
-                <AIAgentTaskTypeElement
-                  taskType={item.taskType as AIAgentTaskType}
-                />
-              );
-            },
-          },
-          {
-            field: {
-              status: true,
-            },
-            title: "Status",
-            fieldType: FieldType.Element,
-            getElement: (item: AIAgentTask): ReactElement => {
-              if (item.status === AIAgentTaskStatus.Scheduled) {
-                return <Pill text="Scheduled" color={Blue} />;
-              }
-              if (item.status === AIAgentTaskStatus.InProgress) {
-                return <Pill text="In Progress" color={Yellow} />;
-              }
-              if (item.status === AIAgentTaskStatus.Completed) {
-                return <Pill text="Completed" color={Green} />;
-              }
-              if (item.status === AIAgentTaskStatus.Error) {
-                return <Pill text="Error" color={Red} />;
-              }
-              return <Pill text={item.status || "Unknown"} color={Blue} />;
-            },
-          },
-          {
-            field: {
-              statusMessage: true,
-            },
-            title: "Status Message",
-            fieldType: FieldType.LongText,
-            showIf: (item: AIAgentTask): boolean => {
-              return Boolean(item.statusMessage);
-            },
-          },
-          {
-            field: {
-              aiAgent: {
-                name: true,
-                iconFileId: true,
-              },
-            },
-            title: "AI Agent",
-            fieldType: FieldType.Element,
-            getElement: (item: AIAgentTask): ReactElement => {
-              if (!item.aiAgent) {
-                return <span className="text-gray-400">Not Assigned</span>;
-              }
-              return <AIAgentElement aiAgent={item.aiAgent} />;
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Created At",
-            fieldType: FieldType.DateTime,
-          },
-          {
-            field: {
-              startedAt: true,
-            },
-            title: "Started At",
-            fieldType: FieldType.DateTime,
-          },
-          {
-            field: {
-              completedAt: true,
-            },
-            title: "Completed At",
-            fieldType: FieldType.DateTime,
-          },
-        ],
-        modelId: modelId,
-      }}
-    />
+          {statusText.description ? (
+            <p className="text-sm text-gray-600">{statusText.description}</p>
+          ) : (
+            <></>
+          )}
+
+          {run.errorMessage ? (
+            <Alert
+              type={AlertType.DANGER}
+              strongTitle="Error"
+              title={run.errorMessage}
+            />
+          ) : (
+            <></>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div>
+              <div className="text-xs text-gray-500">Task Type</div>
+              <div className="text-sm text-gray-900">
+                {getCodeFixTaskTypeLabel(taskType)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Created At</div>
+              <div className="text-sm text-gray-900">
+                {formatDate(run.createdAt)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Started At</div>
+              <div className="text-sm text-gray-900">
+                {formatDate(run.startedAt)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Completed At</div>
+              <div className="text-sm text-gray-900">
+                {formatDate(run.completedAt)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Tokens Used</div>
+              <div className="text-sm text-gray-900">
+                {run.totalTokens ? run.totalTokens.toLocaleString() : "-"}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card
+        title="AI Activity"
+        description="What AI did, step by step — the run's glass-box event trail."
+      >
+        {events.length > 0 ? (
+          <ChatActivityFeed
+            events={events}
+            title={isActive ? "Working…" : "Activity"}
+            showLiveIndicator={isActive}
+            maxVisibleSteps={MAX_VISIBLE_STEPS}
+          />
+        ) : (
+          <p className="text-sm text-gray-500">
+            {isActive
+              ? "Waiting for AI to report its first step…"
+              : "No activity was recorded for this task."}
+          </p>
+        )}
+      </Card>
+    </div>
   );
 };
 

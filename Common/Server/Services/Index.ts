@@ -13,6 +13,7 @@ import CallLogService from "./CallLogService";
 import CallService from "./CallService";
 import DataMigrationService from "./DataMigrationService";
 import MigrationFailureService from "./MigrationFailureService";
+import InstanceHealthLogService from "./InstanceHealthLogService";
 import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -81,6 +82,7 @@ import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
 import RunbookSecretService from "./RunbookSecretService";
+import AIInsightService from "./AIInsightService";
 
 // Monitors
 import MonitorService from "./MonitorService";
@@ -104,7 +106,6 @@ import ProbeService from "./ProbeService";
 import AIAgentService from "./AIAgentService";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
 import AIAgentOwnerTeamService from "./AIAgentOwnerTeamService";
-import AIAgentTaskLogService from "./AIAgentTaskLogService";
 import AIAgentTaskPullRequestService from "./AIAgentTaskPullRequestService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
@@ -137,7 +138,6 @@ import ScheduledMaintenanceStateTimelineService from "./ScheduledMaintenanceStat
 import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
 import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import ServiceService from "./ServiceService";
-import ServiceCodeRepositoryService from "./ServiceCodeRepositoryService";
 import ShortLinkService from "./ShortLinkService";
 // SMS Log Service
 import SmsLogService from "./SmsLogService";
@@ -282,6 +282,7 @@ const services: Array<BaseService> = [
 
   DataMigrationService,
   MigrationFailureService,
+  InstanceHealthLogService,
   DomainService,
 
   EmailLogService,
@@ -346,6 +347,7 @@ const services: Array<BaseService> = [
   MonitorStatusTimelineService,
   MonitorSecretService,
   RunbookSecretService,
+  AIInsightService,
   MonitorFeedService,
 
   NotificationService,
@@ -365,7 +367,6 @@ const services: Array<BaseService> = [
   AIAgentService,
   AIAgentOwnerUserService,
   AIAgentOwnerTeamService,
-  AIAgentTaskLogService,
   AIAgentTaskPullRequestService,
   ProjectSsoService,
   ProjectOidcService,
@@ -456,7 +457,6 @@ const services: Array<BaseService> = [
   ServiceService,
   ServiceOwnerTeamService,
   ServiceOwnerUserService,
-  ServiceCodeRepositoryService,
 
   TelemetryExceptionService,
   TelemetryEntityService,

@@ -8,11 +8,13 @@ import TimeoutException from "Common/Types/Exception/TimeoutException";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentMetadata, {
+  Argument,
   ComponentInputType,
   ComponentType,
   NodeDataProp,
   NodeType,
   Port,
+  ReturnValue,
 } from "Common/Types/Workflow/Component";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
@@ -34,6 +36,48 @@ import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 
 const AllComponents: Dictionary<ComponentMetadata> = loadAllComponentMetadata();
+
+export const WORKFLOW_LOG_REDACTED_VALUE: string = "[REDACTED]";
+
+type SensitiveWorkflowField =
+  | Pick<Argument, "id" | "isSensitive">
+  | Pick<ReturnValue, "id" | "isSensitive">;
+
+/**
+ * Return a copy that is safe to persist in WorkflowLog. Component execution
+ * continues to use the original values.
+ */
+export function redactSensitiveComponentValuesForLogs(
+  values: JSONObject,
+  fields: Array<SensitiveWorkflowField>,
+): JSONObject {
+  const sensitiveFieldIds: Set<string> = new Set(
+    fields
+      .filter((field: SensitiveWorkflowField) => {
+        return field.isSensitive === true;
+      })
+      .map((field: SensitiveWorkflowField) => {
+        return field.id;
+      }),
+  );
+
+  const loggableValues: JSONObject = {};
+
+  for (const key of Object.keys(values)) {
+    loggableValues[key] = sensitiveFieldIds.has(key)
+      ? WORKFLOW_LOG_REDACTED_VALUE
+      : values[key]!;
+  }
+
+  return loggableValues;
+}
+
+export function getRemainingWorkflowTimeInMs(
+  deadlineAtInMs: number,
+  nowInMs: number = Date.now(),
+): number {
+  return Math.max(0, deadlineAtInMs - nowInMs);
+}
 
 export interface StorageMap {
   local: {
@@ -65,6 +109,11 @@ export default class RunWorkflow {
   private projectId: ObjectID | null = null;
   private workflowLogId: ObjectID | null = null;
   private callChain: Array<string> = [];
+  private workflowDeadlineAtInMs: number = 0;
+
+  private getRemainingExecutionTimeInMs(): number {
+    return getRemainingWorkflowTimeInMs(this.workflowDeadlineAtInMs);
+  }
 
   private getLogAttributes(): LogAttributes {
     return {
@@ -84,12 +133,8 @@ export default class RunWorkflow {
       this.workflowLogId = runProps.workflowLogId;
       this.callChain = runProps.callChain || [];
 
-      let didWorkflowTimeOut: boolean = false;
       let didWorkflowErrorOut: boolean = false;
-
-      setTimeout(() => {
-        didWorkflowTimeOut = true;
-      }, runProps.timeout);
+      this.workflowDeadlineAtInMs = Date.now() + Math.max(runProps.timeout, 0);
 
       const workflow: Workflow | null = await WorkflowService.findOneById({
         id: runProps.workflowId,
@@ -285,7 +330,7 @@ export default class RunWorkflow {
       // make variable map
 
       while (fifoStackOfComponentsPendingExecution.length > 0) {
-        if (didWorkflowTimeOut) {
+        if (this.getRemainingExecutionTimeInMs() <= 0) {
           throw new TimeoutException(
             "Workflow execution time was more than " +
               runProps.timeout +
@@ -336,7 +381,12 @@ export default class RunWorkflow {
         }
 
         this.log("Component Args:");
-        this.log(args);
+        this.log(
+          redactSensitiveComponentValuesForLogs(
+            args,
+            stackItem.node.metadata.arguments,
+          ),
+        );
         this.log("Component Logs: " + executeComponentId);
 
         const result: RunReturnType = await this.runComponent(
@@ -345,13 +395,31 @@ export default class RunWorkflow {
           setDidErrorOut,
         );
 
+        /*
+         * Check immediately after awaiting the component as well as before the
+         * next iteration. This prevents a slow final component from being
+         * marked successful after the workflow deadline has elapsed.
+         */
+        if (this.getRemainingExecutionTimeInMs() <= 0) {
+          throw new TimeoutException(
+            "Workflow execution time was more than " +
+              runProps.timeout +
+              "ms and workflow timed-out.",
+          );
+        }
+
         if (didWorkflowErrorOut) {
           throw new BadDataException("Workflow stopped because of an error");
         }
 
         this.log("Completed Execution Component: " + executeComponentId);
         this.log("Data Returned");
-        this.log(result.returnValues);
+        this.log(
+          redactSensitiveComponentValuesForLogs(
+            result.returnValues,
+            stackItem.node.metadata.returnValues,
+          ),
+        );
         this.log("Executing Port: " + result.executePort?.title || "<None>");
 
         storageMap.local.components[stackItem.node.id] = {
@@ -596,6 +664,14 @@ export default class RunWorkflow {
         try {
           argumentContent = JSON.parse(argumentContent);
         } catch (err: any) {
+          if (argument.isSensitive) {
+            throw new BadDataException(
+              "Invalid JSON provided for sensitive argument " +
+                argument.id +
+                ". The value has been redacted.",
+            );
+          }
+
           throw new BadDataException(
             "Invalid JSON provided for argument " +
               argument.id +
@@ -632,6 +708,9 @@ export default class RunWorkflow {
         workflowId: this.workflowId!,
         workflowLogId: this.workflowLogId!,
         projectId: callingProjectId,
+        getRemainingExecutionTimeInMs: (): number => {
+          return this.getRemainingExecutionTimeInMs();
+        },
         onError: (exception: Exception) => {
           this.log(exception);
           onError();

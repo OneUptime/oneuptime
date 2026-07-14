@@ -1,6 +1,16 @@
 import PositiveNumber from "../../Types/PositiveNumber";
 import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunType from "../../Types/AI/AIRunType";
+import AIRunHumanVerdict from "../../Types/AI/AIRunHumanVerdict";
+import BadDataException from "../../Types/Exception/BadDataException";
+import CodeFixTaskType, {
+  CodeFixContextKind,
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnFind } from "../Types/Database/Hooks";
@@ -14,7 +24,8 @@ import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity
 /*
  * The fields a status transition may set. Primitives only — the query-builder
  * update below bypasses column transformers, so ObjectID fields must not be
- * set through this path.
+ * set through this path. ObjectID-backed columns may be set via their
+ * pre-transformed string form (what the transformer would have written).
  */
 export interface AIRunTransitionSet {
   status: AIRunStatus;
@@ -26,6 +37,8 @@ export interface AIRunTransitionSet {
   llmCallCount?: number | undefined;
   toolCallCount?: number | undefined;
   totalTokens?: number | undefined;
+  // The claiming agent's id as a string (ObjectID.toString()) — see above.
+  aiAgentId?: string | undefined;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -68,6 +81,251 @@ export class Service extends DatabaseService<Model> {
     const result: UpdateResult = await queryBuilder.execute();
 
     return result.affected || 0;
+  }
+
+  /*
+   * Atomically claim the oldest Queued code-fix run for an external agent
+   * worker (the /ai-agent-task/get-pending-task route). The Queued -> Running
+   * transition is the same status+attemptCount-guarded CAS the investigation
+   * queue uses, so concurrent agents can never receive the same run. The
+   * returned run is already Running, heartbeated, and owned by the agent.
+   *
+   * A claimed run missing its recipe's trigger record cannot be executed —
+   * it is finalized as Error and the loop moves on to the next candidate.
+   * Which record that is depends on the recipe's context kind:
+   * exception-based recipes need triggeredByTelemetryExceptionId,
+   * ImproveInstrumentation / FixFromIncident run against the incident/alert
+   * whose investigation triggered them, and FixPerformance carries its
+   * trace evidence in taskContext (no subject row at all).
+   */
+  @CaptureSpan()
+  public async claimNextQueuedCodeFixRun(data: {
+    aiAgentId: ObjectID;
+  }): Promise<Model | null> {
+    const maxClaimAttempts: number = 5;
+
+    for (let attempt: number = 0; attempt < maxClaimAttempts; attempt++) {
+      const run: Model | null = await this.findOneBy({
+        query: {
+          runType: AIRunType.CodeFix,
+          status: AIRunStatus.Queued,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          triggeredByTelemetryExceptionId: true,
+          triggeredByIncidentId: true,
+          triggeredByAlertId: true,
+          attemptCount: true,
+          codeFixTaskType: true,
+          taskContext: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!run || !run.id) {
+        return null;
+      }
+
+      const claimedCount: number = await this.attemptStatusTransition({
+        aiRunId: run.id,
+        fromStatus: AIRunStatus.Queued,
+        expectedAttemptCount: run.attemptCount || 0,
+        set: {
+          status: AIRunStatus.Running,
+          startedAt: OneUptimeDate.getCurrentDate(),
+          lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
+          attemptCount: (run.attemptCount || 0) + 1,
+          aiAgentId: data.aiAgentId.toString(),
+        },
+      });
+
+      if (claimedCount === 0) {
+        // Another agent won this run — try the next candidate.
+        continue;
+      }
+
+      /*
+       * Normalize the task recipe BEFORE the executability guard: a null
+       * codeFixTaskType means FixException (rows created before task
+       * recipes existed), the worker dispatches on this value, and the
+       * guard below is recipe-dependent.
+       */
+      run.codeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
+        run.codeFixTaskType,
+      );
+
+      /*
+       * Recipe-dependent executability guard, grouped by the recipe's
+       * context kind: exception-based recipes are unexecutable without
+       * their telemetry exception; recipes whose subject is an
+       * incident/alert (ImproveInstrumentation, FixFromIncident)
+       * legitimately carry NO exception id; and FixPerformance carries
+       * neither — its trace evidence lives in taskContext. Rejecting a
+       * kind for lacking another kind's record would Error every run its
+       * trigger enqueues.
+       */
+      const contextKind: CodeFixContextKind =
+        CodeFixTaskTypeHelper.getContextKind(run.codeFixTaskType);
+
+      let missingContextMessage: string | null = null;
+
+      if (contextKind === CodeFixContextKind.TelemetryException) {
+        missingContextMessage = run.triggeredByTelemetryExceptionId
+          ? null
+          : "Queued code-fix run has no telemetry exception to fix.";
+      } else if (contextKind === CodeFixContextKind.IncidentOrAlertSubject) {
+        missingContextMessage =
+          run.triggeredByIncidentId || run.triggeredByAlertId
+            ? null
+            : "Queued code-fix run has no incident or alert subject.";
+      } else {
+        missingContextMessage = run.taskContext?.traceId
+          ? null
+          : "Queued code-fix run has no trace evidence in its task context.";
+      }
+
+      if (missingContextMessage) {
+        await this.attemptStatusTransition({
+          aiRunId: run.id,
+          fromStatus: AIRunStatus.Running,
+          set: {
+            status: AIRunStatus.Error,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            errorMessage: missingContextMessage,
+          },
+        });
+        continue;
+      }
+
+      return run;
+    }
+
+    return null;
+  }
+
+  /*
+   * The latest CodeFix run of EACH task recipe for an exception — at most
+   * one run per CodeFixTaskType, newest first (so the first element is the
+   * latest run overall). Backs /telemetry-exception/get-ai-agent-task: the
+   * exception page must show a FixException run and a WriteRegressionTest
+   * run side by side, not just whichever was created last.
+   *
+   * codeFixTaskType is normalized on the returned models: legacy null rows
+   * come back as FixException.
+   */
+  @CaptureSpan()
+  public async getLatestCodeFixRunPerTaskType(data: {
+    telemetryExceptionId: ObjectID;
+  }): Promise<Array<Model>> {
+    const taskTypes: Array<CodeFixTaskType> = Object.values(CodeFixTaskType);
+
+    const latestRuns: Array<Model | null> = await Promise.all(
+      taskTypes.map((taskType: CodeFixTaskType): Promise<Model | null> => {
+        return this.findOneBy({
+          query: {
+            runType: AIRunType.CodeFix,
+            triggeredByTelemetryExceptionId: data.telemetryExceptionId,
+            // Null means FixException — see the class comment above.
+            codeFixTaskType:
+              taskType === CodeFixTaskType.FixException
+                ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
+                : taskType,
+          },
+          select: {
+            _id: true,
+            status: true,
+            errorMessage: true,
+            createdAt: true,
+            codeFixTaskType: true,
+          },
+          sort: {
+            createdAt: SortOrder.Descending,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }),
+    );
+
+    const runs: Array<Model> = latestRuns.filter(
+      (run: Model | null): boolean => {
+        return Boolean(run);
+      },
+    ) as Array<Model>;
+
+    for (const run of runs) {
+      run.codeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
+        run.codeFixTaskType,
+      );
+    }
+
+    runs.sort((a: Model, b: Model): number => {
+      return (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0);
+    });
+
+    return runs;
+  }
+
+  /*
+   * Measurement layer (Phase 2): record a human's one-click verdict
+   * (Confirmed / Rejected) on the LATEST COMPLETED investigation run for an
+   * incident or alert. Overwriting an existing verdict is deliberate — a
+   * user may change their mind; the verdict is per-run state, not an audit
+   * trail. Throws when no completed investigation exists for the subject.
+   * Callers must have already access-checked the subject under the USER's
+   * permissions — this method reads and writes as root (investigation runs
+   * are system-authored, so the per-user privacy pin would hide them).
+   */
+  @CaptureSpan()
+  public async applyHumanVerdictToLatestInvestigation(data: {
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    verdict: AIRunHumanVerdict;
+    verdictByUserId: ObjectID;
+  }): Promise<{ runId: ObjectID; verdict: AIRunHumanVerdict }> {
+    if (!data.incidentId && !data.alertId) {
+      throw new BadDataException(
+        "An incident or alert subject is required to record a verdict.",
+      );
+    }
+
+    const run: Model | null = await this.findOneBy({
+      query: {
+        runType: AIRunType.Investigation,
+        status: AIRunStatus.Completed,
+        ...(data.incidentId
+          ? { triggeredByIncidentId: data.incidentId }
+          : { triggeredByAlertId: data.alertId! }),
+      },
+      select: { _id: true },
+      sort: { createdAt: SortOrder.Descending },
+      props: { isRoot: true },
+    });
+
+    if (!run || !run.id) {
+      throw new BadDataException(
+        "No completed AI investigation exists for this subject yet — a verdict can only be recorded on a completed investigation.",
+      );
+    }
+
+    await this.updateOneById({
+      id: run.id,
+      data: {
+        humanVerdict: data.verdict,
+        humanVerdictAt: OneUptimeDate.getCurrentDate(),
+        humanVerdictByUserId: data.verdictByUserId,
+      },
+      props: { isRoot: true },
+    });
+
+    return { runId: run.id, verdict: data.verdict };
   }
 
   protected override async onBeforeFind(

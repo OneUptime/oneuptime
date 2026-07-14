@@ -353,6 +353,15 @@ const AIAgentTasksRoutes: React.LazyExoticComponent<
     };
   });
 });
+const AIInsightsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["AIInsightsRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.AIInsightsRoutes,
+    };
+  });
+});
 const SettingsRoutes: React.LazyExoticComponent<
   AllRoutesModule["SettingsRoutes"]
 > = lazy(() => {
@@ -1007,6 +1016,13 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.AI_AGENT_TASKS_ROOT]?.toString() || ""}
             element={<AIAgentTasksRoutes {...commonPageProps} />}
+          />
+
+          {/** AI Insights */}
+
+          <PageRoute
+            path={RouteMap[PageMap.AI_INSIGHTS_ROOT]?.toString() || ""}
+            element={<AIInsightsRoutes {...commonPageProps} />}
           />
 
           {/** Exceptions */}

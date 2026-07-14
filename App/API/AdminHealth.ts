@@ -30,16 +30,24 @@ import {
   getStorageTableName,
 } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
+import {
+  getClickhouseDiskSnapshots,
+  getClickhouseLocalTableSizes,
+  ClickhouseLocalTableSize,
+} from "Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity";
+import InstanceHealthLogService from "Common/Server/Services/InstanceHealthLogService";
+import InstanceHealthLog from "Common/Models/DatabaseModels/InstanceHealthLog";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * The overview aggregates several DB-introspection queries. Master-admin
- * traffic is low-volume, but the page polls, so we cache the result briefly to
- * keep the queries off the datastores on every refresh.
+ * The overview polls background-queue state. Master-admin traffic is
+ * low-volume, but queue introspection still crosses Redis, so cache it briefly.
  */
 const CACHE_TTL_MS: number = 15000;
 let overviewCache: { data: JSONObject; expiresAt: number } | null = null;
+let queuesCache: { data: JSONObject; expiresAt: number } | null = null;
 
 type ClickhouseJsonResult = { data: Array<JSONObject> };
 
@@ -172,6 +180,7 @@ async function getClickhouseStats(): Promise<JSONObject> {
     diskTotalInBytes: null,
     diskByNode: [],
     topTables: [],
+    localTableSizesByShard: [],
   };
 
   try {
@@ -183,6 +192,10 @@ async function getClickhouseStats(): Promise<JSONObject> {
     }
 
     const clusterNameLiteral: string = getClickhouseClusterName().replace(
+      /'/g,
+      "''",
+    );
+    const databaseNameLiteral: string = ClickhouseDatabaseName.replace(
       /'/g,
       "''",
     );
@@ -200,7 +213,7 @@ async function getClickhouseStats(): Promise<JSONObject> {
       const sizeResult: ClickhouseJsonResult = (await (
         await client.query({
           query:
-            `SELECT sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active` +
+            `SELECT sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active AND database = '${databaseNameLiteral}'` +
             CH_DIAG_QUERY_SETTINGS,
           format: "JSON",
         })
@@ -216,38 +229,30 @@ async function getClickhouseStats(): Promise<JSONObject> {
     }
 
     /*
-     * Disk capacity PER NODE. Every physical node (each shard AND each replica)
-     * has its own disk that can independently fill up, so we list them rather than
-     * sum — a single node at 95% must never be hidden inside an aggregate. We read
-     * through `clusterAllReplicas(<name>, system.disks)` (EVERY node, not one per
-     * shard) and group by host, summing each node's own volumes. diskFree/Total
-     * keep a raw cluster-wide aggregate for the support bundle and the UI's
-     * single-bar fallback.
+     * Disk capacity stays separate per writable physical disk, so a roomy
+     * volume on the same host cannot hide one that is nearly full. Aggregate
+     * totals remain available for the support bundle and UI fallback.
      */
     try {
-      const diskResult: ClickhouseJsonResult = (await (
-        await client.query({
-          query:
-            `SELECT hostName() AS host, sum(free_space) AS free, sum(total_space) AS total FROM clusterAllReplicas('${clusterNameLiteral}', system.disks) GROUP BY host ORDER BY host ASC` +
-            CH_DIAG_QUERY_SETTINGS,
-          format: "JSON",
-        })
-      ).json()) as ClickhouseJsonResult;
-
       const nodes: JSONArray = [];
       let totalSum: number = 0;
       let freeSum: number = 0;
 
-      for (const row of diskResult.data || []) {
-        const totalInBytes: number | null = toNumberOrNull(row["total"]);
-        const freeInBytes: number | null = toNumberOrNull(row["free"]);
+      for (const disk of await getClickhouseDiskSnapshots()) {
+        const totalInBytes: number = disk.totalInBytes;
+        const freeInBytes: number = disk.freeInBytes;
         nodes.push({
-          host: String(row["host"]),
+          shardNum: disk.shardNum,
+          host: disk.host,
+          diskName: disk.diskName,
+          path: disk.path,
           freeInBytes: freeInBytes,
+          unreservedInBytes: disk.unreservedInBytes,
           totalInBytes: totalInBytes,
+          utilizationPercent: disk.utilizationPercent,
         });
-        totalSum += totalInBytes ?? 0;
-        freeSum += freeInBytes ?? 0;
+        totalSum += totalInBytes;
+        freeSum += freeInBytes;
       }
 
       result["connected"] = true;
@@ -269,7 +274,7 @@ async function getClickhouseStats(): Promise<JSONObject> {
       const tablesResult: ClickhouseJsonResult = (await (
         await client.query({
           query:
-            `SELECT table AS name, sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active GROUP BY table ORDER BY bytes DESC LIMIT 8` +
+            `SELECT table AS name, sum(bytes_on_disk) AS bytes FROM cluster('${clusterNameLiteral}', system.parts) WHERE active AND database = '${databaseNameLiteral}' AND endsWith(table, 'Local') GROUP BY table ORDER BY bytes DESC LIMIT 8` +
             CH_DIAG_QUERY_SETTINGS,
           format: "JSON",
         })
@@ -286,6 +291,27 @@ async function getClickhouseStats(): Promise<JSONObject> {
       );
     } catch (err) {
       logger.error("AdminHealth: failed to read ClickHouse top tables");
+      logger.error(err);
+    }
+
+    try {
+      result["localTableSizesByShard"] = (
+        await getClickhouseLocalTableSizes()
+      ).map((table: ClickhouseLocalTableSize): JSONObject => {
+        return {
+          shardNum: table.shardNum,
+          host: table.host,
+          tableName: table.tableName,
+          sizeInBytes: table.sizeInBytes,
+          rowCount: table.rowCount,
+          partCount: table.partCount,
+        };
+      });
+      result["connected"] = true;
+    } catch (err) {
+      logger.error(
+        "AdminHealth: failed to read local ClickHouse table sizes by shard",
+      );
       logger.error(err);
     }
   } catch (err) {
@@ -370,6 +396,108 @@ async function getQueueStats(): Promise<JSONArray> {
   }
 
   return stats;
+}
+
+/*
+ * A cheap ClickHouse reachability probe for the overview summary. The full
+ * capacity read (getClickhouseStats) crosses the cluster and is far too heavy
+ * for an at-a-glance health tile, so here we only answer "can we reach it".
+ */
+async function getClickhouseHealthSummary(): Promise<JSONObject> {
+  const result: JSONObject = { connected: false };
+
+  try {
+    const client: ReturnType<typeof ClickhouseAppInstance.getDataSource> =
+      ClickhouseAppInstance.getDataSource();
+
+    if (!client) {
+      return result;
+    }
+
+    await (
+      await client.query({
+        query: "SELECT 1" + CH_DIAG_QUERY_SETTINGS,
+        format: "JSON",
+      })
+    ).json();
+
+    result["connected"] = true;
+  } catch (err) {
+    logger.error("AdminHealth: failed to reach ClickHouse for health summary");
+    logger.error(err);
+  }
+
+  return result;
+}
+
+/*
+ * A compact, at-a-glance roll-up of the whole instance's health for the
+ * overview page: datastore reachability (Postgres / ClickHouse / Redis) plus a
+ * background-queue summary. Each datastore probe already fails soft (returns
+ * connected:false rather than throwing), so one unreachable datastore never
+ * blanks the others. Kept deliberately lightweight — the deep introspection
+ * lives on each subsystem's own page.
+ */
+async function getHealthSummary(): Promise<JSONObject> {
+  const [postgres, clickhouse, redis, queues] = await Promise.all([
+    getPostgresStats(),
+    getClickhouseHealthSummary(),
+    getRedisStats(),
+    getQueueStats(),
+  ]);
+
+  let totalQueues: number = 0;
+  let healthyQueues: number = 0;
+  let failingQueues: number = 0;
+  let unavailableQueues: number = 0;
+  let failedJobs: number = 0;
+  let waitingJobs: number = 0;
+  let delayedJobs: number = 0;
+
+  for (const queue of queues) {
+    const queueObject: JSONObject = queue as JSONObject;
+    totalQueues++;
+
+    if (queueObject["error"]) {
+      unavailableQueues++;
+      continue;
+    }
+
+    const failed: number = toNumberOrNull(queueObject["failed"]) || 0;
+    failedJobs += failed;
+    waitingJobs += toNumberOrNull(queueObject["waiting"]) || 0;
+    delayedJobs += toNumberOrNull(queueObject["delayed"]) || 0;
+
+    if (failed > 0) {
+      failingQueues++;
+    } else {
+      healthyQueues++;
+    }
+  }
+
+  return {
+    postgres: {
+      connected: Boolean(postgres["connected"]),
+      databaseSizeInBytes: postgres["databaseSizeInBytes"] ?? null,
+    },
+    clickhouse: {
+      connected: Boolean(clickhouse["connected"]),
+    },
+    redis: {
+      connected: Boolean(redis["connected"]),
+      usedMemoryInBytes: redis["usedMemoryInBytes"] ?? null,
+      maxMemoryInBytes: redis["maxMemoryInBytes"] ?? null,
+    },
+    queues: {
+      totalQueues,
+      healthyQueues,
+      failingQueues,
+      unavailableQueues,
+      failedJobs,
+      waitingJobs,
+      delayedJobs,
+    },
+  };
 }
 
 /*
@@ -2854,19 +2982,9 @@ router.get(
         return Response.sendJsonObjectResponse(req, res, overviewCache.data);
       }
 
-      const [postgres, clickhouse, redis, queues] = await Promise.all([
-        getPostgresStats(),
-        getClickhouseStats(),
-        getRedisStats(),
-        getQueueStats(),
-      ]);
+      const summary: JSONObject = await getHealthSummary();
 
-      const data: JSONObject = {
-        postgres,
-        clickhouse,
-        redis,
-        queues,
-      };
+      const data: JSONObject = { summary };
 
       overviewCache = {
         data,
@@ -2874,6 +2992,177 @@ router.get(
       };
 
       return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Full per-queue background-queue stats for the dedicated Background Queues
+ * page. The overview above only carries the compact queue roll-up, so the drill
+ * -in page reads the detailed breakdown here. Cached like the overview since the
+ * introspection crosses Redis.
+ */
+router.get(
+  "/queues",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      if (queuesCache && queuesCache.expiresAt > Date.now()) {
+        return Response.sendJsonObjectResponse(req, res, queuesCache.data);
+      }
+
+      const queues: JSONArray = await getQueueStats();
+
+      const data: JSONObject = { queues };
+
+      queuesCache = {
+        data,
+        expiresAt: Date.now() + CACHE_TTL_MS,
+      };
+
+      return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Focused datastore endpoints keep database introspection on the datastore's
+ * own page. The overview above now reads a compact cluster-health summary only.
+ */
+router.get(
+  "/clickhouse-capacity",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "ClickHouse capacity health is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        await getClickhouseStats(),
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.get(
+  "/redis",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "Redis health is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      return Response.sendJsonObjectResponse(req, res, await getRedisStats());
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+router.get(
+  "/instance-health-logs",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "Instance health logs are only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      const logs: Array<InstanceHealthLog> =
+        await InstanceHealthLogService.findBy({
+          query: {},
+          select: {
+            _id: true,
+            eventType: true,
+            status: true,
+            message: true,
+            completedAt: true,
+            nextCheckAt: true,
+            capacityBeforePercent: true,
+            capacityAfterPercent: true,
+            thresholdPercent: true,
+            targetPercent: true,
+            estimatedFreedBytes: true,
+            metadata: true,
+            createdAt: true,
+          },
+          sort: {
+            createdAt: SortOrder.Descending,
+          },
+          skip: 0,
+          limit: 50,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const items: JSONArray = logs.map(
+        (log: InstanceHealthLog): JSONObject => {
+          return {
+            _id: log._id || null,
+            eventType: log.eventType || null,
+            status: log.status || null,
+            message: log.message || "",
+            completedAt: toIsoOrNull(log.completedAt),
+            nextCheckAt: toIsoOrNull(log.nextCheckAt),
+            capacityBeforePercent: log.capacityBeforePercent ?? null,
+            capacityAfterPercent: log.capacityAfterPercent ?? null,
+            thresholdPercent: log.thresholdPercent ?? null,
+            targetPercent: log.targetPercent ?? null,
+            estimatedFreedBytes: log.estimatedFreedBytes ?? null,
+            metadata: log.metadata || null,
+            createdAt: toIsoOrNull(log.createdAt),
+          };
+        },
+      );
+
+      return Response.sendJsonObjectResponse(req, res, { logs: items });
     } catch (err) {
       return next(err);
     }

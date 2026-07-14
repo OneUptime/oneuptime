@@ -124,6 +124,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Brain,
         },
+        {
+          link: {
+            title: "AI Agents",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
+            ),
+          },
+          icon: IconProp.CPUChip,
+        },
         ...(BILLING_ENABLED
           ? [
               {

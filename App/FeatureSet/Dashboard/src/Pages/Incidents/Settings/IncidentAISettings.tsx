@@ -16,9 +16,9 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
       <CardModelDetail<Project>
         name="Automatic Incident Investigation"
         cardProps={{
-          title: "Automatic Incident Investigation (Sentinel)",
+          title: "Automatic Incident Investigation",
           description:
-            "When enabled, OneUptime's AI SRE (Sentinel) automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. Requires an LLM provider to be configured in Settings > LLM Providers.",
+            "When enabled, OneUptime AI automatically investigates every new incident and posts a cited root cause analysis to the incident timeline. Requires an LLM provider to be configured in Settings > AI > LLM Providers.",
         }}
         isEditable={true}
         editButtonText={"Update"}
@@ -30,6 +30,16 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             title: "Automatically Investigate Incidents",
             description:
               "Investigate every new incident and post a cited root cause analysis to the incident timeline.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+          {
+            field: {
+              enableInstrumentationFixTasks: true,
+            },
+            title: "Instrumentation PRs From Inconclusive Investigations",
+            description:
+              "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, OneUptime AI opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },
@@ -55,6 +65,17 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Number,
             placeholder: "No limit",
           },
+          {
+            field: {
+              aiDailyFixTaskLimit: true,
+            },
+            title: "Daily AI Fix Task Limit",
+            description:
+              "Maximum AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across every fix recipe — manual and automatic. Leave empty for the default of 25 per day; set 0 to pause AI fix tasks entirely.",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "25",
+          },
         ]}
         modelDetailProps={{
           modelType: Project,
@@ -65,6 +86,14 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
                 enableAutomaticIncidentInvestigation: true,
               },
               title: "Automatically Investigate Incidents",
+              placeholder: "Disabled",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                enableInstrumentationFixTasks: true,
+              },
+              title: "Instrumentation PRs From Inconclusive Investigations",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
             },
@@ -82,6 +111,14 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               },
               title: "Daily Autonomous Token Limit",
               placeholder: "No limit",
+              fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                aiDailyFixTaskLimit: true,
+              },
+              title: "Daily AI Fix Task Limit",
+              placeholder: "Default (25)",
               fieldType: FieldType.Number,
             },
           ],

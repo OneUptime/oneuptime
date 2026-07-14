@@ -10,6 +10,7 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
+import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -26,6 +27,10 @@ import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventService, {
   Service as AIRunEventServiceType,
 } from "Common/Server/Services/AIRunEventService";
+import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import AIInsightService, {
+  Service as AIInsightServiceType,
+} from "Common/Server/Services/AIInsightService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
@@ -33,6 +38,7 @@ import AIAgentTaskAPI from "Common/Server/API/AIAgentTaskAPI";
 import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
 import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
+import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
@@ -775,11 +781,6 @@ import ServiceService, {
   Service as ServiceServiceType,
 } from "Common/Server/Services/ServiceService";
 
-import ServiceCodeRepository from "Common/Models/DatabaseModels/ServiceCodeRepository";
-import ServiceCodeRepositoryService, {
-  Service as ServiceCodeRepositoryServiceType,
-} from "Common/Server/Services/ServiceCodeRepositoryService";
-
 import ShortLinkService, {
   Service as ShortLinkServiceType,
 } from "Common/Server/Services/ShortLinkService";
@@ -912,11 +913,6 @@ import AIAgentOwnerTeamService, {
 import AIAgentOwnerUserService, {
   Service as AIAgentOwnerUserServiceType,
 } from "Common/Server/Services/AIAgentOwnerUserService";
-
-import AIAgentTaskTelemetryException from "Common/Models/DatabaseModels/AIAgentTaskTelemetryException";
-import AIAgentTaskTelemetryExceptionService, {
-  Service as AIAgentTaskTelemetryExceptionServiceType,
-} from "Common/Server/Services/AIAgentTaskTelemetryExceptionService";
 
 import LlmLogService, {
   Service as LlmLogServiceType,
@@ -2539,14 +2535,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceCodeRepository, ServiceCodeRepositoryServiceType>(
-        ServiceCodeRepository,
-        ServiceCodeRepositoryService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<MonitorProbe, MonitorProbeServiceType>(
         MonitorProbe,
         MonitorProbeService,
@@ -3959,16 +3947,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new AIAgentDataAPI().getRouter(),
     );
 
-    // AI Agent Task Telemetry Exception (linking table)
+    // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        AIAgentTaskTelemetryException,
-        AIAgentTaskTelemetryExceptionServiceType
-      >(
-        AIAgentTaskTelemetryException,
-        AIAgentTaskTelemetryExceptionService,
-      ).getRouter(),
+      new CodeFixRunAPI().getRouter(),
     );
 
     app.use(
@@ -4158,8 +4140,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
 
-    // Sentinel — live incident investigation panel data
+    // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
+
+    /*
+     * AI Insights — human verdict/resolve actions + live triage
+     * panel data. Mounted before the generic AIInsight CRUD router
+     * so these action routes win the match.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInsightAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -4180,6 +4169,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<AIRun, AIRunServiceType>(AIRun, AIRunService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIInsight, AIInsightServiceType>(
+        AIInsight,
+        AIInsightService,
+      ).getRouter(),
     );
 
     app.use(

@@ -6,6 +6,13 @@ enum IncidentMetricType {
   TimeInState = "oneuptime.incident.time-in-state",
   SeverityChange = "oneuptime.incident.severity-change",
   PostmortemCompletionTime = "oneuptime.incident.postmortem-completion-time",
+  /*
+   * Seconds from incident creation to the moment the AI investigation
+   * posted its root-cause analysis. Written once from the investigation
+   * runner (not from refreshIncidentMetrics — the refresh replace-list
+   * deliberately excludes this name so refreshes never tombstone it).
+   */
+  TimeToRootCausePosted = "oneuptime.incident.time-to-rca",
 }
 
 export default IncidentMetricType;

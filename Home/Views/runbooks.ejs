@@ -6,7 +6,7 @@
 <head>
   <title>OneUptime | Runbooks — Automated Incident Response Procedures. </title>
   <meta name="description"
-    content="Runbooks that combine manual checklists with sandboxed JavaScript, HTTP, and bash steps. Auto-trigger on incidents, alerts, and scheduled maintenance. Open source incident response automation.">
+    content="Runbooks that combine manual checklists with sandboxed JavaScript, HTTP, bash, and AI steps. Auto-trigger on incidents, alerts, and scheduled maintenance. Open source incident response automation.">
   <%- include('head', {
     enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
   }) -%>
@@ -33,7 +33,7 @@
             Runbooks that run themselves
           </h1>
           <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-            Codify your response. Mix manual checklists with sandboxed JavaScript, HTTP, and bash. Attach them to incidents, alerts, or maintenance — they fire automatically when something matches.
+            Codify your response. Mix manual checklists with sandboxed JavaScript, HTTP, bash, and AI analysis. Attach them to incidents, alerts, or maintenance — they fire automatically when something matches.
           </p>
 
           <div class="mt-10 flex items-center justify-center gap-x-6">
@@ -209,7 +209,7 @@
               <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-teal-600 ring-2 ring-teal-600">1</span>
             </div>
             <h3 class="text-base font-semibold text-gray-900 mb-2">Author the steps</h3>
-            <p class="text-sm text-gray-600 leading-relaxed">Mix manual checklists with JavaScript, HTTP calls, and bash — in any order.</p>
+            <p class="text-sm text-gray-600 leading-relaxed">Mix manual checklists with JavaScript, HTTP calls, bash, and AI — in any order.</p>
           </div>
 
           <!-- Step 2 -->
@@ -283,11 +283,11 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
                 </svg>
               </div>
-              <span class="text-sm font-semibold text-teal-600 uppercase tracking-wide">Four step types</span>
+              <span class="text-sm font-semibold text-teal-600 uppercase tracking-wide">Five step types</span>
             </div>
             <h3 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Manual checklists and code, side by side</h3>
             <p class="text-lg text-gray-600 mb-6">
-              Author manual checklist items, sandboxed JavaScript (via isolated-vm), HTTP requests, or bash — and mix them in any order. The same recipe can be ticked off by a human, executed by a script, or both — interleaved.
+              Author manual checklist items, sandboxed JavaScript (via isolated-vm), HTTP requests, bash, or AI analysis — and mix them in any order. The same recipe can be ticked off by a human, executed by a script, reasoned through by AI, or all three — interleaved.
             </p>
             <ul class="space-y-3 mb-8">
               <li class="flex items-center gap-3 text-gray-600">
@@ -307,6 +307,12 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
                 HTTP &amp; bash escape hatches
+              </li>
+              <li class="flex items-center gap-3 text-gray-600">
+                <svg class="h-5 w-5 text-teal-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                AI steps that reason over incident context
               </li>
             </ul>
             <a href="/accounts/register" class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
@@ -382,6 +388,19 @@
                       </div>
                     </div>
                     <span class="text-[10px] font-medium text-rose-700 px-1.5 py-0.5 bg-white rounded border border-rose-200">Gated</span>
+                  </div>
+
+                  <div class="flex items-center justify-between px-3.5 py-2.5 bg-violet-50 border border-violet-200 rounded-lg hover:border-violet-300 transition-colors">
+                    <div class="flex items-center gap-3">
+                      <div class="h-8 w-8 rounded-md bg-white border border-violet-200 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
+                      </div>
+                      <div>
+                        <div class="text-sm font-medium text-gray-900">AI</div>
+                        <div class="text-xs text-gray-500">Analyze, summarize, decide</div>
+                      </div>
+                    </div>
+                    <span class="text-[10px] font-medium text-violet-700 px-1.5 py-0.5 bg-white rounded border border-violet-200">LLM</span>
                   </div>
                 </div>
               </div>

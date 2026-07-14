@@ -88,7 +88,7 @@ Chartens innebygde datalagre kjører som **enkeltinstanser** som standard. For p
 
 - **PostgreSQL** — aktiver den medfølgende [CloudNativePG](https://cloudnative-pg.io)-operatoren (`postgresOperator.cnpg.enabled`) med **3 instanser** (1 primær + 2 varme standby-er) for automatisk failover.
 - **ClickHouse** — aktiver den medfølgende [Altinity](https://github.com/Altinity/clickhouse-operator)-operatoren (`clickhouseOperator.altinity.enabled`) med **≥2 replikaer per shard** og **3 ClickHouse Keeper**-noder for kvorum. Legg til shards når en enkelt nodes disk eller RAM blir begrensningen.
-- **Redis** — charten har ingen replikering innebygd i charten. For HA, pek OneUptime mot en **ekstern administrert Redis** (eller en Sentinel-/klyngedistribusjon).
+- **Redis** — charten har ingen replikering innebygd i charten. For HA, pek OneUptime mot en **ekstern administrert Redis** (eller en AI-/klyngedistribusjon).
 
 ## Oppbevaring og hvordan det påvirker lagring
 

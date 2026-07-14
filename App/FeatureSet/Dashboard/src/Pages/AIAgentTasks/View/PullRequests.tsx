@@ -30,13 +30,13 @@ const AIAgentTaskPullRequestsPage: FunctionComponent<
       userPreferencesKey="ai-agent-task-pull-requests-table"
       name="Pull Requests"
       query={{
-        aiAgentTaskId: modelId,
+        // The route param is a CodeFix AIRun id — PR rows carry aiRunId.
+        aiRunId: modelId,
       }}
       isViewable={false}
       cardProps={{
         title: "Pull Requests",
-        description:
-          "Pull requests created by the AI agent during this task execution.",
+        description: "Pull requests created by AI during this task execution.",
       }}
       noItemsMessage={"No pull requests have been created for this task yet."}
       showRefreshButton={true}

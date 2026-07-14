@@ -86,7 +86,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
       });
 
     if (response instanceof HTTPErrorResponse) {
-      throw new Error(response.message || "Failed to generate note from AI");
+      throw new Error(response.message || "Failed to generate note with AI");
     }
 
     return response.data["note"] as string;
@@ -500,7 +500,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
       {showGenerateFromAIModal && (
         <GenerateFromAIModal
-          title="Generate Public Note from AI"
+          title="Generate Public Note with AI"
           description="AI will analyze the scheduled maintenance data and generate a customer-facing public note."
           templates={PUBLIC_NOTE_TEMPLATES}
           onClose={() => {

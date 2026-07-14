@@ -1,4 +1,4 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { getAllEnvVars, IsBillingEnabled } from "../EnvironmentConfig";
 import BaseService from "./BaseService";
 import LlmProviderService from "./LlmProviderService";
 import LlmLogService from "./LlmLogService";
@@ -21,8 +21,130 @@ import LlmLogStatus from "../../Types/LlmLogStatus";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../Types/Billing/SubscriptionPlan";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+
+/*
+ * ============================ LlmLog feature labels ==========================
+ *
+ * EVERY constant below is a PERSISTED VALUE, not just a display string. Each
+ * one is written verbatim into LlmLog.feature by the call site that owns it,
+ * and the G4 daily autonomous token budget reads it back by matching those
+ * PERSISTED STRINGS against AUTONOMOUS_AI_FEATURES:
+ *
+ *   SELECT SUM("totalTokens") FROM "LlmLog"
+ *    WHERE "projectId" = $1 AND "createdAt" >= $2 AND "feature" = ANY($3)
+ *   -- LlmLogService.getTotalTokensUsedSince, $3 = AUTONOMOUS_AI_FEATURES
+ *
+ * So a label is a piece of the budget's ledger. Renaming one rewrites history:
+ * rows written under the old label stop matching, usedTokensToday collapses
+ * toward zero, and a project that had already exhausted its daily budget
+ * silently gets a fresh full one — unbounded overspend, with no error anywhere.
+ *
+ * RENAMING A LABEL THEREFORE REQUIRES BOTH:
+ *   1. a backfill migration rewriting LlmLog.feature on existing rows, and
+ *   2. an entry in LEGACY_AUTONOMOUS_AI_FEATURES (below), so rows written
+ *      under the old label during the deploy window still count.
+ * Changing a value on its own is never safe.
+ *
+ * Every autonomous write site imports its label from here — no call site may
+ * hardcode the literal. The list and the writers cannot drift apart, which
+ * would otherwise leave a feature permanently outside the budget.
+ */
+
+/*
+ * The LlmLog feature name for incident investigations (AIInvestigationEngine,
+ * driven by IncidentInvestigationRunner) — fired automatically when an incident
+ * is declared, so a monitor storm is a run storm.
+ */
+export const AI_INCIDENT_INVESTIGATION_FEATURE: string =
+  "AI Incident Investigation";
+
+/*
+ * The LlmLog feature name for alert investigations (AlertInvestigationRunner).
+ * Same engine as incidents, fired on alert creation.
+ */
+export const AI_ALERT_INVESTIGATION_FEATURE: string = "AI Alert Investigation";
+
+/*
+ * The LlmLog feature name for on-resolve investigation grading
+ * (InvestigationGrader) — one constrained call per resolved incident, but
+ * autonomous, so the budget covers it.
+ */
+export const AI_INVESTIGATION_GRADING_FEATURE: string =
+  "AI Investigation Grading";
+
+/*
+ * The LlmLog feature name for the G6 structured confidence signal
+ * (ConfidenceSignal) — one constrained call per completed investigation,
+ * outside the per-run caps but inside this daily budget. A budget rejection
+ * degrades the signal to "classification-failed" (per-consumer fail
+ * directions), never a run failure.
+ */
+export const AI_CONFIDENCE_CLASSIFICATION_FEATURE: string =
+  "AI Confidence Classification";
+
+/*
+ * The LlmLog feature name for server-mediated code-fix agent completions
+ * (B4 Tier 0) — the in-house coding agent's tool loop routes every LLM call
+ * through /ai-agent-data/llm-completion, which executes under this feature.
+ */
+export const AI_CODE_FIX_FEATURE: string = "AI Code Fix";
+
+/** Metering and autonomous-budget feature name for workflow AI components. */
+export const WORKFLOW_AI_FEATURE: string = "Workflow AI";
+
+/*
+ * The LlmLog feature name for AI runbook steps. Runbooks are triggered by
+ * incident/alert/maintenance rules, so these calls are storm-shaped: one
+ * flapping monitor can start many executions.
+ */
+export const RUNBOOK_AI_STEP_FEATURE: string = "Runbook AI Step";
+
+/*
+ * The LlmLog feature name for per-insight triage: the budgeted, read-only
+ * Investigation AIRun a newly filed AIInsight enqueues. Insights are filed by
+ * deterministic detectors on a scheduled scan, so these runs are storm-shaped
+ * by construction and fully autonomous.
+ */
+export const AI_INSIGHT_TRIAGE_FEATURE: string = "AI Insight Triage";
+
+/*
+ * The pre-rename values of the six labels that carried the "Sentinel" codename.
+ * These are NOT written by anything any more — they exist only so the daily
+ * budget keeps counting rows that ALREADY carry them:
+ *
+ *   - rows written by the old code during the deploy window (old and new pods
+ *     serve traffic side by side, and the budget is a UTC-day sum, so the same
+ *     day contains both labels); and
+ *   - any row the backfill migration missed (it runs once, and rows can be
+ *     written between the migration and the last old pod draining).
+ *
+ * Without them, the first deploy day hands every project a second full budget.
+ *
+ * SAFE TO DELETE once no LlmLog row carries an old label. Retention is the
+ * clock: LlmLogService hard-deletes rows older than 3 days by createdAt — but
+ * ONLY when billing is enabled. So on OneUptime cloud these entries are dead
+ * weight 3 days after the deploy; on a self-hosted instance (no billing, no
+ * retention sweep) LlmLog rows live forever, so they must stay until the
+ * backfill migration has demonstrably rewritten every row.
+ *
+ * Carrying them costs nothing: AUTONOMOUS_AI_FEATURES is a pure match-list
+ * (SQL `= ANY`, and an `.includes()` gate on the write path that no writer can
+ * trip because no writer emits these strings any more).
+ */
+export const LEGACY_AUTONOMOUS_AI_FEATURES: Array<string> = [
+  "Sentinel Incident Investigation",
+  "Sentinel Alert Investigation",
+  "Sentinel Investigation Grading",
+  "Sentinel Confidence Classification",
+  "Sentinel Code Fix",
+  "Sentinel Insight Triage",
+];
 
 /*
  * Features that run WITHOUT a human in the loop. The per-project daily token
@@ -30,10 +152,48 @@ import logger, { LogAttributes } from "../Utils/Logger";
  * interactive chat and explicitly user-triggered AI are never budget-blocked.
  * Auto-postmortem is deliberately excluded for now: it is one call per
  * resolved incident, not storm-shaped; include it when it moves to the queue.
+ *
+ * THE ENTRIES ARE PERSISTED STRINGS — see the header comment above before
+ * touching any of them. Built from the constants (never raw literals) so the
+ * budget list and the write sites cannot drift.
  */
 export const AUTONOMOUS_AI_FEATURES: Array<string> = [
-  "Sentinel Incident Investigation",
-  "Sentinel Alert Investigation",
+  // Investigations: fired by incident/alert creation, fully unattended.
+  AI_INCIDENT_INVESTIGATION_FEATURE,
+  AI_ALERT_INVESTIGATION_FEATURE,
+  // One constrained call per resolved incident (InvestigationGrader).
+  AI_INVESTIGATION_GRADING_FEATURE,
+  // One constrained call per completed investigation (ConfidenceSignal).
+  AI_CONFIDENCE_CLASSIFICATION_FEATURE,
+  /*
+   * Server-mediated code-fix agent completions (B4 Tier 0). Fix runs are
+   * user-triggered, but the tool loop then runs unattended for up to ~40
+   * calls — storm-shaped enough that the daily budget must cover it. The
+   * per-run loop budgets (CodeFixAgentCompletion) cap a single run; this
+   * daily pool caps all of them together.
+   */
+  AI_CODE_FIX_FEATURE,
+  /*
+   * AI runbook steps run unattended once the runbook starts, and rule
+   * triggers make them storm-shaped (see the constant above) — even
+   * manually started runs proceed without a human approving each LLM call.
+   */
+  RUNBOOK_AI_STEP_FEATURE,
+  // Workflow components also execute without per-request human approval.
+  WORKFLOW_AI_FEATURE,
+  /*
+   * Per-insight preventive triage (InsightTriageRunner). One read-only
+   * Investigation run per new AIInsight, with no human in the loop —
+   * a noisy scan tick can file several insights at once, so the daily
+   * budget must cover these runs too.
+   */
+  AI_INSIGHT_TRIAGE_FEATURE,
+  /*
+   * Pre-rename labels. Keeps the budget honest for rows already persisted
+   * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment
+   * before removing.
+   */
+  ...LEGACY_AUTONOMOUS_AI_FEATURES,
 ];
 
 export interface AutonomousBudgetStatus {
@@ -60,6 +220,23 @@ export interface AILogRequest {
   tools?: Array<LLMToolDefinition> | undefined;
   maxTokens?: number | undefined;
   temperature?: number | undefined;
+  /** Per-attempt provider request timeout. */
+  requestTimeoutInMs?: number | undefined;
+  /** Provider retry count. A workflow uses zero to avoid duplicate billing. */
+  requestRetries?: number | undefined;
+  /**
+   * Re-apply caller-owned model inputs and bounds after provider-level
+   * additional parameters. This prevents unattended callers from having their
+   * messages, tools, choice count, or output cap overridden centrally.
+   */
+  protectRequestParameters?: boolean | undefined;
+  /**
+   * When false, errors from the provider-execution phase are replaced with a
+   * generic message before they reach application logs, traces, persisted LLM
+   * logs, or the caller. Use this when a provider could echo private request
+   * content in an error response.
+   */
+  storeErrorDetails?: boolean | undefined;
   /*
    * When false, prompt/response previews are NOT persisted to LlmLog.
    * Use for features whose content is private to a single user (e.g. AI
@@ -77,6 +254,56 @@ export interface AILogResponse {
 export class Service extends BaseService {
   public constructor() {
     super();
+  }
+
+  /**
+   * Assert the project-level feature, subscription, and payment gates shared by
+   * background AI entry points. Provider availability, balance, and token
+   * budgets are checked later by executeWithLogging so those failures are
+   * captured in the metered LLM log.
+   */
+  @CaptureSpan()
+  public async assertProjectCanUseAI(projectId: ObjectID): Promise<void> {
+    const [project, planStatus]: [
+      Project | null,
+      { plan: PlanType | null; isSubscriptionUnpaid: boolean },
+    ] = await Promise.all([
+      ProjectService.findOneById({
+        id: projectId,
+        select: { enableAi: true },
+        props: { isRoot: true },
+      }),
+      ProjectService.getCurrentPlan(projectId),
+    ]);
+
+    if (!project) {
+      throw new BadDataException("Project not found.");
+    }
+
+    if (project.enableAi === false) {
+      throw new BadDataException(
+        "AI features are disabled for this project. Enable AI in Project Settings before running this workflow.",
+      );
+    }
+
+    if (planStatus.isSubscriptionUnpaid) {
+      throw new PaymentRequiredException(
+        "Your subscription is unpaid. Please update your payment method to use AI in workflows.",
+      );
+    }
+
+    if (
+      planStatus.plan &&
+      !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+        PlanType.Growth,
+        planStatus.plan,
+        getAllEnvVars(),
+      )
+    ) {
+      throw new PaymentRequiredException(
+        "Please upgrade your plan to Growth to use AI in workflows.",
+      );
+    }
   }
 
   /*
@@ -249,7 +476,7 @@ export class Service extends BaseService {
         await this.getAutonomousDailyBudgetStatus(request.projectId);
 
       if (budget.exhausted) {
-        const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous investigations resume tomorrow (UTC) — raise or unset the limit in the AI settings pages.`;
+        const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit in the AI settings pages.`;
 
         logEntry.status = LlmLogStatus.BudgetExceeded;
         logEntry.statusMessage = budgetMessage.substring(0, 490);
@@ -290,6 +517,10 @@ export class Service extends BaseService {
         temperature: request.temperature ?? 0.7,
         maxTokens: request.maxTokens,
         tools: request.tools,
+        requestTimeoutInMs: request.requestTimeoutInMs,
+        requestRetries: request.requestRetries,
+        protectRequestParameters: request.protectRequestParameters,
+        includeProviderErrorDetails: request.storeErrorDetails !== false,
         ...(llmProvider.additionalParams
           ? { additionalParams: llmProvider.additionalParams }
           : {}),
@@ -300,6 +531,7 @@ export class Service extends BaseService {
       // Update log with success info
       logEntry.status = LlmLogStatus.Success;
       logEntry.totalTokens = response.usage?.totalTokens || 0;
+      logEntry.completionTokens = response.usage?.completionTokens || 0;
       logEntry.cachedInputTokens = response.usage?.cachedInputTokens || 0;
       logEntry.cacheCreationTokens = response.usage?.cacheCreationTokens || 0;
       logEntry.responsePreview = storeContentPreviews
@@ -370,10 +602,16 @@ export class Service extends BaseService {
         llmLog: savedLog,
       };
     } catch (error) {
-      // Log the error
-      logEntry.status = LlmLogStatus.Error;
-      logEntry.statusMessage =
+      const rawErrorMessage: string =
         error instanceof Error ? error.message : String(error);
+      const errorMessage: string =
+        request.storeErrorDetails === false
+          ? "The AI provider request failed. Review the provider configuration and try again."
+          : rawErrorMessage;
+
+      // Log the error without persisting private provider details when asked.
+      logEntry.status = LlmLogStatus.Error;
+      logEntry.statusMessage = errorMessage;
       logEntry.requestCompletedAt = new Date();
       logEntry.durationMs = new Date().getTime() - startTime.getTime();
 
@@ -381,6 +619,10 @@ export class Service extends BaseService {
         data: logEntry,
         props: { isRoot: true },
       });
+
+      if (request.storeErrorDetails === false) {
+        throw new BadDataException(errorMessage);
+      }
 
       throw error;
     }

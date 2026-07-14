@@ -5,7 +5,7 @@ Los runbooks son procedimientos de respuesta reutilizables — listas ordenadas 
 ## De un vistazo
 
 - **Función de primer nivel** en el panel de OneUptime, en **Análisis y automatización → Runbooks**.
-- **Cuatro tipos de pasos**: lista manual, JavaScript (en sandbox) y Bash (ambos corren en un [Agente de Runbook](/docs/runbooks/agents) dentro de tu propia infraestructura), petición HTTP.
+- **Cinco tipos de pasos**: lista manual, JavaScript (en sandbox) y Bash (ambos corren en un [Agente de Runbook](/docs/runbooks/agents) dentro de tu propia infraestructura), petición HTTP y AI (analiza el contexto del incidente y de los pasos con el proveedor LLM de tu proyecto).
 - **Tres vías de activación**: reglas que coinciden con incidentes/alertas/mantenimiento programado, o el botón manual "Ejecutar runbook" en cualquier evento.
 - **Semántica de snapshot**: al iniciar un runbook se copian sus pasos en la ejecución. Editar después la plantilla nunca altera una ejecución en curso.
 - **Rastro de auditoría completo**: el estado, la salida, el mensaje de error y la duración de cada paso quedan registrados en la ejecución para siempre.
@@ -27,14 +27,14 @@ Algunos términos se repiten en el resto de la documentación de runbooks. Aclar
 | Término              | Significado                                                                                                                                                                                                                                       |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**          | La plantilla. Un procedimiento nombrado y reutilizable con una lista ordenada de pasos y un flag `isEnabled`.                                                                                                                                     |
-| **Paso**             | Un elemento de un runbook. Tiene un tipo (Manual / JavaScript / HTTP / Bash), un título, una descripción y configuración específica al tipo.                                                                                                      |
+| **Paso**             | Un elemento de un runbook. Tiene un tipo (Manual / JavaScript / HTTP / Bash / AI), un título, una descripción y configuración específica al tipo.                                                                                                      |
 | **Regla de runbook** | Un patrón que adjunta automáticamente uno o más runbooks a incidentes, alertas o mantenimientos programados cuando su título o descripción coincide con un regex.                                                                                 |
 | **Ejecución**        | Una corrida de un runbook. Se crea cuando una regla se dispara, cuando alguien pulsa "Ejecutar runbook" en un evento, o cuando alguien pulsa "Ejecutar ahora" en el runbook mismo. Contiene un snapshot de los pasos y el estado/salida por paso. |
 | **Snapshot**         | La copia congelada de los pasos del runbook que vive en cada ejecución. Permite editar la plantilla después sin reescribir la historia.                                                                                                           |
 
 ## El ciclo de vida de un runbook
 
-1. **Redactar** — Crea un runbook, mezcla pasos Manuales, JavaScript, HTTP y Bash. Guarda.
+1. **Redactar** — Crea un runbook, mezcla pasos Manuales, JavaScript, HTTP, Bash y AI. Guarda.
 2. **(Opcional) Añadir una regla** — En la configuración de Incidentes, Alertas o Mantenimiento programado, di a OneUptime que inicie este runbook siempre que el título o descripción de un evento coincida con un regex.
 3. **Disparar** — O la regla se activa automáticamente al crear un evento coincidente, o quien responde pulsa **Ejecutar runbook** manualmente en el evento.
 4. **Ejecutar** — Se crea una nueva ejecución con un snapshot de los pasos. Los pasos automatizados corren en el worker de Runbook; la ejecución pausa en cada paso manual hasta que alguien lo marca.
@@ -50,8 +50,9 @@ Guía rápida de decisión. El desglose completo está en [Crear un runbook](/do
 | **JavaScript**    | Necesitas un cálculo pequeño y contenido — consultar un servicio de configuración, transformar un payload, ejecutar lógica antes del siguiente paso. Corre en sandbox en un [Agente de Runbook](/docs/runbooks/agents) dentro de tu propia infraestructura. | Calcular el lag actual de réplica y decidir si seguir.                                       |
 | **Petición HTTP** | Llamas a una API existente — tu propio endpoint admin, un proveedor cloud, PagerDuty, Slack.                                                                                                                                                                | `POST` a tu orquestador de failover.                                                         |
 | **Bash**          | Necesitas ejecutar comandos de shell en tu propia infraestructura — reiniciar un servicio, lanzar `kubectl`, llamar a un script de despliegue. Requiere un [Agente de Runbook](/docs/runbooks/agents) instalado en tu entorno.                              | Reiniciar un servicio, lanzar `kubectl rollout restart`, ejecutar un script de recuperación. |
+| **AI**            | Quieres un análisis, un resumen o un juicio a mitad de la ejecución — razonando sobre el incidente que la disparó y la salida de pasos anteriores mediante el proveedor LLM de tu proyecto.                                                                 | "Revisa los diagnósticos anteriores — ¿es seguro proceder con el failover?"                  |
 
-Puedes mezclar los cuatro en un mismo runbook — la fuerza de los runbooks está en intercalar verificación humana con automatización.
+Puedes mezclar los cinco en un mismo runbook — la fuerza de los runbooks está en intercalar verificación humana con automatización y análisis de AI.
 
 ## Dónde viven los runbooks en el panel
 
@@ -114,7 +115,7 @@ Runbooks:       [Failover DB primary]
 
 ## Qué leer a continuación
 
-- [Crear un runbook](/docs/runbooks/authoring) — crear runbooks, los cuatro tipos de paso y qué hace cada uno.
+- [Crear un runbook](/docs/runbooks/authoring) — crear runbooks, los cinco tipos de paso y qué hace cada uno.
 - [Reglas de runbook](/docs/runbooks/rules) — adjuntar runbooks automáticamente a incidentes, alertas y mantenimiento programado.
 - [Ejecutar un runbook](/docs/runbooks/running) — disparos manuales, la vista de ejecución y cómo interactúan los pasos manuales con los automatizados.
 - [Agentes de runbook](/docs/runbooks/agents) — instalar los agentes que ejecutan pasos Bash dentro de tu propia infraestructura.

@@ -76,7 +76,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
       });
 
     if (response instanceof HTTPErrorResponse) {
-      throw new Error(response.message || "Failed to generate note from AI");
+      throw new Error(response.message || "Failed to generate note with AI");
     }
 
     return response.data["note"] as string;
@@ -404,7 +404,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
 
       {showGenerateFromAIModal && (
         <GenerateFromAIModal
-          title="Generate Private Note from AI"
+          title="Generate Private Note with AI"
           description="AI will analyze the alert data and generate an internal technical note."
           templates={INTERNAL_NOTE_TEMPLATES}
           onClose={() => {

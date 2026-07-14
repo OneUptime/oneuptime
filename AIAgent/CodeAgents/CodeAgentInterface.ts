@@ -1,17 +1,16 @@
-import LlmType from "Common/Types/LLM/LlmType";
 import TaskLogger from "../Utils/TaskLogger";
 
-// Configuration for the LLM provider
+/*
+ * Configuration for the code agent's LLM access. Completions are
+ * server-mediated (POST /ai-agent-data/llm-completion), metered and
+ * budgeted on the server — NO provider secret ever reaches the worker.
+ */
 export interface CodeAgentLLMConfig {
-  llmType: LlmType;
-  apiKey?: string;
-  baseUrl?: string;
-  modelName?: string;
   /*
-   * Optional model used for quick/cheap sub-steps. Falls back to a
-   * provider-appropriate default (see OpenCodeAgent.getSmallModelString).
+   * The AIRun id this agent works for — completions are validated by the
+   * server against the claimed run.
    */
-  smallModelName?: string;
+  taskId: string;
 }
 
 // The task to be executed by the code agent
@@ -47,10 +46,10 @@ export type CodeAgentProgressCallback = (
 
 /*
  * Abstract interface for code agents
- * This allows us to support multiple agents (OpenCode, Goose, Claude Code, etc.)
+ * This allows us to support multiple agent implementations in the future.
  */
 export interface CodeAgent {
-  // Name of the agent (e.g., "OpenCode", "Goose", "ClaudeCode")
+  // Name of the agent (e.g., "InHouse")
   readonly name: string;
 
   // Initialize the agent with LLM configuration
@@ -74,20 +73,18 @@ export interface CodeAgent {
 
 // Enum for supported code agent types
 export enum CodeAgentType {
-  OpenCode = "OpenCode",
   /*
-   * Future agents:
-   * Goose = "Goose",
-   * ClaudeCode = "ClaudeCode",
-   * Aider = "Aider",
+   * The default: in-house tool-loop agent whose completions are
+   * server-mediated and metered (B4 Tier 0).
    */
+  InHouse = "InHouse",
 }
 
 // Helper function to get display name for agent type
 export function getCodeAgentDisplayName(type: CodeAgentType): string {
   switch (type) {
-    case CodeAgentType.OpenCode:
-      return "OpenCode AI";
+    case CodeAgentType.InHouse:
+      return "OneUptime Code Agent";
     default:
       return type;
   }

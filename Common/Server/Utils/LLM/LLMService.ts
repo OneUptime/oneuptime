@@ -43,6 +43,18 @@ export interface LLMCompletionRequest {
   maxTokens?: number | undefined;
   additionalParams?: JSONObject | undefined;
   tools?: Array<LLMToolDefinition> | undefined;
+  /** Per-attempt HTTP timeout. Callers may lower the provider default. */
+  requestTimeoutInMs?: number | undefined;
+  /** Number of retries after the initial request. */
+  requestRetries?: number | undefined;
+  /** Re-apply caller-owned request fields after provider-level overrides. */
+  protectRequestParameters?: boolean | undefined;
+  /**
+   * When false, provider HTTP error bodies are neither logged nor included in
+   * the exception captured by telemetry. Use this for requests whose provider
+   * may echo private prompt content in an error response.
+   */
+  includeProviderErrorDetails?: boolean | undefined;
   llmProviderConfig: LLMProviderConfig;
 }
 
@@ -74,6 +86,36 @@ export interface LLMProviderConfig {
 }
 
 export default class LLMService {
+  /*
+   * Provider-level parameters allowed on protected, unattended completions.
+   * This is deliberately a generation-only allowlist: capability fields such
+   * as tools, web_search_options, data_sources, modalities, audio, or future
+   * agent extensions must fail closed instead of silently widening egress or
+   * output behavior.
+   */
+  private static readonly PROTECTED_ADDITIONAL_PARAMETER_ALLOWLIST: Set<string> =
+    new Set([
+      "frequency_penalty",
+      "length_penalty",
+      "logit_bias",
+      "logprobs",
+      "max_completion_tokens",
+      "min_p",
+      "min_tokens",
+      "presence_penalty",
+      "random_seed",
+      "reasoning_effort",
+      "repetition_penalty",
+      "response_format",
+      "safe_prompt",
+      "seed",
+      "stop",
+      "top_k",
+      "top_logprobs",
+      "top_p",
+      "verbosity",
+    ]);
+
   @CaptureSpan()
   public static async getCompletion(
     request: LLMCompletionRequest,
@@ -152,6 +194,20 @@ export default class LLMService {
     });
   }
 
+  private static getProtectedAdditionalParameters(
+    additionalParams: JSONObject,
+  ): JSONObject {
+    const protectedParams: JSONObject = {};
+
+    for (const key of Object.keys(additionalParams)) {
+      if (this.PROTECTED_ADDITIONAL_PARAMETER_ALLOWLIST.has(key)) {
+        protectedParams[key] = additionalParams[key]!;
+      }
+    }
+
+    return protectedParams;
+  }
+
   private static parseOpenAIToolCalls(
     message: JSONObject,
   ): Array<LLMToolCall> | undefined {
@@ -227,9 +283,52 @@ export default class LLMService {
       data["tools"] = this.toOpenAITools(request.tools);
     }
 
-    // Provider-configured overrides are applied last so they win over defaults.
+    /*
+     * Provider-configured tuning overrides defaults unless the caller protects
+     * its request. Protected callers retain only generation-safe tuning fields
+     * so provider-native tools and future capability fields fail closed.
+     */
     if (request.additionalParams) {
-      Object.assign(data, request.additionalParams);
+      Object.assign(
+        data,
+        request.protectRequestParameters
+          ? this.getProtectedAdditionalParameters(request.additionalParams)
+          : request.additionalParams,
+      );
+    }
+
+    if (request.protectRequestParameters) {
+      const usesMaxCompletionTokens: boolean =
+        data["max_completion_tokens"] !== undefined;
+
+      data["model"] = modelName;
+      data["messages"] = this.toOpenAIMessages(request.messages);
+      data["temperature"] = request.temperature ?? 0.7;
+      data["stream"] = false;
+      data["n"] = 1;
+
+      if (request.maxTokens) {
+        if (usesMaxCompletionTokens) {
+          data["max_completion_tokens"] = request.maxTokens;
+          delete data["max_tokens"];
+        } else {
+          data["max_tokens"] = request.maxTokens;
+          delete data["max_completion_tokens"];
+        }
+      }
+
+      if (request.tools && request.tools.length > 0) {
+        data["tools"] = this.toOpenAITools(request.tools);
+      } else {
+        delete data["tools"];
+        delete data["tool_choice"];
+        delete data["functions"];
+        delete data["function_call"];
+        delete data["parallel_tool_calls"];
+      }
+
+      // Legacy compatible APIs may accept this fan-out control separately.
+      delete data["best_of"];
     }
 
     /*
@@ -289,6 +388,33 @@ export default class LLMService {
           }
         : undefined,
     };
+  }
+
+  /**
+   * Handle provider HTTP failures before the decorated provider method
+   * rejects. Sanitizing here is important: @CaptureSpan records the exception,
+   * so redacting it only in AIService would be too late for logs and traces.
+   */
+  private static throwProviderHTTPError(data: {
+    providerName: string;
+    response: HTTPErrorResponse;
+    logAttributes: LogAttributes;
+    includeProviderErrorDetails?: boolean | undefined;
+  }): never {
+    logger.error(`Error from ${data.providerName} API:`, data.logAttributes);
+
+    if (data.includeProviderErrorDetails !== false) {
+      logger.error(data.response, data.logAttributes);
+      throw new BadDataException(
+        `${data.providerName} API error: ${JSON.stringify(
+          data.response.jsonData,
+        )}`,
+      );
+    }
+
+    throw new BadDataException(
+      `${data.providerName} API request failed. Review the provider configuration and try again.`,
+    );
   }
 
   /*
@@ -436,9 +562,9 @@ export default class LLMService {
             : {}),
         },
         options: {
-          retries: 2,
+          retries: request.requestRetries ?? 2,
           exponentialBackoff: true,
-          timeout: 120000,
+          timeout: request.requestTimeoutInMs ?? 120000,
         },
       });
 
@@ -448,11 +574,12 @@ export default class LLMService {
     };
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error(`Error from ${config.llmType} API:`, logAttributes);
-      logger.error(response, logAttributes);
-      throw new BadDataException(
-        `${config.llmType} API error: ${JSON.stringify(response.jsonData)}`,
-      );
+      this.throwProviderHTTPError({
+        providerName: config.llmType.toString(),
+        response,
+        logAttributes,
+        includeProviderErrorDetails: request.includeProviderErrorDetails,
+      });
     }
 
     return this.parseOpenAIResponse(
@@ -513,9 +640,9 @@ export default class LLMService {
           "Content-Type": "application/json",
         },
         options: {
-          retries: 2,
+          retries: request.requestRetries ?? 2,
           exponentialBackoff: true,
-          timeout: 120000,
+          timeout: request.requestTimeoutInMs ?? 120000,
         },
       });
 
@@ -525,11 +652,12 @@ export default class LLMService {
     };
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error from Azure OpenAI API:", logAttributes);
-      logger.error(response, logAttributes);
-      throw new BadDataException(
-        `Azure OpenAI API error: ${JSON.stringify(response.jsonData)}`,
-      );
+      this.throwProviderHTTPError({
+        providerName: "Azure OpenAI",
+        response,
+        logAttributes,
+        includeProviderErrorDetails: request.includeProviderErrorDetails,
+      });
     }
 
     return this.parseOpenAIResponse(
@@ -717,9 +845,9 @@ export default class LLMService {
           "Content-Type": "application/json",
         },
         options: {
-          retries: 2,
+          retries: request.requestRetries ?? 2,
           exponentialBackoff: true,
-          timeout: 120000,
+          timeout: request.requestTimeoutInMs ?? 120000,
         },
       });
 
@@ -729,11 +857,12 @@ export default class LLMService {
     };
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error from Anthropic API:", anthropicLogAttributes);
-      logger.error(response, anthropicLogAttributes);
-      throw new BadDataException(
-        `Anthropic API error: ${JSON.stringify(response.jsonData)}`,
-      );
+      this.throwProviderHTTPError({
+        providerName: "Anthropic",
+        response,
+        logAttributes: anthropicLogAttributes,
+        includeProviderErrorDetails: request.includeProviderErrorDetails,
+      });
     }
 
     const jsonData: JSONObject = response.jsonData as JSONObject;
@@ -855,9 +984,9 @@ export default class LLMService {
           "Content-Type": "application/json",
         },
         options: {
-          retries: 2,
+          retries: request.requestRetries ?? 2,
           exponentialBackoff: true,
-          timeout: 300000, // 5 minutes for Ollama as it may be slower
+          timeout: request.requestTimeoutInMs ?? 300000, // Ollama may be slower
         },
       });
 
@@ -867,11 +996,12 @@ export default class LLMService {
     };
 
     if (response instanceof HTTPErrorResponse) {
-      logger.error("Error from Ollama API:", ollamaLogAttributes);
-      logger.error(response, ollamaLogAttributes);
-      throw new BadDataException(
-        `Ollama API error: ${JSON.stringify(response.jsonData)}`,
-      );
+      this.throwProviderHTTPError({
+        providerName: "Ollama",
+        response,
+        logAttributes: ollamaLogAttributes,
+        includeProviderErrorDetails: request.includeProviderErrorDetails,
+      });
     }
 
     const jsonData: JSONObject = response.jsonData as JSONObject;

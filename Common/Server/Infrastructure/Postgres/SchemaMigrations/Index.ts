@@ -433,7 +433,22 @@ import { AddTelemetryEntityRelationshipMetrics1783762505482 } from "./1783762505
 import { AddIoTDeviceCredentialTable1783780000000 } from "./1783780000000-AddIoTDeviceCredentialTable";
 import { AddSnmpV3AuthColumnsToNetworkDevice1783790000000 } from "./1783790000000-AddSnmpV3AuthColumnsToNetworkDevice";
 import { AddAdditionalParamsToLlmProvider1783650000000 } from "./1783650000000-AddAdditionalParamsToLlmProvider";
+import { DropServiceCodeRepository1783943300000 } from "./1783943300000-DropServiceCodeRepository";
+import { CodeFixRunsOnAIRun1783947444597 } from "./1783947444597-CodeFixRunsOnAIRun";
+import { AddCodeFixTaskType1783950962813 } from "./1783950962813-AddCodeFixTaskType";
+import { AddInstrumentationFixTasksFlag1783954040984 } from "./1783954040984-AddInstrumentationFixTasksFlag";
+import { AddTaskContextToAIRun1783958542237 } from "./1783958542237-AddTaskContextToAIRun";
 import { MigrationName1783937343400 } from "./1783937343400-MigrationName";
+import { MigrationName1783957160597 } from "./1783957160597-MigrationName";
+import { AddInvestigationVerdictAndGrade1783965945957 } from "./1783965945957-AddInvestigationVerdictAndGrade";
+import { AddFixGuardrailColumns1783970619301 } from "./1783970619301-AddFixGuardrailColumns";
+import { DropLegacyAIAgentTaskTables1783970619302 } from "./1783970619302-DropLegacyAIAgentTaskTables";
+import { AddCompletionTokensToLlmLog1783990000000 } from "./1783990000000-AddCompletionTokensToLlmLog";
+import { AddCiStatusToFixPullRequests1783977781677 } from "./1783977781677-AddCiStatusToFixPullRequests";
+import { AddSentinelInsight1784010274993 } from "./1784010274993-AddSentinelInsight";
+import { AddSentinelInsightFlags1784010274994 } from "./1784010274994-AddSentinelInsightFlags";
+import { RenameSentinelToAI1784030612266 } from "./1784030612266-RenameSentinelToAI";
+import { MigrationName1784033837629 } from "./1784033837629-MigrationName";
 
 export default [
   InitialMigration,
@@ -872,4 +887,19 @@ export default [
   AddSnmpV3AuthColumnsToNetworkDevice1783790000000,
   AddAdditionalParamsToLlmProvider1783650000000,
   MigrationName1783937343400,
+  DropServiceCodeRepository1783943300000,
+  CodeFixRunsOnAIRun1783947444597,
+  AddCodeFixTaskType1783950962813,
+  AddInstrumentationFixTasksFlag1783954040984,
+  MigrationName1783957160597,
+  AddTaskContextToAIRun1783958542237,
+  AddInvestigationVerdictAndGrade1783965945957,
+  AddFixGuardrailColumns1783970619301,
+  DropLegacyAIAgentTaskTables1783970619302,
+  AddCompletionTokensToLlmLog1783990000000,
+  AddCiStatusToFixPullRequests1783977781677,
+  AddSentinelInsight1784010274993,
+  AddSentinelInsightFlags1784010274994,
+  RenameSentinelToAI1784030612266,
+  MigrationName1784033837629,
 ];

@@ -29,8 +29,6 @@ import ServiceViewOwners from "../Pages/Service/View/Owners";
 
 import ServiceViewAuditLogs from "../Pages/Service/View/AuditLogs";
 
-import ServiceViewCodeRepositories from "../Pages/Service/View/CodeRepositories";
-
 import ServiceViewIncidents from "../Pages/Service/View/Incidents";
 
 import ServiceViewAlerts from "../Pages/Service/View/Alerts";
@@ -181,20 +179,6 @@ const ServiceRoutes: FunctionComponent<ComponentProps> = (
             <ServiceViewOwners
               {...props}
               pageRoute={RouteMap[PageMap.SERVICE_VIEW_OWNERS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SERVICE_VIEW_CODE_REPOSITORIES,
-          )}
-          element={
-            <ServiceViewCodeRepositories
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.SERVICE_VIEW_CODE_REPOSITORIES] as Route
-              }
             />
           }
         />

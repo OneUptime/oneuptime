@@ -5,7 +5,7 @@ Runbook 是可复用的响应流程——由手动或自动步骤组成的有序
 ## 一览
 
 - OneUptime 仪表板 **分析与自动化 → Runbooks** 下的**顶层功能**。
-- **四种步骤类型**：手动清单、JavaScript（沙箱）和 Bash（两者都在你自己的基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上运行）、HTTP 请求。
+- **五种步骤类型**：手动清单、JavaScript（沙箱）和 Bash（两者都在你自己的基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上运行）、HTTP 请求，以及 AI（用你项目的 LLM 提供商分析事件和步骤上下文）。
 - **三条触发路径**：匹配事件 / 告警 / 计划维护的规则，或者在任意事件上手动点击"运行 Runbook"。
 - **快照语义**：Runbook 启动时，它的步骤会被拷贝到执行上。之后编辑模板永远不会改变正在进行中的执行。
 - **完整审计轨迹**：每个步骤的状态、输出、错误信息和耗时永远保留在执行上。
@@ -27,14 +27,14 @@ Runbook 是可复用的响应流程——由手动或自动步骤组成的有序
 | 术语             | 含义                                                                                                                             |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**      | 模板。一段命名的可复用流程，包含有序的步骤列表和 `isEnabled` 开关。                                                              |
-| **步骤**         | Runbook 中的一项。具有类型（Manual / JavaScript / HTTP / Bash）、标题、描述和该类型专属配置。                                    |
+| **步骤**         | Runbook 中的一项。具有类型（Manual / JavaScript / HTTP / Bash / AI）、标题、描述和该类型专属配置。                                    |
 | **Runbook 规则** | 当事件、告警或计划维护的标题或描述匹配正则时，自动附加一个或多个 Runbook 的模式。                                                |
 | **执行**         | Runbook 的一次运行。规则触发、有人在事件上点"运行 Runbook"、或在 Runbook 上点"立即运行"时创建。保存步骤快照以及每步的状态/输出。 |
 | **快照**         | Runbook 步骤在每次执行上的冻结副本。让你随后能修改模板而不改写历史。                                                             |
 
 ## Runbook 的生命周期
 
-1. **撰写** — 创建一个 Runbook，混合 Manual、JavaScript、HTTP 和 Bash 步骤，保存。
+1. **撰写** — 创建一个 Runbook，混合 Manual、JavaScript、HTTP、Bash 和 AI 步骤，保存。
 2. **（可选）添加规则** — 在事件、告警或计划维护的设置中，让 OneUptime 在事件标题或描述匹配正则时启动这个 Runbook。
 3. **触发** — 要么匹配事件被创建时规则自动触发，要么响应者在事件上手动点击 **运行 Runbook**。
 4. **执行** — 创建一个新执行并附带步骤快照。自动步骤在 Runbook worker 上运行；遇到 Manual 步骤就暂停，等待有人勾选。
@@ -50,8 +50,9 @@ Runbook 是可复用的响应流程——由手动或自动步骤组成的有序
 | **JavaScript** | 需要一个小的、封闭的计算——查询配置服务、转换 payload、在下一步前执行逻辑。在你自己的基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上以沙箱方式运行。 | 计算当前副本延迟并决定是否继续。                       |
 | **HTTP 请求**  | 你在调用一个已有的 API——自己的管理端点、云供应商、PagerDuty、Slack。                                                                                      | 向你的故障切换编排器 `POST`。                          |
 | **Bash**       | 你需要在自己的基础设施上执行 shell 命令——重启服务、跑 `kubectl`、调用部署脚本。需要在你的环境中安装 [Runbook 代理](/docs/runbooks/agents)。               | 重启服务、跑 `kubectl rollout restart`、执行恢复脚本。 |
+| **AI**         | 你需要在执行过程中做分析、总结或判断——通过你项目的 LLM 提供商，对触发事件和前面步骤的输出进行推理。                                                       | “审阅上面的诊断信息——现在执行故障切换安全吗？”         |
 
-四种类型可以混在同一个 Runbook 里——Runbook 的优势就在于让人为校验和自动化交织。
+五种类型可以混在同一个 Runbook 里——Runbook 的优势就在于让人为校验与自动化和 AI 分析交织。
 
 ## Runbook 在仪表板的位置
 
@@ -114,7 +115,7 @@ Runbooks：    [DB primary failover]
 
 ## 接下来读什么
 
-- [编写 Runbook](/docs/runbooks/authoring) — 创建 Runbook、四种步骤类型以及各自的作用。
+- [编写 Runbook](/docs/runbooks/authoring) — 创建 Runbook、五种步骤类型以及各自的作用。
 - [Runbook 规则](/docs/runbooks/rules) — 把 Runbook 自动附加到事件、告警和计划维护。
 - [运行 Runbook](/docs/runbooks/running) — 手动触发、执行视图，以及手动步骤与自动步骤的互动。
 - [Runbook 代理](/docs/runbooks/agents) — 安装在你自己的基础设施中运行 Bash 步骤的代理。

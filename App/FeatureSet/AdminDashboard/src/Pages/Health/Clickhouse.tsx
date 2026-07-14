@@ -1,5 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
+import ClickhouseCapacity from "./ClickhouseCapacity";
+import ClickhouseCapacitySettings from "./ClickhouseCapacitySettings";
 import ClickhouseCluster from "./ClickhouseCluster";
 import ClickhouseTelemetryIngestion from "./ClickhouseTelemetryIngestion";
 import HealthPage from "./HealthPage";
@@ -15,8 +17,10 @@ const HealthClickhouse: FunctionComponent = (): ReactElement => {
       enterpriseFeatureName="ClickHouse cluster health"
       enterpriseFeatureDescription="Shard reachability, the distributed-DDL queue, replica and replication-queue state and the Keeper connection for the ClickHouse backing this instance."
     >
+      <ClickhouseCapacity />
       <ClickhouseCluster />
       <ClickhouseTelemetryIngestion />
+      <ClickhouseCapacitySettings />
     </HealthPage>
   );
 };
