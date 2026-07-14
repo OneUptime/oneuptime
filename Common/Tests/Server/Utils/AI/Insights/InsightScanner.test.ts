@@ -1,34 +1,34 @@
-import InsightScanner from "../../../../../Server/Utils/AI/Sentinel/Insights/InsightScanner";
+import InsightScanner from "../../../../../Server/Utils/AI/SRE/Insights/InsightScanner";
 import InsightStore, {
   UpsertCandidatesResult,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/InsightStore";
-import InsightDetectors from "../../../../../Server/Utils/AI/Sentinel/Insights/Detectors/Index";
-import InsightFixRouting from "../../../../../Server/Utils/AI/Sentinel/Insights/FixRouting";
-import InsightTriage from "../../../../../Server/Utils/AI/Sentinel/Insights/Triage";
+} from "../../../../../Server/Utils/AI/SRE/Insights/InsightStore";
+import InsightDetectors from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/Index";
+import InsightFixRouting from "../../../../../Server/Utils/AI/SRE/Insights/FixRouting";
+import InsightTriage from "../../../../../Server/Utils/AI/SRE/Insights/Triage";
 import {
   InsightCandidate,
   InsightDetector,
   InsightScanContext,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/Types";
+} from "../../../../../Server/Utils/AI/SRE/Insights/Types";
 import FixRunBudget, {
   FixRunBudgetDecision,
 } from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import ProjectService from "../../../../../Server/Services/ProjectService";
-import SentinelInsightService from "../../../../../Server/Services/SentinelInsightService";
+import AIInsightService from "../../../../../Server/Services/AIInsightService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import Project from "../../../../../Models/DatabaseModels/Project";
-import SentinelInsight from "../../../../../Models/DatabaseModels/SentinelInsight";
-import SentinelInsightStatus from "../../../../../Types/AI/SentinelInsightStatus";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
+import AIInsightStatus from "../../../../../Types/AI/AIInsightStatus";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import LIMIT_MAX from "../../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../../Types/ObjectID";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The scanner is the watch loop's orchestration and must uphold the quiet,
- * opt-in posture: only projects with enableSentinelInsights=true are ever
+ * opt-in posture: only projects with enableAiInsights=true are ever
  * scanned (the flag query IS the gate), every layer fails in isolation (one
  * broken project, detector or insight never stops the rest), only NEWLY
  * created insights are routed — refreshed rows keep their status — and a
@@ -49,7 +49,7 @@ const projectId: ObjectID = ObjectID.generate();
 function fakeProject(overrides?: { id?: ObjectID }): Project {
   return {
     id: overrides?.id ?? projectId,
-    enableSentinelInsights: true,
+    enableAiInsights: true,
     enableInsightFixTasks: false,
     enableAi: true,
   } as unknown as Project;
@@ -59,31 +59,31 @@ function makeCandidate(
   overrides?: Partial<InsightCandidate>,
 ): InsightCandidate {
   return {
-    insightType: SentinelInsightType.NewException,
+    insightType: AIInsightType.NewException,
     fingerprint: "new-exception:abc",
     title: "New exception in checkout",
     detailMarkdown: "**3 occurrences** in the last 24 hours.",
-    severity: SentinelInsightSeverity.Medium,
+    severity: AIInsightSeverity.Medium,
     evidence: { exception: { recentOccurrenceCount: 3 } },
     ...overrides,
   };
 }
 
-function fakeInsight(): SentinelInsight {
+function fakeInsight(): AIInsight {
   return {
     id: ObjectID.generate(),
     projectId,
-    status: SentinelInsightStatus.Detected,
-  } as unknown as SentinelInsight;
+    status: AIInsightStatus.Detected,
+  } as unknown as AIInsight;
 }
 
 function fakeDetector(data: {
-  insightType?: SentinelInsightType;
+  insightType?: AIInsightType;
   candidates?: Array<InsightCandidate>;
   error?: Error;
 }): InsightDetector {
   return {
-    insightType: data.insightType ?? SentinelInsightType.NewException,
+    insightType: data.insightType ?? AIInsightType.NewException,
     detect: (
       _context: InsightScanContext,
     ): Promise<Array<InsightCandidate>> => {
@@ -112,7 +112,7 @@ describe("InsightScanner.scanAllProjects — flag gating and isolation", () => {
     jest.restoreAllMocks();
   });
 
-  test("queries ONLY opted-in projects (enableSentinelInsights: true) as root and scans each", async () => {
+  test("queries ONLY opted-in projects (enableAiInsights: true) as root and scans each", async () => {
     const projectA: Project = fakeProject({ id: ObjectID.generate() });
     const projectB: Project = fakeProject({ id: ObjectID.generate() });
     const findBy: jest.SpyInstance = jest
@@ -126,7 +126,7 @@ describe("InsightScanner.scanAllProjects — flag gating and isolation", () => {
 
     expect(findBy).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({ enableSentinelInsights: true }),
+        query: expect.objectContaining({ enableAiInsights: true }),
         select: expect.objectContaining({
           _id: true,
           enableInsightFixTasks: true,
@@ -186,7 +186,7 @@ describe("InsightScanner.scanAllProjects — flag gating and isolation", () => {
 describe("InsightScanner.scanProjectForInsights — detectors and the store", () => {
   beforeEach(() => {
     // Nothing stranded: the self-heal sweep is a no-op for these tests.
-    jest.spyOn(SentinelInsightService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -195,16 +195,16 @@ describe("InsightScanner.scanProjectForInsights — detectors and the store", ()
 
   test("one throwing detector does not prevent the others — the survivors' candidates still reach the store", async () => {
     const survivorCandidate: InsightCandidate = makeCandidate({
-      insightType: SentinelInsightType.ErrorLogSpike,
+      insightType: AIInsightType.ErrorLogSpike,
       fingerprint: "error-log-spike:svc",
     });
     jest.spyOn(InsightDetectors, "getAllDetectors").mockReturnValue([
       fakeDetector({
-        insightType: SentinelInsightType.NewException,
+        insightType: AIInsightType.NewException,
         error: new Error("query timeout"),
       }),
       fakeDetector({
-        insightType: SentinelInsightType.ErrorLogSpike,
+        insightType: AIInsightType.ErrorLogSpike,
         candidates: [survivorCandidate],
       }),
     ]);
@@ -229,9 +229,7 @@ describe("InsightScanner.scanProjectForInsights — detectors and the store", ()
   test("every detector gets the projectId and the tick's single clock", async () => {
     const seenContexts: Array<InsightScanContext> = [];
 
-    function recordingDetector(
-      insightType: SentinelInsightType,
-    ): InsightDetector {
+    function recordingDetector(insightType: AIInsightType): InsightDetector {
       return {
         insightType,
         detect: (
@@ -246,8 +244,8 @@ describe("InsightScanner.scanProjectForInsights — detectors and the store", ()
     jest
       .spyOn(InsightDetectors, "getAllDetectors")
       .mockReturnValue([
-        recordingDetector(SentinelInsightType.NewException),
-        recordingDetector(SentinelInsightType.MetricDrift),
+        recordingDetector(AIInsightType.NewException),
+        recordingDetector(AIInsightType.MetricDrift),
       ]);
     jest
       .spyOn(InsightStore, "upsertCandidates")
@@ -287,9 +285,9 @@ describe("InsightScanner — routing newly created insights", () => {
       .spyOn(InsightDetectors, "getAllDetectors")
       .mockReturnValue([fakeDetector({ candidates: [makeCandidate()] })]);
     // Nothing stranded: the self-heal sweep is a no-op for these tests.
-    jest.spyOn(SentinelInsightService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
     updateOneById = jest
-      .spyOn(SentinelInsightService, "updateOneById")
+      .spyOn(AIInsightService, "updateOneById")
       .mockResolvedValue(undefined);
     routeInsightFix = jest
       .spyOn(InsightFixRouting, "routeInsightFix")
@@ -304,7 +302,7 @@ describe("InsightScanner — routing newly created insights", () => {
   });
 
   test("fix routing returned a run → status FixOpened + fixAiRunId persisted", async () => {
-    const insight: SentinelInsight = fakeInsight();
+    const insight: AIInsight = fakeInsight();
     const fixAiRunId: ObjectID = ObjectID.generate();
     jest
       .spyOn(InsightStore, "upsertCandidates")
@@ -317,7 +315,7 @@ describe("InsightScanner — routing newly created insights", () => {
       expect.objectContaining({
         id: insight.id,
         data: expect.objectContaining({
-          status: SentinelInsightStatus.FixOpened,
+          status: AIInsightStatus.FixOpened,
           fixAiRunId,
         }),
         props: expect.objectContaining({ isRoot: true }),
@@ -326,7 +324,7 @@ describe("InsightScanner — routing newly created insights", () => {
   });
 
   test("no fix opened → status ActionRequired", async () => {
-    const insight: SentinelInsight = fakeInsight();
+    const insight: AIInsight = fakeInsight();
     jest
       .spyOn(InsightStore, "upsertCandidates")
       .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
@@ -337,7 +335,7 @@ describe("InsightScanner — routing newly created insights", () => {
       expect.objectContaining({
         id: insight.id,
         data: expect.objectContaining({
-          status: SentinelInsightStatus.ActionRequired,
+          status: AIInsightStatus.ActionRequired,
         }),
         props: expect.objectContaining({ isRoot: true }),
       }),
@@ -345,7 +343,7 @@ describe("InsightScanner — routing newly created insights", () => {
   });
 
   test("the project (carrying its enableInsightFixTasks flag) is handed to fix routing — the flag gate lives there", async () => {
-    const insight: SentinelInsight = fakeInsight();
+    const insight: AIInsight = fakeInsight();
     const project: Project = fakeProject();
     jest
       .spyOn(InsightStore, "upsertCandidates")
@@ -357,7 +355,7 @@ describe("InsightScanner — routing newly created insights", () => {
   });
 
   test("triage run enqueued → triageAiRunId persisted", async () => {
-    const insight: SentinelInsight = fakeInsight();
+    const insight: AIInsight = fakeInsight();
     const triageAiRunId: ObjectID = ObjectID.generate();
     jest
       .spyOn(InsightStore, "upsertCandidates")
@@ -377,7 +375,7 @@ describe("InsightScanner — routing newly created insights", () => {
   });
 
   test("no triage run enqueued (quiet skip) → no triageAiRunId write", async () => {
-    const insight: SentinelInsight = fakeInsight();
+    const insight: AIInsight = fakeInsight();
     jest
       .spyOn(InsightStore, "upsertCandidates")
       .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
@@ -389,8 +387,8 @@ describe("InsightScanner — routing newly created insights", () => {
   });
 
   test("triage runs for fix and non-fix insights alike — it enriches both", async () => {
-    const fixable: SentinelInsight = fakeInsight();
-    const nonFixable: SentinelInsight = fakeInsight();
+    const fixable: AIInsight = fakeInsight();
+    const nonFixable: AIInsight = fakeInsight();
     jest
       .spyOn(InsightStore, "upsertCandidates")
       .mockResolvedValue(emptyUpsertResult({ created: [fixable, nonFixable] }));
@@ -409,10 +407,7 @@ describe("InsightScanner — routing newly created insights", () => {
     jest
       .spyOn(InsightStore, "upsertCandidates")
       .mockResolvedValue(emptyUpsertResult({ refreshed: 3 }));
-    const create: jest.SpyInstance = jest.spyOn(
-      SentinelInsightService,
-      "create",
-    );
+    const create: jest.SpyInstance = jest.spyOn(AIInsightService, "create");
 
     await InsightScanner.scanProjectForInsights(fakeProject());
 
@@ -424,7 +419,7 @@ describe("InsightScanner — routing newly created insights", () => {
   });
 
   test("fix routing rejecting (contract breach) degrades to ActionRequired and still triages", async () => {
-    const insight: SentinelInsight = fakeInsight();
+    const insight: AIInsight = fakeInsight();
     jest
       .spyOn(InsightStore, "upsertCandidates")
       .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
@@ -437,7 +432,7 @@ describe("InsightScanner — routing newly created insights", () => {
     expect(updateOneById).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          status: SentinelInsightStatus.ActionRequired,
+          status: AIInsightStatus.ActionRequired,
         }),
       }),
     );
@@ -445,7 +440,7 @@ describe("InsightScanner — routing newly created insights", () => {
   });
 
   test("triage rejecting (contract breach) does not fail the scan — the status was already routed", async () => {
-    const insight: SentinelInsight = fakeInsight();
+    const insight: AIInsight = fakeInsight();
     jest
       .spyOn(InsightStore, "upsertCandidates")
       .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
@@ -458,15 +453,15 @@ describe("InsightScanner — routing newly created insights", () => {
     expect(updateOneById).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          status: SentinelInsightStatus.ActionRequired,
+          status: AIInsightStatus.ActionRequired,
         }),
       }),
     );
   });
 
   test("per-insight isolation: a failing status write on the first insight does not stop routing the second", async () => {
-    const first: SentinelInsight = fakeInsight();
-    const second: SentinelInsight = fakeInsight();
+    const first: AIInsight = fakeInsight();
+    const second: AIInsight = fakeInsight();
     jest
       .spyOn(InsightStore, "upsertCandidates")
       .mockResolvedValue(emptyUpsertResult({ created: [first, second] }));
@@ -497,10 +492,10 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
       .spyOn(InsightDetectors, "getAllDetectors")
       .mockReturnValue([fakeDetector({ candidates: [] })]);
     findBy = jest
-      .spyOn(SentinelInsightService, "findBy")
-      .mockResolvedValue([] as unknown as Array<SentinelInsight>);
+      .spyOn(AIInsightService, "findBy")
+      .mockResolvedValue([] as unknown as Array<AIInsight>);
     updateOneById = jest
-      .spyOn(SentinelInsightService, "updateOneById")
+      .spyOn(AIInsightService, "updateOneById")
       .mockResolvedValue(undefined);
     routeInsightFix = jest
       .spyOn(InsightFixRouting, "routeInsightFix")
@@ -515,7 +510,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
   });
 
   test("a Detected row left over from an earlier tick is swept up and re-routed to ActionRequired (and triaged)", async () => {
-    const stranded: SentinelInsight = fakeInsight();
+    const stranded: AIInsight = fakeInsight();
     findBy.mockResolvedValue([stranded]);
 
     await InsightScanner.scanProjectForInsights(fakeProject());
@@ -525,7 +520,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
       expect.objectContaining({
         query: expect.objectContaining({
           projectId,
-          status: SentinelInsightStatus.Detected,
+          status: AIInsightStatus.Detected,
         }),
         limit: LIMIT_MAX,
         props: expect.objectContaining({ isRoot: true }),
@@ -538,7 +533,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
       expect.objectContaining({
         id: stranded.id,
         data: expect.objectContaining({
-          status: SentinelInsightStatus.ActionRequired,
+          status: AIInsightStatus.ActionRequired,
         }),
         props: expect.objectContaining({ isRoot: true }),
       }),
@@ -547,7 +542,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
   });
 
   test("a swept row whose fix routing opens a run lands on FixOpened + fixAiRunId — the full routing path, not a status patch", async () => {
-    const stranded: SentinelInsight = fakeInsight();
+    const stranded: AIInsight = fakeInsight();
     const fixAiRunId: ObjectID = ObjectID.generate();
     findBy.mockResolvedValue([stranded]);
     routeInsightFix.mockResolvedValue({ fixAiRunId });
@@ -558,7 +553,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
       expect.objectContaining({
         id: stranded.id,
         data: expect.objectContaining({
-          status: SentinelInsightStatus.FixOpened,
+          status: AIInsightStatus.FixOpened,
           fixAiRunId,
         }),
       }),
@@ -567,16 +562,16 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
 
   test("the sweep runs BEFORE the detectors — so rows created by THIS tick are routed exactly once, never twice", async () => {
     const callOrder: Array<string> = [];
-    const created: SentinelInsight = fakeInsight();
+    const created: AIInsight = fakeInsight();
 
-    findBy.mockImplementation((): Promise<Array<SentinelInsight>> => {
+    findBy.mockImplementation((): Promise<Array<AIInsight>> => {
       callOrder.push("sweep");
       // Nothing stranded: the row below does not exist yet at sweep time.
       return Promise.resolve([]);
     });
     jest.spyOn(InsightDetectors, "getAllDetectors").mockReturnValue([
       {
-        insightType: SentinelInsightType.NewException,
+        insightType: AIInsightType.NewException,
         detect: (): Promise<Array<InsightCandidate>> => {
           callOrder.push("detect");
           return Promise.resolve([makeCandidate()]);
@@ -597,7 +592,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
   });
 
   test("a sweep failure never breaks the scan — detectors still run and this tick's new insights still route", async () => {
-    const created: SentinelInsight = fakeInsight();
+    const created: AIInsight = fakeInsight();
     findBy.mockRejectedValue(new Error("db down"));
     jest
       .spyOn(InsightDetectors, "getAllDetectors")
@@ -617,8 +612,8 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
   });
 
   test("one stranded row failing to re-route does not stop the next one", async () => {
-    const first: SentinelInsight = fakeInsight();
-    const second: SentinelInsight = fakeInsight();
+    const first: AIInsight = fakeInsight();
+    const second: AIInsight = fakeInsight();
     findBy.mockResolvedValue([first, second]);
     updateOneById
       .mockRejectedValueOnce(new Error("write conflict"))
@@ -647,17 +642,17 @@ describe("InsightScanner — re-routing a stranded insight cannot double-create 
   });
 
   test("the creation path's per-(exception, recipe) dedupe rejection is a quiet no-fix: no run is stamped, the row lands on ActionRequired", async () => {
-    const stranded: SentinelInsight = {
+    const stranded: AIInsight = {
       id: ObjectID.generate(),
       projectId,
-      insightType: SentinelInsightType.NewException,
+      insightType: AIInsightType.NewException,
       telemetryExceptionId: ObjectID.generate(),
-      status: SentinelInsightStatus.Detected,
-    } as unknown as SentinelInsight;
+      status: AIInsightStatus.Detected,
+    } as unknown as AIInsight;
 
     const optedInProject: Project = {
       id: projectId,
-      enableSentinelInsights: true,
+      enableAiInsights: true,
       // Fix tasks ON and AI ON: every gate ahead of the dedupe is open.
       enableInsightFixTasks: true,
       enableAi: true,
@@ -674,10 +669,10 @@ describe("InsightScanner — re-routing a stranded insight cannot double-create 
       .spyOn(InsightDetectors, "getAllDetectors")
       .mockReturnValue([fakeDetector({ candidates: [] })]);
     jest
-      .spyOn(SentinelInsightService, "findBy")
-      .mockResolvedValue([stranded] as unknown as Array<SentinelInsight>);
+      .spyOn(AIInsightService, "findBy")
+      .mockResolvedValue([stranded] as unknown as Array<AIInsight>);
     const updateOneById: jest.SpyInstance = jest
-      .spyOn(SentinelInsightService, "updateOneById")
+      .spyOn(AIInsightService, "updateOneById")
       .mockResolvedValue(undefined);
     jest.spyOn(InsightTriage, "enqueueInsightTriage").mockResolvedValue({});
     jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue(budget);
@@ -710,14 +705,14 @@ describe("InsightScanner — re-routing a stranded insight cannot double-create 
       expect.objectContaining({
         id: stranded.id,
         data: expect.objectContaining({
-          status: SentinelInsightStatus.ActionRequired,
+          status: AIInsightStatus.ActionRequired,
         }),
       }),
     );
     expect(updateOneById).not.toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          status: SentinelInsightStatus.FixOpened,
+          status: AIInsightStatus.FixOpened,
         }),
       }),
     );

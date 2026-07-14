@@ -12,7 +12,7 @@ import ObjectID from "Common/Types/ObjectID";
 import fs from "fs";
 
 /*
- * Sentinel investigation eval runner (G3 bootstrap) — `npm run ai-eval`.
+ * AI investigation eval runner (G3 bootstrap) — `npm run ai-eval`.
  *
  * Exports the golden corpus (completed, LABELED investigation runs — a human
  * verdict or an auto-grade — with their recorded AIRunEvent trails), computes
@@ -55,7 +55,7 @@ function formatScore(score: EvalScore): string {
 function printReport(report: EvalScoreReport): void {
   const lines: Array<string> = [
     "",
-    "Sentinel investigation eval — scored from recorded, labeled runs (no LLM re-run)",
+    "AI investigation eval — scored from recorded, labeled runs (no LLM re-run)",
     "================================================================================",
     `Labeled cases: ${report.caseCount}   (corpus written to ${OUTPUT_PATH})`,
     "",

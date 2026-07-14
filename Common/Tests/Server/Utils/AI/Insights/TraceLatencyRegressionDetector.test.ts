@@ -9,8 +9,8 @@ import TraceLatencyRegressionDetector, {
   LATENCY_TOP_OPERATION_CANDIDATES,
   LatencyRegressionDecision,
   ServiceLatencyWindows,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/Detectors/TraceLatencyRegressionDetector";
-import { InsightCandidate } from "../../../../../Server/Utils/AI/Sentinel/Insights/Types";
+} from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/TraceLatencyRegressionDetector";
+import { InsightCandidate } from "../../../../../Server/Utils/AI/SRE/Insights/Types";
 import TraceAggregationService, {
   ServiceLatencyProfile,
   ServiceLatencyProfileRow,
@@ -21,8 +21,8 @@ import ServiceService from "../../../../../Server/Services/ServiceService";
 import Span from "../../../../../Models/AnalyticsModels/Span";
 import Service from "../../../../../Models/DatabaseModels/Service";
 import { AnalyzableSpan } from "../../../../../Server/Utils/AI/PerfEvidence/SpanTreeAnalyzer";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import InBetween from "../../../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -122,7 +122,7 @@ describe("TraceLatencyRegressionDetector.evaluateRegression (pure decision matri
       });
     expect(decision.isRegression).toBe(true);
     expect(decision.multiplier).toBe(2);
-    expect(decision.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(decision.severity).toBe(AIInsightSeverity.Medium);
   });
 
   test("recent p99 just below the absolute floor never regresses", () => {
@@ -174,7 +174,7 @@ describe("TraceLatencyRegressionDetector.evaluateRegression (pure decision matri
         priorSampleCount: 1000,
       });
     expect(high.multiplier).toBe(LATENCY_HIGH_SEVERITY_MULTIPLIER);
-    expect(high.severity).toBe(SentinelInsightSeverity.High);
+    expect(high.severity).toBe(AIInsightSeverity.High);
 
     const medium: LatencyRegressionDecision =
       TraceLatencyRegressionDetector.evaluateRegression({
@@ -183,7 +183,7 @@ describe("TraceLatencyRegressionDetector.evaluateRegression (pure decision matri
         priorSampleCount: 1000,
       });
     expect(medium.isRegression).toBe(true);
-    expect(medium.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(medium.severity).toBe(AIInsightSeverity.Medium);
   });
 });
 
@@ -522,14 +522,12 @@ describe("TraceLatencyRegressionDetector.detect (IO wiring)", () => {
     // The candidate carries the full drilled evidence.
     expect(candidates).toHaveLength(1);
     const candidate: InsightCandidate = candidates[0]!;
-    expect(candidate.insightType).toBe(
-      SentinelInsightType.TraceLatencyRegression,
-    );
+    expect(candidate.insightType).toBe(AIInsightType.TraceLatencyRegression);
     expect(candidate.fingerprint).toBe(`latency:${entityId}:GET /users/{n}`);
     expect(candidate.title).toBe(
       "Latency regression: p99 2.3x on GET /users/42 in checkout",
     );
-    expect(candidate.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(candidate.severity).toBe(AIInsightSeverity.Medium);
     expect(candidate.serviceName).toBe("checkout");
     expect(candidate.telemetryServiceId?.toString()).toBe(entityId);
     expect(candidate.traceId).toBe("trace-1");
@@ -604,7 +602,7 @@ describe("TraceLatencyRegressionDetector.detect (IO wiring)", () => {
     expect(findBySpy).not.toHaveBeenCalled();
     expect(candidates).toHaveLength(1);
     expect(candidates[0]!.fingerprint).toBe(`latency:${entityId}:`);
-    expect(candidates[0]!.severity).toBe(SentinelInsightSeverity.High);
+    expect(candidates[0]!.severity).toBe(AIInsightSeverity.High);
     expect(candidates[0]!.traceId).toBeUndefined();
     expect(
       candidates[0]!.evidence.latency!.performanceFindings,

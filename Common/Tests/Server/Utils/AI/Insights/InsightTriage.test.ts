@@ -1,12 +1,12 @@
 import InsightTriage, {
   InsightTriageResult,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/Triage";
-import SentinelInvestigationQueue from "../../../../../Server/Utils/AI/Sentinel/InvestigationQueue";
+} from "../../../../../Server/Utils/AI/SRE/Insights/Triage";
+import AIInvestigationQueue from "../../../../../Server/Utils/AI/SRE/InvestigationQueue";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import LlmProviderService from "../../../../../Server/Services/LlmProviderService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
-import SentinelInsightService from "../../../../../Server/Services/SentinelInsightService";
-import SentinelInsight from "../../../../../Models/DatabaseModels/SentinelInsight";
+import AIInsightService from "../../../../../Server/Services/AIInsightService";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import AIRunType from "../../../../../Types/AI/AIRunType";
@@ -17,14 +17,14 @@ import { describe, expect, test, afterEach } from "@jest/globals";
 /*
  * Per-insight LLM triage enqueue. The invariants these tests lock in:
  *   (a) the gates mirror the engine's enablement posture: enableAi must not
- *       be false, Project.enableSentinelInsights must be EXACTLY true
+ *       be false, Project.enableAiInsights must be EXACTLY true
  *       (strict opt-in, default false), and an LLM provider must exist —
  *       each miss is a quiet skip;
  *   (b) dedupe: at most one non-terminal triage run per insight (the
  *       scanner refreshes recurring insights every tick — refreshes must
  *       not fan out into duplicate runs);
- *   (c) the happy path enqueues with subjectSentinelInsightId (so the
- *       queue stamps triggeredBySentinelInsightId and dispatch routes to
+ *   (c) the happy path enqueues with subjectAIInsightId (so the
+ *       queue stamps triggeredByAiInsightId and dispatch routes to
  *       the triage runner) and persists triageAiRunId onto the insight;
  *   (d) a null enqueue result (the queue's budget quiet-skip) means no
  *       link is written and no id is returned;
@@ -35,8 +35,8 @@ const projectId: ObjectID = ObjectID.generate();
 const insightId: ObjectID = ObjectID.generate();
 const triageRunId: ObjectID = ObjectID.generate();
 
-function makeInsight(): SentinelInsight {
-  return { id: insightId, projectId } as unknown as SentinelInsight;
+function makeInsight(): AIInsight {
+  return { id: insightId, projectId } as unknown as AIInsight;
 }
 
 function mockProject(
@@ -44,7 +44,7 @@ function mockProject(
 ): jest.SpyInstance {
   return jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
     id: projectId,
-    enableSentinelInsights: true,
+    enableAiInsights: true,
     ...overrides,
   } as unknown as Project);
 }
@@ -71,7 +71,7 @@ describe("InsightTriage.enqueueInsightTriage", () => {
   test("skips when the project is not found", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(null);
     const enqueue: jest.SpyInstance = jest.spyOn(
-      SentinelInvestigationQueue,
+      AIInvestigationQueue,
       "enqueue",
     );
 
@@ -85,7 +85,7 @@ describe("InsightTriage.enqueueInsightTriage", () => {
   test("skips when AI is disabled for the project", async () => {
     mockProject({ enableAi: false });
     const enqueue: jest.SpyInstance = jest.spyOn(
-      SentinelInvestigationQueue,
+      AIInvestigationQueue,
       "enqueue",
     );
 
@@ -96,10 +96,10 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     expect(enqueue).not.toHaveBeenCalled();
   });
 
-  test("skips unless enableSentinelInsights is EXACTLY true (strict opt-in)", async () => {
-    mockProject({ enableSentinelInsights: undefined });
+  test("skips unless enableAiInsights is EXACTLY true (strict opt-in)", async () => {
+    mockProject({ enableAiInsights: undefined });
     const enqueue: jest.SpyInstance = jest.spyOn(
-      SentinelInvestigationQueue,
+      AIInvestigationQueue,
       "enqueue",
     );
 
@@ -114,7 +114,7 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     mockProject();
     mockProvider(false);
     const enqueue: jest.SpyInstance = jest.spyOn(
-      SentinelInvestigationQueue,
+      AIInvestigationQueue,
       "enqueue",
     );
 
@@ -130,7 +130,7 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     mockProvider(true);
     const countBy: jest.SpyInstance = mockNonTerminalTriageRunCount(1);
     const enqueue: jest.SpyInstance = jest.spyOn(
-      SentinelInvestigationQueue,
+      AIInvestigationQueue,
       "enqueue",
     );
 
@@ -144,22 +144,22 @@ describe("InsightTriage.enqueueInsightTriage", () => {
       expect.objectContaining({
         query: expect.objectContaining({
           runType: AIRunType.Investigation,
-          triggeredBySentinelInsightId: insightId,
+          triggeredByAiInsightId: insightId,
         }),
         props: expect.objectContaining({ isRoot: true }),
       }),
     );
   });
 
-  test("happy path: enqueues with subjectSentinelInsightId and persists triageAiRunId onto the insight", async () => {
+  test("happy path: enqueues with subjectAIInsightId and persists triageAiRunId onto the insight", async () => {
     mockProject();
     mockProvider(true);
     mockNonTerminalTriageRunCount(0);
     const enqueue: jest.SpyInstance = jest
-      .spyOn(SentinelInvestigationQueue, "enqueue")
+      .spyOn(AIInvestigationQueue, "enqueue")
       .mockResolvedValue(triageRunId);
     const persist: jest.SpyInstance = jest
-      .spyOn(SentinelInsightService, "updateOneById")
+      .spyOn(AIInsightService, "updateOneById")
       .mockResolvedValue(undefined);
 
     const result: InsightTriageResult =
@@ -169,7 +169,7 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     expect(enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId,
-        subjectSentinelInsightId: insightId,
+        subjectAIInsightId: insightId,
       }),
     );
     expect(persist).toHaveBeenCalledWith(
@@ -185,9 +185,9 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     mockProject();
     mockProvider(true);
     mockNonTerminalTriageRunCount(0);
-    jest.spyOn(SentinelInvestigationQueue, "enqueue").mockResolvedValue(null);
+    jest.spyOn(AIInvestigationQueue, "enqueue").mockResolvedValue(null);
     const persist: jest.SpyInstance = jest.spyOn(
-      SentinelInsightService,
+      AIInsightService,
       "updateOneById",
     );
 

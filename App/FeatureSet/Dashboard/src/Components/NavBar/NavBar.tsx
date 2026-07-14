@@ -204,9 +204,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         "Proactive findings from OneUptime AI's telemetry watch — new exceptions, spikes, latency regressions and metric drift.",
       ),
       route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SENTINEL_INSIGHTS] as Route,
+        RouteMap[PageMap.AI_INSIGHTS] as Route,
       ),
-      activeRoute: RouteMap[PageMap.SENTINEL_INSIGHTS],
+      activeRoute: RouteMap[PageMap.AI_INSIGHTS],
       icon: IconProp.LightBulb,
       iconColor: "violet",
       category: aiCategory,

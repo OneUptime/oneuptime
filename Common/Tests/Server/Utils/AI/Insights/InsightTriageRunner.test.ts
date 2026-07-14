@@ -1,18 +1,18 @@
-import InsightTriageRunner from "../../../../../Server/Utils/AI/Sentinel/Insights/InsightTriageRunner";
-import SentinelInvestigationEngine, {
+import InsightTriageRunner from "../../../../../Server/Utils/AI/SRE/Insights/InsightTriageRunner";
+import AIInvestigationEngine, {
   InvestigationRequest,
-} from "../../../../../Server/Utils/AI/Sentinel/SentinelInvestigationEngine";
-import SentinelInvestigationQueue from "../../../../../Server/Utils/AI/Sentinel/InvestigationQueue";
-import InstrumentationTaskTrigger from "../../../../../Server/Utils/AI/Sentinel/InstrumentationTaskTrigger";
-import { ConfidenceSignal } from "../../../../../Server/Utils/AI/Sentinel/ConfidenceSignal";
+} from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import AIInvestigationQueue from "../../../../../Server/Utils/AI/SRE/InvestigationQueue";
+import InstrumentationTaskTrigger from "../../../../../Server/Utils/AI/SRE/InstrumentationTaskTrigger";
+import { ConfidenceSignal } from "../../../../../Server/Utils/AI/SRE/ConfidenceSignal";
 import { ObservabilityAssistantResult } from "../../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
-import SentinelInsightService from "../../../../../Server/Services/SentinelInsightService";
+import AIInsightService from "../../../../../Server/Services/AIInsightService";
 import IncidentFeedService from "../../../../../Server/Services/IncidentFeedService";
 import AlertFeedService from "../../../../../Server/Services/AlertFeedService";
-import { SENTINEL_INSIGHT_TRIAGE_FEATURE } from "../../../../../Server/Services/AIService";
-import SentinelInsight from "../../../../../Models/DatabaseModels/SentinelInsight";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
+import { AI_INSIGHT_TRIAGE_FEATURE } from "../../../../../Server/Services/AIService";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import ObjectID from "../../../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
@@ -23,7 +23,7 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  *       run to the queue's retry policy as NON-permanent, and the engine
  *       never runs;
  *   (b) the engine request carries the dedicated budgeted feature label
- *       (SENTINEL_INSIGHT_TRIAGE_FEATURE — G4) and a context that recasts
+ *       (AI_INSIGHT_TRIAGE_FEATURE — G4) and a context that recasts
  *       the run as preventive triage of the detector's finding;
  *   (c) postAnalysis writes triageSummaryMarkdown + triageCompletedAt onto
  *       the insight row and NOTHING else — no feed items, no workspace
@@ -34,11 +34,11 @@ const aiRunId: ObjectID = ObjectID.generate();
 const projectId: ObjectID = ObjectID.generate();
 const sentinelInsightId: ObjectID = ObjectID.generate();
 
-function makeInsight(): SentinelInsight {
+function makeInsight(): AIInsight {
   return {
     id: sentinelInsightId,
-    insightType: SentinelInsightType.ExceptionSpike,
-    severity: SentinelInsightSeverity.High,
+    insightType: AIInsightType.ExceptionSpike,
+    severity: AIInsightSeverity.High,
     title: "Spike: NullPointerException in checkout",
     detailMarkdown: "Recent hour: 240 occurrences vs a baseline of 4/hour.",
     serviceName: "checkout",
@@ -50,7 +50,7 @@ function makeInsight(): SentinelInsight {
         spikeMultiplier: 60,
       },
     },
-  } as unknown as SentinelInsight;
+  } as unknown as AIInsight;
 }
 
 function makeConfidence(): ConfidenceSignal {
@@ -64,13 +64,13 @@ describe("InsightTriageRunner.executeTriage", () => {
 
   test("a context-build failure hands the claimed run to the retry policy (non-permanent)", async () => {
     jest
-      .spyOn(SentinelInsightService, "findOneById")
+      .spyOn(AIInsightService, "findOneById")
       .mockRejectedValue(new Error("db down"));
     const failOrRequeue: jest.SpyInstance = jest
-      .spyOn(SentinelInvestigationQueue, "failOrRequeue")
+      .spyOn(AIInvestigationQueue, "failOrRequeue")
       .mockResolvedValue(undefined);
     const executeRun: jest.SpyInstance = jest.spyOn(
-      SentinelInvestigationEngine,
+      AIInvestigationEngine,
       "executeRun",
     );
 
@@ -92,9 +92,9 @@ describe("InsightTriageRunner.executeTriage", () => {
   });
 
   test("a deleted insight is also a non-permanent context failure", async () => {
-    jest.spyOn(SentinelInsightService, "findOneById").mockResolvedValue(null);
+    jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(null);
     const failOrRequeue: jest.SpyInstance = jest
-      .spyOn(SentinelInvestigationQueue, "failOrRequeue")
+      .spyOn(AIInvestigationQueue, "failOrRequeue")
       .mockResolvedValue(undefined);
 
     await InsightTriageRunner.executeTriage({
@@ -111,10 +111,10 @@ describe("InsightTriageRunner.executeTriage", () => {
 
   test("the engine request carries the triage feature and a preventive-triage context built from the insight", async () => {
     jest
-      .spyOn(SentinelInsightService, "findOneById")
+      .spyOn(AIInsightService, "findOneById")
       .mockResolvedValue(makeInsight());
     const executeRun: jest.SpyInstance = jest
-      .spyOn(SentinelInvestigationEngine, "executeRun")
+      .spyOn(AIInvestigationEngine, "executeRun")
       .mockResolvedValue(undefined);
 
     await InsightTriageRunner.executeTriage({
@@ -130,7 +130,7 @@ describe("InsightTriageRunner.executeTriage", () => {
         projectId,
         attemptCount: 1,
         request: expect.objectContaining({
-          feature: SENTINEL_INSIGHT_TRIAGE_FEATURE,
+          feature: AI_INSIGHT_TRIAGE_FEATURE,
         }),
       }),
     );
@@ -145,9 +145,7 @@ describe("InsightTriageRunner.executeTriage", () => {
     expect(request.contextSummary).toContain("PREVENTIVE TRIAGE");
     expect(request.contextSummary).toContain("ONE next action");
     // The subject description: type, title and the detector's evidence.
-    expect(request.contextSummary).toContain(
-      SentinelInsightType.ExceptionSpike,
-    );
+    expect(request.contextSummary).toContain(AIInsightType.ExceptionSpike);
     expect(request.contextSummary).toContain(
       "Spike: NullPointerException in checkout",
     );
@@ -160,10 +158,10 @@ describe("InsightTriageRunner.executeTriage", () => {
 
   test("postAnalysis writes the summary onto the insight row — and notifies NOTHING (quiet inbox)", async () => {
     jest
-      .spyOn(SentinelInsightService, "findOneById")
+      .spyOn(AIInsightService, "findOneById")
       .mockResolvedValue(makeInsight());
     const persist: jest.SpyInstance = jest
-      .spyOn(SentinelInsightService, "updateOneById")
+      .spyOn(AIInsightService, "updateOneById")
       .mockResolvedValue(undefined);
     const incidentFeed: jest.SpyInstance = jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
@@ -177,7 +175,7 @@ describe("InsightTriageRunner.executeTriage", () => {
 
     // Drive the engine's postAnalysis callback the way the real engine does.
     jest
-      .spyOn(SentinelInvestigationEngine, "executeRun")
+      .spyOn(AIInvestigationEngine, "executeRun")
       .mockImplementation(
         async (data: {
           aiRunId: ObjectID;
@@ -186,7 +184,7 @@ describe("InsightTriageRunner.executeTriage", () => {
           request: InvestigationRequest;
         }): Promise<void> => {
           await data.request.postAnalysis({
-            analysisMarkdown: "## 🧠 Sentinel — branded triage analysis",
+            analysisMarkdown: "## 🧠 AI SRE — branded triage analysis",
             confidence: makeConfidence(),
             result: {} as unknown as ObservabilityAssistantResult,
           });
@@ -204,7 +202,7 @@ describe("InsightTriageRunner.executeTriage", () => {
       expect.objectContaining({
         id: sentinelInsightId,
         data: expect.objectContaining({
-          triageSummaryMarkdown: "## 🧠 Sentinel — branded triage analysis",
+          triageSummaryMarkdown: "## 🧠 AI SRE — branded triage analysis",
           triageCompletedAt: expect.any(Date),
         }),
         props: expect.objectContaining({ isRoot: true }),

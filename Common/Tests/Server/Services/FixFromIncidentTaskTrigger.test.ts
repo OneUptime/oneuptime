@@ -1,4 +1,4 @@
-import FixFromIncidentTaskTrigger from "../../../Server/Utils/AI/Sentinel/FixFromIncidentTaskTrigger";
+import FixFromIncidentTaskTrigger from "../../../Server/Utils/AI/SRE/FixFromIncidentTaskTrigger";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -13,7 +13,7 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The FixFromIncident trigger: the user clicks "Open Fix PR from this
- * analysis" on the investigation panel after a Sentinel investigation
+ * analysis" on the investigation panel after a AI investigation
  * completes, and the agent turns the posted analysis into a fix pull
  * request. Human-triggered — so there is no project opt-in flag; the gates
  * are: a COMPLETED investigation must exist for the subject (its analysis

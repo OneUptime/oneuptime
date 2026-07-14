@@ -10,7 +10,7 @@ import LlmLogService from "../../../Services/LlmLogService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import AIService, {
   AILogResponse,
-  SENTINEL_CODE_FIX_FEATURE,
+  AI_CODE_FIX_FEATURE,
 } from "../../../Services/AIService";
 import {
   LLMMessage,
@@ -194,7 +194,7 @@ export default class CodeFixAgentCompletion {
 
     const response: AILogResponse = await AIService.executeWithLogging({
       projectId: run.projectId,
-      feature: SENTINEL_CODE_FIX_FEATURE,
+      feature: AI_CODE_FIX_FEATURE,
       aiRunId: request.aiRunId,
       llmProviderId: llmProvider.id,
       messages: request.messages,

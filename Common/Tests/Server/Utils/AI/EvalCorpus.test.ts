@@ -2,7 +2,7 @@ import EvalCorpus, {
   CorpusEventInput,
   GoldenCaseEvent,
 } from "../../../../Server/Utils/AI/Eval/EvalCorpus";
-import SentinelConfidenceSignal from "../../../../Server/Utils/AI/Sentinel/ConfidenceSignal";
+import AIConfidenceSignal from "../../../../Server/Utils/AI/SRE/ConfidenceSignal";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import { describe, expect, test } from "@jest/globals";
 
@@ -42,15 +42,13 @@ function lifecycleEvent(eventType: AIRunEventType): CorpusEventInput {
   return { eventType };
 }
 
-describe("SentinelConfidenceSignal.isDataBearingRowCount (the shared definition)", () => {
+describe("AIConfidenceSignal.isDataBearingRowCount (the shared definition)", () => {
   test("rowCount > 0 is data-bearing; 0 / null / undefined are not", () => {
-    expect(SentinelConfidenceSignal.isDataBearingRowCount(1)).toBe(true);
-    expect(SentinelConfidenceSignal.isDataBearingRowCount(250)).toBe(true);
-    expect(SentinelConfidenceSignal.isDataBearingRowCount(0)).toBe(false);
-    expect(SentinelConfidenceSignal.isDataBearingRowCount(null)).toBe(false);
-    expect(SentinelConfidenceSignal.isDataBearingRowCount(undefined)).toBe(
-      false,
-    );
+    expect(AIConfidenceSignal.isDataBearingRowCount(1)).toBe(true);
+    expect(AIConfidenceSignal.isDataBearingRowCount(250)).toBe(true);
+    expect(AIConfidenceSignal.isDataBearingRowCount(0)).toBe(false);
+    expect(AIConfidenceSignal.isDataBearingRowCount(null)).toBe(false);
+    expect(AIConfidenceSignal.isDataBearingRowCount(undefined)).toBe(false);
   });
 });
 

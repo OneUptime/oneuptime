@@ -1,19 +1,19 @@
-import InsightScanner from "../../../../../Server/Utils/AI/Sentinel/Insights/InsightScanner";
-import InsightStore from "../../../../../Server/Utils/AI/Sentinel/Insights/InsightStore";
-import InsightDetectors from "../../../../../Server/Utils/AI/Sentinel/Insights/Detectors/Index";
+import InsightScanner from "../../../../../Server/Utils/AI/SRE/Insights/InsightScanner";
+import InsightStore from "../../../../../Server/Utils/AI/SRE/Insights/InsightStore";
+import InsightDetectors from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/Index";
 import InsightFixRouting, {
   InsightFixRoutingResult,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/FixRouting";
+} from "../../../../../Server/Utils/AI/SRE/Insights/FixRouting";
 import InsightTriage, {
   InsightTriageResult,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/Triage";
+} from "../../../../../Server/Utils/AI/SRE/Insights/Triage";
 import {
   InsightCandidate,
   InsightDetector,
   InsightScanContext,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/Types";
-import SentinelInvestigationQueue from "../../../../../Server/Utils/AI/Sentinel/InvestigationQueue";
-import FixPerformanceTaskTrigger from "../../../../../Server/Utils/AI/Sentinel/FixPerformanceTaskTrigger";
+} from "../../../../../Server/Utils/AI/SRE/Insights/Types";
+import AIInvestigationQueue from "../../../../../Server/Utils/AI/SRE/InvestigationQueue";
+import FixPerformanceTaskTrigger from "../../../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
 import FixRunBudget, {
   FixRunBudgetDecision,
 } from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
@@ -21,12 +21,12 @@ import ProjectService from "../../../../../Server/Services/ProjectService";
 import LlmProviderService from "../../../../../Server/Services/LlmProviderService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
-import SentinelInsightService from "../../../../../Server/Services/SentinelInsightService";
-import SentinelInsight from "../../../../../Models/DatabaseModels/SentinelInsight";
+import AIInsightService from "../../../../../Server/Services/AIInsightService";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import {
   PerformanceFinding,
   PerformanceFindingType,
@@ -53,7 +53,7 @@ const exceptionId: ObjectID = ObjectID.generate();
 function makeProject(overrides: Record<string, unknown> = {}): Project {
   return {
     id: projectId,
-    enableSentinelInsights: true,
+    enableAiInsights: true,
     enableInsightFixTasks: true,
     enableAi: true,
     ...overrides,
@@ -62,14 +62,14 @@ function makeProject(overrides: Record<string, unknown> = {}): Project {
 
 function makeExceptionInsight(
   overrides: Record<string, unknown> = {},
-): SentinelInsight {
+): AIInsight {
   return {
     id: insightId,
     projectId,
-    insightType: SentinelInsightType.NewException,
+    insightType: AIInsightType.NewException,
     telemetryExceptionId: exceptionId,
     ...overrides,
-  } as unknown as SentinelInsight;
+  } as unknown as AIInsight;
 }
 
 function makeFinding(): PerformanceFinding {
@@ -86,9 +86,9 @@ function makeFinding(): PerformanceFinding {
   };
 }
 
-function makeLatencyInsight(): SentinelInsight {
+function makeLatencyInsight(): AIInsight {
   return makeExceptionInsight({
-    insightType: SentinelInsightType.TraceLatencyRegression,
+    insightType: AIInsightType.TraceLatencyRegression,
     telemetryExceptionId: undefined,
     traceId: "trace-abc",
     evidence: {
@@ -220,7 +220,7 @@ describe("InsightTriage — every dependency rejecting degrades to {}", () => {
     greenProvider();
     jest.spyOn(AIRunService, "countBy").mockRejectedValue(new Error("db down"));
     const enqueue: jest.SpyInstance = jest.spyOn(
-      SentinelInvestigationQueue,
+      AIInvestigationQueue,
       "enqueue",
     );
 
@@ -236,7 +236,7 @@ describe("InsightTriage — every dependency rejecting degrades to {}", () => {
     greenProvider();
     greenDedupe();
     jest
-      .spyOn(SentinelInvestigationQueue, "enqueue")
+      .spyOn(AIInvestigationQueue, "enqueue")
       .mockRejectedValue(new Error("unexpected"));
 
     await expect(
@@ -250,10 +250,10 @@ describe("InsightTriage — every dependency rejecting degrades to {}", () => {
     greenDedupe();
     const triageRunId: ObjectID = ObjectID.generate();
     const enqueue: jest.SpyInstance = jest
-      .spyOn(SentinelInvestigationQueue, "enqueue")
+      .spyOn(AIInvestigationQueue, "enqueue")
       .mockResolvedValue(triageRunId);
     jest
-      .spyOn(SentinelInsightService, "updateOneById")
+      .spyOn(AIInsightService, "updateOneById")
       .mockRejectedValue(new Error("write failed"));
 
     await expect(
@@ -287,17 +287,17 @@ describe("InsightScanner — store failures stay inside the project's scan", () 
 
   function candidateEmittingDetector(): InsightDetector {
     return {
-      insightType: SentinelInsightType.NewException,
+      insightType: AIInsightType.NewException,
       detect: (
         _context: InsightScanContext,
       ): Promise<Array<InsightCandidate>> => {
         return Promise.resolve([
           {
-            insightType: SentinelInsightType.NewException,
+            insightType: AIInsightType.NewException,
             fingerprint: "new-exception:abc",
             title: "New exception in checkout",
             detailMarkdown: "**3 occurrences**",
-            severity: SentinelInsightSeverity.Medium,
+            severity: AIInsightSeverity.Medium,
             evidence: { exception: { recentOccurrenceCount: 3 } },
           },
         ]);

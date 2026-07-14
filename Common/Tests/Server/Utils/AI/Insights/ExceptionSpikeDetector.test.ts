@@ -6,15 +6,15 @@ import ExceptionSpikeDetector, {
   EXCEPTION_SPIKE_MIN_MULTIPLIER,
   EXCEPTION_SPIKE_MIN_RECENT_COUNT,
   ExceptionSpikeDecision,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/Detectors/ExceptionSpikeDetector";
-import { InsightCandidate } from "../../../../../Server/Utils/AI/Sentinel/Insights/Types";
+} from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/ExceptionSpikeDetector";
+import { InsightCandidate } from "../../../../../Server/Utils/AI/SRE/Insights/Types";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import ExceptionInstanceService from "../../../../../Server/Services/ExceptionInstanceService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryException";
 import Service from "../../../../../Models/DatabaseModels/Service";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import InBetween from "../../../../../Types/BaseDatabase/InBetween";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -55,7 +55,7 @@ describe("ExceptionSpikeDetector.evaluateSpike (pure decision matrix)", () => {
     expect(decision.isSpike).toBe(true);
     expect(decision.isDormantAwakening).toBe(true);
     expect(decision.multiplier).toBe(10);
-    expect(decision.severity).toBe(SentinelInsightSeverity.High);
+    expect(decision.severity).toBe(AIInsightSeverity.High);
     expect(decision.baselineHourlyAverage).toBe(0);
   });
 
@@ -75,7 +75,7 @@ describe("ExceptionSpikeDetector.evaluateSpike (pure decision matrix)", () => {
       ExceptionSpikeDetector.evaluateSpike(10, 48);
     expect(decision.multiplier).toBe(EXCEPTION_SPIKE_MIN_MULTIPLIER);
     expect(decision.isSpike).toBe(true);
-    expect(decision.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(decision.severity).toBe(AIInsightSeverity.Medium);
   });
 
   test("just under the multiplier threshold does not spike", () => {
@@ -113,13 +113,13 @@ describe("ExceptionSpikeDetector.evaluateSpike (pure decision matrix)", () => {
       48,
     );
     expect(high.multiplier).toBe(EXCEPTION_SPIKE_HIGH_SEVERITY_MULTIPLIER);
-    expect(high.severity).toBe(SentinelInsightSeverity.High);
+    expect(high.severity).toBe(AIInsightSeverity.High);
 
     const medium: ExceptionSpikeDecision = ExceptionSpikeDetector.evaluateSpike(
       19,
       48,
     );
-    expect(medium.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(medium.severity).toBe(AIInsightSeverity.Medium);
   });
 
   test("zero recent count never spikes", () => {
@@ -203,11 +203,11 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
     // 50 recent vs 1/hour baseline → 50x spike, High.
     expect(candidates).toHaveLength(1);
     const candidate: InsightCandidate = candidates[0]!;
-    expect(candidate.insightType).toBe(SentinelInsightType.ExceptionSpike);
+    expect(candidate.insightType).toBe(AIInsightType.ExceptionSpike);
     expect(candidate.fingerprint).toBe(
       `exception-spike:${exceptionId.toString()}`,
     );
-    expect(candidate.severity).toBe(SentinelInsightSeverity.High);
+    expect(candidate.severity).toBe(AIInsightSeverity.High);
     expect(candidate.title).toBe(
       "Exception spike: ConnectionError at 50.0x normal rate in payments",
     );

@@ -3,7 +3,7 @@ import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import { GoldenCase } from "./EvalCorpus";
 
 /*
- * Sentinel eval harness — OFFLINE REPLAY (not implemented; this file is the
+ * AI eval harness — OFFLINE REPLAY (not implemented; this file is the
  * explicit extension point, so the gap is documented instead of pretended
  * away).
  *
@@ -13,7 +13,7 @@ import { GoldenCase } from "./EvalCorpus";
  * inputs, no live telemetry, no flakiness from data that has since expired.
  *
  * WHY IT CANNOT BE BUILT FROM TODAY'S RECORDED TRAILS (verified against
- * SentinelInvestigationEngine.emitEvent + ChatAgentRunner.emitEvent):
+ * AIInvestigationEngine.emitEvent + ChatAgentRunner.emitEvent):
  * AIRunEvent persists the validated tool ARGUMENTS (`toolArguments`) and a
  * result SUMMARY only — `resultSummary` carries rowCount, durationInMs,
  * isTruncated, bytesSentToLlm and errorMessage (AIRunEventResultSummary). The

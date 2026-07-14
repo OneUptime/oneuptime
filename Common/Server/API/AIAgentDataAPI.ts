@@ -428,7 +428,7 @@ export default class AIAgentDataAPI {
      *    FixFromIncident): the investigation's posted analysis + subject
      *    metadata + the repository resolved without a stack trace. The
      *    analysis text comes from the subject's latest RootCause feed item:
-     *    Sentinel's postAnalysis is the only writer of RootCause feed
+     *    the AI's postAnalysis is the only writer of RootCause feed
      *    events, it writes them for BOTH subjects and BOTH confidence
      *    outcomes (quiet mode only mutes the workspace ping), so the feed
      *    item IS the investigation run's persisted output.

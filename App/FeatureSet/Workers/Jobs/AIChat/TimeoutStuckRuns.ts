@@ -6,7 +6,7 @@ import AIChatMessageStatus from "Common/Types/AI/AIChatMessageStatus";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import AIRunService from "Common/Server/Services/AIRunService";
 import AIConversationMessageService from "Common/Server/Services/AIConversationMessageService";
-import SentinelInvestigationQueue from "Common/Server/Utils/AI/Sentinel/InvestigationQueue";
+import AIInvestigationQueue from "Common/Server/Utils/AI/SRE/InvestigationQueue";
 import CodeFixRunQueue from "Common/Server/Utils/AI/CodeFix/CodeFixRunQueue";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
@@ -74,7 +74,7 @@ RunCron(
          */
         if (run.runType === AIRunType.Investigation) {
           const outcome: "requeued" | "stale" =
-            await SentinelInvestigationQueue.requeueOrMarkStale({
+            await AIInvestigationQueue.requeueOrMarkStale({
               id: run.id!,
               attemptCount: run.attemptCount || 0,
             });

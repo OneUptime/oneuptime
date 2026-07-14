@@ -383,9 +383,9 @@ export const AIAgentTasksRoutePath: Dictionary<string> = {
  * ":id" segment — the router ranks static segments higher, so
  * /ai/insights/settings never falls through to the insight detail page.
  */
-export const SentinelInsightsRoutePath: Dictionary<string> = {
-  [PageMap.SENTINEL_INSIGHTS_SETTINGS]: "settings",
-  [PageMap.SENTINEL_INSIGHT_VIEW]: `${RouteParams.ModelID}`,
+export const AIInsightsRoutePath: Dictionary<string> = {
+  [PageMap.AI_INSIGHTS_SETTINGS]: "settings",
+  [PageMap.AI_INSIGHT_VIEW]: `${RouteParams.ModelID}`,
 };
 
 // Logs product routes
@@ -4997,24 +4997,24 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  // Sentinel Insights section (proactive telemetry findings)
-  [PageMap.SENTINEL_INSIGHTS_ROOT]: new Route(
+  // AI Insights section (proactive telemetry findings)
+  [PageMap.AI_INSIGHTS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai/insights/*`,
   ),
 
-  [PageMap.SENTINEL_INSIGHTS]: new Route(
+  [PageMap.AI_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai/insights`,
   ),
 
-  [PageMap.SENTINEL_INSIGHT_VIEW]: new Route(
+  [PageMap.AI_INSIGHT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai/insights/${
-      SentinelInsightsRoutePath[PageMap.SENTINEL_INSIGHT_VIEW]
+      AIInsightsRoutePath[PageMap.AI_INSIGHT_VIEW]
     }`,
   ),
 
-  [PageMap.SENTINEL_INSIGHTS_SETTINGS]: new Route(
+  [PageMap.AI_INSIGHTS_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ai/insights/${
-      SentinelInsightsRoutePath[PageMap.SENTINEL_INSIGHTS_SETTINGS]
+      AIInsightsRoutePath[PageMap.AI_INSIGHTS_SETTINGS]
     }`,
   ),
 

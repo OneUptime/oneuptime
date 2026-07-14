@@ -3,7 +3,7 @@ import { SubjectTaskDetails } from "../Utils/BackendAPI";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 
 /*
- * FixFromIncident: a completed Sentinel investigation's root-cause analysis
+ * FixFromIncident: a completed AI investigation's root-cause analysis
  * becomes the pull request that fixes the identified cause — the roadmap's
  * headline `code_fix` recipe in human-triggered form (the user clicks
  * "Open Fix PR from this analysis" on the investigation panel).

@@ -1,8 +1,8 @@
 import InsightFixRouting, {
   InsightFixRoutingResult,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/FixRouting";
-import FixPerformanceTaskTrigger from "../../../../../Server/Utils/AI/Sentinel/FixPerformanceTaskTrigger";
-import SubjectCodeFixRun from "../../../../../Server/Utils/AI/Sentinel/SubjectCodeFixRun";
+} from "../../../../../Server/Utils/AI/SRE/Insights/FixRouting";
+import FixPerformanceTaskTrigger from "../../../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import SpanTreeAnalyzer, {
   AnalyzableSpan,
 } from "../../../../../Server/Utils/AI/PerfEvidence/SpanTreeAnalyzer";
@@ -11,11 +11,11 @@ import FixRunBudget, {
 } from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
-import SentinelInsight from "../../../../../Models/DatabaseModels/SentinelInsight";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import ObjectID from "../../../../../Types/ObjectID";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
 import {
   PerformanceFinding,
@@ -24,7 +24,7 @@ import {
 import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
- * Deterministic fix routing for newly created Sentinel insights (the
+ * Deterministic fix routing for newly created AI insights (the
  * Preventive lane's auto-fix step). The invariants these tests lock in:
  *   (a) the two gates, in order: the Project.enableAi master kill switch
  *       (default TRUE — only an explicit false disables, so an unselected
@@ -37,7 +37,7 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  *       auto-fixed;
  *   (c) the daily fix-run budget (G11) and the AI-fix readiness precheck
  *       are quiet skips, never errors;
- *   (d) a created fix run is stamped with triggeredBySentinelInsightId
+ *   (d) a created fix run is stamped with triggeredByAiInsightId
  *       (provenance) and returned as fixAiRunId;
  *   (e) routeInsightFix NEVER throws — creation-path rejections resolve
  *       to an empty result;
@@ -59,14 +59,14 @@ function makeProject(overrides: Record<string, unknown> = {}): Project {
   } as unknown as Project;
 }
 
-function makeInsight(overrides: Record<string, unknown> = {}): SentinelInsight {
+function makeInsight(overrides: Record<string, unknown> = {}): AIInsight {
   return {
     id: insightId,
     projectId,
-    insightType: SentinelInsightType.NewException,
+    insightType: AIInsightType.NewException,
     telemetryExceptionId: exceptionId,
     ...overrides,
-  } as unknown as SentinelInsight;
+  } as unknown as AIInsight;
 }
 
 function makeFinding(): PerformanceFinding {
@@ -85,9 +85,9 @@ function makeFinding(): PerformanceFinding {
 
 function makeLatencyInsight(
   overrides: Record<string, unknown> = {},
-): SentinelInsight {
+): AIInsight {
   return makeInsight({
-    insightType: SentinelInsightType.TraceLatencyRegression,
+    insightType: AIInsightType.TraceLatencyRegression,
     telemetryExceptionId: undefined,
     traceId: "trace-abc",
     serviceName: "checkout",
@@ -208,8 +208,8 @@ describe("InsightFixRouting.routeInsightFix", () => {
     const budget: jest.SpyInstance = mockBudgetAllowed(true);
 
     for (const insightType of [
-      SentinelInsightType.ErrorLogSpike,
-      SentinelInsightType.MetricDrift,
+      AIInsightType.ErrorLogSpike,
+      AIInsightType.MetricDrift,
     ]) {
       const result: InsightFixRoutingResult =
         await InsightFixRouting.routeInsightFix({
@@ -324,7 +324,7 @@ describe("InsightFixRouting.routeInsightFix", () => {
       expect.objectContaining({
         id: fixRunId,
         data: expect.objectContaining({
-          triggeredBySentinelInsightId: insightId,
+          triggeredByAiInsightId: insightId,
         }),
         props: expect.objectContaining({ isRoot: true }),
       }),
@@ -371,7 +371,7 @@ describe("InsightFixRouting.routeInsightFix", () => {
       expect.objectContaining({
         id: fixRunId,
         data: expect.objectContaining({
-          triggeredBySentinelInsightId: insightId,
+          triggeredByAiInsightId: insightId,
         }),
       }),
     );

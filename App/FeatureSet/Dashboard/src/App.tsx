@@ -353,12 +353,12 @@ const AIAgentTasksRoutes: React.LazyExoticComponent<
     };
   });
 });
-const SentinelInsightsRoutes: React.LazyExoticComponent<
-  AllRoutesModule["SentinelInsightsRoutes"]
+const AIInsightsRoutes: React.LazyExoticComponent<
+  AllRoutesModule["AIInsightsRoutes"]
 > = lazy(() => {
   return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
     return {
-      default: m.SentinelInsightsRoutes,
+      default: m.AIInsightsRoutes,
     };
   });
 });
@@ -1018,11 +1018,11 @@ const App: () => JSX.Element = () => {
             element={<AIAgentTasksRoutes {...commonPageProps} />}
           />
 
-          {/** Sentinel Insights */}
+          {/** AI Insights */}
 
           <PageRoute
-            path={RouteMap[PageMap.SENTINEL_INSIGHTS_ROOT]?.toString() || ""}
-            element={<SentinelInsightsRoutes {...commonPageProps} />}
+            path={RouteMap[PageMap.AI_INSIGHTS_ROOT]?.toString() || ""}
+            element={<AIInsightsRoutes {...commonPageProps} />}
           />
 
           {/** Exceptions */}

@@ -17,14 +17,14 @@ import AIRunService from "../../../Services/AIRunService";
 import AIRunEventService from "../../../Services/AIRunEventService";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
 import AlertFeedService from "../../../Services/AlertFeedService";
-import SentinelConfidenceSignal from "../Sentinel/ConfidenceSignal";
+import AIConfidenceSignal from "../SRE/ConfidenceSignal";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
- * Sentinel eval harness — golden-incident corpus (G3 bootstrap).
+ * AI eval harness — golden-incident corpus (G3 bootstrap).
  *
- * A GoldenCase is one LABELED, completed Sentinel investigation, exported as
+ * A GoldenCase is one LABELED, completed AI investigation, exported as
  * plain JSON: the run's identity, its human/auto label (AIRun.humanVerdict /
  * AIRun.autoGrade — the Phase 2 measurement columns), deterministic per-run
  * evidence stats derived from the recorded AIRunEvent trail, and the trail
@@ -41,7 +41,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * would need.
  *
  * "Data-bearing" is defined ONCE, in
- * SentinelConfidenceSignal.isDataBearingRowCount (rowCount > 0; rowCount 0 is
+ * AIConfidenceSignal.isDataBearingRowCount (rowCount > 0; rowCount 0 is
  * proof of absence — evidence, but not data-bearing), and reused here so the
  * offline stats can never drift from the live confidence floor's definition.
  */
@@ -65,7 +65,7 @@ export interface GoldenCaseConfidenceStats {
   citationsMinted: number;
   /*
    * Successful tool calls whose recorded resultSummary.rowCount passes
-   * SentinelConfidenceSignal.isDataBearingRowCount (> 0).
+   * AIConfidenceSignal.isDataBearingRowCount (> 0).
    */
   dataBearingToolCalls: number;
   // ToolCallCompleted + ToolCallFailed events (calls that finished either way).
@@ -90,8 +90,8 @@ export interface GoldenCase {
   label: GoldenCaseLabel;
   confidence: GoldenCaseConfidenceStats;
   /*
-   * Whether a Sentinel RootCause feed item exists for the run's subject.
-   * Honest caveat: feed items are keyed by SUBJECT, not by run — Sentinel's
+   * Whether a AI RootCause feed item exists for the run's subject.
+   * Honest caveat: feed items are keyed by SUBJECT, not by run — the AI's
    * postAnalysis is their only writer (the same sourcing rule
    * InvestigationGrader uses), but when several investigations ran for one
    * subject they share this flag.
@@ -148,7 +148,7 @@ export default class EvalCorpus {
         toolCallsTotal++;
 
         if (
-          SentinelConfidenceSignal.isDataBearingRowCount(
+          AIConfidenceSignal.isDataBearingRowCount(
             event.resultSummary?.rowCount,
           )
         ) {
@@ -331,7 +331,7 @@ export default class EvalCorpus {
   }
 
   /*
-   * Whether Sentinel's analysis was posted for the run's subject: a RootCause
+   * Whether the AI's analysis was posted for the run's subject: a RootCause
    * feed item exists (postAnalysis is its only writer — the sourcing rule
    * shared with InvestigationGrader). Subject-level, not run-level; see the
    * GoldenCase.analysisPosted doc comment.

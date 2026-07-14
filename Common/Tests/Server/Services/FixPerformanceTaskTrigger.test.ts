@@ -1,4 +1,4 @@
-import FixPerformanceTaskTrigger from "../../../Server/Utils/AI/Sentinel/FixPerformanceTaskTrigger";
+import FixPerformanceTaskTrigger from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import { AnalyzableSpan } from "../../../Server/Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";

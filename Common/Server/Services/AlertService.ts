@@ -67,7 +67,7 @@ import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
-import SentinelAlertInvestigationRunner from "../Utils/AI/Sentinel/AlertInvestigationRunner";
+import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
 
@@ -561,21 +561,21 @@ export class Service extends DatabaseService<Model> {
       })
       .then(async () => {
         /*
-         * Sentinel (AI SRE): automatically investigate the new alert and post a
+         * AI (AI SRE): automatically investigate the new alert and post a
          * cited root cause analysis to the alert timeline + Slack/Teams. Runs
          * last, is gated per project (opt-in) + requires an LLM provider, and is
          * read-only.
          */
         try {
           if (createdItem.projectId && createdItem.id) {
-            await SentinelAlertInvestigationRunner.investigateNewAlert({
+            await AIAlertInvestigationRunner.investigateNewAlert({
               alertId: createdItem.id,
               projectId: createdItem.projectId,
             });
           }
         } catch (error) {
           logger.error(
-            `Sentinel alert investigation failed in AlertService.onCreateSuccess: ${error}`,
+            `AI alert investigation failed in AlertService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               alertId: createdItem.id?.toString(),

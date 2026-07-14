@@ -1541,7 +1541,7 @@ export default class Project extends TenantModel {
     default: false,
     type: ColumnType.Boolean,
   })
-  public enableSentinelInsights?: boolean = undefined;
+  public enableAiInsights?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],

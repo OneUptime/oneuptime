@@ -135,8 +135,8 @@ import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 
-// Sentinel Insights — preventive telemetry scan (deterministic, no LLM).
-import "./Jobs/SentinelInsight/ScanForInsights";
+// AI Insights — preventive telemetry scan (deterministic, no LLM).
+import "./Jobs/AIInsight/ScanForInsights";
 
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";

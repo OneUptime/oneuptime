@@ -2,15 +2,15 @@ import InsightStore, {
   DISMISSED_COOLDOWN_DAYS,
   MAX_NEW_INSIGHTS_PER_PROJECT_PER_SCAN,
   UpsertCandidatesResult,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/InsightStore";
-import { InsightCandidate } from "../../../../../Server/Utils/AI/Sentinel/Insights/Types";
-import SentinelInsightService from "../../../../../Server/Services/SentinelInsightService";
+} from "../../../../../Server/Utils/AI/SRE/Insights/InsightStore";
+import { InsightCandidate } from "../../../../../Server/Utils/AI/SRE/Insights/Types";
+import AIInsightService from "../../../../../Server/Services/AIInsightService";
 import CreateBy from "../../../../../Server/Types/Database/CreateBy";
 import FindOneBy from "../../../../../Server/Types/Database/FindOneBy";
-import SentinelInsight from "../../../../../Models/DatabaseModels/SentinelInsight";
-import SentinelInsightStatus from "../../../../../Types/AI/SentinelInsightStatus";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
+import AIInsightStatus from "../../../../../Types/AI/AIInsightStatus";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
@@ -32,33 +32,31 @@ function makeCandidate(
   overrides?: Partial<InsightCandidate>,
 ): InsightCandidate {
   return {
-    insightType: SentinelInsightType.NewException,
+    insightType: AIInsightType.NewException,
     fingerprint: "new-exception:abc",
     title: "New exception: NullPointerException in checkout",
     detailMarkdown: "**3 occurrences** in the last 24 hours.",
-    severity: SentinelInsightSeverity.Medium,
+    severity: AIInsightSeverity.Medium,
     evidence: { exception: { recentOccurrenceCount: 3 } },
     ...overrides,
   };
 }
 
 function fakeExisting(overrides?: {
-  status?: SentinelInsightStatus;
+  status?: AIInsightStatus;
   occurrenceCount?: number;
   humanVerdictAt?: Date | undefined;
-}): SentinelInsight {
+}): AIInsight {
   return {
     id: ObjectID.generate(),
-    status: overrides?.status ?? SentinelInsightStatus.Detected,
+    status: overrides?.status ?? AIInsightStatus.Detected,
     occurrenceCount: overrides?.occurrenceCount ?? 2,
     humanVerdictAt: overrides?.humanVerdictAt,
-  } as unknown as SentinelInsight;
+  } as unknown as AIInsight;
 }
 
-function mockFindOneBy(existing: SentinelInsight | null): jest.SpyInstance {
-  return jest
-    .spyOn(SentinelInsightService, "findOneBy")
-    .mockResolvedValue(existing);
+function mockFindOneBy(existing: AIInsight | null): jest.SpyInstance {
+  return jest.spyOn(AIInsightService, "findOneBy").mockResolvedValue(existing);
 }
 
 /*
@@ -67,9 +65,9 @@ function mockFindOneBy(existing: SentinelInsight | null): jest.SpyInstance {
  */
 function mockCreate(): jest.SpyInstance {
   return jest
-    .spyOn(SentinelInsightService, "create")
-    .mockImplementation((createBy: CreateBy<SentinelInsight>) => {
-      const model: SentinelInsight = createBy.data;
+    .spyOn(AIInsightService, "create")
+    .mockImplementation((createBy: CreateBy<AIInsight>) => {
+      const model: AIInsight = createBy.data;
       model.id = ObjectID.generate();
       return Promise.resolve(model);
     });
@@ -77,7 +75,7 @@ function mockCreate(): jest.SpyInstance {
 
 function mockUpdateOneById(): jest.SpyInstance {
   return jest
-    .spyOn(SentinelInsightService, "updateOneById")
+    .spyOn(AIInsightService, "updateOneById")
     .mockResolvedValue(undefined);
 }
 
@@ -112,11 +110,11 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
     expect(result.suppressed).toBe(0);
     expect(result.droppedByCap).toBe(0);
 
-    const persisted: SentinelInsight = result.created[0]!;
+    const persisted: AIInsight = result.created[0]!;
     expect(persisted.projectId).toBe(projectId);
-    expect(persisted.insightType).toBe(SentinelInsightType.NewException);
-    expect(persisted.status).toBe(SentinelInsightStatus.Detected);
-    expect(persisted.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(persisted.insightType).toBe(AIInsightType.NewException);
+    expect(persisted.status).toBe(AIInsightStatus.Detected);
+    expect(persisted.severity).toBe(AIInsightSeverity.Medium);
     expect(persisted.fingerprint).toBe("new-exception:abc");
     expect(persisted.title).toBe(
       "New exception: NullPointerException in checkout",
@@ -166,13 +164,13 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
   });
 
   test.each([
-    [SentinelInsightStatus.Detected],
-    [SentinelInsightStatus.ActionRequired],
-    [SentinelInsightStatus.FixOpened],
+    [AIInsightStatus.Detected],
+    [AIInsightStatus.ActionRequired],
+    [AIInsightStatus.FixOpened],
   ])(
     "existing %s insight → REFRESH: lastSeenAt, occurrenceCount+1, evidence/detail/severity updated — and status is NEVER touched",
-    async (status: SentinelInsightStatus) => {
-      const existing: SentinelInsight = fakeExisting({
+    async (status: AIInsightStatus) => {
+      const existing: AIInsight = fakeExisting({
         status,
         occurrenceCount: 4,
       });
@@ -183,9 +181,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
       const result: UpsertCandidatesResult =
         await InsightStore.upsertCandidates({
           projectId,
-          candidates: [
-            makeCandidate({ severity: SentinelInsightSeverity.High }),
-          ],
+          candidates: [makeCandidate({ severity: AIInsightSeverity.High })],
           now,
         });
 
@@ -200,7 +196,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
           data: expect.objectContaining({
             lastSeenAt: now,
             occurrenceCount: 5,
-            severity: SentinelInsightSeverity.High,
+            severity: AIInsightSeverity.High,
             detailMarkdown: "**3 occurrences** in the last 24 hours.",
             evidence: { exception: { recentOccurrenceCount: 3 } },
           }),
@@ -216,7 +212,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
   );
 
   test("refresh with an unset occurrenceCount (defensive) counts up from the column default of 1", async () => {
-    const existing: SentinelInsight = fakeExisting();
+    const existing: AIInsight = fakeExisting();
     (existing as unknown as Record<string, unknown>)["occurrenceCount"] =
       undefined;
     mockFindOneBy(existing);
@@ -239,7 +235,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
     const oneDayAgo: Date = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
     mockFindOneBy(
       fakeExisting({
-        status: SentinelInsightStatus.Dismissed,
+        status: AIInsightStatus.Dismissed,
         humanVerdictAt: oneDayAgo,
       }),
     );
@@ -265,7 +261,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
     );
     mockFindOneBy(
       fakeExisting({
-        status: SentinelInsightStatus.Dismissed,
+        status: AIInsightStatus.Dismissed,
         humanVerdictAt: exactlySevenDaysAgo,
       }),
     );
@@ -287,7 +283,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
     );
     mockFindOneBy(
       fakeExisting({
-        status: SentinelInsightStatus.Dismissed,
+        status: AIInsightStatus.Dismissed,
         humanVerdictAt: pastCooldown,
       }),
     );
@@ -307,7 +303,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
   test("Dismissed with no verdict timestamp (defensive) suppresses — cannot prove the cooldown elapsed", async () => {
     mockFindOneBy(
       fakeExisting({
-        status: SentinelInsightStatus.Dismissed,
+        status: AIInsightStatus.Dismissed,
         humanVerdictAt: undefined,
       }),
     );
@@ -324,7 +320,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
   });
 
   test("existing Resolved insight → CREATE new: a resolved issue that reappears is a regression", async () => {
-    mockFindOneBy(fakeExisting({ status: SentinelInsightStatus.Resolved }));
+    mockFindOneBy(fakeExisting({ status: AIInsightStatus.Resolved }));
     const create: jest.SpyInstance = mockCreate();
     const update: jest.SpyInstance = mockUpdateOneById();
 
@@ -389,13 +385,13 @@ describe("InsightStore.upsertCandidates — per-scan new-insight cap", () => {
      * 10 never-seen fingerprints (fill the cap), then one that matches a
      * live insight: the live one must still refresh.
      */
-    const existing: SentinelInsight = fakeExisting({
-      status: SentinelInsightStatus.ActionRequired,
+    const existing: AIInsight = fakeExisting({
+      status: AIInsightStatus.ActionRequired,
     });
 
     jest
-      .spyOn(SentinelInsightService, "findOneBy")
-      .mockImplementation((findOneBy: FindOneBy<SentinelInsight>) => {
+      .spyOn(AIInsightService, "findOneBy")
+      .mockImplementation((findOneBy: FindOneBy<AIInsight>) => {
         const fingerprint: string | undefined = (
           findOneBy.query as { fingerprint?: string }
         ).fingerprint;
@@ -425,17 +421,17 @@ describe("InsightStore.upsertCandidates — per-scan new-insight cap", () => {
   });
 
   test("a mixed batch aggregates all four counters correctly", async () => {
-    const live: SentinelInsight = fakeExisting({
-      status: SentinelInsightStatus.Detected,
+    const live: AIInsight = fakeExisting({
+      status: AIInsightStatus.Detected,
     });
-    const dismissedRecently: SentinelInsight = fakeExisting({
-      status: SentinelInsightStatus.Dismissed,
+    const dismissedRecently: AIInsight = fakeExisting({
+      status: AIInsightStatus.Dismissed,
       humanVerdictAt: new Date(now.getTime() - 60 * 1000),
     });
 
     jest
-      .spyOn(SentinelInsightService, "findOneBy")
-      .mockImplementation((findOneBy: FindOneBy<SentinelInsight>) => {
+      .spyOn(AIInsightService, "findOneBy")
+      .mockImplementation((findOneBy: FindOneBy<AIInsight>) => {
         const fingerprint: string | undefined = (
           findOneBy.query as { fingerprint?: string }
         ).fingerprint;

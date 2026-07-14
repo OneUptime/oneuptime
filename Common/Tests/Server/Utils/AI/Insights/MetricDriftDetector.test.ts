@@ -4,13 +4,13 @@ import MetricDriftDetector, {
   METRIC_DRIFT_MIN_SAMPLES_PER_WINDOW,
   METRIC_DRIFT_ROWS_PER_WINDOW,
   MetricDriftFinding,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/Detectors/MetricDriftDetector";
-import { InsightCandidate } from "../../../../../Server/Utils/AI/Sentinel/Insights/Types";
+} from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/MetricDriftDetector";
+import { InsightCandidate } from "../../../../../Server/Utils/AI/SRE/Insights/Types";
 import MetricBaselineService, {
   MetricDriftWindowRow,
 } from "../../../../../Server/Services/MetricBaselineService";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import ObjectID from "../../../../../Types/ObjectID";
 
 /*
@@ -224,14 +224,14 @@ describe("MetricDriftDetector.detect (IO wiring)", () => {
 
     expect(candidates).toHaveLength(1);
     const candidate: InsightCandidate = candidates[0]!;
-    expect(candidate.insightType).toBe(SentinelInsightType.MetricDrift);
+    expect(candidate.insightType).toBe(AIInsightType.MetricDrift);
     expect(candidate.fingerprint).toBe(
       "metric-drift:http.server.duration:svc-1",
     );
     expect(candidate.title).toBe(
       "Metric drift: http.server.duration +62% week-over-week",
     );
-    expect(candidate.severity).toBe(SentinelInsightSeverity.Low);
+    expect(candidate.severity).toBe(AIInsightSeverity.Low);
     expect(candidate.metricName).toBe("http.server.duration");
     expect(candidate.evidence.metricDrift).toEqual(
       expect.objectContaining({

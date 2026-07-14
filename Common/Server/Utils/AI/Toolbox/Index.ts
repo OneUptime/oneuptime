@@ -33,7 +33,7 @@ import {
   RunRunbookTool,
   PostIncidentStatusUpdateTool,
   ChangeIncidentSeverityTool,
-} from "./SentinelActionTools";
+} from "./AIActionTools";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 
 export interface ToolCallOutcome {
@@ -77,7 +77,7 @@ export default class AIToolbox {
     ResolveIncidentTool,
     AcknowledgeAlertTool,
     ResolveAlertTool,
-    // Sentinel action belt (Phase 0) — operate the platform, not just answer.
+    // AI action belt (Phase 0) — operate the platform, not just answer.
     PageOnCallPolicyTool,
     RunRunbookTool,
     PostIncidentStatusUpdateTool,

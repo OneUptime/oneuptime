@@ -9,15 +9,15 @@ import ErrorLogSpikeDetector, {
   ERROR_LOG_SPIKE_MIN_MULTIPLIER,
   ERROR_LOG_SPIKE_MIN_RECENT_COUNT,
   ErrorLogSpikeDecision,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/Detectors/ErrorLogSpikeDetector";
-import { InsightCandidate } from "../../../../../Server/Utils/AI/Sentinel/Insights/Types";
+} from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/ErrorLogSpikeDetector";
+import { InsightCandidate } from "../../../../../Server/Utils/AI/SRE/Insights/Types";
 import LogAggregationService, {
   HistogramBucket,
 } from "../../../../../Server/Services/LogAggregationService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import Service from "../../../../../Models/DatabaseModels/Service";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import ObjectID from "../../../../../Types/ObjectID";
 
 /*
@@ -204,7 +204,7 @@ describe("ErrorLogSpikeDetector.evaluateSpike (pure decision matrix)", () => {
     );
     expect(decision.isSpike).toBe(true);
     expect(decision.multiplier).toBe(ERROR_LOG_SPIKE_MIN_RECENT_COUNT);
-    expect(decision.severity).toBe(SentinelInsightSeverity.High);
+    expect(decision.severity).toBe(AIInsightSeverity.High);
   });
 
   test("one below the recent floor never spikes", () => {
@@ -222,7 +222,7 @@ describe("ErrorLogSpikeDetector.evaluateSpike (pure decision matrix)", () => {
     );
     expect(decision.multiplier).toBe(ERROR_LOG_SPIKE_MIN_MULTIPLIER);
     expect(decision.isSpike).toBe(true);
-    expect(decision.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(decision.severity).toBe(AIInsightSeverity.Medium);
   });
 
   test("just under the multiplier threshold does not spike", () => {
@@ -248,7 +248,7 @@ describe("ErrorLogSpikeDetector.evaluateSpike (pure decision matrix)", () => {
       2400,
     );
     expect(decision.multiplier).toBe(ERROR_LOG_SPIKE_HIGH_SEVERITY_MULTIPLIER);
-    expect(decision.severity).toBe(SentinelInsightSeverity.High);
+    expect(decision.severity).toBe(AIInsightSeverity.High);
   });
 });
 
@@ -331,10 +331,10 @@ describe("ErrorLogSpikeDetector.detect (IO wiring)", () => {
      */
     expect(candidates).toHaveLength(2);
     const first: InsightCandidate = candidates[0]!;
-    expect(first.insightType).toBe(SentinelInsightType.ErrorLogSpike);
+    expect(first.insightType).toBe(AIInsightType.ErrorLogSpike);
     expect(first.fingerprint).toBe(`error-log-spike:${serviceIdA}`);
     expect(first.title).toBe("Error-log spike: 50.0x normal volume in api");
-    expect(first.severity).toBe(SentinelInsightSeverity.High);
+    expect(first.severity).toBe(AIInsightSeverity.High);
     expect(first.serviceName).toBe("api");
     expect(first.telemetryServiceId?.toString()).toBe(serviceIdA);
     expect(first.evidence.logSpike).toEqual(

@@ -6,15 +6,15 @@ import InsightStore, {
   INSIGHT_TRACE_ID_MAX_LENGTH,
   MAX_NEW_INSIGHTS_PER_PROJECT_PER_SCAN,
   UpsertCandidatesResult,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/InsightStore";
-import { InsightCandidate } from "../../../../../Server/Utils/AI/Sentinel/Insights/Types";
-import SentinelInsightService from "../../../../../Server/Services/SentinelInsightService";
+} from "../../../../../Server/Utils/AI/SRE/Insights/InsightStore";
+import { InsightCandidate } from "../../../../../Server/Utils/AI/SRE/Insights/Types";
+import AIInsightService from "../../../../../Server/Services/AIInsightService";
 import CreateBy from "../../../../../Server/Types/Database/CreateBy";
 import FindOneBy from "../../../../../Server/Types/Database/FindOneBy";
-import SentinelInsight from "../../../../../Models/DatabaseModels/SentinelInsight";
-import SentinelInsightStatus from "../../../../../Types/AI/SentinelInsightStatus";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
+import AIInsightStatus from "../../../../../Types/AI/AIInsightStatus";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
 import ColumnLength from "../../../../../Types/Database/ColumnLength";
 import ObjectID from "../../../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
@@ -48,11 +48,11 @@ function makeCandidate(
   overrides?: Partial<InsightCandidate>,
 ): InsightCandidate {
   return {
-    insightType: SentinelInsightType.TraceLatencyRegression,
+    insightType: AIInsightType.TraceLatencyRegression,
     fingerprint: "latency:svc-1:GET /checkout",
     title: "Latency regression: p99 3.0x on GET /checkout",
     detailMarkdown: "**p99** went from 800ms to 2400ms.",
-    severity: SentinelInsightSeverity.Medium,
+    severity: AIInsightSeverity.Medium,
     evidence: {
       latency: {
         recentP99Ms: 2400,
@@ -70,23 +70,21 @@ function makeCandidate(
  */
 function mockCreate(): jest.SpyInstance {
   return jest
-    .spyOn(SentinelInsightService, "create")
-    .mockImplementation((createBy: CreateBy<SentinelInsight>) => {
-      const model: SentinelInsight = createBy.data;
+    .spyOn(AIInsightService, "create")
+    .mockImplementation((createBy: CreateBy<AIInsight>) => {
+      const model: AIInsight = createBy.data;
       model.id = ObjectID.generate();
       return Promise.resolve(model);
     });
 }
 
-function mockFindOneBy(existing: SentinelInsight | null): jest.SpyInstance {
-  return jest
-    .spyOn(SentinelInsightService, "findOneBy")
-    .mockResolvedValue(existing);
+function mockFindOneBy(existing: AIInsight | null): jest.SpyInstance {
+  return jest.spyOn(AIInsightService, "findOneBy").mockResolvedValue(existing);
 }
 
 function mockUpdateOneById(): jest.SpyInstance {
   return jest
-    .spyOn(SentinelInsightService, "updateOneById")
+    .spyOn(AIInsightService, "updateOneById")
     .mockResolvedValue(undefined);
 }
 
@@ -95,7 +93,7 @@ describe("InsightStore — column-length clamps", () => {
     jest.restoreAllMocks();
   });
 
-  test("the clamp caps mirror the SentinelInsight column definitions", () => {
+  test("the clamp caps mirror the AIInsight column definitions", () => {
     expect(INSIGHT_FINGERPRINT_MAX_LENGTH).toBe(ColumnLength.LongText);
     expect(INSIGHT_TITLE_MAX_LENGTH).toBe(ColumnLength.LongText);
     expect(INSIGHT_SERVICE_NAME_MAX_LENGTH).toBe(ColumnLength.LongText);
@@ -130,7 +128,7 @@ describe("InsightStore — column-length clamps", () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect(result.created).toHaveLength(1);
 
-    const persisted: SentinelInsight = result.created[0]!;
+    const persisted: AIInsight = result.created[0]!;
     const expectedFingerprint: string = `latency:svc-1:${hugeOperation}`.slice(
       0,
       INSIGHT_FINGERPRINT_MAX_LENGTH,
@@ -163,11 +161,11 @@ describe("InsightStore — column-length clamps", () => {
      * DB-faithful stateful lookup: rows created by this run are visible to
      * later lookups keyed on their (clamped) stored fingerprint.
      */
-    const rowsByFingerprint: Map<string, SentinelInsight> = new Map();
+    const rowsByFingerprint: Map<string, AIInsight> = new Map();
 
     jest
-      .spyOn(SentinelInsightService, "findOneBy")
-      .mockImplementation((findOneBy: FindOneBy<SentinelInsight>) => {
+      .spyOn(AIInsightService, "findOneBy")
+      .mockImplementation((findOneBy: FindOneBy<AIInsight>) => {
         const fingerprint: string = (
           findOneBy.query as { fingerprint?: string }
         ).fingerprint!;
@@ -175,11 +173,11 @@ describe("InsightStore — column-length clamps", () => {
       });
 
     const create: jest.SpyInstance = jest
-      .spyOn(SentinelInsightService, "create")
-      .mockImplementation((createBy: CreateBy<SentinelInsight>) => {
-        const model: SentinelInsight = createBy.data;
+      .spyOn(AIInsightService, "create")
+      .mockImplementation((createBy: CreateBy<AIInsight>) => {
+        const model: AIInsight = createBy.data;
         model.id = ObjectID.generate();
-        model.status = SentinelInsightStatus.ActionRequired;
+        model.status = AIInsightStatus.ActionRequired;
         rowsByFingerprint.set(model.fingerprint!, model);
         return Promise.resolve(model);
       });
@@ -216,9 +214,9 @@ describe("InsightStore — per-candidate failure isolation", () => {
   test("a create rejection on the middle candidate does not abort the batch — siblings are created and returned for routing", async () => {
     mockFindOneBy(null);
     jest
-      .spyOn(SentinelInsightService, "create")
-      .mockImplementation((createBy: CreateBy<SentinelInsight>) => {
-        const model: SentinelInsight = createBy.data;
+      .spyOn(AIInsightService, "create")
+      .mockImplementation((createBy: CreateBy<AIInsight>) => {
+        const model: AIInsight = createBy.data;
         if (model.fingerprint === "boom") {
           return Promise.reject(new Error("title length cannot be more..."));
         }
@@ -244,8 +242,8 @@ describe("InsightStore — per-candidate failure isolation", () => {
 
   test("a dedupe-lookup rejection is isolated too — the remaining candidates still upsert", async () => {
     jest
-      .spyOn(SentinelInsightService, "findOneBy")
-      .mockImplementation((findOneBy: FindOneBy<SentinelInsight>) => {
+      .spyOn(AIInsightService, "findOneBy")
+      .mockImplementation((findOneBy: FindOneBy<AIInsight>) => {
         const fingerprint: string = (
           findOneBy.query as { fingerprint?: string }
         ).fingerprint!;
@@ -272,9 +270,9 @@ describe("InsightStore — per-candidate failure isolation", () => {
   test("a failed create does not consume the per-scan cap — later candidates still fill it", async () => {
     mockFindOneBy(null);
     jest
-      .spyOn(SentinelInsightService, "create")
-      .mockImplementation((createBy: CreateBy<SentinelInsight>) => {
-        const model: SentinelInsight = createBy.data;
+      .spyOn(AIInsightService, "create")
+      .mockImplementation((createBy: CreateBy<AIInsight>) => {
+        const model: AIInsight = createBy.data;
         if (model.fingerprint === "fp-2") {
           return Promise.reject(new Error("transient"));
         }
@@ -312,20 +310,20 @@ describe("InsightStore — same-fingerprint duplicates (batch and race)", () => 
   });
 
   test("two same-fingerprint candidates in ONE batch: the second refreshes the row the first created (DB-faithful lookup)", async () => {
-    const rowsByFingerprint: Map<string, SentinelInsight> = new Map();
+    const rowsByFingerprint: Map<string, AIInsight> = new Map();
 
     jest
-      .spyOn(SentinelInsightService, "findOneBy")
-      .mockImplementation((findOneBy: FindOneBy<SentinelInsight>) => {
+      .spyOn(AIInsightService, "findOneBy")
+      .mockImplementation((findOneBy: FindOneBy<AIInsight>) => {
         const fingerprint: string = (
           findOneBy.query as { fingerprint?: string }
         ).fingerprint!;
         return Promise.resolve(rowsByFingerprint.get(fingerprint) || null);
       });
     jest
-      .spyOn(SentinelInsightService, "create")
-      .mockImplementation((createBy: CreateBy<SentinelInsight>) => {
-        const model: SentinelInsight = createBy.data;
+      .spyOn(AIInsightService, "create")
+      .mockImplementation((createBy: CreateBy<AIInsight>) => {
+        const model: AIInsight = createBy.data;
         model.id = ObjectID.generate();
         rowsByFingerprint.set(model.fingerprint!, model);
         return Promise.resolve(model);

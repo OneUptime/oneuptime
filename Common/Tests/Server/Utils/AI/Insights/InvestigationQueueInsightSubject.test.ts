@@ -1,8 +1,8 @@
-import SentinelInvestigationQueue, {
+import AIInvestigationQueue, {
   INSIGHT_TRIAGE_RESERVED_SLOTS,
-} from "../../../../../Server/Utils/AI/Sentinel/InvestigationQueue";
-import InsightTriageRunner from "../../../../../Server/Utils/AI/Sentinel/Insights/InsightTriageRunner";
-import SentinelIncidentInvestigationRunner from "../../../../../Server/Utils/AI/Sentinel/IncidentInvestigationRunner";
+} from "../../../../../Server/Utils/AI/SRE/InvestigationQueue";
+import InsightTriageRunner from "../../../../../Server/Utils/AI/SRE/Insights/InsightTriageRunner";
+import AIIncidentInvestigationRunner from "../../../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AIService from "../../../../../Server/Services/AIService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
@@ -14,10 +14,10 @@ import PositiveNumber from "../../../../../Types/PositiveNumber";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
- * The investigation queue's Sentinel-insight subject support. The
+ * The investigation queue's AI-insight subject support. The
  * invariants these tests lock in:
- *   (a) enqueue stamps subjectSentinelInsightId onto the run as
- *       triggeredBySentinelInsightId (provenance + the dispatch key) and
+ *   (a) enqueue stamps subjectAIInsightId onto the run as
+ *       triggeredByAiInsightId (provenance + the dispatch key) and
  *       returns the created run's id so the caller can link the insight;
  *   (b) the budget quiet-skip returns null and creates nothing — the
  *       existing enqueue-time gate applies to triage runs too;
@@ -39,7 +39,7 @@ function mockBudget(exhausted: boolean): void {
   });
 }
 
-describe("SentinelInvestigationQueue — insight subject", () => {
+describe("AIInvestigationQueue — insight subject", () => {
   beforeEach(() => {
     // No per-project cap override; no investigations currently running.
     jest
@@ -54,7 +54,7 @@ describe("SentinelInvestigationQueue — insight subject", () => {
     jest.restoreAllMocks();
   });
 
-  test("enqueue stamps triggeredBySentinelInsightId and returns the created run id", async () => {
+  test("enqueue stamps triggeredByAiInsightId and returns the created run id", async () => {
     mockBudget(false);
     const insightId: ObjectID = ObjectID.generate();
     const createdId: ObjectID = ObjectID.generate();
@@ -62,22 +62,19 @@ describe("SentinelInvestigationQueue — insight subject", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: createdId } as unknown as AIRun);
-    jest
-      .spyOn(SentinelInvestigationQueue, "processRun")
-      .mockResolvedValue(undefined);
+    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
 
-    const returnedId: ObjectID | null =
-      await SentinelInvestigationQueue.enqueue({
-        projectId: ObjectID.generate(),
-        subjectSentinelInsightId: insightId,
-      });
+    const returnedId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId: ObjectID.generate(),
+      subjectAIInsightId: insightId,
+    });
 
     expect(returnedId).toEqual(createdId);
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           status: AIRunStatus.Queued,
-          triggeredBySentinelInsightId: insightId,
+          triggeredByAiInsightId: insightId,
         }),
         props: expect.objectContaining({ isRoot: true }),
       }),
@@ -88,11 +85,10 @@ describe("SentinelInvestigationQueue — insight subject", () => {
     mockBudget(true);
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
-    const returnedId: ObjectID | null =
-      await SentinelInvestigationQueue.enqueue({
-        projectId: ObjectID.generate(),
-        subjectSentinelInsightId: ObjectID.generate(),
-      });
+    const returnedId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId: ObjectID.generate(),
+      subjectAIInsightId: ObjectID.generate(),
+    });
 
     expect(returnedId).toBeNull();
     expect(create).not.toHaveBeenCalled();
@@ -109,11 +105,11 @@ describe("SentinelInvestigationQueue — insight subject", () => {
       .spyOn(InsightTriageRunner, "executeTriage")
       .mockResolvedValue(undefined);
 
-    await SentinelInvestigationQueue.processRun({
+    await AIInvestigationQueue.processRun({
       id: runId,
       projectId,
       attemptCount: 0,
-      triggeredBySentinelInsightId: insightId,
+      triggeredByAiInsightId: insightId,
     });
 
     expect(executeTriage).toHaveBeenCalledWith(
@@ -137,7 +133,7 @@ describe("SentinelInvestigationQueue — insight subject", () => {
       "executeTriage",
     );
 
-    await SentinelInvestigationQueue.processRun({
+    await AIInvestigationQueue.processRun({
       id: runId,
       projectId: ObjectID.generate(),
       attemptCount: 0,
@@ -163,7 +159,7 @@ describe("SentinelInvestigationQueue — insight subject", () => {
  * behind them. With it, triage tops out at (cap - 1) and the incident's
  * inline kick at enqueue always finds the reserved slot free.
  */
-describe("SentinelInvestigationQueue — lane priority (triage never starves RCA)", () => {
+describe("AIInvestigationQueue — lane priority (triage never starves RCA)", () => {
   const projectId: ObjectID = ObjectID.generate();
 
   // Per-project concurrency cap. The default is 3; make it explicit here.
@@ -177,7 +173,7 @@ describe("SentinelInvestigationQueue — lane priority (triage never starves RCA
   /*
    * The claim gates count Running investigations twice: once globally, and
    * once filtered to the triage lane (the query carrying
-   * triggeredBySentinelInsightId). Answer each query independently so the
+   * triggeredByAiInsightId). Answer each query independently so the
    * two caps can be driven apart.
    */
   function mockRunningCounts(counts: {
@@ -194,7 +190,7 @@ describe("SentinelInvestigationQueue — lane priority (triage never starves RCA
           >) || {};
 
         const isTriageLaneQuery: boolean =
-          query["triggeredBySentinelInsightId"] !== undefined;
+          query["triggeredByAiInsightId"] !== undefined;
 
         return Promise.resolve(
           new PositiveNumber(isTriageLaneQuery ? counts.triage : counts.total),
@@ -220,12 +216,12 @@ describe("SentinelInvestigationQueue — lane priority (triage never starves RCA
       "attemptStatusTransition",
     );
     const executeInvestigation: jest.SpyInstance = jest
-      .spyOn(SentinelIncidentInvestigationRunner, "executeInvestigation")
+      .spyOn(AIIncidentInvestigationRunner, "executeInvestigation")
       .mockResolvedValue(undefined);
 
     const incidentId: ObjectID = ObjectID.generate();
 
-    await SentinelInvestigationQueue.processRun({
+    await AIInvestigationQueue.processRun({
       id: ObjectID.generate(),
       projectId,
       attemptCount: 0,
@@ -253,11 +249,11 @@ describe("SentinelInvestigationQueue — lane priority (triage never starves RCA
       "executeTriage",
     );
 
-    await SentinelInvestigationQueue.processRun({
+    await AIInvestigationQueue.processRun({
       id: ObjectID.generate(),
       projectId,
       attemptCount: 0,
-      triggeredBySentinelInsightId: ObjectID.generate(),
+      triggeredByAiInsightId: ObjectID.generate(),
     });
 
     // Left Queued for the poller/TTL — never claimed, never executed.
@@ -272,11 +268,11 @@ describe("SentinelInvestigationQueue — lane priority (triage never starves RCA
       .spyOn(InsightTriageRunner, "executeTriage")
       .mockResolvedValue(undefined);
 
-    await SentinelInvestigationQueue.processRun({
+    await AIInvestigationQueue.processRun({
       id: ObjectID.generate(),
       projectId,
       attemptCount: 0,
-      triggeredBySentinelInsightId: ObjectID.generate(),
+      triggeredByAiInsightId: ObjectID.generate(),
     });
 
     expect(executeTriage).toHaveBeenCalledWith(
@@ -291,11 +287,11 @@ describe("SentinelInvestigationQueue — lane priority (triage never starves RCA
       .spyOn(InsightTriageRunner, "executeTriage")
       .mockResolvedValue(undefined);
 
-    await SentinelInvestigationQueue.processRun({
+    await AIInvestigationQueue.processRun({
       id: ObjectID.generate(),
       projectId,
       attemptCount: 0,
-      triggeredBySentinelInsightId: ObjectID.generate(),
+      triggeredByAiInsightId: ObjectID.generate(),
     });
 
     expect(executeTriage).toHaveBeenCalled();
@@ -308,10 +304,10 @@ describe("SentinelInvestigationQueue — lane priority (triage never starves RCA
       triage: 0,
     });
     const executeInvestigation: jest.SpyInstance = jest
-      .spyOn(SentinelIncidentInvestigationRunner, "executeInvestigation")
+      .spyOn(AIIncidentInvestigationRunner, "executeInvestigation")
       .mockResolvedValue(undefined);
 
-    await SentinelInvestigationQueue.processRun({
+    await AIInvestigationQueue.processRun({
       id: ObjectID.generate(),
       projectId,
       attemptCount: 0,
@@ -324,7 +320,7 @@ describe("SentinelInvestigationQueue — lane priority (triage never starves RCA
     expect(countBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.not.objectContaining({
-          triggeredBySentinelInsightId: expect.anything(),
+          triggeredByAiInsightId: expect.anything(),
         }),
       }),
     );

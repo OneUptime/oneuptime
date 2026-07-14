@@ -10,7 +10,7 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
-import SentinelInsightAPI from "Common/Server/API/SentinelInsightAPI";
+import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -27,10 +27,10 @@ import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventService, {
   Service as AIRunEventServiceType,
 } from "Common/Server/Services/AIRunEventService";
-import SentinelInsight from "Common/Models/DatabaseModels/SentinelInsight";
-import SentinelInsightService, {
-  Service as SentinelInsightServiceType,
-} from "Common/Server/Services/SentinelInsightService";
+import AIInsight from "Common/Models/DatabaseModels/AIInsight";
+import AIInsightService, {
+  Service as AIInsightServiceType,
+} from "Common/Server/Services/AIInsightService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
@@ -4140,15 +4140,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
 
-    // Sentinel — live incident investigation panel data
+    // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
 
     /*
-     * Sentinel Insights — human verdict/resolve actions + live triage
-     * panel data. Mounted before the generic SentinelInsight CRUD router
+     * AI Insights — human verdict/resolve actions + live triage
+     * panel data. Mounted before the generic AIInsight CRUD router
      * so these action routes win the match.
      */
-    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SentinelInsightAPI);
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInsightAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -4173,9 +4173,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<SentinelInsight, SentinelInsightServiceType>(
-        SentinelInsight,
-        SentinelInsightService,
+      new BaseAPI<AIInsight, AIInsightServiceType>(
+        AIInsight,
+        AIInsightService,
       ).getRouter(),
     );
 

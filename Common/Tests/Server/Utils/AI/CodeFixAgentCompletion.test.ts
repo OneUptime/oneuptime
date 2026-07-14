@@ -10,7 +10,7 @@ import LlmLogService from "../../../../Server/Services/LlmLogService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import AIService, {
   AILogRequest,
-  SENTINEL_CODE_FIX_FEATURE,
+  AI_CODE_FIX_FEATURE,
 } from "../../../../Server/Services/AIService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
@@ -27,7 +27,7 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  * ONLY for a claimed Running CodeFix run owned by the calling agent, per-run
  * loop budgets are enforced server-side (never trusted to the worker), the
  * provider comes from the METERED resolution, and the call executes under
- * the "Sentinel Code Fix" feature with content previews redacted.
+ * the "AI Code Fix" feature with content previews redacted.
  */
 
 const agentId: ObjectID = ObjectID.generate();
@@ -263,7 +263,7 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
     jest.restoreAllMocks();
   });
 
-  test("executes under the Sentinel Code Fix feature, run-linked and preview-redacted", async () => {
+  test("executes under the AI Code Fix feature, run-linked and preview-redacted", async () => {
     const { executeSpy } = mockHappyDependencies();
 
     const result: AgentCompletionResult = await CodeFixAgentCompletion.execute({
@@ -274,7 +274,7 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
 
     expect(executeSpy).toHaveBeenCalledTimes(1);
     const request: AILogRequest = executeSpy.mock.calls[0]![0]!;
-    expect(request.feature).toBe(SENTINEL_CODE_FIX_FEATURE);
+    expect(request.feature).toBe(AI_CODE_FIX_FEATURE);
     expect(request.aiRunId).toBe(runId);
     expect(request.projectId).toBe(projectId);
     expect(request.storeContentPreviews).toBe(false);

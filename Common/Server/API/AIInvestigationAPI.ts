@@ -29,8 +29,8 @@ import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 import ServiceService from "../Services/ServiceService";
 import SpanService from "../Services/SpanService";
-import FixFromIncidentTaskTrigger from "../Utils/AI/Sentinel/FixFromIncidentTaskTrigger";
-import FixPerformanceTaskTrigger from "../Utils/AI/Sentinel/FixPerformanceTaskTrigger";
+import FixFromIncidentTaskTrigger from "../Utils/AI/SRE/FixFromIncidentTaskTrigger";
+import FixPerformanceTaskTrigger from "../Utils/AI/SRE/FixPerformanceTaskTrigger";
 import { AnalyzableSpan } from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 
 const router: ExpressRouter = Express.getRouter();
@@ -46,7 +46,7 @@ const MAX_ANALYZED_TRACE_SPANS: number = 500;
 const MAX_EVENTS: number = 500;
 
 /*
- * Returns the latest Sentinel investigation (the AIRun + its ordered
+ * Returns the latest AI investigation (the AIRun + its ordered
  * AIRunEvents) for an incident or alert, so the dashboard can render a live
  * "watch it think" panel.
  *
@@ -338,7 +338,7 @@ router.post(
 );
 
 /*
- * Human-triggered `code_fix` (the FixFromIncident recipe): after a Sentinel
+ * Human-triggered `code_fix` (the FixFromIncident recipe): after a AI
  * investigation completes on an incident/alert, the user can ask the agent
  * to open a fix pull request from the posted analysis. The subject is
  * access-checked under the USER's permissions first (same idiom as the read

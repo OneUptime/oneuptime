@@ -5,14 +5,14 @@ import NewExceptionDetector, {
   NEW_EXCEPTION_MIN_OCCURRENCE_COUNT,
   NEW_EXCEPTION_TITLE_MESSAGE_MAX_LENGTH,
   NewExceptionDecision,
-} from "../../../../../Server/Utils/AI/Sentinel/Insights/Detectors/NewExceptionDetector";
-import { InsightCandidate } from "../../../../../Server/Utils/AI/Sentinel/Insights/Types";
+} from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/NewExceptionDetector";
+import { InsightCandidate } from "../../../../../Server/Utils/AI/SRE/Insights/Types";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryException";
 import Service from "../../../../../Models/DatabaseModels/Service";
-import SentinelInsightSeverity from "../../../../../Types/AI/SentinelInsightSeverity";
-import SentinelInsightType from "../../../../../Types/AI/SentinelInsightType";
+import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import ObjectID from "../../../../../Types/ObjectID";
 
 /*
@@ -67,7 +67,7 @@ describe("NewExceptionDetector.evaluateNewException (pure decision matrix)", () 
         NEW_EXCEPTION_MIN_OCCURRENCE_COUNT,
       );
     expect(decision.qualifies).toBe(true);
-    expect(decision.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(decision.severity).toBe(AIInsightSeverity.Medium);
   });
 
   test("one below the High threshold stays Medium", () => {
@@ -76,7 +76,7 @@ describe("NewExceptionDetector.evaluateNewException (pure decision matrix)", () 
         NEW_EXCEPTION_HIGH_SEVERITY_OCCURRENCE_COUNT - 1,
       );
     expect(decision.qualifies).toBe(true);
-    expect(decision.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(decision.severity).toBe(AIInsightSeverity.Medium);
   });
 
   test("exactly the High threshold escalates to High", () => {
@@ -85,7 +85,7 @@ describe("NewExceptionDetector.evaluateNewException (pure decision matrix)", () 
         NEW_EXCEPTION_HIGH_SEVERITY_OCCURRENCE_COUNT,
       );
     expect(decision.qualifies).toBe(true);
-    expect(decision.severity).toBe(SentinelInsightSeverity.High);
+    expect(decision.severity).toBe(AIInsightSeverity.High);
   });
 
   test("zero occurrences does not qualify", () => {
@@ -188,12 +188,12 @@ describe("NewExceptionDetector.detect (IO wiring)", () => {
 
     expect(candidates).toHaveLength(1);
     const candidate: InsightCandidate = candidates[0]!;
-    expect(candidate.insightType).toBe(SentinelInsightType.NewException);
+    expect(candidate.insightType).toBe(AIInsightType.NewException);
     expect(candidate.fingerprint).toBe(
       `new-exception:${exceptionId.toString()}`,
     );
     expect(candidate.title).toBe("New exception: TypeError in web-api");
-    expect(candidate.severity).toBe(SentinelInsightSeverity.High);
+    expect(candidate.severity).toBe(AIInsightSeverity.High);
     expect(candidate.serviceName).toBe("web-api");
     expect(candidate.telemetryServiceId).toBe(serviceId);
     expect(candidate.telemetryExceptionId).toBe(exceptionId);
@@ -226,7 +226,7 @@ describe("NewExceptionDetector.detect (IO wiring)", () => {
     expect(candidates[0]!.title).toBe("New exception: TypeError");
     expect(candidates[0]!.serviceName).toBeUndefined();
     expect(candidates[0]!.telemetryServiceId).toBeUndefined();
-    expect(candidates[0]!.severity).toBe(SentinelInsightSeverity.Medium);
+    expect(candidates[0]!.severity).toBe(AIInsightSeverity.Medium);
   });
 
   test("no candidates from the query yields no insights (and no service lookups)", async () => {

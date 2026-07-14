@@ -217,6 +217,23 @@ export default class Queue {
     }
   }
 
+  /**
+   * Removes a one-off job by id, and also removes a repeatable whose repeat
+   * KEY equals `jobId` (QueueWorkflow persists `job.repeatJobKey` on the
+   * Workflow row and passes it back here).
+   *
+   * Note the asymmetry between the two removals, which is easy to get wrong:
+   * BullMQ rejects custom job ids containing ":", so the job lookup must use
+   * the sanitized id. But removeRepeatableByKey() expects the repeat KEY
+   * exactly as it appears in the `bull:<queue>:repeat` zset (an md5 hash, or a
+   * legacy "name:id:endDate:tz:pattern" string) — it ZREMs that exact member.
+   * Sanitizing would mangle the legacy colon form into a member that does not
+   * exist, and the removal would silently no-op. So the raw value is passed
+   * through.
+   *
+   * To remove a repeatable by its job NAME (e.g. to retire a renamed cron),
+   * use removeRepeatableByName() — passing a job name here does nothing.
+   */
   @CaptureSpan()
   public static async removeJob(
     queueName: QueueName,
@@ -226,17 +243,78 @@ export default class Queue {
       return;
     }
 
+    const queue: BullQueue = this.getQueue(queueName);
+
     const sanitizedJobId: string = this.sanitizeJobId(jobId.toString());
 
-    const job: Job | undefined =
-      await this.getQueue(queueName).getJob(sanitizedJobId);
+    const job: Job | undefined = await queue.getJob(sanitizedJobId);
 
     if (job) {
       await job.remove();
     }
 
-    // remove existing repeatable job
-    await this.getQueue(queueName).removeRepeatableByKey(sanitizedJobId);
+    /*
+     * Remove an existing repeatable keyed by this value. Raw, not sanitized —
+     * see the note above.
+     */
+    await queue.removeRepeatableByKey(jobId.toString());
+  }
+
+  /**
+   * Removes every repeatable job DEFINITION on `queueName` whose job NAME is
+   * `jobName`, and returns how many were removed. Idempotent: removing a name
+   * that isn't registered is a no-op that returns 0.
+   *
+   * Why this cannot be done with removeJob(): BullMQ keys a repeatable by an
+   * opaque `key` (the member of the `bull:<queue>:repeat` zset — an md5 hash),
+   * never by the job's name. removeRepeatableByKey() ZREMs that exact member,
+   * so handing it a job name (or a job id) matches nothing and silently
+   * succeeds as a no-op. BullMQ's own docs say so:
+   *
+   *   "Removes a repeatable job by its key. Note that the key is the one used
+   *    to store the repeatable job metadata and not one of the job iterations
+   *    themselves. You can use "getRepeatableJobs" in order to get the keys."
+   *
+   * So the only supported name -> key path is to enumerate getRepeatableJobs()
+   * and match on `.name`. Removing by key also deletes the already-materialized
+   * next delayed iteration, so the job stops firing immediately.
+   *
+   * This exists to retire a RENAMED cron: RunCron registers a repeatable keyed
+   * by the new name, and addJob() above only clears a pre-existing repeatable
+   * that matches the NEW name — nothing clears the old one, so a renamed cron
+   * leaves its old definition behind in Redis, firing forever.
+   */
+  @CaptureSpan()
+  public static async removeRepeatableByName(
+    queueName: QueueName,
+    jobName: string,
+  ): Promise<number> {
+    if (!jobName) {
+      return 0;
+    }
+
+    const queue: BullQueue = this.getQueue(queueName);
+
+    const repeatableJobs: RepeatableJob[] = await queue.getRepeatableJobs();
+
+    let removedCount: number = 0;
+
+    for (const repeatableJob of repeatableJobs) {
+      if (repeatableJob.name !== jobName) {
+        continue;
+      }
+
+      // `.key` is the zset member BullMQ expects here — never the name or id.
+      const isRemoved: boolean = await queue.removeRepeatableByKey(
+        repeatableJob.key,
+      );
+
+      if (isRemoved) {
+        removedCount++;
+      }
+    }
+
+    return removedCount;
   }
 
   @CaptureSpan()

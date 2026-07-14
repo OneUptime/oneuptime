@@ -3,7 +3,7 @@ import { SubjectTaskDetails } from "../Utils/BackendAPI";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 
 /*
- * ImproveInstrumentation: an inconclusive Sentinel investigation (root cause
+ * ImproveInstrumentation: an inconclusive AI investigation (root cause
  * undeterminable — insufficient telemetry) becomes a pull request that adds
  * the missing observability, so the NEXT investigation of a similar signal
  * can reach a conclusion.

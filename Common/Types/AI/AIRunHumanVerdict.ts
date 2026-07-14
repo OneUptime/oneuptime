@@ -1,5 +1,5 @@
 /*
- * The one-click human verdict on a completed Sentinel investigation's posted
+ * The one-click human verdict on a completed AI investigation's posted
  * analysis (Phase 2 measurement layer). Captured via
  * POST /ai-investigation/verdict from the investigation panel and stored on
  * the run (AIRun.humanVerdict).

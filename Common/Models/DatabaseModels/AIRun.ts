@@ -388,7 +388,7 @@ export default class AIRun extends BaseModel {
   public triggeredByTelemetryExceptionId?: ObjectID = undefined;
 
   /*
-   * Set when the run was woken by a preventive SentinelInsight (triage runs
+   * Set when the run was woken by a preventive AIInsight (triage runs
    * and insight-created fix runs).
    */
   @ColumnAccessControl({
@@ -414,7 +414,7 @@ export default class AIRun extends BaseModel {
     nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public triggeredBySentinelInsightId?: ObjectID = undefined;
+  public triggeredByAiInsightId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -819,7 +819,7 @@ export default class AIRun extends BaseModel {
    * Measurement layer (Phase 2): the automatic grade assigned when the
    * incident behind this investigation resolves with a human-recorded root
    * cause — one constrained LLM comparison of the posted analysis against
-   * Incident.rootCause (see Sentinel/InvestigationGrader.ts). Null means
+   * Incident.rootCause (see AI/InvestigationGrader.ts). Null means
    * not graded (yet); a set value also serves as the grading dedupe.
    */
   @ColumnAccessControl({

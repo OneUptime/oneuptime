@@ -46,7 +46,7 @@ export interface BandPoint {
 
 /**
  * One (metric, entity) cell's finalized mean/sample-count for one of the
- * two week-over-week drift windows. The Sentinel MetricDrift detector
+ * two week-over-week drift windows. The AI MetricDrift detector
  * joins the "recent" and "prior" rows in JS (the join stays app-side so
  * the drift decision is a pure, unit-testable function).
  */
@@ -308,7 +308,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   }
 
   /**
-   * Week-over-week drift feed for the Sentinel MetricDrift detector: the
+   * Week-over-week drift feed for the AI MetricDrift detector: the
    * finalized mean + sample count per (metric name, entity) cell for two
    * adjacent 7-day windows — "recent" (last 7 days including today) and
    * "prior" (the 7 days before that). Two GROUP BY finalization queries

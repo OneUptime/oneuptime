@@ -11,7 +11,7 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  * oldest Queued CodeFix run is claimed with the same status+attemptCount
  * guarded CAS the investigation queue uses, so concurrent agent workers can
  * never receive the same run. These tests mock findOneBy /
- * attemptStatusTransition (the SentinelInvestigationQueue test idiom) and
+ * attemptStatusTransition (the AIInvestigationQueue test idiom) and
  * lock in the claim invariants.
  */
 

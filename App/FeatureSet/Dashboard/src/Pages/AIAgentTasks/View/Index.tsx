@@ -36,7 +36,7 @@ const MAX_VISIBLE_STEPS: number = 500;
 
 /*
  * The AI fix task detail: the CodeFix AIRun's status plus its glass-box
- * event trail (the same ChatActivityFeed rendering Sentinel investigations
+ * event trail (the same ChatActivityFeed rendering AI investigations
  * use). Data comes from the dedicated /code-fix-run/get endpoint because
  * system-authored runs are hidden from the generic AIRun CRUD.
  */

@@ -447,6 +447,7 @@ import { AddCompletionTokensToLlmLog1783990000000 } from "./1783990000000-AddCom
 import { AddCiStatusToFixPullRequests1783977781677 } from "./1783977781677-AddCiStatusToFixPullRequests";
 import { AddSentinelInsight1784010274993 } from "./1784010274993-AddSentinelInsight";
 import { AddSentinelInsightFlags1784010274994 } from "./1784010274994-AddSentinelInsightFlags";
+import { RenameSentinelToAI1784030612266 } from "./1784030612266-RenameSentinelToAI";
 
 export default [
   InitialMigration,
@@ -898,4 +899,5 @@ export default [
   AddCiStatusToFixPullRequests1783977781677,
   AddSentinelInsight1784010274993,
   AddSentinelInsightFlags1784010274994,
+  RenameSentinelToAI1784030612266,
 ];

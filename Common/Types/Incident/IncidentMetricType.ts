@@ -7,7 +7,7 @@ enum IncidentMetricType {
   SeverityChange = "oneuptime.incident.severity-change",
   PostmortemCompletionTime = "oneuptime.incident.postmortem-completion-time",
   /*
-   * Seconds from incident creation to the moment the Sentinel investigation
+   * Seconds from incident creation to the moment the AI investigation
    * posted its root-cause analysis. Written once from the investigation
    * runner (not from refreshIncidentMetrics — the refresh replace-list
    * deliberately excludes this name so refreshes never tombstone it).
