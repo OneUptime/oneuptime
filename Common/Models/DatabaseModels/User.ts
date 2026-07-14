@@ -653,6 +653,53 @@ class User extends UserModel {
     update: [],
   })
   @TableColumn({
+    manyToOneRelationColumn: "createdByUserId",
+    type: TableColumnType.Entity,
+    title: "Created by User",
+    modelType: User,
+    description:
+      "Relation to the User who created (invited) this user, if this user was invited to OneUptime by another user.",
+  })
+  @ManyToOne(
+    () => {
+      return User;
+    },
+    {
+      cascade: false,
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "createdByUserId" })
+  public createdByUser?: User = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Created by User ID",
+    description:
+      "User ID who created (invited) this user, if this user was invited to OneUptime by another user.",
+    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public createdByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     manyToOneRelationColumn: "deletedByUserId",
     type: TableColumnType.Entity,
     title: "Deleted by User",

@@ -2962,7 +2962,7 @@ async function getDiagnosticLogs(): Promise<JSONObject> {
 
 router.get(
   "/overview",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3006,7 +3006,7 @@ router.get(
  */
 router.get(
   "/queues",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3047,7 +3047,7 @@ router.get(
  */
 router.get(
   "/clickhouse-capacity",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3075,7 +3075,7 @@ router.get(
 
 router.get(
   "/redis",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3099,7 +3099,7 @@ router.get(
 
 router.get(
   "/instance-health-logs",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3179,7 +3179,7 @@ router.get(
  */
 router.get(
   "/queues/:queueName/failed-jobs",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3232,7 +3232,7 @@ router.get(
  */
 router.get(
   "/logs",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3266,7 +3266,7 @@ router.get(
  */
 router.get(
   "/clickhouse-cluster",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3304,7 +3304,7 @@ router.get(
  */
 router.get(
   "/clickhouse-telemetry-ingestion",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3337,7 +3337,7 @@ router.get(
  */
 router.get(
   "/postgres-cluster",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3368,7 +3368,7 @@ router.get(
  */
 router.get(
   "/migrations",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3397,7 +3397,7 @@ router.get(
  */
 router.get(
   "/support-bundle",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

@@ -60,6 +60,43 @@ export default class ProjectMiddleware {
     return Boolean(this.getProjectId(req));
   }
 
+  /*
+   * Whether the given key is the instance-wide master API key
+   * (Admin Dashboard → Settings → API Key) and that key is currently enabled.
+   * The master key has root/master-admin access, so this is shared with
+   * MasterAdminAuthorization to let the key reach master-admin-only endpoints
+   * (e.g. instance health) as well.
+   */
+  @CaptureSpan()
+  public static async isMasterApiKey(apiKey: ObjectID): Promise<boolean> {
+    /*
+     * masterApiKey is a Postgres `uuid` column, so a non-UUID header value would
+     * make the lookup raise an "invalid input syntax for type uuid" error on
+     * every request. Reject it cleanly up front — a malformed key is never the
+     * master key anyway — so callers can safely fall through to other auth.
+     */
+    if (!ObjectID.isValidUUID(apiKey.toString())) {
+      return false;
+    }
+
+    const masterKeyGlobalConfig: GlobalConfig | null =
+      await GlobalConfigService.findOneBy({
+        query: {
+          _id: ObjectID.getZeroObjectID().toString(),
+          isMasterApiKeyEnabled: true,
+          masterApiKey: apiKey,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+        },
+      });
+
+    return Boolean(masterKeyGlobalConfig);
+  }
+
   @CaptureSpan()
   public static async isValidProjectIdAndApiKeyMiddleware(
     req: ExpressRequest,
@@ -124,22 +161,10 @@ export default class ProjectMiddleware {
 
       if (!apiKeyRow) {
         // check master key.
-        const masterKeyGlobalConfig: GlobalConfig | null =
-          await GlobalConfigService.findOneBy({
-            query: {
-              _id: ObjectID.getZeroObjectID().toString(),
-              isMasterApiKeyEnabled: true,
-              masterApiKey: apiKey,
-            },
-            props: {
-              isRoot: true,
-            },
-            select: {
-              _id: true,
-            },
-          });
+        const isMasterApiKey: boolean =
+          await ProjectMiddleware.isMasterApiKey(apiKey);
 
-        if (masterKeyGlobalConfig) {
+        if (isMasterApiKey) {
           (req as OneUptimeRequest).userType = UserType.MasterAdmin;
 
           // get master admin user

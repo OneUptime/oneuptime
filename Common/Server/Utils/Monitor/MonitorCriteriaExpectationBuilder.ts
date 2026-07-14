@@ -22,6 +22,7 @@ export default class MonitorCriteriaExpectationBuilder {
 
   public static describeCriteriaExpectation(
     criteriaFilter: CriteriaFilter,
+    options?: { unit?: string | undefined },
   ): string | null {
     if (!criteriaFilter.filterType) {
       return null;
@@ -31,24 +32,33 @@ export default class MonitorCriteriaExpectationBuilder {
 
     const value: string | number | undefined = criteriaFilter.value;
 
+    /*
+     * Suffix numeric-threshold comparisons with the metric's display unit
+     * (e.g. "greater than 5 sec") so the threshold reads in the same unit
+     * as the observed value. Only the value-comparison filter types below
+     * carry a numeric threshold — the others (empty, boolean, heartbeat
+     * windows, …) supply their own wording and get no suffix.
+     */
+    const unitSuffix: string = options?.unit ? ` ${options.unit}` : "";
+
     switch (criteriaFilter.filterType) {
       case FilterType.GreaterThan:
-        expectation = `to be greater than ${value}`;
+        expectation = `to be greater than ${value}${unitSuffix}`;
         break;
       case FilterType.GreaterThanOrEqualTo:
-        expectation = `to be greater than or equal to ${value}`;
+        expectation = `to be greater than or equal to ${value}${unitSuffix}`;
         break;
       case FilterType.LessThan:
-        expectation = `to be less than ${value}`;
+        expectation = `to be less than ${value}${unitSuffix}`;
         break;
       case FilterType.LessThanOrEqualTo:
-        expectation = `to be less than or equal to ${value}`;
+        expectation = `to be less than or equal to ${value}${unitSuffix}`;
         break;
       case FilterType.EqualTo:
-        expectation = `to equal ${value}`;
+        expectation = `to equal ${value}${unitSuffix}`;
         break;
       case FilterType.NotEqualTo:
-        expectation = `to not equal ${value}`;
+        expectation = `to not equal ${value}${unitSuffix}`;
         break;
       case FilterType.Contains:
         expectation = `to contain ${value}`;

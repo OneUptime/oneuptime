@@ -1,4 +1,5 @@
 import UserMiddleware from "./UserAuthorization";
+import ProjectMiddleware from "./ProjectAuthorization";
 import JSONWebToken from "../Utils/JsonWebToken";
 import Response from "../Utils/Response";
 import {
@@ -8,6 +9,7 @@ import {
 } from "../Utils/Express";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import ObjectID from "../../Types/ObjectID";
 
 export default class MasterAdminAuthorization {
   public static async isAuthorizedMasterAdminMiddleware(
@@ -51,5 +53,40 @@ export default class MasterAdminAuthorization {
         ),
       );
     }
+  }
+
+  /*
+   * Same as isAuthorizedMasterAdminMiddleware, but ALSO accepts the instance-wide
+   * master API key (Admin Dashboard → Settings → API Key) supplied in the
+   * `apikey` header. The master key has root/master-admin access, so this lets
+   * automated callers reach the master-admin instance-health endpoints with the
+   * key instead of a logged-in master-admin session.
+   *
+   * Deliberately scoped to the read-only health / diagnostics routes only. It is
+   * NOT used on higher-risk master-admin actions (e.g. the read/write query
+   * console or broadcast email), which stay on the JWT-only middleware above so
+   * that a leaked static key cannot trigger them headlessly.
+   */
+  public static async isAuthorizedMasterAdminOrMasterApiKeyMiddleware(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const apiKey: ObjectID | null = ProjectMiddleware.getApiKey(req);
+
+      if (apiKey && (await ProjectMiddleware.isMasterApiKey(apiKey))) {
+        next();
+        return;
+      }
+    } catch {
+      // Fall through to the master-admin session (JWT) check below.
+    }
+
+    return MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware(
+      req,
+      res,
+      next,
+    );
   }
 }
