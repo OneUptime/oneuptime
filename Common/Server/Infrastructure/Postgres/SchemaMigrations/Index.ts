@@ -901,6 +901,5 @@ export default [
   AddSentinelInsight1784010274993,
   AddSentinelInsightFlags1784010274994,
   RenameSentinelToAI1784030612266,
-  MigrationName1784033837629
-  
+  MigrationName1784033837629,
 ];
