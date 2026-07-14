@@ -449,6 +449,7 @@ import { AddSentinelInsight1784010274993 } from "./1784010274993-AddSentinelInsi
 import { AddSentinelInsightFlags1784010274994 } from "./1784010274994-AddSentinelInsightFlags";
 import { RenameSentinelToAI1784030612266 } from "./1784030612266-RenameSentinelToAI";
 import { MigrationName1784033837629 } from "./1784033837629-MigrationName";
+import { AddCreatedByUserToUser1784048917994 } from "./1784048917994-AddCreatedByUserToUser";
 
 export default [
   InitialMigration,
@@ -902,4 +903,5 @@ export default [
   AddSentinelInsightFlags1784010274994,
   RenameSentinelToAI1784030612266,
   MigrationName1784033837629,
+  AddCreatedByUserToUser1784048917994,
 ];
