@@ -76,19 +76,21 @@ const ServiceMetrics: FunctionComponent<
   return (
     <Fragment>
       {/*
-       * Scope by the OneUptime service-name attribute (`oneuptime.service.name`,
-       * stamped on every OpenTelemetry metric row at ingest). This single
-       * attribute filter drives the metric-name list, the per-row sparklines,
-       * the read-only "Service" chip, and — via row-click propagation — the
-       * metric detail chart, keeping the service view consistent with the
-       * attribute-scoped Host / Kubernetes / etc. metric views.
+       * Scope by the OTel `service.name` resource attribute (stored as
+       * `resource.service.name` at ingest), consistent with how the Host
+       * (`resource.host.name`), Kubernetes (`resource.k8s.cluster.name`),
+       * Podman, etc. metric views scope by their own resource attribute. This
+       * single filter drives the metric-name list, the per-row sparklines, the
+       * read-only "Service" chip, and — via row-click propagation — the metric
+       * detail chart. `Service.name` is the value the service reports as
+       * `service.name`.
        */}
       <MetricsViewer
         attributeFilters={{
-          "oneuptime.service.name": serviceName,
+          "resource.service.name": serviceName,
         }}
         attributeFilterDisplayKeys={{
-          "oneuptime.service.name": "Service",
+          "resource.service.name": "Service",
         }}
         serviceIdsToDisplay={[modelId]}
       />

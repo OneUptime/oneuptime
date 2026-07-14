@@ -1241,7 +1241,7 @@ const MetricsViewer: FunctionComponent<Props> = (
 
       /*
        * Propagate the list's attribute filters — the prop-injected scope
-       * (e.g. the service view's `oneuptime.service.name`, or a host page's
+       * (e.g. the service view's `resource.service.name`, or a host page's
        * `resource.host.name`) plus any search/facet attribute chips the user
        * added, all merged in effectiveAttributes — so the detail chart is
        * scoped to the same entity the list was, instead of aggregating the
