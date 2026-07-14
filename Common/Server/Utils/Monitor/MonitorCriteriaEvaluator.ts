@@ -20,6 +20,7 @@ import SnmpMonitorCriteria from "./Criteria/SnmpMonitorCriteria";
 import DnsMonitorCriteria from "./Criteria/DnsMonitorCriteria";
 import DomainMonitorCriteria from "./Criteria/DomainMonitorCriteria";
 import DnssecMonitorCriteria from "./Criteria/DnssecMonitorCriteria";
+import SqlMonitorCriteria from "./Criteria/SqlMonitorCriteria";
 import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
@@ -41,6 +42,7 @@ import ProbeApiIngestResponse, {
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import RequestFailedDetails from "../../../Types/Probe/RequestFailedDetails";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import SqlMonitorResponse from "../../../Types/Monitor/SqlMonitor/SqlMonitorResponse";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
 import OneUptimeDate from "../../../Types/Date";
@@ -578,6 +580,21 @@ ${contextBlock}
         };
       }
 
+      if (input.monitor.monitorType === MonitorType.SQLQuery) {
+        const sqlResponse: SqlMonitorResponse | undefined = (
+          input.dataToProcess as ProbeMonitorResponse
+        ).sqlQueryMonitorResponse;
+
+        storageMap = {
+          rowCount: sqlResponse?.rowCount,
+          scalarValue: sqlResponse?.scalarValue,
+          firstRow: sqlResponse?.firstRow,
+          executionTimeInMs: sqlResponse?.responseTimeInMs,
+          queryError: sqlResponse?.queryError,
+          isOnline: (input.dataToProcess as ProbeMonitorResponse).isOnline,
+        };
+      }
+
       let expression: string = input.criteriaFilter.value as string;
       expression = VMUtil.replaceValueInPlace(storageMap, expression, false);
 
@@ -820,6 +837,18 @@ ${contextBlock}
 
       if (dnssecMonitorResult) {
         return dnssecMonitorResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.SQLQuery) {
+      const sqlMonitorResult: string | null =
+        await SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+        });
+
+      if (sqlMonitorResult) {
+        return sqlMonitorResult;
       }
     }
 

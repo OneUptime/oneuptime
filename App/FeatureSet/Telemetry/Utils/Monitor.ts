@@ -335,6 +335,42 @@ export default class MonitorUtil {
       }
     }
 
+    if (monitorType === MonitorType.SQLQuery) {
+      for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+        []) {
+        if (!monitorStep.data?.sqlMonitor) {
+          continue;
+        }
+
+        /*
+         * Sensitive SQL connection fields may reference a monitor secret via
+         * {{monitorSecrets.name}}. The user opts into this — OneUptime never
+         * creates or populates a secret on their behalf; we only resolve a
+         * reference they chose to write here.
+         */
+        const sqlSecretFields: Array<"password" | "username" | "host" | "databaseName" | "query"> =
+          ["password", "username", "host", "databaseName", "query"];
+
+        for (const field of sqlSecretFields) {
+          const currentValue: string | undefined =
+            monitorStep.data.sqlMonitor[field];
+
+          if (currentValue && this.hasSecrets(currentValue)) {
+            if (!isSecretsLoaded) {
+              monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
+              isSecretsLoaded = true;
+            }
+
+            monitorStep.data.sqlMonitor[field] =
+              (await MonitorUtil.fillSecretsInStringOrJSON({
+                secrets: monitorSecrets,
+                populateSecretsIn: currentValue,
+              })) as string;
+          }
+        }
+      }
+    }
+
     if (monitorType === MonitorType.ExternalStatusPage) {
       for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
         []) {
