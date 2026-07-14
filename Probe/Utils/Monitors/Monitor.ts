@@ -23,6 +23,9 @@ import MonitorStepDomainMonitor from "Common/Types/Monitor/MonitorStepDomainMoni
 import DnssecMonitorUtil from "./MonitorTypes/DnssecMonitor";
 import DnssecMonitorResponse from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
 import MonitorStepDnssecMonitor from "Common/Types/Monitor/MonitorStepDnssecMonitor";
+import SqlMonitor from "./MonitorTypes/SqlMonitor";
+import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
+import MonitorStepSqlMonitor from "Common/Types/Monitor/MonitorStepSqlMonitor";
 import ExternalStatusPageMonitorUtil from "./MonitorTypes/ExternalStatusPageMonitor";
 import ExternalStatusPageMonitorResponse from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import MonitorStepExternalStatusPageMonitor from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
@@ -809,6 +812,46 @@ export default class MonitorUtil {
       result.responseTimeInMs = response.responseTimeInMs;
       result.failureCause = response.failureCause;
       result.dnssecResponse = response;
+      result.probeAttempts = response.probeAttempts;
+      result.totalAttempts = response.totalAttempts;
+    }
+
+    if (monitorType === MonitorType.SQLQuery) {
+      if (!monitorStep.data?.sqlMonitor) {
+        result.failureCause = "SQL monitor configuration not specified";
+        return result;
+      }
+
+      const sqlConfig: MonitorStepSqlMonitor = monitorStep.data.sqlMonitor;
+
+      if (!sqlConfig.host) {
+        result.failureCause = "Database host not specified";
+        return result;
+      }
+
+      if (!sqlConfig.query) {
+        result.failureCause = "SQL query not specified";
+        return result;
+      }
+
+      const response: SqlMonitorResponse | null = await SqlMonitor.execute(
+        sqlConfig,
+        {
+          retry: retryCount,
+          monitorId: monitorId,
+          timeout: requestTimeoutInMs,
+        },
+      );
+
+      if (!response) {
+        return null;
+      }
+
+      result.isOnline = response.isOnline;
+      result.isTimeout = response.isTimeout;
+      result.responseTimeInMs = response.responseTimeInMs;
+      result.failureCause = response.failureCause;
+      result.sqlQueryMonitorResponse = response;
       result.probeAttempts = response.probeAttempts;
       result.totalAttempts = response.totalAttempts;
     }

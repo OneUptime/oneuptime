@@ -44,6 +44,17 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "LLM Providers",
       "View Provider",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_AGENTS, [
+      "Project",
+      "Settings",
+      "AI Agents",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_AGENT_VIEW, [
+      "Project",
+      "Settings",
+      "AI Agents",
+      "View Agent",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_CREDITS, [
       "Project",
       "Settings",

@@ -50,6 +50,10 @@ import SettingsLlmProviders from "../Pages/Settings/LlmProviders";
 
 import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
 
+import SettingsAIAgents from "../Pages/Settings/AIAgents";
+
+import SettingsAIAgentView from "../Pages/Settings/AIAgentView";
+
 import SettingsAICredits from "../Pages/Settings/AICredits";
 
 import SettingsAILogs from "../Pages/Settings/AILogs";
@@ -137,6 +141,26 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENTS)}
+          element={
+            <SettingsAIAgents
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENT_VIEW, 2)}
+          element={
+            <SettingsAIAgentView
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENT_VIEW] as Route}
             />
           }
         />

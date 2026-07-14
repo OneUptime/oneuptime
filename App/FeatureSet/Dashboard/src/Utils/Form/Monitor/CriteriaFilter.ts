@@ -383,6 +383,19 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (monitorType === MonitorType.SQLQuery) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === CheckOn.SqlIsOnline ||
+          i.value === CheckOn.SqlQueryRowCount ||
+          i.value === CheckOn.SqlQueryScalarValue ||
+          i.value === CheckOn.SqlQueryExecutionTime ||
+          i.value === CheckOn.SqlQueryError ||
+          i.value === CheckOn.JavaScriptExpression
+        );
+      });
+    }
+
     if (monitorType === MonitorType.ExternalStatusPage) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -774,6 +787,58 @@ export default class CriteriaFilterUtil {
       });
     }
 
+    if (checkOn === CheckOn.SqlIsOnline) {
+      options = options.filter((i: DropdownOption) => {
+        return i.value === FilterType.True || i.value === FilterType.False;
+      });
+    }
+
+    if (
+      checkOn === CheckOn.SqlQueryRowCount ||
+      checkOn === CheckOn.SqlQueryExecutionTime
+    ) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.SqlQueryScalarValue) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.GreaterThan ||
+          i.value === FilterType.LessThan ||
+          i.value === FilterType.LessThanOrEqualTo ||
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.StartsWith ||
+          i.value === FilterType.EndsWith
+        );
+      });
+    }
+
+    if (checkOn === CheckOn.SqlQueryError) {
+      options = options.filter((i: DropdownOption) => {
+        return (
+          i.value === FilterType.Contains ||
+          i.value === FilterType.NotContains ||
+          i.value === FilterType.EqualTo ||
+          i.value === FilterType.NotEqualTo ||
+          i.value === FilterType.IsEmpty ||
+          i.value === FilterType.IsNotEmpty
+        );
+      });
+    }
+
     if (checkOn === CheckOn.ExternalStatusPageIsOnline) {
       options = options.filter((i: DropdownOption) => {
         return i.value === FilterType.True || i.value === FilterType.False;
@@ -963,7 +1028,26 @@ export default class CriteriaFilterUtil {
       if (monitorType === MonitorType.IncomingRequest) {
         return "{{requestBody.result}} === true";
       }
+      if (monitorType === MonitorType.SQLQuery) {
+        return "{{scalarValue}} > 50";
+      }
       return "{{responseBody.result}} === true";
+    }
+
+    if (checkOn === CheckOn.SqlQueryRowCount) {
+      return "0";
+    }
+
+    if (checkOn === CheckOn.SqlQueryScalarValue) {
+      return "50";
+    }
+
+    if (checkOn === CheckOn.SqlQueryExecutionTime) {
+      return "5000";
+    }
+
+    if (checkOn === CheckOn.SqlQueryError) {
+      return "connection refused";
     }
 
     if (checkOn === CheckOn.ResponseStatusCode) {

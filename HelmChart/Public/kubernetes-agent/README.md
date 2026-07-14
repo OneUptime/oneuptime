@@ -327,8 +327,8 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | Key | Default | Description |
 | --- | --- | --- |
 | `preset` | `""` *(→ `standard`)* | `standard`, `gke-autopilot`, or `eks-fargate`. See table above. |
-| `namespaceFilters.include` | `[]` | If set, only these namespaces are monitored. Empty means all. |
-| `namespaceFilters.exclude` | `["kube-system"]` | Namespaces to skip. |
+| `namespaceFilters.include` | `[]` | If set, only these namespaces are observed. Empty means all. Applies to pod logs (both modes) and eBPF traces — not to metrics, which are always cluster-wide. |
+| `namespaceFilters.exclude` | `["kube-system"]` | Namespaces to skip (applied on top of include; exclude wins). |
 | `logs.enabled` | `true` | Turn pod log collection on or off. |
 | `logs.mode` | `""` *(derived from `preset`)* | Advanced override — `daemonset`, `api`, or `disabled`. Explicit value always wins over the preset. |
 | `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section below. |

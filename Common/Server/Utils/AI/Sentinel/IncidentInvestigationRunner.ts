@@ -5,12 +5,15 @@ import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/Inciden
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
 import IncidentInternalNoteService from "../../../Services/IncidentInternalNoteService";
+import IncidentService from "../../../Services/IncidentService";
 import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "../IncidentAIContextBuilder";
 import SentinelInvestigationEngine from "./SentinelInvestigationEngine";
 import SentinelInvestigationQueue from "./InvestigationQueue";
+import SentinelConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import SentinelMemory from "./SentinelMemory";
+import InstrumentationTaskTrigger from "./InstrumentationTaskTrigger";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -131,7 +134,7 @@ export default class SentinelIncidentInvestigationRunner {
         contextSummary,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
-          isConfident: boolean;
+          confidence: ConfidenceSignal;
           result: ObservabilityAssistantResult;
         }): Promise<void> => {
           await IncidentFeedService.createIncidentFeedItem({
@@ -142,10 +145,15 @@ export default class SentinelIncidentInvestigationRunner {
             feedInfoInMarkdown: postData.analysisMarkdown,
             /*
              * Quiet mode: an inconclusive investigation posts to the timeline
-             * but does NOT loudly ping the workspace / on-call.
+             * but does NOT loudly ping the workspace / on-call. Fail
+             * direction (G6): when the confidence classification itself
+             * failed, the ping SENDS — quiet mode fails louder, not silent.
              */
             workspaceNotification: {
-              sendWorkspaceNotification: postData.isConfident,
+              sendWorkspaceNotification:
+                SentinelConfidenceSignal.shouldSendWorkspaceNotification(
+                  postData.confidence,
+                ),
             },
           });
 
@@ -174,6 +182,46 @@ export default class SentinelIncidentInvestigationRunner {
           } catch (error) {
             logger.error(
               `Sentinel: failed to post RCA internal note for incident ${incidentId.toString()}: ${error}`,
+            );
+          }
+
+          /*
+           * Measurement layer: record the time-to-rca metric (seconds from
+           * incident creation to this analysis post, with the same base
+           * attribute shape as every other incident metric). Best-effort —
+           * metrics must never break the RCA post.
+           */
+          try {
+            await IncidentService.recordTimeToRootCausePostedMetric({
+              incidentId,
+            });
+          } catch (error) {
+            logger.error(
+              `Sentinel: failed to record time-to-rca metric for incident ${incidentId.toString()}: ${error}`,
+            );
+          }
+
+          /*
+           * Inconclusive means the telemetry was insufficient — for
+           * opted-in projects (Project.enableInstrumentationFixTasks,
+           * default false), queue an ImproveInstrumentation fix task that
+           * opens a PR adding the missing observability. Runs strictly
+           * AFTER the analysis is posted, and the trigger never throws, so
+           * the investigation can neither be blocked nor failed by it.
+           * Fail direction (G6): only a POSITIVE inconclusive verdict
+           * (deterministic floor or classification) enqueues — a failed
+           * classification does NOT create a PR.
+           */
+          if (
+            SentinelConfidenceSignal.shouldEnqueueInstrumentationTask(
+              postData.confidence,
+            )
+          ) {
+            await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation(
+              {
+                projectId,
+                incidentId,
+              },
             );
           }
         },

@@ -102,7 +102,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### 名前空間のフィルタリング
 
-デフォルトでは `kube-system` は除外されます。特定の名前空間のみを監視するには次のようにします。
+`namespaceFilters` は、**Pod ログ** (hostPath DaemonSet と API ログテイラーの両方) と **eBPF トレース** を、選択した名前空間にスコープします。デフォルトでは `kube-system` は除外されます。これらのシグナルを特定の名前空間に制限するには次のようにします。
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -113,6 +113,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set "namespaceFilters.include={default,production,staging}"
 ```
+
+> これらのフィルターは、ノード / Pod / コンテナの **メトリクス** を削減 **しません** — それらは kubelet からノードごとにスクレイプされ、常にクラスター全体で収集されます (ノードレベルおよびクラスターレベルのシリーズにはフィルタリング対象となる名前空間がありません)。`exclude` は常に `include` より優先されます。データ量を制御する手段の完全なセットについては、[収集されるデータ量を削減する](#reducing-the-volume-of-data-collected) を参照してください。
 
 ### ログ収集を無効にする
 
@@ -261,6 +263,161 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `tcpStats`                | 有効       | ノードレベルの TCP RTT、接続失敗、再送信のカウンター                           |
 
 サービス間のトレースコンテキスト伝播もデフォルトで有効です — OBI は送信される HTTP/TCP に W3C `traceparent` を注入するため、Pod A → Pod B をまたぐリクエストが単一のトレースとして表示されます。どこにも SDK の変更は不要です。`--set ebpf.contextPropagation=false` で無効にできます。
+
+## 収集されるデータ量を削減する
+
+エージェントはデフォルトで **カバレッジ** を重視して調整されています — クラスター全体からメトリクス、Pod ログ、eBPF トレースを送信するため、すべてのダッシュボードとモニターが初日から機能します。大規模またはビジー状態のクラスターでは、それが必要以上のテレメトリになる場合があり、取り込み量の増加 (そして OneUptime Cloud ではコストの増加) として現れます。ここに書かれていることは何も必須ではありませんが、クラスターが望む以上に送信している場合は、これらが調整すべきつまみです — おおよそ影響の大きい順に並べています。
+
+コツは、すべてを収集して保存料を支払うのではなく、**見ないものは収集しないようにする** ことです。以下のすべてのレバーは Helm の値なので、`helm upgrade --reuse-values` に対して `--set` で適用でき、同じ方法でロールバックできます。
+
+### データ量の発生源
+
+| シグナル                            | 最大の要因                                                           | 削減に使う値                                                                                 |
+| ----------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Pod ログ**                        | クラスター全体、すべてのコンテナのすべての行                         | `logs.enabled`、`logs.mode`、`namespaceFilters`                                              |
+| **eBPF トレースとスパンメトリクス** | 計装されたすべてのプロセスの、リクエストごとに 1 つのトレース        | `ebpf.enabled`、`ebpf.features.*`、`ebpf.autoTargetExe`、`ebpf.excludeExePaths`              |
+| **メトリクスのデータポイント**      | スクレイプ頻度 × Pod/コンテナの数                                    | `collectionInterval`、`hostMetrics.collectionInterval`、`cadvisor.scrapeInterval`            |
+| **メトリクスのカーディナリティ**    | 個別のシリーズの数 (コンテナごと、PVC ごと、…)                       | `cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics`、`kubeletstats.utilizationMetrics` |
+| **オプトインの追加機能**            | プロファイリング、監査ログ、コントロールプレーン、ゾーン間メトリクス | 無効のままにする (デフォルトですでに無効です)                                                |
+
+### レバー 1 — 通常、Pod ログが単独で最大の発生源
+
+コンテナログは、クラスター内のすべてのコンテナからのログ行ごとに 1 レコードとなるため、ほぼ常に取り込みの最大の割合を占めます。
+
+- **OneUptime でログがまったく必要ない場合は?** 完全に無効にします — メトリクス、イベント、トレースはすべて保持されます。
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+- **特定の名前空間のログのみが必要な場合は?** `namespaceFilters.include` は、両方のログモードで Pod ログ (およびそれに伴う eBPF トレース) をスコープします。照合は Pod ログのパスで行われるため、フィルターで除外された名前空間は読み取られることすらありません。
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set "namespaceFilters.include={default,production}"
+  ```
+
+  (`kube-system` はデフォルトですでに除外されています。)
+
+### レバー 2 — eBPF 自動計装を切り詰める
+
+eBPF は、コード変更なしでトレース、RED メトリクス、サービスマップ、ネットワークフローメトリクスを提供します — しかし、リクエストごとにスパンを、サービスごとに複数のメトリクスファミリーを出力するため、2 番目に大きなデータの発生源でもあります。制御には 3 つのレベルがあります。
+
+- **すでに OTel SDK からトレースを送信している、または自動トレースが不要な場合は?** eBPF を完全に無効にします。
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.enabled=false
+  ```
+
+- **トレースは維持しつつ、重いメトリクスファミリーを削除します。** [上記のシグナルファミリーの表](#toggle-individual-signal-families) に各 `ebpf.features.*` フラグが記載されています。最もデータ量の多いファミリーはネットワークメトリクスとスパンメトリクスです — それらを無効にしても、トレース、HTTP RED メトリクス、サービスマップはそのまま残ります。
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.features.networkMetrics=false \
+    --set ebpf.features.tcpStats=false \
+    --set ebpf.features.spanMetrics=false
+  ```
+
+  `ebpf.features.networkInterZoneMetrics` は無効のまま (デフォルト) にしてください — ネットワークフローのカーディナリティが倍増します。
+
+- **関心のあるランタイムのみを計装します。** デフォルトでは、OBI は認識するすべてのプロセスにアタッチします (`ebpf.autoTargetExe: "*"`)。特定のランタイムに絞り込むか、バイナリをスキップリストに追加して、エージェントが生成する「サービス」とトレースの数を減らします。
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.autoTargetExe='*/python,*/java'
+  ```
+
+  完全なデフォルト値については、[個々のシグナルファミリーを切り替える](#toggle-individual-signal-families) と、チャートの値にある `excludeExePaths` の注記を参照してください。
+
+### レバー 3 — スクレイプ間隔を長くする
+
+メトリクスのデータ量は、エージェントがスクレイプする頻度に正比例します。間隔を 2 倍にすると、そのメトリクスが生成するデータポイントの数はおおよそ半分になり、カバレッジは失われません — 解像度が粗くなるだけです。30 秒の粒度が不要な場合、60s または 120s は大きく安全な削減です。
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set collectionInterval=60s \
+  --set hostMetrics.collectionInterval=60s \
+  --set cadvisor.scrapeInterval=60s
+```
+
+- `collectionInterval` (デフォルト `30s`) は、ノード / Pod / コンテナのメトリクス (`kubeletstats`) とクラスター状態のメトリクス (`k8s_cluster`) を駆動します — メトリクスのデータ量の大部分を占めます。
+- `hostMetrics.collectionInterval` と `cadvisor.scrapeInterval` は、ノードごとの OS メトリクスとスロットリング / OOM カウンターをカバーします。
+- `resourceSpecs.interval` (デフォルト `300s`) は、完全なリソース仕様 (ラベル、アノテーション、ステータス) を取得する頻度を制御します — 仕様の変更を素早く反映する必要がない場合は、値を大きくしてください。
+- オプションのスクレイパーのいずれかを有効にしている場合、それらにも独自のつまみがあります: `kubeStateMetrics.scrapeInterval`、`serviceMesh.*.scrapeInterval`、`coreDns.scrapeInterval`、`csi.scrapeInterval`。
+
+### レバー 4 — メトリクスのカーディナリティを抑える
+
+カーディナリティ (個別の時系列の数) は、各シリーズが個別に保存され課金されるため、頻度と同じくらい重要です。
+
+- **cAdvisor は意図的に許可リスト化されています。** cAdvisor レシーバー (デフォルトで有効) は数百のメトリクスを出力できますが、チャートはモニターを支える一握りのメトリクスのみを転送します (`cadvisor.metricsAllowlist`)。リストは絞ったままにしてください — **各エントリはコンテナごとに保持されるため、余分なメトリクスが 1 つあるだけでクラスターのコンテナ数だけ倍増します。** kube-state-metrics はデフォルトで無効ですが、有効にした場合 (`kubeStateMetrics.enabled=true`)、その `kubeStateMetrics.metricsAllowlist` が同じ方法でカーディナリティを制御します。
+- **PVC ごとのボリュームメトリクス** (`kubeletstats.volumeMetrics.enabled`、デフォルトで有効) は、Pod ごと・PVC ごとに 1 つのシリーズを出力します。ほとんどのクラスターでは問題ありませんが、数千の PVC を持つステートフルワークロード (Kafka、データベース) ではかなりの量になる可能性があります — PVC のディスク容量を監視していない場合は、そこで無効にしてください。
+
+  ```bash
+  --set kubeletstats.volumeMetrics.enabled=false
+  ```
+
+- **飽和メトリクス** (`kubeletstats.utilizationMetrics.enabled`、デフォルトで有効) は、8 つの派生的な「リクエスト/リミットに対する %」ファミリーを追加します。これらは安価です (追加のスクレイプなし) が、CPU/メモリ対リミットのモニターを使用しない場合は、`--set kubeletstats.utilizationMetrics.enabled=false` で削除できます。
+
+### レバー 5 — 重いオプトイン機能を無効のままにする
+
+これらは負荷を追加するため、まさに **デフォルトで無効** になっています — それが支える機能を実際に使用する場合にのみ有効にし、単に試しただけの場合は無効に戻してください。
+
+| 値                                                        | 追加される内容                                                                               |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `profiling.enabled`                                       | 継続的な CPU プロファイリングの DaemonSet — eBPF トレースより重い                            |
+| `auditLogs.enabled`                                       | すべての Kubernetes API リクエストをログレコードとして記録 (大量)                            |
+| `controlPlane.enabled`                                    | etcd / API サーバー / スケジューラー / コントローラーマネージャーのメトリクス                |
+| `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / スケジューリング理由のメトリクス (KSM Deployment とスクレイプを追加) |
+| `ebpf.features.networkInterZoneMetrics`                   | ネットワークフローメトリクスのカーディナリティを倍増                                         |
+| `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 追加の Prometheus スクレイプジョブ                                                           |
+
+### 無駄のない出発点
+
+最小限のフットプリントを望み、必要に応じてシグナルを追加していく場合、この **メトリクス + イベントのみ** のプロファイルは、ログと eBPF を削除し、スクレイプレートを半分にします。
+
+```yaml
+# lean-values.yaml
+oneuptime:
+  url: YOUR_ONEUPTIME_URL
+  apiKey: YOUR_ONEUPTIME_API_KEY
+clusterName: my-cluster
+
+collectionInterval: 60s
+
+logs:
+  enabled: false # no pod logs
+
+ebpf:
+  enabled: false # no auto-traces
+
+hostMetrics:
+  collectionInterval: 60s
+
+cadvisor:
+  scrapeInterval: 60s
+```
+
+```bash
+helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  -f lean-values.yaml
+```
+
+そこから、必要なものを再度有効にします: いくつかの名前空間について API モードで `logs.enabled=true`、または絞り込んだ `autoTargetExe` を使った `ebpf.enabled=true`。
+
+> **何を削減するかに注意してください。** 一部のモニターは特定のシグナルに依存します: `cadvisor` を無効にすると、OOM kill と CPU スロットリングのモニターがなくなります。`kubeletstats.volumeMetrics` を無効にすると、PVC のディスク残量不足モニターがなくなります。ログを無効にすると、ログベースのアラートがなくなります。モニターが監視しているシグナルではなく、対応しないシグナルを削減してください。
+
+### 効果を測定する
+
+テレメトリの使用量は 1 日ごとに集計されるため、削減を確認するには **Project Settings → Usage History** で 1〜2 日間の傾向を確認してください — 変更を適用した瞬間には変化しません。一度にすべてを抑えて実際に頼っていたモニターを失うのではなく、レバーを 1 つずつ変更して差分を特定できるようにしてください — まずログを無効にし、次に間隔を長くし、そして eBPF を切り詰めます。
 
 ## トラブルシューティング
 

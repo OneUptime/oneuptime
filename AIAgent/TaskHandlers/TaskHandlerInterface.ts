@@ -1,13 +1,6 @@
-import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
 import ObjectID from "Common/Types/ObjectID";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI from "../Utils/BackendAPI";
-
-// Base interface for task metadata - handlers should define their own specific metadata types
-export interface TaskMetadata {
-  // All metadata must have at least these optional fields for extensibility
-  [key: string]: unknown;
-}
 
 // Base interface for task result data
 export interface TaskResultData {
@@ -22,21 +15,30 @@ export interface TaskResultData {
 }
 
 // Context provided to task handlers
-export interface TaskContext<TMetadata extends TaskMetadata = TaskMetadata> {
-  // Task identification
+export interface TaskContext {
+  // Task identification (the id of the AIRun row on the server)
   taskId: ObjectID;
   projectId: ObjectID;
-  taskType: AIAgentTaskType;
+  /*
+   * The wire discriminator from get-pending-task (e.g. "FixException",
+   * "WriteRegressionTest"). Plain string — see Common/Types/AI/
+   * CodeFixTaskType for the wire values.
+   */
+  taskType: string;
 
-  // Task metadata (varies by task type)
-  metadata: TMetadata;
+  /*
+   * The exception this run should fix — present only for exception-based
+   * recipes. ImproveInstrumentation / FixFromIncident runs have an
+   * incident/alert subject instead and fetch their context by run id
+   * (get-instrumentation-task-details).
+   */
+  exceptionId?: string | undefined;
 
   // Utilities
   logger: TaskLogger;
   backendAPI: BackendAPI;
 
   // Task timestamps
-  createdAt: Date;
   startedAt: Date;
 }
 
@@ -59,37 +61,31 @@ export interface TaskResult {
 }
 
 // Interface that all task handlers must implement
-export interface TaskHandler<TMetadata extends TaskMetadata = TaskMetadata> {
-  // The type of task this handler processes
-  readonly taskType: AIAgentTaskType;
+export interface TaskHandler {
+  // The task-type string this handler processes (registry key)
+  readonly taskType: string;
 
   // Human-readable name for the handler
   readonly name: string;
 
   // Execute the task and return a result
-  execute(context: TaskContext<TMetadata>): Promise<TaskResult>;
+  execute(context: TaskContext): Promise<TaskResult>;
 
   // Check if this handler can process a given task
-  canHandle(taskType: AIAgentTaskType): boolean;
-
-  // Optional: Validate task metadata before execution
-  validateMetadata?(metadata: TMetadata): boolean;
+  canHandle(taskType: string): boolean;
 
   // Optional: Get a description of what this handler does
   getDescription?(): string;
 }
 
 // Abstract base class that provides common functionality for task handlers
-export abstract class BaseTaskHandler<
-  TMetadata extends TaskMetadata = TaskMetadata,
-> implements TaskHandler<TMetadata>
-{
-  public abstract readonly taskType: AIAgentTaskType;
+export abstract class BaseTaskHandler implements TaskHandler {
+  public abstract readonly taskType: string;
   public abstract readonly name: string;
 
-  public abstract execute(context: TaskContext<TMetadata>): Promise<TaskResult>;
+  public abstract execute(context: TaskContext): Promise<TaskResult>;
 
-  public canHandle(taskType: AIAgentTaskType): boolean {
+  public canHandle(taskType: string): boolean {
     return taskType === this.taskType;
   }
 
@@ -138,7 +134,7 @@ export abstract class BaseTaskHandler<
 
   // Log to the task logger
   protected async log(
-    context: TaskContext<TMetadata>,
+    context: TaskContext,
     message: string,
     level: "info" | "debug" | "warning" | "error" = "info",
   ): Promise<void> {

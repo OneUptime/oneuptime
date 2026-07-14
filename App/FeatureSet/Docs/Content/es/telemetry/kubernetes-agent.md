@@ -102,7 +102,7 @@ Una vez que el agente se conecta, tu clúster aparecerá automáticamente en la 
 
 ### Filtrado de namespaces
 
-De forma predeterminada, `kube-system` se excluye. Para monitorear solo namespaces específicos:
+`namespaceFilters` limita el alcance de los **logs de pods** (tanto el DaemonSet con hostPath como el lector de logs de la API) y las **trazas de eBPF** a los namespaces que elijas. `kube-system` se excluye de forma predeterminada. Para restringir esas señales a namespaces específicos:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -113,6 +113,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set "namespaceFilters.include={default,production,staging}"
 ```
+
+> Estos filtros **no** reducen las **métricas** de nodos / pods / contenedores — esas se extraen por nodo desde el kubelet y siempre se recopilan en todo el clúster (las series a nivel de nodo y de clúster no tienen namespace por el que filtrar). `exclude` siempre prevalece sobre `include`. Consulta [Reducir el volumen de datos recopilados](#reducing-the-volume-of-data-collected) para ver el conjunto completo de controles de volumen.
 
 ### Deshabilitar la recopilación de logs
 
@@ -261,6 +263,161 @@ Todas activadas de forma predeterminada. Desactiva cualquiera con `--set ebpf.fe
 | `tcpStats`                | activado       | Contadores de RTT de TCP, conexiones fallidas y retransmisiones a nivel de nodo |
 
 La propagación del contexto de traza entre servicios también está activada de forma predeterminada — OBI inyecta `traceparent` de W3C en el tráfico saliente HTTP/TCP para que una solicitud que cruza del pod A → pod B aparezca como una sola traza, sin cambios de SDK en ninguna parte. Desactívala con `--set ebpf.contextPropagation=false`.
+
+## Reducir el volumen de datos recopilados
+
+De forma predeterminada, el agente está ajustado para la **cobertura** — envía métricas, logs de pods y trazas de eBPF de todo el clúster para que cada panel y monitor funcione desde el primer día. En clústeres grandes o con mucha actividad, eso puede ser más telemetría de la que necesitas, lo que se manifiesta como un mayor volumen de ingesta (y, en OneUptime Cloud, un mayor costo). Nada de esto es obligatorio, pero si un clúster envía más de lo que quieres, estos son los controles que ajustar — aproximadamente en orden de impacto.
+
+El truco es **dejar de recopilar lo que no vas a mirar**, en lugar de recopilar todo y pagar por almacenarlo. Cada palanca a continuación es un valor de Helm, por lo que puedes aplicarla con `--set` en `helm upgrade --reuse-values` y revertirla de la misma manera.
+
+### De dónde proviene el volumen
+
+| Señal                                 | Mayor factor                                                         | Redúcelo con                                                                                 |
+| ------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Logs de pods**                      | Cada línea de cada contenedor, en todo el clúster                    | `logs.enabled`, `logs.mode`, `namespaceFilters`                                              |
+| **Trazas de eBPF y métricas de span** | Una traza por solicitud de cada proceso instrumentado                | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **Puntos de datos de métricas**       | Frecuencia de recopilación × número de pods/contenedores             | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
+| **Cardinalidad de métricas**          | Número de series distintas (por contenedor, por PVC, …)              | `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics`, `kubeletstats.utilizationMetrics` |
+| **Extras opcionales**                 | Profiling, logs de auditoría, plano de control, métricas entre zonas | Déjalos desactivados (ya lo están de forma predeterminada)                                   |
+
+### Palanca 1 — Los logs de pods suelen ser la mayor fuente
+
+Los logs de contenedores son casi siempre la porción más grande de la ingesta, porque es un registro por cada línea de log de cada contenedor del clúster.
+
+- **¿No necesitas logs en OneUptime en absoluto?** Desactívalos por completo — conservas todas las métricas, eventos y trazas:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+- **¿Solo quieres logs de ciertos namespaces?** `namespaceFilters.include` limita el alcance de los logs de pods en ambos modos de logs (y las trazas de eBPF junto con ellos). La coincidencia ocurre en la ruta de logs de pods, por lo que los namespaces filtrados ni siquiera se leen:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set "namespaceFilters.include={default,production}"
+  ```
+
+  (`kube-system` ya está excluido de forma predeterminada.)
+
+### Palanca 2 — Recorta la instrumentación automática de eBPF
+
+eBPF te da trazas, métricas RED, el mapa de servicios y métricas de flujo de red sin cambios en el código — pero también es la segunda mayor fuente de datos porque emite un span por solicitud y varias familias de métricas por servicio. Tienes tres niveles de control:
+
+- **¿Ya envías trazas desde SDK de OTel o no quieres trazas automáticas?** Desactiva eBPF por completo:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.enabled=false
+  ```
+
+- **Conserva las trazas, elimina las familias de métricas pesadas.** La [tabla de familias de señales de arriba](#toggle-individual-signal-families) enumera cada opción `ebpf.features.*`. Las familias de mayor volumen son las métricas de red y de span — desactivarlas deja intactas las trazas, las métricas RED de HTTP y el mapa de servicios:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.features.networkMetrics=false \
+    --set ebpf.features.tcpStats=false \
+    --set ebpf.features.spanMetrics=false
+  ```
+
+  Deja `ebpf.features.networkInterZoneMetrics` desactivado (su valor predeterminado) — duplica la cardinalidad del flujo de red.
+
+- **Instrumenta solo los runtimes que te interesan.** De forma predeterminada, OBI se adjunta a cada proceso que reconoce (`ebpf.autoTargetExe: "*"`). Acótalo a runtimes específicos, o agrega binarios a la lista de exclusión, para reducir el número de "servicios" y trazas que produce el agente:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.autoTargetExe='*/python,*/java'
+  ```
+
+  Consulta [Activar familias de señales individuales](#toggle-individual-signal-families) y la nota sobre `excludeExePaths` en los valores del chart para ver los valores predeterminados completos.
+
+### Palanca 3 — Ralentiza los intervalos de recopilación
+
+El volumen de métricas es directamente proporcional a la frecuencia con la que el agente recopila. Duplicar un intervalo reduce aproximadamente a la mitad el número de puntos de datos que produce esa métrica, sin pérdida de cobertura — solo una resolución más gruesa. Si no necesitas una granularidad de 30 segundos, 60s o 120s es una reducción grande y segura:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set collectionInterval=60s \
+  --set hostMetrics.collectionInterval=60s \
+  --set cadvisor.scrapeInterval=60s
+```
+
+- `collectionInterval` (predeterminado `30s`) impulsa las métricas de nodos / pods / contenedores (`kubeletstats`) y las métricas de estado del clúster (`k8s_cluster`) — la mayor parte del volumen de métricas.
+- `hostMetrics.collectionInterval` y `cadvisor.scrapeInterval` cubren las métricas del sistema operativo por nodo y los contadores de throttling / OOM.
+- `resourceSpecs.interval` (predeterminado `300s`) controla con qué frecuencia se extraen las especificaciones completas de recursos (labels, anotaciones, estado) — auméntalo si no necesitas que los cambios de especificación se reflejen rápidamente.
+- Si habilitaste alguno de los recopiladores opcionales, también tienen sus propios controles: `kubeStateMetrics.scrapeInterval`, `serviceMesh.*.scrapeInterval`, `coreDns.scrapeInterval`, `csi.scrapeInterval`.
+
+### Palanca 4 — Mantén acotada la cardinalidad de métricas
+
+La cardinalidad (el número de series temporales distintas) importa tanto como la frecuencia, porque cada serie se almacena y se factura por separado.
+
+- **cAdvisor está en lista de permitidos a propósito.** El receptor de cAdvisor (activado de forma predeterminada) puede emitir cientos de métricas; el chart reenvía solo el puñado que impulsa los monitores (`cadvisor.metricsAllowlist`). Mantén la lista ajustada — **cada entrada se conserva por contenedor, por lo que una métrica adicional se multiplica por el número de contenedores del clúster.** kube-state-metrics está desactivado de forma predeterminada, pero si lo habilitas (`kubeStateMetrics.enabled=true`), su `kubeStateMetrics.metricsAllowlist` controla la cardinalidad de la misma manera.
+- **Las métricas de volumen por PVC** (`kubeletstats.volumeMetrics.enabled`, activado de forma predeterminada) emiten una serie por PVC por pod. Eso está bien para la mayoría de los clústeres, pero puede ser considerable en cargas de trabajo con estado (Kafka, bases de datos) con miles de PVC — desactívalo allí si no supervisas el espacio en disco de los PVC:
+
+  ```bash
+  --set kubeletstats.volumeMetrics.enabled=false
+  ```
+
+- **Las métricas de saturación** (`kubeletstats.utilizationMetrics.enabled`, activado de forma predeterminada) agregan 8 familias derivadas de "% de request/limit". Son económicas (sin recopilación adicional) pero si no usas los monitores de CPU/memoria frente al límite, puedes eliminarlas con `--set kubeletstats.utilizationMetrics.enabled=false`.
+
+### Palanca 5 — Deja desactivadas las funciones opcionales pesadas
+
+Estas están **desactivadas de forma predeterminada** precisamente porque agregan carga — habilita una solo cuando uses activamente lo que impulsa, y vuelve a desactivarla si solo la estabas probando:
+
+| Valor                                                     | Agrega                                                                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `profiling.enabled`                                       | DaemonSet de profiling continuo de CPU — más pesado que las trazas de eBPF                              |
+| `auditLogs.enabled`                                       | Cada solicitud a la API de Kubernetes como un registro de log (alto volumen)                            |
+| `controlPlane.enabled`                                    | Métricas de etcd / API-server / scheduler / controller-manager                                          |
+| `kubeStateMetrics.enabled`                                | Métricas de CrashLoop / ImagePull / motivo de programación (agrega un Deployment de KSM + recopilación) |
+| `ebpf.features.networkInterZoneMetrics`                   | Duplica la cardinalidad de las métricas de flujo de red                                                 |
+| `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Trabajos adicionales de recopilación de Prometheus                                                      |
+
+### Un punto de partida ligero
+
+Si quieres una huella mínima y agregarás señales a medida que las necesites, este perfil de **solo métricas + eventos** elimina los logs y eBPF y reduce a la mitad la frecuencia de recopilación:
+
+```yaml
+# lean-values.yaml
+oneuptime:
+  url: YOUR_ONEUPTIME_URL
+  apiKey: YOUR_ONEUPTIME_API_KEY
+clusterName: my-cluster
+
+collectionInterval: 60s
+
+logs:
+  enabled: false # no pod logs
+
+ebpf:
+  enabled: false # no auto-traces
+
+hostMetrics:
+  collectionInterval: 60s
+
+cadvisor:
+  scrapeInterval: 60s
+```
+
+```bash
+helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  -f lean-values.yaml
+```
+
+Desde ahí, vuelve a habilitar lo que necesites: `logs.enabled=true` para unos pocos namespaces en modo API, o `ebpf.enabled=true` con un `autoTargetExe` acotado.
+
+> **Ten cuidado con lo que recortas.** Algunos monitores dependen de señales específicas: deshabilitar `cadvisor` elimina los monitores de OOM-kill y de throttling de CPU; deshabilitar `kubeletstats.volumeMetrics` elimina el monitor de poco espacio en disco de PVC; deshabilitar los logs elimina las alertas basadas en logs. Recorta las señales sobre las que no actúas, no las que un monitor está observando.
+
+### Mide el efecto
+
+El uso de telemetría se agrega por día, así que revisa la tendencia durante uno o dos días en **Project Settings → Usage History** para confirmar la reducción — no cambiará en el instante en que apliques un cambio. Cambia una palanca a la vez para que puedas atribuir la diferencia — logs desactivados, luego intervalo aumentado, luego eBPF recortado — en lugar de reducir todo a la vez y perder un monitor del que realmente dependías.
 
 ## Solución de problemas
 

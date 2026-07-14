@@ -157,6 +157,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Bell}
         />
+        <SideMenuItem
+          link={{
+            title: "AI Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Bolt}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Audit">

@@ -317,9 +317,9 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   },
 
   "/product/ai-agent": {
-    title: "AI Agent | Automatic Code Fixes & PRs | OneUptime",
+    title: "Sentinel | Code Fixes as Pull Requests | OneUptime",
     description:
-      "AI Agent automatically fixes errors, performance issues, and database queries in your codebase. Creates ready-to-merge pull requests. Supports OpenAI, Anthropic, Ollama, and self-hosted LLMs. Privacy-first: no code stored or trained on.",
+      "Sentinel turns production exceptions, incident investigations, and slow traces into pull requests with code fixes. Supports OpenAI, Anthropic, Ollama, and self-hosted LLMs. Privacy-first: no code stored or trained on.",
     canonicalPath: "/product/ai-agent",
     ogImage: "/img/ai-agent.png",
     twitterCard: "summary_large_image",
@@ -327,23 +327,22 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
     breadcrumbs: [
       { name: "Home", url: "/" },
       { name: "Products", url: "/#products" },
-      { name: "AI Agent", url: "/product/ai-agent" },
+      { name: "Sentinel", url: "/product/ai-agent" },
     ],
     softwareApplication: {
-      name: "OneUptime AI Agent",
+      name: "OneUptime Sentinel",
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:
-        "AI-powered agent that automatically detects and fixes code issues, creating ready-to-merge pull requests.",
+        "AI SRE that investigates production issues and opens human-reviewed pull requests with code fixes.",
       features: [
-        "Automatic error fixes",
-        "Performance issue resolution",
-        "Database query optimization",
-        "Frontend issue fixes",
-        "GitHub and GitLab integration",
-        "CI/CD pipeline integration",
-        "Terraform support",
-        "Issue tracker integration",
+        "Fix PRs from unresolved exceptions",
+        "Fix PRs from trace performance findings",
+        "Fix PRs from incident investigations",
+        "Regression test generation",
+        "Instrumentation PRs for missing telemetry",
+        "GitHub App integration",
+        "Human-reviewed: the agent never merges",
         "Multiple LLM provider support",
         "Self-hosted LLM option",
         "Privacy-first: no code storage",

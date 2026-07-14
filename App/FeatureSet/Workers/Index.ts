@@ -130,12 +130,16 @@ import "./Jobs/Probe/UpdateConnectionStatus";
 // AI Agents
 import "./Jobs/AIAgent/SendOwnerAddedNotification";
 import "./Jobs/AIAgent/UpdateConnectionStatus";
-import "./Jobs/AIAgent/TimeoutStuckTasks";
+import "./Jobs/AIAgent/FailOrphanedQueuedCodeFixRuns";
+import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
+
+// Instance health and capacity management.
+import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";
 
 // Derived / recording-rule metrics.
 import "./Jobs/Metrics/ComputeRecordingRules";

@@ -98,6 +98,13 @@ export enum CheckOn {
   DnssecResolverConsensus = "DNSSEC Resolver Consensus (AD Flag)",
   DnssecNameserverConsistent = "DNSSEC Nameservers Are Consistent",
 
+  // SQL Query monitors.
+  SqlIsOnline = "SQL Is Online",
+  SqlQueryRowCount = "SQL Query Row Count",
+  SqlQueryScalarValue = "SQL Query Scalar Value",
+  SqlQueryExecutionTime = "SQL Query Execution Time (in ms)",
+  SqlQueryError = "SQL Query Error",
+
   // External Status Page monitors.
   ExternalStatusPageIsOnline = "External Status Page Is Online",
   ExternalStatusPageOverallStatus = "External Status Page Overall Status",
@@ -299,6 +306,7 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.DnssecDsExists ||
       checkOn === CheckOn.DnssecResolverConsensus ||
       checkOn === CheckOn.DnssecNameserverConsistent ||
+      checkOn === CheckOn.SqlIsOnline ||
       checkOn === CheckOn.ExternalStatusPageIsOnline
     ) {
       return false;

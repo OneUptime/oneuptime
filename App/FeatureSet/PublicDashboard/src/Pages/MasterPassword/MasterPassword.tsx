@@ -58,11 +58,11 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
     onSubmitSuccessful?: () => void,
   ): Promise<void> => {
     const submittedPassword: string =
-      (values["password"] as { toString: () => string } | undefined)
-        ?.toString()
-        .trim() || "";
+      (
+        values["password"] as { toString: () => string } | undefined
+      )?.toString() || "";
 
-    if (!submittedPassword) {
+    if (!submittedPassword.trim()) {
       setFormError("Password is required.");
       return;
     }
@@ -94,7 +94,7 @@ const MasterPasswordPage: FunctionComponent<ComponentProps> = (
       PublicDashboardUtil.setMasterPasswordValidated(true);
 
       const redirectUrl: string | null =
-        Navigation.getQueryStringByName("redirectUrl");
+        PublicDashboardUtil.getSafeRedirectUrl();
 
       if (redirectUrl) {
         Navigation.navigate(new Route(redirectUrl), {

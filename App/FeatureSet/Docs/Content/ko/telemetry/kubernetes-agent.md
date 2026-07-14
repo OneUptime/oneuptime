@@ -102,7 +102,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### 네임스페이스 필터링
 
-기본적으로 `kube-system`은 제외됩니다. 특정 네임스페이스만 모니터링하려면:
+`namespaceFilters`는 **파드 로그**(hostPath DaemonSet과 API 로그 테일러 모두)와 **eBPF 트레이스**를 선택한 네임스페이스로 범위를 제한합니다. 기본적으로 `kube-system`은 제외됩니다. 이러한 시그널을 특정 네임스페이스로 제한하려면:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -113,6 +113,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set "namespaceFilters.include={default,production,staging}"
 ```
+
+> 이러한 필터는 노드 / 파드 / 컨테이너 **메트릭**을 줄이지 **않습니다** — 이들은 kubelet에서 노드별로 스크레이프되며 항상 클러스터 전체에서 수집됩니다(노드 및 클러스터 수준 시리즈에는 필터링할 네임스페이스가 없습니다). `exclude`는 항상 `include`보다 우선합니다. 전체 볼륨 제어 항목은 [수집되는 데이터 볼륨 줄이기](#reducing-the-volume-of-data-collected)를 참조하세요.
 
 ### 로그 수집 비활성화
 
@@ -261,6 +263,161 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `tcpStats`                | on     | 노드 수준 TCP RTT, 실패한 연결, 재전송 카운터              |
 
 서비스 간 트레이스 컨텍스트 전파도 기본적으로 활성화되어 있습니다 — OBI는 아웃바운드 HTTP/TCP에 W3C `traceparent`를 주입하므로, 파드 A → 파드 B를 가로지르는 요청이 단일 트레이스로 표시되며 어디에서도 SDK 변경이 필요 없습니다. `--set ebpf.contextPropagation=false`로 끌 수 있습니다.
+
+## 수집되는 데이터 볼륨 줄이기
+
+기본 설정에서 에이전트는 **커버리지**에 맞춰 튜닝되어 있습니다 — 전체 클러스터에서 메트릭, 파드 로그 및 eBPF 트레이스를 전송하므로 모든 대시보드와 모니터가 첫날부터 작동합니다. 크거나 바쁜 클러스터에서는 이것이 필요 이상의 텔레메트리일 수 있으며, 이는 더 높은 수집 볼륨(그리고 OneUptime Cloud에서는 더 높은 비용)으로 나타납니다. 여기에 있는 어떤 것도 필수는 아니지만, 클러스터가 원하는 것보다 많이 전송하고 있다면 이것들이 조정할 항목입니다 — 대략 영향도 순으로 정리되어 있습니다.
+
+핵심은 모든 것을 수집하고 저장 비용을 지불하는 대신 **보지 않을 것은 수집을 중단하는** 것입니다. 아래의 모든 레버는 Helm 값이므로 `helm upgrade --reuse-values`에서 `--set`으로 적용하고 같은 방식으로 롤백할 수 있습니다.
+
+### 볼륨의 출처
+
+| 시그널                           | 가장 큰 요인                                         | 줄이는 방법                                                                                  |
+| -------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **파드 로그**                    | 클러스터 전체에서 모든 컨테이너의 모든 라인          | `logs.enabled`, `logs.mode`, `namespaceFilters`                                              |
+| **eBPF 트레이스 및 스팬 메트릭** | 계측된 모든 프로세스에서 요청당 하나의 트레이스      | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **메트릭 데이터 포인트**         | 스크레이프 빈도 × 파드/컨테이너 수                   | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
+| **메트릭 카디널리티**            | 고유한 시리즈 수 (컨테이너별, PVC별, …)              | `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics`, `kubeletstats.utilizationMetrics` |
+| **옵트인 추가 기능**             | 프로파일링, 감사 로그, 컨트롤 플레인, 영역 간 메트릭 | 꺼진 상태로 두세요 (이미 기본적으로 꺼져 있음)                                               |
+
+### 레버 1 — 파드 로그는 보통 가장 큰 단일 소스입니다
+
+컨테이너 로그는 클러스터의 모든 컨테이너에서 로그 라인당 하나의 레코드이기 때문에 거의 항상 수집에서 가장 큰 부분을 차지합니다.
+
+- **OneUptime에서 로그가 전혀 필요 없나요?** 완전히 끄세요 — 모든 메트릭, 이벤트 및 트레이스는 유지됩니다:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+- **특정 네임스페이스의 로그만 원하나요?** `namespaceFilters.include`는 두 로그 모드 모두에서 파드 로그의 범위를 제한합니다(그리고 eBPF 트레이스도 함께). 매칭은 파드 로그 경로에서 일어나므로 필터링된 네임스페이스는 읽히지도 않습니다:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set "namespaceFilters.include={default,production}"
+  ```
+
+  (`kube-system`은 이미 기본적으로 제외되어 있습니다.)
+
+### 레버 2 — eBPF 자동 계측 다듬기
+
+eBPF는 코드 변경 없이 트레이스, RED 메트릭, 서비스 맵 및 네트워크 흐름 메트릭을 제공합니다 — 하지만 요청당 하나의 스팬과 서비스당 여러 메트릭 패밀리를 방출하기 때문에 두 번째로 큰 데이터 소스이기도 합니다. 세 가지 수준의 제어가 가능합니다:
+
+- **이미 OTel SDK에서 트레이스를 전송하고 있거나 자동 트레이스를 원하지 않나요?** eBPF를 완전히 끄세요:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.enabled=false
+  ```
+
+- **트레이스는 유지하고 무거운 메트릭 패밀리는 제거하세요.** [위의 시그널 패밀리 표](#toggle-individual-signal-families)에는 각 `ebpf.features.*` 플래그가 나열되어 있습니다. 가장 볼륨이 큰 패밀리는 네트워크 및 스팬 메트릭입니다 — 이를 끄면 트레이스, HTTP RED 메트릭 및 서비스 맵은 그대로 유지됩니다:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.features.networkMetrics=false \
+    --set ebpf.features.tcpStats=false \
+    --set ebpf.features.spanMetrics=false
+  ```
+
+  `ebpf.features.networkInterZoneMetrics`는 꺼진 상태(기본값)로 두세요 — 네트워크 흐름 카디널리티가 두 배가 됩니다.
+
+- **관심 있는 런타임만 계측하세요.** 기본적으로 OBI는 인식하는 모든 프로세스에 연결됩니다(`ebpf.autoTargetExe: "*"`). 특정 런타임으로 좁히거나 바이너리를 건너뛰기 목록에 추가하여 에이전트가 생성하는 "서비스" 및 트레이스 수를 줄이세요:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.autoTargetExe='*/python,*/java'
+  ```
+
+  전체 기본값은 [개별 시그널 패밀리 토글](#toggle-individual-signal-families)과 차트 값의 `excludeExePaths` 참고 사항을 확인하세요.
+
+### 레버 3 — 스크레이프 간격을 늦추기
+
+메트릭 볼륨은 에이전트가 스크레이프하는 빈도에 정비례합니다. 간격을 두 배로 늘리면 해당 메트릭이 생성하는 데이터 포인트 수가 커버리지 손실 없이 대략 절반으로 줄어들며 — 단지 해상도가 더 거칠어질 뿐입니다. 30초 단위의 세분성이 필요하지 않다면 60초 또는 120초가 크고 안전한 감소입니다:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set collectionInterval=60s \
+  --set hostMetrics.collectionInterval=60s \
+  --set cadvisor.scrapeInterval=60s
+```
+
+- `collectionInterval`(기본값 `30s`)는 노드 / 파드 / 컨테이너 메트릭(`kubeletstats`)과 클러스터 상태 메트릭(`k8s_cluster`)을 구동합니다 — 메트릭 볼륨의 대부분입니다.
+- `hostMetrics.collectionInterval`과 `cadvisor.scrapeInterval`은 노드별 OS 메트릭과 스로틀링 / OOM 카운터를 다룹니다.
+- `resourceSpecs.interval`(기본값 `300s`)은 전체 리소스 사양(레이블, 어노테이션, 상태)을 얼마나 자주 가져올지 제어합니다 — 사양 변경이 빠르게 반영될 필요가 없다면 이를 높이세요.
+- 선택적 스크레이퍼를 활성화한 경우 이들도 자체 조정 항목이 있습니다: `kubeStateMetrics.scrapeInterval`, `serviceMesh.*.scrapeInterval`, `coreDns.scrapeInterval`, `csi.scrapeInterval`.
+
+### 레버 4 — 메트릭 카디널리티를 제한된 상태로 유지하기
+
+카디널리티(고유한 시계열 수)는 각 시리즈가 개별적으로 저장되고 청구되기 때문에 빈도만큼 중요합니다.
+
+- **cAdvisor는 의도적으로 허용 목록으로 관리됩니다.** cAdvisor 리시버(기본 활성화)는 수백 개의 메트릭을 방출할 수 있습니다. 차트는 모니터를 구동하는 소수의 메트릭만 전달합니다(`cadvisor.metricsAllowlist`). 목록을 최소한으로 유지하세요 — **각 항목은 컨테이너별로 유지되므로 추가 메트릭 하나가 클러스터의 컨테이너 수만큼 곱해집니다.** kube-state-metrics는 기본적으로 꺼져 있지만, 이를 활성화하면(`kubeStateMetrics.enabled=true`) 해당 `kubeStateMetrics.metricsAllowlist`가 동일한 방식으로 카디널리티를 제어합니다.
+- **PVC별 볼륨 메트릭**(`kubeletstats.volumeMetrics.enabled`, 기본 활성화)은 파드별 PVC당 하나의 시리즈를 방출합니다. 대부분의 클러스터에서는 괜찮지만 수천 개의 PVC가 있는 상태 저장 워크로드(Kafka, 데이터베이스)에서는 상당할 수 있습니다 — PVC 디스크 공간을 감시하지 않는다면 거기에서 이를 끄세요:
+
+  ```bash
+  --set kubeletstats.volumeMetrics.enabled=false
+  ```
+
+- **포화 메트릭**(`kubeletstats.utilizationMetrics.enabled`, 기본 활성화)은 8개의 파생된 "요청/제한 대비 %" 패밀리를 추가합니다. 이들은 저렴하지만(추가 스크레이프 없음) CPU/메모리 대 제한 모니터를 사용하지 않는다면 `--set kubeletstats.utilizationMetrics.enabled=false`로 제거할 수 있습니다.
+
+### 레버 5 — 무거운 옵트인 기능을 끈 상태로 두기
+
+이들은 부하를 추가하기 때문에 정확히 **기본적으로 꺼져 있습니다** — 그것이 구동하는 것을 실제로 사용할 때만 활성화하고, 단지 시험해 본 것이라면 다시 끄세요:
+
+| 값                                                        | 추가하는 항목                                                                   |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `profiling.enabled`                                       | 지속적인 CPU 프로파일링 DaemonSet — eBPF 트레이스보다 무거움                    |
+| `auditLogs.enabled`                                       | 모든 Kubernetes API 요청을 로그 레코드로 (높은 볼륨)                            |
+| `controlPlane.enabled`                                    | etcd / API 서버 / 스케줄러 / 컨트롤러 매니저 메트릭                             |
+| `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / 스케줄링 사유 메트릭 (KSM Deployment + 스크레이프 추가) |
+| `ebpf.features.networkInterZoneMetrics`                   | 네트워크 흐름 메트릭 카디널리티가 두 배가 됨                                    |
+| `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 추가 Prometheus 스크레이프 작업                                                 |
+
+### 간소한 시작점
+
+최소한의 설치 규모를 원하고 필요에 따라 시그널을 다시 추가할 것이라면, 이 **메트릭 + 이벤트 전용** 프로필은 로그와 eBPF를 제거하고 스크레이프 속도를 절반으로 줄입니다:
+
+```yaml
+# lean-values.yaml
+oneuptime:
+  url: YOUR_ONEUPTIME_URL
+  apiKey: YOUR_ONEUPTIME_API_KEY
+clusterName: my-cluster
+
+collectionInterval: 60s
+
+logs:
+  enabled: false # no pod logs
+
+ebpf:
+  enabled: false # no auto-traces
+
+hostMetrics:
+  collectionInterval: 60s
+
+cadvisor:
+  scrapeInterval: 60s
+```
+
+```bash
+helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  -f lean-values.yaml
+```
+
+거기에서 필요한 것을 다시 활성화하세요: API 모드에서 몇 개의 네임스페이스에 대해 `logs.enabled=true`, 또는 좁혀진 `autoTargetExe`와 함께 `ebpf.enabled=true`.
+
+> **무엇을 잘라내는지 주의하세요.** 일부 모니터는 특정 시그널에 의존합니다: `cadvisor`를 비활성화하면 OOM-kill 및 CPU 스로틀링 모니터가 제거되고, `kubeletstats.volumeMetrics`를 비활성화하면 PVC 저디스크 모니터가 제거되며, 로그를 비활성화하면 로그 기반 알림이 제거됩니다. 모니터가 감시하는 시그널이 아니라 대응하지 않는 시그널을 다듬으세요.
+
+### 효과 측정
+
+텔레메트리 사용량은 하루 단위로 집계되므로, 감소를 확인하려면 **Project Settings → Usage History**에서 하루 이틀에 걸친 추세를 확인하세요 — 변경 사항을 적용하는 즉시 움직이지는 않습니다. 모든 것을 한 번에 낮춰서 실제로 의존하던 모니터를 잃는 대신, 한 번에 하나의 레버씩 변경하여 차이를 귀속시킬 수 있도록 하세요 — 로그 끄기, 그다음 간격 늘리기, 그다음 eBPF 다듬기.
 
 ## 문제 해결
 

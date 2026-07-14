@@ -102,7 +102,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### 命名空间过滤
 
-默认情况下，`kube-system` 会被排除。要仅监控特定命名空间：
+`namespaceFilters` 会将 **Pod 日志**（既包括 hostPath DaemonSet，也包括 API 日志拉取器）以及 **eBPF 追踪**限定到你所选择的命名空间。默认情况下，`kube-system` 会被排除。要将这些信号限制到特定命名空间：
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -113,6 +113,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set "namespaceFilters.include={default,production,staging}"
 ```
+
+> 这些过滤器**不会**减少节点 / Pod / 容器**指标**——这些指标是从 kubelet 按节点抓取的，并且始终在整个集群范围内采集（节点级和集群级的序列没有可供过滤的命名空间）。`exclude` 始终优先于 `include`。有关完整的一整套数据量控制项，请参阅[减少采集的数据量](#reducing-the-volume-of-data-collected)。
 
 ### 禁用日志采集
 
@@ -261,6 +263,161 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `tcpStats`                | 开   | 节点级别的 TCP RTT、连接失败、重传计数器              |
 
 跨服务追踪上下文传播也默认开启——OBI 会将 W3C `traceparent` 注入到出站的 HTTP/TCP 中，因此一个从 Pod A → Pod B 跨越的请求会显示为单个追踪，在任何地方都无需更改 SDK。使用 `--set ebpf.contextPropagation=false` 关闭。
+
+## 减少采集的数据量
+
+开箱即用时，代理是为**覆盖范围**而调优的——它会发送来自整个集群的指标、Pod 日志和 eBPF 追踪，因此每个仪表板和监视器从第一天起就能正常工作。在大型或繁忙的集群上，这可能会超出你所需的遥测量，表现为更高的摄取量（在 OneUptime Cloud 上还意味着更高的成本）。这里的任何设置都不是必需的，但如果某个集群发送的数据超出你的需要，以下就是可以调整的旋钮——大致按影响大小排序。
+
+诀窍在于**停止采集你不会去查看的内容**，而不是采集所有内容再花钱把它存储起来。下面的每个调整项都是一个 Helm 值，因此你可以在 `helm upgrade --reuse-values` 上用 `--set` 应用它，并以同样的方式将它回滚。
+
+### 数据量从何而来
+
+| 信号                      | 最主要的来源                             | 用以下项调低                                                                                 |
+| ------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Pod 日志**              | 整个集群中每个容器的每一行日志           | `logs.enabled`、`logs.mode`、`namespaceFilters`                                              |
+| **eBPF 追踪与 span 指标** | 来自每个被埋点进程的每个请求一条追踪     | `ebpf.enabled`、`ebpf.features.*`、`ebpf.autoTargetExe`、`ebpf.excludeExePaths`              |
+| **指标数据点**            | 抓取频率 × Pod/容器数量                  | `collectionInterval`、`hostMetrics.collectionInterval`、`cadvisor.scrapeInterval`            |
+| **指标基数**              | 不同序列的数量（每容器、每 PVC，……）     | `cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics`、`kubeletstats.utilizationMetrics` |
+| **可选启用的额外项**      | 性能分析、审计日志、控制平面、跨区域指标 | 让它们保持关闭（它们默认已经是关闭的）                                                       |
+
+### 调整项 1 — Pod 日志通常是最大的单一来源
+
+容器日志几乎总是摄取量中最大的部分，因为它是集群中每个容器的每一行日志对应一条记录。
+
+- **完全不需要 OneUptime 中的日志？** 将它们彻底关闭——你会保留所有指标、事件和追踪：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+- **只想要某些命名空间的日志？** `namespaceFilters.include` 会在两种日志模式下限定 Pod 日志（以及随之而来的 eBPF 追踪）。匹配发生在 Pod 日志路径上，因此被过滤掉的命名空间甚至从不会被读取：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set "namespaceFilters.include={default,production}"
+  ```
+
+  （`kube-system` 默认已被排除。）
+
+### 调整项 2 — 精简 eBPF 自动埋点
+
+eBPF 无需更改代码即可为你提供追踪、RED 指标、服务地图和网络流量指标——但它也是第二大的数据来源，因为它为每个请求发出一个 span，并为每个服务发出多个指标系列。你有三个层级的控制方式：
+
+- **已经通过 OTel SDK 发送追踪，或者不想要自动追踪？** 彻底关闭 eBPF：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.enabled=false
+  ```
+
+- **保留追踪，去掉高开销的指标系列。** 上面的[信号系列表](#toggle-individual-signal-families)列出了每个 `ebpf.features.*` 标志。数据量最大的系列是网络指标和 span 指标——关闭它们会让追踪、HTTP RED 指标和服务地图保持完好：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.features.networkMetrics=false \
+    --set ebpf.features.tcpStats=false \
+    --set ebpf.features.spanMetrics=false
+  ```
+
+  让 `ebpf.features.networkInterZoneMetrics` 保持关闭（其默认值）——它会使网络流量基数翻倍。
+
+- **只对你关心的运行时进行埋点。** 默认情况下，OBI 会附加到它识别的每个进程上（`ebpf.autoTargetExe: "*"`）。将其缩小到特定的运行时，或将二进制文件加入跳过列表，以减少代理产生的“服务”和追踪的数量：
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.autoTargetExe='*/python,*/java'
+  ```
+
+  有关完整的默认值，请参阅[切换单个信号系列](#toggle-individual-signal-families)以及 chart values 中的 `excludeExePaths` 说明。
+
+### 调整项 3 — 放慢抓取间隔
+
+指标量与代理抓取的频率成正比。将某个间隔加倍大致会使该指标产生的数据点数量减半，且不会损失覆盖范围——只是分辨率更粗。如果你不需要 30 秒的粒度，60s 或 120s 是一个大幅且安全的削减：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set collectionInterval=60s \
+  --set hostMetrics.collectionInterval=60s \
+  --set cadvisor.scrapeInterval=60s
+```
+
+- `collectionInterval`（默认 `30s`）驱动节点 / Pod / 容器指标（`kubeletstats`）和集群状态指标（`k8s_cluster`）——占指标量的大部分。
+- `hostMetrics.collectionInterval` 和 `cadvisor.scrapeInterval` 涵盖每节点的操作系统指标以及限流 / OOM 计数器。
+- `resourceSpecs.interval`（默认 `300s`）控制拉取完整资源规格（标签、注解、状态）的频率——如果你不需要快速反映规格变更，请调高它。
+- 如果你启用了任何可选的抓取器，它们也有各自的旋钮：`kubeStateMetrics.scrapeInterval`、`serviceMesh.*.scrapeInterval`、`coreDns.scrapeInterval`、`csi.scrapeInterval`。
+
+### 调整项 4 — 控制指标基数上限
+
+基数（不同时间序列的数量）与频率同样重要，因为每个序列都是单独存储和计费的。
+
+- **cAdvisor 是有意加了允许列表的。** cAdvisor 接收器（默认开启）可以发出数百个指标；该 chart 只转发用于驱动监视器的少数几个（`cadvisor.metricsAllowlist`）。请保持该列表精简——**每个条目都是按容器保留的，因此一个额外的指标会乘以集群的容器数量。** kube-state-metrics 默认是关闭的，但如果你启用它（`kubeStateMetrics.enabled=true`），它的 `kubeStateMetrics.metricsAllowlist` 会以同样的方式限制基数。
+- **每 PVC 的卷指标**（`kubeletstats.volumeMetrics.enabled`，默认开启）为每个 Pod 的每个 PVC 发出一个序列。这对大多数集群来说没问题，但在拥有数千个 PVC 的有状态工作负载（Kafka、数据库）上可能会很可观——如果你不关注 PVC 磁盘空间，请在那里关闭它：
+
+  ```bash
+  --set kubeletstats.volumeMetrics.enabled=false
+  ```
+
+- **饱和度指标**（`kubeletstats.utilizationMetrics.enabled`，默认开启）会增加 8 个派生的“占 request/limit 百分比”系列。它们开销很低（无需额外抓取），但如果你不使用 CPU/内存相对于 limit 的监视器，可以用 `--set kubeletstats.utilizationMetrics.enabled=false` 去掉它们。
+
+### 调整项 5 — 让重型的可选启用功能保持关闭
+
+这些功能**默认是关闭的**，正是因为它们会增加负载——只有当你确实在使用它所驱动的功能时才启用它，如果你只是想试用一下，请把它重新关闭：
+
+| 值                                                        | 增加了什么                                                             |
+| --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `profiling.enabled`                                       | 持续 CPU 性能分析 DaemonSet——比 eBPF 追踪更重                          |
+| `auditLogs.enabled`                                       | 将每个 Kubernetes API 请求作为一条日志记录（高数据量）                 |
+| `controlPlane.enabled`                                    | etcd / API-server / scheduler / controller-manager 指标                |
+| `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / 调度原因指标（增加一个 KSM Deployment + 抓取） |
+| `ebpf.features.networkInterZoneMetrics`                   | 使网络流量指标基数翻倍                                                 |
+| `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 额外的 Prometheus 抓取作业                                             |
+
+### 一个精简的起点
+
+如果你想要最小的占用，并会在需要时逐步把各类信号加回来，这份**仅指标 + 事件**的配置会去掉日志和 eBPF，并将抓取速率减半：
+
+```yaml
+# lean-values.yaml
+oneuptime:
+  url: YOUR_ONEUPTIME_URL
+  apiKey: YOUR_ONEUPTIME_API_KEY
+clusterName: my-cluster
+
+collectionInterval: 60s
+
+logs:
+  enabled: false # no pod logs
+
+ebpf:
+  enabled: false # no auto-traces
+
+hostMetrics:
+  collectionInterval: 60s
+
+cadvisor:
+  scrapeInterval: 60s
+```
+
+```bash
+helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  -f lean-values.yaml
+```
+
+在此基础上，重新启用你需要的任何内容：为 API 模式下的少数几个命名空间设置 `logs.enabled=true`，或使用缩小了范围的 `autoTargetExe` 设置 `ebpf.enabled=true`。
+
+> **注意你所削减的内容。** 某些监视器依赖特定的信号：禁用 `cadvisor` 会移除 OOM-kill 和 CPU 限流监视器；禁用 `kubeletstats.volumeMetrics` 会移除 PVC 磁盘空间不足监视器；禁用日志会移除基于日志的告警。请削减你不会据以采取行动的信号，而不是某个监视器正在监视的信号。
+
+### 衡量效果
+
+遥测用量是按天汇总的，因此请在 **Project Settings → Usage History** 下查看一两天内的趋势以确认下降——它不会在你应用更改的那一刻立即变化。每次只更改一个调整项，这样你就能把差异归因于它——先关闭日志，然后调高间隔，再精简 eBPF——而不是一次性把所有内容都调低，结果丢失了一个你实际依赖的监视器。
 
 ## 故障排查
 

@@ -143,7 +143,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
               <div className="truncate text-sm font-semibold text-gray-900">
                 {chat.isConversationView
                   ? chat.activeConversationTitle
-                  : "Ask AI"}
+                  : "Ask Sentinel"}
               </div>
               <div className="truncate text-xs text-gray-400">
                 {chat.isWorking
@@ -219,6 +219,9 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             <ChatHomeView
               conversations={chat.conversations}
               isSending={chat.isSending}
+              showNoProviderNotice={
+                chat.providersLoaded && chat.providers.length === 0
+              }
               onOpenConversation={chat.openConversation}
               onDeleteConversation={chat.deleteConversation}
               onAsk={(question: string) => {

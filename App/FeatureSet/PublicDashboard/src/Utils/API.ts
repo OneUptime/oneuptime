@@ -23,10 +23,7 @@ export default class API extends BaseAPI {
       ? `/public-dashboard/${PublicDashboardUtil.getDashboardId()?.toString()}`
       : "";
 
-    if (
-      PublicDashboardUtil.requiresMasterPassword() &&
-      !PublicDashboardUtil.isMasterPasswordValidated()
-    ) {
+    if (PublicDashboardUtil.requiresMasterPassword()) {
       return new Route(`${basePath}/master-password`);
     }
 
@@ -34,7 +31,7 @@ export default class API extends BaseAPI {
   }
 
   public static override logoutUser(): void {
-    // No-op for public dashboards
+    PublicDashboardUtil.setMasterPasswordValidated(false);
   }
 
   public static override getForbiddenRoute(): Route {

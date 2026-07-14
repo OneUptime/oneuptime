@@ -9,14 +9,14 @@
 - **журнал systemd** (Linux) через [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)
 - **Apple Unified Log** (macOS) через [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor), оборачивающий считываемый вывод `log stream`
 - **Журналы событий Windows** через [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
-- **Статус служб Windows** (питает вкладку **Services** хоста) через [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — _отсутствует в готовом коллекторе из апстрима; используйте готовый **OneUptime Host Collector** или пользовательскую сборку (см. «Службы Windows (метрики)» ниже)_
+- **Статус служб Windows** (питает вкладку **Services** хоста) через [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — входит в сборку `otelcol-contrib` из апстрима начиная с **v0.155.0** (см. «Службы Windows (метрики)» ниже)
 
 > **А что насчёт OneUptime Infrastructure Agent?** Этот агент — отдельный, легковесный демон на Go, ориентированный на базовые метрики и функцию _Server / VM Monitor_ (статус, процессы, оповещения). Описанный здесь OpenTelemetry Collector независим и является правильным инструментом, когда вам нужны логи (файловые логи, journald, журналы событий Windows) или более богатые метрики хоста, принимаемые как стандартный OTLP. Оба могут работать на одном хосте, не мешая друг другу.
 
 ## Предварительные требования
 
 - **OneUptime Telemetry Ingestion Token** — создайте его в _Project Settings → Telemetry Ingestion Keys_ и скопируйте значение `x-oneuptime-token`.
-- Дистрибутив **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Сборка `otelcol` по умолчанию **не** включает приёмники вроде `windowseventlogreceiver`, `journaldreceiver` или дополнения `hostmetrics` — обязательно используйте дистрибутив `contrib`. Одно исключение, о котором стоит знать заранее: alpha-приёмник `windowsservicereceiver` (который питает вкладку **Services** в Windows) **не** входит в готовый бинарный файл `contrib` из апстрима — используйте готовый **OneUptime Host Collector** (который его включает) или соберите свой собственный; см. «Службы Windows (метрики)» ниже.
+- Дистрибутив **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Сборка `otelcol` по умолчанию **не** включает приёмники вроде `windowseventlogreceiver`, `journaldreceiver` или дополнения `hostmetrics` — обязательно используйте дистрибутив `contrib`. Alpha-приёмник `windowsservicereceiver`, который питает вкладку **Services** в Windows, входит в `otelcol-contrib` начиная с **v0.155.0**, поэтому установите актуальный релиз; см. «Службы Windows (метрики)» ниже.
 - Права root / Администратора на хосте, чтобы установить коллектор как службу и (где применимо) читать привилегированные источники логов.
 
 ## Шаг 1 — Установите OpenTelemetry Collector
@@ -27,7 +27,7 @@
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.154.0                      # pick the latest release tag
+VERSION=0.156.0                      # pick the latest release tag
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -41,7 +41,7 @@ sudo dpkg -i otelcol-contrib.deb
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.154.0
+VERSION=0.156.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -53,7 +53,7 @@ sudo rpm -ivh \
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.154.0
+VERSION=0.156.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -68,20 +68,21 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-В Windows установите **OneUptime Host Collector** — готовый коллектор от OneUptime, который включает приёмник `windows_service` (он питает вкладку **Services** хоста и _отсутствует_ в сборке `otelcol-contrib` из апстрима). Из **командной строки PowerShell с повышенными правами**:
+В Windows загрузите релиз **`otelcol-contrib`** из апстрима — он включает приёмник `windows_service`, который питает вкладку **Services** хоста (начиная с **v0.155.0**). Из **командной строки PowerShell с повышенными правами**:
 
 ```powershell
-$dest = "C:\Program Files\OneUptimeHostCollector"
-$zip  = "$env:TEMP\oneuptime-host-collector.zip"
+$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$dest    = "C:\Program Files\otelcol-contrib"
+$tar     = "$env:TEMP\otelcol-contrib.tar.gz"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _arm64.zip asset on ARM
-Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
-Expand-Archive -Path $zip -DestinationPath $dest -Force
+# amd64; use the _windows_arm64.tar.gz asset on ARM
+Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
 ```
 
-Вы создадите `C:\Program Files\OneUptimeHostCollector\config.yaml` на Шаге 2 и зарегистрируете службу Windows на Шаге 3.
+Это распаковывает `otelcol-contrib.exe` в `C:\Program Files\otelcol-contrib`. Вы создадите `config.yaml` в той же папке на Шаге 2 и зарегистрируете службу Windows на Шаге 3.
 
-> Предпочитаете `otelcol-contrib` из апстрима? Вместо этого загрузите `otelcol-contrib_*_windows_amd64.zip` со [страницы релизов OpenTelemetry](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) — всё, что ниже, работает так же, **кроме** вкладки **Services** хоста, для которой нужен `windows_service` (отсутствует в сборке из апстрима; см. «Службы Windows (метрики)»).
+> Предпочитаете нативный установщик? OpenTelemetry также публикует подписанный **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`) на той же [странице релизов](https://github.com/open-telemetry/opentelemetry-collector-releases/releases), который регистрирует коллектор как службу Windows за вас. Если вы его используете, укажите ему на `config.yaml` из Шага 2 и убедитесь, что служба работает под `LocalSystem`, чтобы вкладка **Services** могла читать Service Control Manager.
 
 ## Шаг 2 — Настройте коллектор
 
@@ -91,7 +92,7 @@ Expand-Archive -Path $zip -DestinationPath $dest -Force
 | ------- | ----------------------------------------------------- |
 | Linux   | `/etc/otelcol-contrib/config.yaml`                    |
 | macOS   | `/etc/otelcol-contrib/config.yaml`                    |
-| Windows | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
+| Windows | `C:\Program Files\otelcol-contrib\config.yaml` |
 
 Каждая конфигурация имеет одну и ту же форму — выберите нужные приёмники, добавьте процессоры `batch` и `resource` и экспортируйте в OneUptime по OTLP HTTP. Примеры ниже показывают полную, готовую к копированию конфигурацию для каждой ОС, а затем разбирают каждый блок приёмника, чтобы вы могли их комбинировать.
 
@@ -268,7 +269,7 @@ windowseventlog/iis:
 
 Вкладка **Services** хоста питается приёмником [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (тип конфигурации `windows_service`), который сообщает о состоянии работы и типе запуска служб Windows в виде метрик.
 
-**OneUptime Host Collector (установленный на Шаге 1, вариант по умолчанию в Windows) уже включает этот приёмник.** Включите его в вашем `config.yaml` и добавьте в конвейер метрик:
+**Этот приёмник входит в бинарный файл `otelcol-contrib` из апстрима начиная с v0.155.0** — на более ранних релизах добавление `windows_service` приводит к ошибке при запуске `'receivers' unknown type: "windows_service"`. Установите актуальный релиз (Шаг 1), затем включите его в вашем `config.yaml` и добавьте в конвейер метрик:
 
 ```yaml
 receivers:
@@ -289,37 +290,7 @@ service:
 
 Приёмник выдаёт один датчик `windows.service.status` на службу — целое число соответствует состоянию службы Win32 (`4` = выполняется, `1` = остановлена) — с атрибутами `name` и `startup_mode`. Запускайте коллектор как `LocalSystem` (по умолчанию при `sc.exe`), чтобы он мог читать каждую службу; любая, которую он не может открыть, пропускается. Приёмник находится в стадии **alpha** и работает **только в Windows**; среди известных проблем — ошибка сбора данных, которая может привести к сбою коллектора, и `access denied` на одной службе, влияющий на другие; ограничьтесь `include_services`, если столкнётесь с ними.
 
-#### Используете коллектор из апстрима вместо этого?
-
-Готовый бинарный файл `otelcol-contrib` из апстрима **не** включает `windowsservicereceiver` — добавление `windows_service` приводит к ошибке при запуске `'receivers' unknown type: "windows_service"`, и **никакое обновление версии это не исправит** (он не входит ни в одну выпущенную сборку `otelcol-contrib`). Либо переключитесь на OneUptime Host Collector (Шаг 1), либо соберите свой собственный с помощью [OpenTelemetry Collector Builder (`ocb`)](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) — создайте `builder-config.yaml` (держите все версии на одном релизе коллектора):
-
-```yaml
-dist:
-  name: otelcol-oneuptime
-  description: OpenTelemetry Collector with the Windows service receiver
-  output_path: ./otelcol-oneuptime
-  otelcol_version: 0.154.0
-
-receivers:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver v0.154.0
-
-processors:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.154.0
-  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.154.0
-
-exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
-```
-
-```powershell
-go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
-builder --config builder-config.yaml
-```
-
-Затем запустите получившийся `otelcol-oneuptime.exe` и включите `windows_service`, как показано выше.
+> **`include_services` не действует?** Фильтр может только *сужать* набор, поэтому если вы перечислили службы, но по-прежнему видите все, отредактированная конфигурация почти наверняка не дошла до работающего коллектора. Перезапустите службу после редактирования (Шаг 3); убедитесь, что `include_services` — это заполненный список с тем же отступом, что и `collection_interval` (а не оставлен закомментированным или пустым); и дайте вкладке **Services** несколько минут, чтобы службы, о которых сообщалось до изменения, вышли из её скользящего окна. Имена — это точные, чувствительные к регистру _ключевые_ имена служб Windows (например, `Spooler`, `W3SVC`), которые вы можете вывести с помощью `Get-Service | Select-Object Name`.
 
 ### Полный пример — хост Linux
 
@@ -432,7 +403,7 @@ service:
 
 ### Полный пример — хост Windows
 
-`C:\Program Files\OneUptimeHostCollector\config.yaml`:
+`C:\Program Files\otelcol-contrib\config.yaml`:
 
 ```yaml
 receivers:
@@ -461,7 +432,7 @@ receivers:
     channel: Security
     start_at: end
 
-  # Powers the Services tab. Included in the OneUptime Host Collector (Step 1).
+  # Powers the Services tab (otelcol-contrib v0.155.0+).
   windows_service:
     collection_interval: 30s
 
@@ -548,15 +519,15 @@ sudo launchctl list | grep otelcol-contrib
 Из **командной строки PowerShell с повышенными правами**:
 
 ```powershell
-sc.exe create "OneUptimeHostCollector" `
-  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
+sc.exe create "otelcol-contrib" `
+  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
   start= auto `
-  DisplayName= "OneUptime Host Collector"
+  DisplayName= "OpenTelemetry Collector (OneUptime)"
 
-sc.exe description "OneUptimeHostCollector" "Collects host telemetry and forwards it to OneUptime over OTLP."
+sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
 
-sc.exe start "OneUptimeHostCollector"
-sc.exe query "OneUptimeHostCollector"
+sc.exe start "otelcol-contrib"
+sc.exe query "otelcol-contrib"
 ```
 
 Служба по умолчанию работает под `LocalSystem`, у которой есть привилегии, необходимые для чтения канала журнала событий Windows `Security` и каждой службы Windows.
@@ -569,6 +540,163 @@ sc.exe query "OneUptimeHostCollector"
 2. В панели управления OneUptime откройте **Telemetry → Services** и выберите настроенный вами `service.name`.
 3. Откройте **Metrics** — метрики хоста (CPU, память, файловая система и т. д.) должны появиться в течение минуты.
 4. Откройте **Logs** — ваши файловые логи / записи journald / журналы событий Windows должны поступать в потоке. Полезные для поиска атрибуты включают `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` и `winlog.provider.name`.
+
+## Уменьшение объёма собираемых данных
+
+Поскольку конфигурация коллектора принадлежит вам, вы точно решаете, что покидает хост — ничего не собирается, пока добавленный вами приёмник этого не запросит. Если хост отправляет больше, чем вам нужно (что проявляется как более высокий объём приёма данных, а в OneUptime Cloud — как более высокая стоимость), настройте его здесь. Два самых больших рычага — это **какие источники логов вы считываете** и **как часто вы собираете метрики**; процессор `filter` берёт на себя остальное.
+
+Принцип тот же, что и у самой конфигурации: **добавляйте только те приёмники, данные которых вы будете смотреть**, а затем сокращайте объём внутри них. Каждое изменение ниже — это правка `config.yaml`; примените его и перезапустите коллектор (Шаг 3).
+
+### Откуда берётся объём
+
+| Сигнал                    | Крупнейший источник                                      | Как уменьшить                                                      |
+| ------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Логи**                  | Каждая строка из каждого файла / юнита journald / канала | Сузьте приёмники; фильтры `query:`; процессор `filter` по важности |
+| **Метрики хоста**         | Частота сбора × количество рядов                         | `collection_interval`; уберите scraper `process`; выбор scraper'ов |
+| **Кардинальность метрик** | Метрики по процессам (один набор рядов на процесс)       | Уберите или ограничьте scraper `process`                           |
+
+### Рычаг 1 — Считывайте только нужные источники логов
+
+Логи почти всегда — самая большая доля. Коллектор читает только то, что вы перечислили, поэтому решение — перечислять меньше:
+
+- **Файлы** — направляйте `filelog` на конкретные пути, а не на широкие маски. `/var/log/myapp/error.log` вместо `/var/log/**`.
+- **journald** — ограничьте `units:` службами, которые вам важны, и повысьте `priority:`, чтобы отбрасывать болтливые записи `info`/`debug` у источника:
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Журналы событий Windows** — канал `Security` безусловно самый высоконагруженный. Сузьте его до идентификаторов событий, которые вы действительно аудируете, с помощью `query:` (как показано в разделе [Журналы событий Windows](#windows-event-logs) выше), или уберите канал целиком, если он вам не нужен.
+
+### Рычаг 2 — Замедлите интервал сбора метрик
+
+Объём `hostmetrics` напрямую масштабируется с `collection_interval`. Если вам не нужно 30-секундное разрешение, 60s вдвое сокращает количество точек данных:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### Рычаг 3 — Уберите scraper по каждому процессу (источник кардинальности)
+
+Scraper `process` выдаёт отдельный набор рядов **для каждого запущенного процесса** на хосте — на нагруженной машине это самый крупный источник кардинальности метрик. Если вам не нужны CPU/память по каждому процессу, не включайте его в список `scrapers:`. Оставьте `processes` (это всего лишь несколько агрегированных метрик количества процессов) — это дёшево. Если вам всё же нужны метрики по процессам, ограничьте их процессами, которые действительно важны:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### Рычаг 4 — Отбрасывайте малоценные записи процессором `filter`
+
+Когда вам нужен приёмник, но не весь его вывод, добавьте процессор [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) — он вычисляет условие [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) и **отбрасывает любую запись, которая ему соответствует**, до того как что-либо будет экспортировано.
+
+Отбрасывайте логи ниже порога важности:
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+Отбрасывайте конкретную шумную метрику, которую вы не отображаете на графиках:
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+Затем добавьте процессор в соответствующий конвейер — порядок имеет значение, поэтому поставьте `filter` перед `batch`:
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### Экономная отправная точка
+
+Хост **только с метриками** — без логов, с грубым интервалом, без рядов по каждому процессу — это наименьший полезный объём:
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+Верните конвейер `logs` с узко ограниченным приёмником `filelog` или `journald`, когда он вам понадобится.
+
+> **Следите за тем, что вырезаете.** Оповещения на основе логов требуют, чтобы логи поступали: если вы отфильтруете важность или канал, мониторы, завязанные на них, замолчат. Сокращайте источники, на которые вы не реагируете, а не те, за которыми следит монитор. Меняйте по одному рычагу за раз и подтверждайте снижение в **Project Settings → Usage History** (использование агрегируется ежедневно, поэтому дайте день-два) перед переходом к следующему.
 
 ## Self-hosted OneUptime
 
@@ -602,7 +730,7 @@ OpenTelemetry Collector учитывает стандартные перемен
 - **HTTP 401 от экспортёра** — токен приёма данных недействителен или отозван. Сгенерируйте новый в _Project Settings → Telemetry Ingestion Keys_.
 - **Журнал событий Windows `Security` возвращает «access denied»** — служба работает с недостаточными привилегиями. Пересоздайте её под `LocalSystem` (по умолчанию при `sc.exe create`) или предоставьте учётной записи службы право пользователя _Manage auditing and security log_.
 - **Приёмник `journald` не запускается** — убедитесь, что `journalctl` находится в `PATH` коллектора и что `/var/log/journal` существует (выполните `sudo systemd-tmpfiles --create --prefix /var/log/journal`, если нет).
-- **Большой объём / стоимость** — сузьте приёмники (конкретные каналы Windows, конкретные юниты systemd, конкретные файлы логов), добавьте фильтр `query:` на приёмнике журнала событий Windows или добавьте процессор `filter`, чтобы отбрасывать события низкой важности перед экспортом.
+- **Большой объём / стоимость** — см. [Уменьшение объёма собираемых данных](#reducing-the-volume-of-data-collected): сузьте приёмники (конкретные каналы Windows, конкретные юниты systemd, конкретные файлы логов), увеличьте `collection_interval` метрик, уберите scraper по каждому процессу или добавьте процессор `filter`, чтобы отбрасывать записи низкой важности перед экспортом.
 
 ## Дальнейшие шаги
 

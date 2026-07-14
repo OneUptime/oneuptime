@@ -366,6 +366,40 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         },
       },
     ];
+  } else if (props.monitorType === MonitorType.SQLQuery) {
+    fields = [
+      {
+        key: "sqlMonitor",
+        title: "Database",
+        description: "The database this monitor connects to.",
+        fieldType: FieldType.Element,
+        placeholder: "No data entered",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const sqlMonitor: any = item.sqlMonitor;
+          if (!sqlMonitor?.host) {
+            return <p>-</p>;
+          }
+          return (
+            <p>{`${sqlMonitor.databaseType} · ${sqlMonitor.host}:${sqlMonitor.port}/${sqlMonitor.databaseName}`}</p>
+          );
+        },
+      },
+      {
+        key: "sqlMonitor",
+        title: "Query",
+        description: "The read-only SQL query this monitor runs.",
+        fieldType: FieldType.Element,
+        placeholder: "No data entered",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const sqlMonitor: any = item.sqlMonitor;
+          return (
+            <p className="font-mono text-sm break-all">
+              {sqlMonitor?.query || "-"}
+            </p>
+          );
+        },
+      },
+    ];
   } else if (props.monitorType === MonitorType.ExternalStatusPage) {
     fields = [
       {

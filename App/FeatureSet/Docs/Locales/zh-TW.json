@@ -49,7 +49,7 @@
     "Integrations": "整合",
     "Probe": "探針",
     "Telemetry": "遙測",
-    "AI": "人工智慧",
+    "Sentinel": "Sentinel",
     "API Reference": "API 參考",
     "Self Hosted": "自架"
   },
@@ -158,7 +158,7 @@
     "Kubernetes Agent": "Kubernetes 代理程式",
     "Docker Agent": "Docker 代理程式",
     "IoT Devices": "IoT 裝置",
-    "AI Agents": "AI 代理程式",
+    "Fix Tasks": "Fix Tasks",
     "LLM Providers": "LLM 提供者",
     "MCP Server": "MCP 伺服器",
     "OneUptime API Reference": "OneUptime API 參考",

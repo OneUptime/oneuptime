@@ -356,7 +356,7 @@ const HostServices: FunctionComponent<
     return <ErrorMessage message="Host not found." />;
   }
 
-  const noItemsMessage: string = `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Service status comes from the "windows_service" receiver, which isn't in the upstream prebuilt collector (alpha, Windows-only). The easiest fix is to run the prebuilt OneUptime Host Collector, which already includes it — see the Documentation tab for the download and setup steps (or build your own with ocb).`;
+  const noItemsMessage: string = `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Service status comes from the "windows_service" receiver (alpha, Windows-only), which is bundled in the upstream otelcol-contrib build from v0.155.0. Make sure the host runs otelcol-contrib v0.155.0+ with windows_service added to the metrics pipeline — see the Documentation tab for setup steps.`;
 
   return (
     <Card

@@ -77,7 +77,9 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
       });
 
     if (response instanceof HTTPErrorResponse) {
-      throw new Error(response.message || "Failed to generate note from AI");
+      throw new Error(
+        response.message || "Failed to generate note with Sentinel",
+      );
     }
 
     return response.data["note"] as string;
@@ -190,7 +192,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
           description: "Here are private notes for this incident.",
           buttons: [
             {
-              title: "Generate with AI",
+              title: "Generate with Sentinel",
               icon: IconProp.Bolt,
               buttonStyle: ButtonStyleType.OUTLINE,
               onClick: async (): Promise<void> => {
@@ -405,8 +407,8 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
 
       {showGenerateFromAIModal && (
         <GenerateFromAIModal
-          title="Generate Private Note from AI"
-          description="AI will analyze the incident data and generate an internal technical note."
+          title="Generate Private Note with Sentinel"
+          description="Sentinel will analyze the incident data and generate an internal technical note."
           templates={INTERNAL_NOTE_TEMPLATES}
           onClose={() => {
             setShowGenerateFromAIModal(false);

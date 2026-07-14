@@ -434,6 +434,13 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           />
         </div>
 
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {renderStat(
+            "Database size",
+            bytesToReadable(data?.["databaseSizeInBytes"]),
+          )}
+        </div>
+
         {/* Streaming replication — the primary's view of every standby. */}
         <div>
           <div className="text-sm font-semibold text-gray-900 mb-2">

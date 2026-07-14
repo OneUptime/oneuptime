@@ -6,7 +6,6 @@ import BackendAPI from "../Utils/BackendAPI";
 import {
   getTaskHandlerRegistry,
   TaskContext,
-  TaskMetadata,
   TaskHandler,
   TaskResult,
 } from "../TaskHandlers/Index";
@@ -17,42 +16,55 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
-import AIAgentTaskType from "Common/Types/AI/AIAgentTaskType";
+import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import ObjectID from "Common/Types/ObjectID";
 import Sleep from "Common/Types/Sleep";
 
-// Type for task data from the API
-interface AIAgentTaskData {
-  _id: string;
+/*
+ * Type for a pending task claimed from the API. Tasks are AIRun rows on the
+ * server, so `id` is the run id; exception details are fetched separately
+ * via /api/ai-agent-data/get-exception-details. `taskType` discriminates
+ * which handler runs the task ("FixException", "WriteRegressionTest", ...).
+ * `exceptionId` is present only for exception-based recipes —
+ * ImproveInstrumentation / FixFromIncident runs have an incident/alert
+ * subject instead and fetch their context by run id
+ * (get-instrumentation-task-details).
+ */
+interface PendingTask {
+  id: string;
   projectId: string;
-  taskType: AIAgentTaskType;
-  metadata: TaskMetadata;
-  createdAt: string;
-  status?: AIAgentTaskStatus;
+  exceptionId?: string | undefined;
+  taskType: string;
 }
 
 // Type for API response containing task
 interface GetPendingTaskResponse {
-  task: AIAgentTaskData | null;
+  task: PendingTask | null;
+  message?: string;
 }
 
 const SLEEP_WHEN_NO_TASKS_MS: number = 60 * 1000; // 1 minute
 
-type ExecuteTaskFunction = (task: AIAgentTaskData) => Promise<void>;
+type ExecuteTaskFunction = (task: PendingTask) => Promise<void>;
 
 /**
  * Execute an AI Agent task using the registered task handler
  */
 const executeTask: ExecuteTaskFunction = async (
-  task: AIAgentTaskData,
+  task: PendingTask,
 ): Promise<void> => {
-  const taskIdString: string = task._id;
+  const taskIdString: string = task.id;
   const projectIdString: string = task.projectId;
   const taskId: ObjectID = new ObjectID(taskIdString);
   const projectId: ObjectID = new ObjectID(projectIdString);
-  const taskType: AIAgentTaskType = task.taskType;
-  const metadata: TaskMetadata = task.metadata || {};
-  const createdAt: Date = new Date(task.createdAt);
+
+  /*
+   * Dispatch on the server's taskType discriminator. Older servers predate
+   * the field and only ever hand out code-fix runs, so an absent taskType
+   * normalizes to FixException — keep this fallback until no pre-taskType
+   * servers remain in the field.
+   */
+  const taskType: string = task.taskType || CodeFixTaskType.FixException;
 
   // Get the task handler from the registry
   const registry: TaskHandlerRegistry = getTaskHandlerRegistry();
@@ -76,10 +88,9 @@ const executeTask: ExecuteTaskFunction = async (
     taskId,
     projectId,
     taskType,
-    metadata,
+    exceptionId: task.exceptionId,
     logger: taskLogger,
     backendAPI,
-    createdAt,
     startedAt: new Date(),
   };
 
@@ -88,11 +99,6 @@ const executeTask: ExecuteTaskFunction = async (
     await taskLogger.info(
       `Starting ${handler.name} for task type: ${taskType}`,
     );
-
-    // Validate metadata if the handler supports it
-    if (handler.validateMetadata && !handler.validateMetadata(metadata)) {
-      throw new Error(`Invalid metadata for task type: ${taskType}`);
-    }
 
     // Execute the task handler
     const result: TaskResult = await handler.execute(context);
@@ -167,9 +173,9 @@ const startTaskProcessingLoop: () => Promise<void> =
 
         const responseData: GetPendingTaskResponse =
           getPendingTaskResult.data as unknown as GetPendingTaskResponse;
-        const task: AIAgentTaskData | null = responseData.task;
+        const task: PendingTask | null = responseData.task;
 
-        if (!task || !task._id) {
+        if (!task || !task.id) {
           logger.debug("No pending tasks available", {} as LogAttributes);
           logger.debug(
             `Sleeping for ${SLEEP_WHEN_NO_TASKS_MS / 1000} seconds before checking again...`,
@@ -179,15 +185,15 @@ const startTaskProcessingLoop: () => Promise<void> =
           continue;
         }
 
-        const taskId: string = task._id;
-        const taskType: string = task.taskType || "Unknown";
+        const taskId: string = task.id;
         const taskLogAttrs: LogAttributes = {
           taskId,
-          taskType,
           projectId: task.projectId,
+          exceptionId: task.exceptionId,
+          taskType: task.taskType,
         } as LogAttributes;
         logger.info(
-          `Processing task: ${taskId} (type: ${taskType})`,
+          `Processing task: ${taskId} (type: ${task.taskType || CodeFixTaskType.FixException}${task.exceptionId ? `, exception: ${task.exceptionId}` : ""})`,
           taskLogAttrs,
         );
 

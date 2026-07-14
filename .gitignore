@@ -149,3 +149,6 @@ RFP/
 
 /.playwright-cli/**
 /output/**
+
+# Sentinel eval harness output (npm run ai-eval)
+eval-corpus.json

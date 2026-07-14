@@ -121,12 +121,15 @@ const DashboardAuthenticationSettings: FunctionComponent<
                   placeholder: "No",
                 },
                 {
+                  field: {
+                    masterPassword: true,
+                  },
                   title: "Master Password",
                   fieldType: FieldType.Element,
-                  getElement: (): ReactElement => {
+                  getElement: (item: Dashboard): ReactElement => {
                     return (
                       <p>
-                        {isMasterPasswordSet ? "Password is set." : "Not set."}
+                        {item.masterPassword ? "Password is set." : "Not set."}
                       </p>
                     );
                   },

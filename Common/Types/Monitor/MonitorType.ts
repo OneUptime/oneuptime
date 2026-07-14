@@ -21,6 +21,9 @@ enum MonitorType {
   Server = "Server",
   SSLCertificate = "SSL Certificate",
 
+  // Database monitoring — runs a read-only SQL query on a schedule from a probe.
+  SQLQuery = "SQL Query",
+
   // These two monitor types are same but we are keeping them separate for now - this is for marketing purposes
   SyntheticMonitor = "Synthetic Monitor",
   CustomJavaScriptCode = "Custom JavaScript Code",
@@ -86,6 +89,10 @@ export class MonitorTypeHelper {
       {
         label: "DNS Monitoring",
         monitorTypes: [MonitorType.DNS, MonitorType.DNSSEC],
+      },
+      {
+        label: "Database Monitoring",
+        monitorTypes: [MonitorType.SQLQuery],
       },
       {
         label: "Synthetic Monitoring",
@@ -289,6 +296,13 @@ export class MonitorTypeHelper {
         icon: IconProp.ShieldCheck,
       },
       {
+        monitorType: MonitorType.SQLQuery,
+        title: "SQL Query",
+        description:
+          "This monitor type runs a read-only SQL query on a schedule against a database (PostgreSQL) and alerts on the result — row count, a scalar value, execution time, or query errors. Requires a probe with network access to your database.",
+        icon: IconProp.Database,
+      },
+      {
         monitorType: MonitorType.SyntheticMonitor,
         title: "Synthetic Monitor",
         description:
@@ -420,6 +434,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
+      monitorType === MonitorType.SQLQuery ||
       monitorType === MonitorType.ExternalStatusPage;
     return isProbeableMonitor;
   }
@@ -446,6 +461,7 @@ export class MonitorTypeHelper {
       MonitorType.DNS,
       MonitorType.DNSSEC,
       MonitorType.Domain,
+      MonitorType.SQLQuery,
       MonitorType.ExternalStatusPage,
       MonitorType.Kubernetes,
       MonitorType.Docker,
@@ -491,6 +507,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
+      monitorType === MonitorType.SQLQuery ||
       monitorType === MonitorType.ExternalStatusPage
     ) {
       return true;

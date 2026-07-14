@@ -6,6 +6,35 @@ import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 
 export default class PublicDashboardUtil {
+  private static readonly AUTH_PATHS: Array<string> = [
+    "/master-password",
+    "/forbidden",
+  ];
+
+  public static isAuthPath(path: string): boolean {
+    const normalizedPath: string = path.toLowerCase().split("?")[0] || "";
+
+    return PublicDashboardUtil.AUTH_PATHS.some((authPath: string) => {
+      return normalizedPath === authPath || normalizedPath.endsWith(authPath);
+    });
+  }
+
+  public static getSafeRedirectUrl(): string | null {
+    const redirectUrl: string | null =
+      Navigation.getQueryStringByName("redirectUrl");
+
+    if (
+      !redirectUrl ||
+      !redirectUrl.startsWith("/") ||
+      redirectUrl.startsWith("//") ||
+      PublicDashboardUtil.isAuthPath(redirectUrl)
+    ) {
+      return null;
+    }
+
+    return redirectUrl;
+  }
+
   public static getDashboardId(): ObjectID | null {
     const value: ObjectID | null = LocalStorage.getItem(
       "dashboardId",
@@ -86,12 +115,16 @@ export default class PublicDashboardUtil {
     }
 
     const currentPath: string = Navigation.getCurrentPath().toString();
+    const shouldIncludeRedirect: boolean =
+      !PublicDashboardUtil.isAuthPath(currentPath);
     const basePath: string = PublicDashboardUtil.isPreviewPage()
       ? `/public-dashboard/${PublicDashboardUtil.getDashboardId()?.toString()}`
       : "";
 
     const route: Route = new Route(
-      `${basePath}/master-password?redirectUrl=${currentPath}`,
+      shouldIncludeRedirect
+        ? `${basePath}/master-password?redirectUrl=${currentPath}`
+        : `${basePath}/master-password`,
     );
 
     Navigation.navigate(route, { forceNavigate: true });

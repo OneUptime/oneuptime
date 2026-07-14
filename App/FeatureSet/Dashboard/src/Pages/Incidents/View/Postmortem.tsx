@@ -265,7 +265,7 @@ const IncidentPostmortem: FunctionComponent<
     ] as string;
 
     if (!postmortemNote) {
-      throw new Error("Failed to generate postmortem note from AI.");
+      throw new Error("Failed to generate postmortem note with Sentinel.");
     }
 
     return postmortemNote;
@@ -291,7 +291,7 @@ const IncidentPostmortem: FunctionComponent<
             "Document the summary, learnings, and follow-ups for this incident.",
           buttons: [
             {
-              title: "Generate with AI",
+              title: "Generate with Sentinel",
               icon: IconProp.Bolt,
               buttonStyle: ButtonStyleType.OUTLINE,
               onClick: () => {
@@ -529,8 +529,8 @@ const IncidentPostmortem: FunctionComponent<
 
       {showAIGenerateModal ? (
         <GenerateFromAIModal
-          title="Generate Postmortem with AI"
-          description="AI will analyze the incident data, timeline, notes, and channel discussions to generate a comprehensive postmortem."
+          title="Generate Postmortem with Sentinel"
+          description="Sentinel will analyze the incident data, timeline, notes, and channel discussions to generate a comprehensive postmortem."
           onClose={() => {
             setShowAIGenerateModal(false);
           }}

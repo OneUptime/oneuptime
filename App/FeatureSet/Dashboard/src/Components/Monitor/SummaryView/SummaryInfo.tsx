@@ -8,6 +8,7 @@ import SyntheticMonitorView from "./SyntheticMonitorView";
 import WebsiteMonitorSummaryView from "./WebsiteMonitorView";
 import SnmpMonitorView from "./SnmpMonitorView";
 import DnsMonitorView from "./DnsMonitorView";
+import SqlMonitorView from "./SqlMonitorView";
 import DomainMonitorView from "./DomainMonitorView";
 import DnssecMonitorView from "./DnssecMonitorView";
 import ExternalStatusPageMonitorView from "./ExternalStatusPageMonitorView";
@@ -146,6 +147,15 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     if (props.monitorType === MonitorType.DNSSEC) {
       summaryComponent = (
         <DnssecMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.SQLQuery) {
+      summaryComponent = (
+        <SqlMonitorView
           probeMonitorResponse={probeMonitorResponse}
           probeName={props.probeName}
         />

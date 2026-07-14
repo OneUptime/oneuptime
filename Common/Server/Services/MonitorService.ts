@@ -148,6 +148,21 @@ export class Service extends DatabaseService<Model> {
           monitorDestination =
             firstStep.data.externalStatusPageMonitor.statusPageUrl || "";
         }
+
+        // For SQL monitors, show host:port/database (never the credentials).
+        if (
+          monitorType === MonitorType.SQLQuery &&
+          firstStep?.data?.sqlMonitor
+        ) {
+          const sql: {
+            host: string;
+            port: number;
+            databaseName: string;
+          } = firstStep.data.sqlMonitor;
+          if (sql.host) {
+            monitorDestination = `${sql.host}:${sql.port}/${sql.databaseName}`;
+          }
+        }
       }
     }
 

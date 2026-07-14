@@ -1,8 +1,11 @@
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import useTranslateValue from "../../Utils/Translation";
+import TableColumnsToCsv from "../../Utils/TableColumnsToCsv";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import { ButtonStyleType } from "../Button/Button";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
+  BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
@@ -15,6 +18,7 @@ import TableHeader from "./TableHeader";
 import Columns from "./Types/Columns";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../Types/GenericObject";
+import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useEffect, useState } from "react";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 
@@ -81,6 +85,12 @@ export interface ComponentProps<T extends GenericObject> {
   onBulkActionEnd?: (() => void) | undefined;
   onBulkActionStart?: (() => void) | undefined;
   bulkItemToString?: ((item: T) => string) | undefined;
+  /*
+   * Every table that exposes bulk actions also gets an "Export CSV" action for
+   * the selected rows by default. Set this to true to hide it (for example when
+   * the rows contain data that should not be downloaded as a file).
+   */
+  disableBulkCsvExport?: boolean | undefined;
 }
 
 type TableFunction = <T extends GenericObject>(
@@ -99,6 +109,32 @@ const Table: TableFunction = <T extends GenericObject>(
     props.bulkActions &&
     props.bulkActions.buttons &&
     props.bulkActions.buttons.length > 0;
+
+  /*
+   * "Export CSV" is offered on every table that already exposes bulk actions.
+   * It exports the currently selected rows using the table's own visible
+   * columns (headers + formatted values) - "export what you see" - and runs
+   * entirely client-side from the already-loaded row data, so no extra
+   * requests or permissions are needed beyond the ability to view the rows.
+   */
+  const csvExportBulkAction: BulkActionButtonSchema<T> = {
+    title: "Export CSV",
+    icon: IconProp.Download,
+    buttonStyleType: ButtonStyleType.NORMAL,
+    onClick: (onClickProps: BulkActionOnClickProps<T>): Promise<void> => {
+      TableColumnsToCsv.exportItemsToCsv({
+        items: onClickProps.items,
+        columns: props.columns,
+        label: translatedPluralLabel,
+      });
+      return Promise.resolve();
+    },
+  };
+
+  const bulkActionButtons: Array<BulkActionButtonSchema<T>> =
+    isBulkActionsEnabled && !props.disableBulkCsvExport
+      ? [...props.bulkActions!.buttons, csvExportBulkAction]
+      : props.bulkActions?.buttons || [];
 
   const [isAllItemsSelected, setIsAllItemsSelected] = useState<boolean>(false);
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
@@ -258,9 +294,9 @@ const Table: TableFunction = <T extends GenericObject>(
         filterData={props.filterData}
         onAdvancedFiltersToggle={props.onAdvancedFiltersToggle}
       />
-      {props.bulkActions?.buttons && (
+      {bulkActionButtons.length > 0 && (
         <BulkUpdateForm
-          buttons={props.bulkActions.buttons}
+          buttons={bulkActionButtons}
           onClearSelectionClick={() => {
             props.onBulkClearAllItems?.();
             setIsAllItemsSelected(false);

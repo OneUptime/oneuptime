@@ -72,6 +72,7 @@ import EmailLog from "./EmailLog";
 import EmailVerificationToken from "./EmailVerificationToken";
 import File from "./File";
 import GlobalConfig from "./GlobalConfig";
+import InstanceHealthLog from "./InstanceHealthLog";
 import GreenlockCertificate from "./GreenlockCertificate";
 // Greenlock
 import GreenlockChallenge from "./GreenlockChallenge";
@@ -171,10 +172,7 @@ import ProbeOwnerUser from "./ProbeOwnerUser";
 import AIAgent from "./AIAgent";
 import AIAgentOwnerTeam from "./AIAgentOwnerTeam";
 import AIAgentOwnerUser from "./AIAgentOwnerUser";
-import AIAgentTask from "./AIAgentTask";
-import AIAgentTaskLog from "./AIAgentTaskLog";
 import AIAgentTaskPullRequest from "./AIAgentTaskPullRequest";
-import AIAgentTaskTelemetryException from "./AIAgentTaskTelemetryException";
 import AIConversation from "./AIConversation";
 import AIConversationMessage from "./AIConversationMessage";
 import AIRun from "./AIRun";
@@ -212,7 +210,6 @@ import ScheduledMaintenanceStateTimeline from "./ScheduledMaintenanceStateTimeli
 import Service from "./Service";
 import ServiceOwnerTeam from "./ServiceOwnerTeam";
 import ServiceOwnerUser from "./ServiceOwnerUser";
-import ServiceCodeRepository from "./ServiceCodeRepository";
 import CodeRepository from "./CodeRepository";
 // Short link.
 import ShortLink from "./ShortLink";
@@ -677,6 +674,7 @@ const AllModelTypes: Array<{
   OpenSourceDeployment,
 
   GlobalConfig,
+  InstanceHealthLog,
 
   MonitorGroup,
   MonitorGroupOwnerTeam,
@@ -713,7 +711,6 @@ const AllModelTypes: Array<{
   Service,
   ServiceOwnerTeam,
   ServiceOwnerUser,
-  ServiceCodeRepository,
 
   // Code Repository
   CodeRepository,
@@ -724,10 +721,7 @@ const AllModelTypes: Array<{
   AIAgent,
   AIAgentOwnerTeam,
   AIAgentOwnerUser,
-  AIAgentTask,
-  AIAgentTaskLog,
   AIAgentTaskPullRequest,
-  AIAgentTaskTelemetryException,
   AIConversation,
   AIConversationMessage,
   AIRun,

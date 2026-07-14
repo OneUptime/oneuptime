@@ -2,30 +2,53 @@ import {
   CodeAgent,
   CodeAgentType,
   getCodeAgentDisplayName,
+  isValidCodeAgentType,
 } from "./CodeAgentInterface";
+import InHouseCodeAgent from "./InHouseCodeAgent";
 import OpenCodeAgent from "./OpenCodeAgent";
 import logger from "Common/Server/Utils/Logger";
 
 // Factory class to create code agents
 export default class CodeAgentFactory {
-  // Default agent type to use
-  private static defaultAgentType: CodeAgentType = CodeAgentType.OpenCode;
+  /*
+   * Default agent type: the in-house server-mediated agent (B4 Tier 0).
+   * CODE_AGENT_TYPE=OpenCode selects the deprecated raw-key OpenCode
+   * shell-out for one release — see Internal/Roadmap/CodeFixSandboxDesign.md.
+   */
+  private static defaultAgentType: CodeAgentType =
+    CodeAgentFactory.resolveDefaultAgentTypeFromEnvironment();
+
+  private static resolveDefaultAgentTypeFromEnvironment(): CodeAgentType {
+    const configuredType: string | undefined = process.env["CODE_AGENT_TYPE"];
+
+    if (configuredType && isValidCodeAgentType(configuredType)) {
+      if (configuredType === CodeAgentType.OpenCode) {
+        logger.warn(
+          "CODE_AGENT_TYPE=OpenCode selects the DEPRECATED raw-key OpenCode fallback (kept for one release). The in-house metered agent is the default — unset CODE_AGENT_TYPE to use it.",
+        );
+      }
+      return configuredType;
+    }
+
+    if (configuredType) {
+      logger.warn(
+        `Unknown CODE_AGENT_TYPE "${configuredType}" — using the default in-house code agent.`,
+      );
+    }
+
+    return CodeAgentType.InHouse;
+  }
 
   // Create an agent of the specified type
   public static createAgent(type: CodeAgentType): CodeAgent {
     logger.debug(`Creating code agent: ${getCodeAgentDisplayName(type)}`);
 
     switch (type) {
+      case CodeAgentType.InHouse:
+        return new InHouseCodeAgent();
+
       case CodeAgentType.OpenCode:
         return new OpenCodeAgent();
-
-      /*
-       * Future agents can be added here:
-       * case CodeAgentType.Goose:
-       *   return new GooseAgent();
-       * case CodeAgentType.ClaudeCode:
-       *   return new ClaudeCodeAgent();
-       */
 
       default:
         throw new Error(`Unknown code agent type: ${type}`);

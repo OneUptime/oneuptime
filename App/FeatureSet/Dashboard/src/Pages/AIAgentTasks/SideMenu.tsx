@@ -20,15 +20,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
           }}
           icon={IconProp.List}
         />
-        <SideMenuItem
-          link={{
-            title: "Agents",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENTS_AGENTS] as Route,
-            ),
-          }}
-          icon={IconProp.Automation}
-        />
       </SideMenuSection>
     </SideMenu>
   );

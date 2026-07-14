@@ -10,6 +10,11 @@ enum AIRunEventType {
   // A mutating action the user approved was executed (or denied and skipped).
   ActionExecuted = "ActionExecuted",
   ActionDenied = "ActionDenied",
+  /*
+   * A plain progress/log line reported by an external executor (e.g. the
+   * code-fix agent container). The message lives in resultSummary.message.
+   */
+  ProgressLog = "ProgressLog",
   RunCompleted = "RunCompleted",
   RunFailed = "RunFailed",
 }

@@ -115,6 +115,10 @@ import DnsMonitorStepForm from "./DnsMonitor/DnsMonitorStepForm";
 import MonitorStepDnsMonitor, {
   MonitorStepDnsMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepDnsMonitor";
+import SqlMonitorStepForm from "./SqlMonitor/SqlMonitorStepForm";
+import MonitorStepSqlMonitor, {
+  MonitorStepSqlMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepSqlMonitor";
 import DomainMonitorStepForm from "./DomainMonitor/DomainMonitorStepForm";
 import MonitorStepDomainMonitor, {
   MonitorStepDomainMonitorUtil,
@@ -1522,6 +1526,24 @@ return {
             }
             onChange={(value: MonitorStepDnsMonitor) => {
               monitorStep.setDnsMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.SQLQuery && (
+        <Card
+          title="SQL Query Monitor Configuration"
+          description="Configure the database connection and the read-only query to run. This monitor requires a probe with network access to your database."
+        >
+          <SqlMonitorStepForm
+            monitorStepSqlMonitor={
+              monitorStep.data?.sqlMonitor ||
+              MonitorStepSqlMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepSqlMonitor) => {
+              monitorStep.setSqlMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />

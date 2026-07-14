@@ -9,14 +9,14 @@
 - 通过 [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver) 采集 **systemd journal**（Linux）
 - 通过 [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) 包装对 `log stream` 输出的 tail 来采集 **Apple Unified Log**（macOS）
 - 通过 [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver) 采集 **Windows 事件日志**
-- 通过 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) 采集 **Windows 服务状态**（为主机的 **Services** 标签页提供数据）—— _未包含在上游预构建的 collector 中；请使用预构建的 **OneUptime Host Collector** 或自定义构建（见下文“Windows 服务（指标）”）_
+- 通过 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) 采集 **Windows 服务状态**（为主机的 **Services** 标签页提供数据）—— 从 **v0.155.0** 起已打包进上游的 `otelcol-contrib` 构建中（见下文“Windows 服务（指标）”）
 
 > **那么 OneUptime 基础设施代理（Infrastructure Agent）呢？** 该代理是一个独立的、轻量级的 Go 守护进程，专注于基础指标和*服务器 / 虚拟机监控器（Server / VM Monitor）*功能（状态、进程、告警）。这里描述的 OpenTelemetry Collector 是独立的，当你希望将日志（文件日志、journald、Windows 事件日志）或更丰富的主机指标作为标准 OTLP 数据接入时，它是合适的工具。两者可以在同一台主机上运行而互不干扰。
 
 ## 前提条件
 
 - 一个 **OneUptime 遥测接入令牌（Telemetry Ingestion Token）**——从 _Project Settings → Telemetry Ingestion Keys_ 创建一个，并复制 `x-oneuptime-token` 值。
-- **OpenTelemetry Collector Contrib** 发行版（`otelcol-contrib`）。默认的 `otelcol` 构建**不**包含诸如 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 附加项之类的接收器——请务必使用 `contrib` 发行版。有一个值得提前了解的例外：alpha 阶段的 `windowsservicereceiver`（它为 Windows **Services** 标签页提供数据）**未**打包进上游预构建的 `contrib` 二进制文件中——请使用预构建的 **OneUptime Host Collector**（它已包含该接收器）或自行构建；见下文“Windows 服务（指标）”。
+- **OpenTelemetry Collector Contrib** 发行版（`otelcol-contrib`）。默认的 `otelcol` 构建**不**包含诸如 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 附加项之类的接收器——请务必使用 `contrib` 发行版。为 Windows **Services** 标签页提供数据的 alpha 阶段 `windowsservicereceiver` 从 **v0.155.0** 起已打包进 `otelcol-contrib` 中，因此请安装较新的发布版；见下文“Windows 服务（指标）”。
 - 主机上的 root / 管理员权限，用于将 collector 安装为服务，并（在适用的情况下）读取需要特权的日志源。
 
 ## 第 1 步——安装 OpenTelemetry Collector
@@ -27,7 +27,7 @@
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.154.0                      # pick the latest release tag
+VERSION=0.156.0                      # pick the latest release tag
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -41,7 +41,7 @@ Debian 软件包会将二进制文件安装到 `/usr/bin/otelcol-contrib`，将�
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.154.0
+VERSION=0.156.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -53,7 +53,7 @@ sudo rpm -ivh \
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.154.0
+VERSION=0.156.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -68,20 +68,21 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-在 Windows 上，请安装 **OneUptime Host Collector**——OneUptime 的预构建 collector，它打包了 `windows_service` 接收器（为主机的 **Services** 标签页提供数据，*未*包含在上游的 `otelcol-contrib` 构建中）。在**提升权限的** PowerShell 提示符下：
+在 Windows 上，请下载上游的 **`otelcol-contrib`** 发布版——它打包了为主机的 **Services** 标签页提供数据的 `windows_service` 接收器（从 **v0.155.0** 起）。在**提升权限的** PowerShell 提示符下：
 
 ```powershell
-$dest = "C:\Program Files\OneUptimeHostCollector"
-$zip  = "$env:TEMP\oneuptime-host-collector.zip"
+$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$dest    = "C:\Program Files\otelcol-contrib"
+$tar     = "$env:TEMP\otelcol-contrib.tar.gz"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-# amd64; use the _arm64.zip asset on ARM
-Invoke-WebRequest -Uri "https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-host-collector_windows_amd64.zip" -OutFile $zip
-Expand-Archive -Path $zip -DestinationPath $dest -Force
+# amd64; use the _windows_arm64.tar.gz asset on ARM
+Invoke-WebRequest -Uri "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v$VERSION/otelcol-contrib_${VERSION}_windows_amd64.tar.gz" -OutFile $tar
+tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1803+ / Server 2019+
 ```
 
-你将在第 2 步中创建 `C:\Program Files\OneUptimeHostCollector\config.yaml`，并在第 3 步中注册一个 Windows 服务。
+这会将 `otelcol-contrib.exe` 解压到 `C:\Program Files\otelcol-contrib`。你将在第 2 步中在同一文件夹里创建 `config.yaml`，并在第 3 步中注册一个 Windows 服务。
 
-> 更偏好上游的 `otelcol-contrib`？请改为从 [OpenTelemetry 发布页面](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)下载 `otelcol-contrib_*_windows_amd64.zip`——下文的所有内容同样适用，**唯独**主机的 **Services** 标签页除外，它需要 `windows_service`（不在上游构建中；见“Windows 服务（指标）”）。
+> 更偏好原生安装程序？OpenTelemetry 还在同一个[发布页面](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)上发布了一个已签名的 **`.msi`**（`otelcol-contrib_<version>_windows_x64.msi`），它会为你将 collector 注册为一个 Windows 服务。如果你使用它，请让它指向第 2 步中的 `config.yaml`，并确保该服务以 `LocalSystem` 身份运行，这样 **Services** 标签页才能读取服务控制管理器（Service Control Manager）。
 
 ## 第 2 步——配置 collector
 
@@ -91,7 +92,7 @@ Expand-Archive -Path $zip -DestinationPath $dest -Force
 | -------- | ----------------------------------------------------- |
 | Linux    | `/etc/otelcol-contrib/config.yaml`                    |
 | macOS    | `/etc/otelcol-contrib/config.yaml`                    |
-| Windows  | `C:\Program Files\OneUptimeHostCollector\config.yaml` |
+| Windows  | `C:\Program Files\otelcol-contrib\config.yaml` |
 
 每份配置都遵循相同的结构——选择你想要的接收器，添加一个 `batch` 和 `resource` 处理器，并通过 OTLP HTTP 导出到 OneUptime。下面的示例为每种操作系统展示了一份完整的、可复制粘贴的配置，然后逐一介绍各个接收器块，以便你可以混合搭配。
 
@@ -268,7 +269,7 @@ windowseventlog/iis:
 
 主机的 **Services** 标签页由 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)（配置类型 `windows_service`）提供数据，它以指标形式报告 Windows 服务的运行状态和启动类型。
 
-**OneUptime Host Collector（在第 1 步中安装，Windows 上的默认选择）已经包含此接收器。** 在你的 `config.yaml` 中启用它，并将它加入指标流水线：
+**从 v0.155.0 起，该接收器已随上游的 `otelcol-contrib` 二进制文件一起提供**——在更早的发布版上，添加 `windows_service` 会在启动时失败并报 `'receivers' unknown type: "windows_service"`。请安装一个较新的发布版（第 1 步），然后在你的 `config.yaml` 中启用它，并将它加入指标流水线：
 
 ```yaml
 receivers:
@@ -289,37 +290,7 @@ service:
 
 该接收器为每个服务发出一个 `windows.service.status` 量规（gauge）——其整数值为 Win32 服务状态（`4` = 正在运行，`1` = 已停止）——并带有 `name` 和 `startup_mode` 属性。以 `LocalSystem` 身份运行该 collector（`sc.exe` 的默认设置），它便能读取每个服务；任何无法打开的服务都会被跳过。该接收器处于 **alpha** 阶段，且**仅支持 Windows**；已知问题包括一个可能导致 collector 崩溃的抓取错误，以及某一个服务上的 `access denied` 会影响到其他服务——如果遇到这些问题，请用 `include_services` 加以限制。
 
-#### 改用上游 collector？
-
-上游预构建的 `otelcol-contrib` 二进制文件**未**包含 `windowsservicereceiver`——添加 `windows_service` 会在启动时失败并报 `'receivers' unknown type: "windows_service"`，而且**升级版本也无法解决这个问题**（它没有随任何已发布的 `otelcol-contrib` 构建一起提供）。你可以切换到 OneUptime Host Collector（第 1 步），也可以用 [OpenTelemetry Collector Builder（`ocb`）](https://github.com/open-telemetry/opentelemetry-collector/tree/main/cmd/builder) 自行构建一个——创建 `builder-config.yaml`（让每个版本都保持在同一个 collector 发布版上）：
-
-```yaml
-dist:
-  name: otelcol-oneuptime
-  description: OpenTelemetry Collector with the Windows service receiver
-  output_path: ./otelcol-oneuptime
-  otelcol_version: 0.154.0
-
-receivers:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowseventlogreceiver v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/windowsservicereceiver v0.154.0
-
-processors:
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.154.0
-  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.154.0
-  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.154.0
-
-exporters:
-  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.154.0
-```
-
-```powershell
-go install go.opentelemetry.io/collector/cmd/builder@v0.154.0
-builder --config builder-config.yaml
-```
-
-然后运行生成的 `otelcol-oneuptime.exe`，并如上文所示启用 `windows_service`。
+> **`include_services` 不起作用？** 该过滤器只会*缩小*集合，所以如果你列出了一些服务却仍然看到每一个服务，那么编辑后的配置几乎肯定还没有到达正在运行的 collector。编辑后请重启该服务（第 3 步）；确保 `include_services` 是一个已填充内容的列表，且与 `collection_interval` 保持相同的缩进（不要将它注释掉或留空）；并给 **Services** 标签页几分钟时间，让在更改之前上报的服务从其滚动窗口中过期消失。这些名称是精确的、区分大小写的 Windows 服务_键_名称（例如 `Spooler`、`W3SVC`），你可以用 `Get-Service | Select-Object Name` 将它们列出。
 
 ### 完整示例——Linux 主机
 
@@ -432,7 +403,7 @@ service:
 
 ### 完整示例——Windows 主机
 
-`C:\Program Files\OneUptimeHostCollector\config.yaml`：
+`C:\Program Files\otelcol-contrib\config.yaml`：
 
 ```yaml
 receivers:
@@ -461,7 +432,7 @@ receivers:
     channel: Security
     start_at: end
 
-  # Powers the Services tab. Included in the OneUptime Host Collector (Step 1).
+  # Powers the Services tab (otelcol-contrib v0.155.0+).
   windows_service:
     collection_interval: 30s
 
@@ -548,15 +519,15 @@ sudo launchctl list | grep otelcol-contrib
 从**提升权限的** PowerShell 提示符下：
 
 ```powershell
-sc.exe create "OneUptimeHostCollector" `
-  binPath= "\"C:\Program Files\OneUptimeHostCollector\oneuptime-host-collector.exe\" --config=\"C:\Program Files\OneUptimeHostCollector\config.yaml\"" `
+sc.exe create "otelcol-contrib" `
+  binPath= "\"C:\Program Files\otelcol-contrib\otelcol-contrib.exe\" --config=\"C:\Program Files\otelcol-contrib\config.yaml\"" `
   start= auto `
-  DisplayName= "OneUptime Host Collector"
+  DisplayName= "OpenTelemetry Collector (OneUptime)"
 
-sc.exe description "OneUptimeHostCollector" "Collects host telemetry and forwards it to OneUptime over OTLP."
+sc.exe description "otelcol-contrib" "Collects host telemetry and forwards it to OneUptime over OTLP."
 
-sc.exe start "OneUptimeHostCollector"
-sc.exe query "OneUptimeHostCollector"
+sc.exe start "otelcol-contrib"
+sc.exe query "otelcol-contrib"
 ```
 
 该服务默认以 `LocalSystem` 身份运行，它拥有读取 `Security` Windows 事件日志通道所需的权限。
@@ -569,6 +540,163 @@ sc.exe query "OneUptimeHostCollector"
 2. 在 OneUptime 仪表板中，打开 **Telemetry → Services** 并选择你配置的 `service.name`。
 3. 打开 **Metrics**——主机指标（CPU、内存、文件系统等）应在一分钟内出现。
 4. 打开 **Logs**——你的文件日志 / journald 条目 / Windows 事件日志应正在流式传入。有用的可搜索属性包括 `log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id` 和 `winlog.provider.name`。
+
+## 减少采集的数据量
+
+由于 collector 配置由你掌控，你可以精确决定哪些数据离开主机——除非你添加的某个接收器主动请求，否则不会采集任何数据。如果某台主机发送的数据超出了你的需要（表现为更高的接入量，在 OneUptime Cloud 上还意味着更高的成本），请在此进行调优。两个最大的调节杠杆是**你 tail 哪些日志源**以及**你抓取指标的频率**；其余的交给 `filter` 处理器。
+
+其原则与配置本身相同：**只添加你会查看其数据的接收器**，然后在这些接收器内部进行削减。下面的每项更改都是对 `config.yaml` 的一次编辑——应用它并重启 collector（第 3 步）。
+
+### 数据量的来源
+
+| 信号         | 最大来源                                | 如何降低                                                      |
+| ------------ | --------------------------------------- | ------------------------------------------------------------- |
+| **日志**     | 每个文件 / journald 单元 / 通道的每一行 | 缩小接收器范围；`query:` 过滤器；针对严重性的 `filter` 处理器 |
+| **主机指标** | 抓取频率 × 时间序列数量                 | `collection_interval`；丢弃 `process` 抓取器；抓取器选择      |
+| **指标基数** | 每进程指标（每个进程一组时间序列）      | 省略或限定 `process` 抓取器                                   |
+
+### 杠杆 1——只 tail 你需要的日志源
+
+日志几乎总是最大的一块。collector 只读取你列出的内容，所以解决办法就是少列一些：
+
+- **文件**——将 `filelog` 指向具体路径，而不是宽泛的通配符。用 `/var/log/myapp/error.log` 而不是 `/var/log/**`。
+- **journald**——将 `units:` 限制为你关心的服务，并提高 `priority:`，从而在源头丢弃啰嗦的 `info`/`debug` 条目：
+
+  ```yaml
+  receivers:
+    journald:
+      directory: /var/log/journal
+      units:
+        - ssh.service
+        - nginx.service
+      priority: warning # info and debug are dropped before export
+  ```
+
+- **Windows 事件日志**——`Security` 通道的流量远高于其他通道。用 `query:` 将其缩小到你确实会审计的事件 ID（如上文 [Windows 事件日志](#windows-event-logs) 所示），如果不需要则直接丢弃整个通道。
+
+### 杠杆 2——放慢指标的采集间隔
+
+`hostmetrics` 的数据量与 `collection_interval` 直接成正比。如果你不需要 30 秒的分辨率，60s 可将数据点数量减半：
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+```
+
+### 杠杆 3——丢弃每进程抓取器（基数的驱动因素）
+
+`process` 抓取器会为主机上**每一个正在运行的进程**发出一组独立的时间序列——在繁忙的机器上，这是指标基数的最大单一来源。除非你需要每进程的 CPU/内存，否则请将它从 `scrapers:` 列表中省去。保留 `processes`（它只是少数几个聚合的进程计数指标）——它很廉价。如果你确实想要每进程指标，请将它们限定到真正重要的进程：
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes: # aggregate counts only — cheap
+      # 'process:' (per-process series) intentionally omitted.
+      # If you need it, scope it instead of collecting every process:
+      # process:
+      #   mute_process_name_error: true
+      #   include:
+      #     names: [nginx, postgres, node]
+      #     match_type: strict
+```
+
+### 杠杆 4——用 `filter` 处理器丢弃低价值记录
+
+当你想要某个接收器但不想要它的全部输出时，添加一个 [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) 处理器——它会评估一个 [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) 条件，并在导出任何内容之前**丢弃任何匹配的记录**。
+
+丢弃低于某个严重性阈值的日志：
+
+```yaml
+processors:
+  filter/drop-low-severity:
+    error_mode: ignore
+    logs:
+      log_record:
+        # Drop anything less severe than WARN (info, debug, trace).
+        - "severity_number < SEVERITY_NUMBER_WARN"
+```
+
+丢弃某个你不绘制图表的、噪声较大的特定指标：
+
+```yaml
+processors:
+  filter/drop-metrics:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'name == "system.paging.faults"'
+```
+
+然后将该处理器添加到相关的流水线中——顺序很重要，所以要把 `filter` 放在 `batch` 之前：
+
+```yaml
+service:
+  pipelines:
+    logs:
+      receivers: [journald]
+      processors: [filter/drop-low-severity, resource, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [hostmetrics]
+      processors: [filter/drop-metrics, resource, batch]
+      exporters: [otlphttp]
+```
+
+### 一个精简的起点
+
+一个**仅指标**的主机——没有日志、粗粒度的间隔、没有每进程时间序列——是最小的有用占用：
+
+```yaml
+receivers:
+  hostmetrics:
+    collection_interval: 60s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      filesystem:
+      network:
+      load:
+      paging:
+      processes:
+
+processors:
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+  resource:
+    attributes:
+      - key: service.name
+        value: linux-host
+        action: upsert
+
+exporters:
+  otlphttp:
+    endpoint: https://oneuptime.com/otlp
+    headers:
+      x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resource, batch]
+      exporters: [otlphttp]
+```
+
+当你需要时，再用一个范围狭窄的 `filelog` 或 `journald` 接收器把 `logs` 流水线加回来。
+
+> **注意你所削减的内容。** 基于日志的告警需要日志能够到达：如果你过滤掉某个严重性或某个通道，那么以它为依据的监控器就会陷入沉默。请削减你不采取行动的日志源，而不是监控器正在监视的那些。每次只改动一个杠杆，并在 **Project Settings → Usage History** 下确认数据量下降（用量按天聚合，因此请等待一两天）后再进行下一步。
 
 ## 自托管 OneUptime
 
@@ -602,7 +730,7 @@ OpenTelemetry Collector 遵循标准的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _Project Settings → Telemetry Ingestion Keys_ 生成一个新令牌。
 - **`Security` Windows 事件日志返回拒绝访问（access denied）**——该服务未以足够的权限运行。在 `LocalSystem` 身份下重新创建它（`sc.exe create` 的默认设置），或为服务账户授予 _Manage auditing and security log_ 用户权限。
 - **`journald` 接收器无法启动**——确保 `journalctl` 在 collector 的 `PATH` 中，并且 `/var/log/journal` 存在（如不存在，请运行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
-- **流量 / 成本过高**——缩小接收器范围（特定的 Windows 通道、特定的 systemd 单元、特定的日志文件），在 Windows 事件日志接收器上添加 `query:` 过滤器，或添加一个 `filter` 处理器以在导出前丢弃低严重性事件。
+- **流量 / 成本过高**——参见[减少采集的数据量](#reducing-the-volume-of-data-collected)：缩小接收器范围（特定的 Windows 通道、特定的 systemd 单元、特定的日志文件），提高指标的 `collection_interval`，丢弃每进程抓取器，或添加一个 `filter` 处理器以在导出前丢弃低严重性记录。
 
 ## 后续步骤
 

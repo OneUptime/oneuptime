@@ -24,6 +24,15 @@ interface OpenCodeConfig {
   enabled_providers?: Array<string>;
 }
 
+/*
+ * DEPRECATED (B4 Tier 0, Internal/Roadmap/CodeFixSandboxDesign.md): this
+ * agent shells out to the OpenCode CLI with a RAW provider apiKey fetched
+ * via the deprecated get-llm-config endpoint — its LLM calls bypass
+ * AIService/LlmLog entirely (unmetered, unbudgeted). It is kept for one
+ * release as the CODE_AGENT_TYPE=OpenCode fallback; the default is
+ * InHouseCodeAgent, whose completions are server-mediated and metered.
+ * Remove together with the get-llm-config endpoint.
+ */
 export default class OpenCodeAgent implements CodeAgent {
   public readonly name: string = "OpenCode";
 

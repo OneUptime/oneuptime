@@ -1,9 +1,19 @@
 import LlmType from "Common/Types/LLM/LlmType";
 import TaskLogger from "../Utils/TaskLogger";
 
-// Configuration for the LLM provider
+/*
+ * Configuration for the code agent's LLM access. Two shapes share this type:
+ *
+ * - In-house agent (default): only `taskId` is required — completions are
+ *   server-mediated (POST /ai-agent-data/llm-completion), metered and
+ *   budgeted on the server, and NO provider secret ever reaches the worker.
+ * - Legacy OpenCode fallback (CODE_AGENT_TYPE=OpenCode, deprecated — see
+ *   Internal/Roadmap/CodeFixSandboxDesign.md): the raw-key fields below,
+ *   fetched via the deprecated get-llm-config endpoint.
+ */
 export interface CodeAgentLLMConfig {
-  llmType: LlmType;
+  // Required by the legacy raw-key path; unused by the in-house agent.
+  llmType?: LlmType;
   apiKey?: string;
   baseUrl?: string;
   modelName?: string;
@@ -12,6 +22,11 @@ export interface CodeAgentLLMConfig {
    * provider-appropriate default (see OpenCodeAgent.getSmallModelString).
    */
   smallModelName?: string;
+  /*
+   * The AIRun id this agent works for — required by the in-house agent,
+   * whose completions the server validates against the claimed run.
+   */
+  taskId?: string;
 }
 
 // The task to be executed by the code agent
@@ -74,18 +89,24 @@ export interface CodeAgent {
 
 // Enum for supported code agent types
 export enum CodeAgentType {
-  OpenCode = "OpenCode",
   /*
-   * Future agents:
-   * Goose = "Goose",
-   * ClaudeCode = "ClaudeCode",
-   * Aider = "Aider",
+   * The default: in-house tool-loop agent whose completions are
+   * server-mediated and metered (B4 Tier 0).
    */
+  InHouse = "InHouse",
+  /*
+   * DEPRECATED legacy fallback (raw provider key on the worker) — kept for
+   * one release behind CODE_AGENT_TYPE=OpenCode. See
+   * Internal/Roadmap/CodeFixSandboxDesign.md.
+   */
+  OpenCode = "OpenCode",
 }
 
 // Helper function to get display name for agent type
 export function getCodeAgentDisplayName(type: CodeAgentType): string {
   switch (type) {
+    case CodeAgentType.InHouse:
+      return "OneUptime Code Agent";
     case CodeAgentType.OpenCode:
       return "OpenCode AI";
     default:

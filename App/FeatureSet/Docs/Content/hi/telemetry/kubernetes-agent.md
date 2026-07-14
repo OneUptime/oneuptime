@@ -102,7 +102,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### Namespace फ़िल्टरिंग
 
-डिफ़ॉल्ट रूप से, `kube-system` को बाहर रखा जाता है। केवल विशिष्ट namespaces को मॉनिटर करने के लिए:
+`namespaceFilters` **pod logs** (hostPath DaemonSet और API log-tailer दोनों) और **eBPF traces** को आपके चुने हुए namespaces तक सीमित करता है। `kube-system` को डिफ़ॉल्ट रूप से बाहर रखा जाता है। उन signals को विशिष्ट namespaces तक सीमित करने के लिए:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -113,6 +113,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set "namespaceFilters.include={default,production,staging}"
 ```
+
+> ये फ़िल्टर node / pod / container **मेट्रिक्स** को **कम नहीं** करते — वे प्रति node kubelet से scrape किए जाते हैं और हमेशा cluster-wide एकत्र किए जाते हैं (node- और cluster-स्तरीय series में फ़िल्टर करने के लिए कोई namespace नहीं होता)। `exclude` हमेशा `include` पर जीतता है। volume नियंत्रणों के पूर्ण सेट के लिए [एकत्र किए गए डेटा की मात्रा कम करना](#reducing-the-volume-of-data-collected) देखें।
 
 ### Log संग्रह अक्षम करें
 
@@ -261,6 +263,161 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `tcpStats`                | चालू     | Node-स्तरीय TCP RTT, failed-connection, retransmit काउंटर            |
 
 Cross-service trace context प्रसार भी डिफ़ॉल्ट रूप से चालू है — OBI आउटबाउंड HTTP/TCP में W3C `traceparent` इंजेक्ट करता है ताकि pod A → pod B को पार करने वाला एक request एकल trace के रूप में दिखाई दे, कहीं भी कोई SDK परिवर्तन नहीं। `--set ebpf.contextPropagation=false` के साथ बंद करें।
+
+## एकत्र किए गए डेटा की मात्रा कम करना
+
+डिफ़ॉल्ट रूप से एजेंट **coverage** के लिए ट्यून किया गया है — यह पूरे क्लस्टर से मेट्रिक्स, pod logs, और eBPF traces भेजता है ताकि प्रत्येक डैशबोर्ड और मॉनिटर पहले ही दिन काम करे। बड़े या व्यस्त क्लस्टरों पर यह आपकी आवश्यकता से अधिक telemetry हो सकती है, जो उच्च ingest volume के रूप में दिखाई देती है (और, OneUptime Cloud पर, उच्च लागत)। यहाँ कुछ भी आवश्यक नहीं है, लेकिन यदि कोई क्लस्टर आपकी इच्छा से अधिक भेज रहा है, तो ये घुमाने के लिए घुंडियाँ हैं — मोटे तौर पर प्रभाव के क्रम में।
+
+तरकीब यह है कि **जो आप नहीं देखेंगे उसे एकत्र करना बंद करें**, बजाय इसके कि सब कुछ एकत्र करें और उसे संग्रहीत करने के लिए भुगतान करें। नीचे दिया गया प्रत्येक लीवर एक Helm value है, इसलिए आप इसे `helm upgrade --reuse-values` पर `--set` के साथ लागू कर सकते हैं और उसी तरह वापस रोल कर सकते हैं।
+
+### मात्रा कहाँ से आती है
+
+| Signal                         | सबसे बड़ा कारक                                           | इसे कम करें                                                                                  |
+| ------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Pod logs**                   | प्रत्येक container से प्रत्येक line, cluster-wide        | `logs.enabled`, `logs.mode`, `namespaceFilters`                                              |
+| **eBPF traces & span metrics** | प्रत्येक instrumented process से प्रति request एक trace  | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **Metric data points**         | Scrape आवृत्ति × pods/containers की संख्या               | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
+| **Metric cardinality**         | विशिष्ट series की संख्या (प्रति-container, प्रति-PVC, …) | `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics`, `kubeletstats.utilizationMetrics` |
+| **Opt-in extras**              | Profiling, audit logs, control plane, inter-zone metrics | उन्हें बंद रखें (वे पहले से ही डिफ़ॉल्ट रूप से हैं)                                          |
+
+### लीवर 1 — Pod logs आमतौर पर सबसे बड़ा एकल स्रोत हैं
+
+Container logs लगभग हमेशा ingest का सबसे बड़ा हिस्सा होते हैं, क्योंकि यह क्लस्टर में प्रत्येक container से प्रति log line एक रिकॉर्ड होता है।
+
+- **OneUptime से logs की बिल्कुल भी आवश्यकता नहीं है?** उन्हें पूरी तरह से बंद कर दें — आप सभी मेट्रिक्स, events, और traces रखते हैं:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+- **केवल कुछ namespaces से logs चाहते हैं?** `namespaceFilters.include` दोनों log modes में pod logs को सीमित करता है (और उनके साथ eBPF traces को भी)। मिलान pod-log पथ पर होता है, इसलिए फ़िल्टर किए गए namespaces कभी पढ़े ही नहीं जाते:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set "namespaceFilters.include={default,production}"
+  ```
+
+  (`kube-system` पहले से ही डिफ़ॉल्ट रूप से बाहर रखा जाता है।)
+
+### लीवर 2 — eBPF स्वतः-instrumentation छाँटें
+
+eBPF आपको बिना किसी कोड परिवर्तन के traces, RED मेट्रिक्स, service map, और network-flow मेट्रिक्स देता है — लेकिन यह डेटा का दूसरा-सबसे बड़ा स्रोत भी है क्योंकि यह प्रति request एक span और प्रति service कई metric परिवार उत्सर्जित करता है। आपके पास नियंत्रण के तीन स्तर हैं:
+
+- **पहले से ही OTel SDKs से traces भेज रहे हैं, या auto-traces नहीं चाहते?** eBPF को पूरी तरह से बंद कर दें:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.enabled=false
+  ```
+
+- **traces रखें, भारी metric परिवारों को हटाएँ।** [ऊपर दी गई signal-परिवार तालिका](#toggle-individual-signal-families) प्रत्येक `ebpf.features.*` flag को सूचीबद्ध करती है। सबसे अधिक-volume वाले परिवार network और span मेट्रिक्स हैं — उन्हें बंद करने से traces, HTTP RED मेट्रिक्स, और service map बरकरार रहते हैं:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.features.networkMetrics=false \
+    --set ebpf.features.tcpStats=false \
+    --set ebpf.features.spanMetrics=false
+  ```
+
+  `ebpf.features.networkInterZoneMetrics` को बंद रखें (इसका डिफ़ॉल्ट) — यह network-flow cardinality दोगुनी करता है।
+
+- **केवल उन runtimes को instrument करें जिनकी आप परवाह करते हैं।** डिफ़ॉल्ट रूप से OBI प्रत्येक process से जुड़ता है जिसे वह पहचानता है (`ebpf.autoTargetExe: "*"`)। एजेंट द्वारा उत्पादित "services" और traces की संख्या कम करने के लिए इसे विशिष्ट runtimes तक सीमित करें, या skip सूची में binaries जोड़ें:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set ebpf.autoTargetExe='*/python,*/java'
+  ```
+
+  पूर्ण डिफ़ॉल्ट के लिए [व्यक्तिगत signal परिवारों को टॉगल करें](#toggle-individual-signal-families) और chart values में `excludeExePaths` नोट देखें।
+
+### लीवर 3 — scrape intervals को धीमा करें
+
+Metric volume सीधे इस बात के समानुपाती है कि एजेंट कितनी बार scrape करता है। किसी interval को दोगुना करना उस metric द्वारा उत्पादित data points की संख्या को मोटे तौर पर आधा कर देता है, coverage के किसी नुकसान के बिना — बस मोटे resolution के साथ। यदि आपको 30-सेकंड granularity की आवश्यकता नहीं है, तो 60s या 120s एक बड़ी, सुरक्षित कमी है:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set collectionInterval=60s \
+  --set hostMetrics.collectionInterval=60s \
+  --set cadvisor.scrapeInterval=60s
+```
+
+- `collectionInterval` (डिफ़ॉल्ट `30s`) node / pod / container मेट्रिक्स (`kubeletstats`) और cluster-state मेट्रिक्स (`k8s_cluster`) को संचालित करता है — metric volume का बड़ा हिस्सा।
+- `hostMetrics.collectionInterval` और `cadvisor.scrapeInterval` प्रति-node OS मेट्रिक्स और throttling / OOM काउंटर को कवर करते हैं।
+- `resourceSpecs.interval` (डिफ़ॉल्ट `300s`) नियंत्रित करता है कि पूर्ण resource specs (labels, annotations, status) कितनी बार खींचे जाते हैं — यदि आपको spec परिवर्तन जल्दी प्रतिबिंबित होने की आवश्यकता नहीं है तो इसे बढ़ाएँ।
+- यदि आपने किसी वैकल्पिक scraper को सक्षम किया है, तो उनकी अपनी घुंडियाँ भी हैं: `kubeStateMetrics.scrapeInterval`, `serviceMesh.*.scrapeInterval`, `coreDns.scrapeInterval`, `csi.scrapeInterval`।
+
+### लीवर 4 — metric cardinality को सीमित रखें
+
+Cardinality (विशिष्ट time series की संख्या) आवृत्ति जितना ही मायने रखती है, क्योंकि प्रत्येक series को अलग से संग्रहीत और बिल किया जाता है।
+
+- **cAdvisor जानबूझकर allowlisted है।** cAdvisor receiver (डिफ़ॉल्ट रूप से चालू) सैकड़ों मेट्रिक्स उत्सर्जित कर सकता है; chart केवल उन कुछ को अग्रेषित करता है जो monitors को शक्ति देते हैं (`cadvisor.metricsAllowlist`)। सूची को कसा हुआ रखें — **प्रत्येक प्रविष्टि प्रति-container रखी जाती है, इसलिए एक अतिरिक्त metric क्लस्टर की container गणना से गुणा हो जाता है।** kube-state-metrics डिफ़ॉल्ट रूप से बंद है, लेकिन यदि आप इसे सक्षम करते हैं (`kubeStateMetrics.enabled=true`) तो इसका `kubeStateMetrics.metricsAllowlist` उसी तरह cardinality को नियंत्रित करता है।
+- **प्रति-PVC volume मेट्रिक्स** (`kubeletstats.volumeMetrics.enabled`, डिफ़ॉल्ट रूप से चालू) प्रति pod प्रति PVC एक series उत्सर्जित करते हैं। यह अधिकांश क्लस्टरों के लिए ठीक है लेकिन हजारों PVCs वाले stateful workloads (Kafka, databases) पर पर्याप्त हो सकता है — यदि आप PVC disk space नहीं देखते तो इसे वहाँ बंद कर दें:
+
+  ```bash
+  --set kubeletstats.volumeMetrics.enabled=false
+  ```
+
+- **Saturation मेट्रिक्स** (`kubeletstats.utilizationMetrics.enabled`, डिफ़ॉल्ट रूप से चालू) 8 व्युत्पन्न "% of request/limit" परिवार जोड़ते हैं। वे सस्ते हैं (कोई अतिरिक्त scrape नहीं) लेकिन यदि आप CPU/Memory-vs-limit monitors का उपयोग नहीं करते तो आप उन्हें `--set kubeletstats.utilizationMetrics.enabled=false` के साथ हटा सकते हैं।
+
+### लीवर 5 — भारी opt-in सुविधाओं को बंद रखें
+
+ये **डिफ़ॉल्ट रूप से बंद** हैं ठीक इसलिए क्योंकि वे लोड जोड़ते हैं — किसी एक को केवल तभी सक्षम करें जब आप सक्रिय रूप से उसका उपयोग करते हैं जो वह शक्ति देता है, और यदि आप बस इसे आज़मा रहे थे तो इसे वापस बंद कर दें:
+
+| Value                                                     | जोड़ता है                                                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `profiling.enabled`                                       | निरंतर CPU profiling DaemonSet — eBPF traces से भारी                                       |
+| `auditLogs.enabled`                                       | प्रत्येक Kubernetes API request एक log रिकॉर्ड के रूप में (उच्च volume)                    |
+| `controlPlane.enabled`                                    | etcd / API-server / scheduler / controller-manager मेट्रिक्स                               |
+| `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / scheduling-reason मेट्रिक्स (एक KSM Deployment + scrape जोड़ता है) |
+| `ebpf.features.networkInterZoneMetrics`                   | network-flow metric cardinality दोगुनी करता है                                             |
+| `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | अतिरिक्त Prometheus scrape jobs                                                            |
+
+### एक हल्का शुरुआती बिंदु
+
+यदि आप एक न्यूनतम footprint चाहते हैं और आवश्यकतानुसार signals वापस जोड़ेंगे, तो यह **केवल metrics + events** प्रोफ़ाइल logs और eBPF को हटाता है और scrape दर को आधा कर देता है:
+
+```yaml
+# lean-values.yaml
+oneuptime:
+  url: YOUR_ONEUPTIME_URL
+  apiKey: YOUR_ONEUPTIME_API_KEY
+clusterName: my-cluster
+
+collectionInterval: 60s
+
+logs:
+  enabled: false # no pod logs
+
+ebpf:
+  enabled: false # no auto-traces
+
+hostMetrics:
+  collectionInterval: 60s
+
+cadvisor:
+  scrapeInterval: 60s
+```
+
+```bash
+helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  -f lean-values.yaml
+```
+
+वहाँ से, जो भी आपको चाहिए उसे पुनः सक्षम करें: API mode में कुछ namespaces के लिए `logs.enabled=true`, या एक संकुचित `autoTargetExe` के साथ `ebpf.enabled=true`।
+
+> **जो आप काटते हैं उस पर ध्यान दें।** कुछ monitors विशिष्ट signals पर निर्भर करते हैं: `cadvisor` को अक्षम करने से OOM-kill और CPU-throttling monitors हट जाते हैं; `kubeletstats.volumeMetrics` को अक्षम करने से PVC low-disk monitor हट जाता है; logs को अक्षम करने से log-आधारित अलर्ट हट जाते हैं। उन signals को छाँटें जिन पर आप कार्रवाई नहीं करते, न कि उन्हें जिन्हें कोई monitor देख रहा है।
+
+### प्रभाव को मापें
+
+Telemetry उपयोग प्रति दिन एकत्रित किया जाता है, इसलिए कमी की पुष्टि करने के लिए **Project Settings → Usage History** के अंतर्गत एक या दो दिन में रुझान की जाँच करें — जैसे ही आप कोई परिवर्तन लागू करते हैं यह तुरंत नहीं हिलेगा। एक बार में एक लीवर बदलें ताकि आप अंतर का श्रेय दे सकें — logs बंद, फिर interval ऊपर, फिर eBPF छाँटा गया — बजाय इसके कि एक ही बार में सब कुछ कम कर दें और एक monitor खो दें जिस पर आप वास्तव में निर्भर थे।
 
 ## समस्या निवारण
 

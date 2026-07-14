@@ -12,6 +12,7 @@ import DnsMonitorResponse from "../Monitor/DnsMonitor/DnsMonitorResponse";
 import PingMonitorResponse from "../Monitor/PingMonitor/PingMonitorResponse";
 import DomainMonitorResponse from "../Monitor/DomainMonitor/DomainMonitorResponse";
 import DnssecMonitorResponse from "../Monitor/DnssecMonitor/DnssecMonitorResponse";
+import SqlMonitorResponse from "../Monitor/SqlMonitor/SqlMonitorResponse";
 import ExternalStatusPageMonitorResponse from "../Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import HttpPhaseTimings from "../Monitor/HttpPhaseTimings";
 import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
@@ -60,6 +61,7 @@ export default interface ProbeMonitorResponse {
   dnsResponse?: DnsMonitorResponse | undefined;
   domainResponse?: DomainMonitorResponse | undefined;
   dnssecResponse?: DnssecMonitorResponse | undefined;
+  sqlQueryMonitorResponse?: SqlMonitorResponse | undefined;
   externalStatusPageResponse?: ExternalStatusPageMonitorResponse | undefined;
   monitoredAt: Date;
   isTimeout?: boolean | undefined;
