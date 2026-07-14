@@ -1,7 +1,8 @@
 import WorkflowComponent from "./Component";
-import ComponentSettingsModal from "./ComponentSettingsModal";
+import ComponentSettingsPanel from "./ComponentSettingsPanel";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
+import { getUpstreamComponentIds } from "./GraphUtils";
 import { loadComponentsAndCategories } from "./Utils";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -407,6 +408,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   return (
     <div
       style={{
+        position: "relative",
         height: "calc(100vh - 220px)",
         minHeight: "600px",
         borderRadius: "8px",
@@ -560,45 +562,83 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       )}
 
       {showComponentSettingsModal && selectedNodeData && (
-        <ComponentSettingsModal
-          graphComponents={nodes.map((node: Node) => {
-            return node.data as NodeDataProp;
-          })}
-          workflowId={props.workflowId}
-          webhookSecretKey={props.webhookSecretKey}
-          component={selectedNodeData}
-          title={
-            selectedNodeData && selectedNodeData.metadata.title
-              ? selectedNodeData.metadata.title
-              : "Component Properties"
-          }
-          onDelete={(component: NodeDataProp) => {
-            deleteNode(component.id);
+        <div
+          /*
+           * Docked inspector: overlays the right edge of the canvas so the
+           * graph stays visible while you configure a step. Positioned
+           * absolutely so the React Flow layout underneath is untouched. On
+           * narrow viewports it spans the full width as a drawer.
+           */
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: "min(400px, 100%)",
+            zIndex: 5,
+            backgroundColor: "#ffffff",
+            borderLeft: "1px solid #e2e8f0",
+            boxShadow: "-4px 0 12px -6px rgba(0, 0, 0, 0.15)",
           }}
-          description={
-            selectedNodeData && selectedNodeData.metadata.description
-              ? selectedNodeData.metadata.description
-              : "Edit Component Properties and variables here."
-          }
-          onClose={() => {
-            setShowComponentSettingsModal(false);
-          }}
-          onSave={(componentData: NodeDataProp) => {
-            // Update the node.
+        >
+          <ComponentSettingsPanel
+            /*
+             * Remount when the selected node changes so the panel's internal
+             * form state re-initialises to the newly selected step (the canvas
+             * stays clickable behind the docked panel).
+             */
+            key={selectedNodeData.internalId}
+            graphComponents={nodes.map((node: Node) => {
+              return node.data as NodeDataProp;
+            })}
+            upstreamComponentIds={getUpstreamComponentIds(
+              (
+                nodes.find((node: Node) => {
+                  return (
+                    (node.data as NodeDataProp).internalId ===
+                    selectedNodeData.internalId
+                  );
+                }) || { id: "" }
+              ).id,
+              nodes,
+              edges,
+            )}
+            workflowId={props.workflowId}
+            webhookSecretKey={props.webhookSecretKey}
+            component={selectedNodeData}
+            title={
+              selectedNodeData && selectedNodeData.metadata.title
+                ? selectedNodeData.metadata.title
+                : "Component Properties"
+            }
+            onDelete={(component: NodeDataProp) => {
+              deleteNode(component.id);
+            }}
+            description={
+              selectedNodeData && selectedNodeData.metadata.description
+                ? selectedNodeData.metadata.description
+                : "Edit Component Properties and variables here."
+            }
+            onClose={() => {
+              setShowComponentSettingsModal(false);
+            }}
+            onSave={(componentData: NodeDataProp) => {
+              // Update the node.
 
-            setNodes((nds: Array<Node>) => {
-              return nds.map((n: Node) => {
-                if (n.data.internalId === componentData.internalId) {
-                  n.data = componentData;
-                }
+              setNodes((nds: Array<Node>) => {
+                return nds.map((n: Node) => {
+                  if (n.data.internalId === componentData.internalId) {
+                    n.data = componentData;
+                  }
 
-                return n;
+                  return n;
+                });
               });
-            });
 
-            setShowComponentSettingsModal(false);
-          }}
-        />
+              setShowComponentSettingsModal(false);
+            }}
+          />
+        </div>
       )}
 
       {showRunModal && (

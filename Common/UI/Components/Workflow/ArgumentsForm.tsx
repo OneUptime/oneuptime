@@ -1,10 +1,10 @@
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { CustomElementProps } from "../Forms/Types/Field";
 import FormValues from "../Forms/Types/FormValues";
 import ComponentValuePickerModal from "./ComponentValuePickerModal";
+import JSONArgumentInput from "./JSONArgumentInput";
 import ModelFieldPicker from "./ModelFieldPicker";
 import { componentInputTypeToFormFieldType } from "./Utils";
 import VariableModal from "./VariableModal";
@@ -28,11 +28,28 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * Argument types that are edited as JSON. These used to render as a plain
+ * textarea; they now use the validating JSONArgumentInput. Select is included
+ * only when the component has no tableName (otherwise it uses ModelFieldPicker).
+ */
+const JSON_INPUT_TYPES: Array<ComponentInputType> = [
+  ComponentInputType.JSON,
+  ComponentInputType.JSONArray,
+  ComponentInputType.BaseModel,
+  ComponentInputType.BaseModelArray,
+  ComponentInputType.Query,
+  ComponentInputType.Select,
+  ComponentInputType.StringDictionary,
+];
+
 export interface ComponentProps {
   component: NodeDataProp;
   onHasFormValidationErrors: (values: Dictionary<boolean>) => void;
   workflowId: ObjectID;
   graphComponents: Array<NodeDataProp>;
+  // Component data ids upstream of this step (their output is referenceable).
+  upstreamComponentIds?: Set<string> | undefined;
   onFormChange: (value: NodeDataProp) => void;
 }
 
@@ -51,6 +68,25 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   >({});
 
   const [selectedArgId, setSelectedArgId] = useState<string>("");
+
+  /*
+   * Advanced arguments (Argument.isAdvanced) are hidden behind a toggle to
+   * keep the common configuration to a couple of fields. We start expanded
+   * only if an advanced field is required or already has a value, so nothing
+   * important is ever hidden.
+   */
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(() => {
+    const args: Array<Argument> = props.component.metadata.arguments || [];
+    return args.some((arg: Argument) => {
+      if (arg.isAdvanced !== true) {
+        return false;
+      }
+      const value: unknown = props.component.arguments
+        ? props.component.arguments[arg.id]
+        : undefined;
+      return arg.required === true || (value !== undefined && value !== "");
+    });
+  });
 
   /*
    * Workflows in the current project, used to populate dropdowns for any
@@ -142,21 +178,54 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     props.onFormChange(component);
   }, [component]);
 
+  type SetJsonFieldErrorFunction = (argId: string, isInvalid: boolean) => void;
+
+  /*
+   * Each JSON argument reports whether its content is currently invalid. We
+   * track these under distinct "json:<argId>" keys so an invalid JSON body
+   * disables Save without clobbering the form's own validation state.
+   */
+  const setJsonFieldError: SetJsonFieldErrorFunction = (
+    argId: string,
+    isInvalid: boolean,
+  ): void => {
+    const key: string = `json:${argId}`;
+    setHasFormValidationErrors((prev: Dictionary<boolean>) => {
+      if (prev[key] === isInvalid) {
+        return prev;
+      }
+      return { ...prev, [key]: isInvalid };
+    });
+  };
+
+  const allArguments: Array<Argument> = component.metadata.arguments || [];
+  const advancedArguments: Array<Argument> = allArguments.filter(
+    (arg: Argument) => {
+      return arg.isAdvanced === true;
+    },
+  );
+  const hasAdvancedArguments: boolean = advancedArguments.length > 0;
+  const visibleArguments: Array<Argument> = allArguments.filter(
+    (arg: Argument) => {
+      return showAdvanced || arg.isAdvanced !== true;
+    },
+  );
+
   return (
     <div>
       <div>
-        {component.metadata.arguments &&
-          component.metadata.arguments.length === 0 && (
-            <ErrorMessage message={"This step does not need any settings."} />
-          )}
+        {allArguments.length === 0 && (
+          <div className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-500">
+            This step doesn&apos;t need any configuration.
+          </div>
+        )}
         {/*
           If any argument is a WorkflowSelect and we're still fetching the
           list of workflows, show a loader instead of the form. Otherwise
           the user briefly sees an empty dropdown which is confusing.
         */}
         {hasWorkflowSelectArg && isLoadingWorkflows && <ComponentLoader />}
-        {component.metadata.arguments &&
-          component.metadata.arguments.length > 0 &&
+        {allArguments.length > 0 &&
           !(hasWorkflowSelectArg && isLoadingWorkflows) && (
             <BasicForm
               hideSubmitButton={true}
@@ -174,122 +243,174 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 });
               }}
               onFormValidationErrorChanged={(hasError: boolean) => {
-                if (hasFormValidationErrors["id"] !== hasError) {
-                  setHasFormValidationErrors({
-                    ...hasFormValidationErrors,
-                    id: hasError,
-                  });
-                }
-              }}
-              fields={
-                component.metadata.arguments &&
-                component.metadata.arguments.map((arg: Argument) => {
-                  const isWorkflowSelect: boolean =
-                    arg.type === ComponentInputType.WorkflowSelect;
-
-                  /*
-                   * Database Select args (the "Select Fields" / "Listen on"
-                   * trigger inputs) get a tree-style field picker backed by
-                   * the model's schema, instead of a raw JSON textarea. We
-                   * need a tableName on the component metadata to fetch the
-                   * column list; without it, fall back to the JSON editor.
-                   */
-                  const useFieldPicker: boolean =
-                    arg.type === ComponentInputType.Select &&
-                    Boolean(component.metadata.tableName);
-
-                  const baseField: {
-                    fieldType: import("../Forms/Types/FormFieldSchemaType").default;
-                    dropdownOptions?: Array<DropdownOption> | undefined;
-                    getCustomElement?: (
-                      values: FormValues<JSONObject>,
-                      customProps: CustomElementProps,
-                    ) => ReactElement | undefined;
-                  } = useFieldPicker
-                    ? {
-                        fieldType: FormFieldSchemaType.CustomComponent,
-                        getCustomElement: (
-                          _values: FormValues<JSONObject>,
-                          customProps: CustomElementProps,
-                        ): ReactElement => {
-                          return (
-                            <ModelFieldPicker
-                              tableName={component.metadata.tableName as string}
-                              initialValue={customProps.initialValue}
-                              onChange={(value: string) => {
-                                void customProps.onChange?.(value);
-                              }}
-                              placeholder={customProps.placeholder}
-                              error={customProps.error}
-                              tabIndex={customProps.tabIndex}
-                            />
-                          );
-                        },
-                      }
-                    : componentInputTypeToFormFieldType(
-                        arg.type,
-                        component.arguments && component.arguments[arg.id]
-                          ? component.arguments[arg.id]
-                          : null,
-                      );
-
-                  /*
-                   * For WorkflowSelect, inject the dynamically fetched list
-                   * of workflows as dropdown options.
-                   */
-                  if (isWorkflowSelect) {
-                    baseField.dropdownOptions = workflowDropdownOptions;
+                setHasFormValidationErrors((prev: Dictionary<boolean>) => {
+                  if (prev["arguments"] === hasError) {
+                    return prev;
                   }
+                  return { ...prev, arguments: hasError };
+                });
+              }}
+              fields={visibleArguments.map((arg: Argument) => {
+                const isWorkflowSelect: boolean =
+                  arg.type === ComponentInputType.WorkflowSelect;
 
-                  /*
-                   * The "pick from component / variable" footer doesn't
-                   * apply to the field picker (it edits a structured object,
-                   * not a free-text expression) or to WorkflowSelect.
-                   */
-                  const showVariableFooter: boolean =
-                    !isWorkflowSelect && !useFieldPicker;
+                /*
+                 * Database Select args (the "Select Fields" / "Listen on"
+                 * trigger inputs) get a tree-style field picker backed by
+                 * the model's schema, instead of a raw JSON textarea. We
+                 * need a tableName on the component metadata to fetch the
+                 * column list; without it, fall back to the JSON editor.
+                 */
+                const useFieldPicker: boolean =
+                  arg.type === ComponentInputType.Select &&
+                  Boolean(component.metadata.tableName);
 
-                  return {
-                    title: `${arg.name}`,
-                    footerElement: showVariableFooter ? (
-                      <div className="text-gray-500">
-                        <p className="text-sm">
-                          Pick this value from other{" "}
-                          <button
-                            className="underline text-blue-500 hover:text-blue-600 cursor-pointer"
-                            onClick={() => {
-                              setSelectedArgId(arg.id);
-                              setShowComponentPickerModal(true);
-                            }}
-                          >
-                            component
-                          </button>{" "}
-                          or from{" "}
-                          <button
-                            className="underline text-blue-500 hover:text-blue-600 cursor-pointer"
-                            onClick={() => {
-                              setSelectedArgId(arg.id);
-                              setShowVariableModal(true);
-                            }}
-                          >
-                            variable.
-                          </button>
-                        </p>
-                      </div>
-                    ) : undefined,
-                    description: `${
-                      arg.required ? "Required" : "Optional"
-                    }. ${arg.description}`,
-                    field: {
-                      [arg.id]: true,
+                /*
+                 * All structured/JSON-ish argument types render in the
+                 * validating JSONArgumentInput instead of a bare editor, so
+                 * syntax mistakes surface while editing rather than at run
+                 * time.
+                 */
+                const useJsonEditor: boolean =
+                  !useFieldPicker && JSON_INPUT_TYPES.includes(arg.type);
+
+                let baseField: {
+                  fieldType: import("../Forms/Types/FormFieldSchemaType").default;
+                  dropdownOptions?: Array<DropdownOption> | undefined;
+                  getCustomElement?: (
+                    values: FormValues<JSONObject>,
+                    customProps: CustomElementProps,
+                  ) => ReactElement | undefined;
+                };
+
+                if (useFieldPicker) {
+                  baseField = {
+                    fieldType: FormFieldSchemaType.CustomComponent,
+                    getCustomElement: (
+                      _values: FormValues<JSONObject>,
+                      customProps: CustomElementProps,
+                    ): ReactElement => {
+                      return (
+                        <ModelFieldPicker
+                          tableName={component.metadata.tableName as string}
+                          initialValue={customProps.initialValue}
+                          onChange={(value: string) => {
+                            void customProps.onChange?.(value);
+                          }}
+                          placeholder={customProps.placeholder}
+                          error={customProps.error}
+                          tabIndex={customProps.tabIndex}
+                        />
+                      );
                     },
-                    required: arg.required,
-                    placeholder: arg.placeholder,
-                    ...baseField,
                   };
-                })
-              }
+                } else if (useJsonEditor) {
+                  baseField = {
+                    fieldType: FormFieldSchemaType.CustomComponent,
+                    getCustomElement: (
+                      _values: FormValues<JSONObject>,
+                      customProps: CustomElementProps,
+                    ): ReactElement => {
+                      return (
+                        <JSONArgumentInput
+                          value={(customProps.initialValue as string) || ""}
+                          placeholder={arg.placeholder}
+                          error={customProps.error}
+                          tabIndex={customProps.tabIndex}
+                          onChange={(value: string) => {
+                            void customProps.onChange?.(value);
+                          }}
+                          onValidationChange={(isInvalid: boolean) => {
+                            setJsonFieldError(arg.id, isInvalid);
+                          }}
+                        />
+                      );
+                    },
+                  };
+                } else {
+                  baseField = componentInputTypeToFormFieldType(
+                    arg.type,
+                    component.arguments && component.arguments[arg.id]
+                      ? component.arguments[arg.id]
+                      : null,
+                  );
+                }
+
+                /*
+                 * For WorkflowSelect, inject the dynamically fetched list
+                 * of workflows as dropdown options.
+                 */
+                if (isWorkflowSelect) {
+                  baseField.dropdownOptions = workflowDropdownOptions;
+                }
+
+                /*
+                 * The "pick from component / variable" footer doesn't
+                 * apply to the field picker (it edits a structured object,
+                 * not a free-text expression) or to WorkflowSelect. JSON
+                 * editors keep it so authors can drop {{ tokens }} into a
+                 * request body or payload.
+                 */
+                const showVariableFooter: boolean =
+                  !isWorkflowSelect && !useFieldPicker;
+
+                return {
+                  title: `${arg.name}`,
+                  footerElement: showVariableFooter ? (
+                    <div className="text-gray-500">
+                      <p className="text-sm">
+                        Pick this value from other{" "}
+                        <button
+                          className="underline text-blue-500 hover:text-blue-600 cursor-pointer"
+                          onClick={() => {
+                            setSelectedArgId(arg.id);
+                            setShowComponentPickerModal(true);
+                          }}
+                        >
+                          component
+                        </button>{" "}
+                        or from{" "}
+                        <button
+                          className="underline text-blue-500 hover:text-blue-600 cursor-pointer"
+                          onClick={() => {
+                            setSelectedArgId(arg.id);
+                            setShowVariableModal(true);
+                          }}
+                        >
+                          variable.
+                        </button>
+                      </p>
+                    </div>
+                  ) : undefined,
+                  description: `${
+                    arg.required ? "Required" : "Optional"
+                  }. ${arg.description}`,
+                  field: {
+                    [arg.id]: true,
+                  },
+                  required: arg.required,
+                  placeholder: arg.placeholder,
+                  ...baseField,
+                };
+              })}
             />
+          )}
+
+        {hasAdvancedArguments &&
+          !(hasWorkflowSelectArg && isLoadingWorkflows) && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowAdvanced((value: boolean) => {
+                  return !value;
+                });
+              }}
+              className="mt-3 text-sm font-medium text-blue-500 hover:text-blue-600 cursor-pointer"
+            >
+              {showAdvanced
+                ? "Hide advanced settings"
+                : `Show advanced settings (${advancedArguments.length})`}
+            </button>
           )}
       </div>
       {showVariableModal && (
@@ -313,6 +434,8 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       {showComponentPickerModal && (
         <ComponentValuePickerModal
           components={props.graphComponents}
+          upstreamComponentIds={props.upstreamComponentIds}
+          currentComponentId={component.id}
           onClose={() => {
             setShowComponentPickerModal(false);
           }}

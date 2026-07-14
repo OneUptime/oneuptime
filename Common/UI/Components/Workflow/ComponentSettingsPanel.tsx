@@ -3,7 +3,7 @@ import BasicForm from "../Forms/BasicForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import FormValues from "../Forms/Types/FormValues";
 import ConfirmModal from "../Modal/ConfirmModal";
-import Modal, { ModalWidth } from "../Modal/Modal";
+import Icon from "../Icon/Icon";
 import ArgumentsForm from "./ArgumentsForm";
 import ComponentPortViewer from "./ComponentPortViewer";
 import ComponentReturnValueViewer from "./ComponentReturnValueViewer";
@@ -14,7 +14,13 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { NodeDataProp } from "../../../Types/Workflow/Component";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import Icon from "../Icon/Icon";
+
+/*
+ * The step configuration surface, rendered as a docked panel beside the
+ * canvas (see Workflow.tsx) instead of a full-screen modal — so the graph
+ * stays visible while you configure a step. It overlays the right edge of the
+ * canvas, leaving the React Flow layout untouched.
+ */
 
 export interface ComponentProps {
   title: string;
@@ -24,6 +30,8 @@ export interface ComponentProps {
   onDelete: (component: NodeDataProp) => void;
   component: NodeDataProp;
   graphComponents: Array<NodeDataProp>;
+  // Component data ids that run before this step (their output is referenceable).
+  upstreamComponentIds?: Set<string> | undefined;
   workflowId: ObjectID;
   webhookSecretKey?: string | undefined;
 }
@@ -58,7 +66,7 @@ const SectionCard: FunctionComponent<SectionCardProps> = (
   );
 };
 
-const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
+const ComponentSettingsPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [component, setComponent] = useState<NodeDataProp>(props.component);
@@ -68,10 +76,18 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const [showDeleteConfirmation, setShowDeleteConfirmation] =
     useState<boolean>(false);
 
+  /*
+   * The Identifier is a technical detail most authors never touch (it's used
+   * to reference this step from others). It's tucked behind an "Advanced"
+   * disclosure so the panel stays focused on the actual settings.
+   */
+  const [showIdentifier, setShowIdentifier] = useState<boolean>(false);
+
   const settingsSection: ReactElement = (
     <SectionCard icon={IconProp.Settings} title="Settings">
       <ArgumentsForm
         graphComponents={props.graphComponents}
+        upstreamComponentIds={props.upstreamComponentIds}
         workflowId={props.workflowId}
         component={component}
         onFormChange={(c: NodeDataProp) => {
@@ -127,7 +143,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
 
   /*
    * Each connection/output card is only rendered if there's something to
-   * show — keeps the sidebar lean for triggers (no inputs) and components
+   * show — keeps the panel lean for triggers (no inputs) and components
    * that don't return any data.
    */
   const hasInputs: boolean =
@@ -177,63 +193,91 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <Modal
-      title={props.title}
-      description={props.description}
-      onClose={props.onClose}
-      onSubmit={() => {
-        return component && props.onSave(component);
-      }}
-      submitButtonText="Save"
-      modalWidth={ModalWidth.Large}
-      disableSubmitButton={hasErrors}
-      leftFooterElement={
+    <div className="flex h-full flex-col bg-white">
+      {/* Header */}
+      <div className="flex items-start justify-between border-b border-gray-200 px-4 py-3">
+        <div className="min-w-0 pr-2">
+          <h2 className="truncate text-sm font-semibold text-gray-900">
+            {props.title}
+          </h2>
+          {props.description && (
+            <p className="truncate text-xs text-gray-500">
+              {props.description}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          aria-label="Close settings"
+          onClick={props.onClose}
+          className="shrink-0 rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer"
+        >
+          <Icon icon={IconProp.Close} className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        {settingsSection}
+        {documentationSection}
+        {inputsSection}
+        {outputsSection}
+        {returnsSection}
+        {showIdentifier ? (
+          idSection
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setShowIdentifier(true);
+            }}
+            className="text-sm font-medium text-blue-500 hover:text-blue-600 cursor-pointer"
+          >
+            Show advanced (identifier)
+          </button>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
         <Button
           title="Delete"
           icon={IconProp.Trash}
           buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+          dataTestId="workflow-step-delete"
           onClick={() => {
             setShowDeleteConfirmation(true);
           }}
         />
-      }
-    >
-      <>
-        {showDeleteConfirmation && (
-          <ConfirmModal
-            title={`Delete ${component.metadata.componentType}`}
-            description={`Are you sure you want to delete this ${component.metadata.componentType.toLowerCase()}? This action is not recoverable.`}
-            onClose={() => {
-              setShowDeleteConfirmation(false);
-            }}
-            submitButtonText="Delete"
-            onSubmit={() => {
-              props.onDelete(component);
-              setShowDeleteConfirmation(false);
-              props.onClose();
-            }}
-            submitButtonType={ButtonStyleType.DANGER}
-          />
-        )}
+        <Button
+          title="Save"
+          buttonStyle={ButtonStyleType.PRIMARY}
+          disabled={hasErrors}
+          dataTestId="workflow-step-save"
+          onClick={() => {
+            props.onSave(component);
+          }}
+        />
+      </div>
 
-        {/*
-         * Two-column layout: arguments take the main column (2/3 width on
-         * md+), metadata sits in a narrower sidebar. Collapses to one
-         * column below md.
-         */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2 space-y-4">{settingsSection}</div>
-          <div className="md:col-span-1 space-y-4">
-            {idSection}
-            {documentationSection}
-            {inputsSection}
-            {outputsSection}
-            {returnsSection}
-          </div>
-        </div>
-      </>
-    </Modal>
+      {showDeleteConfirmation && (
+        <ConfirmModal
+          title={`Delete ${component.metadata.componentType}`}
+          description={`Are you sure you want to delete this ${component.metadata.componentType.toLowerCase()}? This action is not recoverable.`}
+          onClose={() => {
+            setShowDeleteConfirmation(false);
+          }}
+          submitButtonText="Delete"
+          onSubmit={() => {
+            props.onDelete(component);
+            setShowDeleteConfirmation(false);
+            props.onClose();
+          }}
+          submitButtonType={ButtonStyleType.DANGER}
+        />
+      )}
+    </div>
   );
 };
 
-export default ComponentSettingsModal;
+export default ComponentSettingsPanel;
