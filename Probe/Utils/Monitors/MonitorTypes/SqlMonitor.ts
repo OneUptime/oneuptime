@@ -842,8 +842,10 @@ export default class SqlMonitor {
 
     const query: string = config.query.replace(/;+\s*$/g, "").trim();
 
-    // Teardown is bounded so a still-in-flight (e.g. cancelled) request can
-    // never hang pool.close() — tarn waits for borrowed connections forever.
+    /*
+     * Teardown is bounded so a still-in-flight (e.g. cancelled) request can
+     * never hang pool.close() — tarn waits for borrowed connections forever.
+     */
     const teardownTimeoutInMs: number = 5000;
 
     const poolConfig: mssql.config = {
@@ -873,8 +875,10 @@ export default class SqlMonitor {
     let transactionBegun: boolean = false;
 
     try {
-      // Inside the try so a connect failure still hits the finally that closes
-      // the pool (no leaked pool on an unreachable / auth-rejected database).
+      /*
+       * Inside the try so a connect failure still hits the finally that closes
+       * the pool (no leaked pool on an unreachable / auth-rejected database).
+       */
       await pool.connect();
 
       transaction = new mssql.Transaction(pool);
