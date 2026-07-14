@@ -299,7 +299,7 @@ export class MonitorTypeHelper {
         monitorType: MonitorType.SQLQuery,
         title: "SQL Query",
         description:
-          "This monitor type runs a read-only SQL query on a schedule against a database (PostgreSQL) and alerts on the result — row count, a scalar value, execution time, or query errors. Requires a probe with network access to your database.",
+          "This monitor type runs a read-only SQL query on a schedule against a database (PostgreSQL, MySQL, or Microsoft SQL Server) and alerts on the result — row count, a scalar value, execution time, or query errors. Requires a probe with network access to your database.",
         icon: IconProp.Database,
       },
       {

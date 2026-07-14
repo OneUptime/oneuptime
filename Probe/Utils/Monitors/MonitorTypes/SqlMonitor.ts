@@ -9,9 +9,18 @@ import MonitorStepSqlMonitor, {
   clampSqlMaxRows,
   clampSqlStatementTimeoutInMs,
 } from "Common/Types/Monitor/MonitorStepSqlMonitor";
-import { SqlDatabaseTypeUtil } from "Common/Types/Monitor/SqlDatabaseType";
+import SqlDatabaseType, {
+  SqlDatabaseTypeUtil,
+} from "Common/Types/Monitor/SqlDatabaseType";
 import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
-import { Client, ClientConfig, FieldDef, QueryResult } from "pg";
+import { Client, ClientConfig, QueryResult } from "pg";
+import {
+  Connection as MySqlConnection,
+  ConnectionOptions as MySqlConnectionOptions,
+  FieldPacket as MySqlFieldPacket,
+  createConnection as createMySqlConnection,
+} from "mysql2/promise";
+import * as mssql from "mssql";
 
 export interface SqlQueryOptions {
   timeout?: number | undefined;
@@ -20,6 +29,31 @@ export interface SqlQueryOptions {
   monitorId?: ObjectID | undefined;
   isOnlineCheckRequest?: boolean | undefined;
   attempts?: Array<ProbeAttempt> | undefined;
+}
+
+/*
+ * Minimal, driver-agnostic column descriptor. Every engine driver returns
+ * richer column metadata, but the compact projection only needs the column
+ * name (to pick the scalar / first-column value), so the executors normalize
+ * their driver-specific field types down to this shape.
+ */
+export interface SqlResultColumn {
+  name: string;
+}
+
+/*
+ * The underlying (callback-style) mysql2 connection reached via the promise
+ * wrapper's `.connection` property. Only the members the streaming row reader
+ * uses are typed here — row streaming is not exposed on the promise API, so
+ * the executor drops down to this core connection to enforce a hard row cap.
+ */
+interface MySqlCoreConnection {
+  query: (sql: string) => MySqlQueryStream;
+  destroy: () => void;
+}
+
+interface MySqlQueryStream {
+  on: (event: string, listener: (arg: unknown) => void) => MySqlQueryStream;
 }
 
 /*
@@ -115,8 +149,17 @@ export default class SqlMonitor {
       message = message.split(password).join("***");
     }
 
-    // Redact any connection URIs (postgres://user:pass@host/db).
+    /*
+     * Redact any connection URIs (postgres://user:pass@host/db,
+     * mysql://..., sqlserver://...).
+     */
     message = message.replace(/[a-zA-Z]+:\/\/[^\s]*@[^\s]*/g, "[redacted-dsn]");
+
+    /*
+     * Redact password / pwd key-value pairs from connection-string style
+     * errors (e.g. SQL Server: "...Password=secret;Server=...").
+     */
+    message = message.replace(/(password|pwd)\s*=\s*[^;\s]+/gi, "$1=***");
 
     return message;
   }
@@ -126,9 +169,7 @@ export default class SqlMonitor {
    * strings, binary becomes a placeholder, and structured values are
    * stringified — so the compact result projection is always serializable.
    */
-  public static coerceCell(
-    value: unknown,
-  ): string | number | boolean | null {
+  public static coerceCell(value: unknown): string | number | boolean | null {
     if (value === null || value === undefined) {
       return null;
     }
@@ -167,7 +208,7 @@ export default class SqlMonitor {
    */
   public static shapeRows(input: {
     rows: Array<Record<string, unknown>>;
-    fields: Array<FieldDef>;
+    fields: Array<SqlResultColumn>;
     maxRows: number;
   }): {
     rowCount: number;
@@ -264,7 +305,7 @@ export default class SqlMonitor {
     const attemptedAt: Date = new Date();
 
     try {
-      const { rows, fields } = await SqlMonitor.runPostgresQuery({
+      const { rows, fields } = await SqlMonitor.runQuery({
         config,
         statementTimeoutInMs,
         connectionTimeoutInMs,
@@ -363,6 +404,71 @@ export default class SqlMonitor {
   }
 
   /**
+   * Dispatch to the executor for the configured database engine. The caller
+   * (execute) has already verified the engine is supported, so the default
+   * case (PostgreSQL) is only a safety net.
+   */
+  private static async runQuery(input: {
+    config: MonitorStepSqlMonitor;
+    statementTimeoutInMs: number;
+    connectionTimeoutInMs: number;
+    maxRows: number;
+  }): Promise<{
+    rows: Array<Record<string, unknown>>;
+    fields: Array<SqlResultColumn>;
+  }> {
+    switch (input.config.databaseType) {
+      case SqlDatabaseType.MySQL:
+        return await SqlMonitor.runMySqlQuery(input);
+      case SqlDatabaseType.MicrosoftSqlServer:
+        return await SqlMonitor.runMicrosoftSqlServerQuery(input);
+      case SqlDatabaseType.PostgreSQL:
+      default:
+        return await SqlMonitor.runPostgresQuery(input);
+    }
+  }
+
+  /**
+   * Race a query against a hard client-side timeout. When the timeout wins,
+   * onTimeout() tears the connection/request down so the abandoned query stops
+   * consuming resources, and a late rejection of the raced promise is swallowed
+   * (it is already handled by the race).
+   */
+  private static withHardTimeout<T>(input: {
+    promise: Promise<T>;
+    timeoutInMs: number;
+    onTimeout: () => void;
+  }): Promise<T> {
+    input.promise.catch(() => {
+      /*
+       * Handled by the race below; prevents an unhandled rejection once the
+       * timeout has already won.
+       */
+    });
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const timeoutPromise: Promise<never> = new Promise<never>(
+      (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
+        timer = setTimeout(() => {
+          try {
+            input.onTimeout();
+          } catch {
+            // Ignore teardown errors — we are already failing this attempt.
+          }
+          reject(new Error("SQL query timed out."));
+        }, input.timeoutInMs);
+      },
+    );
+
+    return Promise.race([input.promise, timeoutPromise]).finally(() => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    });
+  }
+
+  /**
    * Connect to PostgreSQL and run the user's query inside a READ ONLY
    * transaction with a hard statement timeout, reading at most maxRows+1 rows
    * via a cursor (the +1 lets the caller detect truncation). The transaction
@@ -373,7 +479,10 @@ export default class SqlMonitor {
     statementTimeoutInMs: number;
     connectionTimeoutInMs: number;
     maxRows: number;
-  }): Promise<{ rows: Array<Record<string, unknown>>; fields: Array<FieldDef> }> {
+  }): Promise<{
+    rows: Array<Record<string, unknown>>;
+    fields: Array<SqlResultColumn>;
+  }> {
     const { config, statementTimeoutInMs, connectionTimeoutInMs, maxRows } =
       input;
 
@@ -404,8 +513,10 @@ export default class SqlMonitor {
     const cursorQuery: string = config.query.replace(/;+\s*$/g, "").trim();
 
     try {
-      // Authoritative read-only guarantee: a read-only transaction blocks all
-      // writes, including Postgres writable CTEs, regardless of the query text.
+      /*
+       * Authoritative read-only guarantee: a read-only transaction blocks all
+       * writes, including Postgres writable CTEs, regardless of the query text.
+       */
       await client.query("START TRANSACTION READ ONLY");
       await client.query(
         `SET LOCAL statement_timeout = ${Math.floor(statementTimeoutInMs)}`,
@@ -436,5 +547,323 @@ export default class SqlMonitor {
         logger.debug(`SQL monitor connection close failed: ${endErr}`);
       }
     }
+  }
+
+  /**
+   * Connect to MySQL and run the user's query inside a READ ONLY transaction
+   * (writes error out) with a best-effort server-side statement timeout, a
+   * hard client-side timeout backstop, and a streamed read that stops after
+   * maxRows+1 rows (the +1 lets the caller detect truncation). The transaction
+   * is always rolled back and the connection always closed.
+   */
+  private static async runMySqlQuery(input: {
+    config: MonitorStepSqlMonitor;
+    statementTimeoutInMs: number;
+    connectionTimeoutInMs: number;
+    maxRows: number;
+  }): Promise<{
+    rows: Array<Record<string, unknown>>;
+    fields: Array<SqlResultColumn>;
+  }> {
+    const { config, statementTimeoutInMs, connectionTimeoutInMs, maxRows } =
+      input;
+
+    const connectionOptions: MySqlConnectionOptions = {
+      host: config.host,
+      port: config.port,
+      database: config.databaseName,
+      user: config.username,
+      password: config.password,
+      connectTimeout: connectionTimeoutInMs,
+      // Never allow stacked statements at the driver level (defense in depth).
+      multipleStatements: false,
+    };
+
+    if (config.useSsl) {
+      connectionOptions.ssl = {
+        rejectUnauthorized: config.rejectUnauthorizedSsl,
+      };
+    }
+
+    const query: string = config.query.replace(/;+\s*$/g, "").trim();
+
+    const connection: MySqlConnection =
+      await createMySqlConnection(connectionOptions);
+
+    try {
+      /*
+       * Best-effort server-side statement timeout (MySQL 5.7.8+; the variable
+       * is unknown on some forks/older versions, so a failure here is
+       * non-fatal — the hard client-side backstop below is the real bound).
+       */
+      try {
+        await connection.query(
+          `SET SESSION MAX_EXECUTION_TIME = ${Math.floor(statementTimeoutInMs)}`,
+        );
+      } catch (setTimeoutErr) {
+        logger.debug(`MySQL MAX_EXECUTION_TIME not set: ${setTimeoutErr}`);
+      }
+
+      /*
+       * Secondary, default-case row bound. An explicit LIMIT in the user's
+       * query takes precedence over SQL_SELECT_LIMIT, so the authoritative row
+       * cap is the streamed read below — this just trims the common
+       * forgot-a-WHERE case at the server.
+       */
+      await connection.query(`SET SESSION SQL_SELECT_LIMIT = ${maxRows + 1}`);
+
+      /*
+       * Authoritative read-only guarantee: a read-only transaction rejects any
+       * write, regardless of the query text.
+       */
+      await connection.query("START TRANSACTION READ ONLY");
+
+      return await SqlMonitor.streamMySqlRows({
+        connection,
+        query,
+        maxRows,
+        hardTimeoutInMs: statementTimeoutInMs + 2000,
+      });
+    } finally {
+      try {
+        await connection.query("ROLLBACK");
+      } catch (rollbackErr) {
+        logger.debug(`MySQL monitor rollback failed: ${rollbackErr}`);
+      }
+
+      try {
+        await connection.end();
+      } catch (endErr) {
+        logger.debug(`MySQL monitor connection close failed: ${endErr}`);
+        try {
+          connection.destroy();
+        } catch {
+          // Best effort — the socket may already be gone.
+        }
+      }
+    }
+  }
+
+  /**
+   * Stream rows from an already-open MySQL connection, collecting at most
+   * maxRows+1 rows and then hard-stopping (row streaming is not exposed on the
+   * mysql2 promise API, so we reach the underlying core connection). A hard
+   * timeout tears the connection down if the query stalls.
+   */
+  private static streamMySqlRows(input: {
+    connection: MySqlConnection;
+    query: string;
+    maxRows: number;
+    hardTimeoutInMs: number;
+  }): Promise<{
+    rows: Array<Record<string, unknown>>;
+    fields: Array<SqlResultColumn>;
+  }> {
+    const { connection, query, maxRows, hardTimeoutInMs } = input;
+
+    return new Promise(
+      (
+        resolve: (value: {
+          rows: Array<Record<string, unknown>>;
+          fields: Array<SqlResultColumn>;
+        }) => void,
+        reject: (reason: Error) => void,
+      ) => {
+        const rows: Array<Record<string, unknown>> = [];
+        let fields: Array<SqlResultColumn> = [];
+        let settled: boolean = false;
+
+        const coreConnection: MySqlCoreConnection = (
+          connection as unknown as { connection: MySqlCoreConnection }
+        ).connection;
+
+        const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+          try {
+            coreConnection.destroy();
+          } catch {
+            // Best effort.
+          }
+          finish(new Error("SQL query timed out."));
+        }, hardTimeoutInMs);
+
+        function finish(err?: Error): void {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          clearTimeout(timer);
+          if (err) {
+            reject(err);
+          } else {
+            resolve({ rows, fields });
+          }
+        }
+
+        try {
+          const stream: MySqlQueryStream = coreConnection.query(query);
+
+          stream.on("fields", (rawFields: unknown) => {
+            fields = ((rawFields as Array<MySqlFieldPacket>) || []).map(
+              (field: MySqlFieldPacket) => {
+                return { name: field.name };
+              },
+            );
+          });
+
+          stream.on("result", (row: unknown) => {
+            rows.push(row as Record<string, unknown>);
+            if (rows.length >= maxRows + 1) {
+              /*
+               * Stop reading once we are one past the cap so shapeRows can
+               * flag truncation. Destroying the socket cancels the query.
+               */
+              try {
+                coreConnection.destroy();
+              } catch {
+                // Best effort.
+              }
+              finish();
+            }
+          });
+
+          stream.on("error", (err: unknown) => {
+            finish(err as Error);
+          });
+
+          stream.on("end", () => {
+            finish();
+          });
+        } catch (err) {
+          finish(err as Error);
+        }
+      },
+    );
+  }
+
+  /**
+   * Connect to Microsoft SQL Server and run the user's query. SQL Server has
+   * no READ ONLY transaction, so the primary read-only control is the
+   * least-privilege database user; as defense-in-depth we run inside a
+   * transaction that is ALWAYS rolled back (undoing any write) on top of the
+   * single-statement + allow-list guard applied before connecting. Rows are
+   * hard-capped at maxRows+1 server-side with SET ROWCOUNT, with a request
+   * timeout plus a hard client-side backstop.
+   */
+  private static async runMicrosoftSqlServerQuery(input: {
+    config: MonitorStepSqlMonitor;
+    statementTimeoutInMs: number;
+    connectionTimeoutInMs: number;
+    maxRows: number;
+  }): Promise<{
+    rows: Array<Record<string, unknown>>;
+    fields: Array<SqlResultColumn>;
+  }> {
+    const { config, statementTimeoutInMs, connectionTimeoutInMs, maxRows } =
+      input;
+
+    const query: string = config.query.replace(/;+\s*$/g, "").trim();
+
+    const poolConfig: mssql.config = {
+      server: config.host,
+      port: config.port,
+      database: config.databaseName,
+      user: config.username,
+      password: config.password,
+      connectionTimeout: connectionTimeoutInMs,
+      requestTimeout: statementTimeoutInMs,
+      pool: { max: 1, min: 0, idleTimeoutMillis: 30000 },
+      options: {
+        encrypt: config.useSsl,
+        /*
+         * When SSL is on, validate the chain unless the user opted out (a
+         * self-signed cert). When SSL is off this value is irrelevant.
+         */
+        trustServerCertificate: config.useSsl
+          ? !config.rejectUnauthorizedSsl
+          : true,
+        appName: "OneUptimeProbe-SQLMonitor",
+      },
+    };
+
+    const pool: mssql.ConnectionPool = new mssql.ConnectionPool(poolConfig);
+    let transaction: mssql.Transaction | undefined;
+    let transactionBegun: boolean = false;
+
+    try {
+      // Inside the try so a connect failure still hits the finally that closes
+      // the pool (no leaked pool on an unreachable / auth-rejected database).
+      await pool.connect();
+
+      transaction = new mssql.Transaction(pool);
+      await transaction.begin();
+      transactionBegun = true;
+
+      /*
+       * Hard server-side row cap: SET ROWCOUNT stops the server after the
+       * given number of rows (the +1 lets the caller detect truncation) and
+       * wins over a larger user-supplied TOP. It is connection-scoped, so it
+       * applies to the query request that runs next on this transaction.
+       */
+      const setRequest: mssql.Request = new mssql.Request(transaction);
+      await setRequest.batch(`SET ROWCOUNT ${maxRows + 1}`);
+
+      const request: mssql.Request = new mssql.Request(transaction);
+
+      const result: mssql.IResult<Record<string, unknown>> =
+        await SqlMonitor.withHardTimeout({
+          promise: request.query<Record<string, unknown>>(query),
+          timeoutInMs: statementTimeoutInMs + 2000,
+          onTimeout: () => {
+            request.cancel();
+          },
+        });
+
+      const recordset: mssql.IRecordSet<Record<string, unknown>> | undefined =
+        result.recordset;
+
+      const rows: Array<Record<string, unknown>> = recordset
+        ? Array.from(recordset)
+        : [];
+
+      const fields: Array<SqlResultColumn> = SqlMonitor.mssqlColumnsInOrder(
+        recordset?.columns,
+      );
+
+      return { rows, fields };
+    } finally {
+      if (transactionBegun && transaction) {
+        try {
+          await transaction.rollback();
+        } catch (rollbackErr) {
+          logger.debug(`SQL Server monitor rollback failed: ${rollbackErr}`);
+        }
+      }
+
+      try {
+        await pool.close();
+      } catch (closeErr) {
+        logger.debug(`SQL Server monitor pool close failed: ${closeErr}`);
+      }
+    }
+  }
+
+  /**
+   * Order SQL Server column metadata by its declared index so the first column
+   * (the scalar target) matches the query's projection order.
+   */
+  private static mssqlColumnsInOrder(
+    columns: mssql.IColumnMetadata | undefined,
+  ): Array<SqlResultColumn> {
+    if (!columns) {
+      return [];
+    }
+
+    return Object.values(columns)
+      .sort((a: { index: number }, b: { index: number }) => {
+        return a.index - b.index;
+      })
+      .map((column: { name: string }) => {
+        return { name: column.name };
+      });
   }
 }

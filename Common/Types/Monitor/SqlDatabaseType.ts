@@ -1,8 +1,9 @@
 /*
  * Database engines a SQL Query monitor can target. Only the engines listed
  * in SqlDatabaseTypeUtil.getSupportedDatabaseTypes() are executable today —
- * the rest are reserved so the type system and stored config are forward
- * compatible when their probe executors ship.
+ * any engine added to the enum but not returned there is reserved so the type
+ * system and stored config are forward compatible when its probe executor
+ * ships.
  */
 enum SqlDatabaseType {
   PostgreSQL = "PostgreSQL",
@@ -14,13 +15,18 @@ export default SqlDatabaseType;
 
 export class SqlDatabaseTypeUtil {
   /**
-   * Engines the probe can actually connect to and query today. PostgreSQL is
-   * the v1 engine (its driver, `pg`, is already vetted in the monorepo). The
-   * others are intentionally not returned here until their executor lands, so
-   * the dashboard never offers a database type the probe cannot run.
+   * Engines the probe can actually connect to and query today. Each has a
+   * vetted, pure-JS driver in the probe (`pg`, `mysql2`, `mssql`) and a
+   * read-only executor. An engine added to the enum but omitted here is not
+   * offered in the dashboard and is rejected by the probe, so we never surface
+   * a database type the probe cannot run.
    */
   public static getSupportedDatabaseTypes(): Array<SqlDatabaseType> {
-    return [SqlDatabaseType.PostgreSQL];
+    return [
+      SqlDatabaseType.PostgreSQL,
+      SqlDatabaseType.MySQL,
+      SqlDatabaseType.MicrosoftSqlServer,
+    ];
   }
 
   public static isSupported(databaseType: SqlDatabaseType): boolean {

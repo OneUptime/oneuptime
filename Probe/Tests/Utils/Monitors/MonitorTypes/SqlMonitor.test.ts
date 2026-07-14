@@ -17,9 +17,7 @@ describe("SqlQueryValidator.getRejectionReason", () => {
   });
 
   it("allows lower-case and leading whitespace", () => {
-    expect(
-      SqlQueryValidator.getRejectionReason("   select 1 "),
-    ).toBeNull();
+    expect(SqlQueryValidator.getRejectionReason("   select 1 ")).toBeNull();
   });
 
   it("allows the cursorable read statements WITH (CTE), VALUES, TABLE", () => {
@@ -36,7 +34,9 @@ describe("SqlQueryValidator.getRejectionReason", () => {
     expect(
       SqlQueryValidator.getRejectionReason("SHOW server_version"),
     ).toBeTruthy();
-    expect(SqlQueryValidator.getRejectionReason("EXPLAIN SELECT 1")).toBeTruthy();
+    expect(
+      SqlQueryValidator.getRejectionReason("EXPLAIN SELECT 1"),
+    ).toBeTruthy();
   });
 
   it("allows a single trailing semicolon", () => {
@@ -72,9 +72,7 @@ describe("SqlQueryValidator.getRejectionReason", () => {
       SqlQueryValidator.getRejectionReason("SELECT 1; DROP TABLE orders"),
     ).toBeTruthy();
     expect(
-      SqlQueryValidator.getRejectionReason(
-        "SELECT 1; SELECT 2",
-      ),
+      SqlQueryValidator.getRejectionReason("SELECT 1; SELECT 2"),
     ).toBeTruthy();
   });
 
@@ -112,7 +110,9 @@ describe("SqlMonitor.sanitizeError", () => {
 
   it("redacts a connection URI", () => {
     const msg: string = SqlMonitor.sanitizeError(
-      new Error("could not connect to postgres://user:pw@db.internal:5432/orders"),
+      new Error(
+        "could not connect to postgres://user:pw@db.internal:5432/orders",
+      ),
       "pw",
     );
     expect(msg).not.toContain("db.internal");
@@ -220,9 +220,9 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
   it("returns a failure for an unsupported database type without connecting", async () => {
     const response = await SqlMonitor.execute(
       {
-        databaseType: "MySQL" as any,
+        databaseType: "OracleDatabase" as any,
         host: "db.internal",
-        port: 3306,
+        port: 1521,
         databaseName: "orders",
         username: "readonly",
         password: "",
@@ -239,5 +239,35 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
     expect(response).not.toBeNull();
     expect(response!.isOnline).toBe(false);
     expect(response!.failureCause).toContain("not supported");
+  });
+
+  it("rejects a write query before connecting, for every supported engine", async () => {
+    for (const databaseType of [
+      "PostgreSQL",
+      "MySQL",
+      "Microsoft SQL Server",
+    ]) {
+      const response = await SqlMonitor.execute(
+        {
+          databaseType: databaseType as any,
+          host: "db.internal",
+          port: 5432,
+          databaseName: "orders",
+          username: "readonly",
+          password: "",
+          useSsl: false,
+          rejectUnauthorizedSsl: true,
+          query: "DELETE FROM orders",
+          connectionTimeoutInMs: 10000,
+          statementTimeoutInMs: 15000,
+          maxRows: 100,
+        },
+        { isOnlineCheckRequest: true },
+      );
+
+      expect(response).not.toBeNull();
+      expect(response!.isOnline).toBe(false);
+      expect(response!.queryError).toBeTruthy();
+    }
   });
 });
