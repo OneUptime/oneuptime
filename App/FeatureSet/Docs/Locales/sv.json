@@ -91,6 +91,7 @@
     "SSL Certificate Monitor": "Övervakning av SSL-certifikat",
     "Domain Monitor": "Domänövervakning",
     "Custom Code Monitor": "Anpassad kodövervakning",
+    "SQL Query Monitor": "SQL-frågeövervakning",
     "Synthetic Monitor": "Syntetisk övervakning",
     "Incoming Request Monitor": "Övervakning av inkommande förfrågningar",
     "Incoming Email Monitor": "Övervakning av inkommande e-post",

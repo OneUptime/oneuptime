@@ -91,6 +91,7 @@
     "SSL Certificate Monitor": "SSL 证书监控",
     "Domain Monitor": "域名监控",
     "Custom Code Monitor": "自定义代码监控",
+    "SQL Query Monitor": "SQL 查询监控",
     "Synthetic Monitor": "合成监控",
     "Incoming Request Monitor": "入站请求监控",
     "Incoming Email Monitor": "入站邮件监控",

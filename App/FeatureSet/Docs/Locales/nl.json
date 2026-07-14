@@ -91,6 +91,7 @@
     "SSL Certificate Monitor": "SSL-certificaat-monitor",
     "Domain Monitor": "Domein-monitor",
     "Custom Code Monitor": "Aangepaste-code-monitor",
+    "SQL Query Monitor": "SQL-query-monitor",
     "Synthetic Monitor": "Synthetische monitor",
     "Incoming Request Monitor": "Inkomende-verzoek-monitor",
     "Incoming Email Monitor": "Inkomende-e-mail-monitor",

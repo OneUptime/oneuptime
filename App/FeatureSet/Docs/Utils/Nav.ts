@@ -233,6 +233,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/custom-code-monitor",
       },
       {
+        title: "SQL Query Monitor",
+        url: "/docs/monitor/sql-monitor",
+      },
+      {
         title: "Synthetic Monitor",
         url: "/docs/monitor/synthetic-monitor",
       },

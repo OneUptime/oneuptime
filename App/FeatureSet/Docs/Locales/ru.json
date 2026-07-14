@@ -91,6 +91,7 @@
     "SSL Certificate Monitor": "Мониторинг SSL-сертификатов",
     "Domain Monitor": "Мониторинг домена",
     "Custom Code Monitor": "Мониторинг собственного кода",
+    "SQL Query Monitor": "Мониторинг SQL-запросов",
     "Synthetic Monitor": "Синтетический мониторинг",
     "Incoming Request Monitor": "Мониторинг входящих запросов",
     "Incoming Email Monitor": "Мониторинг входящих писем",
