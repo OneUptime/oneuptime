@@ -1,5 +1,4 @@
 import AIAgentService from "../Services/AIAgentService";
-import LlmProviderService from "../Services/LlmProviderService";
 import TelemetryExceptionService from "../Services/TelemetryExceptionService";
 import ServiceService from "../Services/ServiceService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
@@ -19,7 +18,6 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import AIAgent from "../../Models/DatabaseModels/AIAgent";
-import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
 import Service from "../../Models/DatabaseModels/Service";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
@@ -81,90 +79,6 @@ export default class AIAgentDataAPI {
   }
 
   private initRoutes(): void {
-    /*
-     * DEPRECATED (B4 Tier 0, Internal/Roadmap/CodeFixSandboxDesign.md):
-     * this endpoint hands the RAW provider apiKey to the worker for
-     * unmetered direct LLM calls. It only serves the legacy OpenCode
-     * fallback (CODE_AGENT_TYPE=OpenCode), kept for one release; the
-     * in-house agent routes completions through
-     * /ai-agent-data/llm-completion instead and never sees a provider
-     * secret. Remove together with OpenCodeAgent.
-     *
-     * Get LLM configuration for a project.
-     */
-    this.router.post(
-      "/ai-agent-data/get-llm-config",
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ): Promise<void> => {
-        try {
-          const data: JSONObject = req.body;
-
-          // Validate AI Agent credentials
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
-
-          if (!aiAgent) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-            );
-          }
-
-          // Get project ID
-          if (!data["projectId"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("projectId is required"),
-            );
-          }
-
-          const projectId: ObjectID = new ObjectID(data["projectId"] as string);
-
-          /*
-           * This endpoint hands the raw apiKey to the agent process, whose
-           * LLM calls are made directly by the code agent and are NOT metered
-           * through AIService/LlmLog. On Cloud (billing enabled) that means
-           * only a provider the project OWNS may be returned — the shared
-           * global (OneUptime-billed) provider's usage here would be
-           * unbilled, unlogged, and exempt from the daily token budget. On
-           * self-host (billing disabled) the global provider is the
-           * operator's own key/endpoint (e.g. seeded from the
-           * GLOBAL_LLM_PROVIDER_* env vars), so falling back to it is fine.
-           */
-          const llmProvider: LlmProvider | null =
-            await LlmProviderService.getLlmProviderForAgentTasks(projectId);
-
-          if (!llmProvider) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                "No LLM provider is available for AI Agent tasks. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project. (On OneUptime Cloud the provider must be project-owned — the shared global provider is not supported on this path because agent usage is not metered.)",
-              ),
-            );
-          }
-
-          logger.debug(
-            `LLM config fetched for project ${projectId.toString()}: ${llmProvider.llmType}`,
-            getLogAttributesFromRequest(req as any),
-          );
-
-          return Response.sendJsonObjectResponse(req, res, {
-            llmType: llmProvider.llmType,
-            apiKey: llmProvider.apiKey,
-            baseUrl: llmProvider.baseUrl,
-            modelName: llmProvider.modelName,
-          });
-        } catch (err) {
-          next(err);
-        }
-      },
-    );
-
     /*
      * Server-mediated LLM completion for the in-house code-fix agent (B4
      * Tier 0, Internal/Roadmap/CodeFixSandboxDesign.md). One call = one
