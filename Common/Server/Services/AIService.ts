@@ -1,4 +1,4 @@
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { getAllEnvVars, IsBillingEnabled } from "../EnvironmentConfig";
 import BaseService from "./BaseService";
 import LlmProviderService from "./LlmProviderService";
 import LlmLogService from "./LlmLogService";
@@ -21,6 +21,10 @@ import LlmLogStatus from "../../Types/LlmLogStatus";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../Types/Billing/SubscriptionPlan";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -30,6 +34,9 @@ import logger, { LogAttributes } from "../Utils/Logger";
  * through /ai-agent-data/llm-completion, which executes under this feature.
  */
 export const SENTINEL_CODE_FIX_FEATURE: string = "Sentinel Code Fix";
+
+/** Metering and autonomous-budget feature name for workflow AI components. */
+export const WORKFLOW_AI_FEATURE: string = "Workflow AI";
 
 /*
  * The LlmLog feature name for AI runbook steps. Runbooks are triggered by
@@ -74,6 +81,8 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * manually started runs proceed without a human approving each LLM call.
    */
   RUNBOOK_AI_STEP_FEATURE,
+  // Workflow components also execute without per-request human approval.
+  WORKFLOW_AI_FEATURE,
 ];
 
 export interface AutonomousBudgetStatus {
@@ -100,6 +109,23 @@ export interface AILogRequest {
   tools?: Array<LLMToolDefinition> | undefined;
   maxTokens?: number | undefined;
   temperature?: number | undefined;
+  /** Per-attempt provider request timeout. */
+  requestTimeoutInMs?: number | undefined;
+  /** Provider retry count. A workflow uses zero to avoid duplicate billing. */
+  requestRetries?: number | undefined;
+  /**
+   * Re-apply caller-owned model inputs and bounds after provider-level
+   * additional parameters. This prevents unattended callers from having their
+   * messages, tools, choice count, or output cap overridden centrally.
+   */
+  protectRequestParameters?: boolean | undefined;
+  /**
+   * When false, errors from the provider-execution phase are replaced with a
+   * generic message before they reach application logs, traces, persisted LLM
+   * logs, or the caller. Use this when a provider could echo private request
+   * content in an error response.
+   */
+  storeErrorDetails?: boolean | undefined;
   /*
    * When false, prompt/response previews are NOT persisted to LlmLog.
    * Use for features whose content is private to a single user (e.g. AI
@@ -117,6 +143,56 @@ export interface AILogResponse {
 export class Service extends BaseService {
   public constructor() {
     super();
+  }
+
+  /**
+   * Assert the project-level feature, subscription, and payment gates shared by
+   * background AI entry points. Provider availability, balance, and token
+   * budgets are checked later by executeWithLogging so those failures are
+   * captured in the metered LLM log.
+   */
+  @CaptureSpan()
+  public async assertProjectCanUseAI(projectId: ObjectID): Promise<void> {
+    const [project, planStatus]: [
+      Project | null,
+      { plan: PlanType | null; isSubscriptionUnpaid: boolean },
+    ] = await Promise.all([
+      ProjectService.findOneById({
+        id: projectId,
+        select: { enableAi: true },
+        props: { isRoot: true },
+      }),
+      ProjectService.getCurrentPlan(projectId),
+    ]);
+
+    if (!project) {
+      throw new BadDataException("Project not found.");
+    }
+
+    if (project.enableAi === false) {
+      throw new BadDataException(
+        "AI features are disabled for this project. Enable AI in Project Settings before running this workflow.",
+      );
+    }
+
+    if (planStatus.isSubscriptionUnpaid) {
+      throw new PaymentRequiredException(
+        "Your subscription is unpaid. Please update your payment method to use AI in workflows.",
+      );
+    }
+
+    if (
+      planStatus.plan &&
+      !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+        PlanType.Growth,
+        planStatus.plan,
+        getAllEnvVars(),
+      )
+    ) {
+      throw new PaymentRequiredException(
+        "Please upgrade your plan to Growth to use AI in workflows.",
+      );
+    }
   }
 
   /*
@@ -289,7 +365,7 @@ export class Service extends BaseService {
         await this.getAutonomousDailyBudgetStatus(request.projectId);
 
       if (budget.exhausted) {
-        const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous investigations resume tomorrow (UTC) — raise or unset the limit in the AI settings pages.`;
+        const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit in the AI settings pages.`;
 
         logEntry.status = LlmLogStatus.BudgetExceeded;
         logEntry.statusMessage = budgetMessage.substring(0, 490);
@@ -330,6 +406,10 @@ export class Service extends BaseService {
         temperature: request.temperature ?? 0.7,
         maxTokens: request.maxTokens,
         tools: request.tools,
+        requestTimeoutInMs: request.requestTimeoutInMs,
+        requestRetries: request.requestRetries,
+        protectRequestParameters: request.protectRequestParameters,
+        includeProviderErrorDetails: request.storeErrorDetails !== false,
         ...(llmProvider.additionalParams
           ? { additionalParams: llmProvider.additionalParams }
           : {}),
@@ -411,10 +491,16 @@ export class Service extends BaseService {
         llmLog: savedLog,
       };
     } catch (error) {
-      // Log the error
-      logEntry.status = LlmLogStatus.Error;
-      logEntry.statusMessage =
+      const rawErrorMessage: string =
         error instanceof Error ? error.message : String(error);
+      const errorMessage: string =
+        request.storeErrorDetails === false
+          ? "The AI provider request failed. Review the provider configuration and try again."
+          : rawErrorMessage;
+
+      // Log the error without persisting private provider details when asked.
+      logEntry.status = LlmLogStatus.Error;
+      logEntry.statusMessage = errorMessage;
       logEntry.requestCompletedAt = new Date();
       logEntry.durationMs = new Date().getTime() - startTime.getTime();
 
@@ -422,6 +508,10 @@ export class Service extends BaseService {
         data: logEntry,
         props: { isRoot: true },
       });
+
+      if (request.storeErrorDetails === false) {
+        throw new BadDataException(errorMessage);
+      }
 
       throw error;
     }

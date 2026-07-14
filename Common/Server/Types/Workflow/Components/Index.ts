@@ -5,6 +5,7 @@ import ApiDelete from "./API/Delete";
 import ApiGet from "./API/Get";
 import ApiPost from "./API/Post";
 import ApiPut from "./API/Put";
+import GenerateText from "./AI/GenerateText";
 import CreateManyBaseModel from "./BaseModel/CreateManyBaseModel";
 import CreateOneBaseModel from "./BaseModel/CreateOneBaseModel";
 import DeleteManyBaseModel from "./BaseModel/DeleteManyBaseModel";
@@ -39,6 +40,7 @@ import ComponentID from "../../../../Types/Workflow/ComponentID";
 import ApiPatch from "./API/Patch";
 
 const Components: Dictionary<ComponentCode> = {
+  [ComponentID.AIGenerateText]: new GenerateText(),
   [ComponentID.Webhook]: new WebhookTrigger(),
   [ComponentID.SlackSendMessageToChannel]: new SlackSendMessageToChannel(),
   [ComponentID.DiscordSendMessageToChannel]: new DiscordSendMessageToChannel(),

@@ -1,6 +1,7 @@
 import IconProp from "../Icon/IconProp";
 import ComponentMetadata, { ComponentCategory } from "./Component";
 import APIComponents from "./Components/API";
+import AIComponents from "./Components/AI";
 import ConditionComponents from "./Components/Condition";
 import DiscordComponents from "./Components/Discord";
 import EmailComponents from "./Components/Email";
@@ -17,6 +18,7 @@ import WebhookComponents from "./Components/Webhook";
 import WorkflowComponents from "./Components/Workflow";
 
 const components: Array<ComponentMetadata> = [
+  ...AIComponents,
   ...LogComponents,
   ...APIComponents,
   ...ScheduleComponents,
@@ -37,6 +39,12 @@ const components: Array<ComponentMetadata> = [
 export default components;
 
 export const Categories: Array<ComponentCategory> = [
+  {
+    name: "AI",
+    description:
+      "Generate content with the LLM provider configured for this project.",
+    icon: IconProp.Sparkles,
+  },
   {
     name: "Webhook",
     description: "Integrate any apps into the workflow with webhooks.",
