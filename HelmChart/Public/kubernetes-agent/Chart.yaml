@@ -2,6 +2,23 @@ apiVersion: v2
 name: kubernetes-agent
 description: OneUptime Kubernetes Monitoring Agent — collects cluster metrics, events, and logs via OpenTelemetry and sends them to your OneUptime instance.
 icon: https://raw.githubusercontent.com/OneUptime/oneuptime/master/Home/Static/img/OneUptimePNG/1.png
+home: https://oneuptime.com
+sources:
+  - https://github.com/OneUptime/oneuptime
+  - https://github.com/OneUptime/helm-chart
+keywords:
+  - monitoring
+  - observability
+  - kubernetes
+  - opentelemetry
+  - metrics
+  - logs
+  - events
+  - apm
+maintainers:
+  - name: OneUptime
+    email: hello@oneuptime.com
+    url: https://oneuptime.com
 
 type: application
 
@@ -13,3 +30,10 @@ annotations:
   artifacthub.io/license: MIT
   artifacthub.io/category: monitoring-logging
   artifacthub.io/prerelease: "false"
+  artifacthub.io/links: |
+    - name: documentation
+      url: https://oneuptime.com/docs
+    - name: source
+      url: https://github.com/OneUptime/oneuptime
+    - name: support
+      url: https://github.com/OneUptime/oneuptime/issues
