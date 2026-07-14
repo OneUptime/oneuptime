@@ -335,6 +335,23 @@ export default class MetricUtil {
               : undefined;
         }
 
+        /*
+         * Service scope propagated from the metric list (service view). It maps
+         * to the Metric "Service ID" column `primaryEntityId`, so this compiles
+         * to a `primaryEntityId IN (...)` predicate — the authoritative,
+         * index-aligned way to scope a metric to a service, and one that stays
+         * on the 1-minute pre-aggregate MV fast path (keyed by primaryEntityId).
+         */
+        const scopedServiceIds: Array<ObjectID> = (
+          queryConfig.metricQueryData.serviceIds || []
+        )
+          .filter((id: string): boolean => {
+            return Boolean(id && id.trim());
+          })
+          .map((id: string): ObjectID => {
+            return new ObjectID(id);
+          });
+
         return dedupedAggregate({
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
@@ -345,6 +362,9 @@ export default class MetricUtil {
                 | Dictionary<DictionaryEntryValue>
                 | undefined,
             ) as any,
+            ...(scopedServiceIds.length > 0
+              ? { primaryEntityId: new Includes(scopedServiceIds) }
+              : {}),
           },
           aggregationType:
             (queryConfig.metricQueryData.filterData
