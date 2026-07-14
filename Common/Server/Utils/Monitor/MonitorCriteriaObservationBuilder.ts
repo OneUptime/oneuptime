@@ -1169,8 +1169,25 @@ export default class MonitorCriteriaObservationBuilder {
         alias: metricValues.alias,
       });
 
+    /*
+     * The display values are expressed in the threshold's unit (or the
+     * metric's native/legend unit when no threshold unit was set). Surface
+     * that unit alongside the numbers so the message reads "latest 0.06 sec"
+     * instead of the unitless "latest 0.06".
+     */
+    const displayUnit: string | undefined =
+      MonitorCriteriaObservationBuilder.resolveMetricUnits({
+        criteriaFilter: input.criteriaFilter,
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+        alias: metricValues.alias,
+      }).displayUnit;
+
     const summary: string | null =
-      MonitorCriteriaMessageFormatter.summarizeNumericSeries(displayValues);
+      MonitorCriteriaMessageFormatter.summarizeNumericSeries(
+        displayValues,
+        displayUnit,
+      );
 
     if (!summary) {
       return null;
@@ -1195,18 +1212,67 @@ export default class MonitorCriteriaObservationBuilder {
     monitorStep: MonitorStep;
     alias: string | null;
   }): Array<number> {
-    const thresholdUnit: string | undefined =
-      input.criteriaFilter.metricMonitorOptions?.thresholdUnit;
+    const { sampleUnit, thresholdUnit } =
+      MonitorCriteriaObservationBuilder.resolveMetricUnits({
+        criteriaFilter: input.criteriaFilter,
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+        alias: input.alias,
+      });
+
     if (!thresholdUnit) {
       return input.values;
     }
+
+    if (!sampleUnit || sampleUnit === thresholdUnit) {
+      return input.values;
+    }
+
+    return input.values.map((v: number) => {
+      return MetricUnitUtil.convertToMetricUnit({
+        value: v,
+        fromUnit: sampleUnit,
+        metricUnit: thresholdUnit,
+      });
+    });
+  }
+
+  /*
+   * Resolve the units involved in a metric-value observation:
+   *   - sampleUnit:    the unit the raw samples arrive in (legendUnit, or
+   *                    the metric's native unit when no legend was set).
+   *   - thresholdUnit: the unit the user entered the threshold in, if any.
+   *   - displayUnit:   the unit the rendered numbers (samples + threshold)
+   *                    are actually expressed in. This mirrors the
+   *                    MetricMonitorCriteria evaluator: the threshold unit
+   *                    wins when present (samples are converted into it),
+   *                    otherwise the samples stay in their native unit.
+   * Every field is best-effort — undefined when the metric response or
+   * config isn't available. Never throws.
+   */
+  private static resolveMetricUnits(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    alias: string | null;
+  }): {
+    sampleUnit: string | undefined;
+    thresholdUnit: string | undefined;
+    displayUnit: string | undefined;
+  } {
+    const thresholdUnit: string | undefined =
+      input.criteriaFilter.metricMonitorOptions?.thresholdUnit || undefined;
 
     const metricResponse: MetricMonitorResponse | null =
       MonitorCriteriaDataExtractor.getMetricMonitorResponse(
         input.dataToProcess,
       );
     if (!metricResponse) {
-      return input.values;
+      return {
+        sampleUnit: undefined,
+        thresholdUnit,
+        displayUnit: thresholdUnit,
+      };
     }
 
     const metricViewConfig: MetricsViewConfig | undefined =
@@ -1244,17 +1310,69 @@ export default class MonitorCriteriaObservationBuilder {
       nativeUnitFromMap ||
       undefined;
 
-    if (!sampleUnit || sampleUnit === thresholdUnit) {
-      return input.values;
+    return {
+      sampleUnit,
+      thresholdUnit,
+      displayUnit: MonitorCriteriaObservationBuilder.normalizeDisplayUnit(
+        thresholdUnit || sampleUnit,
+      ),
+    };
+  }
+
+  /*
+   * Suppress units that would read as noise next to a raw number. OTel's
+   * dimensionless "1" marks ratio metrics whose samples are fractions in
+   * [0, 1]; rendering "0.06 1" is both ugly and misleading (it is not 1% —
+   * it is 6%). Returning undefined leaves the number unlabelled, matching
+   * the pre-unit behavior for that specific case. Any real unit passes
+   * through unchanged.
+   */
+  private static normalizeDisplayUnit(
+    unit: string | undefined,
+  ): string | undefined {
+    if (!unit || !unit.trim()) {
+      return undefined;
     }
 
-    return input.values.map((v: number) => {
-      return MetricUnitUtil.convertToMetricUnit({
-        value: v,
-        fromUnit: sampleUnit,
-        metricUnit: thresholdUnit,
-      });
+    if (unit.trim() === "1") {
+      return undefined;
+    }
+
+    return unit;
+  }
+
+  /*
+   * Public accessor for the unit that a metric-value criteria's observed
+   * samples and threshold are displayed in. Returns undefined for
+   * non-metric criteria or when no unit can be resolved, so callers can
+   * safely append it as a suffix. Used by the message builder to label the
+   * threshold in the "expected to be greater than 5 sec" clause so it
+   * matches the "recorded latest 0.06 sec" observation.
+   */
+  public static getMetricValueDisplayUnit(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+  }): string | undefined {
+    if (input.criteriaFilter.checkOn !== CheckOn.MetricValue) {
+      return undefined;
+    }
+
+    const metricValues: {
+      alias: string | null;
+      values: Array<number>;
+    } | null = MonitorCriteriaDataExtractor.extractMetricValues({
+      criteriaFilter: input.criteriaFilter,
+      dataToProcess: input.dataToProcess,
+      monitorStep: input.monitorStep,
     });
+
+    return MonitorCriteriaObservationBuilder.resolveMetricUnits({
+      criteriaFilter: input.criteriaFilter,
+      dataToProcess: input.dataToProcess,
+      monitorStep: input.monitorStep,
+      alias: metricValues?.alias ?? null,
+    }).displayUnit;
   }
 
   private static getSnmpResponse(input: {
