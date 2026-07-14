@@ -55,7 +55,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("online + True → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ isOnline: true }),
-        { checkOn: CheckOn.SqlIsOnline, filterType: FilterType.True, value: undefined },
+        {
+          checkOn: CheckOn.SqlIsOnline,
+          filterType: FilterType.True,
+          value: undefined,
+        },
       );
       expect(result).toBeTruthy();
     });
@@ -63,7 +67,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("online + False → not met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ isOnline: true }),
-        { checkOn: CheckOn.SqlIsOnline, filterType: FilterType.False, value: undefined },
+        {
+          checkOn: CheckOn.SqlIsOnline,
+          filterType: FilterType.False,
+          value: undefined,
+        },
       );
       expect(result).toBeNull();
     });
@@ -71,7 +79,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("offline + False → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ isOnline: false }),
-        { checkOn: CheckOn.SqlIsOnline, filterType: FilterType.False, value: undefined },
+        {
+          checkOn: CheckOn.SqlIsOnline,
+          filterType: FilterType.False,
+          value: undefined,
+        },
       );
       expect(result).toBeTruthy();
     });
@@ -81,7 +93,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("rowCount 120 > 50 → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ rowCount: 120 }),
-        { checkOn: CheckOn.SqlQueryRowCount, filterType: FilterType.GreaterThan, value: "50" },
+        {
+          checkOn: CheckOn.SqlQueryRowCount,
+          filterType: FilterType.GreaterThan,
+          value: "50",
+        },
       );
       expect(result).toBeTruthy();
     });
@@ -89,7 +105,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("rowCount 10 > 50 → not met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ rowCount: 10 }),
-        { checkOn: CheckOn.SqlQueryRowCount, filterType: FilterType.GreaterThan, value: "50" },
+        {
+          checkOn: CheckOn.SqlQueryRowCount,
+          filterType: FilterType.GreaterThan,
+          value: "50",
+        },
       );
       expect(result).toBeNull();
     });
@@ -97,7 +117,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("rowCount 0 EqualTo 0 → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ rowCount: 0 }),
-        { checkOn: CheckOn.SqlQueryRowCount, filterType: FilterType.EqualTo, value: "0" },
+        {
+          checkOn: CheckOn.SqlQueryRowCount,
+          filterType: FilterType.EqualTo,
+          value: "0",
+        },
       );
       expect(result).toBeTruthy();
     });
@@ -105,7 +129,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("rowCount null → not met (no data)", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ rowCount: null }),
-        { checkOn: CheckOn.SqlQueryRowCount, filterType: FilterType.GreaterThan, value: "50" },
+        {
+          checkOn: CheckOn.SqlQueryRowCount,
+          filterType: FilterType.GreaterThan,
+          value: "50",
+        },
       );
       expect(result).toBeNull();
     });
@@ -115,7 +143,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("numeric string scalar '150' > 50 → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ scalarValue: "150" }),
-        { checkOn: CheckOn.SqlQueryScalarValue, filterType: FilterType.GreaterThan, value: "50" },
+        {
+          checkOn: CheckOn.SqlQueryScalarValue,
+          filterType: FilterType.GreaterThan,
+          value: "50",
+        },
       );
       expect(result).toBeTruthy();
     });
@@ -123,7 +155,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("numeric scalar 3 EqualTo 3 → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ scalarValue: 3 }),
-        { checkOn: CheckOn.SqlQueryScalarValue, filterType: FilterType.EqualTo, value: "3" },
+        {
+          checkOn: CheckOn.SqlQueryScalarValue,
+          filterType: FilterType.EqualTo,
+          value: "3",
+        },
       );
       expect(result).toBeTruthy();
     });
@@ -131,7 +167,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("string scalar 'CANCELLED' Contains 'CANCEL' → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ scalarValue: "CANCELLED" }),
-        { checkOn: CheckOn.SqlQueryScalarValue, filterType: FilterType.Contains, value: "CANCEL" },
+        {
+          checkOn: CheckOn.SqlQueryScalarValue,
+          filterType: FilterType.Contains,
+          value: "CANCEL",
+        },
       );
       expect(result).toBeTruthy();
     });
@@ -139,7 +179,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("null scalar → not met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ scalarValue: null }),
-        { checkOn: CheckOn.SqlQueryScalarValue, filterType: FilterType.GreaterThan, value: "50" },
+        {
+          checkOn: CheckOn.SqlQueryScalarValue,
+          filterType: FilterType.GreaterThan,
+          value: "50",
+        },
       );
       expect(result).toBeNull();
     });
@@ -149,7 +193,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("executionTime 8000 > 5000 → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ responseTimeInMs: 8000 }),
-        { checkOn: CheckOn.SqlQueryExecutionTime, filterType: FilterType.GreaterThan, value: "5000" },
+        {
+          checkOn: CheckOn.SqlQueryExecutionTime,
+          filterType: FilterType.GreaterThan,
+          value: "5000",
+        },
       );
       expect(result).toBeTruthy();
     });
@@ -157,7 +205,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("executionTime 100 > 5000 → not met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ responseTimeInMs: 100 }),
-        { checkOn: CheckOn.SqlQueryExecutionTime, filterType: FilterType.GreaterThan, value: "5000" },
+        {
+          checkOn: CheckOn.SqlQueryExecutionTime,
+          filterType: FilterType.GreaterThan,
+          value: "5000",
+        },
       );
       expect(result).toBeNull();
     });
@@ -167,7 +219,11 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("error present + IsNotEmpty → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ queryError: "connection refused" }),
-        { checkOn: CheckOn.SqlQueryError, filterType: FilterType.IsNotEmpty, value: undefined },
+        {
+          checkOn: CheckOn.SqlQueryError,
+          filterType: FilterType.IsNotEmpty,
+          value: undefined,
+        },
       );
       expect(result).toBeTruthy();
     });
@@ -175,15 +231,25 @@ describe("SqlMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     test("error null + IsEmpty → met", async () => {
       const result: string | null = await evaluate(
         buildDataToProcess({ queryError: null }),
-        { checkOn: CheckOn.SqlQueryError, filterType: FilterType.IsEmpty, value: undefined },
+        {
+          checkOn: CheckOn.SqlQueryError,
+          filterType: FilterType.IsEmpty,
+          value: undefined,
+        },
       );
       expect(result).toBeTruthy();
     });
 
     test("error 'timeout' Contains 'timeout' → met", async () => {
       const result: string | null = await evaluate(
-        buildDataToProcess({ queryError: "canceling statement due to statement timeout" }),
-        { checkOn: CheckOn.SqlQueryError, filterType: FilterType.Contains, value: "timeout" },
+        buildDataToProcess({
+          queryError: "canceling statement due to statement timeout",
+        }),
+        {
+          checkOn: CheckOn.SqlQueryError,
+          filterType: FilterType.Contains,
+          value: "timeout",
+        },
       );
       expect(result).toBeTruthy();
     });

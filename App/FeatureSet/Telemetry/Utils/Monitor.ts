@@ -348,8 +348,9 @@ export default class MonitorUtil {
          * creates or populates a secret on their behalf; we only resolve a
          * reference they chose to write here.
          */
-        const sqlSecretFields: Array<"password" | "username" | "host" | "databaseName" | "query"> =
-          ["password", "username", "host", "databaseName", "query"];
+        const sqlSecretFields: Array<
+          "password" | "username" | "host" | "databaseName" | "query"
+        > = ["password", "username", "host", "databaseName", "query"];
 
         for (const field of sqlSecretFields) {
           const currentValue: string | undefined =
