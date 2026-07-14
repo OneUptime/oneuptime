@@ -2,6 +2,7 @@ import { PromiseRejectErrorFunction } from "../../Types/FunctionTypes";
 import {
   ChildProcess,
   ExecException,
+  ExecFileException,
   ExecOptions,
   SpawnOptions,
   exec,
@@ -90,7 +91,7 @@ export default class Execute {
               : {}),
           },
           (
-            err: ExecException | null,
+            err: ExecFileException | null,
             stdout: string | Buffer,
             stderr: string | Buffer,
           ) => {
