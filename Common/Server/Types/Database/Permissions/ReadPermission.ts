@@ -69,6 +69,12 @@ export default class ReadPermission {
       return { query };
     }
 
+    // If user is not logged in, skip block permission check.
+    // The authentication check will be handled by BasePermission.checkPermissions.
+    if (!props.userId) {
+      return { query };
+    }
+
     TablePermission.checkTableLevelBlockPermissions(
       modelType,
       props,
