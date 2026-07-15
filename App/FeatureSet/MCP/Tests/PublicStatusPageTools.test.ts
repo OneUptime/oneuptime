@@ -8,8 +8,10 @@
  * - the gate fails CLOSED on a database error (no request is made)
  * - identifier validation still runs BEFORE the gate, so a malformed
  *   identifier never reaches the database
- * - "disabled" and "does not exist" are indistinguishable, so the tools cannot
- *   be used to enumerate status pages
+ *
+ * The related property that "disabled" and "does not exist" are
+ * indistinguishable is pinned in Common's StatusPageServiceMcp.test.ts, since
+ * the service collapses both into false before this layer sees them.
  *
  * StatusPageService is mocked, so no database is touched; API.post is spied on,
  * so no HTTP traffic occurs.
@@ -58,8 +60,10 @@ const ALL_TOOLS: Array<string> = [
   "get_public_status_page_announcements",
 ];
 
-// Bare jest.Mock keeps the annotation compatible across @types/jest versions;
-// mocked values are cast with `as never`, as elsewhere in this suite.
+/*
+ * Bare jest.Mock keeps the annotation compatible across @types/jest versions;
+ * mocked values are cast with `as never`, as elsewhere in this suite.
+ */
 function enabledMock(): jest.Mock {
   return StatusPageService.isMcpServerEnabled as unknown as jest.Mock;
 }
@@ -72,9 +76,11 @@ describe("PublicStatusPageTools", () => {
   let postSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    postSpy = jest.spyOn(API, "post").mockResolvedValue(
-      new HTTPResponse<JSONObject>(200, { ok: true }, {}) as never,
-    ) as unknown as jest.SpyInstance;
+    postSpy = jest
+      .spyOn(API, "post")
+      .mockResolvedValue(
+        new HTTPResponse<JSONObject>(200, { ok: true }, {}) as never,
+      ) as unknown as jest.SpyInstance;
 
     enabledMock().mockReset();
     // Default to enabled — the shipped default for every status page.
@@ -161,7 +167,8 @@ describe("PublicStatusPageTools", () => {
       const expected: Record<string, string> = {
         get_public_status_page_overview: "get_overview",
         get_public_status_page_incidents: "get_incidents",
-        get_public_status_page_scheduled_maintenance: "get_scheduled_maintenance",
+        get_public_status_page_scheduled_maintenance:
+          "get_scheduled_maintenance",
         get_public_status_page_announcements: "get_announcements",
       };
 
@@ -289,7 +296,9 @@ describe("PublicStatusPageTools", () => {
 
   describe("when the database fails", () => {
     beforeEach(() => {
-      enabledMock().mockRejectedValue(new Error("connection terminated") as never);
+      enabledMock().mockRejectedValue(
+        new Error("connection terminated") as never,
+      );
     });
 
     it("fails closed rather than serving the status page", async () => {
@@ -364,7 +373,10 @@ describe("PublicStatusPageTools", () => {
 
     it.each([
       ["incidentId", "get_public_status_page_incidents"],
-      ["scheduledMaintenanceId", "get_public_status_page_scheduled_maintenance"],
+      [
+        "scheduledMaintenanceId",
+        "get_public_status_page_scheduled_maintenance",
+      ],
       ["announcementId", "get_public_status_page_announcements"],
     ])(
       "rejects a non-UUID %s without touching the database",
@@ -378,8 +390,10 @@ describe("PublicStatusPageTools", () => {
 
         expect(result["success"]).toBe(false);
         expect(result["error"]).toBe(`Invalid ${idArg}: expected a UUID.`);
-        // Proves the gate sits after the sub-id loop, not merely after the
-        // identifier check.
+        /*
+         * Proves the gate sits after the sub-id loop, not merely after the
+         * identifier check.
+         */
         expect(enabledMock()).not.toHaveBeenCalled();
       },
     );

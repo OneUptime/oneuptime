@@ -65,9 +65,10 @@ describe("StatusPageService MCP gate", () => {
 
     test("looks a domain up by fullDomain, requiring a verified domain", async () => {
       const statusPageId: ObjectID = new ObjectID(VALID_UUID);
-      const domainSpy: jest.SpyInstance = spyOnDomainFindOneBy().mockResolvedValue(
-        statusPageDomainWith(statusPageId) as never,
-      );
+      const domainSpy: jest.SpyInstance =
+        spyOnDomainFindOneBy().mockResolvedValue(
+          statusPageDomainWith(statusPageId) as never,
+        );
 
       const result: ObjectID | null =
         await StatusPageService.resolveStatusPageIdOrNull(DOMAIN);
@@ -139,8 +140,10 @@ describe("StatusPageService MCP gate", () => {
     });
 
     test("is false when the status page has MCP disabled", async () => {
-      // The enableMcpServer predicate is in the query, so a gated page simply
-      // does not match.
+      /*
+       * The enableMcpServer predicate is in the query, so a gated page simply
+       * does not match.
+       */
       spyOnStatusPageFindOneBy().mockResolvedValue(null as never);
 
       await expect(
@@ -149,9 +152,8 @@ describe("StatusPageService MCP gate", () => {
     });
 
     test("folds the flag into the query and reads as root", async () => {
-      const spy: jest.SpyInstance = spyOnStatusPageFindOneBy().mockResolvedValue(
-        statusPageRow() as never,
-      );
+      const spy: jest.SpyInstance =
+        spyOnStatusPageFindOneBy().mockResolvedValue(statusPageRow() as never);
 
       await StatusPageService.isMcpServerEnabled(VALID_UUID);
 
@@ -169,9 +171,8 @@ describe("StatusPageService MCP gate", () => {
       spyOnDomainFindOneBy().mockResolvedValue(
         statusPageDomainWith(new ObjectID(VALID_UUID)) as never,
       );
-      const pageSpy: jest.SpyInstance = spyOnStatusPageFindOneBy().mockResolvedValue(
-        statusPageRow() as never,
-      );
+      const pageSpy: jest.SpyInstance =
+        spyOnStatusPageFindOneBy().mockResolvedValue(statusPageRow() as never);
 
       await expect(StatusPageService.isMcpServerEnabled(DOMAIN)).resolves.toBe(
         true,
