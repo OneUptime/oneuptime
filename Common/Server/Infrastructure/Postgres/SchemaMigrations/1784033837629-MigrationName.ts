@@ -39,6 +39,17 @@ export class MigrationName1784033837629 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`,
     );
+    /*
+     * Rows written before 1783990000000-AddCompletionTokensToLlmLog have a null
+     * completionTokens: that migration added the column without a default, so
+     * Postgres backfilled nulls. Zero is the intended value — it is the column
+     * default set below, and the sibling token columns were added as
+     * NOT NULL DEFAULT '0' in 1783695782697-AddCacheTokenColumnsToLlmLog.
+     * Backfill before SET NOT NULL, which otherwise rejects the existing nulls.
+     */
+    await queryRunner.query(
+      `UPDATE "LlmLog" SET "completionTokens" = 0 WHERE "completionTokens" IS NULL`,
+    );
     await queryRunner.query(
       `ALTER TABLE "LlmLog" ALTER COLUMN "completionTokens" SET NOT NULL`,
     );
