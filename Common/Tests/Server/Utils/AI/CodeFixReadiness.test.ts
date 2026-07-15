@@ -1,6 +1,7 @@
 import CodeFixReadiness from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import AIAgentService from "../../../../Server/Services/AIAgentService";
+import AIService from "../../../../Server/Services/AIService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
@@ -11,7 +12,7 @@ import {
   AIFixReadiness,
   AIFixReadinessCheck,
 } from "../../../../Types/AI/AIFixReadiness";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The gates the AI Tasks page renders. The invariant worth protecting: a
@@ -35,7 +36,20 @@ function fakeProvider(params: {
   } as unknown as LlmProvider;
 }
 
+// No daily-budget limit configured: the common case, and never a blocker.
+function mockBudgetNotExhausted(): void {
+  jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
+    exhausted: false,
+    limitInTokens: null,
+    usedTokensToday: 0,
+  });
+}
+
 describe("CodeFixReadiness.getLlmProviderCheck", () => {
+  beforeEach(() => {
+    mockBudgetNotExhausted();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -170,6 +184,74 @@ describe("CodeFixReadiness.getLlmProviderCheck", () => {
   });
 });
 
+/*
+ * AI_CODE_FIX_FEATURE is one of AUTONOMOUS_AI_FEATURES, so executeWithLogging
+ * runs every fix completion through the daily token budget. Readiness that
+ * ignored it would report ready and then die at the run's first completion
+ * call — the exact fail-late hole the balance gate exists to close.
+ */
+describe("CodeFixReadiness.getLlmProviderCheck — daily autonomous token budget", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a zeroed daily limit (the kill switch) is NOT ready, even with a healthy project-owned provider", async () => {
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(fakeProvider({ name: "My OpenAI" }));
+    jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
+      exhausted: true,
+      limitInTokens: 0,
+      usedTokensToday: 0,
+    });
+
+    const check: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: false,
+      });
+
+    expect(check.ok).toBe(false);
+    expect(check.detail).toContain("paused");
+  });
+
+  test("an exhausted daily budget is NOT ready and reports the usage", async () => {
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(fakeProvider({ name: "My OpenAI" }));
+    jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
+      exhausted: true,
+      limitInTokens: 1000,
+      usedTokensToday: 1000,
+    });
+
+    const check: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: false,
+      });
+
+    expect(check.ok).toBe(false);
+    expect(check.detail).toContain("exhausted");
+    expect(check.detail).toContain("1,000");
+  });
+
+  test("an unset daily limit never blocks", async () => {
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(fakeProvider({ name: "My OpenAI" }));
+    mockBudgetNotExhausted();
+
+    const check: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: false,
+      });
+
+    expect(check.ok).toBe(true);
+  });
+});
+
 describe("CodeFixReadiness.getAgentCheck", () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -263,6 +345,7 @@ describe("CodeFixReadiness.getProjectReadiness", () => {
   };
 
   function mockAll(params: MockAllParams): void {
+    mockBudgetNotExhausted();
     jest
       .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
       .mockResolvedValue(params.hasRepo);

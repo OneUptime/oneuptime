@@ -55,6 +55,15 @@ export interface GitHubCheckRunsSummary extends FixPullRequestCiCheckRunCounts {
   conclusion: FixPullRequestCiStatus;
 }
 
+// One file's contents read over the Contents API (no clone).
+export interface GitHubFileContent {
+  content: string;
+  filePath: string;
+  sizeInBytes: number;
+  totalLines: number;
+  htmlUrl: string;
+}
+
 export default class GitHubUtil extends HostedCodeRepository {
   private getPullRequestFromJSONObject(data: {
     pullRequest: JSONObject;
@@ -803,6 +812,139 @@ export default class GitHubUtil extends HostedCodeRepository {
     }
 
     return paths;
+  }
+
+  /**
+   * Reads one file's contents from a repository over the Contents API, with no
+   * clone. This is what makes reading code viable from a request-scoped caller
+   * (e.g. the chat toolbox, which has a 45s per-tool timeout a clone cannot
+   * fit).
+   *
+   * Returns null when the path does not exist on the branch, so callers can
+   * tell "no such file" apart from a transport failure without catching.
+   * @returns The file's text plus its total line count, or null if not found
+   */
+  @CaptureSpan()
+  public static async getFileContent(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    branchName: string;
+    filePath: string;
+  }): Promise<GitHubFileContent | null> {
+    /*
+     * Each path segment is encoded separately: encodeURIComponent would turn
+     * the directory separators into %2F, which the Contents API treats as part
+     * of a (nonexistent) filename rather than as a path.
+     */
+    const encodedPath: string = data.filePath
+      .split("/")
+      .map((segment: string) => {
+        return encodeURIComponent(segment);
+      })
+      .join("/");
+
+    const url: URL = URL.fromString(
+      `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/contents/${encodedPath}?ref=${encodeURIComponent(data.branchName)}`,
+    );
+
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: {
+          contents: "read",
+          metadata: "read",
+        },
+      });
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: url,
+      headers: {
+        Authorization: `Bearer ${tokenData.token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (result instanceof HTTPErrorResponse) {
+      if (result.statusCode === 404) {
+        return null;
+      }
+      throw result;
+    }
+
+    /*
+     * A directory returns a JSON array, not an object. Treat it as "not a
+     * readable file" rather than erroring — the model routinely guesses a
+     * directory path, and a null lets it self-correct via search_code.
+     */
+    if (Array.isArray(result.data)) {
+      return null;
+    }
+
+    if (result.data["type"] !== "file") {
+      return null;
+    }
+
+    const sizeInBytes: number = (result.data["size"] as number) || 0;
+    const encodedContent: string = (result.data["content"] as string) || "";
+
+    /*
+     * `encoding` — not an empty `content` — is what distinguishes an oversized
+     * blob from an empty one. Over ~1MB the API declines to inline the blob and
+     * returns encoding "none" with content ""; a legitimately empty 0-byte file
+     * returns encoding "base64" with content "" too. Keying off the empty
+     * string alone would report every empty file as too large.
+     */
+    const encoding: string = (result.data["encoding"] as string) || "";
+
+    if (encoding === "none") {
+      throw new BadDataException(
+        `${data.filePath} is ${sizeInBytes} bytes, which is too large for GitHub to return inline (the limit is 1MB). Read a specific region of it is not possible via this tool.`,
+      );
+    }
+
+    if (encoding && encoding !== "base64") {
+      throw new BadDataException(
+        `${data.filePath} came back in an unsupported encoding ("${encoding}").`,
+      );
+    }
+
+    const content: string = encodedContent
+      ? Buffer.from(encodedContent.replace(/\n/g, ""), "base64").toString(
+          "utf8",
+        )
+      : "";
+
+    /*
+     * Binary files decode into mojibake that wastes context and can never
+     * answer a question. A NUL byte is the cheapest reliable discriminator.
+     */
+    if (content.includes("\0")) {
+      return null;
+    }
+
+    return {
+      content: content,
+      filePath: data.filePath,
+      sizeInBytes: sizeInBytes,
+      totalLines: GitHubUtil.countLines(content),
+      htmlUrl: (result.data["html_url"] as string) || "",
+    };
+  }
+
+  /*
+   * Line count that does not invent a phantom blank line for the trailing
+   * newline virtually every source file ends with (a plain split("\n") counts
+   * the empty string after it).
+   */
+  private static countLines(content: string): number {
+    if (content === "") {
+      return 0;
+    }
+
+    const lines: number = content.split("\n").length;
+
+    return content.endsWith("\n") ? lines - 1 : lines;
   }
 
   /**

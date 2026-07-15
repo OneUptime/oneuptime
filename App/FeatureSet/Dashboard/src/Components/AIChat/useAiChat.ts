@@ -32,6 +32,7 @@ const POLL_INTERVAL_MS: number = 1200;
 export interface ChatProvider {
   id: string;
   name: string;
+  description: string | null;
   llmType: string | null;
   modelName: string | null;
   isDefault: boolean;
@@ -178,6 +179,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
           return {
             id: provider["id"] as string,
             name: provider["name"] as string,
+            description: (provider["description"] as string) || null,
             llmType: (provider["llmType"] as string) || null,
             modelName: (provider["modelName"] as string) || null,
             isDefault: Boolean(provider["isDefault"]),

@@ -67,6 +67,11 @@ const STATUS_TEXT: { [key in AIRunStatus]: CodeFixRunStatusText } = {
     description:
       "AI finished. Review the pull request it opened for the proposed fix.",
   },
+  [AIRunStatus.NoFixFound]: {
+    title: "No Fix Found",
+    description:
+      "AI reviewed the code and did not find a fix to propose, so it opened no pull request.",
+  },
   [AIRunStatus.Error]: {
     title: "Error",
     description: "AI could not complete the fix.",
@@ -82,11 +87,16 @@ const STATUS_TEXT: { [key in AIRunStatus]: CodeFixRunStatusText } = {
   },
 };
 
+/*
+ * NoFixFound is deliberately neutral, not red: the run succeeded and simply
+ * had nothing to propose. Only statuses that need someone to act are alarming.
+ */
 const STATUS_COLOR: { [key in AIRunStatus]: Color } = {
   [AIRunStatus.Queued]: Blue,
   [AIRunStatus.Running]: Yellow,
   [AIRunStatus.WaitingForApproval]: Amber500,
   [AIRunStatus.Completed]: Green,
+  [AIRunStatus.NoFixFound]: Gray500,
   [AIRunStatus.Error]: Red,
   [AIRunStatus.Cancelled]: Gray500,
   [AIRunStatus.Stale]: Red,

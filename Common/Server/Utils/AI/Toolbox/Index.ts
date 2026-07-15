@@ -23,6 +23,12 @@ import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
 import { LookupContextTool } from "./ContextTools";
 import {
+  FindCodeForExceptionTool,
+  ListCodeRepositoriesTool,
+  ReadCodeFileTool,
+  SearchCodeTool,
+} from "./CodeTools";
+import {
   AcknowledgeIncidentTool,
   CreateIncidentTool,
   ResolveIncidentTool,
@@ -71,6 +77,14 @@ export default class AIToolbox {
     QueryTracesTool,
     GetTraceTool,
     RecentChangesTool,
+    /*
+     * Source code (read-only). Closes the loop from a telemetry signal to the
+     * code that produced it — see CodeTools for the narrower trust posture.
+     */
+    ListCodeRepositoriesTool,
+    FindCodeForExceptionTool,
+    SearchCodeTool,
+    ReadCodeFileTool,
     // Write tools (mutations). Gated by conversation permission mode.
     CreateIncidentTool,
     AcknowledgeIncidentTool,

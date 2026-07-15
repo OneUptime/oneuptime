@@ -498,6 +498,7 @@ router.post(
           return {
             id: provider.id?.toString(),
             name: provider.name,
+            description: provider.description || null,
             llmType: provider.llmType?.toString() || null,
             modelName: provider.modelName || null,
             isDefault: provider.isDefault || false,

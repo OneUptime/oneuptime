@@ -822,7 +822,7 @@ const LineChart: React.ForwardRefExoticComponent<
               )}
             </YAxis>
             <Tooltip
-              wrapperStyle={{ outline: "none" }}
+              wrapperStyle={{ outline: "none", zIndex: 10 }}
               isAnimationActive={true}
               animationDuration={100}
               cursor={{

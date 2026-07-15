@@ -86,10 +86,15 @@ const PYTHON_FRAME_REGEX: RegExp = /File\s+"([^"]+)"\s*,\s*line\s+\d+/g;
 /*
  * Normalizes one raw path plucked from a stack frame into a relative,
  * forward-slash path — or null when the frame is dependency/runtime noise.
+ *
+ * Exported because a runtime path from a stack frame (`/app/src/billing.ts`)
+ * is not a repository path (`src/billing.ts`): anything that hands a frame's
+ * file to a repository API must strip the container prefix first, or every
+ * lookup 404s.
  */
-type NormalizeCandidatePathFunction = (rawPath: string) => string | null;
+export type NormalizeCandidatePathFunction = (rawPath: string) => string | null;
 
-const normalizeCandidatePath: NormalizeCandidatePathFunction = (
+export const normalizeCandidatePath: NormalizeCandidatePathFunction = (
   rawPath: string,
 ): string | null => {
   let path: string = rawPath.trim().replace(/\\/g, "/");

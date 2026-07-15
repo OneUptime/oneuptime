@@ -45,14 +45,25 @@ interface GetPendingTaskResponse {
 
 const SLEEP_WHEN_NO_TASKS_MS: number = 60 * 1000; // 1 minute
 
-type ExecuteTaskFunction = (task: PendingTask) => Promise<void>;
+/*
+ * How a task finished, for the caller to report. Only the two non-failure
+ * outcomes are represented — a task that could not finish throws instead, and
+ * the catch block reports Error.
+ */
+interface TaskOutcome {
+  status: AIAgentTaskStatus.Completed | AIAgentTaskStatus.NoFixFound;
+  // Why no fix was proposed. Only set for NoFixFound.
+  statusMessage?: string | undefined;
+}
+
+type ExecuteTaskFunction = (task: PendingTask) => Promise<TaskOutcome>;
 
 /**
  * Execute an AI Agent task using the registered task handler
  */
 const executeTask: ExecuteTaskFunction = async (
   task: PendingTask,
-): Promise<void> => {
+): Promise<TaskOutcome> => {
   const taskIdString: string = task.id;
   const projectIdString: string = task.projectId;
   const taskId: ObjectID = new ObjectID(taskIdString);
@@ -120,13 +131,22 @@ const executeTask: ExecuteTaskFunction = async (
     await taskLogger.flush();
 
     /*
-     * If the task was not successful and we want to report it as an error
-     * Note: Based on user requirements, "no fix found" should be Completed, not Error
-     * Only throw if there was an actual error (not just "no action taken")
+     * A task that could not finish throws — the caller's catch block reports
+     * Error. A task that ran fine but had no fix to propose is NOT an error:
+     * it reports NoFixFound so a negative result never shows up as a failure.
      */
     if (!result.success && result.data?.["isError"]) {
       throw new Error(result.message);
     }
+
+    if (result.data?.["noFixFound"]) {
+      return {
+        status: AIAgentTaskStatus.NoFixFound,
+        statusMessage: result.message,
+      };
+    }
+
+    return { status: AIAgentTaskStatus.Completed };
   } catch (error) {
     // Ensure logs are flushed even on error
     await taskLogger.flush();
@@ -226,21 +246,58 @@ const startTaskProcessingLoop: () => Promise<void> =
           await AIAgentTaskLog.sendTaskStartedLog(taskId);
 
           /* Execute the task using the handler system */
-          await executeTask(task);
+          const outcome: TaskOutcome = await executeTask(task);
 
-          /* Mark task as Completed */
-          const completedResult: HTTPResponse<JSONObject> = await API.post({
+          /* Mark task as Completed / NoFixFound */
+          let finalResult: HTTPResponse<JSONObject> = await API.post({
             url: updateTaskStatusUrl,
             data: {
               ...AIAgentAPIRequest.getDefaultRequestBody(),
               taskId: taskId,
-              status: AIAgentTaskStatus.Completed,
+              status: outcome.status,
+              ...(outcome.statusMessage
+                ? { statusMessage: outcome.statusMessage }
+                : {}),
             },
           });
 
-          if (!completedResult.isSuccess()) {
+          /*
+           * Servers that predate NoFixFound reject it as an invalid status,
+           * which would leave the run Running until the sweeper marked it
+           * Stale. Fall back to Completed: the run did finish, and a stale
+           * red run would be a worse lie than a green one.
+           */
+          if (
+            !finalResult.isSuccess() &&
+            outcome.status === AIAgentTaskStatus.NoFixFound
+          ) {
+            logger.warn(
+              `Server rejected NoFixFound for task ${taskId}; reporting Completed instead`,
+              taskLogAttrs,
+            );
+
+            finalResult = await API.post({
+              url: updateTaskStatusUrl,
+              data: {
+                ...AIAgentAPIRequest.getDefaultRequestBody(),
+                taskId: taskId,
+                status: AIAgentTaskStatus.Completed,
+              },
+            });
+          }
+
+          if (!finalResult.isSuccess()) {
             logger.error(
-              `Failed to mark task ${taskId} as Completed`,
+              `Failed to mark task ${taskId} as ${outcome.status}`,
+              taskLogAttrs,
+            );
+          } else if (outcome.status === AIAgentTaskStatus.NoFixFound) {
+            await AIAgentTaskLog.sendTaskNoFixFoundLog(
+              taskId,
+              outcome.statusMessage || "",
+            );
+            logger.info(
+              `Task finished with no fix to propose: ${taskId}`,
               taskLogAttrs,
             );
           } else {
