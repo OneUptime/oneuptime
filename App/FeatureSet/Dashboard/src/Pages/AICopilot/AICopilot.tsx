@@ -1,6 +1,7 @@
 import PageComponentProps from "../PageComponentProps";
 import AIPlanGate from "../../Components/AI/AIPlanGate";
 import ChatActivityFeed from "../../Components/AIChat/ChatActivityFeed";
+import ChatDownloadMenu from "../../Components/AIChat/ChatDownloadMenu";
 import ChatHomeView from "../../Components/AIChat/ChatHomeView";
 import ChatInput from "../../Components/AIChat/ChatInput";
 import ChatMessageList from "../../Components/AIChat/ChatMessageList";
@@ -165,17 +166,28 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
               </div>
             </div>
             {chat.isConversationView && (
-              <button
-                type="button"
-                title="New chat"
-                onClick={() => {
-                  chat.newConversation();
-                }}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
-              >
-                <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
-                New chat
-              </button>
+              <div className="flex items-center gap-1.5">
+                {chat.messages.length > 0 && (
+                  <ChatDownloadMenu
+                    title={chat.activeConversationTitle}
+                    messages={chat.messages}
+                    latestRun={chat.latestRun}
+                    onError={chat.setError}
+                    triggerClassName="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+                  />
+                )}
+                <button
+                  type="button"
+                  title="New chat"
+                  onClick={() => {
+                    chat.newConversation();
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
+                  New chat
+                </button>
+              </div>
             )}
           </div>
 

@@ -120,14 +120,51 @@ export default class AIAgentTaskLogAPI {
             );
           }
 
+          /*
+           * Optional verbatim tool detail (see TaskLogger.toolCall). When the
+           * worker sends it, the line is recorded as a ToolCallCompleted event
+           * carrying the arguments and full output on the run's transcript,
+           * rather than as a bare ProgressLog message. Absent it, behaviour is
+           * exactly as before — older agents keep working unchanged.
+           */
+          const toolName: string | undefined = data["toolName"] as
+            | string
+            | undefined;
+          const toolArguments: JSONObject | undefined = data[
+            "toolArguments"
+          ] as JSONObject | undefined;
+          const toolResult: string | undefined = data["toolResult"] as
+            | string
+            | undefined;
+
           await AIRunEventService.appendEventToRun({
             projectId: existingRun.projectId,
             aiRunId: runId,
-            eventType: AIRunEventType.ProgressLog,
+            eventType: toolName
+              ? AIRunEventType.ToolCallCompleted
+              : AIRunEventType.ProgressLog,
             resultSummary: {
               message: message,
               severity: severity,
             },
+            ...(toolName ? { toolName: toolName } : {}),
+            ...(toolArguments ? { toolArguments: toolArguments } : {}),
+            ...(toolName
+              ? {
+                  contentPayload: {
+                    ...(toolResult !== undefined
+                      ? { toolResult: toolResult }
+                      : {}),
+                    ...(toolArguments
+                      ? {
+                          responseToolCalls: [
+                            { name: toolName, arguments: toolArguments },
+                          ],
+                        }
+                      : {}),
+                  },
+                }
+              : {}),
           });
 
           /* A progress report proves the agent is alive — refresh the heartbeat. */

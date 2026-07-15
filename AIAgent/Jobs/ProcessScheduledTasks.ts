@@ -30,7 +30,7 @@ import Sleep from "Common/Types/Sleep";
  * subject instead and fetch their context by run id
  * (get-instrumentation-task-details).
  */
-interface PendingTask {
+export interface PendingTask {
   id: string;
   projectId: string;
   exceptionId?: string | undefined;
@@ -50,7 +50,7 @@ const SLEEP_WHEN_NO_TASKS_MS: number = 60 * 1000; // 1 minute
  * outcomes are represented — a task that could not finish throws instead, and
  * the catch block reports Error.
  */
-interface TaskOutcome {
+export interface TaskOutcome {
   status: AIAgentTaskStatus.Completed | AIAgentTaskStatus.NoFixFound;
   // Why no fix was proposed. Only set for NoFixFound.
   statusMessage?: string | undefined;
@@ -61,7 +61,7 @@ type ExecuteTaskFunction = (task: PendingTask) => Promise<TaskOutcome>;
 /**
  * Execute an AI Agent task using the registered task handler
  */
-const executeTask: ExecuteTaskFunction = async (
+export const executeTask: ExecuteTaskFunction = async (
   task: PendingTask,
 ): Promise<TaskOutcome> => {
   const taskIdString: string = task.id;

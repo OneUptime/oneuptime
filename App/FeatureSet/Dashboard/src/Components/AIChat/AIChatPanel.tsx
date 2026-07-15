@@ -13,6 +13,7 @@ import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ChatActivityFeed from "./ChatActivityFeed";
+import ChatDownloadMenu from "./ChatDownloadMenu";
 import ChatHomeView from "./ChatHomeView";
 import ChatInput from "./ChatInput";
 import ChatMessageList from "./ChatMessageList";
@@ -153,6 +154,14 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
             </div>
           </div>
           <div className="flex items-center gap-0.5">
+            {chat.isConversationView && chat.messages.length > 0 && (
+              <ChatDownloadMenu
+                title={chat.activeConversationTitle}
+                messages={chat.messages}
+                latestRun={chat.latestRun}
+                onError={chat.setError}
+              />
+            )}
             <button
               type="button"
               title="Open in full page"

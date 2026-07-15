@@ -149,7 +149,9 @@ describe("Pull-request task handlers: the no-pull-request branch", () => {
     jest
       .spyOn(WorkspaceManager, "createWorkspace")
       .mockResolvedValue(workspace);
-    jest.spyOn(WorkspaceManager, "deleteWorkspace").mockResolvedValue(undefined);
+    jest
+      .spyOn(WorkspaceManager, "deleteWorkspace")
+      .mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -180,7 +182,9 @@ describe("Pull-request task handlers: the no-pull-request branch", () => {
       expect(result.data?.["noFixFound"]).toBe(true);
       // The isError flag is what makes the caller throw and report Error.
       expect(result.data?.["isError"]).toBeUndefined();
-      expect(result.message).toBe("No fixes could be applied to any repository");
+      expect(result.message).toBe(
+        "No fixes could be applied to any repository",
+      );
     });
 
     test("no pull requests but a repository threw: reports an error carrying the failure", async () => {
@@ -225,7 +229,9 @@ describe("Pull-request task handlers: the no-pull-request branch", () => {
         .mockRejectedValueOnce(new Error("clone failed"))
         .mockResolvedValueOnce("https://github.com/acme/billing/pull/1");
 
-      const result: TaskResult = await handler.execute(buildContext(backendAPI));
+      const result: TaskResult = await handler.execute(
+        buildContext(backendAPI),
+      );
 
       expect(result.success).toBe(true);
       expect(result.pullRequestsCreated).toBe(1);
@@ -245,7 +251,9 @@ describe("Pull-request task handlers: the no-pull-request branch", () => {
         getCodeRepositories: jest.fn().mockResolvedValue([]),
       } as unknown as BackendAPI;
 
-      const result: TaskResult = await handler.execute(buildContext(backendAPI));
+      const result: TaskResult = await handler.execute(
+        buildContext(backendAPI),
+      );
 
       expect(result.data?.["isError"]).toBe(true);
       expect(result.data?.["noFixFound"]).toBeUndefined();

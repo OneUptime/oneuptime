@@ -12,12 +12,15 @@ import CodeFixTaskType, {
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CountBy from "../Types/Database/CountBy";
+import CreateBy from "../Types/Database/CreateBy";
 import FindBy from "../Types/Database/FindBy";
-import { OnFind } from "../Types/Database/Hooks";
+import { OnCreate, OnFind } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import ProjectService from "./ProjectService";
 import Model from "../../Models/DatabaseModels/AIRun";
 import { applyAIRunPrivacyFilter } from "../Utils/AI/AIRunPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 import { UpdateQueryBuilder, UpdateResult } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
@@ -326,6 +329,39 @@ export class Service extends DatabaseService<Model> {
     });
 
     return { runId: run.id, verdict: data.verdict };
+  }
+
+  /*
+   * Stamp CodeFix runs with the project's next task number, so every AI task
+   * has the short human-citable handle "#42" that incidents and alerts have.
+   *
+   * CodeFix only, on purpose: chat turns and investigations share this table
+   * but are not tasks, and numbering them would advance the counter on every
+   * Ask-AI message — the AI Tasks list would then read #7, #31, #244.
+   *
+   * Best-effort. The counter needs Redis (Semaphore) and a second write; a
+   * blip there must not lose a fix run, because the number is a display
+   * convenience and the run itself is the work. On failure the run is created
+   * with a null taskNumber and the UI falls back to the id.
+   */
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId || undefined;
+
+    if (createBy.data.runType === AIRunType.CodeFix && projectId) {
+      try {
+        createBy.data.taskNumber =
+          await ProjectService.incrementAndGetAIRunCounter(projectId);
+      } catch (error) {
+        logger.error(
+          `Could not allocate a task number for a code-fix run in project ${projectId.toString()}; creating it unnumbered: ${error}`,
+        );
+      }
+    }
+
+    return { createBy, carryForward: null };
   }
 
   protected override async onBeforeFind(
