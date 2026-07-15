@@ -302,9 +302,12 @@ describe("read_code_file — line windows", () => {
   test("reports the range it actually returned when lines are long", async () => {
     mockRepositories([buildRepository()]);
     // 400 lines x ~200 bytes = ~80KB, far over the byte budget.
-    const fat: string = Array.from({ length: 400 }, (_v: unknown, i: number) => {
-      return `${i + 1}:${"x".repeat(200)}`;
-    }).join("\n");
+    const fat: string = Array.from(
+      { length: 400 },
+      (_v: unknown, i: number) => {
+        return `${i + 1}:${"x".repeat(200)}`;
+      },
+    ).join("\n");
     mockFileContent(fat);
 
     const result: ToolExecutionResult = await ReadCodeFileTool.execute(

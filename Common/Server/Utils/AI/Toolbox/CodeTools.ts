@@ -327,8 +327,7 @@ function takeLinesWithinByteBudget(
   let bytes: number = 0;
 
   for (const line of lines) {
-    const lineBytes: number =
-      Buffer.byteLength(line, "utf8") + prefixWidth + 1;
+    const lineBytes: number = Buffer.byteLength(line, "utf8") + prefixWidth + 1;
 
     if (kept.length > 0 && bytes + lineBytes > MAX_CODE_PAYLOAD_BYTES) {
       break;
