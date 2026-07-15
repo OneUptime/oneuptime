@@ -361,10 +361,18 @@ data:
               - set(severity_text, "WARN") where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
               - set(severity_number, SEVERITY_NUMBER_WARN) where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
 
-      {{- /* The traces pipeline below only exists when ebpf.enabled, so span
-             rules are only emitted when there is a pipeline to run them in. */}}
-      {{- $signals := ternary (list "logs" "metrics" "traces") (list "logs" "metrics") (.Values.ebpf.enabled | default false) }}
-      {{- if or (eq (include "kubernetes-agent.logFiltersEnabled" .) "true") (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") (and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true")) }}
+      {{- /* No "logs" signal here, deliberately. `filters.logs.minSeverity` is a
+             POD LOG control, and no pod log flows through this collector — the
+             only logs pipeline here carries the k8sobjects watch (Kubernetes
+             events and resource specs). Those arrive with no severity, and
+             transform/severity above stamps them INFO, so a WARN threshold
+             would silently delete the entire events feed. Pod-log severity is
+             applied where pod logs actually are: the DaemonSet's filter, and
+             the API tailer's MIN_SEVERITY.
+             The traces pipeline only exists when ebpf.enabled, so span rules
+             are only emitted when there is a pipeline to run them in. */}}
+      {{- $signals := ternary (list "metrics" "traces") (list "metrics") (.Values.ebpf.enabled | default false) }}
+      {{- if or (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") (and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true")) }}
       {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" $signals) | nindent 6 }}
       {{- end }}
 
@@ -435,13 +443,9 @@ data:
             - k8sattributes
             - resource
             - transform/severity
-            {{- if eq (include "kubernetes-agent.logFiltersEnabled" .) "true" }}
-            # AFTER transform/severity: the k8sobjects receiver emits events
-            # with no severity, and transform/severity is what assigns one.
-            # Filtering before it would see severity_number=0 on every event
-            # and — because unclassified records are kept — drop none of them.
-            - filter/telemetry
-            {{- end }}
+            # Intentionally NOT filtered by filters.logs.minSeverity — see the
+            # note on $signals above. Kubernetes events are a low-volume,
+            # high-value signal, and every one of them would be dropped.
             - batch
           exporters:
             - otlphttp

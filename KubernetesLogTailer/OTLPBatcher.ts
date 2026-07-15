@@ -82,25 +82,38 @@ const kv: (key: string, value: string) => OtlpKeyValue = (
   return { key, value: { stringValue: value } };
 };
 
+/*
+ * `parsed` records whether the severity was actually read off the log line, or
+ * merely assumed. Only a SEVERITY_REGEX hit counts as parsed; both fallbacks
+ * below are guesses.
+ *
+ * This distinction is what MIN_SEVERITY filters on, and it matters because the
+ * stream fallback is unreliable in this mode: the Kubernetes pods/log API
+ * merges stdout and stderr into one stream with no per-line marker, so
+ * LogStream always reports "stdout" (see LogStream.ts). Dropping on an assumed
+ * INFO would therefore delete exactly the records the threshold exists to
+ * preserve — a Python traceback or `npm ERR!` on stderr carries no severity
+ * keyword and would look like INFO.
+ */
 const deriveSeverity: (
   body: string,
   stream: Stream,
-) => { text: string; number: number } = (
+) => { text: string; number: number; parsed: boolean } = (
   body: string,
   stream: Stream,
-): { text: string; number: number } => {
+): { text: string; number: number; parsed: boolean } => {
   const match: RegExpMatchArray | null = body.match(SEVERITY_REGEX);
   if (match && match[1]) {
     const text: string = match[1].toUpperCase();
     const num: number | undefined = severityTextToNumber[text];
     if (num !== undefined) {
-      return { text, number: num };
+      return { text, number: num, parsed: true };
     }
   }
   if (stream === "stderr") {
-    return { text: "ERROR", number: severityTextToNumber["ERROR"]! };
+    return { text: "ERROR", number: severityTextToNumber["ERROR"]!, parsed: false };
   }
-  return { text: "INFO", number: severityTextToNumber["INFO"]! };
+  return { text: "INFO", number: severityTextToNumber["INFO"]!, parsed: false };
 };
 
 /*
@@ -221,12 +234,19 @@ class OTLPBatcher {
      * memory and no egress. deriveSeverity runs again in groupByResource for
      * the records that survive; it is one regex against a line we are about to
      * ship over the network either way.
+     *
+     * Only records whose severity we actually parsed are eligible to be
+     * dropped. An assumed severity is not evidence, and keeping a line we could
+     * not classify is the safe failure — see deriveSeverity.
      */
-    if (
-      minSeverityNumber > 0 &&
-      deriveSeverity(entry.body, entry.stream).number < minSeverityNumber
-    ) {
-      return;
+    if (minSeverityNumber > 0) {
+      const severity: { number: number; parsed: boolean } = deriveSeverity(
+        entry.body,
+        entry.stream,
+      );
+      if (severity.parsed && severity.number < minSeverityNumber) {
+        return;
+      }
     }
     this.buffer.push(entry);
     if (this.buffer.length >= BATCH_MAX_RECORDS) {

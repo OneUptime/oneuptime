@@ -792,7 +792,7 @@ OpenTelemetry Collector respekterer standardmiljovariablene `HTTPS_PROXY` / `HTT
 - **HTTP 401 fra eksportoren** — ingestion-tokenet er ugyldig eller tilbakekalt. Generer et nytt fra _Project Settings → Telemetry Ingestion Keys_.
 - **`Security`-kanalen i Windows Event Log returnerer access denied** — tjenesten kjorer ikke med tilstrekkelige privilegier. Gjenopprett den under `LocalSystem` (standarden med `sc.exe create`) eller gi tjenestekontoen brukerrettigheten _Manage auditing and security log_.
 - **`journald`-receiveren klarer ikke a starte** — pass pa at `journalctl` er pa collectorens `PATH` og at `/var/log/journal` finnes (kjor `sudo systemd-tmpfiles --create --prefix /var/log/journal` hvis ikke).
-- **Hoyt volum / kostnad** — se [Redusere volumet av innsamlede data](#reducing-the-volume-of-data-collected): innsnevre receiverne (spesifikke Windows-kanaler, systemd-enheter, loggfiler), hev metrikkenes `collection_interval`, drop per-prosess-scraperen, eller legg til en `filter`-prosessor for a droppe poster med lav alvorlighetsgrad for eksport.
+- **Hoyt volum / kostnad** — se [Redusere volumet av innsamlede data](#redusere-volumet-av-innsamlede-data): innsnevre receiverne (spesifikke Windows-kanaler, systemd-enheter, loggfiler), hev metrikkenes `collection_interval`, drop per-prosess-scraperen, eller legg til en `filter`-prosessor for a droppe poster med lav alvorlighetsgrad for eksport.
 
 ## Neste trinn
 

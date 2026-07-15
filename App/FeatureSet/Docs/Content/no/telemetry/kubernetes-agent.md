@@ -144,17 +144,28 @@ Kubernetes-**hendelser** kan ikke namespace-filtreres på agenten. De ankommer f
 
 ### Filtrering etter loggalvorlighetsgrad
 
-`filters.logs.minSeverity` dropper loggposter under en alvorlighetsgrad, på agenten, før noe som helst sendes:
+`filters.logs.minSeverity` dropper **pod-logg**-poster under en alvorlighetsgrad, på agenten, før noe som helst sendes:
 
 ```bash
   --set filters.logs.minSeverity=WARN
 ```
 
-Godtar `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` beholder WARN, ERROR og FATAL og dropper INFO, DEBUG og TRACE. Standardverdien (`""`) beholder alt.
+Godtar `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` beholder WARN, ERROR og FATAL og dropper INFO, DEBUG og TRACE. Standardverdien (`""`) beholder alt. Det gjelder i **begge** loggmodusene — i `daemonset`-modus via collectoren, i `api`-modus inne i selve log-taileren — så forhåndsinnstillingene kan ikke slå det av bak ryggen på deg.
 
-Dette fungerer selv om container-runtime-er ikke registrerer en alvorlighetsgrad på selve logglinjen: agenten parser en ut av loggteksten (`[ERROR]`, `WARN:`, `level=info`, …) og faller tilbake på `stderr → ERROR` / `stdout → INFO`. Det gjelder i **begge** loggmodusene — i `daemonset`-modus via collectoren, i `api`-modus inne i selve log-taileren — så forhåndsinnstillingene kan ikke endre oppførselen bak ryggen på deg.
+Container-runtime-er registrerer ikke en alvorlighetsgrad på selve logglinjen, så agenten parser en ut av loggteksten selv (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> Poster der alvorlighetsgraden likevel ikke kunne fastslås, **beholdes**, de droppes aldri. Den trygge feilen for et filter er å sende for mye, ikke å i stillhet slette en logg ingen visste var uklassifisert.
+> **Kubernetes-hendelser og ressursspesifikasjoner filtreres aldri av dette.** De ankommer fra Kubernetes-API-et uten en egen alvorlighetsgrad, så en terskel ville slettet hele strømmen i stedet for å tynne den ut — inkludert `FailedScheduling`-, `BackOff`- og `OOMKilling`-advarslene du helst vil ha. De har lavt volum og høy verdi, så agenten sender dem alltid. For å tynne dem ut, bruk heller dashbordets serversidige **Logs → Settings → Drop Filters**.
+
+**Hva som skjer med en linje uten et gjenkjennelig nivå, avhenger av loggmodusen**, fordi de to modusene har ulik informasjon tilgjengelig:
+
+| Modus | Umerket linje | Hvorfor |
+| ---- | --------------- | --- |
+| `daemonset` | `stderr` → behandles som ERROR (beholdes), `stdout` → behandles som INFO (droppes av en WARN-terskel) | Container-runtime-en registrerer hvilken strøm hver linje kom fra. |
+| `api` | Beholdes **alltid** | Kubernetes-`pods/log`-API-et slår sammen stdout og stderr til én enkelt strøm uten markør per linje. I stedet for å gjette beholder agenten linjen. |
+
+> Så `api`-modus dropper strengt mindre enn `daemonset`-modus. Det er med hensikt: en Python-traceback eller `npm ERR!` bærer ingen alvorlighetsgrad-nøkkelord, og å slette den i stillhet er nøyaktig den feilen en alvorlighetsgradsterskel skal beskytte deg mot.
+
+Flerlinjede hendelser settes sammen igjen **før** filtrering i begge modusene, så en Java-stacktrace vurderes ut fra sin første linje og beholdes eller droppes i sin helhet — du vil aldri få en naken `ERROR`-linje med rammene strippet vekk.
 
 ### Inkludere eller ekskludere metrikker etter navn
 
@@ -192,9 +203,11 @@ Notater som vil spare deg for en hendelse:
 - `include` spenner over hver mottaker på én gang. En tillatelsesliste som glemmer en metrikk, fjerner i stillhet monitorene som er bygget på den. Foretrekk `exclude` med mindre du virkelig vil ha et lukket sett.
 - Bruk `--set-json` (eller en values-fil) for lister. Vanlig `--set` erstatter en liste i stedet for å slå den sammen.
 
+> **Test et regex før du ruller det ut.** Mønstre kompileres av collectoren ved oppstart, ikke per post, så et ugyldig et oppfører seg ikke feil i stillhet — collectoren nekter å starte og går i CrashLoopBackOff, og tar den collectorens **logger** med seg sammen med metrikkene. Helm kan ikke kompilere RE2, så `helm upgrade` godtar et dårlig mønster uten å si ifra.
+
 ### Deaktiver logginnsamling
 
-Hvis du kun trenger metrikker og hendelser (ingen pod-logger):
+Hvis du ikke trenger pod-logger:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -206,6 +219,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
+> **Dette fjerner også node-metrikkene dine.** Mottakerne kubelet, cAdvisor og hostmetrics bor inne i log-collector-DaemonSet-en, så å slå av pod-logger sletter dem også — sammen med OOM-kill-, CPU-throttling- og PVC-lavdisk-monitorene. Du beholder metrikker på klyngenivå og Kubernetes-hendelser, men ikke de per node eller per container. For å kutte loggvolum og samtidig beholde metrikker, bruk heller [`filters.logs.minSeverity`](#filtrering-etter-loggalvorlighetsgrad) eller [`namespaceFilters`](#namespace-filtrering).
+
 ### Tving en spesifikk logginnsamlingsmodus
 
 Avanserte brukere kan overstyre forhåndsinnstillingens valg med `logs.mode`:
@@ -213,6 +228,8 @@ Avanserte brukere kan overstyre forhåndsinnstillingens valg med `logs.mode`:
 - `logs.mode=daemonset` — hostPath DaemonSet (lavest overhead, krever hostPath)
 - `logs.mode=api` — Kubernetes API log-tailer Deployment (fungerer på enhver klynge)
 - `logs.mode=disabled` — ingen logginnsamling
+
+> `api` og `disabled` fjerner begge log-collector-DaemonSet-en, og med den node-, pod-, container- og host-metrikkene som er beskrevet ovenfor — den samme avveiningen som `logs.enabled=false`. Kun `daemonset`-modus samler dem inn. Det er derfor forhåndsinnstillingene for GKE Autopilot og EKS Fargate, som tvinger `api`-modus, ikke rapporterer kubelet-metrikker.
 
 Den eksplisitte `logs.mode` vinner alltid over forhåndsinnstillingens standard. Bruk dette hvis du kjenner klyngen din bedre enn forhåndsinnstillingen gjør.
 
@@ -385,7 +402,7 @@ Container-logger er nesten alltid den største andelen av ingest, fordi det er �
     --set filters.logs.minSeverity=WARN
   ```
 
-  Se [Filtrering etter loggalvorlighetsgrad](#filtering-by-log-severity) for hvordan alvorlighetsgrad fastslås og hva som skjer med logger den ikke klarer å klassifisere.
+  Se [Filtrering etter loggalvorlighetsgrad](#filtrering-etter-loggalvorlighetsgrad) for hvordan alvorlighetsgrad fastslås og hva som skjer med logger den ikke klarer å klassifisere.
 
 - **Trenger du ikke pod-logger fra OneUptime i det hele tatt?** Slå dem av:
 
@@ -411,7 +428,7 @@ eBPF gir deg sporinger, RED-metrikker, service-kartet og nettverksflytmetrikker 
     --set ebpf.enabled=false
   ```
 
-- **Behold sporingene, dropp de tunge metrikkfamiliene.** [Signalfamilie-tabellen ovenfor](#toggle-individual-signal-families) lister opp hvert `ebpf.features.*`-flagg. Familiene med høyest volum er nettverks- og span-metrikker — å slå dem av lar sporinger, HTTP RED-metrikker og service-kartet være intakte:
+- **Behold sporingene, dropp de tunge metrikkfamiliene.** [Signalfamilie-tabellen ovenfor](#sl-individuelle-signalfamilier-av-og-p) lister opp hvert `ebpf.features.*`-flagg. Familiene med høyest volum er nettverks- og span-metrikker — å slå dem av lar sporinger, HTTP RED-metrikker og service-kartet være intakte:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -431,7 +448,7 @@ eBPF gir deg sporinger, RED-metrikker, service-kartet og nettverksflytmetrikker 
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
-  Se [Slå individuelle signalfamilier av og på](#toggle-individual-signal-families) og `excludeExePaths`-notatet i chart-verdiene for de fullstendige standardverdiene.
+  Se [Slå individuelle signalfamilier av og på](#sl-individuelle-signalfamilier-av-og-p) og `excludeExePaths`-notatet i chart-verdiene for de fullstendige standardverdiene.
 
 ### Spak 3 — Senk skrapeintervallene
 
@@ -472,7 +489,7 @@ Kardinalitet (antallet distinkte tidsserier) betyr like mye som frekvens, fordi 
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
 
-  Se [Inkludere eller ekskludere metrikker etter navn](#including-or-excluding-metrics-by-name) for eksakt matching kontra regex-matching og for tillatelsesliste-formen.
+  Se [Inkludere eller ekskludere metrikker etter navn](#inkludere-eller-ekskludere-metrikker-etter-navn) for eksakt matching kontra regex-matching og for tillatelsesliste-formen.
 
 - **Drop metrikkene til et helt namespace.** Hvis et namespace er støyende, men du fortsatt vil ha nodene dets overvåket, anvender `namespaceFilters.applyTo.metrics=true` de eksisterende namespace-listene dine på serier per pod og per container. Serier på node- og klyngenivå beholdes alltid:
 
@@ -606,7 +623,7 @@ Den vanligste årsaken — spesielt etter en reinstallasjon — er en **feil ell
 
 ### Ingen metrikker vises
 
-1. Utelukk først en avvist ingest-nøkkel — det er den vanligste årsaken og er usynlig fra agentsiden. Se [Agenten viser "Disconnected"](#agent-shows-disconnected) ovenfor (eller bare kjør diagnostikkskriptet).
+1. Utelukk først en avvist ingest-nøkkel — det er den vanligste årsaken og er usynlig fra agentsiden. Se [Agenten viser "Disconnected"](#agenten-viser-disconnected) ovenfor (eller bare kjør diagnostikkskriptet).
 2. Sjekk at klyngeidentifikatoren matcher verdien du sendte som `clusterName`
 3. Verifiser RBAC-tillatelsene: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Sjekk OTel-collector-loggene for eksportfeil

@@ -144,17 +144,28 @@ Os **eventos** do Kubernetes não são filtráveis por namespace no agente. Eles
 
 ### Filtragem por Severidade de Log
 
-O `filters.logs.minSeverity` descarta registros de log abaixo de uma severidade, no agente, antes que qualquer coisa seja enviada:
+O `filters.logs.minSeverity` descarta registros de **log de pods** abaixo de uma severidade, no agente, antes que qualquer coisa seja enviada:
 
 ```bash
   --set filters.logs.minSeverity=WARN
 ```
 
-Aceita `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. O `WARN` mantém WARN, ERROR e FATAL e descarta INFO, DEBUG e TRACE. O padrão (`""`) mantém tudo.
+Aceita `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. O `WARN` mantém WARN, ERROR e FATAL e descarta INFO, DEBUG e TRACE. O padrão (`""`) mantém tudo. Aplica-se em **ambos** os modos de log — no modo `daemonset` por meio do coletor, no modo `api` dentro do próprio coletor de logs — de modo que os presets não podem desativá-lo sem você perceber.
 
-Isso funciona mesmo que os runtimes de contêiner não registrem uma severidade na linha de log: o agente extrai uma do texto do log (`[ERROR]`, `WARN:`, `level=info`, …) e recorre a `stderr → ERROR` / `stdout → INFO`. Aplica-se em **ambos** os modos de log — no modo `daemonset` por meio do coletor, no modo `api` dentro do próprio coletor de logs — de modo que os presets não podem mudar o comportamento sem você perceber.
+Os runtimes de contêiner não registram uma severidade na linha de log, então o próprio agente extrai uma do texto do log (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> Registros cuja severidade ainda assim não pôde ser determinada são **mantidos**, nunca descartados. A falha segura de um filtro é enviar demais, não apagar silenciosamente um log que ninguém sabia estar sem classificação.
+> **Os eventos do Kubernetes e as especificações de recursos nunca são filtrados por isso.** Eles chegam da API do Kubernetes sem severidade própria, então um limiar apagaria o feed inteiro em vez de afiná-lo — incluindo os avisos `FailedScheduling`, `BackOff` e `OOMKilling` que você mais quer. Eles são de baixo volume e alto valor, então o agente sempre os envia. Para reduzi-los, use os **Logs → Settings → Drop Filters** do lado do servidor no dashboard.
+
+**O que acontece com uma linha sem nível reconhecível depende do modo de log**, porque os dois modos têm informações diferentes disponíveis:
+
+| Modo        | Linha sem rótulo                                                                                      | Por quê                                                                                                                                        |
+| ----------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `daemonset` | `stderr` → tratada como ERROR (mantida), `stdout` → tratada como INFO (descartada por um limiar WARN) | O runtime de contêiner registra de qual fluxo cada linha veio.                                                                                 |
+| `api`       | Sempre **mantida**                                                                                    | A API `pods/log` do Kubernetes mescla stdout e stderr em um único fluxo, sem marcador por linha. Em vez de adivinhar, o agente mantém a linha. |
+
+> Portanto, o modo `api` descarta estritamente menos que o modo `daemonset`. Isso é intencional: um traceback de Python ou um `npm ERR!` não carrega nenhuma palavra-chave de severidade, e apagá-lo silenciosamente é exatamente a falha da qual um limiar de severidade deveria proteger você.
+
+Eventos de múltiplas linhas são recombinados **antes** da filtragem em ambos os modos, então um stack trace de Java é julgado pela sua primeira linha e mantido ou descartado por inteiro — você nunca vai receber uma linha `ERROR` isolada com seus frames removidos.
 
 ### Incluindo ou Excluindo Métricas por Nome
 
@@ -192,9 +203,11 @@ Observações que vão lhe poupar um incidente:
 - O `include` abrange todos os receptores de uma vez. Uma allowlist que esquece uma métrica remove silenciosamente os monitores construídos sobre ela. Prefira o `exclude`, a menos que você realmente queira um conjunto fechado.
 - Use `--set-json` (ou um arquivo de values) para listas. O `--set` simples substitui uma lista em vez de mesclá-la.
 
+> **Teste uma regex antes de colocá-la em produção.** Os padrões são compilados pelo coletor na inicialização, não a cada registro, então um padrão inválido não se comporta mal silenciosamente — o coletor se recusa a iniciar e entra em CrashLoopBackOff, derrubando os **logs** daquele coletor junto com suas métricas. O Helm não consegue compilar RE2, então o `helm upgrade` aceita um padrão ruim sem reclamar.
+
 ### Desabilitar a Coleta de Logs
 
-Se você precisar apenas de métricas e eventos (sem logs de pods):
+Se você não precisar de logs de pods:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -206,6 +219,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
+> **Isso também remove as suas métricas de nó.** Os receptores kubelet, cAdvisor e hostmetrics vivem dentro do DaemonSet coletor de logs, então desligar os logs de pods também os apaga — junto com os monitores de OOM-kill, de limitação de CPU e de pouco espaço em disco de PVC. Você mantém as métricas em nível de cluster e os eventos do Kubernetes, mas não as métricas por nó ou por contêiner. Para reduzir o volume de logs mantendo as métricas, use o [`filters.logs.minSeverity`](#filtragem-por-severidade-de-log) ou o [`namespaceFilters`](#filtragem-de-namespace) em vez disso.
+
 ### Forçar um Modo Específico de Coleta de Logs
 
 Usuários avançados podem sobrescrever a escolha do preset com `logs.mode`:
@@ -213,6 +228,8 @@ Usuários avançados podem sobrescrever a escolha do preset com `logs.mode`:
 - `logs.mode=daemonset` — DaemonSet com hostPath (menor sobrecarga, requer hostPath)
 - `logs.mode=api` — Deployment de coletor de logs via API do Kubernetes (funciona em qualquer cluster)
 - `logs.mode=disabled` — sem coleta de logs
+
+> Tanto o `api` quanto o `disabled` removem o DaemonSet coletor de logs e, com ele, as métricas de nó, de pod, de contêiner e de host descritas acima — o mesmo trade-off do `logs.enabled=false`. Somente o modo `daemonset` as coleta. É por isso que os presets do GKE Autopilot e do EKS Fargate, que forçam o modo `api`, não reportam métricas do kubelet.
 
 O `logs.mode` explícito sempre prevalece sobre o padrão do preset. Use isso se você conhecer seu cluster melhor do que o preset.
 
@@ -385,7 +402,7 @@ Os logs de contêiner quase sempre são a maior fatia da ingestão, porque é um
     --set filters.logs.minSeverity=WARN
   ```
 
-  Consulte [Filtragem por Severidade de Log](#filtering-by-log-severity) para saber como a severidade é determinada e o que acontece com os logs que ela não consegue classificar.
+  Consulte [Filtragem por Severidade de Log](#filtragem-por-severidade-de-log) para saber como a severidade é determinada e o que acontece com os logs que ela não consegue classificar.
 
 - **Não precisa dos logs de pods no OneUptime de forma alguma?** Desative-os:
 
@@ -411,7 +428,7 @@ O eBPF fornece traces, métricas RED, o mapa de serviços e métricas de fluxo d
     --set ebpf.enabled=false
   ```
 
-- **Mantenha os traces, elimine as famílias de métricas pesadas.** A [tabela de famílias de sinais acima](#toggle-individual-signal-families) lista cada flag `ebpf.features.*`. As famílias de maior volume são as métricas de rede e de span — desativá-las mantém intactos os traces, as métricas HTTP RED e o mapa de serviços:
+- **Mantenha os traces, elimine as famílias de métricas pesadas.** A [tabela de famílias de sinais acima](#alternar-famlias-individuais-de-sinais) lista cada flag `ebpf.features.*`. As famílias de maior volume são as métricas de rede e de span — desativá-las mantém intactos os traces, as métricas HTTP RED e o mapa de serviços:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -431,7 +448,7 @@ O eBPF fornece traces, métricas RED, o mapa de serviços e métricas de fluxo d
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
-  Consulte [Alternar famílias individuais de sinais](#toggle-individual-signal-families) e a observação sobre `excludeExePaths` nos values do chart para os padrões completos.
+  Consulte [Alternar famílias individuais de sinais](#alternar-famlias-individuais-de-sinais) e a observação sobre `excludeExePaths` nos values do chart para os padrões completos.
 
 ### Alavanca 3 — Aumente os intervalos de coleta
 
@@ -472,7 +489,7 @@ A cardinalidade (o número de séries temporais distintas) importa tanto quanto 
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
 
-  Consulte [Incluindo ou Excluindo Métricas por Nome](#including-or-excluding-metrics-by-name) para correspondência exata versus regex e para a forma de allowlist.
+  Consulte [Incluindo ou Excluindo Métricas por Nome](#incluindo-ou-excluindo-mtricas-por-nome) para correspondência exata versus regex e para a forma de allowlist.
 
 - **Descarte as métricas de um namespace inteiro.** Se um namespace é ruidoso mas você ainda quer os nós dele monitorados, o `namespaceFilters.applyTo.metrics=true` aplica suas listas de namespace existentes às séries por pod e por contêiner. As séries em nível de nó e de cluster são sempre mantidas:
 
@@ -606,7 +623,7 @@ A razão mais comum — especialmente após uma reinstalação — é uma **chav
 
 ### Nenhuma métrica aparecendo
 
-1. Primeiro descarte uma chave de ingestão rejeitada — é a causa mais comum e é invisível do lado do agente. Veja [O agente mostra "Disconnected"](#agent-shows-disconnected) acima (ou simplesmente execute o script de diagnóstico).
+1. Primeiro descarte uma chave de ingestão rejeitada — é a causa mais comum e é invisível do lado do agente. Veja [O agente mostra "Disconnected"](#o-agente-mostra-disconnected) acima (ou simplesmente execute o script de diagnóstico).
 2. Verifique se o identificador do cluster corresponde ao valor que você passou como `clusterName`
 3. Verifique as permissões de RBAC: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Verifique os logs do coletor OTel em busca de erros de exportação

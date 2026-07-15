@@ -144,17 +144,28 @@ Kubernetes **事件**無法在 agent 端依 namespace 篩選。它們來自 `k8s
 
 ### 依日誌嚴重性篩選
 
-`filters.logs.minSeverity` 會在 agent 端、於任何資料被傳送之前，捨棄低於某個嚴重性的日誌記錄：
+`filters.logs.minSeverity` 會在 agent 端、於任何資料被傳送之前，捨棄低於某個嚴重性的 **Pod 日誌**記錄：
 
 ```bash
   --set filters.logs.minSeverity=WARN
 ```
 
-接受 `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`FATAL`。`WARN` 會保留 WARN、ERROR 與 FATAL，並捨棄 INFO、DEBUG 與 TRACE。預設值（`""`）會保留所有內容。
+接受 `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`FATAL`。`WARN` 會保留 WARN、ERROR 與 FATAL，並捨棄 INFO、DEBUG 與 TRACE。預設值（`""`）會保留所有內容。它在**兩種**日誌模式下都適用——在 `daemonset` 模式下透過 collector，在 `api` 模式下則在日誌追蹤器本身內部——因此 preset 無法在您不知情的情況下將它關閉。
 
-即使容器執行階段並不會在日誌行上記錄嚴重性，這仍然有效：agent 會從日誌文字中解析出嚴重性（`[ERROR]`、`WARN:`、`level=info` 等），並回退到 `stderr → ERROR` / `stdout → INFO`。它在**兩種**日誌模式下都適用——在 `daemonset` 模式下透過 collector，在 `api` 模式下則在日誌追蹤器本身內部——因此 preset 無法在您不知情的情況下改變其行為。
+容器執行階段並不會在日誌行上記錄嚴重性，因此 agent 會自行從日誌文字中解析出嚴重性（`[ERROR]`、`WARN:`、`level=info` 等）。
 
-> 嚴重性仍然無法判定的記錄會被**保留**，絕不會被捨棄。對篩選條件而言，安全的失敗方式是傳送過多資料，而不是默默刪除一筆沒人知道未被分類的日誌。
+> **Kubernetes 事件與資源規格絕不會被它篩選。** 它們來自 Kubernetes API，本身不帶任何嚴重性，因此設定門檻會刪除整個資料流，而不是將它變稀疏——包括您最想看到的 `FailedScheduling`、`BackOff` 與 `OOMKilling` 警告。它們資料量低而價值高，因此 agent 一律會傳送它們。若要精簡它們，請改用儀表板中伺服器端的 **Logs → Settings → Drop Filters**。
+
+**一行沒有可辨識層級的日誌會有什麼結果，取決於日誌模式**，因為這兩種模式可取得的資訊並不相同：
+
+| 模式 | 未標示層級的日誌行 | 原因 |
+| ---- | --------------- | --- |
+| `daemonset` | `stderr` → 視為 ERROR（保留）、`stdout` → 視為 INFO（會被 WARN 門檻捨棄） | 容器執行階段會記錄每一行來自哪個串流。 |
+| `api` | 一律**保留** | Kubernetes `pods/log` API 會將 stdout 與 stderr 合併成單一串流，且不帶每行的標記。agent 不會去猜測，而是保留該行。 |
+
+> 因此 `api` 模式捨棄的資料嚴格少於 `daemonset` 模式。這是刻意的：Python traceback 或 `npm ERR!` 並不帶有嚴重性關鍵字，而默默刪除它，正是嚴重性門檻本應保護您免於發生的失誤。
+
+多行事件在兩種模式下都會**先**被重新組合再進行篩選，因此 Java 堆疊追蹤會依其第一行來判定，並整筆一起保留或捨棄——您絕不會拿到一行光禿禿的 `ERROR` 而它的堆疊框架卻被剝除。
 
 ### 依名稱包含或排除指標
 
@@ -192,9 +203,11 @@ Kubernetes **事件**無法在 agent 端依 namespace 篩選。它們來自 `k8s
 - `include` 會一次涵蓋每一個 receiver。一份漏掉某個指標的允許清單，會默默移除以該指標為基礎所建立的監控。除非您真的想要一組封閉的集合，否則請優先使用 `exclude`。
 - 清單請使用 `--set-json`（或 values 檔案）。單純的 `--set` 會取代整份清單，而不是合併它。
 
+> **在推出之前先測試您的正規表示式。** 模式是由 collector 在啟動時編譯的，而不是逐筆記錄編譯，因此無效的模式並不會安靜地出錯——collector 會拒絕啟動並進入 CrashLoopBackOff，連同該 collector 的**日誌**與它的指標一起停擺。Helm 無法編譯 RE2，因此 `helm upgrade` 會毫無怨言地接受一個錯誤的模式。
+
 ### 停用日誌收集
 
-如果您只需要指標與事件（不需要 Pod 日誌）：
+如果您不需要 Pod 日誌：
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -206,6 +219,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
+> **這同時也會移除您的節點指標。** kubelet、cAdvisor 與 hostmetrics receiver 都位於 log-collector DaemonSet 內部，因此關閉 Pod 日誌也會一併刪除它們——連同 OOM-kill、CPU-throttling 與 PVC 低磁碟空間監控。您會保留叢集層級的指標與 Kubernetes 事件，但不會有每個節點或每個容器的指標。若要在保留指標的同時削減日誌量，請改用 [`filters.logs.minSeverity`](#filtering-by-log-severity) 或 [`namespaceFilters`](#namespace-filtering)。
+
 ### 強制使用特定的日誌收集模式
 
 進階使用者可以用 `logs.mode` 覆寫 preset 的選擇：
@@ -213,6 +228,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 - `logs.mode=daemonset` — hostPath DaemonSet（負擔最低，需要 hostPath）
 - `logs.mode=api` — Kubernetes API 日誌追蹤 Deployment（適用於任何叢集）
 - `logs.mode=disabled` — 不收集日誌
+
+> `api` 與 `disabled` 兩者都會移除 log-collector DaemonSet，連同上述的節點、Pod、容器與主機指標——這與 `logs.enabled=false` 是相同的取捨。只有 `daemonset` 模式會收集它們。這就是為什麼強制使用 `api` 模式的 GKE Autopilot 與 EKS Fargate preset 不會回報 kubelet 指標。
 
 明確指定的 `logs.mode` 一律優先於 preset 預設值。如果您比 preset 更了解自己的叢集，就使用這個選項。
 

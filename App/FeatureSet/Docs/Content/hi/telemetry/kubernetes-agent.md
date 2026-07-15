@@ -144,17 +144,28 @@ Kubernetes **events** एजेंट पर namespace-फ़िल्टर क
 
 ### Log गंभीरता द्वारा फ़िल्टरिंग
 
-`filters.logs.minSeverity` एजेंट पर, कुछ भी भेजे जाने से पहले, एक गंभीरता से नीचे के log रिकॉर्ड गिरा देता है:
+`filters.logs.minSeverity` एजेंट पर, कुछ भी भेजे जाने से पहले, एक गंभीरता से नीचे के **pod log** रिकॉर्ड गिरा देता है:
 
 ```bash
   --set filters.logs.minSeverity=WARN
 ```
 
-`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL` स्वीकार करता है। `WARN` WARN, ERROR, और FATAL रखता है और INFO, DEBUG, और TRACE गिरा देता है। डिफ़ॉल्ट (`""`) सब कुछ रखता है।
+`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL` स्वीकार करता है। `WARN` WARN, ERROR, और FATAL रखता है और INFO, DEBUG, और TRACE गिरा देता है। डिफ़ॉल्ट (`""`) सब कुछ रखता है। यह **दोनों** log modes में लागू होता है — `daemonset` mode में collector के माध्यम से, `api` mode में log tailer के अंदर ही — इसलिए presets इसे आपके नीचे से बंद नहीं कर सकते।
 
-यह तब भी काम करता है जब container runtimes log line पर कोई गंभीरता दर्ज नहीं करते: एजेंट log टेक्स्ट (`[ERROR]`, `WARN:`, `level=info`, …) से एक निकाल लेता है और `stderr → ERROR` / `stdout → INFO` पर वापस गिरता है। यह **दोनों** log modes में लागू होता है — `daemonset` mode में collector के माध्यम से, `api` mode में log tailer के अंदर ही — इसलिए presets आपके नीचे से व्यवहार नहीं बदल सकते।
+Container runtimes log line पर कोई गंभीरता दर्ज नहीं करते, इसलिए एजेंट log टेक्स्ट (`[ERROR]`, `WARN:`, `level=info`, …) से स्वयं एक निकाल लेता है।
 
-> जिन रिकॉर्ड की गंभीरता फिर भी निर्धारित नहीं की जा सकी, उन्हें **रखा जाता है**, कभी नहीं गिराया जाता। एक फ़िल्टर के लिए सुरक्षित विफलता बहुत अधिक भेजना है, न कि चुपचाप एक ऐसा log हटा देना जिसके अवर्गीकृत होने का किसी को पता ही नहीं था।
+> **Kubernetes events और resource specs को इससे कभी फ़िल्टर नहीं किया जाता।** वे Kubernetes API से अपनी कोई गंभीरता लिए बिना आते हैं, इसलिए एक सीमा उन्हें छाँटने के बजाय पूरी feed को हटा देगी — उन `FailedScheduling`, `BackOff`, और `OOMKilling` चेतावनियों सहित जो आप सबसे अधिक चाहते हैं। वे कम-volume और उच्च-मूल्य वाले हैं, इसलिए एजेंट उन्हें हमेशा शिप करता है। उन्हें छाँटने के लिए, इसके बजाय डैशबोर्ड के सर्वर-साइड **Logs → Settings → Drop Filters** का उपयोग करें।
+
+**जिस line पर कोई पहचानने योग्य level नहीं है उसका क्या होता है, यह log mode पर निर्भर करता है**, क्योंकि दोनों modes के पास अलग-अलग जानकारी उपलब्ध होती है:
+
+| Mode | बिना label वाली line | क्यों |
+| ---- | -------------------- | ----- |
+| `daemonset` | `stderr` → ERROR माना जाता है (रखा जाता है), `stdout` → INFO माना जाता है (एक WARN सीमा द्वारा गिराया जाता है) | container runtime दर्ज करता है कि प्रत्येक line किस stream से आई थी। |
+| `api` | हमेशा **रखा जाता है** | Kubernetes `pods/log` API stdout और stderr को बिना प्रति-line मार्कर के एक ही stream में मिला देता है। अनुमान लगाने के बजाय, एजेंट line को रख लेता है। |
+
+> इसलिए `api` mode `daemonset` mode से सख्ती से कम गिराता है। यह जानबूझकर है: एक Python traceback या `npm ERR!` कोई गंभीरता कीवर्ड नहीं रखता, और उसे चुपचाप हटा देना ठीक वही विफलता है जिससे बचाने के लिए एक गंभीरता सीमा होती है।
+
+Multi-line events दोनों modes में **फ़िल्टरिंग से पहले** पुनः जोड़ दिए जाते हैं, इसलिए एक Java stack trace को उसकी पहली line पर आँका जाता है और पूरा का पूरा रखा या गिराया जाता है — आपको कभी एक नंगी `ERROR` line उसकी frames हटी हुई नहीं मिलेगी।
 
 ### नाम द्वारा मेट्रिक्स शामिल या बाहर करना
 
@@ -192,9 +203,11 @@ Kubernetes **events** एजेंट पर namespace-फ़िल्टर क
 - `include` एक ही बार में प्रत्येक receiver तक फैलता है। एक allowlist जो किसी metric को भूल जाती है, उस पर बने monitors को चुपचाप हटा देती है। जब तक आप वास्तव में एक बंद सेट नहीं चाहते, `exclude` को प्राथमिकता दें।
 - सूचियों के लिए `--set-json` (या एक values फ़ाइल) का उपयोग करें। सादा `--set` किसी सूची को मर्ज करने के बजाय बदल देता है।
 
+> **किसी regex को रोल आउट करने से पहले उसका परीक्षण करें।** पैटर्न collector द्वारा startup पर कंपाइल किए जाते हैं, प्रति रिकॉर्ड नहीं, इसलिए एक अमान्य पैटर्न चुपचाप गलत व्यवहार नहीं करता — collector शुरू होने से इनकार कर देता है और CrashLoopBackOff में चला जाता है, अपने मेट्रिक्स के साथ-साथ उस collector के **logs** को भी ले डूबता है। Helm RE2 कंपाइल नहीं कर सकता, इसलिए `helm upgrade` एक खराब पैटर्न को बिना किसी शिकायत के स्वीकार कर लेता है।
+
 ### Log संग्रह अक्षम करें
 
-यदि आपको केवल मेट्रिक्स और events की आवश्यकता है (कोई pod logs नहीं):
+यदि आपको pod logs की आवश्यकता नहीं है:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -206,6 +219,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
+> **यह आपके node मेट्रिक्स को भी हटा देता है।** kubelet, cAdvisor, और hostmetrics receivers log-collector DaemonSet के अंदर रहते हैं, इसलिए pod logs को बंद करना उन्हें भी हटा देता है — OOM-kill, CPU-throttling, और PVC-low-disk monitors के साथ। आप cluster-स्तरीय मेट्रिक्स और Kubernetes events रखते हैं, लेकिन प्रति-node या प्रति-container वाले नहीं। मेट्रिक्स रखते हुए log मात्रा घटाने के लिए, इसके बजाय [`filters.logs.minSeverity`](#filtering-by-log-severity) या [`namespaceFilters`](#namespace-filtering) का उपयोग करें।
+
 ### एक विशिष्ट Log संग्रह मोड को बाध्य करें
 
 उन्नत उपयोगकर्ता preset की पसंद को `logs.mode` से ओवरराइड कर सकते हैं:
@@ -213,6 +228,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 - `logs.mode=daemonset` — hostPath DaemonSet (सबसे कम ओवरहेड, hostPath की आवश्यकता है)
 - `logs.mode=api` — Kubernetes API log tailer Deployment (किसी भी क्लस्टर पर काम करता है)
 - `logs.mode=disabled` — कोई log संग्रह नहीं
+
+> `api` और `disabled` दोनों log-collector DaemonSet को हटा देते हैं, और उसके साथ ऊपर वर्णित node, pod, container, और host मेट्रिक्स को भी — वही समझौता जो `logs.enabled=false` के साथ है। केवल `daemonset` mode उन्हें एकत्र करता है। यही कारण है कि GKE Autopilot और EKS Fargate presets, जो `api` mode को बाध्य करते हैं, kubelet मेट्रिक्स रिपोर्ट नहीं करते।
 
 स्पष्ट `logs.mode` हमेशा preset डिफ़ॉल्ट पर जीतता है। इसका उपयोग करें यदि आप अपने क्लस्टर को preset से बेहतर जानते हैं।
 

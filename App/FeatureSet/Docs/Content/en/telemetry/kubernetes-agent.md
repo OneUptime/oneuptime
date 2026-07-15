@@ -144,17 +144,28 @@ Kubernetes **events** are not namespace-filterable at the agent. They arrive fro
 
 ### Filtering by Log Severity
 
-`filters.logs.minSeverity` drops log records below a severity, at the agent, before anything is sent:
+`filters.logs.minSeverity` drops **pod log** records below a severity, at the agent, before anything is sent:
 
 ```bash
   --set filters.logs.minSeverity=WARN
 ```
 
-Accepts `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` keeps WARN, ERROR and FATAL and drops INFO, DEBUG and TRACE. The default (`""`) keeps everything.
+Accepts `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` keeps WARN, ERROR and FATAL and drops INFO, DEBUG and TRACE. The default (`""`) keeps everything. It applies in **both** log modes — in `daemonset` mode via the collector, in `api` mode inside the log tailer itself — so the presets cannot switch it off under you.
 
-This works even though container runtimes do not record a severity on the log line: the agent parses one out of the log text (`[ERROR]`, `WARN:`, `level=info`, …) and falls back to `stderr → ERROR` / `stdout → INFO`. It applies in **both** log modes — in `daemonset` mode via the collector, in `api` mode inside the log tailer itself — so the presets cannot change the behaviour out from under you.
+Container runtimes do not record a severity on the log line, so the agent parses one out of the log text itself (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> Records whose severity still could not be determined are **kept**, never dropped. The safe failure for a filter is to send too much, not to silently delete a log nobody knew was unclassified.
+> **Kubernetes events and resource specs are never filtered by this.** They arrive from the Kubernetes API with no severity of their own, so a threshold would delete the entire feed rather than thin it — including the `FailedScheduling`, `BackOff` and `OOMKilling` warnings you most want. They are low-volume and high-value, so the agent always ships them. To thin them out, use the dashboard's server-side **Logs → Settings → Drop Filters** instead.
+
+**What happens to a line with no recognisable level depends on the log mode**, because the two modes have different information available:
+
+| Mode | Unlabelled line | Why |
+| ---- | --------------- | --- |
+| `daemonset` | `stderr` → treated as ERROR (kept), `stdout` → treated as INFO (dropped by a WARN threshold) | The container runtime records which stream each line came from. |
+| `api` | Always **kept** | The Kubernetes `pods/log` API merges stdout and stderr into a single stream with no per-line marker. Rather than guess, the agent keeps the line. |
+
+> So `api` mode drops strictly less than `daemonset` mode. That is deliberate: a Python traceback or `npm ERR!` carries no severity keyword, and silently deleting it is exactly the failure a severity threshold is supposed to protect you from.
+
+Multi-line events are recombined **before** filtering in both modes, so a Java stack trace is judged on its first line and kept or dropped whole — you will never get a bare `ERROR` line with its frames stripped off.
 
 ### Including or Excluding Metrics by Name
 
@@ -192,9 +203,11 @@ Notes that will save you an incident:
 - `include` spans every receiver at once. An allowlist that forgets a metric silently removes the monitors built on it. Prefer `exclude` unless you genuinely want a closed set.
 - Use `--set-json` (or a values file) for lists. Plain `--set` replaces a list rather than merging it.
 
+> **Test a regex before you roll it out.** Patterns are compiled by the collector at startup, not per record, so an invalid one doesn't misbehave quietly — the collector refuses to start and CrashLoopBackOffs, taking that collector's **logs** down along with its metrics. Helm cannot compile RE2, so `helm upgrade` accepts a bad pattern without complaint.
+
 ### Disable Log Collection
 
-If you only need metrics and events (no pod logs):
+If you don't need pod logs:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -206,6 +219,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
+> **This also removes your node metrics.** The kubelet, cAdvisor and hostmetrics receivers live inside the log-collector DaemonSet, so turning pod logs off deletes them too — along with the OOM-kill, CPU-throttling and PVC-low-disk monitors. You keep cluster-level metrics and Kubernetes events, but not per-node or per-container ones. To cut log volume while keeping metrics, use [`filters.logs.minSeverity`](#filtering-by-log-severity) or [`namespaceFilters`](#namespace-filtering) instead.
+
 ### Force a Specific Log Collection Mode
 
 Advanced users can override the preset's choice with `logs.mode`:
@@ -213,6 +228,8 @@ Advanced users can override the preset's choice with `logs.mode`:
 - `logs.mode=daemonset` — hostPath DaemonSet (lowest overhead, requires hostPath)
 - `logs.mode=api` — Kubernetes API log tailer Deployment (works on any cluster)
 - `logs.mode=disabled` — no log collection
+
+> `api` and `disabled` both remove the log-collector DaemonSet, and with it the node, pod, container and host metrics described above — the same trade-off as `logs.enabled=false`. Only `daemonset` mode collects them. This is why the GKE Autopilot and EKS Fargate presets, which force `api` mode, do not report kubelet metrics.
 
 The explicit `logs.mode` always wins over the preset default. Use this if you know your cluster better than the preset does.
 

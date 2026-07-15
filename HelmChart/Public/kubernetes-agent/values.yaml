@@ -104,19 +104,33 @@ namespaceFilters:
 # cover your case; use this block for everything that spans receivers.
 filters:
   logs:
-    # Drop log records below this severity. "" (default) keeps everything.
-    # One of: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
+    # Drop POD LOG records below this severity. "" (default) keeps
+    # everything. One of: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
     #
     # `minSeverity: WARN` keeps WARN, ERROR and FATAL and drops INFO,
-    # DEBUG and TRACE. Pod logs get a severity even when the container
-    # runtime records none — the agent parses one out of the log line, and
-    # falls back to stderr→ERROR / stdout→INFO — so this is reliable for
-    # normal container output.
+    # DEBUG and TRACE.
     #
-    # Records whose severity still could not be determined are KEPT, never
-    # dropped. Unparsed audit logs are the case that reaches this: the
-    # safe failure here is to send too much, not to silently delete a log
-    # nobody knew was unclassified.
+    # Scope: pod logs only. Kubernetes events and resource specs are NOT
+    # filtered by this — they are a low-volume, high-value signal that
+    # arrives with no severity of its own, so a threshold would delete the
+    # whole feed rather than trim it. Use the OneUptime dashboard's
+    # server-side Drop Filters if you need to thin those out.
+    #
+    # Severity comes from the log line itself: the agent parses a level out
+    # of the text ("[ERROR]", "WARN:", "level=info", ...). What happens to a
+    # line with no recognisable level differs by log mode, because the two
+    # modes have different information available:
+    #
+    #   daemonset — the container runtime records which stream each line came
+    #     from, so an unlabelled line falls back to stderr→ERROR /
+    #     stdout→INFO. An unlabelled stdout line is therefore treated as INFO
+    #     and IS dropped by a WARN threshold.
+    #
+    #   api — the Kubernetes pods/log API merges stdout and stderr into one
+    #     stream with no per-line marker, so that fallback is not available.
+    #     Rather than guess, unlabelled lines are KEPT. This mode drops
+    #     strictly less; it will never silently delete a stack trace it could
+    #     not classify.
     minSeverity: ""
   metrics:
     # Allowlist. When non-empty, ONLY metrics whose name matches are sent;
@@ -136,6 +150,12 @@ filters:
     #            Anchor it yourself (`^system\.cpu$`) when you mean exact.
     #            RE2 has no lookahead, so `^(?!x)` will not compile — use
     #            `include` to express "everything except".
+    #
+    # A pattern is compiled by the collector at STARTUP, not per record, so
+    # an invalid one is not a filter that quietly misbehaves: the collector
+    # refuses to start and CrashLoopBackOffs, taking that collector's LOGS
+    # down with the metrics. Helm cannot compile RE2, so `helm upgrade` will
+    # accept a bad pattern happily. Test a pattern before you roll it out.
     matchType: strict
 
 # OTel Collector image configuration

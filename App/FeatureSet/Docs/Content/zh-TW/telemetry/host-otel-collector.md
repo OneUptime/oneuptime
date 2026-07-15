@@ -549,7 +549,7 @@ sc.exe query "otelcol-contrib"
 
 ### 資料量的來源
 
-| Signal               | Biggest driver                              | Turn it down with                                                    |
+| 訊號                 | 最大來源                                    | 調降方式                                                             |
 | -------------------- | ------------------------------------------- | -------------------------------------------------------------------- |
 | **日誌**             | 來自每個檔案 / journald unit / 頻道的每一行 | 縮小 receiver 範圍；`query:` 篩選器；針對嚴重性的 `filter` processor |
 | **主機指標**         | 抓取頻率 × series 數量                      | `collection_interval`；捨棄 `process` scraper；scraper 的選擇        |

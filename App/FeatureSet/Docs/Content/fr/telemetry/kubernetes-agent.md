@@ -144,17 +144,28 @@ Les **événements** Kubernetes ne sont pas filtrables par espace de noms au niv
 
 ### Filtrage par gravité des journaux
 
-`filters.logs.minSeverity` supprime les enregistrements de journaux en dessous d'une gravité, au niveau de l'agent, avant que quoi que ce soit ne soit envoyé :
+`filters.logs.minSeverity` supprime les enregistrements de **journaux de pods** en dessous d'une gravité, au niveau de l'agent, avant que quoi que ce soit ne soit envoyé :
 
 ```bash
   --set filters.logs.minSeverity=WARN
 ```
 
-Accepte `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` conserve WARN, ERROR et FATAL et supprime INFO, DEBUG et TRACE. La valeur par défaut (`""`) conserve tout.
+Accepte `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` conserve WARN, ERROR et FATAL et supprime INFO, DEBUG et TRACE. La valeur par défaut (`""`) conserve tout. Cela s'applique dans les **deux** modes de journalisation — en mode `daemonset` via le collecteur, en mode `api` à l'intérieur du collecteur de journaux lui-même — de sorte que les préréglages ne peuvent pas le désactiver à votre insu.
 
-Cela fonctionne même si les runtimes de conteneurs n'enregistrent pas de gravité sur la ligne de journal : l'agent en extrait une du texte du journal (`[ERROR]`, `WARN:`, `level=info`, …) et se rabat sur `stderr → ERROR` / `stdout → INFO`. Cela s'applique dans les **deux** modes de journalisation — en mode `daemonset` via le collecteur, en mode `api` à l'intérieur du collecteur de journaux lui-même — de sorte que les préréglages ne peuvent pas modifier ce comportement à votre insu.
+Les runtimes de conteneurs n'enregistrent pas de gravité sur la ligne de journal ; l'agent en extrait donc une du texte du journal lui-même (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> Les enregistrements dont la gravité n'a malgré tout pas pu être déterminée sont **conservés**, jamais supprimés. L'échec sûr d'un filtre consiste à envoyer trop de données, pas à supprimer silencieusement un journal dont personne ne savait qu'il n'était pas classifié.
+> **Les événements Kubernetes et les spécifications de ressources ne sont jamais filtrés par ce paramètre.** Ils arrivent depuis l'API Kubernetes sans gravité propre ; un seuil supprimerait donc l'intégralité du flux au lieu de l'alléger — y compris les avertissements `FailedScheduling`, `BackOff` et `OOMKilling` qui vous intéressent le plus. Ils sont peu volumineux et à forte valeur, c'est pourquoi l'agent les transmet toujours. Pour les alléger, utilisez plutôt les **Logs → Settings → Drop Filters** côté serveur du tableau de bord.
+
+**Ce qu'il advient d'une ligne sans niveau reconnaissable dépend du mode de journalisation**, car les deux modes ne disposent pas des mêmes informations :
+
+| Mode        | Ligne sans niveau                                                                                                    | Pourquoi                                                                                                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `daemonset` | `stderr` → traitée comme ERROR (conservée), `stdout` → traitée comme INFO (supprimée par un seuil WARN)               | Le runtime de conteneurs enregistre de quel flux provient chaque ligne.                                                                                                          |
+| `api`       | Toujours **conservée**                                                                                                | L'API Kubernetes `pods/log` fusionne stdout et stderr en un seul flux, sans marqueur par ligne. Plutôt que de deviner, l'agent conserve la ligne.                                |
+
+> Le mode `api` supprime donc strictement moins que le mode `daemonset`. C'est délibéré : une trace d'appels Python ou un `npm ERR!` ne comporte aucun mot-clé de gravité, et le supprimer silencieusement est exactement le type de défaillance contre lequel un seuil de gravité est censé vous protéger.
+
+Les événements multilignes sont recombinés **avant** le filtrage dans les deux modes ; ainsi, une trace d'appels Java est jugée sur sa première ligne et conservée ou supprimée d'un bloc — vous n'obtiendrez jamais une simple ligne `ERROR` amputée de ses frames.
 
 ### Inclure ou exclure des métriques par nom
 
@@ -192,9 +203,11 @@ Des remarques qui vous éviteront un incident :
 - `include` s'applique à tous les récepteurs à la fois. Une liste d'autorisation qui oublie une métrique supprime silencieusement les moniteurs construits dessus. Préférez `exclude`, sauf si vous voulez véritablement un ensemble fermé.
 - Utilisez `--set-json` (ou un fichier de valeurs) pour les listes. Un simple `--set` remplace une liste au lieu de la fusionner.
 
+> **Testez une regex avant de la déployer.** Les motifs sont compilés par le collecteur au démarrage, et non pour chaque enregistrement ; un motif invalide ne se contente donc pas de mal se comporter en silence — le collecteur refuse de démarrer et part en CrashLoopBackOff, entraînant avec lui les **journaux** de ce collecteur en plus de ses métriques. Helm ne sait pas compiler RE2 : `helm upgrade` accepte donc un motif erroné sans broncher.
+
 ### Désactiver la collecte des journaux
 
-Si vous n'avez besoin que des métriques et des événements (pas des journaux de pods) :
+Si vous n'avez pas besoin des journaux de pods :
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -206,6 +219,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
+> **Cela supprime également vos métriques de nœuds.** Les récepteurs kubelet, cAdvisor et hostmetrics résident à l'intérieur du DaemonSet collecteur de journaux ; désactiver les journaux de pods les supprime donc aussi — de même que les moniteurs d'OOM kill, de limitation CPU et d'espace disque faible des PVC. Vous conservez les métriques au niveau du cluster et les événements Kubernetes, mais pas celles par nœud ou par conteneur. Pour réduire le volume de journaux tout en conservant les métriques, utilisez plutôt [`filters.logs.minSeverity`](#filtrage-par-gravit-des-journaux) ou [`namespaceFilters`](#filtrage-des-espaces-de-noms).
+
 ### Forcer un mode de collecte des journaux spécifique
 
 Les utilisateurs avancés peuvent remplacer le choix du préréglage avec `logs.mode` :
@@ -213,6 +228,8 @@ Les utilisateurs avancés peuvent remplacer le choix du préréglage avec `logs.
 - `logs.mode=daemonset` — DaemonSet hostPath (surcharge la plus faible, nécessite hostPath)
 - `logs.mode=api` — Déploiement de collecte des journaux via l'API Kubernetes (fonctionne sur n'importe quel cluster)
 - `logs.mode=disabled` — pas de collecte des journaux
+
+> `api` et `disabled` suppriment tous deux le DaemonSet collecteur de journaux, et avec lui les métriques de nœuds, de pods, de conteneurs et d'hôtes décrites ci-dessus — le même compromis qu'avec `logs.enabled=false`. Seul le mode `daemonset` les collecte. C'est la raison pour laquelle les préréglages GKE Autopilot et EKS Fargate, qui forcent le mode `api`, ne remontent pas de métriques kubelet.
 
 Le `logs.mode` explicite l'emporte toujours sur la valeur par défaut du préréglage. Utilisez ceci si vous connaissez votre cluster mieux que le préréglage.
 

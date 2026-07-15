@@ -792,7 +792,7 @@ Der OpenTelemetry Collector berücksichtigt die standardmäßigen Umgebungsvaria
 - **HTTP 401 vom Exporter** — das Ingestion-Token ist ungültig oder widerrufen. Erstellen Sie ein neues unter _Project Settings → Telemetry Ingestion Keys_.
 - **Der Windows-Event-Log-Kanal `Security` gibt „access denied“ zurück** — der Dienst läuft nicht mit ausreichenden Berechtigungen. Erstellen Sie ihn unter `LocalSystem` neu (der Standard bei `sc.exe create`) oder erteilen Sie dem Dienstkonto das Benutzerrecht _Manage auditing and security log_.
 - **Der `journald`-Receiver startet nicht** — stellen Sie sicher, dass `journalctl` im `PATH` des Collectors liegt und dass `/var/log/journal` existiert (führen Sie andernfalls `sudo systemd-tmpfiles --create --prefix /var/log/journal` aus).
-- **Hohes Volumen / hohe Kosten** — siehe [Das erfasste Datenvolumen reduzieren](#reducing-the-volume-of-data-collected): grenzen Sie die Receiver ein (bestimmte Windows-Kanäle, systemd-Units, Logdateien), erhöhen Sie das `collection_interval` der Metriken, lassen Sie den Per-Prozess-Scraper weg oder fügen Sie einen `filter`-Processor hinzu, um Datensätze mit niedrigem Schweregrad vor dem Export zu verwerfen.
+- **Hohes Volumen / hohe Kosten** — siehe [Das erfasste Datenvolumen reduzieren](#das-erfasste-datenvolumen-reduzieren): grenzen Sie die Receiver ein (bestimmte Windows-Kanäle, systemd-Units, Logdateien), erhöhen Sie das `collection_interval` der Metriken, lassen Sie den Per-Prozess-Scraper weg oder fügen Sie einen `filter`-Processor hinzu, um Datensätze mit niedrigem Schweregrad vor dem Export zu verwerfen.
 
 ## Nächste Schritte
 
