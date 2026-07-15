@@ -233,6 +233,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         ) {
           throw new BadDataException(`${requiredField} is required`);
         }
+      } else if (typeof (data as any)[requiredField] === Typeof.Number) {
+        if (
+          !(data as any)[requiredField] &&
+          (data as any)[requiredField] !== 0 &&
+          !data.isDefaultValueColumn(requiredField)
+        ) {
+          throw new BadDataException(`${requiredField} is required`);
+        }
       } else if (
         !(data as any)[requiredField] &&
         !data.isDefaultValueColumn(requiredField)
