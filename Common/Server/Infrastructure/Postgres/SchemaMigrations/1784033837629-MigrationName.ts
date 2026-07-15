@@ -40,10 +40,13 @@ export class MigrationName1784033837629 implements MigrationInterface {
       `ALTER TABLE "OnCallDutyPolicyScheduleLayer" ALTER COLUMN "restrictionTimes" SET DEFAULT '{"_type":"RestrictionTimes","value":{"restictionType":"None","dayRestrictionTimes":null,"weeklyRestrictionTimes":[]}}'`,
     );
     await queryRunner.query(
-      `ALTER TABLE "LlmLog" ALTER COLUMN "completionTokens" SET NOT NULL`,
+      `ALTER TABLE "LlmLog" ALTER COLUMN "completionTokens" SET DEFAULT '0'`,
     );
     await queryRunner.query(
-      `ALTER TABLE "LlmLog" ALTER COLUMN "completionTokens" SET DEFAULT '0'`,
+      `UPDATE "LlmLog" SET "completionTokens" = '0' WHERE "completionTokens" IS NULL`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "LlmLog" ALTER COLUMN "completionTokens" SET NOT NULL`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_4bbaf6e55d46424a79fa33a153" ON "AIRun" ("triggeredByAiInsightId") `,
