@@ -622,11 +622,41 @@ processors:
     error_mode: ignore
     logs:
       log_record:
-        # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # WARN보다 낮은 심각도의 레코드를 삭제 (info, debug, trace).
+        # UNSPECIFIED 가드는 필수입니다 — 아래 경고를 참조하세요.
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-차트로 표시하지 않는 특정 시끄러운 메트릭 삭제:
+> **`UNSPECIFIED` 가드를 빼지 마세요.** `SEVERITY_NUMBER_UNSPECIFIED`는 `0`이고 `SEVERITY_NUMBER_WARN`은 `13`이므로, 가드 없는 `severity_number < SEVERITY_NUMBER_WARN`은 `0 < 13`이 되어 — **심각도가 파싱된 적 없는 모든 레코드에 대해 참**입니다. 일반 `filelog` 리시버는 로그 라인에서 심각도를 파싱하지 않습니다: 이 페이지의 `filelog` 예제 중 어느 것도 `operators:`를 설정하지 않으므로, 해당 레코드는 `severity_number: 0`인 상태로 필터에 도착합니다. 가드가 없으면 이 조건은 `/var/log/syslog`, `/var/log/messages` 및 `/var/log/auth.log`의 **100%를** 조용히 삭제합니다 — 어디에도 오류가 나타나지 않습니다. 가드가 있으면 분류되지 않은 레코드가 유지되며, OneUptime에 심각도 `Unspecified`로 도착하는 것을 보게 되는데, 이는 실제로 필요한 것이 severity parser라는 것을 알려줍니다.
+
+파일 로그를 심각도로 *제대로* 필터링하려면, 먼저 리시버에서 [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) 오퍼레이터로 심각도를 파싱하여 레코드가 필터에 도달하기 전에 실제 레벨을 갖도록 하세요:
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # "2026-01-01 ERROR something broke" 같은 라인에서 레벨을 추출.
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # 인식 가능한 레벨이 없는 라인은 폐기되지 않고 파싱되지 않은 채로
+        # 통과하며, 그다음 위의 가드에 의해 유지됩니다.
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+systemd 호스트에서는 이 중 어떤 것도 필요하지 않습니다 — `journald`의 `priority:`(레버 1)가 OTel 레코드가 존재하기도 전에 `journalctl` 자체에서 레벨로 필터링합니다.
+
+차트로 표시하지 않는 메트릭 삭제 — 정확한 이름 또는 패턴으로:
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # 정확한 메트릭 이름.
         - 'name == "system.paging.faults"'
+        # 또는 패밀리 전체. IsMatch는 RE2이며 앵커가 없으므로,
+        # "~로 시작"을 의미한다면 직접 ^로 앵커를 붙이세요.
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+조건을 반전하여 **오직** 고정된 메트릭 집합만 전송하기(허용 목록) — `filter`는 매칭되는 것을 삭제하므로, `not (...)`은 나열하지 않은 모든 것을 삭제합니다:
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+이 조건은 **한 줄**로 유지하세요. 허용 목록은 큰 망치입니다: 나열하는 것을 잊은 것은 무엇이든 사라지며, 그것을 기반으로 만든 모니터도 함께 사라집니다. 원하지 않는 소수의 메트릭만 삭제하거나, 아예 그것을 생성하는 scraper를 생략하는 편이 낫습니다(레버 3) — 애초에 수집되지 않은 메트릭은 필터링 비용이 전혀 들지 않습니다.
 
 그런 다음 관련 파이프라인에 프로세서를 추가하세요 — 순서가 중요하므로 `filter`를 `batch` 앞에 두세요:
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **OneUptime이 생성해 준 구성을 편집하고 있나요?** 위의 파이프라인은 이 페이지의 전체 예제와 일치합니다. 대시보드(Hosts → Documentation)에서 제공하는 구성은 이름이 다릅니다: 프로세서가 `resourcedetection`과 `batch`이며(`resource` 프로세서는 **없습니다**) exporter는 `otlphttp/oneuptime`입니다. 정의되지 않은 프로세서를 참조하면 Collector가 시작 시 `references processor "resource" which is not configured` 오류와 함께 중단됩니다. 이 블록을 그 위에 붙여넣지 말고, 이미 있는 것에 filter를 추가하세요:
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> `resourcedetection`은 유지하세요 — OneUptime은 이것이 설정하는 `host.name` / `host.id`를 사용하여 텔레메트리를 호스트에 매칭합니다. 또한 그 생성된 구성은 **메트릭 전용**입니다: 직접 추가하기 전까지는 `logs:` 파이프라인이 없으므로, `filelog`나 `journald` 리시버를 함께 추가하기 전까지 `filter/drop-low-severity`는 필터링할 대상이 없습니다.
+
+> **macOS에서는 Homebrew가 아니라 tarball을 사용하세요.** Homebrew 포뮬러는 **core** Collector를 제공하는데 `filter`는 contrib 전용 프로세서입니다 — YAML이 올바른지 여부와 관계없이 Collector가 시작을 거부합니다.
 
 ### 간소한 시작점
 

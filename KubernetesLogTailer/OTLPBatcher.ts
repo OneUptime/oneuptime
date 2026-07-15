@@ -6,6 +6,7 @@ import {
   BATCH_MAX_RECORDS,
   CLUSTER_NAME,
   EXPORT_MAX_RETRIES,
+  MIN_SEVERITY,
   ONEUPTIME_API_KEY,
   ONEUPTIME_LABELS,
   ONEUPTIME_URL,
@@ -102,6 +103,37 @@ const deriveSeverity: (
   return { text: "INFO", number: severityTextToNumber["INFO"]! };
 };
 
+/*
+ * The severity floor, resolved once at startup. 0 means "keep everything",
+ * which is also what an unrecognised MIN_SEVERITY resolves to — the safe
+ * failure for a filter is to send too much, not to silently delete logs.
+ *
+ * Only the six canonical levels are accepted here, matching the enum the Helm
+ * chart's values.schema.json allows. The aliases in severityTextToNumber
+ * (WARNING, ERR, CRIT, PANIC, ...) exist to parse what applications *emit*;
+ * they are not threshold values a user configures.
+ */
+const minSeverityNumber: number = ((): number => {
+  if (!MIN_SEVERITY) {
+    return 0;
+  }
+  const allowed: Array<string> = [
+    "TRACE",
+    "DEBUG",
+    "INFO",
+    "WARN",
+    "ERROR",
+    "FATAL",
+  ];
+  if (!allowed.includes(MIN_SEVERITY)) {
+    Logger.warn(
+      `MIN_SEVERITY "${MIN_SEVERITY}" is not one of ${allowed.join(", ")} - keeping all logs`,
+    );
+    return 0;
+  }
+  return severityTextToNumber[MIN_SEVERITY] ?? 0;
+})();
+
 const groupByResource: (entries: Array<LogEntry>) => Array<OtlpResourceLogs> = (
   entries: Array<LogEntry>,
 ): Array<OtlpResourceLogs> => {
@@ -182,6 +214,18 @@ class OTLPBatcher {
 
   public enqueue(entry: LogEntry): void {
     if (this.stopped) {
+      return;
+    }
+    /*
+     * Drop below the severity floor before buffering, so filtered logs cost no
+     * memory and no egress. deriveSeverity runs again in groupByResource for
+     * the records that survive; it is one regex against a line we are about to
+     * ship over the network either way.
+     */
+    if (
+      minSeverityNumber > 0 &&
+      deriveSeverity(entry.body, entry.stream).number < minSeverityNumber
+    ) {
       return;
     }
     this.buffer.push(entry);

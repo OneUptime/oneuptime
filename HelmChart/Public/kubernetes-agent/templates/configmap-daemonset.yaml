@@ -399,6 +399,10 @@ data:
               - set(attributes["service.name"], attributes["k8s.statefulset.name"]) where attributes["k8s.statefulset.name"] != nil and attributes["k8s.statefulset.name"] != "" and attributes["k8s.deployment.name"] == nil
               - set(attributes["service.name"], attributes["k8s.daemonset.name"]) where attributes["k8s.daemonset.name"] != nil and attributes["k8s.daemonset.name"] != "" and attributes["k8s.deployment.name"] == nil and attributes["k8s.statefulset.name"] == nil
 
+      {{- if or (eq (include "kubernetes-agent.logFiltersEnabled" .) "true") (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") }}
+      {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" (list "logs" "metrics")) | nindent 6 }}
+      {{- end }}
+
       batch:
         send_batch_size: 1024
         timeout: 10s
@@ -458,6 +462,11 @@ data:
           processors:
             - memory_limiter
             - k8sattributes
+            {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
+            # After k8sattributes so namespace conditions can match; before
+            # batch so dropped series never leave the node.
+            - filter/telemetry
+            {{- end }}
             - resource
             - transform
             - batch
@@ -472,6 +481,11 @@ data:
           processors:
             - memory_limiter
             - k8sattributes
+            {{- if eq (include "kubernetes-agent.logFiltersEnabled" .) "true" }}
+            # Severity is set by the receiver's operator chain above, so the
+            # filter sees a real severity_number by the time it runs here.
+            - filter/telemetry
+            {{- end }}
             - resource
             - transform
             - batch

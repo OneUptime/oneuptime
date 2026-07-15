@@ -623,10 +623,40 @@ processors:
     logs:
       log_record:
         # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # The UNSPECIFIED guard is required — see the warning below.
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-Drop en specifik støjende metrik, du ikke laver diagrammer over:
+> **Drop ikke `UNSPECIFIED`-værnet.** `SEVERITY_NUMBER_UNSPECIFIED` er `0`, og `SEVERITY_NUMBER_WARN` er `13`, så et bart `severity_number < SEVERITY_NUMBER_WARN` er `0 < 13` — **sandt for hver eneste post, hvis alvorlighed aldrig blev parset**. En almindelig `filelog`-receiver parser ikke alvorlighed fra loglinjen: intet i denne sides `filelog`-eksempler sætter `operators:`, så de poster ankommer til filteret med `severity_number: 0`. Uden værnet sletter den betingelse lydløst **100 % af** `/var/log/syslog`, `/var/log/messages` og `/var/log/auth.log` — uden en fejl nogen steder. Med værnet beholdes uklassificerede poster, og du vil se dem ankomme i OneUptime med alvorligheden `Unspecified`, hvilket fortæller dig, at en severity parser er det, du faktisk har brug for.
+
+For at filtrere filbaserede logs efter alvorlighed *korrekt* skal du først parse en alvorlighed med en [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md)-operator på receiveren, så posterne bærer et rigtigt niveau, før de når filteret:
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # Pull a level out of lines like "2026-01-01 ERROR something broke".
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # Lines with no recognisable level fall through unparsed rather
+        # than being discarded, and are then kept by the guard above.
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+På systemd-hoster har du ikke brug for noget af dette — `journald`'s `priority:` (Løftestang 1) filtrerer efter niveau i `journalctl` selv, før en OTel-post overhovedet findes.
+
+Drop metrikker, du ikke laver diagrammer over — præcist navn eller et mønster:
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # Exact metric name.
         - 'name == "system.paging.faults"'
+        # Or a whole family. IsMatch is RE2 and UNANCHORED, so anchor it
+        # yourself with ^ when you mean "starts with".
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+Send **kun** et fast sæt metrikker (en allowlist) ved at invertere betingelsen — `filter` dropper det, der matcher, så `not (...)` dropper alt det, du ikke har navngivet:
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+Hold den betingelse på **én linje**. En allowlist er en stor forhammer: alt, du glemmer at navngive, er væk, sammen med de monitorer, der er bygget på det. Foretræk at droppe de få metrikker, du ikke ønsker, eller ganske enkelt at udelade den scraper, der producerer dem (Løftestang 3) — en metrik, der aldrig indsamles, koster ingenting at filtrere.
 
 Tilføj derefter processoren til den relevante pipeline — rækkefølgen betyder noget, så placér `filter` før `batch`:
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **Redigerer du den konfiguration, OneUptime genererede til dig?** Pipelinen ovenfor svarer til de komplette eksempler på denne side. Konfigurationen fra dashboardet (Hosts → Documentation) navngiver tingene anderledes: dens processorer er `resourcedetection` og `batch` (der er **ingen** `resource`-processor), og dens eksportør er `otlphttp/oneuptime`. At referere til en processor, der ikke er defineret, standser collectoren ved opstart med `references processor "resource" which is not configured`. Tilføj filteret til det, der allerede er der, i stedet for at indsætte denne blok hen over det:
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> Behold `resourcedetection` — OneUptime matcher telemetri til en host ved hjælp af det `host.name` / `host.id`, den sætter. Den genererede konfiguration er også **kun metrikker**: den har ingen `logs:`-pipeline, før du tilføjer en, så en `filter/drop-low-severity` har intet at filtrere, før du tilføjer en `filelog`- eller `journald`-receiver ved siden af den.
+
+> **På macOS skal du bruge tarball'en, ikke Homebrew.** Homebrew-formlen leverer **core**-collectoren, og `filter` er en processor, der kun findes i contrib — collectoren vil nægte at starte, uanset om din YAML er korrekt.
 
 ### Et slankt udgangspunkt
 

@@ -242,3 +242,230 @@ daemonset
 {{- end -}}
 {{- end -}}
 {{- end }}
+
+{{/*
+Telemetry filters — the OTTL conditions behind the `filter/telemetry` processor.
+
+The filter processor DROPS a record when a condition matches, and its
+conditions are OR'ed together. Every helper below is written from that
+angle: an allowlist is expressed as `not (<matches>)`, a denylist as
+`<matches>` directly. Because they OR, listing an include condition and
+an exclude condition together yields "drop unless included, and also drop
+if excluded" — i.e. exclude wins, which is the same precedence
+`namespaceFilters` already documents.
+
+Every namespace condition is guarded with `!= nil`. Node- and
+cluster-level series carry no namespace at all, and in OTTL
+`nil != "production"` is TRUE — so an unguarded allowlist would silently
+delete every node metric. The guard also decides the tie-break for
+records we cannot classify: they are KEPT, never dropped.
+
+Metric name matching targets otel-collector-contrib 0.96.0 (see
+.Values.image.tag): `IsMatch` and the `metric` / `datapoint` OTTL
+contexts all exist there. Keep this file in step with that pin.
+*/}}
+
+{{/*
+OTTL disjunction over metric names: `name == "a" or IsMatch(name, "b")`.
+%q emits a Go-quoted string, so a regexp written as `^system\.cpu` in
+values.yaml reaches RE2 as `\.` (a literal dot) rather than an invalid
+OTTL escape.
+Args: dict "names" (list) "matchType" ("strict" | "regexp")
+*/}}
+{{- define "kubernetes-agent.metricNameDisjunction" -}}
+{{- $matchType := .matchType | default "strict" -}}
+{{- $parts := list -}}
+{{- range .names -}}
+{{- if eq $matchType "regexp" -}}
+{{- $parts = append $parts (printf "IsMatch(name, %q)" .) -}}
+{{- else -}}
+{{- $parts = append $parts (printf "name == %q" .) -}}
+{{- end -}}
+{{- end -}}
+{{- join " or " $parts -}}
+{{- end -}}
+
+{{/*
+OTTL disjunction over namespaces at a given path.
+Args: dict "namespaces" (list) "path" (OTTL path expression)
+*/}}
+{{- define "kubernetes-agent.nsDisjunction" -}}
+{{- $path := .path -}}
+{{- $parts := list -}}
+{{- range .namespaces -}}
+{{- $parts = append $parts (printf "%s == %q" $path .) -}}
+{{- end -}}
+{{- join " or " $parts -}}
+{{- end -}}
+
+{{/*
+Log-record conditions. Severity only — pod logs are already scoped by
+namespace at the receiver (filelog path globs / the API tailer), so
+re-filtering them here would cost CPU to drop nothing.
+*/}}
+{{- define "kubernetes-agent.filterLogConditions" -}}
+{{- $sev := (((.Values.filters).logs).minSeverity) | default "" -}}
+{{- $conds := list -}}
+{{- if $sev -}}
+{{- $conds = append $conds (printf "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_%s" (upper $sev)) -}}
+{{- end -}}
+{{- toJson $conds -}}
+{{- end -}}
+
+{{/*
+Metric-context conditions: metric-name allow/deny, plus namespace for
+receivers that put the namespace on the RESOURCE (kubeletstats,
+k8s_cluster).
+*/}}
+{{- define "kubernetes-agent.filterMetricConditions" -}}
+{{- $fm := (.Values.filters).metrics | default dict -}}
+{{- $ns := .Values.namespaceFilters | default dict -}}
+{{- $mt := $fm.matchType | default "strict" -}}
+{{- $inc := $fm.include | default list | compact -}}
+{{- $exc := $fm.exclude | default list | compact -}}
+{{- $conds := list -}}
+{{- if $inc -}}
+{{- $conds = append $conds (printf "not (%s)" (include "kubernetes-agent.metricNameDisjunction" (dict "names" $inc "matchType" $mt))) -}}
+{{- end -}}
+{{- if $exc -}}
+{{- $conds = append $conds (include "kubernetes-agent.metricNameDisjunction" (dict "names" $exc "matchType" $mt)) -}}
+{{- end -}}
+{{- if (($ns.applyTo).metrics) -}}
+{{- $p := "resource.attributes[\"k8s.namespace.name\"]" -}}
+{{- $nsExc := $ns.exclude | default list | compact -}}
+{{- $nsInc := $ns.include | default list | compact -}}
+{{- if $nsExc -}}
+{{- $conds = append $conds (printf "%s != nil and (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsExc "path" $p))) -}}
+{{- end -}}
+{{- if $nsInc -}}
+{{- $conds = append $conds (printf "%s != nil and not (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsInc "path" $p))) -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $conds -}}
+{{- end -}}
+
+{{/*
+Datapoint-context conditions: namespace only, for Prometheus-scraped
+metrics (cAdvisor, kube-state-metrics, CoreDNS, mesh, CSI). Those arrive
+under a single scrape-target resource with the namespace as a DATAPOINT
+label, so the metric-context conditions above never see them — this is
+why namespace filtering needs both contexts to actually cover the cluster.
+*/}}
+{{- define "kubernetes-agent.filterDatapointConditions" -}}
+{{- $ns := .Values.namespaceFilters | default dict -}}
+{{- $conds := list -}}
+{{- if (($ns.applyTo).metrics) -}}
+{{- $p := "attributes[\"namespace\"]" -}}
+{{- $nsExc := $ns.exclude | default list | compact -}}
+{{- $nsInc := $ns.include | default list | compact -}}
+{{- if $nsExc -}}
+{{- $conds = append $conds (printf "%s != nil and (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsExc "path" $p))) -}}
+{{- end -}}
+{{- if $nsInc -}}
+{{- $conds = append $conds (printf "%s != nil and not (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsInc "path" $p))) -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $conds -}}
+{{- end -}}
+
+{{/*
+Span-context conditions: namespace only. eBPF spans are already scoped at
+OBI discovery, so this exists for spans pushed to the agent's own OTLP
+endpoint by your applications.
+*/}}
+{{- define "kubernetes-agent.filterSpanConditions" -}}
+{{- $ns := .Values.namespaceFilters | default dict -}}
+{{- $conds := list -}}
+{{- if (($ns.applyTo).traces) -}}
+{{- $p := "resource.attributes[\"k8s.namespace.name\"]" -}}
+{{- $nsExc := $ns.exclude | default list | compact -}}
+{{- $nsInc := $ns.include | default list | compact -}}
+{{- if $nsExc -}}
+{{- $conds = append $conds (printf "%s != nil and (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsExc "path" $p))) -}}
+{{- end -}}
+{{- if $nsInc -}}
+{{- $conds = append $conds (printf "%s != nil and not (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsInc "path" $p))) -}}
+{{- end -}}
+{{- end -}}
+{{- toJson $conds -}}
+{{- end -}}
+
+{{/*
+Per-signal predicates. A pipeline must only reference `filter/telemetry`
+when that signal actually has conditions: the filter processor rejects a
+config where it is wired into a pipeline whose signal it has no rules for.
+Usage: {{- if eq (include "kubernetes-agent.logFiltersEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.logFiltersEnabled" -}}
+{{- gt (len (include "kubernetes-agent.filterLogConditions" . | fromJsonArray)) 0 -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.metricFiltersEnabled" -}}
+{{- or (gt (len (include "kubernetes-agent.filterMetricConditions" . | fromJsonArray)) 0) (gt (len (include "kubernetes-agent.filterDatapointConditions" . | fromJsonArray)) 0) -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.traceFiltersEnabled" -}}
+{{- gt (len (include "kubernetes-agent.filterSpanConditions" . | fromJsonArray)) 0 -}}
+{{- end -}}
+
+{{/*
+The `filter/telemetry` processor block itself. Emitted only for the
+signals that have conditions AND that the calling collector actually runs
+a pipeline for — the DaemonSet has no traces pipeline, so emitting span
+rules there would be config that can never fire.
+Single-quoted YAML keeps OTTL's own double quotes literal; internal single
+quotes are doubled per the YAML spec.
+Args: dict "root" $ "signals" (list "logs" "metrics" "traces")
+*/}}
+{{- define "kubernetes-agent.filterProcessor" -}}
+{{- $root := .root -}}
+{{- $signals := .signals -}}
+{{- $logConds := list -}}
+{{- if has "logs" $signals -}}
+{{- $logConds = include "kubernetes-agent.filterLogConditions" $root | fromJsonArray -}}
+{{- end -}}
+{{- $metricConds := list -}}
+{{- $dpConds := list -}}
+{{- if has "metrics" $signals -}}
+{{- $metricConds = include "kubernetes-agent.filterMetricConditions" $root | fromJsonArray -}}
+{{- $dpConds = include "kubernetes-agent.filterDatapointConditions" $root | fromJsonArray -}}
+{{- end -}}
+{{- $spanConds := list -}}
+{{- if has "traces" $signals -}}
+{{- $spanConds = include "kubernetes-agent.filterSpanConditions" $root | fromJsonArray -}}
+{{- end -}}
+filter/telemetry:
+  # Drops records matching any condition below, before `batch` — so
+  # filtered telemetry costs no egress and never reaches OneUptime.
+  # Generated from .Values.filters and .Values.namespaceFilters.
+  error_mode: ignore
+{{- if $logConds }}
+  logs:
+    log_record:
+{{- range $logConds }}
+      - '{{ . | replace "'" "''" }}'
+{{- end }}
+{{- end }}
+{{- if or $metricConds $dpConds }}
+  metrics:
+{{- if $metricConds }}
+    metric:
+{{- range $metricConds }}
+      - '{{ . | replace "'" "''" }}'
+{{- end }}
+{{- end }}
+{{- if $dpConds }}
+    datapoint:
+{{- range $dpConds }}
+      - '{{ . | replace "'" "''" }}'
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if $spanConds }}
+  traces:
+    span:
+{{- range $spanConds }}
+      - '{{ . | replace "'" "''" }}'
+{{- end }}
+{{- end }}
+{{- end -}}

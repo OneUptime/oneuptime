@@ -61,6 +61,7 @@ export default class ServiceHandler {
       t: ctx.t,
       supportedLanguages: ctx.supportedLanguages,
       currentPath: ctx.currentPath,
+      showMasterAdminApis: ctx.showMasterAdminApis,
     });
   }
 }

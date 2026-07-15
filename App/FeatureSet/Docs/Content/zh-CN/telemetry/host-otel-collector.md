@@ -623,10 +623,40 @@ processors:
     logs:
       log_record:
         # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # The UNSPECIFIED guard is required — see the warning below.
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-丢弃某个你不绘制图表的、噪声较大的特定指标：
+> **不要去掉 `UNSPECIFIED` 保护条件。** `SEVERITY_NUMBER_UNSPECIFIED` 是 `0`，而 `SEVERITY_NUMBER_WARN` 是 `13`，因此裸写的 `severity_number < SEVERITY_NUMBER_WARN` 就是 `0 < 13`——**对于每一条严重性从未被解析过的记录都为真**。一个普通的 `filelog` 接收器并不会从日志行中解析严重性：本页的 `filelog` 示例都没有设置 `operators:`，因此这些记录到达过滤器时带着 `severity_number: 0`。没有该保护条件，这个条件会悄悄删除 `/var/log/syslog`、`/var/log/messages` 和 `/var/log/auth.log` 的 **100%** 内容——而且任何地方都不会报错。有了该保护条件，未被分类的记录会被保留，你会看到它们以严重性 `Unspecified` 的形式到达 OneUptime，这会告诉你：你真正需要的其实是一个严重性解析器。
+
+要*正确地*按严重性过滤文件日志，请先在接收器上用一个 [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) 算子解析出严重性，这样记录在到达过滤器之前就带有真实的级别：
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # Pull a level out of lines like "2026-01-01 ERROR something broke".
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # Lines with no recognisable level fall through unparsed rather
+        # than being discarded, and are then kept by the guard above.
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+在 systemd 主机上，你完全不需要这些——`journald` 的 `priority:`（杠杆 1）会在 `journalctl` 内部、在 OTel 记录存在之前就按级别过滤。
+
+丢弃你不绘制图表的指标——按精确名称，或者按模式：
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # Exact metric name.
         - 'name == "system.paging.faults"'
+        # Or a whole family. IsMatch is RE2 and UNANCHORED, so anchor it
+        # yourself with ^ when you mean "starts with".
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+通过反转条件来**只**发送一组固定的指标（一个允许列表）——`filter` 会丢弃匹配的内容，因此 `not (...)` 会丢弃你没有点名的所有内容：
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+请把该条件保持在**一行**内。允许列表是一把大锤：你忘记点名的任何内容都会消失，构建在其之上的监控器也会随之消失。请优先丢弃你不想要的少数几个指标，或者干脆省去产生它们的抓取器（杠杆 3）——从不采集的指标，过滤起来毫无开销。
 
 然后将该处理器添加到相关的流水线中——顺序很重要，所以要把 `filter` 放在 `batch` 之前：
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **正在编辑 OneUptime 为你生成的配置？** 上面的流水线与本页的完整示例相匹配。而来自仪表板（Hosts → Documentation）的配置对各项的命名有所不同：它的处理器是 `resourcedetection` 和 `batch`（**没有** `resource` 处理器），它的导出器是 `otlphttp/oneuptime`。引用一个未定义的处理器会让 collector 在启动时停止，并报出 `references processor "resource" which is not configured`。请把 filter 添加到已有的内容中，而不是把这个代码块粘贴上去覆盖它：
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> 请保留 `resourcedetection`——OneUptime 会使用它所设置的 `host.name` / `host.id` 将遥测数据与主机进行匹配。那份生成的配置也是**仅指标**的：在你添加之前，它没有 `logs:` 流水线，因此在你在其旁边添加一个 `filelog` 或 `journald` 接收器之前，`filter/drop-low-severity` 没有任何可过滤的内容。
+
+> **在 macOS 上，请使用 tarball，而不是 Homebrew。** Homebrew formula 提供的是**核心版（core）** collector，而 `filter` 是仅存在于 contrib 版中的处理器——无论你的 YAML 是否正确，collector 都会拒绝启动。
 
 ### 一个精简的起点
 

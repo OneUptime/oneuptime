@@ -361,6 +361,13 @@ data:
               - set(severity_text, "WARN") where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
               - set(severity_number, SEVERITY_NUMBER_WARN) where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
 
+      {{- /* The traces pipeline below only exists when ebpf.enabled, so span
+             rules are only emitted when there is a pipeline to run them in. */}}
+      {{- $signals := ternary (list "logs" "metrics" "traces") (list "logs" "metrics") (.Values.ebpf.enabled | default false) }}
+      {{- if or (eq (include "kubernetes-agent.logFiltersEnabled" .) "true") (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") (and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true")) }}
+      {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" $signals) | nindent 6 }}
+      {{- end }}
+
       # Batch telemetry for efficient export
       batch:
         send_batch_size: 100
@@ -413,6 +420,9 @@ data:
           processors:
             - memory_limiter
             - k8sattributes
+            {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
+            - filter/telemetry
+            {{- end }}
             - resource
             - batch
           exporters:
@@ -425,6 +435,13 @@ data:
             - k8sattributes
             - resource
             - transform/severity
+            {{- if eq (include "kubernetes-agent.logFiltersEnabled" .) "true" }}
+            # AFTER transform/severity: the k8sobjects receiver emits events
+            # with no severity, and transform/severity is what assigns one.
+            # Filtering before it would see severity_number=0 on every event
+            # and — because unclassified records are kept — drop none of them.
+            - filter/telemetry
+            {{- end }}
             - batch
           exporters:
             - otlphttp
@@ -441,6 +458,11 @@ data:
           processors:
             - memory_limiter
             - k8sattributes
+            {{- if and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true") }}
+            # k8sattributes resolves the sending pod to a namespace, so this
+            # must stay after it — before it, every span looks namespace-less.
+            - filter/telemetry
+            {{- end }}
             - batch
           exporters:
             - otlphttp

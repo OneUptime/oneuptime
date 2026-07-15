@@ -572,7 +572,7 @@ Les journaux constituent presque toujours la plus grande part. Le collecteur ne 
       priority: warning # info and debug are dropped before export
   ```
 
-- **Journaux d'événements Windows** — le canal `Security` est de loin celui qui génère le plus de volume. Restreignez-le aux identifiants d'événements que vous auditez réellement avec un `query:` (comme indiqué dans [Journaux d'événements Windows](#windows-event-logs) ci-dessus), ou supprimez complètement le canal si vous n'en avez pas besoin.
+- **Journaux d'événements Windows** — le canal `Security` est de loin celui qui génère le plus de volume. Restreignez-le aux identifiants d'événements que vous auditez réellement avec un `query:` (comme indiqué dans [Journaux d'événements Windows](#journaux-dvnements-windows) ci-dessus), ou supprimez complètement le canal si vous n'en avez pas besoin.
 
 ### Levier 2 — Ralentissez l'intervalle des métriques
 
@@ -623,10 +623,40 @@ processors:
     logs:
       log_record:
         # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # The UNSPECIFIED guard is required — see the warning below.
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-Supprimez une métrique bruyante spécifique que vous ne visualisez pas :
+> **Ne supprimez pas la protection `UNSPECIFIED`.** `SEVERITY_NUMBER_UNSPECIFIED` vaut `0` et `SEVERITY_NUMBER_WARN` vaut `13` ; un simple `severity_number < SEVERITY_NUMBER_WARN` équivaut donc à `0 < 13` — **vrai pour chaque enregistrement dont la gravité n'a jamais été analysée**. Un récepteur `filelog` nu n'analyse pas la gravité depuis la ligne de journal : rien dans les exemples `filelog` de cette page ne définit `operators:`, de sorte que ces enregistrements arrivent au filtre avec `severity_number: 0`. Sans cette protection, cette condition supprime silencieusement **100 % de** `/var/log/syslog`, `/var/log/messages` et `/var/log/auth.log` — sans aucune erreur nulle part. Avec la protection, les enregistrements non classifiés sont conservés et vous les verrez arriver dans OneUptime avec la gravité `Unspecified`, ce qui vous indique que ce dont vous avez réellement besoin est un analyseur de gravité.
+
+Pour filtrer les journaux de fichiers par gravité *correctement*, analysez d'abord une gravité avec un opérateur [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) sur le récepteur, afin que les enregistrements portent un véritable niveau avant d'atteindre le filtre :
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # Pull a level out of lines like "2026-01-01 ERROR something broke".
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # Lines with no recognisable level fall through unparsed rather
+        # than being discarded, and are then kept by the guard above.
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+Sur les hôtes systemd, vous n'avez besoin de rien de tout cela — la `priority:` de `journald` (Levier 1) filtre par niveau dans `journalctl` lui-même, avant même qu'un enregistrement OTel n'existe.
+
+Supprimez les métriques que vous ne visualisez pas — par nom exact, ou par motif :
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # Exact metric name.
         - 'name == "system.paging.faults"'
+        # Or a whole family. IsMatch is RE2 and UNANCHORED, so anchor it
+        # yourself with ^ when you mean "starts with".
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+N'envoyez **qu'**un ensemble fixe de métriques (une liste d'autorisation) en inversant la condition — `filter` supprime ce qui correspond, donc `not (...)` supprime tout ce que vous n'avez pas nommé :
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+Gardez cette condition sur **une seule ligne**. Une liste d'autorisation est un outil brutal : tout ce que vous oubliez de nommer disparaît, en même temps que les moniteurs construits dessus. Préférez supprimer les quelques métriques dont vous ne voulez pas, ou simplement omettre le scraper qui les produit (Levier 3) — une métrique jamais collectée ne coûte rien à filtrer.
 
 Ajoutez ensuite le processeur au pipeline concerné — l'ordre est important, alors placez `filter` avant `batch` :
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **Vous modifiez la configuration générée pour vous par OneUptime ?** Le pipeline ci-dessus correspond aux exemples complets de cette page. La configuration issue du tableau de bord (Hosts → Documentation) nomme les choses différemment : ses processeurs sont `resourcedetection` et `batch` (il n'y a **pas** de processeur `resource`) et son exportateur est `otlphttp/oneuptime`. Référencer un processeur qui n'est pas défini arrête le collecteur au démarrage avec `references processor "resource" which is not configured`. Ajoutez le filtre à ce qui existe déjà plutôt que de coller ce bloc par-dessus :
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> Conservez `resourcedetection` — OneUptime associe la télémétrie à un hôte à l'aide des `host.name` / `host.id` qu'il définit. Cette configuration générée est également **uniquement métriques** : elle n'a pas de pipeline `logs:` tant que vous n'en ajoutez pas un, de sorte qu'un `filter/drop-low-severity` n'a rien à filtrer tant que vous n'ajoutez pas un récepteur `filelog` ou `journald` à côté.
+
+> **Sur macOS, utilisez l'archive tarball, pas Homebrew.** La formule Homebrew fournit le collecteur **core**, et `filter` est un processeur disponible uniquement dans contrib — le collecteur refusera de démarrer, que votre YAML soit correct ou non.
 
 ### Un point de départ minimal
 
@@ -730,7 +792,7 @@ Le collecteur OpenTelemetry respecte les variables d'environnement standard `HTT
 - **HTTP 401 de l'exportateur** — le jeton d'ingestion est invalide ou révoqué. Générez-en un nouveau depuis _Project Settings → Telemetry Ingestion Keys_.
 - **Le canal `Security` des journaux d'événements Windows renvoie une erreur d'accès refusé** — le service ne s'exécute pas avec des privilèges suffisants. Recréez-le sous `LocalSystem` (la valeur par défaut avec `sc.exe create`) ou accordez au compte de service le droit utilisateur _Manage auditing and security log_.
 - **Le récepteur `journald` ne démarre pas** — assurez-vous que `journalctl` se trouve dans le `PATH` du collecteur et que `/var/log/journal` existe (exécutez `sudo systemd-tmpfiles --create --prefix /var/log/journal` si ce n'est pas le cas).
-- **Volume / coût élevé** — voir [Réduire le volume de données collectées](#reducing-the-volume-of-data-collected) : restreignez les récepteurs (canaux Windows spécifiques, unités systemd, fichiers journaux), augmentez le `collection_interval` des métriques, supprimez le scraper par processus, ou ajoutez un processeur `filter` pour supprimer les enregistrements de faible gravité avant l'exportation.
+- **Volume / coût élevé** — voir [Réduire le volume de données collectées](#rduire-le-volume-de-donnes-collectes) : restreignez les récepteurs (canaux Windows spécifiques, unités systemd, fichiers journaux), augmentez le `collection_interval` des métriques, supprimez le scraper par processus, ou ajoutez un processeur `filter` pour supprimer les enregistrements de faible gravité avant l'exportation.
 
 ## Étapes suivantes
 

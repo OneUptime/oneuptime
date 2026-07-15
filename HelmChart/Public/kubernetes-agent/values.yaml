@@ -50,17 +50,93 @@ clusterName: ""
 
 # Namespace filters — limit which namespaces are observed.
 #
-# These apply to **pod logs** (both the hostPath DaemonSet and the API
-# log-tailer) and to **eBPF traces**. They do NOT filter node / pod /
-# container metrics: those are scraped per-node from the kubelet and are
-# always collected cluster-wide (node- and cluster-level series have no
-# namespace to filter on). Exclude always wins over include.
+# These always apply to **pod logs** (both the hostPath DaemonSet and the
+# API log-tailer) and to **eBPF traces**, where they are enforced at the
+# source: filtered namespaces are never read, so they cost no CPU and no
+# egress. Exclude always wins over include.
+#
+# `applyTo` extends the same lists to metrics and to OTLP traces, where
+# they are enforced by a `filter` processor in the collector instead (see
+# the `filters` block below). Both are OFF by default: metrics are the
+# signal most monitors are built on, and `exclude: [kube-system]` ships as
+# a default — so turning these on automatically would silently delete
+# kube-system metrics from every existing install on upgrade.
 namespaceFilters:
   # If set, only these namespaces are observed (empty = all namespaces)
   include: []
   # Namespaces to exclude (applied on top of include)
   exclude:
     - kube-system
+  # Which additional signals the lists above apply to.
+  applyTo:
+    # Filter metrics by namespace. Covers per-pod / per-container series
+    # from kubeletstats, cAdvisor and kube-state-metrics.
+    #
+    # Node- and cluster-level series (hostmetrics, kubelet node metrics)
+    # carry no namespace at all and are ALWAYS kept — a namespace is a
+    # property of a pod, not of a node, so there is nothing to match on.
+    # That means this trims pod-level cardinality but never blinds you to
+    # a node going bad.
+    metrics: false
+    # Filter spans by namespace. Only affects spans your applications push
+    # to the agent's own OTLP endpoint — eBPF spans are already scoped at
+    # OBI's process discovery by the lists above, before a span exists.
+    traces: false
+
+# Telemetry filters — drop records at the agent, before export.
+#
+# These render into a `filter` processor placed after the metadata
+# processors (so it can see k8s.namespace.name) and before `batch` (so a
+# dropped record never occupies a batch slot or leaves the node). That
+# makes this the cheapest place to cut volume: it saves egress, collector
+# memory, and OneUptime ingest cost at once.
+#
+# It is also the least reversible place. A record dropped here is gone —
+# there is no server-side copy to recover, and any monitor or dashboard
+# that depends on it goes quiet. OneUptime's server-side Drop Filters
+# (Logs → Settings → Drop Filters) and Metric Pipeline Rules
+# (Metrics → Settings → Pipeline Rules) are the reversible alternative:
+# they cost egress but can be changed after the fact without a redeploy.
+#
+# Cheaper still is not collecting at all — see `cadvisor.metricsAllowlist`
+# and `kubeStateMetrics.metricsAllowlist`, which drop metrics at the
+# receiver so they are never even parsed. Reach for those first when they
+# cover your case; use this block for everything that spans receivers.
+filters:
+  logs:
+    # Drop log records below this severity. "" (default) keeps everything.
+    # One of: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
+    #
+    # `minSeverity: WARN` keeps WARN, ERROR and FATAL and drops INFO,
+    # DEBUG and TRACE. Pod logs get a severity even when the container
+    # runtime records none — the agent parses one out of the log line, and
+    # falls back to stderr→ERROR / stdout→INFO — so this is reliable for
+    # normal container output.
+    #
+    # Records whose severity still could not be determined are KEPT, never
+    # dropped. Unparsed audit logs are the case that reaches this: the
+    # safe failure here is to send too much, not to silently delete a log
+    # nobody knew was unclassified.
+    minSeverity: ""
+  metrics:
+    # Allowlist. When non-empty, ONLY metrics whose name matches are sent;
+    # everything else is dropped.
+    #
+    # This is a big hammer: it spans every receiver in the pipeline, so an
+    # allowlist that forgets a metric silently removes the monitors built
+    # on it. Prefer `exclude` unless you genuinely want a closed set.
+    include: []
+    # Denylist. Metrics whose name matches are dropped.
+    # Applied on top of `include`, so exclude always wins.
+    exclude: []
+    # How `include` / `exclude` entries are matched:
+    #   strict — the exact metric name.
+    #   regexp — an RE2 regular expression, UNANCHORED: `system.cpu`
+    #            matches `system.cpu.time` and anything containing it.
+    #            Anchor it yourself (`^system\.cpu$`) when you mean exact.
+    #            RE2 has no lookahead, so `^(?!x)` will not compile — use
+    #            `include` to express "everything except".
+    matchType: strict
 
 # OTel Collector image configuration
 image:

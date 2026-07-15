@@ -60,6 +60,62 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Namespaces to exclude from monitoring"
+        },
+        "applyTo": {
+          "type": "object",
+          "description": "Which additional signals the include/exclude lists apply to. Pod logs and eBPF traces are always filtered at the source.",
+          "properties": {
+            "metrics": {
+              "type": "boolean",
+              "description": "Also filter metrics by namespace. Covers per-pod and per-container series; node- and cluster-level series carry no namespace and are always kept. Default: false"
+            },
+            "traces": {
+              "type": "boolean",
+              "description": "Also filter spans pushed to the agent's OTLP endpoint. eBPF spans are already scoped at OBI discovery. Default: false"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "filters": {
+      "type": "object",
+      "description": "Drop telemetry at the agent, before export, via an OTel filter processor",
+      "properties": {
+        "logs": {
+          "type": "object",
+          "description": "Log filtering",
+          "properties": {
+            "minSeverity": {
+              "type": "string",
+              "enum": ["", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
+              "description": "Drop log records below this severity. Empty keeps everything. Applies in both log modes. Records whose severity cannot be determined are always kept. Default: \"\""
+            }
+          },
+          "additionalProperties": false
+        },
+        "metrics": {
+          "type": "object",
+          "description": "Metric filtering by name, across every receiver",
+          "properties": {
+            "include": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Allowlist of metric names. When non-empty, only matching metrics are sent."
+            },
+            "exclude": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Denylist of metric names. Applied on top of include, so exclude always wins."
+            },
+            "matchType": {
+              "type": "string",
+              "enum": ["strict", "regexp"],
+              "description": "How include/exclude entries match: 'strict' (exact name) or 'regexp' (RE2, unanchored, no lookahead). Default: strict"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

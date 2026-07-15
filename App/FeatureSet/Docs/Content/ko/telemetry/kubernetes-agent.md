@@ -114,7 +114,83 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set "namespaceFilters.include={default,production,staging}"
 ```
 
-> 이러한 필터는 노드 / 파드 / 컨테이너 **메트릭**을 줄이지 **않습니다** — 이들은 kubelet에서 노드별로 스크레이프되며 항상 클러스터 전체에서 수집됩니다(노드 및 클러스터 수준 시리즈에는 필터링할 네임스페이스가 없습니다). `exclude`는 항상 `include`보다 우선합니다. 전체 볼륨 제어 항목은 [수집되는 데이터 볼륨 줄이기](#reducing-the-volume-of-data-collected)를 참조하세요.
+다른 모든 네임스페이스는 유지하면서 시끄러운 네임스페이스 하나만 무시하려면 대신 `exclude`를 사용하세요. `exclude`는 항상 `include`보다 우선하며, 기본 제공 값은 `[kube-system]`입니다 — 따라서 이를 계속 제외하고 싶다면 다시 나열하세요:
+
+```bash
+  --set "namespaceFilters.exclude={kube-system,noisy-namespace}"
+```
+
+**파드 로그와 eBPF 트레이스의 경우 이는 비용이 전혀 들지 않습니다**: 네임스페이스는 파드 로그 경로와 OBI의 프로세스 디스커버리의 일부이므로, 필터링된 네임스페이스는 애초에 읽히지도 않습니다 — CPU도, 이그레스도 없습니다.
+
+#### 메트릭과 트레이스에 네임스페이스 필터 적용하기
+
+기본적으로 위의 목록은 파드 로그와 eBPF 트레이스만 다룹니다. `applyTo`는 이를 다른 시그널로 확장합니다:
+
+```bash
+  --set namespaceFilters.applyTo.metrics=true \
+  --set namespaceFilters.applyTo.traces=true
+```
+
+| 설정 | 다루는 항목 |
+| ------- | -------------- |
+| `applyTo.metrics` | kubeletstats, cAdvisor 및 kube-state-metrics의 파드별 / 컨테이너별 메트릭 |
+| `applyTo.traces` | 애플리케이션이 에이전트의 OTLP 엔드포인트로 푸시하는 스팬 (eBPF 스팬은 이미 범위가 지정되어 있음) |
+
+둘 다 의도적으로 **기본적으로 꺼져 있습니다**. `exclude: [kube-system]`이 기본값으로 제공되므로, 이를 자동으로 켜면 업그레이드 시 기존의 모든 설치에서 kube-system 메트릭이 조용히 삭제될 것입니다.
+
+> **노드 및 클러스터 수준 메트릭은 항상 유지됩니다.** 네임스페이스는 노드가 아니라 파드의 속성이므로, 노드 CPU, 노드 메모리, 파일 시스템 사용량과 같은 시리즈는 매칭할 대상이 없어 절대 삭제되지 않습니다. `applyTo.metrics`는 노드에 문제가 생기는 것을 놓치게 만드는 일 없이 파드별 카디널리티를 다듬습니다.
+
+Kubernetes **이벤트**는 에이전트에서 네임스페이스로 필터링할 수 없습니다. 이들은 `k8sobjects` 리시버에서 `k8s.namespace.name` 속성 없이 도착하며 — 네임스페이스는 이벤트 본문 안에 있습니다 — 따라서 필터가 매칭할 대상이 없습니다. 대신 서버 측에서 삭제하세요(아래 참조).
+
+### 로그 심각도로 필터링
+
+`filters.logs.minSeverity`는 특정 심각도 미만의 로그 레코드를 아무것도 전송되기 전에 에이전트에서 삭제합니다:
+
+```bash
+  --set filters.logs.minSeverity=WARN
+```
+
+`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`을 허용합니다. `WARN`은 WARN, ERROR, FATAL을 유지하고 INFO, DEBUG, TRACE를 삭제합니다. 기본값(`""`)은 모든 것을 유지합니다.
+
+컨테이너 런타임이 로그 라인에 심각도를 기록하지 않음에도 이것은 작동합니다: 에이전트가 로그 텍스트(`[ERROR]`, `WARN:`, `level=info`, …)에서 심각도를 파싱하고, `stderr → ERROR` / `stdout → INFO`로 폴백합니다. 이는 **두 로그 모드 모두**에 적용됩니다 — `daemonset` 모드에서는 컬렉터를 통해, `api` 모드에서는 로그 테일러 자체 내에서 — 따라서 프리셋이 사용자도 모르는 사이에 동작을 바꿀 수 없습니다.
+
+> 그래도 심각도를 판별할 수 없는 레코드는 **유지되며**, 절대 삭제되지 않습니다. 필터에서 안전한 실패는 너무 많이 전송하는 것이지, 분류되지 않았다는 사실을 아무도 몰랐던 로그를 조용히 삭제하는 것이 아닙니다.
+
+### 이름으로 메트릭 포함 또는 제외하기
+
+`filters.metrics`는 파이프라인의 모든 리시버에 걸쳐 어떤 메트릭이 클러스터를 떠날지 제어합니다.
+
+**시끄러운 메트릭 몇 개 삭제하기** (거부 목록 — 보통 원하는 방식입니다):
+
+```bash
+  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+```
+
+**고정된 집합만 전송하기** (허용 목록 — 그 외 모든 것이 삭제됩니다):
+
+```bash
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+```
+
+정확한 이름 대신 **패턴으로 매칭하기**:
+
+```bash
+  --set filters.metrics.matchType=regexp \
+  --set-json 'filters.metrics.exclude=["^container_network_"]'
+```
+
+| 키 | 의미 |
+| --- | ------- |
+| `filters.metrics.exclude` | 삭제할 메트릭 이름. `include` 위에 적용되므로 exclude가 항상 우선합니다. |
+| `filters.metrics.include` | 비어 있지 않으면 **오직** 이들만 전송됩니다. |
+| `filters.metrics.matchType` | `strict`(정확한 이름, 기본값) 또는 `regexp`(RE2, **앵커 없음**). |
+
+장애를 막아 줄 참고 사항:
+
+- `regexp`는 **앵커가 없습니다** — `system.cpu`는 `system.cpu.time`에도 매칭됩니다. 정확히 하나의 메트릭을 의미한다면 앵커를 붙이세요(`^system\.cpu$`).
+- RE2에는 **lookahead가 없으므로** `^(?!container_)`는 컴파일되지 않습니다. "이것만 제외한 전부"는 부정 정규식이 아니라 `include`로 표현하세요.
+- `include`는 모든 리시버에 한 번에 적용됩니다. 메트릭 하나를 빠뜨린 허용 목록은 그것을 기반으로 만든 모니터를 조용히 제거합니다. 정말로 닫힌 집합을 원하는 것이 아니라면 `exclude`를 선호하세요.
+- 목록에는 `--set-json`(또는 values 파일)을 사용하세요. 일반 `--set`은 목록을 병합하지 않고 교체합니다.
 
 ### 로그 수집 비활성화
 
@@ -274,25 +350,24 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 | 시그널                           | 가장 큰 요인                                         | 줄이는 방법                                                                                  |
 | -------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **파드 로그**                    | 클러스터 전체에서 모든 컨테이너의 모든 라인          | `logs.enabled`, `logs.mode`, `namespaceFilters`                                              |
+| **파드 로그**                    | 클러스터 전체에서 모든 컨테이너의 모든 라인          | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
 | **eBPF 트레이스 및 스팬 메트릭** | 계측된 모든 프로세스에서 요청당 하나의 트레이스      | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
 | **메트릭 데이터 포인트**         | 스크레이프 빈도 × 파드/컨테이너 수                   | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
-| **메트릭 카디널리티**            | 고유한 시리즈 수 (컨테이너별, PVC별, …)              | `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics`, `kubeletstats.utilizationMetrics` |
+| **메트릭 카디널리티**            | 고유한 시리즈 수 (컨테이너별, PVC별, …)              | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **옵트인 추가 기능**             | 프로파일링, 감사 로그, 컨트롤 플레인, 영역 간 메트릭 | 꺼진 상태로 두세요 (이미 기본적으로 꺼져 있음)                                               |
+
+볼륨을 줄이는 방법은 두 가지이며, 어느 쪽을 사용하고 있는지 아는 것이 중요합니다:
+
+- **리시버에서** — 데이터가 애초에 수집되지 않습니다. 파드 로그의 `namespaceFilters`, `cadvisor.metricsAllowlist`, 더 긴 `collectionInterval`. 실행 비용이 전혀 들지 않으며 CPU, 이그레스, 수집을 한꺼번에 절약합니다. 해당 사례를 다룰 수 있다면 항상 이쪽을 선호하세요.
+- **필터 프로세서에서** — 데이터가 수집된 다음, 내보내기 전에 삭제됩니다. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. 컬렉터 CPU를 조금 더 쓰지만, 리시버 전반에 걸쳐 작동하며 리시버가 표현할 수 없는 것을 표현할 수 있습니다.
+
+둘 다 **되돌릴 수 없습니다**: 여기에서 삭제한 것은 절대 OneUptime에 도달하지 않으며, 그것을 기반으로 만든 모니터는 조용해집니다. 나중에 결정하고 싶다면 OneUptime이 서버 측에서 데이터를 삭제할 수도 있습니다(**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — 이는 여전히 이그레스 비용이 들지만, 재배포 없이 변경할 수 있는 설정입니다.
 
 ### 레버 1 — 파드 로그는 보통 가장 큰 단일 소스입니다
 
 컨테이너 로그는 클러스터의 모든 컨테이너에서 로그 라인당 하나의 레코드이기 때문에 거의 항상 수집에서 가장 큰 부분을 차지합니다.
 
-- **OneUptime에서 로그가 전혀 필요 없나요?** 완전히 끄세요 — 모든 메트릭, 이벤트 및 트레이스는 유지됩니다:
-
-  ```bash
-  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
-    --set logs.enabled=false
-  ```
-
-- **특정 네임스페이스의 로그만 원하나요?** `namespaceFilters.include`는 두 로그 모드 모두에서 파드 로그의 범위를 제한합니다(그리고 eBPF 트레이스도 함께). 매칭은 파드 로그 경로에서 일어나므로 필터링된 네임스페이스는 읽히지도 않습니다:
+- **특정 네임스페이스의 로그만 원하나요?** `namespaceFilters`는 두 로그 모드 모두에서 파드 로그의 범위를 제한합니다(그리고 eBPF 트레이스도 함께). 매칭은 파드 로그 경로에서 일어나므로 필터링된 네임스페이스는 읽히지도 않습니다 — 이 문서에서 가장 저렴한 레버입니다:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -300,7 +375,29 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
     --set "namespaceFilters.include={default,production}"
   ```
 
-  (`kube-system`은 이미 기본적으로 제외되어 있습니다.)
+  (`kube-system`은 이미 기본적으로 제외되어 있습니다.) 네임스페이스 하나만 빼고 전부 유지하려면 `--set "namespaceFilters.exclude={kube-system,noisy-namespace}"`를 사용하세요.
+
+- **경고와 오류에만 관심 있나요?** `filters.logs.minSeverity`가 나머지를 에이전트에서 삭제합니다. 수다스러운 클러스터에서는 INFO와 DEBUG가 대부분의 애플리케이션 출력의 대부분을 차지하기 때문에, 이것이 종종 사용 가능한 가장 큰 단일 감소책입니다:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.logs.minSeverity=WARN
+  ```
+
+  심각도가 어떻게 판별되는지, 그리고 분류할 수 없는 로그는 어떻게 되는지는 [로그 심각도로 필터링](#filtering-by-log-severity)을 참조하세요.
+
+- **OneUptime에서 파드 로그가 전혀 필요 없나요?** 끄세요:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+  > **이것은 노드, 파드, 컨테이너 및 호스트 메트릭도 비활성화합니다.** kubelet, cAdvisor 및 hostmetrics 리시버는 모두 동일한 log-collector DaemonSet 안에 있으므로, 파드 로그를 끄면 이들도 함께 제거됩니다 — OOM-kill, CPU 스로틀링 및 PVC 저디스크 모니터도 함께 사라집니다. `logs.mode: api`와 `logs.mode: disabled`에도 동일하게 적용됩니다.
+  >
+  > 로그는 줄이되 메트릭은 유지하고 싶다면, `logs.mode: daemonset`을 유지하고 위의 `namespaceFilters`나 `filters.logs.minSeverity`를 사용하세요.
 
 ### 레버 2 — eBPF 자동 계측 다듬기
 
@@ -366,6 +463,25 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 - **포화 메트릭**(`kubeletstats.utilizationMetrics.enabled`, 기본 활성화)은 8개의 파생된 "요청/제한 대비 %" 패밀리를 추가합니다. 이들은 저렴하지만(추가 스크레이프 없음) CPU/메모리 대 제한 모니터를 사용하지 않는다면 `--set kubeletstats.utilizationMetrics.enabled=false`로 제거할 수 있습니다.
 
+- **이름으로 특정 메트릭 삭제하기.** 위의 허용 목록은 리시버별이지만, `filters.metrics.exclude`는 모든 리시버에 걸쳐 적용되므로 리시버 수준의 조정 항목으로 표현할 수 없는 것에 사용하세요:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.metrics.matchType=regexp \
+    --set-json 'filters.metrics.exclude=["^container_network_"]'
+  ```
+
+  정확한 이름 매칭과 정규식 매칭의 차이 및 허용 목록 형식은 [이름으로 메트릭 포함 또는 제외하기](#including-or-excluding-metrics-by-name)를 참조하세요.
+
+- **네임스페이스 전체의 메트릭 삭제하기.** 어떤 네임스페이스가 시끄럽지만 그 노드는 계속 감시하고 싶다면, `namespaceFilters.applyTo.metrics=true`가 기존 네임스페이스 목록을 파드별 및 컨테이너별 시리즈에 적용합니다. 노드 및 클러스터 수준 시리즈는 항상 유지됩니다:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set namespaceFilters.applyTo.metrics=true
+  ```
+
 ### 레버 5 — 무거운 옵트인 기능을 끈 상태로 두기
 
 이들은 부하를 추가하기 때문에 정확히 **기본적으로 꺼져 있습니다** — 그것이 구동하는 것을 실제로 사용할 때만 활성화하고, 단지 시험해 본 것이라면 다시 끄세요:
@@ -381,7 +497,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 간소한 시작점
 
-최소한의 설치 규모를 원하고 필요에 따라 시그널을 다시 추가할 것이라면, 이 **메트릭 + 이벤트 전용** 프로필은 로그와 eBPF를 제거하고 스크레이프 속도를 절반으로 줄입니다:
+설치 규모는 줄이되 모니터는 계속 작동하기를 원한다면, 이 프로필은 **전체 메트릭 커버리지**를 유지하면서 실제로 볼륨을 좌우하는 두 가지 — 로그 라인과 eBPF 스팬 — 를 줄입니다:
 
 ```yaml
 # lean-values.yaml
@@ -390,19 +506,34 @@ oneuptime:
   apiKey: YOUR_ONEUPTIME_API_KEY
 clusterName: my-cluster
 
+# 메트릭 데이터 포인트를 절반으로. 해상도는 거칠어지지만 커버리지는 동일합니다.
 collectionInterval: 60s
-
-logs:
-  enabled: false # no pod logs
-
-ebpf:
-  enabled: false # no auto-traces
-
 hostMetrics:
   collectionInterval: 60s
-
 cadvisor:
   scrapeInterval: 60s
+
+# DaemonSet을 유지하세요 — 로그뿐 아니라 kubelet, cAdvisor 및 호스트 메트릭을
+# 수집하는 것이 바로 이것입니다 — 다만 알림 가치가 있는 로그만 전송합니다.
+logs:
+  enabled: true
+  mode: daemonset
+
+filters:
+  logs:
+    minSeverity: WARN # 에이전트에서 INFO / DEBUG / TRACE를 삭제
+
+namespaceFilters:
+  exclude:
+    - kube-system
+    - noisy-namespace
+
+ebpf:
+  enabled: true
+  features:
+    networkMetrics: false # 가장 무거운 eBPF 패밀리
+    tcpStats: false
+    spanMetrics: false
 ```
 
 ```bash
@@ -411,9 +542,9 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
   -f lean-values.yaml
 ```
 
-거기에서 필요한 것을 다시 활성화하세요: API 모드에서 몇 개의 네임스페이스에 대해 `logs.enabled=true`, 또는 좁혀진 `autoTargetExe`와 함께 `ebpf.enabled=true`.
+필요에 따라 더 조이세요: `minSeverity`를 `ERROR`로 높이거나, `namespaceFilters.applyTo.metrics=true`를 추가하거나, 이미 OTel SDK에서 트레이스를 전송하고 있다면 `ebpf.enabled=false`로 설정하세요.
 
-> **무엇을 잘라내는지 주의하세요.** 일부 모니터는 특정 시그널에 의존합니다: `cadvisor`를 비활성화하면 OOM-kill 및 CPU 스로틀링 모니터가 제거되고, `kubeletstats.volumeMetrics`를 비활성화하면 PVC 저디스크 모니터가 제거되며, 로그를 비활성화하면 로그 기반 알림이 제거됩니다. 모니터가 감시하는 시그널이 아니라 대응하지 않는 시그널을 다듬으세요.
+> **무엇을 잘라내는지 주의하세요.** 일부 모니터는 특정 시그널에 의존합니다: `cadvisor`를 비활성화하면 OOM-kill 및 CPU 스로틀링 모니터가 제거되고, `kubeletstats.volumeMetrics`를 비활성화하면 PVC 저디스크 모니터가 제거되며, 로그를 비활성화하면(또는 DaemonSet을 끄면) 로그 기반 알림*과* 노드 메트릭이 함께 제거됩니다. 모니터가 감시하는 시그널이 아니라 대응하지 않는 시그널을 다듬으세요.
 
 ### 효과 측정
 

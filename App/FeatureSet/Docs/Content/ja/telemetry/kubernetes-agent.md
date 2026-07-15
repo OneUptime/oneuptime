@@ -114,7 +114,83 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set "namespaceFilters.include={default,production,staging}"
 ```
 
-> これらのフィルターは、ノード / Pod / コンテナの **メトリクス** を削減 **しません** — それらは kubelet からノードごとにスクレイプされ、常にクラスター全体で収集されます (ノードレベルおよびクラスターレベルのシリーズにはフィルタリング対象となる名前空間がありません)。`exclude` は常に `include` より優先されます。データ量を制御する手段の完全なセットについては、[収集されるデータ量を削減する](#reducing-the-volume-of-data-collected) を参照してください。
+ノイズの多い名前空間を 1 つだけ無視し、それ以外のすべてを保持したい場合は、代わりに `exclude` を使用します。`exclude` は常に `include` より優先されます。また、同梱のデフォルト値は `[kube-system]` なので、引き続き除外したい場合は改めてリストに記載してください。
+
+```bash
+  --set "namespaceFilters.exclude={kube-system,noisy-namespace}"
+```
+
+**Pod ログと eBPF トレースについては、これにコストは一切かかりません**。名前空間は Pod ログのパスと OBI のプロセス検出の一部であるため、フィルターで除外された名前空間はそもそも読み取られません — CPU も送信 (egress) も消費しません。
+
+#### 名前空間フィルターをメトリクスとトレースに適用する
+
+デフォルトでは、上記のリストは Pod ログと eBPF トレースのみを対象とします。`applyTo` はこれらを他のシグナルにも拡張します。
+
+```bash
+  --set namespaceFilters.applyTo.metrics=true \
+  --set namespaceFilters.applyTo.traces=true
+```
+
+| 設定              | 対象となる範囲                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| `applyTo.metrics` | kubeletstats、cAdvisor、kube-state-metrics からの Pod ごと / コンテナごとのメトリクス      |
+| `applyTo.traces`  | アプリケーションがエージェントの OTLP エンドポイントに送信するスパン (eBPF のスパンはすでにスコープ済み) |
+
+どちらも意図的に **デフォルトで無効** です。`exclude: [kube-system]` がデフォルトとして同梱されているため、これらを自動的に有効にすると、既存のすべてのインストールにおいてアップグレード時に kube-system のメトリクスが黙って削除されてしまいます。
+
+> **ノードレベルおよびクラスターレベルのメトリクスは常に保持されます。** 名前空間はノードではなく Pod の属性であるため、ノード CPU、ノードメモリ、ファイルシステム使用量といったシリーズには照合する対象がなく、破棄されることはありません。`applyTo.metrics` は、ノードの不調を見逃す事態を招くことなく、Pod ごとのカーディナリティを削減します。
+
+Kubernetes の **イベント** は、エージェント側で名前空間によるフィルタリングができません。これらは `k8sobjects` レシーバーから `k8s.namespace.name` 属性なしで到着し — 名前空間はイベントの本文の中にあります — フィルターが照合できる対象がありません。代わりにサーバー側で破棄してください (下記参照)。
+
+### ログの重大度によるフィルタリング
+
+`filters.logs.minSeverity` は、ある重大度を下回るログレコードを、何かが送信される前にエージェント側で破棄します。
+
+```bash
+  --set filters.logs.minSeverity=WARN
+```
+
+`TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`FATAL` を指定できます。`WARN` は WARN、ERROR、FATAL を保持し、INFO、DEBUG、TRACE を破棄します。デフォルト (`""`) はすべてを保持します。
+
+これは、コンテナランタイムがログ行に重大度を記録しないにもかかわらず機能します。エージェントがログテキスト (`[ERROR]`、`WARN:`、`level=info` など) から重大度を解析し、`stderr → ERROR` / `stdout → INFO` にフォールバックするためです。これは **両方の** ログモードに適用されます — `daemonset` モードではコレクター経由で、`api` モードではログテイラー自体の内部で — そのため、プリセットが知らないうちに動作を変えてしまうことはありません。
+
+> それでも重大度を判定できなかったレコードは **保持され**、破棄されることはありません。フィルターにとって安全な失敗の仕方は、送りすぎることであって、分類されていないと誰も気づかないログを黙って削除することではありません。
+
+### 名前によるメトリクスの包含または除外
+
+`filters.metrics` は、パイプライン内のすべてのレシーバーを横断して、どのメトリクスがクラスターから出ていくかを制御します。
+
+**ノイズの多いメトリクスをいくつか破棄する** (拒否リスト — 通常はこちらが望ましい):
+
+```bash
+  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+```
+
+**決まったセットのみを送信する** (許可リスト — それ以外はすべて破棄されます):
+
+```bash
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+```
+
+**正確な名前ではなくパターンで照合する**:
+
+```bash
+  --set filters.metrics.matchType=regexp \
+  --set-json 'filters.metrics.exclude=["^container_network_"]'
+```
+
+| キー                        | 意味                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| `filters.metrics.exclude`   | 破棄するメトリクス名。`include` の上に適用されるため、exclude が常に優先されます。 |
+| `filters.metrics.include`   | 空でない場合、**これらのみ** が送信されます。                                  |
+| `filters.metrics.matchType` | `strict` (正確な名前、デフォルト) または `regexp` (RE2、**アンカーなし**)。    |
+
+インシデントを未然に防ぐための注意点:
+
+- `regexp` は **アンカーされません** — `system.cpu` は `system.cpu.time` にも一致します。厳密に 1 つのメトリクスを指す場合はアンカーしてください (`^system\.cpu$`)。
+- RE2 には **先読みがない** ため、`^(?!container_)` はコンパイルできません。「〜以外のすべて」は、否定の正規表現ではなく `include` で表現してください。
+- `include` はすべてのレシーバーに一度に適用されます。メトリクスを 1 つ書き忘れた許可リストは、その上に構築されたモニターを黙って取り除いてしまいます。本当に閉じたセットが必要な場合を除き、`exclude` を優先してください。
+- リストには `--set-json` (または values ファイル) を使用してください。素の `--set` はリストをマージせずに置き換えます。
 
 ### ログ収集を無効にする
 
@@ -274,25 +350,24 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 | シグナル                            | 最大の要因                                                           | 削減に使う値                                                                                 |
 | ----------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Pod ログ**                        | クラスター全体、すべてのコンテナのすべての行                         | `logs.enabled`、`logs.mode`、`namespaceFilters`                                              |
+| **Pod ログ**                        | クラスター全体、すべてのコンテナのすべての行                         | `namespaceFilters`、`filters.logs.minSeverity`、`logs.enabled`、`logs.mode`                  |
 | **eBPF トレースとスパンメトリクス** | 計装されたすべてのプロセスの、リクエストごとに 1 つのトレース        | `ebpf.enabled`、`ebpf.features.*`、`ebpf.autoTargetExe`、`ebpf.excludeExePaths`              |
 | **メトリクスのデータポイント**      | スクレイプ頻度 × Pod/コンテナの数                                    | `collectionInterval`、`hostMetrics.collectionInterval`、`cadvisor.scrapeInterval`            |
-| **メトリクスのカーディナリティ**    | 個別のシリーズの数 (コンテナごと、PVC ごと、…)                       | `cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics`、`kubeletstats.utilizationMetrics` |
+| **メトリクスのカーディナリティ**    | 個別のシリーズの数 (コンテナごと、PVC ごと、…)                       | `filters.metrics.exclude`、`namespaceFilters.applyTo.metrics`、`cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics` |
 | **オプトインの追加機能**            | プロファイリング、監査ログ、コントロールプレーン、ゾーン間メトリクス | 無効のままにする (デフォルトですでに無効です)                                                |
+
+データ量を削減する方法は 2 つあり、自分がどちらを使っているのかを知っておく価値があります。
+
+- **レシーバー側** — データがそもそも収集されません。Pod ログに対する `namespaceFilters`、`cadvisor.metricsAllowlist`、より長い `collectionInterval` などです。実行コストはかからず、CPU、送信 (egress)、取り込みをまとめて節約できます。自分のケースに当てはまる場合は、常にこちらを優先してください。
+- **filter プロセッサ側** — データは収集された後、エクスポートの前に破棄されます。`filters.logs.minSeverity`、`filters.metrics.*`、`namespaceFilters.applyTo.*` などです。コレクターの CPU をわずかに多く使いますが、複数のレシーバーを横断して機能し、レシーバーでは表現できないことも表現できます。
+
+どちらも **元に戻せません**。ここで破棄したものは OneUptime に届くことはなく、その上に構築されたモニターは沈黙します。後から判断したい場合は、代わりに OneUptime のサーバー側でデータを破棄できます (**Logs → Settings → Drop Filters**、**Metrics → Settings → Pipeline Rules**) — こちらは送信 (egress) のコストはかかりますが、再デプロイなしで変更できる設定です。
 
 ### レバー 1 — 通常、Pod ログが単独で最大の発生源
 
 コンテナログは、クラスター内のすべてのコンテナからのログ行ごとに 1 レコードとなるため、ほぼ常に取り込みの最大の割合を占めます。
 
-- **OneUptime でログがまったく必要ない場合は?** 完全に無効にします — メトリクス、イベント、トレースはすべて保持されます。
-
-  ```bash
-  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
-    --set logs.enabled=false
-  ```
-
-- **特定の名前空間のログのみが必要な場合は?** `namespaceFilters.include` は、両方のログモードで Pod ログ (およびそれに伴う eBPF トレース) をスコープします。照合は Pod ログのパスで行われるため、フィルターで除外された名前空間は読み取られることすらありません。
+- **特定の名前空間のログのみが必要な場合は?** `namespaceFilters` は、両方のログモードで Pod ログ (およびそれに伴う eBPF トレース) をスコープします。照合は Pod ログのパスで行われるため、フィルターで除外された名前空間は読み取られることすらありません — これはこのドキュメントの中で最も低コストなレバーです。
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -300,7 +375,29 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
     --set "namespaceFilters.include={default,production}"
   ```
 
-  (`kube-system` はデフォルトですでに除外されています。)
+  (`kube-system` はデフォルトですでに除外されています。) 1 つを除いてすべての名前空間を保持するには、`--set "namespaceFilters.exclude={kube-system,noisy-namespace}"` を使用します。
+
+- **警告とエラーだけに関心がある場合は?** `filters.logs.minSeverity` が残りをエージェント側で破棄します。おしゃべりなクラスターでは、これが利用可能な削減手段の中で単独で最大になることがよくあります。ほとんどのアプリケーション出力の大半は INFO と DEBUG だからです。
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.logs.minSeverity=WARN
+  ```
+
+  重大度がどのように判定されるか、また分類できなかったログがどうなるかについては、[ログの重大度によるフィルタリング](#filtering-by-log-severity) を参照してください。
+
+- **OneUptime で Pod ログがまったく必要ない場合は?** 無効にします。
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+  > **これはノード、Pod、コンテナ、ホストのメトリクスも無効にします。** kubelet、cAdvisor、hostmetrics の各レシーバーはすべて同じログコレクター DaemonSet の中に存在するため、Pod ログを無効にするとそれらも取り除かれます — OOM kill、CPU スロットリング、PVC のディスク残量不足の各モニターも併せてなくなります。同じことが `logs.mode: api` と `logs.mode: disabled` にも当てはまります。
+  >
+  > ログを減らしつつメトリクスは維持したい場合は、`logs.mode: daemonset` のままにして、代わりに上記の `namespaceFilters` または `filters.logs.minSeverity` を使用してください。
 
 ### レバー 2 — eBPF 自動計装を切り詰める
 
@@ -366,6 +463,25 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 - **飽和メトリクス** (`kubeletstats.utilizationMetrics.enabled`、デフォルトで有効) は、8 つの派生的な「リクエスト/リミットに対する %」ファミリーを追加します。これらは安価です (追加のスクレイプなし) が、CPU/メモリ対リミットのモニターを使用しない場合は、`--set kubeletstats.utilizationMetrics.enabled=false` で削除できます。
 
+- **名前で特定のメトリクスを破棄します。** 上記の許可リストはレシーバーごとのものですが、`filters.metrics.exclude` はそれらすべてを横断するため、レシーバーレベルのつまみでは表現できないものに使用してください。
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.metrics.matchType=regexp \
+    --set-json 'filters.metrics.exclude=["^container_network_"]'
+  ```
+
+  完全一致と正規表現の照合、および許可リスト形式については、[名前によるメトリクスの包含または除外](#including-or-excluding-metrics-by-name) を参照してください。
+
+- **名前空間全体のメトリクスを破棄します。** ある名前空間がノイズが多いものの、そのノードは引き続き監視したい場合、`namespaceFilters.applyTo.metrics=true` は既存の名前空間リストを Pod ごと・コンテナごとのシリーズに適用します。ノードレベルおよびクラスターレベルのシリーズは常に保持されます。
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set namespaceFilters.applyTo.metrics=true
+  ```
+
 ### レバー 5 — 重いオプトイン機能を無効のままにする
 
 これらは負荷を追加するため、まさに **デフォルトで無効** になっています — それが支える機能を実際に使用する場合にのみ有効にし、単に試しただけの場合は無効に戻してください。
@@ -381,7 +497,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 無駄のない出発点
 
-最小限のフットプリントを望み、必要に応じてシグナルを追加していく場合、この **メトリクス + イベントのみ** のプロファイルは、ログと eBPF を削除し、スクレイプレートを半分にします。
+フットプリントは小さくしつつモニターは引き続き機能させたい場合、このプロファイルは **完全なメトリクスカバレッジ** を維持したまま、実際にデータ量を左右する 2 つのもの — ログ行と eBPF スパン — を削減します。
 
 ```yaml
 # lean-values.yaml
@@ -390,19 +506,34 @@ oneuptime:
   apiKey: YOUR_ONEUPTIME_API_KEY
 clusterName: my-cluster
 
+# メトリクスのデータポイントを半分にします。解像度は粗くなりますが、カバレッジは同じです。
 collectionInterval: 60s
-
-logs:
-  enabled: false # no pod logs
-
-ebpf:
-  enabled: false # no auto-traces
-
 hostMetrics:
   collectionInterval: 60s
-
 cadvisor:
   scrapeInterval: 60s
+
+# DaemonSet は維持します — これはログだけでなく kubelet、cAdvisor、ホストの
+# メトリクスも収集するものです — ただしアラートに値するログのみを送信します。
+logs:
+  enabled: true
+  mode: daemonset
+
+filters:
+  logs:
+    minSeverity: WARN # エージェント側で INFO / DEBUG / TRACE を破棄します
+
+namespaceFilters:
+  exclude:
+    - kube-system
+    - noisy-namespace
+
+ebpf:
+  enabled: true
+  features:
+    networkMetrics: false # 最も重い eBPF ファミリー
+    tcpStats: false
+    spanMetrics: false
 ```
 
 ```bash
@@ -411,9 +542,9 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
   -f lean-values.yaml
 ```
 
-そこから、必要なものを再度有効にします: いくつかの名前空間について API モードで `logs.enabled=true`、または絞り込んだ `autoTargetExe` を使った `ebpf.enabled=true`。
+必要に応じてさらに絞り込みます: `minSeverity` を `ERROR` に上げる、`namespaceFilters.applyTo.metrics=true` を追加する、または OTel SDK からすでにトレースを送信している場合は `ebpf.enabled=false` を設定します。
 
-> **何を削減するかに注意してください。** 一部のモニターは特定のシグナルに依存します: `cadvisor` を無効にすると、OOM kill と CPU スロットリングのモニターがなくなります。`kubeletstats.volumeMetrics` を無効にすると、PVC のディスク残量不足モニターがなくなります。ログを無効にすると、ログベースのアラートがなくなります。モニターが監視しているシグナルではなく、対応しないシグナルを削減してください。
+> **何を削減するかに注意してください。** 一部のモニターは特定のシグナルに依存します: `cadvisor` を無効にすると、OOM kill と CPU スロットリングのモニターがなくなります。`kubeletstats.volumeMetrics` を無効にすると、PVC のディスク残量不足モニターがなくなります。ログを無効にすると (または DaemonSet を停止すると)、ログベースのアラート *および* ノードメトリクスがなくなります。モニターが監視しているシグナルではなく、対応しないシグナルを削減してください。
 
 ### 効果を測定する
 

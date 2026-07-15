@@ -115,7 +115,7 @@ To use only public tools (status page information, help), you can connect withou
 }
 ```
 
-This configuration allows access to public status page tools and help resources without requiring authentication.
+This configuration allows access to public status page tools and help resources without requiring authentication. Individual status pages can opt out of MCP access; see [Public Tools](#public-tools-no-authentication-required).
 
 ### VS Code with GitHub Copilot
 
@@ -230,6 +230,8 @@ You can connect to the MCP server without an API key to access public tools:
 - **`get_public_status_page_announcements`**: Get announcements from a public status page
 
 Public status page tools accept either a status page ID (UUID) or the status page domain name.
+
+Status page owners can turn off MCP access for an individual status page under **Status Page → Advanced Settings → MCP Server**. MCP access is enabled by default. When it is disabled, the four `get_public_status_page_*` tools return an error for that status page; the status page website, its RSS feed, and its public JSON API are unaffected, and the authenticated status page tools (`get_status_page`, `list_status_pages`, and so on) continue to work for the page's own project.
 
 ### Authenticated Tools (API Key Required)
 

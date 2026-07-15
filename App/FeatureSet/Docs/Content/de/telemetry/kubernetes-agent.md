@@ -114,7 +114,83 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set "namespaceFilters.include={default,production,staging}"
 ```
 
-> Diese Filter reduzieren **nicht** die Node- / Pod- / Container-**Metriken** — diese werden pro Node vom kubelet gescrapt und werden immer clusterweit erfasst (Node- und Cluster-Level-Serien haben keinen Namespace, nach dem gefiltert werden könnte). `exclude` setzt sich immer gegenüber `include` durch. Siehe [Das erfasste Datenvolumen reduzieren](#reducing-the-volume-of-data-collected) für den vollständigen Satz an Volumen-Steuerungen.
+Um einen einzelnen störenden Namespace zu ignorieren und alle anderen zu behalten, verwenden Sie stattdessen `exclude`. `exclude` setzt sich immer gegenüber `include` durch, und der ausgelieferte Standardwert ist `[kube-system]` — führen Sie ihn also erneut auf, wenn er weiterhin ausgeschlossen bleiben soll:
+
+```bash
+  --set "namespaceFilters.exclude={kube-system,noisy-namespace}"
+```
+
+Für **Pod-Logs und eBPF-Traces kostet das nichts**: Der Namespace ist Teil des Pod-Log-Pfads und der Prozesserkennung von OBI, sodass ein gefilterter Namespace gar nicht erst gelesen wird — keine CPU, kein Egress.
+
+#### Namespace-Filter auf Metriken und Traces anwenden
+
+Standardmäßig decken die obigen Listen nur Pod-Logs und eBPF-Traces ab. `applyTo` erweitert sie auf andere Signale:
+
+```bash
+  --set namespaceFilters.applyTo.metrics=true \
+  --set namespaceFilters.applyTo.traces=true
+```
+
+| Einstellung | Was es abdeckt |
+| ----------- | -------------- |
+| `applyTo.metrics` | Per-Pod- / Per-Container-Metriken aus kubeletstats, cAdvisor und kube-state-metrics |
+| `applyTo.traces` | Spans, die Ihre Anwendungen an den OTLP-Endpunkt des Agents senden (eBPF-Spans sind bereits eingegrenzt) |
+
+Beide sind absichtlich **standardmäßig deaktiviert**. `exclude: [kube-system]` wird als Standardwert ausgeliefert, sodass ein automatisches Einschalten bei jeder bestehenden Installation beim Upgrade stillschweigend die kube-system-Metriken löschen würde.
+
+> **Node- und Cluster-Level-Metriken werden immer behalten.** Ein Namespace ist eine Eigenschaft eines Pods, nicht eines Nodes, sodass Serien wie Node-CPU, Node-Speicher und Dateisystemnutzung nichts haben, worauf ein Filter zutreffen könnte, und niemals verworfen werden. `applyTo.metrics` reduziert die Per-Pod-Kardinalität, ohne Sie jemals blind für einen ausfallenden Node zu machen.
+
+Kubernetes-**Events** sind am Agent nicht nach Namespace filterbar. Sie treffen vom `k8sobjects`-Receiver ohne ein `k8s.namespace.name`-Attribut ein — der Namespace steckt im Event-Body —, sodass es für einen Filter nichts gibt, worauf er zutreffen könnte. Verwerfen Sie diese stattdessen serverseitig (siehe unten).
+
+### Filterung nach Log-Schweregrad
+
+`filters.logs.minSeverity` verwirft Log-Datensätze unterhalb eines Schweregrads, am Agent, bevor irgendetwas gesendet wird:
+
+```bash
+  --set filters.logs.minSeverity=WARN
+```
+
+Akzeptiert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` behält WARN, ERROR und FATAL und verwirft INFO, DEBUG und TRACE. Der Standardwert (`""`) behält alles.
+
+Das funktioniert, obwohl Container-Laufzeitumgebungen keinen Schweregrad an der Log-Zeile festhalten: Der Agent parst einen aus dem Log-Text heraus (`[ERROR]`, `WARN:`, `level=info`, …) und fällt auf `stderr → ERROR` / `stdout → INFO` zurück. Es gilt in **beiden** Log-Modi — im `daemonset`-Modus über den Collector, im `api`-Modus im Log-Tailer selbst —, sodass die Presets das Verhalten nicht hinter Ihrem Rücken ändern können.
+
+> Datensätze, deren Schweregrad sich dennoch nicht bestimmen ließ, werden **behalten**, niemals verworfen. Das sichere Versagen eines Filters besteht darin, zu viel zu senden, nicht darin, stillschweigend ein Log zu löschen, von dem niemand wusste, dass es unklassifiziert war.
+
+### Metriken nach Namen ein- oder ausschließen
+
+`filters.metrics` steuert, welche Metriken das Cluster verlassen — über jeden Receiver in der Pipeline hinweg.
+
+**Einige störende Metriken verwerfen** (eine Denylist — meist das, was Sie möchten):
+
+```bash
+  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+```
+
+**Nur einen festen Satz senden** (eine Allowlist — alles andere wird verworfen):
+
+```bash
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+```
+
+**Nach Muster abgleichen** statt nach exaktem Namen:
+
+```bash
+  --set filters.metrics.matchType=regexp \
+  --set-json 'filters.metrics.exclude=["^container_network_"]'
+```
+
+| Schlüssel | Bedeutung |
+| --------- | --------- |
+| `filters.metrics.exclude` | Metriknamen, die verworfen werden sollen. Wird zusätzlich zu `include` angewendet, sodass exclude sich immer durchsetzt. |
+| `filters.metrics.include` | Wenn nicht leer, werden **nur** diese gesendet. |
+| `filters.metrics.matchType` | `strict` (exakter Name, der Standard) oder `regexp` (RE2, **nicht verankert**). |
+
+Hinweise, die Ihnen einen Incident ersparen:
+
+- `regexp` ist **nicht verankert** — `system.cpu` trifft auch auf `system.cpu.time` zu. Verankern Sie es (`^system\.cpu$`), wenn Sie genau eine Metrik meinen.
+- RE2 hat **kein Lookahead**, daher lässt sich `^(?!container_)` nicht kompilieren. Drücken Sie "alles außer" mit `include` aus, nicht mit einer negativen Regex.
+- `include` erstreckt sich auf alle Receiver gleichzeitig. Eine Allowlist, die eine Metrik vergisst, entfernt stillschweigend die darauf aufgebauten Monitore. Bevorzugen Sie `exclude`, sofern Sie nicht wirklich einen geschlossenen Satz möchten.
+- Verwenden Sie `--set-json` (oder eine Values-Datei) für Listen. Ein einfaches `--set` ersetzt eine Liste, statt sie zusammenzuführen.
 
 ### Log-Erfassung deaktivieren
 
@@ -274,25 +350,24 @@ Der Trick besteht darin, **das zu erfassen aufzuhören, was Sie sich nicht anseh
 
 | Signal                          | Größter Treiber                                           | Herunterregeln mit                                                                           |
 | ------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Pod-Logs**                    | Jede Zeile aus jedem Container, clusterweit               | `logs.enabled`, `logs.mode`, `namespaceFilters`                                              |
+| **Pod-Logs**                    | Jede Zeile aus jedem Container, clusterweit               | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
 | **eBPF-Traces & Span-Metriken** | Ein Trace pro Request von jedem instrumentierten Prozess  | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
 | **Metrik-Datenpunkte**          | Scrape-Frequenz × Anzahl der Pods/Container               | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
-| **Metrik-Kardinalität**         | Anzahl der eindeutigen Serien (pro Container, pro PVC, …) | `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics`, `kubeletstats.utilizationMetrics` |
+| **Metrik-Kardinalität**         | Anzahl der eindeutigen Serien (pro Container, pro PVC, …) | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Opt-in-Extras**               | Profiling, Audit-Logs, Control Plane, Inter-Zone-Metriken | Lassen Sie sie aus (das sind sie standardmäßig bereits)                                      |
+
+Es gibt zwei Wege, das Volumen zu senken, und es lohnt sich zu wissen, welchen Sie gerade verwenden:
+
+- **Am Receiver** — die Daten werden nie erfasst. `namespaceFilters` bei Pod-Logs, `cadvisor.metricsAllowlist`, ein längeres `collectionInterval`. Das kostet im Betrieb nichts und spart CPU, Egress und Ingest zugleich. Bevorzugen Sie diese immer dort, wo sie Ihren Fall abdecken.
+- **Am Filter-Processor** — die Daten werden erfasst und dann vor dem Export verworfen. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Etwas mehr Collector-CPU, dafür wirkt es über Receiver hinweg und kann Dinge ausdrücken, die ein Receiver nicht kann.
+
+Beide sind **unumkehrbar**: Was Sie hier verwerfen, erreicht OneUptime nie, und jeder darauf aufgebaute Monitor verstummt. Wenn Sie lieber später entscheiden möchten, kann OneUptime Daten stattdessen serverseitig verwerfen (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — das kostet weiterhin Egress, ist aber eine Einstellung, die Sie ohne erneutes Deployment ändern können.
 
 ### Hebel 1 — Pod-Logs sind meist die mit Abstand größte Quelle
 
 Container-Logs sind fast immer der größte Anteil am Ingest, weil es ein Datensatz pro Log-Zeile aus jedem Container im Cluster ist.
 
-- **Benötigen Sie überhaupt keine Logs von OneUptime?** Schalten Sie sie vollständig aus — Sie behalten alle Metriken, Events und Traces:
-
-  ```bash
-  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
-    --set logs.enabled=false
-  ```
-
-- **Möchten Sie nur Logs aus bestimmten Namespaces?** `namespaceFilters.include` beschränkt Pod-Logs in beiden Log-Modi (und eBPF-Traces gleich mit). Der Abgleich erfolgt auf dem Pod-Log-Pfad, sodass gefilterte Namespaces gar nicht erst gelesen werden:
+- **Möchten Sie nur Logs aus bestimmten Namespaces?** `namespaceFilters` beschränkt Pod-Logs in beiden Log-Modi (und eBPF-Traces gleich mit). Der Abgleich erfolgt auf dem Pod-Log-Pfad, sodass gefilterte Namespaces gar nicht erst gelesen werden — das ist der günstigste Hebel in diesem Dokument:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -300,7 +375,29 @@ Container-Logs sind fast immer der größte Anteil am Ingest, weil es ein Datens
     --set "namespaceFilters.include={default,production}"
   ```
 
-  (`kube-system` ist standardmäßig bereits ausgeschlossen.)
+  (`kube-system` ist standardmäßig bereits ausgeschlossen.) Um jeden Namespace außer einem zu behalten, verwenden Sie `--set "namespaceFilters.exclude={kube-system,noisy-namespace}"`.
+
+- **Interessieren Sie nur Warnungen und Fehler?** `filters.logs.minSeverity` verwirft den Rest am Agent. Auf einem geschwätzigen Cluster ist das oft die mit Abstand größte verfügbare Reduktion, weil INFO und DEBUG den Großteil der meisten Anwendungsausgaben ausmachen:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.logs.minSeverity=WARN
+  ```
+
+  Siehe [Filterung nach Log-Schweregrad](#filtering-by-log-severity) dazu, wie der Schweregrad bestimmt wird und was mit Logs geschieht, die sich nicht klassifizieren lassen.
+
+- **Benötigen Sie überhaupt keine Pod-Logs von OneUptime?** Schalten Sie sie aus:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+  > **Das deaktiviert auch Node-, Pod-, Container- und Host-Metriken.** Die kubelet-, cAdvisor- und hostmetrics-Receiver leben alle im selben Log-Collector-DaemonSet, sodass das Ausschalten der Pod-Logs sie ebenfalls entfernt — zusammen mit den OOM-Kill-, CPU-Throttling- und PVC-Low-Disk-Monitoren. Dasselbe gilt für `logs.mode: api` und `logs.mode: disabled`.
+  >
+  > Wenn Sie weniger Logs möchten, aber Ihre Metriken behalten wollen, bleiben Sie bei `logs.mode: daemonset` und greifen Sie stattdessen zu `namespaceFilters` oder `filters.logs.minSeverity` weiter oben.
 
 ### Hebel 2 — eBPF-Auto-Instrumentierung eingrenzen
 
@@ -366,6 +463,25 @@ Die Kardinalität (die Anzahl der eindeutigen Zeitreihen) ist genauso wichtig wi
 
 - **Sättigungsmetriken** (`kubeletstats.utilizationMetrics.enabled`, standardmäßig aktiviert) fügen 8 abgeleitete "% von Request/Limit"-Familien hinzu. Sie sind günstig (kein zusätzlicher Scrape), aber wenn Sie die CPU-/Memory-vs-Limit-Monitore nicht verwenden, können Sie sie mit `--set kubeletstats.utilizationMetrics.enabled=false` entfernen.
 
+- **Bestimmte Metriken nach Namen verwerfen.** Die obigen Allowlists gelten pro Receiver; `filters.metrics.exclude` erstreckt sich über alle, verwenden Sie es also für alles, was die Stellschrauben auf Receiver-Ebene nicht ausdrücken können:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.metrics.matchType=regexp \
+    --set-json 'filters.metrics.exclude=["^container_network_"]'
+  ```
+
+  Siehe [Metriken nach Namen ein- oder ausschließen](#including-or-excluding-metrics-by-name) für den Abgleich exakt vs. Regex und die Allowlist-Form.
+
+- **Die Metriken eines ganzen Namespace verwerfen.** Wenn ein Namespace störend ist, Sie dessen Nodes aber weiterhin überwachen möchten, wendet `namespaceFilters.applyTo.metrics=true` Ihre bestehenden Namespace-Listen auf Per-Pod- und Per-Container-Serien an. Node- und Cluster-Level-Serien werden immer behalten:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set namespaceFilters.applyTo.metrics=true
+  ```
+
 ### Hebel 5 — Die schweren Opt-in-Features ausgeschaltet lassen
 
 Diese sind **standardmäßig deaktiviert**, gerade weil sie Last hinzufügen — aktivieren Sie eines nur, wenn Sie aktiv nutzen, was es antreibt, und schalten Sie es wieder aus, wenn Sie es nur ausprobiert haben:
@@ -381,7 +497,7 @@ Diese sind **standardmäßig deaktiviert**, gerade weil sie Last hinzufügen —
 
 ### Ein schlanker Ausgangspunkt
 
-Wenn Sie einen minimalen Footprint möchten und Signale nach Bedarf wieder hinzufügen, verzichtet dieses Profil mit **nur Metriken + Events** auf Logs und eBPF und halbiert die Scrape-Rate:
+Wenn Sie einen kleineren Footprint möchten, aber weiterhin möchten, dass die Monitore funktionieren, behält dieses Profil die **vollständige Metrik-Abdeckung** und streicht die beiden Dinge, die das Volumen tatsächlich treiben — Log-Zeilen und eBPF-Spans:
 
 ```yaml
 # lean-values.yaml
@@ -390,19 +506,34 @@ oneuptime:
   apiKey: YOUR_ONEUPTIME_API_KEY
 clusterName: my-cluster
 
+# Halve the metric data points. Coarser resolution, same coverage.
 collectionInterval: 60s
-
-logs:
-  enabled: false # no pod logs
-
-ebpf:
-  enabled: false # no auto-traces
-
 hostMetrics:
   collectionInterval: 60s
-
 cadvisor:
   scrapeInterval: 60s
+
+# Keep the DaemonSet — it is what collects kubelet, cAdvisor and host
+# metrics as well as logs — but only ship logs worth alerting on.
+logs:
+  enabled: true
+  mode: daemonset
+
+filters:
+  logs:
+    minSeverity: WARN # drop INFO / DEBUG / TRACE at the agent
+
+namespaceFilters:
+  exclude:
+    - kube-system
+    - noisy-namespace
+
+ebpf:
+  enabled: true
+  features:
+    networkMetrics: false # the heaviest eBPF families
+    tcpStats: false
+    spanMetrics: false
 ```
 
 ```bash
@@ -411,9 +542,9 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
   -f lean-values.yaml
 ```
 
-Von dort aus aktivieren Sie wieder, was Sie brauchen: `logs.enabled=true` für einige Namespaces im API-Modus oder `ebpf.enabled=true` mit einem eingegrenzten `autoTargetExe`.
+Ziehen Sie bei Bedarf weiter an: Erhöhen Sie `minSeverity` auf `ERROR`, fügen Sie `namespaceFilters.applyTo.metrics=true` hinzu oder setzen Sie `ebpf.enabled=false`, wenn Sie Traces bereits über OTel-SDKs liefern.
 
-> **Achten Sie darauf, was Sie streichen.** Einige Monitore hängen von bestimmten Signalen ab: Das Deaktivieren von `cadvisor` entfernt die OOM-Kill- und CPU-Throttling-Monitore; das Deaktivieren von `kubeletstats.volumeMetrics` entfernt den PVC-Low-Disk-Monitor; das Deaktivieren von Logs entfernt log-basierte Alarme. Streichen Sie die Signale, auf die Sie nicht reagieren, nicht die, die ein Monitor überwacht.
+> **Achten Sie darauf, was Sie streichen.** Einige Monitore hängen von bestimmten Signalen ab: Das Deaktivieren von `cadvisor` entfernt die OOM-Kill- und CPU-Throttling-Monitore; das Deaktivieren von `kubeletstats.volumeMetrics` entfernt den PVC-Low-Disk-Monitor; das Deaktivieren von Logs (oder das Ausschalten des DaemonSets) entfernt log-basierte Alarme *und* Ihre Node-Metriken. Streichen Sie die Signale, auf die Sie nicht reagieren, nicht die, die ein Monitor überwacht.
 
 ### Die Auswirkung messen
 

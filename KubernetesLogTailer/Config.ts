@@ -117,6 +117,24 @@ export const LOG_RECOMBINE_MAX_BYTES: number = parseInt(
   10,
 );
 
+/*
+ * Drop log records below this severity, mirroring `filters.logs.minSeverity`
+ * in the Helm chart.
+ *
+ * In daemonset log mode that value renders into the collector's `filter`
+ * processor. This mode never goes through a collector — the tailer posts OTLP
+ * straight to OneUptime — so the same value is passed down here instead, and
+ * the two modes stay behaviourally identical. The presets pick the mode for
+ * you (GKE Autopilot / EKS Fargate force this one), so a threshold that only
+ * worked in one mode would silently do nothing on those clusters.
+ *
+ * Empty (the default) keeps everything. Anything unrecognised also keeps
+ * everything rather than guessing at a threshold and deleting logs.
+ */
+export const MIN_SEVERITY: string = optional("MIN_SEVERITY", "")
+  .trim()
+  .toUpperCase();
+
 export const HEALTH_PORT: number = parseInt(
   optional("HEALTH_PORT", "13133"),
   10,

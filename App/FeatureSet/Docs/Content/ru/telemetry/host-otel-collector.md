@@ -622,11 +622,41 @@ processors:
     error_mode: ignore
     logs:
       log_record:
-        # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # Отбрасывать всё менее важное, чем WARN (info, debug, trace).
+        # Защита от UNSPECIFIED обязательна — см. предупреждение ниже.
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-Отбрасывайте конкретную шумную метрику, которую вы не отображаете на графиках:
+> **Не убирайте защиту от `UNSPECIFIED`.** `SEVERITY_NUMBER_UNSPECIFIED` равно `0`, а `SEVERITY_NUMBER_WARN` равно `13`, поэтому голое условие `severity_number < SEVERITY_NUMBER_WARN` — это `0 < 13`, то есть **истина для каждой записи, важность которой так и не была разобрана**. Обычный приёмник `filelog` не разбирает важность из строки лога: ни в одном примере `filelog` на этой странице не задаётся `operators:`, поэтому такие записи приходят в фильтр со значением `severity_number: 0`. Без этой защиты данное условие тихо удаляет **100%** записей `/var/log/syslog`, `/var/log/messages` и `/var/log/auth.log` — и нигде не будет никакой ошибки. С защитой неклассифицированные записи сохраняются, и вы увидите, как они поступают в OneUptime с важностью `Unspecified`, что подскажет вам, что на самом деле вам нужен парсер важности.
+
+Чтобы фильтровать файловые логи по важности *правильно*, сначала разберите важность с помощью оператора [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) на приёмнике, чтобы записи несли реальный уровень до того, как достигнут фильтра:
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # Извлечь уровень из строк вида "2026-01-01 ERROR something broke".
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # Строки без распознаваемого уровня проходят дальше неразобранными,
+        # а не отбрасываются, и затем сохраняются защитой, описанной выше.
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+На хостах с systemd всё это не нужно — `priority:` у `journald` (Рычаг 1) фильтрует по уровню в самом `journalctl`, ещё до того как появится запись OTel.
+
+Отбрасывайте метрики, которые вы не отображаете на графиках, — по точному имени или по шаблону:
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # Точное имя метрики.
         - 'name == "system.paging.faults"'
+        # Или целое семейство. IsMatch — это RE2 БЕЗ привязки к границам,
+        # поэтому добавляйте ^ сами, когда имеете в виду «начинается с».
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+Отправляйте **только** фиксированный набор метрик (список разрешённых), инвертировав условие: `filter` отбрасывает то, что совпало, поэтому `not (...)` отбрасывает всё, что вы не перечислили:
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+Держите это условие **в одной строке**. Список разрешённых — это грубый инструмент: всё, что вы забыли перечислить, пропадёт вместе с построенными на нём мониторами. Предпочитайте отбрасывать те немногие метрики, которые вам не нужны, или просто не подключайте scraper, который их производит (Рычаг 3), — метрику, которая никогда не собиралась, не нужно и фильтровать.
 
 Затем добавьте процессор в соответствующий конвейер — порядок имеет значение, поэтому поставьте `filter` перед `batch`:
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **Редактируете конфигурацию, которую сгенерировал для вас OneUptime?** Приведённый выше конвейер соответствует полным примерам на этой странице. В конфигурации из панели управления (Hosts → Documentation) всё называется иначе: её процессоры — `resourcedetection` и `batch` (процессора `resource` там **нет**), а её экспортёр — `otlphttp/oneuptime`. Ссылка на процессор, который не определён, останавливает сборщик при запуске с ошибкой `references processor "resource" which is not configured`. Добавляйте фильтр к тому, что там уже есть, а не вставляйте этот блок поверх:
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> Сохраните `resourcedetection` — OneUptime сопоставляет телеметрию с хостом по `host.name` / `host.id`, которые он задаёт. Кроме того, эта сгенерированная конфигурация содержит **только метрики**: в ней нет конвейера `logs:`, пока вы его не добавите, поэтому `filter/drop-low-severity` нечего фильтровать, пока вы не добавите рядом приёмник `filelog` или `journald`.
+
+> **На macOS используйте tarball, а не Homebrew.** Формула Homebrew поставляет **core**-сборку сборщика, а `filter` — процессор, доступный только в contrib: сборщик откажется запускаться независимо от того, корректен ли ваш YAML.
 
 ### Экономная отправная точка
 

@@ -404,6 +404,11 @@
                             <li class="relative"><a
                                     class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
                                     href="/reference/<%= lang %>/openapi"><span class="truncate"><%= t('ui.openApiSpecLink') %></span></a></li>
+                            <% if(typeof showMasterAdminApis !== 'undefined' && showMasterAdminApis){ %>
+                            <li class="relative"><a
+                                    class="nav-link flex justify-between gap-2 py-1.5 pr-3 text-sm transition pl-4 text-slate-600 hover:text-slate-900 -ml-px border-l-2 border-transparent hover:border-slate-300"
+                                    href="/reference/<%= lang %>/master-admin-apis"><span class="truncate"><%= t('ui.masterAdminApisLink') %></span></a></li>
+                            <% } %>
                         </ul>
                     </div>
                 </li>
@@ -606,6 +611,9 @@
                   <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/data-types"><%= t('ui.dataTypesLink') %></a></li>
                   <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/errors"><%= t('ui.errorsLink') %></a></li>
                   <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/openapi"><%= t('ui.openApiSpecLink') %></a></li>
+                  <% if(typeof showMasterAdminApis !== 'undefined' && showMasterAdminApis){ %>
+                  <li><a class="mobile-nav-link block py-2 pl-4 text-sm text-slate-600 hover:text-slate-900 border-l-2 border-transparent hover:border-slate-300 -ml-px transition" href="/reference/<%= lang %>/master-admin-apis"><%= t('ui.masterAdminApisLink') %></a></li>
+                  <% } %>
                </ul>
             </li>
             <li class="relative">

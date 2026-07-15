@@ -327,9 +327,15 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | Key | Default | Description |
 | --- | --- | --- |
 | `preset` | `""` *(→ `standard`)* | `standard`, `gke-autopilot`, or `eks-fargate`. See table above. |
-| `namespaceFilters.include` | `[]` | If set, only these namespaces are observed. Empty means all. Applies to pod logs (both modes) and eBPF traces — not to metrics, which are always cluster-wide. |
+| `namespaceFilters.include` | `[]` | If set, only these namespaces are observed. Empty means all. Always applies to pod logs (both modes) and eBPF traces, enforced at the source. |
 | `namespaceFilters.exclude` | `["kube-system"]` | Namespaces to skip (applied on top of include; exclude wins). |
-| `logs.enabled` | `true` | Turn pod log collection on or off. |
+| `namespaceFilters.applyTo.metrics` | `false` | Also apply the lists above to metrics. Covers per-pod / per-container series; node- and cluster-level series have no namespace and are always kept. Off by default so an upgrade doesn't silently drop `kube-system` metrics. |
+| `namespaceFilters.applyTo.traces` | `false` | Also apply the lists above to spans pushed to the agent's OTLP endpoint. eBPF spans are already scoped at OBI discovery. |
+| `filters.logs.minSeverity` | `""` | Drop log records below this severity: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. Empty keeps everything. Applies in both log modes. Records whose severity can't be determined are always kept. |
+| `filters.metrics.exclude` | `[]` | Metric names to drop, across every receiver. Applied on top of `include`, so exclude wins. |
+| `filters.metrics.include` | `[]` | When non-empty, **only** these metric names are sent. A forgotten name silently removes the monitors built on it — prefer `exclude`. |
+| `filters.metrics.matchType` | `strict` | How `filters.metrics.*` entries match: `strict` (exact name) or `regexp` (RE2, **unanchored**, no lookahead). |
+| `logs.enabled` | `true` | Turn pod log collection on or off. **Also disables kubelet / cAdvisor / host metrics** — they share the log-collector DaemonSet. To cut logs while keeping metrics, use `filters.logs.minSeverity` or `namespaceFilters` instead. |
 | `logs.mode` | `""` *(derived from `preset`)* | Advanced override — `daemonset`, `api`, or `disabled`. Explicit value always wins over the preset. |
 | `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section below. |
 | `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. |
