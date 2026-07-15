@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -10,48 +11,93 @@ import React, {
 import { useParams } from "react-router-dom";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
-import { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
+import AIRunStatus, { AIRunStatusHelper } from "Common/Types/AI/AIRunStatus";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import OneUptimeDate from "Common/Types/Date";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Card from "Common/UI/Components/Card/Card";
+import Detail from "Common/UI/Components/Detail/Detail";
+import Field from "Common/UI/Components/Detail/Field";
+import FieldType from "Common/UI/Components/Types/FieldType";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import Link from "Common/UI/Components/Link/Link";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import CodeFixRunStatusPill, {
   CodeFixRunStatusText,
   getCodeFixRunStatusText,
   getCodeFixTaskTypeLabel,
 } from "../../../Components/AIAgentTask/CodeFixRunStatus";
+import CodeFixRunDuration from "../../../Components/AIAgentTask/CodeFixRunDuration";
 
 const POLL_INTERVAL_MS: number = 5000;
 // The server caps the event trail at 500 — show all of it.
 const MAX_VISIBLE_STEPS: number = 500;
 
 /*
+ * The run flattened for the Detail component. `taskType` is the task-type
+ * discriminator on the /code-fix-run/get response (never null — the server
+ * normalizes legacy rows to "FixException"), so it is read from the raw JSON
+ * rather than the AIRun model.
+ */
+interface TaskDetail {
+  taskType: string;
+  status: AIRunStatus | undefined;
+  createdAt: Date | undefined;
+  startedAt: Date | undefined;
+  completedAt: Date | undefined;
+  totalTokens: number | undefined;
+  llmCallCount: number | undefined;
+  toolCallCount: number | undefined;
+  attemptCount: number | undefined;
+  triggeredByTelemetryExceptionId: ObjectID | undefined;
+  errorMessage: string;
+}
+
+type ToTaskDetailFunction = (runJson: JSONObject) => TaskDetail;
+
+const toTaskDetail: ToTaskDetailFunction = (
+  runJson: JSONObject,
+): TaskDetail => {
+  const run: AIRun = AIRun.fromJSONObject(runJson, AIRun);
+
+  return {
+    taskType: (runJson["codeFixTaskType"] as string) || "FixException",
+    status: run.status,
+    createdAt: run.createdAt,
+    startedAt: run.startedAt,
+    completedAt: run.completedAt,
+    totalTokens: run.totalTokens,
+    llmCallCount: run.llmCallCount,
+    toolCallCount: run.toolCallCount,
+    attemptCount: run.attemptCount,
+    triggeredByTelemetryExceptionId: run.triggeredByTelemetryExceptionId,
+    errorMessage: run.errorMessage || "",
+  };
+};
+
+/*
  * The AI fix task detail: the CodeFix AIRun's status plus its glass-box
- * event trail (the same ChatActivityFeed rendering AI investigations
- * use). Data comes from the dedicated /code-fix-run/get endpoint because
- * system-authored runs are hidden from the generic AIRun CRUD.
+ * event trail (the same ChatActivityFeed rendering AI investigations use).
+ * Data comes from the dedicated /code-fix-run/get endpoint because
+ * project-scoped code-fix runs are hidden from the generic AIRun CRUD by its
+ * per-user privacy pin.
  */
 const AIAgentTaskViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { id } = useParams();
 
-  const [run, setRun] = useState<AIRun | undefined>(undefined);
-  /*
-   * The run's task-type discriminator (`codeFixTaskType` on the
-   * /code-fix-run/get response — never null; the server normalizes legacy
-   * rows to "FixException"). Read from the raw JSON, not the AIRun model.
-   */
-  const [taskType, setTaskType] = useState<string | undefined>(undefined);
+  const [detail, setDetail] = useState<TaskDetail | undefined>(undefined);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
   const [error, setError] = useState<string | undefined>(undefined);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
@@ -86,8 +132,7 @@ const AIAgentTaskViewPage: FunctionComponent<
           const signature: string = `${status}:${eventsJson.length}`;
           if (signature !== signatureRef.current) {
             signatureRef.current = signature;
-            setRun(AIRun.fromJSONObject(runJson, AIRun));
-            setTaskType(runJson["codeFixTaskType"] as string | undefined);
+            setDetail(toTaskDetail(runJson));
             setEvents(
               AIRunEvent.fromJSONArray(
                 eventsJson as Array<JSONObject>,
@@ -116,7 +161,7 @@ const AIAgentTaskViewPage: FunctionComponent<
 
   // Poll while the run can still make progress.
   const isActive: boolean = Boolean(
-    run?.status && !AIRunStatusHelper.isTerminalStatus(run.status),
+    detail?.status && !AIRunStatusHelper.isTerminalStatus(detail.status),
   );
 
   useEffect(() => {
@@ -135,114 +180,169 @@ const AIAgentTaskViewPage: FunctionComponent<
     };
   }, [isActive, fetchData]);
 
-  type FormatDateFunction = (date: Date | undefined) => string;
-
-  const formatDate: FormatDateFunction = (date: Date | undefined): string => {
-    if (!date) {
-      return "-";
-    }
-
-    return OneUptimeDate.getDateAsLocalFormattedString(date);
-  };
-
   if (!hasLoadedOnce) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error && !run) {
+  if (error && !detail) {
     return <ErrorMessage message={error} />;
   }
 
-  if (!run) {
+  if (!detail) {
     return <ErrorMessage message="Task not found" />;
   }
 
-  const statusText: CodeFixRunStatusText = getCodeFixRunStatusText(run.status);
+  const statusText: CodeFixRunStatusText = getCodeFixRunStatusText(
+    detail.status,
+  );
 
-  return (
-    <div className="space-y-4">
-      <Card title="Task Status" description="Current state of this AI task.">
-        <div className="space-y-3">
+  const fields: Array<Field<TaskDetail>> = [
+    {
+      key: "taskType",
+      title: "Task",
+      getElement: (item: TaskDetail): ReactElement => {
+        return <>{getCodeFixTaskTypeLabel(item.taskType)}</>;
+      },
+    },
+    {
+      key: "status",
+      title: "Status",
+      getElement: (item: TaskDetail): ReactElement => {
+        return (
           <div className="flex items-center gap-3">
-            <CodeFixRunStatusPill status={run.status} />
+            <CodeFixRunStatusPill status={item.status} />
             {isActive ? (
               <span className="inline-block h-2 w-2 animate-ping rounded-full bg-indigo-500" />
             ) : (
               <></>
             )}
           </div>
+        );
+      },
+    },
+    {
+      key: "completedAt",
+      title: "Duration",
+      getElement: (item: TaskDetail): ReactElement => {
+        return (
+          <CodeFixRunDuration
+            status={item.status}
+            startedAt={item.startedAt}
+            completedAt={item.completedAt}
+          />
+        );
+      },
+    },
+    {
+      key: "createdAt",
+      title: "Created At",
+      fieldType: FieldType.DateTime,
+      placeholder: "-",
+    },
+    {
+      key: "startedAt",
+      title: "Started At",
+      fieldType: FieldType.DateTime,
+      placeholder: "-",
+    },
+    {
+      key: "triggeredByTelemetryExceptionId",
+      title: "Triggered By",
+      showIf: (item: TaskDetail): boolean => {
+        return Boolean(item.triggeredByTelemetryExceptionId);
+      },
+      getElement: (item: TaskDetail): ReactElement => {
+        return (
+          <Link
+            to={RouteUtil.populateRouteParams(
+              RouteMap[PageMap.EXCEPTIONS_VIEW] as Route,
+              { modelId: item.triggeredByTelemetryExceptionId! },
+            )}
+            className="text-indigo-600 hover:underline"
+          >
+            <>View exception</>
+          </Link>
+        );
+      },
+    },
+    {
+      key: "llmCallCount",
+      title: "LLM Calls",
+      fieldType: FieldType.Number,
+      placeholder: "-",
+    },
+    {
+      key: "toolCallCount",
+      title: "Tool Calls",
+      fieldType: FieldType.Number,
+      placeholder: "-",
+    },
+    {
+      key: "totalTokens",
+      title: "Tokens Used",
+      fieldType: FieldType.Number,
+      placeholder: "-",
+    },
+    {
+      key: "attemptCount",
+      title: "Attempts",
+      fieldType: FieldType.Number,
+      placeholder: "-",
+      // A retried run is worth surfacing; a first-try run is just noise.
+      showIf: (item: TaskDetail): boolean => {
+        return Boolean(item.attemptCount && item.attemptCount > 1);
+      },
+    },
+  ];
 
-          {statusText.description ? (
-            <p className="text-sm text-gray-600">{statusText.description}</p>
-          ) : (
-            <></>
-          )}
-
-          {run.errorMessage ? (
-            <Alert
-              type={AlertType.DANGER}
-              strongTitle="Error"
-              title={run.errorMessage}
-            />
-          ) : (
-            <></>
-          )}
-
-          <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-3 sm:grid-cols-2 lg:grid-cols-5">
-            <div>
-              <div className="text-xs text-gray-500">Task Type</div>
-              <div className="text-sm text-gray-900">
-                {getCodeFixTaskTypeLabel(taskType)}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Created At</div>
-              <div className="text-sm text-gray-900">
-                {formatDate(run.createdAt)}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Started At</div>
-              <div className="text-sm text-gray-900">
-                {formatDate(run.startedAt)}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Completed At</div>
-              <div className="text-sm text-gray-900">
-                {formatDate(run.completedAt)}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Tokens Used</div>
-              <div className="text-sm text-gray-900">
-                {run.totalTokens ? run.totalTokens.toLocaleString() : "-"}
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card
-        title="AI Activity"
-        description="What AI did, step by step — the run's glass-box event trail."
-      >
-        {events.length > 0 ? (
-          <ChatActivityFeed
-            events={events}
-            title={isActive ? "Working…" : "Activity"}
-            showLiveIndicator={isActive}
-            maxVisibleSteps={MAX_VISIBLE_STEPS}
+  return (
+    <Fragment>
+      <div className="space-y-5">
+        {detail.errorMessage ? (
+          <Alert
+            type={AlertType.DANGER}
+            strongTitle="This task failed"
+            title={detail.errorMessage}
           />
         ) : (
-          <p className="text-sm text-gray-500">
-            {isActive
-              ? "Waiting for AI to report its first step…"
-              : "No activity was recorded for this task."}
-          </p>
+          <></>
         )}
-      </Card>
-    </div>
+
+        <Card
+          title="Task Status"
+          description={
+            statusText.description || "Current state of this AI task."
+          }
+        >
+          <Detail<TaskDetail>
+            id="ai-agent-task-detail"
+            item={detail}
+            fields={fields}
+            showDetailsInNumberOfColumns={3}
+          />
+        </Card>
+
+        <Card
+          title="AI Activity"
+          description="What AI did, step by step — the run's glass-box event trail."
+        >
+          {events.length > 0 ? (
+            <ChatActivityFeed
+              events={events}
+              title={isActive ? "Working…" : "Activity"}
+              showLiveIndicator={isActive}
+              maxVisibleSteps={MAX_VISIBLE_STEPS}
+            />
+          ) : (
+            <p className="text-sm text-gray-500">
+              {isActive
+                ? "Waiting for AI to report its first step…"
+                : "No activity was recorded for this task."}
+            </p>
+          )}
+        </Card>
+      </div>
+    </Fragment>
   );
 };
 

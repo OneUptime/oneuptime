@@ -55,11 +55,11 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       category: managementCategory,
     },
     {
-      title: "Instance Health",
+      title: "OneUptime Health",
       description: "Live status, datastore capacity and queue backlogs.",
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HEALTH] as Route),
       activeRoute: RouteMap[PageMap.HEALTH],
-      icon: IconProp.Heartbeat,
+      icon: IconProp.Heart,
       iconColor: "rose",
       category: monitoringCategory,
     },

@@ -4,7 +4,12 @@ import InstanceHealthLog, {
   InstanceHealthLogStatus,
 } from "Common/Models/DatabaseModels/InstanceHealthLog";
 import User from "Common/Models/DatabaseModels/User";
-import { IsEnterpriseEdition } from "Common/Server/EnvironmentConfig";
+import {
+  AdminDashboardClientURL,
+  HomeClientUrl,
+  Host,
+  IsEnterpriseEdition,
+} from "Common/Server/EnvironmentConfig";
 import PostgresDatabase, {
   DatabaseQueryRunner,
   DatabaseSource,
@@ -27,9 +32,12 @@ import {
   getMaxClickhouseDiskUtilization,
 } from "Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity";
 import logger from "Common/Server/Utils/Logger";
+import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -42,6 +50,8 @@ const ADVISORY_LOCK_LABEL: string =
 const MAX_PARTITIONS_PER_BATCH: number = 25;
 const RECLAIM_CHECK_DELAY_IN_MINUTES: number = 10;
 const RETRY_COOLDOWN_IN_MINUTES: number = 60;
+// Above this the disk is close enough to full that ingestion loss is imminent.
+const CRITICAL_CAPACITY_PERCENT: number = 90;
 
 export interface ClickhouseCapacitySettings {
   notificationEnabled: boolean;
@@ -76,6 +86,37 @@ function mergeMetadata(
   additions: JSONObject,
 ): JSONObject {
   return Object.assign({}, current || {}, additions);
+}
+
+function bytesToReadable(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 B";
+  }
+
+  const units: Array<string> = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const exponent: number = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
+  const scaled: number = bytes / Math.pow(1024, exponent);
+  const decimals: number = scaled >= 10 || exponent === 0 ? 0 : 1;
+
+  return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+}
+
+function getAdminDashboardClickhouseLink(): string {
+  if (!Host) {
+    return "";
+  }
+
+  /*
+   * addRoute mutates the URL it is called on, so this must build from a copy.
+   * Appending to the AdminDashboardClientURL singleton would compound the route
+   * on every send.
+   */
+  return URL.fromString(AdminDashboardClientURL.toString())
+    .addRoute(new Route("/health/clickhouse"))
+    .toString();
 }
 
 function getWorstDisk(
@@ -221,12 +262,28 @@ async function sendCapacityNotificationToMasterAdmins(data: {
     succeeded: 0,
     failed: 0,
   };
-  const subject: string = "OneUptime ClickHouse capacity warning";
-  const message: string =
-    `ClickHouse capacity is ${data.capacityPercent.toFixed(2)}%, which has reached ` +
-    `the configured notification threshold of ${data.thresholdPercent}%. ` +
-    `The most utilized writable disk is ${data.worstDisk.diskName} on ` +
-    `${data.worstDisk.host} (shard ${data.worstDisk.shardNum}).`;
+  const capacityPercent: string = data.capacityPercent.toFixed(2);
+  const isCritical: boolean = data.capacityPercent >= CRITICAL_CAPACITY_PERCENT;
+  const subject: string = Host
+    ? `ACTION REQUIRED: ClickHouse is ${capacityPercent}% full on ${Host}`
+    : `ACTION REQUIRED: ClickHouse is ${capacityPercent}% full`;
+  const vars: Dictionary<string> = {
+    subject,
+    badgeType: isCritical ? "critical" : "warning",
+    badgeText: isCritical ? "Capacity Critical" : "Capacity Warning",
+    oneuptimeHost: Host,
+    homeURL: Host ? HomeClientUrl.toString() : "",
+    capacityPageLink: getAdminDashboardClickhouseLink(),
+    capacityUsed: `${capacityPercent}% used`,
+    notificationThreshold: `${data.thresholdPercent}%`,
+    clickhouseHost: data.worstDisk.host,
+    shard: data.worstDisk.shardNum.toString(),
+    disk: `${data.worstDisk.diskName} (${data.worstDisk.path})`,
+    diskUsage:
+      `${bytesToReadable(data.worstDisk.usedInBytes)} used of ` +
+      `${bytesToReadable(data.worstDisk.totalInBytes)}`,
+    freeSpace: `${bytesToReadable(data.worstDisk.freeInBytes)} free`,
+  };
   let skip: number = 0;
 
   for (;;) {
@@ -259,12 +316,9 @@ async function sendCapacityNotificationToMasterAdmins(data: {
           await MailService.sendMail(
             {
               toEmail: user.email,
-              templateType: EmailTemplateType.SimpleMessage,
+              templateType: EmailTemplateType.ClickhouseCapacityWarning,
               subject,
-              vars: {
-                subject,
-                message,
-              },
+              vars,
             },
             {
               userId: user.id || undefined,

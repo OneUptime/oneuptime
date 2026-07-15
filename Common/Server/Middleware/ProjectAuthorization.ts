@@ -65,7 +65,7 @@ export default class ProjectMiddleware {
    * (Admin Dashboard → Settings → API Key) and that key is currently enabled.
    * The master key has root/master-admin access, so this is shared with
    * MasterAdminAuthorization to let the key reach master-admin-only endpoints
-   * (e.g. instance health) as well.
+   * (e.g. OneUptime Health) as well.
    */
   @CaptureSpan()
   public static async isMasterApiKey(apiKey: ObjectID): Promise<boolean> {

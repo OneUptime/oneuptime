@@ -34,6 +34,15 @@ const AIAgentTaskPullRequestsPage: FunctionComponent<
         aiRunId: modelId,
       }}
       isViewable={false}
+      /*
+       * Both are read by column getElements but neither is a column of its
+       * own, and BaseModelTable only selects column-declared keys — without
+       * this the PR links render as plain text and Repository renders "org/".
+       */
+      selectMoreFields={{
+        pullRequestUrl: true,
+        repoName: true,
+      }}
       cardProps={{
         title: "Pull Requests",
         description: "Pull requests created by AI during this task execution.",

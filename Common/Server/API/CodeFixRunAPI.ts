@@ -9,11 +9,9 @@ import Express, {
 import Response from "../Utils/Response";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import Query from "../../Types/BaseDatabase/Query";
 import Select from "../Types/Database/Select";
 import { JSONObject } from "../../Types/JSON";
 import AIRunType from "../../Types/AI/AIRunType";
@@ -26,19 +24,26 @@ import ProjectService from "../Services/ProjectService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 
-const DEFAULT_LIMIT: number = 25;
-const MAX_LIMIT: number = 100;
 const MAX_EVENTS: number = 500;
 
 /*
- * Dedicated read endpoints for the dashboard's AI fix-task pages.
+ * The AI fix task detail page's event trail.
  *
- * Code-fix runs are system-authored AIRuns (runType CodeFix, userId = null)
- * and are therefore hidden by the per-user privacy pin on the generic
- * AIRun / AIRunEvent CRUD. So access is gated explicitly here — the same
- * pattern as AIInvestigationAPI: first confirm the caller can read the
- * parent object (the project) under THEIR permissions, then read the runs
- * and their events as root.
+ * The LIST page does NOT come through here — it reads AIRuns through the
+ * standard /ai-run CRUD, which AIRunService opens up for code-fix runs via a
+ * forced `runType = CodeFix OR userId = <caller>` clause (see
+ * Utils/AI/AIRunPrivacyFilter).
+ *
+ * The events cannot follow. AIRunEvent has NO runType column to key that
+ * clause off, and "userId is null" does not mean "system-authored" — the
+ * investigation engine writes null-userId events too — so project-scoping
+ * AIRunEvent wholesale would expose other members' CHAT toolArguments, which
+ * carry user-typed prompt content. Events are therefore still reached only
+ * through a run this endpoint has already authorized as runType = CodeFix.
+ *
+ * Access is gated explicitly, the same pattern as AIInvestigationAPI: confirm
+ * the caller can read the parent object (the project) under THEIR permissions,
+ * then read the run and its events as root.
  */
 
 const RUN_SELECT: Select<AIRun> = {
@@ -51,6 +56,15 @@ const RUN_SELECT: Select<AIRun> = {
   triggeredByTelemetryExceptionId: true,
   totalTokens: true,
   codeFixTaskType: true,
+  attemptCount: true,
+  llmCallCount: true,
+  toolCallCount: true,
+  /*
+   * Deliberately NOT selected: totalCostInUSDCents. This endpoint's gate is
+   * Project read, which admits roles beyond AIRun's own table ACL, so it must
+   * not return more than the detail page renders — and nothing there renders
+   * per-run spend.
+   */
 };
 
 /*
@@ -81,69 +95,6 @@ export default class CodeFixRunAPI {
   }
 
   private initRoutes(): void {
-    // List the project's code-fix runs, newest first.
-    this.router.post(
-      "/code-fix-run/list",
-      UserMiddleware.getUserMiddleware,
-      async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction,
-      ): Promise<void> => {
-        try {
-          const props: DatabaseCommonInteractionProps =
-            await this.getAccessCheckedProps(req);
-
-          const body: JSONObject = (req.body as JSONObject) || {};
-
-          let limit: number = DEFAULT_LIMIT;
-
-          if (typeof body["limit"] === "number") {
-            limit = body["limit"];
-          }
-
-          limit = Math.min(Math.max(Math.floor(limit), 1), MAX_LIMIT);
-
-          let skip: number = 0;
-
-          if (typeof body["skip"] === "number") {
-            skip = Math.max(Math.floor(body["skip"]), 0);
-          }
-
-          const query: Query<AIRun> = {
-            projectId: props.tenantId!,
-            runType: AIRunType.CodeFix,
-          };
-
-          // Root read after the tenant access check above.
-          const runs: Array<AIRun> = await AIRunService.findBy({
-            query: query,
-            select: RUN_SELECT,
-            sort: { createdAt: SortOrder.Descending },
-            limit: limit,
-            skip: skip,
-            props: { isRoot: true },
-          });
-
-          const count: PositiveNumber = await AIRunService.countBy({
-            query: query,
-            props: { isRoot: true },
-          });
-
-          Response.sendJsonObjectResponse(req, res, {
-            runs: runs.map((run: AIRun): JSONObject => {
-              return runToJson(run);
-            }),
-            count: count.toNumber(),
-          });
-          return;
-        } catch (err) {
-          next(err);
-          return;
-        }
-      },
-    );
-
     // One run + its ordered glass-box event trail.
     this.router.post(
       "/code-fix-run/get/:runId",

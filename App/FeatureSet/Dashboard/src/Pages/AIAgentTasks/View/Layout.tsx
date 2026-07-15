@@ -9,10 +9,11 @@ import { RouteUtil } from "../../../Utils/RouteMap";
 import { getAIAgentTasksBreadcrumbs } from "../../../Utils/Breadcrumbs";
 
 /*
- * Plain Page (not ModelPage): the route param is a CodeFix AIRun id, and
- * system-authored runs are hidden from the generic AIRun CRUD that
- * ModelPage's title fetch would use. The pages below load the run through
- * the dedicated /code-fix-run endpoints instead.
+ * Plain Page (not ModelPage): the Overview below needs the run's event trail
+ * alongside the run itself, and events are only reachable through
+ * /code-fix-run/get (AIRunEvent has no runType to scope by, so it cannot be
+ * opened to the project the way AIRun is). One request there beats a
+ * ModelPage title fetch plus a second call for the events.
  */
 const AIAgentTaskViewLayout: FunctionComponent<
   PageComponentProps
@@ -23,7 +24,11 @@ const AIAgentTaskViewLayout: FunctionComponent<
 
   return (
     <Page
-      title="AI Fix Task"
+      /*
+       * Not "AI Fix Task": a run can also be a regression test, an
+       * instrumentation improvement or a performance fix.
+       */
+      title="AI Task"
       breadcrumbLinks={getAIAgentTasksBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >

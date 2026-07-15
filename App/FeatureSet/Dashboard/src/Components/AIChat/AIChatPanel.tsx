@@ -117,7 +117,7 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
       ></div>
 
       <div
-        className={`fixed inset-y-0 right-0 z-50 flex w-screen max-w-md transform flex-col border-l border-gray-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-screen max-w-3xl transform flex-col border-l border-gray-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
           isVisible ? "translate-x-0" : "translate-x-full"
         }`}
       >

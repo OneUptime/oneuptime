@@ -79,7 +79,7 @@ const formatDateTime: (value: unknown) => string = (value: unknown): string => {
 };
 
 const humanize: (value: unknown) => string = (value: unknown): string => {
-  const raw: string = String(value || "Instance health event");
+  const raw: string = String(value || "OneUptime Health event");
   return raw
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
@@ -183,7 +183,7 @@ const InstanceHealthLogs: FunctionComponent = (): ReactElement => {
 
   return (
     <Card
-      title="Instance health log"
+      title="OneUptime Health log"
       description="Capacity notifications and automatic ClickHouse pruning work performed by this instance."
       buttons={[
         {
@@ -211,7 +211,7 @@ const InstanceHealthLogs: FunctionComponent = (): ReactElement => {
           <ComponentLoader />
         ) : logs.length === 0 ? (
           <div className="text-sm text-gray-500">
-            No instance health work has been recorded yet.
+            No OneUptime Health work has been recorded yet.
           </div>
         ) : (
           <div className="space-y-3">
