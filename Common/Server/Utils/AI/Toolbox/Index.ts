@@ -29,6 +29,10 @@ import {
   SearchCodeTool,
 } from "./CodeTools";
 import {
+  CommitCodeToBranchTool,
+  OpenCodePullRequestTool,
+} from "./CodeWriteTools";
+import {
   AcknowledgeIncidentTool,
   CreateIncidentTool,
   ResolveIncidentTool,
@@ -96,6 +100,13 @@ export default class AIToolbox {
     RunRunbookTool,
     PostIncidentStatusUpdateTool,
     ChangeIncidentSeverityTool,
+    /*
+     * Code writes (mutations). These never touch the default or a protected
+     * branch — every chat-authored commit lands somewhere a human must still
+     * merge from. See CodeWriteTools for why that invariant is load-bearing.
+     */
+    OpenCodePullRequestTool,
+    CommitCodeToBranchTool,
   ];
 
   public static getTools(): Array<ObservabilityTool> {

@@ -342,7 +342,8 @@ export class Service extends DatabaseService<Model> {
    * Best-effort. The counter needs Redis (Semaphore) and a second write; a
    * blip there must not lose a fix run, because the number is a display
    * convenience and the run itself is the work. On failure the run is created
-   * with a null taskNumber and the UI falls back to the id.
+   * with a null taskNumber, which the list renders as "-" and the detail page
+   * hides — the run stays fully usable, just uncitable.
    */
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

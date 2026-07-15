@@ -121,11 +121,19 @@ export default class AIAgentTaskLogAPI {
           }
 
           /*
-           * Optional verbatim tool detail (see TaskLogger.toolCall). When the
-           * worker sends it, the line is recorded as a ToolCallCompleted event
-           * carrying the arguments and full output on the run's transcript,
-           * rather than as a bare ProgressLog message. Absent it, behaviour is
-           * exactly as before — older agents keep working unchanged.
+           * Optional verbatim tool detail (see TaskLogger.toolCall): the
+           * arguments as executed and the full output the model saw, recorded
+           * on the run's transcript for the Logs page. Absent it — an older
+           * agent — behaviour is exactly as before.
+           *
+           * The event type stays ProgressLog even when the detail is present.
+           * That is deliberate, not laziness: the Overview's ChatActivityFeed
+           * renders a ProgressLog by printing resultSummary.message, but
+           * renders a ToolCallCompleted by trying to COMPLETE a matching
+           * running step from an earlier ToolCallStarted — an event the
+           * code-fix path never emits. Typing these as ToolCallCompleted
+           * therefore matched nothing and silently erased every tool line from
+           * the Overview feed. The payload rides on the same event instead.
            */
           const toolName: string | undefined = data["toolName"] as
             | string
@@ -140,15 +148,19 @@ export default class AIAgentTaskLogAPI {
           await AIRunEventService.appendEventToRun({
             projectId: existingRun.projectId,
             aiRunId: runId,
-            eventType: toolName
-              ? AIRunEventType.ToolCallCompleted
-              : AIRunEventType.ProgressLog,
+            eventType: AIRunEventType.ProgressLog,
             resultSummary: {
               message: message,
               severity: severity,
             },
             ...(toolName ? { toolName: toolName } : {}),
-            ...(toolArguments ? { toolArguments: toolArguments } : {}),
+            /*
+             * toolArguments (the column) is deliberately NOT written: its read
+             * ACL is project-member-wide, and a write_file call's arguments are
+             * the file's full new content. The same arguments go onto
+             * contentPayload below, whose read ACL is empty and which only the
+             * owner/admin-gated logs endpoint returns.
+             */
             ...(toolName
               ? {
                   contentPayload: {

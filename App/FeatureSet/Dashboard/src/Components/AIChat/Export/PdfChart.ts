@@ -255,16 +255,18 @@ export default class PdfChart {
     }
 
     // ---- X positions ---------------------------------------------------
-    const categories: Array<string> = [];
-    if (!isTime) {
-      for (const item of series) {
-        for (const point of item.points) {
-          if (!categories.includes(point.x)) {
-            categories.push(point.x);
-          }
-        }
-      }
-    }
+
+    /*
+     * Bars always sit on a category axis, even when their x values are
+     * timestamps — the same as on screen, where Recharts gives a bar chart a
+     * category axis. On a continuous scale the first and last points land
+     * exactly on the plot edges, so half of each end bar would hang outside the
+     * axis and paint over the y-tick gutter. Lines keep the continuous time
+     * scale, where proportional spacing is the whole point.
+     */
+    const useCategoryAxis: boolean = isBar || !isTime;
+
+    const categories: Array<string> = this.buildCategories(series, isTime);
 
     const times: Array<number> = isTime
       ? series.flatMap((item: ExportChartSeries) => {
@@ -279,34 +281,30 @@ export default class PdfChart {
     const timeSpan: number = timeMax - timeMin;
 
     const slotWidth: number =
-      categories.length > 0 ? plotWidth / categories.length : 0;
+      categories.length > 0 ? plotWidth / categories.length : plotWidth;
 
     const toX: (point: ExportChartPoint) => number = (
       point: ExportChartPoint,
     ): number => {
-      if (isTime) {
-        if (timeSpan === 0) {
-          return plotX0 + plotWidth / 2;
-        }
-        const ratio: number =
-          ((point.date as Date).getTime() - timeMin) / timeSpan;
-        return plotX0 + ratio * plotWidth;
+      if (useCategoryAxis) {
+        const index: number = categories.indexOf(point.x);
+        return plotX0 + slotWidth * (Math.max(0, index) + 0.5);
       }
-      const index: number = categories.indexOf(point.x);
-      return plotX0 + slotWidth * (index + 0.5);
+      if (timeSpan === 0) {
+        return plotX0 + plotWidth / 2;
+      }
+      const ratio: number =
+        ((point.date as Date).getTime() - timeMin) / timeSpan;
+      return plotX0 + ratio * plotWidth;
     };
 
     // ---- Marks ---------------------------------------------------------
     if (isBar) {
       this.drawBars(series, {
-        plotX0,
-        plotWidth,
-        plotY1,
-        toX,
-        toY,
-        axisMin,
-        isTime,
-        categoryCount: categories.length || 1,
+        slotWidth: slotWidth,
+        toX: toX,
+        toY: toY,
+        axisMin: axisMin,
       });
     } else {
       this.drawLines(series, toX, toY);
@@ -314,6 +312,7 @@ export default class PdfChart {
 
     // ---- X labels ------------------------------------------------------
     this.drawXLabels({
+      useCategoryAxis: useCategoryAxis,
       isTime: isTime,
       categories: categories,
       timeMin: timeMin,
@@ -377,27 +376,19 @@ export default class PdfChart {
   private drawBars(
     series: Array<ExportChartSeries>,
     layout: {
-      plotX0: number;
-      plotWidth: number;
-      plotY1: number;
+      slotWidth: number;
       toX: (point: ExportChartPoint) => number;
       toY: (value: number) => number;
       axisMin: number;
-      isTime: boolean;
-      categoryCount: number;
     },
   ): void {
     const zeroY: number = layout.toY(Math.max(0, layout.axisMin));
 
     /*
-     * Bars are grouped, never stacked — matching the chat, which ignores
-     * data.stacked because its BarChart never forwards a stacked type.
+     * Bars are grouped, never stacked — matching the chat, whose BarChart never
+     * forwards a stacked type and so ignores data.stacked.
      */
-    const slot: number = layout.isTime
-      ? layout.plotWidth / Math.max(1, this.countDistinctX(series))
-      : layout.plotWidth / Math.max(1, layout.categoryCount);
-
-    const groupWidth: number = slot * 0.9;
+    const groupWidth: number = layout.slotWidth * 0.9;
     const barWidth: number = Math.max(
       0.6,
       groupWidth / Math.max(1, series.length),
@@ -421,14 +412,39 @@ export default class PdfChart {
     });
   }
 
-  private countDistinctX(series: Array<ExportChartSeries>): number {
-    const seen: Set<string> = new Set();
+  /*
+   * The ordered distinct x values, which become the category slots. Time-based
+   * values are ordered chronologically rather than by first appearance, so a
+   * series that arrives out of order still lines up with the others.
+   */
+  private buildCategories(
+    series: Array<ExportChartSeries>,
+    isTime: boolean,
+  ): Array<string> {
+    const sortKeyByX: Map<string, number> = new Map();
+
     for (const item of series) {
       for (const point of item.points) {
-        seen.add(point.x);
+        if (!sortKeyByX.has(point.x)) {
+          sortKeyByX.set(
+            point.x,
+            point.date ? point.date.getTime() : sortKeyByX.size,
+          );
+        }
       }
     }
-    return seen.size;
+
+    const entries: Array<[string, number]> = Array.from(sortKeyByX.entries());
+
+    if (isTime) {
+      entries.sort((a: [string, number], b: [string, number]) => {
+        return a[1] - b[1];
+      });
+    }
+
+    return entries.map((entry: [string, number]) => {
+      return entry[0];
+    });
   }
 
   /*
@@ -438,6 +454,7 @@ export default class PdfChart {
    * deterministic stand-in rather than a match.
    */
   private drawXLabels(layout: {
+    useCategoryAxis: boolean;
     isTime: boolean;
     categories: Array<string>;
     timeMin: number;
@@ -451,7 +468,21 @@ export default class PdfChart {
 
     const labels: Array<{ text: string; x: number }> = [];
 
-    if (layout.isTime) {
+    if (layout.useCategoryAxis) {
+      // One label per slot, centred under it, then thinned to fit below.
+      layout.categories.forEach((category: string, index: number) => {
+        const date: Date = new Date(category);
+        const text: string =
+          layout.isTime && !isNaN(date.getTime())
+            ? formatTimeLabel(date, layout.timeSpan)
+            : category;
+
+        labels.push({
+          text: text,
+          x: layout.plotX0 + layout.slotWidth * (index + 0.5),
+        });
+      });
+    } else {
       const sampleCount: number = 6;
       for (let i: number = 0; i < sampleCount; i++) {
         const ratio: number = sampleCount === 1 ? 0 : i / (sampleCount - 1);
@@ -461,13 +492,6 @@ export default class PdfChart {
           x: layout.plotX0 + layout.plotWidth * ratio,
         });
       }
-    } else {
-      layout.categories.forEach((category: string, index: number) => {
-        labels.push({
-          text: category,
-          x: layout.plotX0 + layout.slotWidth * (index + 0.5),
-        });
-      });
     }
 
     if (labels.length === 0) {

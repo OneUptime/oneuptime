@@ -5,20 +5,19 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-  OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Select from "../Types/Database/Select";
 import { JSONObject } from "../../Types/JSON";
-import Permission, {
-  UserPermission,
-  UserTenantAccessPermission,
-} from "../../Types/Permission";
+import Permission, { UserPermission } from "../../Types/Permission";
 import AIRunType from "../../Types/AI/AIRunType";
 import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
@@ -75,13 +74,23 @@ const RUN_SELECT: Select<AIRun> = {
    */
 };
 
-// The Logs page's event trail: every field, ordered, including tool arguments.
+/*
+ * The Logs page's event trail.
+ *
+ * toolArguments is deliberately NOT selected, even though this endpoint reads
+ * as root and could. A code-fix write_file call carries the file's full new
+ * content in its arguments, and that column's own read ACL stops at
+ * ProjectMember — narrower than this endpoint's Project-read gate, which also
+ * admits Viewers. Returning it would leak the same customer source code that
+ * contentPayload is stripped below to protect, to an even wider audience. The
+ * page never needed it: Logs.tsx renders tool arguments from
+ * contentPayload.responseToolCalls, the owner/admin-gated copy.
+ */
 const LOG_EVENT_SELECT: Select<AIRunEvent> = {
   _id: true,
   sequence: true,
   eventType: true,
   toolName: true,
-  toolArguments: true,
   resultSummary: true,
   citationId: true,
   createdAt: true,
@@ -259,10 +268,7 @@ export default class CodeFixRunAPI {
             );
           }
 
-          const canReadContent: boolean = this.callerCanReadRunContent(
-            req,
-            props,
-          );
+          const canReadContent: boolean = this.callerCanReadRunContent(props);
 
           const events: Array<AIRunEvent> = await AIRunEventService.findBy({
             query: { aiRunId: run.id! },
@@ -316,24 +322,24 @@ export default class CodeFixRunAPI {
    * Whether the caller may see a run's verbatim LLM/tool content. Project
    * owners and admins only: the content embeds customer source code, so the
    * bar is higher than the Project-read gate that admits them to the page.
+   *
+   * Read through getUserPermissions(Allow) rather than off
+   * userTenantAccessPermission directly, because that array holds GRANTS AND
+   * DENIALS together, discriminated only by isBlockPermission. Mapping it raw
+   * counts a team's explicit "block ProjectAdmin" entry as a grant of
+   * ProjectAdmin — inverting the control, so the admin action that restricts a
+   * team would be what hands it the source code.
    */
   private callerCanReadRunContent(
-    req: ExpressRequest,
     props: DatabaseCommonInteractionProps,
   ): boolean {
-    const tenantPermissions: UserTenantAccessPermission | undefined = (
-      req as OneUptimeRequest
-    ).userTenantAccessPermission?.[props.tenantId!.toString()];
-
-    if (!tenantPermissions) {
-      return false;
-    }
-
-    const permissions: Array<Permission> = tenantPermissions.permissions.map(
-      (userPermission: UserPermission) => {
+    const permissions: Array<Permission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ).map((userPermission: UserPermission) => {
         return userPermission.permission;
-      },
-    );
+      });
 
     return (
       permissions.includes(Permission.ProjectOwner) ||

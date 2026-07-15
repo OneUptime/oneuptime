@@ -153,15 +153,73 @@ export default class AIRunTranscript {
       );
     }
 
-    if (this.serializedLength(clamped) > MAX_PAYLOAD_CHARS) {
-      const messageCount: number = clamped.requestMessages?.length || 0;
+    /*
+     * Sacrifice whole fields, largest-payoff first, RE-CHECKING after each —
+     * a single pass that drops only requestMessages cannot bound a payload
+     * whose bulk is elsewhere. A model that emits 30 write_file calls puts
+     * ~10k of arguments each into responseToolCalls, blowing the ceiling while
+     * the pass "succeeds" by deleting a two-character user message.
+     *
+     * Order is by debugging value, cheapest to lose first: the replayed
+     * request messages, then the tool arguments (their paths survive in the
+     * message), then the tool output. Each step reports what it dropped rather
+     * than leaving the reader to wonder.
+     */
+    const sacrifices: Array<() => void> = [
+      () => {
+        const messageCount: number = clamped.requestMessages?.length || 0;
+        clamped.requestMessages = [
+          {
+            role: "system",
+            content: `[${messageCount} request message(s) omitted — this step's transcript exceeded the ${MAX_PAYLOAD_CHARS} character cap.]`,
+          },
+        ];
+      },
+      () => {
+        if (!clamped.responseToolCalls) {
+          return;
+        }
 
-      clamped.requestMessages = [
-        {
-          role: "system",
-          content: `[${messageCount} request message(s) omitted — the transcript for this step exceeded the ${MAX_PAYLOAD_CHARS} character cap.]`,
-        },
-      ];
+        clamped.responseToolCalls = clamped.responseToolCalls.map(
+          (toolCall: {
+            id?: string | undefined;
+            name: string;
+            arguments?: JSONObject | undefined;
+          }) => {
+            return {
+              ...(toolCall.id ? { id: toolCall.id } : {}),
+              name: toolCall.name,
+              arguments: {
+                _note: `Arguments omitted — this step's transcript exceeded the ${MAX_PAYLOAD_CHARS} character cap.`,
+              },
+            };
+          },
+        );
+      },
+      () => {
+        clamped.toolResult = `[Tool output omitted — this step's transcript exceeded the ${MAX_PAYLOAD_CHARS} character cap.]`;
+      },
+      () => {
+        clamped.responseContent = `[Model response omitted — this step's transcript exceeded the ${MAX_PAYLOAD_CHARS} character cap.]`;
+      },
+      /*
+       * Last resort: responseToolCalls has no bounded LENGTH, only bounded
+       * entries, so a response with enough calls stays over cap even with every
+       * argument already dropped. Collapse it to a count.
+       */
+      () => {
+        const toolCallCount: number = clamped.responseToolCalls?.length || 0;
+        delete clamped.responseToolCalls;
+        clamped.responseContent = `[${toolCallCount} tool call(s) and this step's content omitted — the transcript exceeded the ${MAX_PAYLOAD_CHARS} character cap.]`;
+      },
+    ];
+
+    for (const sacrifice of sacrifices) {
+      if (this.serializedLength(clamped) <= MAX_PAYLOAD_CHARS) {
+        break;
+      }
+
+      sacrifice();
       isTruncated = true;
     }
 

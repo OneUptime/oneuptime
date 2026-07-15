@@ -104,7 +104,7 @@ const MAX_CODE_PAYLOAD_BYTES: number = 12 * 1024;
  * installation (e.g. imported then uninstalled, or a GitLab row — GitLab has
  * no read path yet), and those must never look readable to the model.
  */
-async function findReadableRepositories(
+export async function findReadableRepositories(
   ctx: ToolContext,
   codeRepositoryId?: ObjectID | undefined,
 ): Promise<Array<CodeRepository>> {
@@ -147,7 +147,7 @@ async function findReadableRepositories(
  * the model can fix (by naming a repositoryId) rather than something to guess
  * at — guessing would silently answer a question about the wrong codebase.
  */
-async function resolveTargetRepository(
+export async function resolveTargetRepository(
   ctx: ToolContext,
   args: JSONObject,
 ): Promise<CodeRepository> {

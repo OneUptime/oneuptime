@@ -159,7 +159,6 @@
     "typeorm": "^0.3.26",
     "typeorm-extension": "^2.2.13",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.1.0",
     "universal-cookie": "^7.2.1",
     "use-async-effect": "^2.2.6",
     "web-push": "^3.6.7",

@@ -40,8 +40,12 @@ export class AddAITaskNumberAndRunTranscript1784124919694
      * runType = 'CodeFix' because only code-fix runs are tasks; chat and
      * investigation runs share this table and must stay null.
      *
-     * Soft-deleted rows are deliberately included: they still consumed a
-     * number, and skipping them would let a later run reuse one.
+     * Soft-deleted rows are numbered too. Not to prevent reuse (a skipped row
+     * would hold no number to reuse) but to keep the sequence a stable
+     * function of creation order: a run that is soft-deleted later must not
+     * renumber the runs after it, and an undeleted row must not collide with
+     * a number already handed out. The cost is gaps in what the list shows,
+     * which is the same thing incidents do.
      */
     await queryRunner.query(`
       WITH numbered AS (

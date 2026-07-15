@@ -4,6 +4,7 @@ import HostedCodeRepository from "../HostedCodeRepository/HostedCodeRepository";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
+import Headers from "../../../../Types/API/Headers";
 import PullRequest from "../../../../Types/CodeRepository/PullRequest";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import FixPullRequestCiStatus, {
@@ -61,6 +62,25 @@ export interface GitHubFileContent {
   filePath: string;
   sizeInBytes: number;
   totalLines: number;
+  htmlUrl: string;
+}
+
+// One branch's head, plus whether GitHub considers it protected.
+export interface GitHubBranchInfo {
+  name: string;
+  headSha: string;
+  isProtected: boolean;
+}
+
+// A file to write in a commit. content is the FULL new file body.
+export interface GitHubFileChange {
+  filePath: string;
+  content: string;
+}
+
+export interface GitHubCommitResult {
+  commitSha: string;
+  branchName: string;
   htmlUrl: string;
 }
 
@@ -945,6 +965,368 @@ export default class GitHubUtil extends HostedCodeRepository {
     const lines: number = content.split("\n").length;
 
     return content.endsWith("\n") ? lines - 1 : lines;
+  }
+
+  /*
+   * The repository's real default branch, read from GitHub rather than from
+   * our stored mainBranchName. Callers refusing to write to the default branch
+   * must ask GitHub: our column is a copy made at import time and drifts when
+   * the repository is renamed or its default is changed.
+   */
+  @CaptureSpan()
+  public static async getDefaultBranchName(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+  }): Promise<string> {
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: { metadata: "read" },
+      });
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: URL.fromString(
+        `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}`,
+      ),
+      headers: GitHubUtil.buildApiHeaders(tokenData.token),
+    });
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    return (result.data["default_branch"] as string) || "";
+  }
+
+  /*
+   * One branch's head sha and protection flag, or null when the branch does
+   * not exist. Protection is part of the same payload, so a caller enforcing
+   * "never write to a protected branch" needs no second round-trip.
+   */
+  @CaptureSpan()
+  public static async getBranch(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    branchName: string;
+  }): Promise<GitHubBranchInfo | null> {
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: { contents: "read", metadata: "read" },
+      });
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: URL.fromString(
+        `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/branches/${encodeURIComponent(data.branchName)}`,
+      ),
+      headers: GitHubUtil.buildApiHeaders(tokenData.token),
+    });
+
+    if (result instanceof HTTPErrorResponse) {
+      if (result.statusCode === 404) {
+        return null;
+      }
+      throw result;
+    }
+
+    const commit: JSONObject = (result.data["commit"] as JSONObject) || {};
+
+    return {
+      name: (result.data["name"] as string) || data.branchName,
+      headSha: (commit["sha"] as string) || "",
+      isProtected: result.data["protected"] === true,
+    };
+  }
+
+  /*
+   * Commit a set of whole-file changes onto an EXISTING branch, with no clone,
+   * via the Git Data API (blobs → tree → commit → move ref).
+   *
+   * The tree is built on the branch head's tree, so files not named here are
+   * untouched, and all changes land as ONE commit — a partial write cannot be
+   * left behind if a later step fails.
+   *
+   * This deliberately does NOT decide what may be written to: enforcing the
+   * default/protected-branch refusal is the caller's job, because only the
+   * caller knows the trust context of the change.
+   */
+  @CaptureSpan()
+  public static async commitFilesToBranch(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    branchName: string;
+    changes: Array<GitHubFileChange>;
+    commitMessage: string;
+  }): Promise<GitHubCommitResult> {
+    if (data.changes.length === 0) {
+      throw new BadDataException("No file changes were provided to commit.");
+    }
+
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: { contents: "write", metadata: "read" },
+      });
+
+    const headers: Headers = GitHubUtil.buildApiHeaders(tokenData.token);
+    const repoApiUrl: string = `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}`;
+
+    // 1. Where the branch currently points.
+    const refResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get({
+        url: URL.fromString(
+          `${repoApiUrl}/git/ref/heads/${encodeURIComponent(data.branchName)}`,
+        ),
+        headers: headers,
+      });
+
+    if (refResult instanceof HTTPErrorResponse) {
+      throw refResult;
+    }
+
+    const baseCommitSha: string = ((refResult.data["object"] as JSONObject) ||
+      {})["sha"] as string;
+
+    // 2. That commit's tree, so unnamed files carry over untouched.
+    const baseCommitResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get({
+        url: URL.fromString(`${repoApiUrl}/git/commits/${baseCommitSha}`),
+        headers: headers,
+      });
+
+    if (baseCommitResult instanceof HTTPErrorResponse) {
+      throw baseCommitResult;
+    }
+
+    const baseTreeSha: string = ((baseCommitResult.data[
+      "tree"
+    ] as JSONObject) || {})["sha"] as string;
+
+    // 3. A blob per changed file.
+    const treeEntries: JSONArray = [];
+
+    for (const change of data.changes) {
+      const blobResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.post({
+          url: URL.fromString(`${repoApiUrl}/git/blobs`),
+          data: {
+            content: Buffer.from(change.content, "utf8").toString("base64"),
+            encoding: "base64",
+          },
+          headers: headers,
+        });
+
+      if (blobResult instanceof HTTPErrorResponse) {
+        throw blobResult;
+      }
+
+      treeEntries.push({
+        path: change.filePath,
+        mode: "100644",
+        type: "blob",
+        sha: blobResult.data["sha"] as string,
+      });
+    }
+
+    // 4. A tree layering those blobs over the base tree.
+    const treeResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString(`${repoApiUrl}/git/trees`),
+        data: {
+          base_tree: baseTreeSha,
+          tree: treeEntries,
+        },
+        headers: headers,
+      });
+
+    if (treeResult instanceof HTTPErrorResponse) {
+      throw treeResult;
+    }
+
+    // 5. The commit itself.
+    const commitResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post({
+        url: URL.fromString(`${repoApiUrl}/git/commits`),
+        data: {
+          message: data.commitMessage,
+          tree: treeResult.data["sha"] as string,
+          parents: [baseCommitSha],
+        },
+        headers: headers,
+      });
+
+    if (commitResult instanceof HTTPErrorResponse) {
+      throw commitResult;
+    }
+
+    const newCommitSha: string = commitResult.data["sha"] as string;
+
+    /*
+     * 6. Move the branch. Not forced: a fast-forward-only update means a
+     * concurrent push to this branch makes us fail loudly rather than silently
+     * discarding someone else's commit.
+     */
+    const updateResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.patch({
+        url: URL.fromString(
+          `${repoApiUrl}/git/refs/heads/${encodeURIComponent(data.branchName)}`,
+        ),
+        data: {
+          sha: newCommitSha,
+          force: false,
+        },
+        headers: headers,
+      });
+
+    if (updateResult instanceof HTTPErrorResponse) {
+      throw updateResult;
+    }
+
+    return {
+      commitSha: newCommitSha,
+      branchName: data.branchName,
+      htmlUrl: `https://github.com/${data.organizationName}/${data.repositoryName}/commit/${newCommitSha}`,
+    };
+  }
+
+  /*
+   * Create a branch pointing at another branch's head. Returns false when the
+   * branch already exists (GitHub answers 422), so callers can pick a fresh
+   * name rather than treating it as a hard failure.
+   */
+  @CaptureSpan()
+  public static async createBranch(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    newBranchName: string;
+    fromBranchName: string;
+  }): Promise<boolean> {
+    const source: GitHubBranchInfo | null = await GitHubUtil.getBranch({
+      installationId: data.installationId,
+      organizationName: data.organizationName,
+      repositoryName: data.repositoryName,
+      branchName: data.fromBranchName,
+    });
+
+    if (!source) {
+      throw new BadDataException(
+        `Cannot branch from "${data.fromBranchName}" — no such branch in ${data.organizationName}/${data.repositoryName}.`,
+      );
+    }
+
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: { contents: "write", metadata: "read" },
+      });
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: URL.fromString(
+          `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/git/refs`,
+        ),
+        data: {
+          ref: `refs/heads/${data.newBranchName}`,
+          sha: source.headSha,
+        },
+        headers: GitHubUtil.buildApiHeaders(tokenData.token),
+      },
+    );
+
+    if (result instanceof HTTPErrorResponse) {
+      if (result.statusCode === 422) {
+        return false;
+      }
+      throw result;
+    }
+
+    return true;
+  }
+
+  /*
+   * Open a pull request using an installation token — the App-authenticated
+   * sibling of the instance-method createPullRequest, which authenticates from
+   * a clone's own token.
+   *
+   * Opened as a DRAFT by default; GitHub answers 422 for repositories whose
+   * plan lacks drafts, and we retry as non-draft rather than losing the work.
+   */
+  @CaptureSpan()
+  public static async createPullRequestWithToken(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    baseBranchName: string;
+    headBranchName: string;
+    title: string;
+    body: string;
+    isDraft?: boolean | undefined;
+  }): Promise<PullRequest> {
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: { pull_requests: "write", contents: "write" },
+      });
+
+    const headers: Headers = GitHubUtil.buildApiHeaders(tokenData.token);
+    const url: URL = URL.fromString(
+      `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls`,
+    );
+
+    const wantsDraft: boolean = data.isDraft !== false;
+
+    let result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post({
+      url: url,
+      data: {
+        base: data.baseBranchName,
+        head: data.headBranchName,
+        title: data.title,
+        body: data.body,
+        draft: wantsDraft,
+      },
+      headers: headers,
+    });
+
+    if (
+      result instanceof HTTPErrorResponse &&
+      wantsDraft &&
+      result.statusCode === 422
+    ) {
+      logger.debug(
+        `GitHub rejected the draft pull request for ${data.organizationName}/${data.repositoryName}; retrying as non-draft.`,
+      );
+
+      result = await API.post({
+        url: url,
+        data: {
+          base: data.baseBranchName,
+          head: data.headBranchName,
+          title: data.title,
+          body: data.body,
+        },
+        headers: headers,
+      });
+    }
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    return new GitHubUtil({
+      authToken: tokenData.token,
+      username: "oneuptime",
+    }).getPullRequestFromJSONObject({
+      pullRequest: result.data,
+      organizationName: data.organizationName,
+      repositoryName: data.repositoryName,
+    });
+  }
+
+  private static buildApiHeaders(token: string): Headers {
+    return {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
   }
 
   /**
