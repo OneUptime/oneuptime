@@ -116,27 +116,124 @@ export default class LLMService {
       "verbosity",
     ]);
 
+  /*
+   * Parameters the OpenAI o-series reasoning models (o1, o3, o4-mini, …)
+   * do not accept. Sending them causes a 400 "unknown parameter" error.
+   * We strip them from the default body but still allow user-supplied
+   * values via additionalParams to pass through, since newer API versions
+   * may relax these restrictions.
+   */
+  private static readonly REASONING_MODEL_UNSUPPORTED_PARAMS: ReadonlySet<string> =
+    new Set([
+      "temperature",
+      "top_p",
+      "presence_penalty",
+      "frequency_penalty",
+      "logit_bias",
+      "logprobs",
+      "top_logprobs",
+    ]);
+
+  private static readonly REASONING_MODEL_NAME_PATTERN: RegExp = /^o\d/i;
+
+  private static isReasoningModel(modelName: string): boolean {
+    return this.REASONING_MODEL_NAME_PATTERN.test(modelName);
+  }
+
   @CaptureSpan()
   public static async getCompletion(
     request: LLMCompletionRequest,
   ): Promise<LLMCompletionResponse> {
     const config: LLMProviderConfig = request.llmProviderConfig;
 
+    /*
+     * Normalize additionalParams once, up front, so every provider path
+     * receives a plain object (or undefined). The value can arrive as a JSON
+     * string because the "Additional Parameters" UI field is a raw code editor
+     * whose contents are stored verbatim in the JSON column. Without this,
+     * Object.assign/Object.entries would spread a string's characters as keys
+     * ("0", "1", …), which the provider rejects with "Unknown parameter: '0'".
+     */
+    const normalizedRequest: LLMCompletionRequest = {
+      ...request,
+      additionalParams: this.coerceAdditionalParams(request.additionalParams),
+    };
+
     switch (config.llmType) {
       case LlmType.OpenAI:
       case LlmType.Groq:
       case LlmType.Mistral:
       case LlmType.OpenAICompatible:
-        return await this.getOpenAICompatibleCompletion(config, request);
+        return await this.getOpenAICompatibleCompletion(
+          config,
+          normalizedRequest,
+        );
       case LlmType.AzureOpenAI:
-        return await this.getAzureOpenAICompletion(config, request);
+        return await this.getAzureOpenAICompletion(config, normalizedRequest);
       case LlmType.Anthropic:
-        return await this.getAnthropicCompletion(config, request);
+        return await this.getAnthropicCompletion(config, normalizedRequest);
       case LlmType.Ollama:
-        return await this.getOllamaCompletion(config, request);
+        return await this.getOllamaCompletion(config, normalizedRequest);
       default:
         throw new BadDataException(`Unsupported LLM type: ${config.llmType}`);
     }
+  }
+
+  /*
+   * Coerce a stored additionalParams value into a plain JSON object usable as
+   * request parameters, or undefined when it cannot be used safely.
+   *
+   *   - object  -> used as-is
+   *   - string  -> JSON.parse'd; kept only if it parses to a plain object
+   *   - array   -> rejected (spreading it would inject "0","1",… keys)
+   *   - other   -> rejected
+   *
+   * Rejections are logged rather than thrown: bad tuning params should not
+   * abort an otherwise-valid completion, and the caller's request stays valid.
+   */
+  private static coerceAdditionalParams(raw: unknown): JSONObject | undefined {
+    if (raw === undefined || raw === null) {
+      return undefined;
+    }
+
+    if (typeof raw === "string") {
+      const trimmed: string = raw.trim();
+      if (trimmed === "") {
+        return undefined;
+      }
+
+      try {
+        const parsed: unknown = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed as JSONObject;
+        }
+        logger.warn(
+          "LLM additionalParams was a JSON string but did not parse to an object; ignoring it.",
+        );
+        return undefined;
+      } catch {
+        logger.warn(
+          "LLM additionalParams was a string that is not valid JSON; ignoring it.",
+        );
+        return undefined;
+      }
+    }
+
+    if (Array.isArray(raw)) {
+      logger.warn(
+        "LLM additionalParams was an array, not an object; ignoring it.",
+      );
+      return undefined;
+    }
+
+    if (typeof raw === "object") {
+      return raw as JSONObject;
+    }
+
+    logger.warn(
+      `LLM additionalParams had unexpected type "${typeof raw}"; ignoring it.`,
+    );
+    return undefined;
   }
 
   /*
@@ -208,6 +305,44 @@ export default class LLMService {
     return protectedParams;
   }
 
+  /*
+   * Parameters whose value is semantically a string (or array of strings) even
+   * when it looks numeric — e.g. a stop sequence of "999" or a user id "12345".
+   * These are excluded from the numeric-string coercion below so we never turn
+   * a legitimate string value into a number.
+   */
+  private static readonly STRING_VALUED_ADDITIONAL_PARAMS: ReadonlySet<string> =
+    new Set(["stop", "user", "model"]);
+
+  /*
+   * Numeric string values (e.g. "2048" for max_completion_tokens) entered via
+   * the UI are stored as strings in the JSON column. Coerce them to numbers here
+   * so the provider API receives the correct type and does not reject the
+   * request. Boolean-looking strings ("true"/"false") are coerced too, since
+   * the same code editor stores those as strings.
+   */
+  private static normalizeAdditionalParams(params: JSONObject): JSONObject {
+    const normalized: JSONObject = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (
+        typeof value === "string" &&
+        !this.STRING_VALUED_ADDITIONAL_PARAMS.has(key)
+      ) {
+        const trimmed: string = value.trim();
+        if (trimmed !== "" && !isNaN(Number(trimmed))) {
+          normalized[key] = Number(trimmed);
+          continue;
+        }
+        if (trimmed === "true" || trimmed === "false") {
+          normalized[key] = trimmed === "true";
+          continue;
+        }
+      }
+      normalized[key] = value;
+    }
+    return normalized;
+  }
+
   private static parseOpenAIToolCalls(
     message: JSONObject,
   ): Array<LLMToolCall> | undefined {
@@ -269,14 +404,35 @@ export default class LLMService {
     modelName: string,
     request: LLMCompletionRequest,
   ): JSONObject {
+    const isReasoning: boolean = this.isReasoningModel(modelName);
+
+    /*
+     * Reasoning models (o1, o3, o4-mini, …) reject `temperature`, `top_p`,
+     * and several other sampling parameters. We omit these defaults from the
+     * initial body so the API uses its own defaults. Users may still supply
+     * them via additionalParams if a future API version lifts the restriction.
+     *
+     * `stream: false` and `n: 1` are always set explicitly: we only handle
+     * single, non-streaming completions, so there is no benefit in leaving
+     * these implicit.
+     */
     const data: JSONObject = {
       model: modelName,
       messages: this.toOpenAIMessages(request.messages),
-      temperature: request.temperature ?? 0.7,
+      stream: false,
+      n: 1,
+      ...(isReasoning ? {} : { temperature: request.temperature ?? 0.7 }),
     };
 
     if (request.maxTokens) {
-      data["max_tokens"] = request.maxTokens;
+      /*
+       * Reasoning models require max_completion_tokens; the legacy max_tokens
+       * is rejected. Standard models accept either, but we default to
+       * max_tokens to keep backwards compatibility with OpenAI-compatible
+       * backends (Ollama, vLLM, …).
+       */
+      data[isReasoning ? "max_completion_tokens" : "max_tokens"] =
+        request.maxTokens;
     }
 
     if (request.tools && request.tools.length > 0) {
@@ -287,13 +443,19 @@ export default class LLMService {
      * Provider-configured tuning overrides defaults unless the caller protects
      * its request. Protected callers retain only generation-safe tuning fields
      * so provider-native tools and future capability fields fail closed.
+     *
+     * additionalParams is guaranteed to be a plain object here (getCompletion
+     * runs coerceAdditionalParams up front), so Object.assign is safe.
      */
     if (request.additionalParams) {
+      const normalized: JSONObject = this.normalizeAdditionalParams(
+        request.additionalParams,
+      );
       Object.assign(
         data,
         request.protectRequestParameters
-          ? this.getProtectedAdditionalParameters(request.additionalParams)
-          : request.additionalParams,
+          ? this.getProtectedAdditionalParameters(normalized)
+          : normalized,
       );
     }
 
@@ -303,12 +465,16 @@ export default class LLMService {
 
       data["model"] = modelName;
       data["messages"] = this.toOpenAIMessages(request.messages);
-      data["temperature"] = request.temperature ?? 0.7;
       data["stream"] = false;
       data["n"] = 1;
 
+      if (!isReasoning) {
+        data["temperature"] = request.temperature ?? 0.7;
+      }
+      // Unsupported reasoning-model params are stripped in the final pass below.
+
       if (request.maxTokens) {
-        if (usesMaxCompletionTokens) {
+        if (usesMaxCompletionTokens || isReasoning) {
           data["max_completion_tokens"] = request.maxTokens;
           delete data["max_tokens"];
         } else {
@@ -329,6 +495,18 @@ export default class LLMService {
 
       // Legacy compatible APIs may accept this fan-out control separately.
       delete data["best_of"];
+    }
+
+    /*
+     * Final reasoning-model cleanup. Runs after all additionalParams are
+     * merged so it also covers values the user may have placed there. Sending
+     * any of these to an o-series endpoint causes a 400 "unknown parameter"
+     * error regardless of the API version.
+     */
+    if (isReasoning) {
+      for (const param of LLMService.REASONING_MODEL_UNSUPPORTED_PARAMS) {
+        delete data[param];
+      }
     }
 
     /*
@@ -589,26 +767,58 @@ export default class LLMService {
   }
 
   /*
-   * Default Azure OpenAI API version. Users can override by including
-   * ?api-version=... in their configured base URL.
+   * Default Azure OpenAI API version. This is the latest preview data-plane
+   * inference version; it is a superset of the latest GA (2024-10-21) and is
+   * required for reasoning models (o1/o3/o3-mini/o4-mini) and the newer tuning
+   * params in the allowlist (reasoning_effort, verbosity), so it ships as the
+   * default to make current models work out of the box.
+   *
+   * Users can override it three ways, in descending priority — e.g. pin back
+   * to the GA "2024-10-21" for maximum stability:
+   *   1. Set "api_version" (or "api-version") in the provider's Additional
+   *      Parameters — it is extracted and placed in the URL rather than the
+   *      request body.
+   *   2. Append ?api-version=<ver> directly to the Base URL.
+   *   3. Leave both empty to use this default.
    */
   private static readonly AZURE_OPENAI_DEFAULT_API_VERSION: string =
-    "2024-10-21";
+    "2025-04-01-preview";
 
-  private static buildAzureOpenAIChatCompletionsUrl(baseUrl: string): string {
+  private static buildAzureOpenAIChatCompletionsUrl(
+    baseUrl: string,
+    apiVersionOverride?: string,
+  ): string {
     const trimmed: string = baseUrl.replace(/\/+$/, "");
     const queryIndex: number = trimmed.indexOf("?");
-    const pathPart: string =
+    let pathPart: string =
       queryIndex >= 0 ? trimmed.substring(0, queryIndex) : trimmed;
     const queryPart: string =
       queryIndex >= 0 ? trimmed.substring(queryIndex + 1) : "";
 
+    /*
+     * Only append "/chat/completions" if the base URL doesn't already point at
+     * it — users sometimes paste the full endpoint, and doubling the suffix
+     * ("/chat/completions/chat/completions") 404s.
+     */
+    const fullEndpointRegex: RegExp = /\/chat\/completions$/i;
+    if (!fullEndpointRegex.test(pathPart)) {
+      pathPart = `${pathPart}/chat/completions`;
+    }
+
     const params: URLSearchParams = new URLSearchParams(queryPart);
-    if (!params.has("api-version")) {
+
+    /*
+     * Priority: explicit override > base-URL value > built-in default.
+     * An override (from additionalParams) always wins so users can target a
+     * specific API version without touching the base URL.
+     */
+    if (apiVersionOverride) {
+      params.set("api-version", apiVersionOverride);
+    } else if (!params.has("api-version")) {
       params.set("api-version", LLMService.AZURE_OPENAI_DEFAULT_API_VERSION);
     }
 
-    return `${pathPart}/chat/completions?${params.toString()}`;
+    return `${pathPart}?${params.toString()}`;
   }
 
   @CaptureSpan()
@@ -627,14 +837,39 @@ export default class LLMService {
     }
 
     const modelName: string = config.modelName || "gpt-4o";
+
+    /*
+     * "api_version" / "api-version" in additionalParams targets the Azure
+     * OpenAI query parameter, not the request body. Extract it here and
+     * remove it from the body-bound params so the provider doesn't reject it
+     * as an unknown field.
+     */
+    let apiVersionOverride: string | undefined;
+    let effectiveRequest: LLMCompletionRequest = request;
+
+    if (request.additionalParams) {
+      const versionFromParams: string | undefined =
+        (request.additionalParams["api_version"] as string | undefined) ??
+        (request.additionalParams["api-version"] as string | undefined);
+
+      if (versionFromParams) {
+        apiVersionOverride = versionFromParams;
+        const filteredParams: JSONObject = { ...request.additionalParams };
+        delete filteredParams["api_version"];
+        delete filteredParams["api-version"];
+        effectiveRequest = { ...request, additionalParams: filteredParams };
+      }
+    }
+
     const requestUrl: string = LLMService.buildAzureOpenAIChatCompletionsUrl(
       config.baseUrl,
+      apiVersionOverride,
     );
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
         url: URL.fromString(requestUrl),
-        data: this.buildOpenAIRequestBody(modelName, request),
+        data: this.buildOpenAIRequestBody(modelName, effectiveRequest),
         headers: {
           "api-key": config.apiKey,
           "Content-Type": "application/json",
