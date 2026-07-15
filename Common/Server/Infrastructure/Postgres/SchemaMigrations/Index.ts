@@ -452,6 +452,7 @@ import { MigrationName1784033837629 } from "./1784033837629-MigrationName";
 import { AddCreatedByUserToUser1784048917994 } from "./1784048917994-AddCreatedByUserToUser";
 import { BackfillCodeFixTaskType1784105912819 } from "./1784105912819-BackfillCodeFixTaskType";
 import { AddAITaskNumberAndRunTranscript1784124919694 } from "./1784124919694-AddAITaskNumberAndRunTranscript";
+import { AllowNullAiAgentOnPullRequest1784135099754 } from "./1784135099754-AllowNullAiAgentOnPullRequest";
 
 export default [
   InitialMigration,
@@ -908,4 +909,5 @@ export default [
   AddCreatedByUserToUser1784048917994,
   BackfillCodeFixTaskType1784105912819,
   AddAITaskNumberAndRunTranscript1784124919694,
+  AllowNullAiAgentOnPullRequest1784135099754,
 ];

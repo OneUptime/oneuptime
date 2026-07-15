@@ -19,6 +19,7 @@ import CodeRepositoryService from "../../../../Server/Services/CodeRepositorySer
 import AIAgentTaskPullRequestService from "../../../../Server/Services/AIAgentTaskPullRequestService";
 import GitHubUtil from "../../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryModel from "../../../../Models/DatabaseModels/CodeRepository";
+import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import ObjectID from "../../../../Types/ObjectID";
@@ -241,6 +242,46 @@ describe("open_code_pull_request", () => {
 
     expect(created.data.codeRepositoryId.toString()).toBe(REPO_ID.toString());
     expect(created.data.headRefName).toContain("oneuptime-ai/");
+  });
+
+  /*
+   * The record MUST satisfy the model's real required-column validation.
+   *
+   * This test exists because mocking AIAgentTaskPullRequestService.create — as
+   * every other test here does, to stay off a database — bypasses
+   * checkRequiredFields entirely. That hid a bug where aiAgentId was NOT NULL
+   * and never set, so create() threw on every call *after* the pull request was
+   * already open on GitHub: the user got an error, the row was never written,
+   * the open-PR cap counted 0 chat PRs forever, and the model retried and
+   * opened duplicate PRs. Nineteen green tests said otherwise.
+   *
+   * So: capture what the tool really builds, and run the REAL validator on it.
+   */
+  test("the recorded PR row passes the model's real required-field validation", async () => {
+    mockHappyPath();
+
+    await OpenCodePullRequestTool.execute(
+      { title: "Fix charge", description: "why", changes: CHANGES },
+      ctx,
+    );
+
+    const record: AIAgentTaskPullRequest = (
+      AIAgentTaskPullRequestService.create as unknown as jest.Mock
+    ).mock.calls[0][0].data;
+
+    // Not a re-implementation of the rule — the actual production validator.
+    const validate: (model: AIAgentTaskPullRequest) => AIAgentTaskPullRequest =
+      (
+        AIAgentTaskPullRequestService as unknown as {
+          checkRequiredFields: (
+            model: AIAgentTaskPullRequest,
+          ) => AIAgentTaskPullRequest;
+        }
+      ).checkRequiredFields.bind(AIAgentTaskPullRequestService);
+
+    expect(() => {
+      return validate(record);
+    }).not.toThrow();
   });
 
   test("refuses when the repository is at its open-PR cap", async () => {

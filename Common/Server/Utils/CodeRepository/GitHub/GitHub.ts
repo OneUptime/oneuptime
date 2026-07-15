@@ -1102,7 +1102,25 @@ export default class GitHubUtil extends HostedCodeRepository {
       "tree"
     ] as JSONObject) || {})["sha"] as string;
 
-    // 3. A blob per changed file.
+    /*
+     * 3. The existing mode of every path we are about to rewrite.
+     *
+     * A tree entry is (mode, type, path, sha) and an entry we supply REPLACES
+     * the base_tree's entry wholesale — there is no "keep the existing mode"
+     * option. Hardcoding 100644 would therefore silently demote executables
+     * (100755 -> not executable) and turn symlinks (120000) into regular files
+     * holding the link text. Both render as a one-line mode header in a diff
+     * that reviewers skim past, so it must be right here rather than caught in
+     * review.
+     */
+    const existingModes: Map<string, string> =
+      await GitHubUtil.getTreeEntryModes({
+        repoApiUrl,
+        headers,
+        treeSha: baseTreeSha,
+      });
+
+    // 4. A blob per changed file, carrying the path's existing mode forward.
     const treeEntries: JSONArray = [];
 
     for (const change of data.changes) {
@@ -1120,15 +1138,31 @@ export default class GitHubUtil extends HostedCodeRepository {
         throw blobResult;
       }
 
+      const existingMode: string | undefined = existingModes.get(
+        change.filePath,
+      );
+
+      /*
+       * A symlink or submodule is not something a whole-file text write can
+       * safely replace: writing a blob at a 120000 path would silently turn the
+       * link into a file. Refuse rather than corrupt the tree.
+       */
+      if (existingMode === "120000" || existingMode === "160000") {
+        throw new BadDataException(
+          `"${change.filePath}" is a ${existingMode === "120000" ? "symlink" : "submodule"}, which cannot be rewritten as a text file.`,
+        );
+      }
+
       treeEntries.push({
         path: change.filePath,
-        mode: "100644",
+        // New files default to a regular non-executable file.
+        mode: existingMode || "100644",
         type: "blob",
         sha: blobResult.data["sha"] as string,
       });
     }
 
-    // 4. A tree layering those blobs over the base tree.
+    // 5. A tree layering those blobs over the base tree.
     const treeResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
         url: URL.fromString(`${repoApiUrl}/git/trees`),
@@ -1143,7 +1177,7 @@ export default class GitHubUtil extends HostedCodeRepository {
       throw treeResult;
     }
 
-    // 5. The commit itself.
+    // 6. The commit itself.
     const commitResult: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
         url: URL.fromString(`${repoApiUrl}/git/commits`),
@@ -1162,7 +1196,7 @@ export default class GitHubUtil extends HostedCodeRepository {
     const newCommitSha: string = commitResult.data["sha"] as string;
 
     /*
-     * 6. Move the branch. Not forced: a fast-forward-only update means a
+     * 7. Move the branch. Not forced: a fast-forward-only update means a
      * concurrent push to this branch makes us fail loudly rather than silently
      * discarding someone else's commit.
      */
@@ -1319,6 +1353,48 @@ export default class GitHubUtil extends HostedCodeRepository {
       organizationName: data.organizationName,
       repositoryName: data.repositoryName,
     });
+  }
+
+  /*
+   * Every blob path in a tree mapped to its git file mode, so a rewrite can
+   * preserve the mode instead of flattening everything to 100644. Recursive
+   * because the caller writes nested paths.
+   *
+   * A truncated response (a tree too large for one page) is not an error here:
+   * a path we cannot see its mode for simply falls back to the 100644 default,
+   * which is the same behaviour as treating it as a new file.
+   */
+  private static async getTreeEntryModes(data: {
+    repoApiUrl: string;
+    headers: Headers;
+    treeSha: string;
+  }): Promise<Map<string, string>> {
+    const modes: Map<string, string> = new Map<string, string>();
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.get({
+      url: URL.fromString(
+        `${data.repoApiUrl}/git/trees/${data.treeSha}?recursive=1`,
+      ),
+      headers: data.headers,
+    });
+
+    if (result instanceof HTTPErrorResponse) {
+      throw result;
+    }
+
+    const tree: JSONArray = (result.data["tree"] as JSONArray) || [];
+
+    for (const entry of tree) {
+      const entryData: JSONObject = entry as JSONObject;
+      const path: string = entryData["path"] as string;
+      const mode: string = entryData["mode"] as string;
+
+      if (path && mode) {
+        modes.set(path, mode);
+      }
+    }
+
+    return modes;
   }
 
   private static buildApiHeaders(token: string): Headers {

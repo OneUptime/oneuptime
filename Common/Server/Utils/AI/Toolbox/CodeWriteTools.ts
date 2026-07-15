@@ -459,9 +459,19 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
 
     /*
      * Record the PR so the open-PR cap can see it and the
-     * AIAgent:SyncPullRequestStates worker keeps its state current. aiRunId /
-     * aiAgentId stay unset: this PR came from a chat turn, not an agent run,
-     * and the worker guards on aiRunId before emitting run events.
+     * AIAgent:SyncPullRequestStates worker keeps its state current. An
+     * unrecorded PR is an UNCAPPED PR, so this is load-bearing, not bookkeeping.
+     *
+     * aiRunId / aiAgentId stay unset — this PR came from a chat turn, not an
+     * agent run. Both columns are nullable for exactly this case (aiAgentId was
+     * made nullable by AllowNullAiAgentOnPullRequest1784135099754; it was
+     * NOT NULL before, which made this create() throw *after* the PR was
+     * already open on GitHub). The sync worker guards on aiRunId before
+     * emitting run events, so a null agent is safe there.
+     *
+     * isRoot because AIAgentTaskPullRequest has no create ACL for a normal
+     * user; the authorization already happened at the tool's permission gate
+     * and at resolveTargetRepository, both under ctx.props.
      */
     const record: AIAgentTaskPullRequest = new AIAgentTaskPullRequest();
     record.projectId = ctx.projectId;

@@ -189,13 +189,21 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Nullable since 2026-07-15: a pull request can now originate from an AI
+   * chat turn, which has no AIAgent behind it (the agent record belongs to the
+   * autonomous fix worker). A null aiAgent therefore means "authored from
+   * chat", and every consumer must tolerate it — SyncPullRequestStates already
+   * guards on aiRunId for the same reason.
+   */
   @TableColumn({
     type: TableColumnType.Entity,
-    required: true,
+    required: false,
     modelType: AIAgent,
     manyToOneRelationColumn: "aiAgentId",
     title: "AI Agent",
-    description: "AI Agent that created this pull request.",
+    description:
+      "AI Agent that created this pull request. Null when it was proposed from an AI chat conversation.",
   })
   @ManyToOne(
     () => {
@@ -204,7 +212,7 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     {
       cascade: false,
       eager: false,
-      nullable: false,
+      nullable: true,
       onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
@@ -231,14 +239,15 @@ export default class AIAgentTaskPullRequest extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "AI Agent ID",
-    description: "ID of the AI Agent that created this pull request.",
+    description:
+      "ID of the AI Agent that created this pull request. Null when it was proposed from an AI chat conversation.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public aiAgentId?: ObjectID = undefined;
