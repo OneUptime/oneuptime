@@ -572,8 +572,14 @@ export default class API {
       }
     }
 
-    throw new APIException(`Request failed to ${url}. ${errorMessage}`, error);
+    const errorData: JSONObject = {
+      message: `Request failed to ${url}. ${errorMessage}`,
+      code: error.code,
+    };
+
+    return new HTTPErrorResponse(0, errorData, {});
   }
+
 
   public static getFriendlyErrorMessage(error: AxiosError | Error): string {
     let errorString: string = error.message || error.toString();
