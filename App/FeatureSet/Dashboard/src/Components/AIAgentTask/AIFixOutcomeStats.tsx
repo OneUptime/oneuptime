@@ -2,6 +2,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -12,7 +13,8 @@ import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import Card from "Common/UI/Components/Card/Card";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 
 interface OutcomeStats {
   total: number;
@@ -29,6 +31,27 @@ interface OutcomeStats {
   verifiedGreenRatePercent: number | null;
 }
 
+interface StatTile {
+  key: string;
+  title: string;
+  value: string;
+  hint: string;
+  valueClassName: string;
+}
+
+const AIFixOutcomeStatValue: FunctionComponent<{
+  tile: StatTile;
+}> = (props: { tile: StatTile }): ReactElement => {
+  return (
+    <div className="mt-1">
+      <div className={`text-3xl font-semibold ${props.tile.valueClassName}`}>
+        {props.tile.value}
+      </div>
+      <div className="mt-2 text-sm text-gray-500">{props.tile.hint}</div>
+    </div>
+  );
+};
+
 /*
  * Outcome counts for the project's AI-authored fix pull requests — how often
  * humans merge what the agent writes. Renders nothing until the project has
@@ -36,10 +59,15 @@ interface OutcomeStats {
  */
 const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
   const [stats, setStats] = useState<OutcomeStats | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
 
-  useEffect(() => {
-    const fetchStats: () => Promise<void> = async (): Promise<void> => {
+  const fetchStats: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
       try {
+        setIsLoading(true);
+        setError("");
+
         const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
           await API.get({
             url: URL.fromString(APP_API_URL.toString()).addRoute(
@@ -65,79 +93,131 @@ const AIFixOutcomeStats: FunctionComponent = (): ReactElement => {
             "verifiedGreenRatePercent"
           ] as number | null,
         });
-      } catch {
-        // Supplementary data — stay silent on failure.
-        setStats(undefined);
+      } catch (err) {
+        setError(API.getFriendlyMessage(err));
       }
-    };
 
-    void fetchStats();
-  }, []);
+      setIsLoading(false);
+    }, []);
+
+  useEffect(() => {
+    fetchStats().catch(() => {
+      // handled inside fetchStats
+    });
+  }, [fetchStats]);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {[1, 2, 3, 4, 5].map((key: number): ReactElement => {
+          return (
+            <InfoCard
+              key={key}
+              title=""
+              value={
+                <div className="mt-1 space-y-2">
+                  <div className="h-8 w-14 animate-pulse rounded bg-gray-100"></div>
+                  <div className="h-4 w-24 animate-pulse rounded bg-gray-100"></div>
+                </div>
+              }
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  /*
+   * A vanishing scoreboard is indistinguishable from a project with no PRs,
+   * so surface the failure instead of returning nothing.
+   */
+  if (error) {
+    return (
+      <ErrorMessage
+        message={error}
+        onRefreshClick={() => {
+          fetchStats().catch(() => {
+            // handled inside fetchStats
+          });
+        }}
+      />
+    );
+  }
 
   if (!stats || stats.total === 0) {
     return <Fragment />;
   }
 
+  const tiles: Array<StatTile> = [
+    {
+      key: "total",
+      title: "Total fix PRs",
+      value: stats.total.toLocaleString(),
+      hint: `${stats.open.toLocaleString()} still open`,
+      valueClassName: "text-gray-900",
+    },
+    {
+      key: "merged",
+      title: "Merged",
+      value: stats.merged.toLocaleString(),
+      hint: "Accepted by a human reviewer",
+      valueClassName: "text-emerald-600",
+    },
+    {
+      key: "closed-unmerged",
+      title: "Closed unmerged",
+      value: stats.closedUnmerged.toLocaleString(),
+      hint: "Rejected by a human reviewer",
+      valueClassName: "text-rose-600",
+    },
+    {
+      key: "acceptance-rate",
+      title: "Acceptance rate",
+      value:
+        stats.acceptanceRatePercent === null
+          ? "—"
+          : `${stats.acceptanceRatePercent}%`,
+      hint:
+        stats.acceptanceRatePercent === null
+          ? "No merged or closed PRs yet"
+          : `${stats.merged.toLocaleString()} of ${(
+              stats.merged + stats.closedUnmerged
+            ).toLocaleString()} reviewed PRs merged`,
+      valueClassName: "text-gray-900",
+    },
+    /*
+     * CI-verified rate (B4 Tier 1): merged PRs whose CI concluded green (or
+     * expected-failure for should-fail regression tests). Merged PRs without
+     * CI count against the rate — absence of CI is never presented as
+     * verified.
+     */
+    {
+      key: "ci-verified",
+      title: "CI-verified merges",
+      value:
+        stats.verifiedGreenRatePercent === null
+          ? "—"
+          : `${stats.verifiedGreenRatePercent}%`,
+      hint:
+        stats.verifiedGreenRatePercent === null
+          ? "No merged PRs yet"
+          : `${stats.verifiedGreen.toLocaleString()} of ${stats.merged.toLocaleString()} merged with CI green`,
+      valueClassName: "text-gray-900",
+    },
+  ];
+
   return (
-    <Card
-      title="Fix Pull Request Outcomes"
-      description="How the pull requests opened by AI were received. States and CI conclusions sync from GitHub every 30 minutes."
-    >
-      <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-gray-100 mt-2">
-        <div className="px-4 py-2">
-          <div className="text-sm text-gray-500">Total fix PRs</div>
-          <div className="text-2xl font-semibold text-gray-900">
-            {stats.total}
-          </div>
-        </div>
-        <div className="px-4 py-2">
-          <div className="text-sm text-gray-500">Merged</div>
-          <div className="text-2xl font-semibold text-emerald-600">
-            {stats.merged}
-          </div>
-        </div>
-        <div className="px-4 py-2">
-          <div className="text-sm text-gray-500">Closed unmerged</div>
-          <div className="text-2xl font-semibold text-rose-600">
-            {stats.closedUnmerged}
-          </div>
-        </div>
-        <div className="px-4 py-2">
-          <div className="text-sm text-gray-500">Acceptance rate</div>
-          <div className="text-2xl font-semibold text-gray-900">
-            {stats.acceptanceRatePercent === null
-              ? "—"
-              : `${stats.acceptanceRatePercent}%`}
-          </div>
-          {stats.acceptanceRatePercent === null && (
-            <div className="text-xs text-gray-400">
-              No merged or closed PRs yet
-            </div>
-          )}
-        </div>
-        {/*
-         * CI-verified rate (B4 Tier 1): merged PRs whose CI concluded
-         * green (or expected-failure for should-fail regression tests).
-         * Merged PRs without CI count against the rate — absence of CI is
-         * never presented as verified.
-         */}
-        <div className="px-4 py-2">
-          <div className="text-sm text-gray-500">CI-verified merges</div>
-          <div className="text-2xl font-semibold text-gray-900">
-            {stats.verifiedGreenRatePercent === null
-              ? "—"
-              : `${stats.verifiedGreenRatePercent}%`}
-          </div>
-          {stats.verifiedGreenRatePercent === null ? (
-            <div className="text-xs text-gray-400">No merged PRs yet</div>
-          ) : (
-            <div className="text-xs text-gray-400">
-              {stats.verifiedGreen} of {stats.merged} merged with CI green
-            </div>
-          )}
-        </div>
-      </div>
-    </Card>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      {tiles.map((tile: StatTile): ReactElement => {
+        return (
+          <InfoCard
+            key={tile.key}
+            title={tile.title}
+            value={<AIFixOutcomeStatValue tile={tile} />}
+          />
+        );
+      })}
+    </div>
   );
 };
 

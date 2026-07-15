@@ -16,7 +16,7 @@ import FindBy from "../Types/Database/FindBy";
 import { OnFind } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/AIRun";
-import { pinQueryToRequestingUser } from "../Utils/AI/AIChatPrivacyFilter";
+import { applyAIRunPrivacyFilter } from "../Utils/AI/AIRunPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { UpdateQueryBuilder, UpdateResult } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
@@ -331,23 +331,22 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeFind(
     findBy: FindBy<Model>,
   ): Promise<OnFind<Model>> {
-    findBy.query = pinQueryToRequestingUser(
-      findBy.query,
-      findBy.props,
-      "userId",
-    );
+    findBy.query = applyAIRunPrivacyFilter(findBy.query, findBy.props);
     return { findBy, carryForward: null };
   }
 
+  /*
+   * countBy MUST repeat the filter. DatabaseService has no onBeforeCount hook
+   * (only onCountSuccess / onCountError), and BaseAPI.getList issues findBy
+   * and countBy with the SAME client query, so filtering in onBeforeFind alone
+   * would return a correctly-scoped list beside an unscoped project-wide
+   * count on every page. IncidentService repeats it for the same reason.
+   */
   @CaptureSpan()
   public override async countBy(
     countBy: CountBy<Model>,
   ): Promise<PositiveNumber> {
-    countBy.query = pinQueryToRequestingUser(
-      countBy.query,
-      countBy.props,
-      "userId",
-    );
+    countBy.query = applyAIRunPrivacyFilter(countBy.query, countBy.props);
     return super.countBy(countBy);
   }
 }

@@ -66,6 +66,7 @@ import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
+    Permission.Viewer,
   ],
   delete: [],
   update: [],
@@ -77,6 +78,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -109,6 +111,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -133,6 +136,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -157,6 +161,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -181,6 +186,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -206,6 +212,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -238,6 +245,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -262,6 +270,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -294,6 +303,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -318,6 +328,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -343,6 +354,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -368,6 +380,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -397,6 +410,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -422,6 +436,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -447,6 +462,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -472,6 +488,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -497,6 +514,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -518,6 +536,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -539,6 +558,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -561,6 +581,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -583,6 +604,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -605,6 +627,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -627,6 +650,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -649,6 +673,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -724,6 +749,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -753,6 +779,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -777,6 +804,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -798,6 +826,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -828,6 +857,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -852,6 +882,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
