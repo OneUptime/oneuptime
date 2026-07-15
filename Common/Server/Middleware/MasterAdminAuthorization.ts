@@ -59,7 +59,7 @@ export default class MasterAdminAuthorization {
    * Same as isAuthorizedMasterAdminMiddleware, but ALSO accepts the instance-wide
    * master API key (Admin Dashboard → Settings → API Key) supplied in the
    * `apikey` header. The master key has root/master-admin access, so this lets
-   * automated callers reach the master-admin instance-health endpoints with the
+   * automated callers reach the master-admin OneUptime Health endpoints with the
    * key instead of a logged-in master-admin session.
    *
    * Deliberately scoped to the read-only health / diagnostics routes only. It is

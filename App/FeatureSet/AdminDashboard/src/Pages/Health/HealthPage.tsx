@@ -21,7 +21,7 @@ export interface ComponentProps {
 }
 
 /*
- * Shared layout for every instance-health page: consistent breadcrumbs, the
+ * Shared layout for every OneUptime Health page: consistent breadcrumbs, the
  * health side menu, and (optionally) the Enterprise-Edition upgrade gate. Sub
  * pages render their content as children and never have to repeat this wiring.
  */
