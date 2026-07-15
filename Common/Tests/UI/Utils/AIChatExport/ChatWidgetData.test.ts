@@ -125,7 +125,13 @@ describe("ChatWidgetData", () => {
 
   describe("span helpers", () => {
     const spans: Array<AIChatWidgetSpan> = [
-      { spanId: "a", name: "root", startOffsetMs: 0, durationMs: 100, isError: false },
+      {
+        spanId: "a",
+        name: "root",
+        startOffsetMs: 0,
+        durationMs: 100,
+        isError: false,
+      },
       {
         spanId: "b",
         parentSpanId: "a",
@@ -155,8 +161,22 @@ describe("ChatWidgetData", () => {
 
     test("a parent cycle terminates instead of hanging", () => {
       const cyclic: Array<AIChatWidgetSpan> = [
-        { spanId: "x", parentSpanId: "y", name: "x", startOffsetMs: 0, durationMs: 1, isError: false },
-        { spanId: "y", parentSpanId: "x", name: "y", startOffsetMs: 0, durationMs: 1, isError: false },
+        {
+          spanId: "x",
+          parentSpanId: "y",
+          name: "x",
+          startOffsetMs: 0,
+          durationMs: 1,
+          isError: false,
+        },
+        {
+          spanId: "y",
+          parentSpanId: "x",
+          name: "y",
+          startOffsetMs: 0,
+          durationMs: 1,
+          isError: false,
+        },
       ];
       const parents: Map<string, string | undefined> =
         buildParentBySpanId(cyclic);
@@ -169,14 +189,26 @@ describe("ChatWidgetData", () => {
     test("the bar keeps a visible minimum width and stays inside the track", () => {
       // A zero-duration span still gets the 1.5% floor.
       const zero: SpanBarMetrics = computeSpanBar(
-        { spanId: "z", name: "z", startOffsetMs: 0, durationMs: 0, isError: false },
+        {
+          spanId: "z",
+          name: "z",
+          startOffsetMs: 0,
+          durationMs: 0,
+          isError: false,
+        },
         1000,
       );
       expect(zero.widthPercent).toBe(1.5);
 
       // A span running past the end is clipped to the right edge.
       const overflowing: SpanBarMetrics = computeSpanBar(
-        { spanId: "o", name: "o", startOffsetMs: 900, durationMs: 5000, isError: false },
+        {
+          spanId: "o",
+          name: "o",
+          startOffsetMs: 900,
+          durationMs: 5000,
+          isError: false,
+        },
         1000,
       );
       expect(overflowing.leftPercent).toBe(90);
@@ -218,7 +250,12 @@ describe("ChatWidgetData", () => {
     test("prefixes an incident with its number", () => {
       const entry: { heading: string; badges: Array<string> } =
         toEntityListEntry(
-          { incidentNumber: 412, title: "Down", state: "Resolved", severity: "Major" },
+          {
+            incidentNumber: 412,
+            title: "Down",
+            state: "Resolved",
+            severity: "Major",
+          },
           AIChatWidgetType.IncidentList,
         );
 
@@ -260,14 +297,18 @@ describe("ChatWidgetData", () => {
       expect(chartHasData(toExportChartSeries(chartWidget({})))).toBe(false);
       expect(
         chartHasData(
-          toExportChartSeries(chartWidget({ series: [{ name: "s", points: [] }] })),
+          toExportChartSeries(
+            chartWidget({ series: [{ name: "s", points: [] }] }),
+          ),
         ),
       ).toBe(false);
     });
 
     test("a category x value is kept but not treated as a time", () => {
       const series: Array<ExportChartSeries> = toExportChartSeries(
-        chartWidget({ series: [{ name: "s", points: [{ x: "ERROR", y: 2 }] }] }),
+        chartWidget({
+          series: [{ name: "s", points: [{ x: "ERROR", y: 2 }] }],
+        }),
       );
 
       expect(series[0]?.points[0]?.x).toBe("ERROR");

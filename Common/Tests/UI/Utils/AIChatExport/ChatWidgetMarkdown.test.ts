@@ -162,13 +162,25 @@ describe("ChatWidgetMarkdown", () => {
     test("pluralizes a real row count", () => {
       expect(
         citationsToMarkdown([
-          { id: "C1", toolName: "t", label: "l", queryArguments: {}, rowCount: 1 },
+          {
+            id: "C1",
+            toolName: "t",
+            label: "l",
+            queryArguments: {},
+            rowCount: 1,
+          },
         ]),
       ).toContain("1 row");
 
       expect(
         citationsToMarkdown([
-          { id: "C2", toolName: "t", label: "l", queryArguments: {}, rowCount: 5 },
+          {
+            id: "C2",
+            toolName: "t",
+            label: "l",
+            queryArguments: {},
+            rowCount: 5,
+          },
         ]),
       ).toContain("5 rows");
     });

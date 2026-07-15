@@ -106,6 +106,12 @@ const reclaimStateMock: jest.MockedFunction<
 >;
 
 describe("EvaluateClickhouseCapacity", () => {
+  /*
+   * getSomeMinutesAfter is stubbed to a fixed date, so the only way to assert
+   * WHICH cadence a path chose is the argument it was called with.
+   */
+  let getSomeMinutesAfterSpy: jest.SpyInstance;
+
   beforeEach(() => {
     getCandidatesMock.mockReset();
     buildPlanMock.mockReset();
@@ -116,7 +122,9 @@ describe("EvaluateClickhouseCapacity", () => {
       inactiveBytes: 0,
     });
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(now);
-    jest.spyOn(OneUptimeDate, "getSomeMinutesAfter").mockReturnValue(later);
+    getSomeMinutesAfterSpy = jest
+      .spyOn(OneUptimeDate, "getSomeMinutesAfter")
+      .mockReturnValue(later);
   });
 
   afterEach(() => {
@@ -537,6 +545,197 @@ describe("EvaluateClickhouseCapacity", () => {
           droppedPartitionCount: 1,
         }),
       }),
+    );
+  });
+
+  /*
+   * An ON CLUSTER drop that errors client-side is already committed to Keeper
+   * and still executes, so the very first drop failing does NOT mean nothing
+   * was deleted. Reporting Failed here would claim on a data-deletion audit
+   * surface that no data was touched while ClickHouse was removing a partition.
+   */
+  test("treats a first-drop failure as unconfirmed rather than as no drop", async () => {
+    const plan: ClickhousePruningPlan = {
+      partitions: [
+        {
+          tableName: "LogLocal",
+          partitionId: "20260701",
+          estimatedFreedBytes: 10,
+        },
+        {
+          tableName: "MetricLocal",
+          partitionId: "20260701",
+          estimatedFreedBytes: 20,
+        },
+      ],
+      estimatedFreedBytes: 30,
+      projectedMaxUtilizationPercent: 75,
+      targetReachable: true,
+    };
+    getCandidatesMock.mockResolvedValue([]);
+    buildPlanMock.mockReturnValue(plan);
+    dropPartitionMock.mockRejectedValue(new Error("Timeout error."));
+
+    jest
+      .spyOn(InstanceHealthLogService, "create")
+      .mockImplementation(
+        async (
+          createBy: CreateBy<InstanceHealthLog>,
+        ): Promise<InstanceHealthLog> => {
+          createBy.data.id = new ObjectID("running-log");
+          return createBy.data;
+        },
+      );
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluatePruning({
+      settings,
+      latestLog: null,
+      disks: [{ ...disk, utilizationPercent: 95, usedInBytes: 95 }],
+      capacityPercent: 95,
+      worstDisk: { ...disk, utilizationPercent: 95, usedInBytes: 95 },
+    });
+
+    // The batch stops at the first failure rather than issuing more DDL.
+    expect(dropPartitionMock).toHaveBeenCalledTimes(1);
+
+    const updated: InstanceHealthLog = updateSpy.mock.calls[0]?.[0].data;
+    expect(updated.status).toBe(InstanceHealthLogStatus.WaitingForReclaim);
+    expect(updated.completedAt).toBeNull();
+    expect(updated.message).toContain(
+      "Issued 1 ClickHouse partition drop(s) whose outcome is unknown",
+    );
+    expect(updated.message).not.toContain(
+      "before any confirmed partition drop",
+    );
+    expect(updated.message).not.toContain("Dropped 0");
+    expect(updated.metadata).toEqual(
+      expect.objectContaining({
+        droppedPartitionCount: 0,
+        unconfirmedPartitionCount: 1,
+        unconfirmedPartitions: [
+          {
+            tableName: "LogLocal",
+            partitionId: "20260701",
+            estimatedFreedBytes: 10,
+          },
+        ],
+      }),
+    );
+
+    /*
+     * Nothing was confirmed dropped, so the error may be a pre-commit rejection
+     * that never clears. Hold the long cooldown rather than re-issuing
+     * destructive DDL on the 10-minute reclaim cadence.
+     */
+    expect(getSomeMinutesAfterSpy).toHaveBeenCalledWith(60);
+    expect(getSomeMinutesAfterSpy).not.toHaveBeenCalledWith(10);
+  });
+
+  /*
+   * A mid-batch failure produces BOTH lists, and reconciliation must cover the
+   * union: ignoring the confirmed drops would under-report reclaim and let the
+   * next batch be planned against space that is about to free itself, which is
+   * the over-pruning getClickhousePartitionReclaimState exists to prevent.
+   */
+  test("reconciles confirmed and unconfirmed partitions together", async () => {
+    reclaimStateMock.mockResolvedValue({
+      inactivePartCount: 3,
+      inactiveBytes: 40,
+    });
+    jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluatePruning({
+      settings,
+      latestLog: makeLog({
+        status: InstanceHealthLogStatus.WaitingForReclaim,
+        nextCheckAt: new Date("2026-07-13T11:59:00.000Z"),
+        metadata: {
+          droppedPartitions: [
+            {
+              tableName: "LogItemV3Local",
+              partitionId: "20260630",
+              estimatedFreedBytes: 10,
+            },
+          ],
+          unconfirmedPartitions: [
+            {
+              tableName: "SpanItemV3Local",
+              partitionId: "20260630",
+              estimatedFreedBytes: 40,
+            },
+          ],
+        },
+      }),
+      disks: [{ ...disk, utilizationPercent: 95, usedInBytes: 95 }],
+      capacityPercent: 95,
+      worstDisk: { ...disk, utilizationPercent: 95, usedInBytes: 95 },
+    });
+
+    expect(reclaimStateMock).toHaveBeenCalledWith([
+      {
+        tableName: "LogItemV3Local",
+        partitionId: "20260630",
+        estimatedFreedBytes: 10,
+      },
+      {
+        tableName: "SpanItemV3Local",
+        partitionId: "20260630",
+        estimatedFreedBytes: 40,
+      },
+    ]);
+    expect(dropPartitionMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The unconfirmed partition is the whole point of recording it: the next tick
+   * must ask ClickHouse whether its parts are still on disk.
+   */
+  test("reconciles an unconfirmed partition against ClickHouse", async () => {
+    reclaimStateMock.mockResolvedValue({
+      inactivePartCount: 3,
+      inactiveBytes: 40,
+    });
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(InstanceHealthLogService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await evaluatePruning({
+      settings,
+      latestLog: makeLog({
+        status: InstanceHealthLogStatus.WaitingForReclaim,
+        nextCheckAt: new Date("2026-07-13T11:59:00.000Z"),
+        metadata: {
+          droppedPartitionCount: 0,
+          unconfirmedPartitions: [
+            {
+              tableName: "SpanItemV3Local",
+              partitionId: "20260630",
+              estimatedFreedBytes: 40,
+            },
+          ],
+        },
+      }),
+      disks: [{ ...disk, utilizationPercent: 95, usedInBytes: 95 }],
+      capacityPercent: 95,
+      worstDisk: { ...disk, utilizationPercent: 95, usedInBytes: 95 },
+    });
+
+    expect(reclaimStateMock).toHaveBeenCalledWith([
+      {
+        tableName: "SpanItemV3Local",
+        partitionId: "20260630",
+        estimatedFreedBytes: 40,
+      },
+    ]);
+    // Parts are still on disk, so it must not plan another destructive batch.
+    expect(dropPartitionMock).not.toHaveBeenCalled();
+    expect(updateSpy.mock.calls[0]?.[0].data.status).toBe(
+      InstanceHealthLogStatus.WaitingForReclaim,
     );
   });
 });
