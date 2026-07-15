@@ -9,6 +9,7 @@ import MonitorGroupAPI from "Common/Server/API/MonitorGroupAPI";
 import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
+import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
@@ -4139,6 +4140,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
+
+    // AI code-fix readiness — the gates the AI Tasks page renders
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);
 
     // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);

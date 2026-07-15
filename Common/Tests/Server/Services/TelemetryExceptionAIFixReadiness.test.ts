@@ -1,7 +1,8 @@
-import TelemetryExceptionService, {
+import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
+import {
   AIFixReadiness,
   AIFixReadinessCheck,
-} from "../../../Server/Services/TelemetryExceptionService";
+} from "../../../Types/AI/AIFixReadiness";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../Server/Services/ProjectService";
