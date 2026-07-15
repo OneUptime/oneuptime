@@ -14,9 +14,11 @@ import URL from "../../Types/API/URL";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
+import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUser";
+import { EncryptionSecret } from "../EnvironmentConfig";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -62,10 +64,14 @@ export class Service extends DatabaseService<Model> {
   ): Promise<Model> {
     // send email to the user.
     const token: string = ObjectID.generate().toString();
+    const hashedToken: string = await HashedString.hashValue(
+      token,
+      EncryptionSecret,
+    );
     await this.updateOneById({
       id: createdItem.id!,
       data: {
-        resetPasswordToken: token,
+        resetPasswordToken: hashedToken,
         resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
       },
       props: {
