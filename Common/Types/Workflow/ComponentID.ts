@@ -20,6 +20,7 @@ enum ComponentID {
   IfElse = "if-else",
   WorkflowRun = "workflow-run",
   Sleep = "sleep",
+  AIGenerateText = "ai-generate-text",
 }
 
 export default ComponentID;

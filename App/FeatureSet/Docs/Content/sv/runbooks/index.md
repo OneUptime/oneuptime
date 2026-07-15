@@ -5,7 +5,7 @@ Runbooks är återanvändbara svarsprocedurer — ordnade listor över manuella 
 ## I korthet
 
 - **Toppnivåfunktion** i OneUptime-dashboarden under **Analytics & Automation → Runbooks**.
-- **Fyra stegtyper**: Manuell checklista, JavaScript (sandboxat) och Bash (båda körs på en [Runbook-agent](/docs/runbooks/agents) inuti din egen infrastruktur), HTTP-förfrågan.
+- **Fem stegtyper**: Manuell checklista, JavaScript (sandboxat) och Bash (båda körs på en [Runbook-agent](/docs/runbooks/agents) inuti din egen infrastruktur), HTTP-förfrågan, och AI (analysera incident- och stegkontext med ditt projekts LLM-leverantör).
 - **Tre triggervägar**: regler som matchar incidenter/larm/planerat underhåll, eller en manuell "Kör runbook"-knapp på vilket event som helst.
 - **Snapshot-semantik**: när ett runbook startar kopieras dess steg in på körningen. Att senare redigera mallen muterar aldrig en pågående körning.
 - **Fullt audit-spår**: varje stegs status, utdata, felmeddelande och tidsåtgång registreras för alltid på körningen.
@@ -27,14 +27,14 @@ Några termer återkommer i resten av runbook-dokumenten. Få ordning på dessa 
 | Term              | Betydelse                                                                                                                                                                                                         |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**       | Mallen. En namngiven, återanvändbar procedur med en ordnad steglista och en `isEnabled`-flagga.                                                                                                                   |
-| **Steg**          | Ett objekt i ett runbook. Har en typ (Manuell / JavaScript / HTTP / Bash), en titel, en beskrivning och typspecifik konfiguration.                                                                                |
+| **Steg**          | Ett objekt i ett runbook. Har en typ (Manuell / JavaScript / HTTP / Bash / AI), en titel, en beskrivning och typspecifik konfiguration.                                                                                |
 | **Runbook-regel** | Ett mönster som automatiskt kopplar ett eller flera runbooks till incidenter, larm eller planerade underhåll när deras titel eller beskrivning matchar en regex.                                                  |
 | **Körning**       | En körning av ett runbook. Skapas när en regel utlöses, någon klickar "Kör runbook" på ett event, eller någon klickar "Kör nu" på själva runbooket. Innehåller ett snapshot av stegen och status/utdata per steg. |
 | **Snapshot**      | Den frysta kopian av runbookets steg som lever på varje körning. Låter dig redigera mallen senare utan att skriva om historien.                                                                                   |
 
 ## Ett runbooks livscykel
 
-1. **Författa** — Skapa ett runbook och lägg in en mix av Manuella, JavaScript-, HTTP- och Bash-steg. Spara.
+1. **Författa** — Skapa ett runbook och lägg in en mix av Manuella, JavaScript-, HTTP-, Bash- och AI-steg. Spara.
 2. **(Valfritt) Lägg till en regel** — Tala om för OneUptime i inställningarna för Incidenter, Larm eller Planerat underhåll att detta runbook ska starta så snart titeln eller beskrivningen på ett event matchar en regex.
 3. **Trigga** — Antingen utlöses regeln automatiskt när ett matchande event skapas, eller så klickar en svarare manuellt på **Kör runbook** på eventet.
 4. **Köra** — En ny körning skapas med ett snapshot av stegen. Automatiserade steg körs inline på Runbook-workern; körningen pausar vid varje manuellt steg tills någon bockar av det.
@@ -50,8 +50,9 @@ En snabb beslutsguide. Den längre genomgången finns i [Skriva ett runbook](/do
 | **JavaScript**     | Du behöver en liten, avgränsad beräkning — fråga en konfigurationstjänst, transformera en payload, köra logik före nästa steg. Körs sandboxat på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. | Beräkna nuvarande replica-lag och avgöra om man ska fortsätta.                   |
 | **HTTP-förfrågan** | Du anropar ett befintligt API — din egen admin-endpoint, en molnleverantör, PagerDuty, Slack.                                                                                                                        | `POST` till din failover-orchestrator.                                           |
 | **Bash**           | Du behöver köra shell-kommandon på din egen infrastruktur — starta om en tjänst, anropa `kubectl`, anropa ett deploy-skript. Kräver en [Runbook-agent](/docs/runbooks/agents) installerad i din miljö.               | Starta om en tjänst, köra `kubectl rollout restart`, exec:a ett recovery-skript. |
+| **AI**             | Du vill ha en analys, sammanfattning eller bedömning mitt i körningen — resonemang över den utlösande incidenten och tidigare stegs utdata via ditt projekts LLM-leverantör.                                         | "Granska diagnostiken ovan — är det säkert att fortsätta med failovern?"         |
 
-Du kan blanda alla fyra i ett enda runbook — runbooks styrka är att varva mänsklig verifiering med automation.
+Du kan blanda alla fem i ett enda runbook — runbooks styrka är att varva mänsklig verifiering med automation och AI-analys.
 
 ## Var runbooks bor i dashboarden
 
@@ -114,7 +115,7 @@ Runbooks:       [DB primary failover]
 
 ## Var läsa vidare
 
-- [Skriva ett runbook](/docs/runbooks/authoring) — skapa runbooks, de fyra stegtyperna och vad varje gör.
+- [Skriva ett runbook](/docs/runbooks/authoring) — skapa runbooks, de fem stegtyperna och vad varje gör.
 - [Runbook-regler](/docs/runbooks/rules) — koppla runbooks automatiskt till incidenter, larm och planerade underhåll.
 - [Köra ett runbook](/docs/runbooks/running) — manuella triggers, körningsvyn och hur manuella steg samspelar med automatiserade.
 - [Runbook-agenter](/docs/runbooks/agents) — installera agenterna som kör Bash-steg inuti din egen infrastruktur.

@@ -3635,7 +3635,7 @@ const products: Dictionary<Product> = {
             title: "AI Root-Cause Help",
             description: "AI failure analysis",
             productColumn: "Rocky AI",
-            oneuptimeColumn: "Sentinel AI",
+            oneuptimeColumn: "AI SRE",
           },
         ],
       },
@@ -7283,7 +7283,7 @@ const products: Dictionary<Product> = {
       {
         question: "Can I recreate my xMatters workflows in OneUptime?",
         answer:
-          "Yes. OneUptime provides workflows, a REST API, native webhooks, and 2000+ integrations via Zapier to reproduce alert routing and toolchain automation, plus Sentinel, OneUptime's AI assistant, to help configure them.",
+          "Yes. OneUptime provides workflows, a REST API, native webhooks, and 2000+ integrations via Zapier to reproduce alert routing and toolchain automation, plus OneUptime's AI assistant to help configure them.",
       },
       {
         question: "Will I still need other tools after switching?",
@@ -8009,7 +8009,7 @@ const products: Dictionary<Product> = {
             title: "AI root-cause analysis",
             description: "Automated cause detection across the topology.",
             productColumn: "tick",
-            oneuptimeColumn: "Sentinel AI",
+            oneuptimeColumn: "AI SRE",
           },
           {
             title: "Automatic topology mapping",
@@ -9071,7 +9071,7 @@ const products: Dictionary<Product> = {
             title: "AI root-cause assistance",
             description: "AI help to explain errors and suggest fixes.",
             productColumn: "Seer add-on ($40/user)",
-            oneuptimeColumn: "Sentinel AI",
+            oneuptimeColumn: "AI SRE",
           },
           {
             title: "Logs, metrics & dashboards",
@@ -9795,7 +9795,7 @@ const products: Dictionary<Product> = {
             title: "AI-assisted analysis",
             description: "AI anomaly detection and assistance.",
             productColumn: "tick",
-            oneuptimeColumn: "Sentinel AI",
+            oneuptimeColumn: "AI SRE",
           },
         ],
       },
@@ -10859,7 +10859,7 @@ const products: Dictionary<Product> = {
             title: "AI assistance",
             description: "AI-driven detection and copilots.",
             productColumn: "Zia AI",
-            oneuptimeColumn: "Sentinel AI",
+            oneuptimeColumn: "AI SRE",
           },
         ],
       },
@@ -12416,7 +12416,7 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "Sentinel AI",
+            title: "AI SRE",
             description:
               "AI assistance for reliability and incident workflows.",
             productColumn: "",
@@ -14461,7 +14461,7 @@ const products: Dictionary<Product> = {
             oneuptimeColumn: "tick",
           },
           {
-            title: "Sentinel AI",
+            title: "AI SRE",
             description: "AI assistance for reliability workflows.",
             productColumn: "",
             oneuptimeColumn: "tick",

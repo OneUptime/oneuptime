@@ -648,6 +648,17 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
 
             // Handle mermaid diagrams
             if (match && match[1] === "mermaid") {
+              /*
+               * Never render mermaid for untrusted content: a diagram can
+               * carry an image node whose src the renderer fetches on paint
+               * (a zero-click exfil channel). Show the source as a plain,
+               * non-executing code block instead.
+               */
+              if (safeMode) {
+                return (
+                  <CodeBlock language="mermaid" content={content} rest={rest} />
+                );
+              }
               return <MermaidDiagram chart={content} />;
             }
 

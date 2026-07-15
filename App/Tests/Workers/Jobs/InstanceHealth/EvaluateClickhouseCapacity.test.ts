@@ -178,7 +178,15 @@ describe("EvaluateClickhouseCapacity", () => {
     );
     expect(mailSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        templateType: EmailTemplateType.SimpleMessage,
+        templateType: EmailTemplateType.ClickhouseCapacityWarning,
+        vars: expect.objectContaining({
+          capacityUsed: "85.00% used",
+          notificationThreshold: "80%",
+          clickhouseHost: "clickhouse-1",
+          shard: "1",
+          disk: "default (/var/lib/clickhouse/)",
+          badgeType: "warning",
+        }),
       }),
       expect.objectContaining({
         userId: admin.id,

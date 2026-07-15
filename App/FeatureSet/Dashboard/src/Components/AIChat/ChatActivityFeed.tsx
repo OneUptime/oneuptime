@@ -8,7 +8,7 @@ export interface ComponentProps {
   events: Array<AIRunEvent>;
   /*
    * Header text above the steps. Defaults to the live "Investigating…"
-   * wording used by chat and the Sentinel panel.
+   * wording used by chat and the AI investigation panel.
    */
   title?: string | undefined;
   // Show the pulsing "live" dot next to the title. Defaults to true.

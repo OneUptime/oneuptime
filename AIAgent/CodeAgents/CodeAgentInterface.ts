@@ -1,32 +1,16 @@
-import LlmType from "Common/Types/LLM/LlmType";
 import TaskLogger from "../Utils/TaskLogger";
 
 /*
- * Configuration for the code agent's LLM access. Two shapes share this type:
- *
- * - In-house agent (default): only `taskId` is required — completions are
- *   server-mediated (POST /ai-agent-data/llm-completion), metered and
- *   budgeted on the server, and NO provider secret ever reaches the worker.
- * - Legacy OpenCode fallback (CODE_AGENT_TYPE=OpenCode, deprecated — see
- *   Internal/Roadmap/CodeFixSandboxDesign.md): the raw-key fields below,
- *   fetched via the deprecated get-llm-config endpoint.
+ * Configuration for the code agent's LLM access. Completions are
+ * server-mediated (POST /ai-agent-data/llm-completion), metered and
+ * budgeted on the server — NO provider secret ever reaches the worker.
  */
 export interface CodeAgentLLMConfig {
-  // Required by the legacy raw-key path; unused by the in-house agent.
-  llmType?: LlmType;
-  apiKey?: string;
-  baseUrl?: string;
-  modelName?: string;
   /*
-   * Optional model used for quick/cheap sub-steps. Falls back to a
-   * provider-appropriate default (see OpenCodeAgent.getSmallModelString).
+   * The AIRun id this agent works for — completions are validated by the
+   * server against the claimed run.
    */
-  smallModelName?: string;
-  /*
-   * The AIRun id this agent works for — required by the in-house agent,
-   * whose completions the server validates against the claimed run.
-   */
-  taskId?: string;
+  taskId: string;
 }
 
 // The task to be executed by the code agent
@@ -62,10 +46,10 @@ export type CodeAgentProgressCallback = (
 
 /*
  * Abstract interface for code agents
- * This allows us to support multiple agents (OpenCode, Goose, Claude Code, etc.)
+ * This allows us to support multiple agent implementations in the future.
  */
 export interface CodeAgent {
-  // Name of the agent (e.g., "OpenCode", "Goose", "ClaudeCode")
+  // Name of the agent (e.g., "InHouse")
   readonly name: string;
 
   // Initialize the agent with LLM configuration
@@ -94,12 +78,6 @@ export enum CodeAgentType {
    * server-mediated and metered (B4 Tier 0).
    */
   InHouse = "InHouse",
-  /*
-   * DEPRECATED legacy fallback (raw provider key on the worker) — kept for
-   * one release behind CODE_AGENT_TYPE=OpenCode. See
-   * Internal/Roadmap/CodeFixSandboxDesign.md.
-   */
-  OpenCode = "OpenCode",
 }
 
 // Helper function to get display name for agent type
@@ -107,8 +85,6 @@ export function getCodeAgentDisplayName(type: CodeAgentType): string {
   switch (type) {
     case CodeAgentType.InHouse:
       return "OneUptime Code Agent";
-    case CodeAgentType.OpenCode:
-      return "OpenCode AI";
     default:
       return type;
   }

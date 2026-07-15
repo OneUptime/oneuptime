@@ -92,6 +92,73 @@ export class AggregationIntervalUtil {
         return 1000 * 60;
     }
   }
+
+  /*
+   * Floor a timestamp DOWN to the start of its aggregation bucket, matching
+   * the server's `toStartOfInterval(time, INTERVAL 1 <interval>)` grid. This
+   * lets a chart align its query window to the bucket grid so the leading
+   * edge lands on a real bucket boundary instead of mid-bucket — a
+   * mid-bucket start renders as an empty gap before the first plotted point
+   * (the first bucket is partial and its timestamp falls before the axis
+   * origin).
+   *
+   * Only Minute/Hour/Day are aligned: for those the fixed-ms epoch grid is
+   * an EXACT match for ClickHouse's UTC bucketing (epoch-day == UTC
+   * midnight), and these are the windows where the leading gap is actually
+   * visible. Week/Month/Year snap to calendar boundaries (Monday / 1st /
+   * Jan-1) server-side, which a fixed-ms grid can't reproduce, so those (and
+   * `Total`) are returned UNCHANGED rather than risk shifting the gap for
+   * long windows — their pre-existing behavior is preserved.
+   */
+  public static floorDateToIntervalGrid(
+    date: Date,
+    interval: AggregationInterval,
+  ): Date {
+    const ms: number = OneUptimeDate.fromString(date).getTime();
+    const alignableIntervals: Array<AggregationInterval> = [
+      AggregationInterval.Minute,
+      AggregationInterval.Hour,
+      AggregationInterval.Day,
+    ];
+    if (!alignableIntervals.includes(interval)) {
+      return new Date(ms);
+    }
+    const bucketMs: number = this.getAggregationIntervalMs(interval);
+    if (!Number.isFinite(bucketMs) || bucketMs <= 0) {
+      return new Date(ms);
+    }
+    return new Date(Math.floor(ms / bucketMs) * bucketMs);
+  }
+
+  /*
+   * Align a query window to the aggregation-bucket grid. The bucket size is
+   * derived from the RAW window and returned alongside the aligned dates so
+   * the caller can PIN it (AggregateBy.aggregationInterval): flooring the
+   * start slightly widens the window, and without pinning that could bump a
+   * window sitting exactly on a tier threshold (e.g. a 3h window) into the
+   * next-coarser interval and change the whole chart's resolution. The start
+   * is floored DOWN so the first bucket is complete and lands on the axis
+   * origin (removing the leading gap); the end is left untouched so the
+   * latest, still-in-progress bucket and its live data continue to show.
+   */
+  public static getIntervalAlignedWindow(data: {
+    startDate: Date;
+    endDate: Date;
+  }): {
+    startDate: Date;
+    endDate: Date;
+    interval: AggregationInterval;
+  } {
+    const interval: AggregationInterval = this.getAggregationIntervalForWindow({
+      startDate: data.startDate,
+      endDate: data.endDate,
+    });
+    return {
+      startDate: this.floorDateToIntervalGrid(data.startDate, interval),
+      endDate: OneUptimeDate.fromString(data.endDate),
+      interval,
+    };
+  }
 }
 
 export default AggregationIntervalUtil;

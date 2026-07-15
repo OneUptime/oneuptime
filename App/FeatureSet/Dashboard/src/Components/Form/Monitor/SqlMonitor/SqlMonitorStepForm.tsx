@@ -39,7 +39,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="Database Type"
-          description="The database engine to connect to. PostgreSQL is supported today."
+          description="The database engine to connect to. PostgreSQL, MySQL, and Microsoft SQL Server are supported."
           required={true}
         />
         <Dropdown
@@ -84,7 +84,9 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
             required={true}
           />
           <Input
-            initialValue={props.monitorStepSqlMonitor.port?.toString() || "5432"}
+            initialValue={
+              props.monitorStepSqlMonitor.port?.toString() || "5432"
+            }
             placeholder="5432"
             type={InputType.NUMBER}
             onChange={(value: string) => {
@@ -174,7 +176,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="SQL Query"
-          description="A single read-only query (SELECT / WITH). Writes are blocked — the probe runs it in a read-only transaction. Example: SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED' AND created_at > NOW() - INTERVAL '5 minutes'"
+          description="A single read-only query (SELECT / WITH). Writes are blocked — the probe runs it read-only and against a least-privilege database user. Example: SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED' AND created_at > NOW() - INTERVAL '5 minutes'"
           required={true}
         />
         <TextArea

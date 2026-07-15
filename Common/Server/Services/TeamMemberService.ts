@@ -147,6 +147,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         user = await UserService.createByEmail({
           email,
           name: nameValue ? new Name(nameValue) : undefined,
+          // Record who invited this brand-new user, so it can be surfaced later.
+          createdByUserId: createBy.props.userId,
           props: {
             isRoot: true,
           },

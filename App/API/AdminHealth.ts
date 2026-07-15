@@ -2962,17 +2962,17 @@ async function getDiagnosticLogs(): Promise<JSONObject> {
 
 router.get(
   "/overview",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> => {
     try {
-      // Instance health is an Enterprise Edition feature — gate server-side to match the UI.
+      // OneUptime Health is an Enterprise Edition feature — gate server-side to match the UI.
       if (!IsEnterpriseEdition) {
         throw new PaymentRequiredException(
-          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+          "The OneUptime Health dashboard is only available on the OneUptime Enterprise Edition. " +
             "Please switch to the Enterprise Edition build to enable this feature. " +
             "See https://oneuptime.com/enterprise/overview for details.",
         );
@@ -3006,7 +3006,7 @@ router.get(
  */
 router.get(
   "/queues",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3015,7 +3015,7 @@ router.get(
     try {
       if (!IsEnterpriseEdition) {
         throw new PaymentRequiredException(
-          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+          "The OneUptime Health dashboard is only available on the OneUptime Enterprise Edition. " +
             "Please switch to the Enterprise Edition build to enable this feature. " +
             "See https://oneuptime.com/enterprise/overview for details.",
         );
@@ -3047,7 +3047,7 @@ router.get(
  */
 router.get(
   "/clickhouse-capacity",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3075,7 +3075,7 @@ router.get(
 
 router.get(
   "/redis",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3099,7 +3099,7 @@ router.get(
 
 router.get(
   "/instance-health-logs",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3108,7 +3108,7 @@ router.get(
     try {
       if (!IsEnterpriseEdition) {
         throw new PaymentRequiredException(
-          "Instance health logs are only available on the OneUptime Enterprise Edition. " +
+          "OneUptime Health logs are only available on the OneUptime Enterprise Edition. " +
             "Please switch to the Enterprise Edition build to enable this feature. " +
             "See https://oneuptime.com/enterprise/overview for details.",
         );
@@ -3179,7 +3179,7 @@ router.get(
  */
 router.get(
   "/queues/:queueName/failed-jobs",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3188,7 +3188,7 @@ router.get(
     try {
       if (!IsEnterpriseEdition) {
         throw new PaymentRequiredException(
-          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+          "The OneUptime Health dashboard is only available on the OneUptime Enterprise Edition. " +
             "Please switch to the Enterprise Edition build to enable this feature. " +
             "See https://oneuptime.com/enterprise/overview for details.",
         );
@@ -3232,7 +3232,7 @@ router.get(
  */
 router.get(
   "/logs",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3241,7 +3241,7 @@ router.get(
     try {
       if (!IsEnterpriseEdition) {
         throw new PaymentRequiredException(
-          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+          "The OneUptime Health dashboard is only available on the OneUptime Enterprise Edition. " +
             "Please switch to the Enterprise Edition build to enable this feature. " +
             "See https://oneuptime.com/enterprise/overview for details.",
         );
@@ -3266,7 +3266,7 @@ router.get(
  */
 router.get(
   "/clickhouse-cluster",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3275,7 +3275,7 @@ router.get(
     try {
       if (!IsEnterpriseEdition) {
         throw new PaymentRequiredException(
-          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+          "The OneUptime Health dashboard is only available on the OneUptime Enterprise Edition. " +
             "Please switch to the Enterprise Edition build to enable this feature. " +
             "See https://oneuptime.com/enterprise/overview for details.",
         );
@@ -3304,7 +3304,7 @@ router.get(
  */
 router.get(
   "/clickhouse-telemetry-ingestion",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3313,7 +3313,7 @@ router.get(
     try {
       if (!IsEnterpriseEdition) {
         throw new PaymentRequiredException(
-          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+          "The OneUptime Health dashboard is only available on the OneUptime Enterprise Edition. " +
             "Please switch to the Enterprise Edition build to enable this feature. " +
             "See https://oneuptime.com/enterprise/overview for details.",
         );
@@ -3337,7 +3337,7 @@ router.get(
  */
 router.get(
   "/postgres-cluster",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3346,7 +3346,7 @@ router.get(
     try {
       if (!IsEnterpriseEdition) {
         throw new PaymentRequiredException(
-          "The instance health dashboard is only available on the OneUptime Enterprise Edition. " +
+          "The OneUptime Health dashboard is only available on the OneUptime Enterprise Edition. " +
             "Please switch to the Enterprise Edition build to enable this feature. " +
             "See https://oneuptime.com/enterprise/overview for details.",
         );
@@ -3368,7 +3368,7 @@ router.get(
  */
 router.get(
   "/migrations",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3397,7 +3397,7 @@ router.get(
  */
 router.get(
   "/support-bundle",
-  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -3503,7 +3503,7 @@ type QueryEngine = "postgres" | "clickhouse" | "redis";
 function assertEnterpriseQueryConsole(): void {
   if (!IsEnterpriseEdition) {
     throw new PaymentRequiredException(
-      "The instance health query console is only available on the OneUptime Enterprise Edition. " +
+      "The OneUptime Health query console is only available on the OneUptime Enterprise Edition. " +
         "Please switch to the Enterprise Edition build to enable this feature. " +
         "See https://oneuptime.com/enterprise/overview for details.",
     );

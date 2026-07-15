@@ -485,7 +485,7 @@ export default class Runbook extends BaseModel {
     type: TableColumnType.JSON,
     title: "Steps",
     description:
-      "Ordered list of steps to run for this runbook. Each step is one of Manual, JavaScript, HTTP request or Bash.",
+      "Ordered list of steps to run for this runbook. Each step is one of Manual, JavaScript, HTTP request, Bash or AI.",
   })
   @Column({
     type: ColumnType.JSON,

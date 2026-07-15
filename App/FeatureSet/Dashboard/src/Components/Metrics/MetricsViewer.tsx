@@ -53,6 +53,7 @@ import TelemetrySavedViewsControl, {
   serializeTimeRange,
   deserializeTimeRange,
 } from "../Telemetry/TelemetrySavedViewsControl";
+import useServiceNames from "../Telemetry/useServiceNames";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -315,6 +316,16 @@ const MetricsViewer: FunctionComponent<Props> = (
   const [error, setError] = useState<string>("");
 
   const [services, setServices] = useState<Array<Service>>([]);
+
+  /*
+   * Resolve the scoped service id(s) to names so the read-only "Service" chip
+   * shows the service name instead of a raw UUID. Scoped views don't load the
+   * full service list (facets are hidden), so this targeted lookup is the only
+   * name source for the chip. Filtering itself still uses the stable id.
+   */
+  const scopedServiceNameMap: Record<string, string> = useServiceNames(
+    props.serviceIds,
+  );
 
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
@@ -1167,6 +1178,9 @@ const MetricsViewer: FunctionComponent<Props> = (
         : config?.title || chip.displayKey || chip.facetKey;
       const displayValue: string =
         config?.valueDisplayMap?.[chip.value] ||
+        (chip.facetKey === "primaryEntityId"
+          ? scopedServiceNameMap[chip.value]
+          : undefined) ||
         chip.displayValue ||
         chip.value;
       return { ...chip, displayKey, displayValue };
@@ -1209,6 +1223,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     props.attributeFilterDisplayKeys,
     activeFilters,
     facetConfigs,
+    scopedServiceNameMap,
   ]);
 
   // Row click → navigate to metric viewer
@@ -1223,14 +1238,22 @@ const MetricsViewer: FunctionComponent<Props> = (
         currentUrl.hostname,
         route,
       );
+
+      /*
+       * Propagate the list's attribute filters — the prop-injected scope
+       * (e.g. the service view's `resource.service.name`, or a host page's
+       * `resource.host.name`) plus any search/facet attribute chips the user
+       * added, all merged in effectiveAttributes — so the detail chart is
+       * scoped to the same entity the list was, instead of aggregating the
+       * metric across every service in the project.
+       */
       const presetAttributes: Record<string, string> = {};
-      if (props.attributeFilters) {
-        for (const [key, value] of Object.entries(props.attributeFilters)) {
-          if (value) {
-            presetAttributes[key] = value;
-          }
+      for (const [key, value] of Object.entries(effectiveAttributes)) {
+        if (value) {
+          presetAttributes[key] = value;
         }
       }
+
       const queryPayload: Record<string, unknown> = {
         metricName: metric.name || "",
         aggregationType: MetricsAggregationType.Avg,
@@ -1246,9 +1269,27 @@ const MetricsViewer: FunctionComponent<Props> = (
         JSON.stringify(metricQueriesPayload),
         true,
       );
+
+      /*
+       * Carry the current time window so the detail page opens on the same
+       * range the user was viewing (it otherwise resets to the last hour).
+       */
+      const dateRange: InBetween<Date> =
+        RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      metricUrl.addQueryParam(
+        "startTime",
+        OneUptimeDate.toString(dateRange.startValue),
+        true,
+      );
+      metricUrl.addQueryParam(
+        "endTime",
+        OneUptimeDate.toString(dateRange.endValue),
+        true,
+      );
+
       Navigation.navigate(metricUrl);
     },
-    [props.attributeFilters],
+    [effectiveAttributes, timeRange],
   );
 
   // Whether the URL already carried filter state (deep link) on first mount.

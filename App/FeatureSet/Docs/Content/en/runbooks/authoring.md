@@ -58,6 +58,22 @@ Configure two things on a Bash step:
 
 If the selected agent is offline when the runbook reaches this step, the step waits up to the **claim timeout** (default 2 minutes) and then fails with `TimedOut`. Add an agent under **Runbooks → Settings → Agents** before relying on a Bash step.
 
+### AI
+
+Ask AI to analyze, summarize or decide something mid-run. The prompt is sent to your project's LLM provider (**Settings → AI → LLM Providers**) and the model's response becomes the step output on the execution timeline. AI steps run on the OneUptime Worker; no agent is required.
+
+Configure on an AI step:
+
+- **Prompt** — what the AI should do. For example: "Review the output of the previous steps and state whether it is safe to proceed with remediation."
+- **Include previous step context** — if on, the AI sees everything about the steps that ran before this one: title, type, status, output and error messages.
+- **Include trigger context** — if on, the AI sees what started the execution: the linked incident, alert or scheduled maintenance event (its description, severity, current state, affected monitors, root cause, state timeline and public notes), or who ran the runbook manually.
+
+Pair an AI step with **Require approval** to put a human in the loop: the AI analyzes, a responder reads its answer and approves, and only then does the next (remediation) step run.
+
+**What the AI never sees.** An AI step's answer is stored as step output on the execution, and executions are readable by anyone with runbook-read permission — a wider audience than the incident ACL. So trigger context deliberately excludes **private internal notes** and **Slack/Teams channel messages**: they stay inside the incident, where the existing postmortem and note generators keep their derived text. Step output from earlier steps is scanned for secrets (tokens, keys, credentials) and redacted before it is sent to the model.
+
+AI steps are metered and billed like any other AI feature. If no LLM provider is configured for the project, the step fails with a clear error (set **Continue on failure** if the rest of the runbook should still run).
+
 ## Saving and editing
 
 Hit **Save Steps** to persist. In-flight executions of older versions of the runbook are unaffected — they keep using their snapshot.

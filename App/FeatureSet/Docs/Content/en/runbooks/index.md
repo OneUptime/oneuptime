@@ -5,7 +5,7 @@ Runbooks are reusable response procedures — ordered lists of manual or automat
 ## At a glance
 
 - **Top-level feature** in the OneUptime dashboard under **Analytics & Automation → Runbooks**.
-- **Four step types**: Manual checklist, JavaScript (sandboxed) and Bash (both run on a [Runbook Agent](/docs/runbooks/agents) inside your own infrastructure), HTTP request.
+- **Five step types**: Manual checklist, JavaScript (sandboxed) and Bash (both run on a [Runbook Agent](/docs/runbooks/agents) inside your own infrastructure), HTTP request, and AI (analyze incident and step context with your project's LLM provider).
 - **Three trigger paths**: rules that match incidents/alerts/scheduled maintenance, or a manual "Run Runbook" button on any event.
 - **Snapshot semantics**: when a runbook starts, its steps are copied onto the execution. Editing the template later never mutates an in-flight run.
 - **Full audit trail**: every step's status, output, error message, and duration is captured on the execution forever.
@@ -27,14 +27,14 @@ A few terms recur across the rest of the runbook docs. Get these straight first:
 | Term             | Meaning                                                                                                                                                                                                             |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**      | The template. A named, reusable procedure with an ordered list of steps and an `isEnabled` flag.                                                                                                                    |
-| **Step**         | One item in a runbook. Has a type (Manual / JavaScript / HTTP / Bash), a title, a description, and type-specific config.                                                                                            |
+| **Step**         | One item in a runbook. Has a type (Manual / JavaScript / HTTP / Bash / AI), a title, a description, and type-specific config.                                                                                            |
 | **Runbook Rule** | A pattern that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events when their title or description matches a regex.                                                            |
 | **Execution**    | One run of a runbook. Created when a rule fires, when someone clicks "Run Runbook" on an event, or when someone clicks "Run Now" on the runbook itself. Holds a snapshot of the steps and per-step status / output. |
 | **Snapshot**     | The frozen copy of the runbook's steps that lives on each execution. Lets you edit the template later without rewriting history.                                                                                    |
 
 ## The lifecycle of a runbook
 
-1. **Author** — Create a runbook, drop in a mix of Manual, JavaScript, HTTP, and Bash steps. Save.
+1. **Author** — Create a runbook, drop in a mix of Manual, JavaScript, HTTP, Bash, and AI steps. Save.
 2. **(Optional) Add a rule** — On Incidents, Alerts, or Scheduled Maintenance settings, tell OneUptime to start this runbook whenever an event's title or description matches a regex.
 3. **Trigger** — Either the rule fires automatically when a matching event is created, or a responder clicks **Run Runbook** on the event manually.
 4. **Execute** — A new execution is created with a snapshot of the steps. Automated steps run inline on the Runbook worker; the execution pauses at each Manual step until someone ticks it off.
@@ -50,8 +50,9 @@ A quick decision guide. The longer breakdown is in [Authoring a Runbook](/docs/r
 | **JavaScript**   | You need a small, contained computation — query a config service, transform a payload, run logic before the next step. Runs sandboxed on a [Runbook Agent](/docs/runbooks/agents) in your own infrastructure. | Compute current replica lag and decide whether to proceed.                |
 | **HTTP request** | You're calling an existing API — your own admin endpoint, a cloud provider, PagerDuty, Slack.                                                                                                                 | `POST` to your failover orchestrator.                                     |
 | **Bash**         | You need to run shell commands on your own infrastructure — restart a service, run `kubectl`, call a deploy script. Requires a [Runbook Agent](/docs/runbooks/agents) installed in your environment.          | Restart a service, run `kubectl rollout restart`, exec a recovery script. |
+| **AI**           | You want an analysis, summary or judgement call mid-run — reasoning over the triggering incident and earlier step output via your project's LLM provider.                                                     | "Review the diagnostics above — is it safe to proceed with the failover?" |
 
-You can mix all four in a single runbook — the strength of runbooks is interleaving human verification with automation.
+You can mix all five in a single runbook — the strength of runbooks is interleaving human verification with automation and AI analysis.
 
 ## Where runbooks live in the dashboard
 
@@ -114,7 +115,7 @@ Runbooks:       [DB primary failover]
 
 ## Where to read next
 
-- [Authoring a Runbook](/docs/runbooks/authoring) — creating runbooks, the four step types, and what each does.
+- [Authoring a Runbook](/docs/runbooks/authoring) — creating runbooks, the five step types, and what each does.
 - [Runbook Rules](/docs/runbooks/rules) — auto-attaching runbooks to incidents, alerts, and scheduled maintenance events.
 - [Running a Runbook](/docs/runbooks/running) — manual triggers, the execution view, and how manual steps interact with automated ones.
 - [Runbook Agents](/docs/runbooks/agents) — installing the agents that run Bash steps inside your own infrastructure.

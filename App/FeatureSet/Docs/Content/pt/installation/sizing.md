@@ -88,7 +88,7 @@ Os armazenamentos de dados integrados ao chart rodam como **instâncias únicas*
 
 - **PostgreSQL** — habilite o operador [CloudNativePG](https://cloudnative-pg.io) incluído (`postgresOperator.cnpg.enabled`) com **3 instâncias** (1 primária + 2 hot standbys) para failover automático.
 - **ClickHouse** — habilite o operador [Altinity](https://github.com/Altinity/clickhouse-operator) incluído (`clickhouseOperator.altinity.enabled`) com **≥2 réplicas por shard** e **3 nós ClickHouse Keeper** para quórum. Adicione shards assim que o disco ou a RAM de um único nó se tornar o limite.
-- **Redis** — o chart não possui replicação interna. Para HA, aponte o OneUptime para um **Redis gerenciado externo** (ou uma implantação Sentinel/cluster).
+- **Redis** — o chart não possui replicação interna. Para HA, aponte o OneUptime para um **Redis gerenciado externo** (ou uma implantação AI/cluster).
 
 ## Retenção e como ela afeta o armazenamento
 

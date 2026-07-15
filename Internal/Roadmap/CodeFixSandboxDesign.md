@@ -42,7 +42,7 @@ For running builds/tests *before* a PR exists (and for the Preventive lane's aut
 ## Sequencing
 
 1. **B4-PR1 (this document + brand sweep)** — the spike, satisfying the tracker's "design spike first" requirement.
-2. **B4-PR2** — in-house metered agent (Tier 0): server completion endpoint, tool loop, OpenCode env-fallback (`CODE_AGENT_TYPE=OpenCode`) for one release, global-provider re-enable on cloud, `get-llm-config` removal.
+2. **B4-PR2** — in-house metered agent (Tier 0): server completion endpoint, tool loop, OpenCode env-fallback (`CODE_AGENT_TYPE=OpenCode`) for one release, global-provider re-enable on cloud, `get-llm-config` removal. *Shipped 2026-07-13; the OpenCode fallback + `get-llm-config` raw-key endpoint were fully removed 2026-07-14 — the in-house agent is now the only code agent, and no code path hands a provider key to the worker.*
 3. **B4-PR3** — Tier 1 CI verify: check-run polling, `ciStatus` on PR rows, verified-green rate, SHOULD-FAIL reporting. *Shipped 2026-07-13.*
 4. **Tier 2** — after real usage data shows where pre-PR verification pays for its infrastructure; blocked on nothing else.
 

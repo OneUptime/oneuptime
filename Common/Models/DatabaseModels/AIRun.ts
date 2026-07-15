@@ -66,6 +66,7 @@ import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
+    Permission.Viewer,
   ],
   delete: [],
   update: [],
@@ -77,6 +78,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -109,6 +111,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -133,6 +136,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -157,6 +161,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -181,6 +186,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -206,6 +212,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -238,6 +245,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -262,6 +270,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -294,6 +303,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -318,6 +328,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -343,6 +354,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -368,6 +380,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -387,12 +400,43 @@ export default class AIRun extends BaseModel {
   })
   public triggeredByTelemetryExceptionId?: ObjectID = undefined;
 
+  /*
+   * Set when the run was woken by a preventive AIInsight (triage runs
+   * and insight-created fix runs).
+   */
   @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Triggered By AI Insight ID",
+    description:
+      "The preventive AI insight that triggered this run (for insight triage and insight-created fix runs).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByAiInsightId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -418,6 +462,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -443,6 +488,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -468,6 +514,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -489,6 +536,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -510,6 +558,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -532,6 +581,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -554,6 +604,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -576,6 +627,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -598,6 +650,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -620,6 +673,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -695,6 +749,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -724,6 +779,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -748,6 +804,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -769,6 +826,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -790,7 +848,7 @@ export default class AIRun extends BaseModel {
    * Measurement layer (Phase 2): the automatic grade assigned when the
    * incident behind this investigation resolves with a human-recorded root
    * cause — one constrained LLM comparison of the posted analysis against
-   * Incident.rootCause (see Sentinel/InvestigationGrader.ts). Null means
+   * Incident.rootCause (see AI/InvestigationGrader.ts). Null means
    * not graded (yet); a set value also serves as the grading dedupe.
    */
   @ColumnAccessControl({
@@ -799,6 +857,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })
@@ -823,6 +882,7 @@ export default class AIRun extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
+      Permission.Viewer,
     ],
     update: [],
   })

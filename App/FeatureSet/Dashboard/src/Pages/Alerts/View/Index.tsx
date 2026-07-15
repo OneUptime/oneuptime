@@ -59,7 +59,7 @@ import HeaderAlert, {
 import IconProp from "Common/Types/Icon/IconProp";
 import ColorSwatch from "Common/Types/ColorSwatch";
 import AlertFeedElement from "../../../Components/Alert/AlertFeed";
-import InvestigationPanel from "../../../Components/Sentinel/InvestigationPanel";
+import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import AlertAffectedResources from "./AffectedResources";

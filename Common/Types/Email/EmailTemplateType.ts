@@ -84,6 +84,8 @@ enum EmailTemplateType {
 
   ProjectSubscriptionOverdue = "ProjectSubscriptionOverdue.hbs",
   Invoice = "Invoice.hbs",
+
+  ClickhouseCapacityWarning = "ClickhouseCapacityWarning.hbs",
 }
 
 export default EmailTemplateType;

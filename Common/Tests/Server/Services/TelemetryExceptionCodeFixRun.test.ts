@@ -62,7 +62,7 @@ function mockReadinessOk(): void {
     .spyOn(TelemetryExceptionService, "findOneById")
     .mockResolvedValue(fakeException());
   jest
-    .spyOn(LlmProviderService, "getLlmProviderForAgentTasks")
+    .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
     .mockResolvedValue({
       id: ObjectID.generate(),
       name: "BYO",
@@ -135,7 +135,7 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
       );
     const readinessProbe: jest.SpyInstance = jest.spyOn(
       LlmProviderService,
-      "getLlmProviderForAgentTasks",
+      "getLlmProviderForMeteredAgentPath",
     );
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 

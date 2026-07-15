@@ -21,7 +21,7 @@ export interface ComponentProps {
 }
 
 /*
- * Shared layout for every instance-health page: consistent breadcrumbs, the
+ * Shared layout for every OneUptime Health page: consistent breadcrumbs, the
  * health side menu, and (optionally) the Enterprise-Edition upgrade gate. Sub
  * pages render their content as children and never have to repeat this wiring.
  */
@@ -43,7 +43,7 @@ const HealthPage: FunctionComponent<ComponentProps> = (
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
-          title: "Instance Health",
+          title: "OneUptime Health",
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HEALTH] as Route),
         },
         {
@@ -54,7 +54,7 @@ const HealthPage: FunctionComponent<ComponentProps> = (
     >
       {isGated ? (
         <EnterpriseHealthUpgrade
-          featureName={props.enterpriseFeatureName || "Instance Health"}
+          featureName={props.enterpriseFeatureName || "OneUptime Health"}
           featureDescription={
             props.enterpriseFeatureDescription ||
             "Live status, datastore capacity and diagnostics for your OneUptime deployment."

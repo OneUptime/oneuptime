@@ -24,8 +24,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
   }
 
   const scalarValue: string =
-    sqlResponse?.scalarValue === null ||
-    sqlResponse?.scalarValue === undefined
+    sqlResponse?.scalarValue === null || sqlResponse?.scalarValue === undefined
       ? "-"
       : String(sqlResponse.scalarValue);
 
@@ -89,8 +88,7 @@ const SqlMonitorView: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {(sqlResponse?.queryError ||
-        props.probeMonitorResponse.failureCause) && (
+      {(sqlResponse?.queryError || props.probeMonitorResponse.failureCause) && (
         <div className="flex space-x-3">
           <InfoCard
             className="w-full shadow-none border-2 border-gray-100"

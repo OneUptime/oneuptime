@@ -14,7 +14,7 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  * and Slack/Teams ping (it sets isOwnerNotified itself, so the hook is its
  * only push channel).
  *
- * Callers that must NOT announce (Sentinel's RCA note, which has its own
+ * Callers that must NOT announce (the AI's RCA note, which has its own
  * quiet-mode-gated RootCause feed item) opt out explicitly with
  * props.ignoreHooks — see IncidentInvestigationRunner. These tests lock in
  * that the hook announces for both user-authored and user-less notes, so the

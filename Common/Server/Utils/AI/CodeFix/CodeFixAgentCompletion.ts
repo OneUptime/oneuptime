@@ -10,7 +10,7 @@ import LlmLogService from "../../../Services/LlmLogService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import AIService, {
   AILogResponse,
-  SENTINEL_CODE_FIX_FEATURE,
+  AI_CODE_FIX_FEATURE,
 } from "../../../Services/AIService";
 import {
   LLMMessage,
@@ -183,7 +183,7 @@ export default class CodeFixAgentCompletion {
 
     if (!llmProvider || !llmProvider.id) {
       throw new BadDataException(
-        "No LLM provider is available for this fix run. Add one in Project Settings > Sentinel > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project.",
+        "No LLM provider is available for this fix run. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project.",
       );
     }
 
@@ -194,7 +194,7 @@ export default class CodeFixAgentCompletion {
 
     const response: AILogResponse = await AIService.executeWithLogging({
       projectId: run.projectId,
-      feature: SENTINEL_CODE_FIX_FEATURE,
+      feature: AI_CODE_FIX_FEATURE,
       aiRunId: request.aiRunId,
       llmProviderId: llmProvider.id,
       messages: request.messages,

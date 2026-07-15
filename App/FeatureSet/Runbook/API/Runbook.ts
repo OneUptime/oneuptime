@@ -14,6 +14,9 @@ import Response from "Common/Server/Utils/Response";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
+import IncidentService from "Common/Server/Services/IncidentService";
+import AlertService from "Common/Server/Services/AlertService";
+import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
@@ -51,6 +54,29 @@ export default class RunbookAPI {
       UserMiddleware.getUserMiddleware,
       this.cancelExecution,
     );
+  }
+
+  /*
+   * Throws unless the referenced event exists AND belongs to the caller's
+   * project. Looks the row up with isRoot deliberately: a tenant-scoped read
+   * would report "not found" for a cross-tenant ID, which is the same answer
+   * we want, but we also want to reject rather than silently drop the link.
+   */
+  private async assertBelongsToProject(data: {
+    entityName: string;
+    projectId: ObjectID;
+    findProjectId: () => Promise<ObjectID | undefined>;
+  }): Promise<void> {
+    const entityProjectId: ObjectID | undefined = await data.findProjectId();
+
+    if (
+      !entityProjectId ||
+      entityProjectId.toString() !== data.projectId.toString()
+    ) {
+      throw new BadDataException(
+        `${data.entityName} does not belong to this project`,
+      );
+    }
   }
 
   public async runRunbook(
@@ -136,14 +162,63 @@ export default class RunbookAPI {
       const incidentIdRaw: unknown = linkageBody["incidentId"];
       const alertIdRaw: unknown = linkageBody["alertId"];
       const smIdRaw: unknown = linkageBody["scheduledMaintenanceId"];
+
+      /*
+       * The linked event must live in the caller's project. Without this an
+       * execution in project A could carry project B's incidentId, and any
+       * server-side consumer that dereferences it with isRoot (the AI step's
+       * trigger context does) would surface another tenant's data.
+       */
       if (typeof incidentIdRaw === "string" && incidentIdRaw.length > 0) {
-        execution.incidentId = new ObjectID(incidentIdRaw);
+        const incidentId: ObjectID = new ObjectID(incidentIdRaw);
+        await this.assertBelongsToProject({
+          entityName: "Incident",
+          projectId: oneUptimeReq.tenantId,
+          findProjectId: async (): Promise<ObjectID | undefined> => {
+            return (
+              await IncidentService.findOneById({
+                id: incidentId,
+                select: { projectId: true },
+                props: { isRoot: true },
+              })
+            )?.projectId;
+          },
+        });
+        execution.incidentId = incidentId;
       }
       if (typeof alertIdRaw === "string" && alertIdRaw.length > 0) {
-        execution.alertId = new ObjectID(alertIdRaw);
+        const alertId: ObjectID = new ObjectID(alertIdRaw);
+        await this.assertBelongsToProject({
+          entityName: "Alert",
+          projectId: oneUptimeReq.tenantId,
+          findProjectId: async (): Promise<ObjectID | undefined> => {
+            return (
+              await AlertService.findOneById({
+                id: alertId,
+                select: { projectId: true },
+                props: { isRoot: true },
+              })
+            )?.projectId;
+          },
+        });
+        execution.alertId = alertId;
       }
       if (typeof smIdRaw === "string" && smIdRaw.length > 0) {
-        execution.scheduledMaintenanceId = new ObjectID(smIdRaw);
+        const scheduledMaintenanceId: ObjectID = new ObjectID(smIdRaw);
+        await this.assertBelongsToProject({
+          entityName: "Scheduled Maintenance",
+          projectId: oneUptimeReq.tenantId,
+          findProjectId: async (): Promise<ObjectID | undefined> => {
+            return (
+              await ScheduledMaintenanceService.findOneById({
+                id: scheduledMaintenanceId,
+                select: { projectId: true },
+                props: { isRoot: true },
+              })
+            )?.projectId;
+          },
+        });
+        execution.scheduledMaintenanceId = scheduledMaintenanceId;
       }
 
       const created: RunbookExecution = await RunbookExecutionService.create({

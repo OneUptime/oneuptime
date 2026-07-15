@@ -5,7 +5,7 @@ Runbooks er gjenbrukbare responsprosedyrer — ordnede lister med manuelle eller
 ## Et raskt overblikk
 
 - **Toppnivåfunksjon** i OneUptime-dashbordet under **Analyse & Automatisering → Runbooks**.
-- **Fire trinntyper**: manuell sjekkliste, JavaScript (sandkasse) og Bash (begge kjører på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur), HTTP-forespørsel.
+- **Fem trinntyper**: manuell sjekkliste, JavaScript (sandkasse) og Bash (begge kjører på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur), HTTP-forespørsel, og AI (analyser hendelses- og trinnkontekst med prosjektets LLM-leverandør).
 - **Tre utløsningsveier**: regler som matcher hendelser/varsler/planlagt vedlikehold, eller den manuelle knappen "Kjør runbook" på enhver hendelse.
 - **Snapshot-semantikk**: når et runbook starter, kopieres trinnene inn på kjøringen. Redigering av malen senere endrer aldri en pågående kjøring.
 - **Fullt revisjonsspor**: status, output, feilmelding og varighet for hvert trinn lagres på kjøringen for alltid.
@@ -27,14 +27,14 @@ Noen begreper går igjen i resten av runbook-dokumentasjonen. Få oversikten fø
 | Begrep            | Betydning                                                                                                                                                                                                                        |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**       | Malen. En navngitt, gjenbrukbar prosedyre med en ordnet liste over trinn og et `isEnabled`-flagg.                                                                                                                                |
-| **Trinn**         | Ett element i et runbook. Har en type (Manuell / JavaScript / HTTP / Bash), en tittel, en beskrivelse og typespesifikk konfigurasjon.                                                                                            |
+| **Trinn**         | Ett element i et runbook. Har en type (Manuell / JavaScript / HTTP / Bash / AI), en tittel, en beskrivelse og typespesifikk konfigurasjon.                                                                                            |
 | **Runbook-regel** | Et mønster som automatisk knytter ett eller flere runbooks til hendelser, varsler eller planlagt vedlikehold når tittel eller beskrivelse matcher et regex.                                                                      |
 | **Kjøring**       | Én avvikling av et runbook. Opprettes når en regel utløses, når noen klikker "Kjør runbook" på en hendelse, eller når noen klikker "Kjør nå" på selve runbook'et. Inneholder et snapshot av trinnene og status/output per trinn. |
 | **Snapshot**      | Den fryste kopien av runbook'ets trinn som lever på hver kjøring. Lar deg redigere malen senere uten å skrive om historikken.                                                                                                    |
 
 ## Et runbooks livssyklus
 
-1. **Skrive** — Opprett et runbook, bland manuelle, JavaScript-, HTTP- og Bash-trinn. Lagre.
+1. **Skrive** — Opprett et runbook, bland manuelle, JavaScript-, HTTP-, Bash- og AI-trinn. Lagre.
 2. **(Valgfritt) Legg til en regel** — I innstillingene for Hendelser, Varsler eller Planlagt vedlikehold ber du OneUptime starte dette runbook'et hver gang en hendelses tittel eller beskrivelse matcher et regex.
 3. **Utløs** — Enten utløses regelen automatisk når en samsvarende hendelse opprettes, eller en responder klikker manuelt **Kjør runbook** på hendelsen.
 4. **Kjør** — En ny kjøring opprettes med et snapshot av trinnene. Automatiserte trinn kjører på Runbook-workeren; kjøringen pauses ved hvert manuelt trinn til noen huker det av.
@@ -50,8 +50,9 @@ En rask beslutningsveiledning. Den lange gjennomgangen står i [Skrive et runboo
 | **JavaScript**       | Du trenger en liten, innesluttet beregning — spørre en konfig-tjeneste, transformere en payload, kjøre logikk før neste trinn. Kjører i sandkasse på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. | Regn ut nåværende replika-etterslep og avgjør om du går videre.          |
 | **HTTP-forespørsel** | Du kaller en eksisterende API — ditt eget admin-endepunkt, en skyleverandør, PagerDuty, Slack.                                                                                                                           | `POST` til failover-orkestratoren din.                                   |
 | **Bash**             | Du må kjøre shell-kommandoer på din egen infrastruktur — restarte en tjeneste, kjøre `kubectl`, kalle et deploy-skript. Krever en [Runbook-agent](/docs/runbooks/agents) installert i miljøet ditt.                      | Restart en tjeneste, `kubectl rollout restart`, kjør et recovery-skript. |
+| **AI**               | Du vil ha en analyse, oppsummering eller vurdering midt i kjøringen — resonnering over den utløsende hendelsen og tidligere trinnutdata via prosjektets LLM-leverandør.                                                  | "Gå gjennom diagnostikken over — er det trygt å fortsette med failover?" |
 
-Du kan blande alle fire i ett runbook — runbookens styrke er å flette menneskelig verifikasjon med automatisering.
+Du kan blande alle fem i ett runbook — runbookens styrke er å flette menneskelig verifikasjon med automatisering og AI-analyse.
 
 ## Hvor runbooks bor i dashbordet
 
@@ -114,7 +115,7 @@ Runbooks:       [DB primary failover]
 
 ## Les videre
 
-- [Skrive et runbook](/docs/runbooks/authoring) — opprette runbooks, de fire trinntypene og hva hver gjør.
+- [Skrive et runbook](/docs/runbooks/authoring) — opprette runbooks, de fem trinntypene og hva hver gjør.
 - [Runbook-regler](/docs/runbooks/rules) — knytte runbooks automatisk til hendelser, varsler og planlagt vedlikehold.
 - [Kjøre et runbook](/docs/runbooks/running) — manuelle utløsere, kjøringsvisningen og hvordan manuelle trinn spiller sammen med automatiserte.
 - [Runbook-agenter](/docs/runbooks/agents) — installer agentene som kjører Bash-trinn i din egen infrastruktur.

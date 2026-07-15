@@ -51,11 +51,35 @@ export interface BashStepConfig {
   claimTimeoutInMs?: number;
 }
 
+export interface AIStepConfig {
+  /*
+   * Instructions for the AI — what to analyze, summarize or decide. The
+   * model's response becomes the step output on the execution timeline.
+   */
+  prompt: string;
+  /*
+   * When true, the prompt includes everything about the steps that ran
+   * before this one: title, type, status, output and error message.
+   */
+  includePreviousStepContext?: boolean;
+  /*
+   * When true, the prompt includes context about what started this
+   * execution: the linked incident, alert or scheduled maintenance event,
+   * or the user who ran the runbook manually.
+   */
+  includeTriggerContext?: boolean;
+  /*
+   * Response token cap. Defaults to 4096; clamped server-side.
+   */
+  maxTokens?: number;
+}
+
 export type RunbookStepConfig =
   | ManualStepConfig
   | JavaScriptStepConfig
   | HttpRequestStepConfig
-  | BashStepConfig;
+  | BashStepConfig
+  | AIStepConfig;
 
 export interface RunbookStep {
   id: string;
@@ -64,7 +88,7 @@ export interface RunbookStep {
   title: string;
   description?: string;
   /*
-   * Only meaningful for automated steps (JavaScript, HttpRequest, Bash).
+   * Only meaningful for automated steps (JavaScript, HttpRequest, Bash, AI).
    * Manual steps have no failure semantics.
    */
   continueOnFailure?: boolean;

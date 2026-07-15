@@ -53,9 +53,23 @@ export default class MonitorCriteriaMessageBuilder {
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
   }): string | null {
+    /*
+     * Resolve the metric's display unit (undefined for non-metric criteria)
+     * so the threshold in the expectation clause reads in the same unit as
+     * the observed value — "recorded latest 0.06 sec (expected to be greater
+     * than 5 sec)" rather than the unitless "0.06 (expected ... 5)".
+     */
+    const metricDisplayUnit: string | undefined =
+      MonitorCriteriaObservationBuilder.getMetricValueDisplayUnit({
+        criteriaFilter: input.criteriaFilter,
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+      });
+
     const expectation: string | null =
       MonitorCriteriaExpectationBuilder.describeCriteriaExpectation(
         input.criteriaFilter,
+        { unit: metricDisplayUnit },
       );
 
     const observation: string | null =

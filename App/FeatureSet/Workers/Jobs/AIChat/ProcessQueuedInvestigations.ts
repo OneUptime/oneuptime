@@ -1,9 +1,9 @@
 import RunCron from "../../Utils/Cron";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
-import SentinelInvestigationQueue from "Common/Server/Utils/AI/Sentinel/InvestigationQueue";
+import AIInvestigationQueue from "Common/Server/Utils/AI/SRE/InvestigationQueue";
 
 /**
- * Drains the durable Sentinel investigation queue: claims Queued AIRuns that
+ * Drains the durable AI investigation queue: claims Queued AIRuns that
  * the inline path left behind (the enqueueing pod died, the project was at
  * its concurrency cap, or the daily budget was momentarily exhausted) and
  * expires runs that sat queued past their usefulness window. Claims are
@@ -16,6 +16,6 @@ RunCron(
     runOnStartup: false,
   },
   async () => {
-    await SentinelInvestigationQueue.processQueuedRuns();
+    await AIInvestigationQueue.processQueuedRuns();
   },
 );

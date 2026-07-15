@@ -136,7 +136,10 @@ export default class MonitorCriteriaMessageFormatter {
     return null;
   }
 
-  public static summarizeNumericSeries(values: Array<number>): string | null {
+  public static summarizeNumericSeries(
+    values: Array<number>,
+    unit?: string | undefined,
+  ): string | null {
     if (!values.length) {
       return null;
     }
@@ -147,12 +150,18 @@ export default class MonitorCriteriaMessageFormatter {
       return null;
     }
 
+    /*
+     * Suffix each value with its unit (e.g. "0.06 sec") so the reader knows
+     * what the numbers mean. Empty when the metric has no known unit.
+     */
+    const unitSuffix: string = unit ? ` ${unit}` : "";
+
     const latestFormatted: string | null =
       MonitorCriteriaMessageFormatter.formatNumber(latest, {
         maximumFractionDigits: 2,
       });
 
-    let summary: string = `latest ${latestFormatted ?? latest}`;
+    let summary: string = `latest ${latestFormatted ?? latest}${unitSuffix}`;
 
     if (values.length > 1) {
       const min: number = Math.min(...values);
@@ -167,7 +176,9 @@ export default class MonitorCriteriaMessageFormatter {
           maximumFractionDigits: 2,
         });
 
-      summary += ` (min ${minFormatted ?? min}, max ${maxFormatted ?? max})`;
+      summary += ` (min ${minFormatted ?? min}${unitSuffix}, max ${
+        maxFormatted ?? max
+      }${unitSuffix})`;
     }
 
     summary += ` across ${values.length} data point${

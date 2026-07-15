@@ -13,12 +13,12 @@ enum CodeFixTaskType {
   // Write a failing-then-passing regression test that reproduces the exception.
   WriteRegressionTest = "WriteRegressionTest",
   /*
-   * Add the observability an INCONCLUSIVE Sentinel investigation was missing
+   * Add the observability an INCONCLUSIVE AI investigation was missing
    * (structured logs, spans, metric counters on the implicated code paths).
    * NOT user-triggerable from the exception page — it has its own automatic
    * trigger: an inconclusive investigation on a project that opted in via
    * Project.enableInstrumentationFixTasks (see Common/Server/Utils/AI/
-   * Sentinel/InstrumentationTaskTrigger.ts). Its subject is the triggering
+   * AI/InstrumentationTaskTrigger.ts). Its subject is the triggering
    * incident/alert, NOT a telemetry exception.
    */
   ImproveInstrumentation = "ImproveInstrumentation",
@@ -29,15 +29,15 @@ enum CodeFixTaskType {
    * create-performance-fix-task), NOT from the exception page: it has no
    * subject row at all — its entire context (the SpanTreeAnalyzer findings)
    * is captured at trigger time into AIRun.taskContext (see
-   * Common/Server/Utils/AI/Sentinel/FixPerformanceTaskTrigger.ts).
+   * Common/Server/Utils/AI/SRE/FixPerformanceTaskTrigger.ts).
    */
   FixPerformance = "FixPerformance",
   /*
-   * Fix the root cause a completed Sentinel investigation identified. Human-
+   * Fix the root cause a completed AI investigation identified. Human-
    * triggered from the investigation panel (POST /ai-investigation/
    * create-fix-task), NOT from the exception page: its subject is the
    * investigated incident/alert, and its context is the posted analysis (see
-   * Common/Server/Utils/AI/Sentinel/FixFromIncidentTaskTrigger.ts).
+   * Common/Server/Utils/AI/SRE/FixFromIncidentTaskTrigger.ts).
    */
   FixFromIncident = "FixFromIncident",
 }
@@ -70,7 +70,7 @@ export class CodeFixTaskTypeHelper {
    * server-rejected. ImproveInstrumentation, FixFromIncident and
    * FixPerformance stay off this list by design — they are not
    * exception-triggered at all: ImproveInstrumentation's trigger is an
-   * inconclusive Sentinel investigation on an opted-in project,
+   * inconclusive AI investigation on an opted-in project,
    * FixFromIncident is user-triggered from the investigation panel
    * (POST /ai-investigation/create-fix-task), and FixPerformance is
    * user-triggered from the trace view

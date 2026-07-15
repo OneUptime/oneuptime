@@ -9,7 +9,7 @@ export interface ComponentProps {
 }
 
 /*
- * Shared "this is an Enterprise feature" screen for the instance-health pages
+ * Shared "this is an Enterprise feature" screen for the OneUptime Health pages
  * that are gated behind the Enterprise Edition (overview, datastore health,
  * diagnostic logs, query console). Keeping the benefits list in one place keeps
  * every gated page consistent. The note reminds Community operators that the
@@ -22,7 +22,7 @@ const EnterpriseHealthUpgrade: FunctionComponent<ComponentProps> = (
   return (
     <div>
       <EnterpriseFeatureUpgrade
-        title="Instance health"
+        title="OneUptime Health"
         description="Operational health of this OneUptime instance."
         featureName={props.featureName}
         featureDescription={props.featureDescription}

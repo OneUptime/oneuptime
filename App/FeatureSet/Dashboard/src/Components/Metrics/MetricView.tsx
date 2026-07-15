@@ -33,6 +33,8 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import IconProp from "Common/Types/Icon/IconProp";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 
 const getFetchRelevantState: (data: MetricViewData) => unknown = (
   data: MetricViewData,
@@ -69,6 +71,57 @@ const getFetchRelevantState: (data: MetricViewData) => unknown = (
         };
       },
     ),
+  };
+};
+
+/*
+ * Align the chart's query window to the aggregation-bucket grid. The raw
+ * rolling window (e.g. "past 10 minutes") starts at an arbitrary mid-bucket
+ * instant, but the server snaps every point to whole-bucket boundaries
+ * (`toStartOfInterval`). That mismatch leaves the first partial bucket
+ * before the axis origin, so the plotted line can't begin until the next
+ * boundary — a visible empty gap at the left edge. Flooring the start onto
+ * the grid makes the first bucket complete and aligned with the axis, and
+ * the derived interval is pinned on the query so the slight widening can't
+ * shift the bucket size. The end is kept as-is so the latest in-progress
+ * bucket still shows. Returns the raw data unchanged when the window is
+ * missing/non-Date so callers stay defensive.
+ */
+const getAlignedWindowForData: (data: MetricViewData) => {
+  effectiveData: MetricViewData;
+  aggregationInterval: AggregationInterval | undefined;
+} = (
+  data: MetricViewData,
+): {
+  effectiveData: MetricViewData;
+  aggregationInterval: AggregationInterval | undefined;
+} => {
+  const start: Date | undefined = data.startAndEndDate?.startValue as
+    | Date
+    | undefined;
+  const end: Date | undefined = data.startAndEndDate?.endValue as
+    | Date
+    | undefined;
+
+  if (!(start instanceof Date) || !(end instanceof Date)) {
+    return { effectiveData: data, aggregationInterval: undefined };
+  }
+
+  const aligned: {
+    startDate: Date;
+    endDate: Date;
+    interval: AggregationInterval;
+  } = AggregationIntervalUtil.getIntervalAlignedWindow({
+    startDate: start,
+    endDate: end,
+  });
+
+  return {
+    effectiveData: {
+      ...data,
+      startAndEndDate: new InBetween<Date>(aligned.startDate, aligned.endDate),
+    },
+    aggregationInterval: aligned.interval,
   };
 };
 
@@ -214,10 +267,26 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const valueSearchSeqRef: React.MutableRefObject<Record<string, number>> =
     React.useRef<Record<string, number>>({});
 
+  /*
+   * The window used for the query and the chart is aligned to the bucket
+   * grid (see getAlignedWindowForData); the raw props.data is still used for
+   * the query/time editors so the user sees their exact selected range.
+   * Memoized on props.data so a stable window doesn't churn the fetch.
+   */
+  const { effectiveData, aggregationInterval } = React.useMemo(() => {
+    return getAlignedWindowForData(props.data);
+  }, [props.data]);
+
   const metricViewDataRef: React.MutableRefObject<MetricViewData> =
     React.useRef(props.data);
+  /*
+   * Seed from the already-memoized effectiveData (aligned window) so the
+   * first fetch-effect run sees an unchanged snapshot and doesn't duplicate
+   * the mount fetch. effectiveData is in scope above; referencing it here
+   * avoids re-running the alignment math on every render.
+   */
   const lastFetchSnapshotRef: React.MutableRefObject<string> = React.useRef(
-    JSON.stringify(getFetchRelevantState(props.data)),
+    JSON.stringify(getFetchRelevantState(effectiveData)),
   );
 
   useEffect(() => {
@@ -246,13 +315,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
     );
 
     const currentFetchSnapshot: string = JSON.stringify(
-      getFetchRelevantState(props.data),
+      getFetchRelevantState(effectiveData),
     );
 
     const shouldFetch: boolean =
       currentFetchSnapshot !== lastFetchSnapshotRef.current &&
-      Boolean(props.data?.startAndEndDate?.startValue) &&
-      Boolean(props.data?.startAndEndDate?.endValue);
+      Boolean(effectiveData?.startAndEndDate?.startValue) &&
+      Boolean(effectiveData?.startAndEndDate?.endValue);
 
     if (shouldFetch) {
       lastFetchSnapshotRef.current = currentFetchSnapshot;
@@ -264,7 +333,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
     if (hasChanged) {
       metricViewDataRef.current = props.data;
     }
-  }, [props.data]);
+  }, [props.data, effectiveData]);
 
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
@@ -549,15 +618,16 @@ const MetricView: FunctionComponent<ComponentProps> = (
       setIsMetricResultsLoading(true);
 
       if (
-        !props.data.startAndEndDate?.startValue ||
-        !props.data.startAndEndDate?.endValue
+        !effectiveData.startAndEndDate?.startValue ||
+        !effectiveData.startAndEndDate?.endValue
       ) {
         setIsMetricResultsLoading(false);
         return;
       }
       try {
         const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
-          metricViewData: props.data,
+          metricViewData: effectiveData,
+          aggregationInterval: aggregationInterval,
         });
 
         setMetricResults(results);
@@ -918,7 +988,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
               hideCard={props.hideCardInCharts}
               metricResults={metricResults}
               metricTypes={metricTypes}
-              metricViewData={props.data}
+              metricViewData={effectiveData}
               chartCssClass={props.chartCssClass}
             />
           </div>

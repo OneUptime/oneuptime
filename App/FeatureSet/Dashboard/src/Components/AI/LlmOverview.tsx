@@ -16,6 +16,7 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import IconProp from "Common/Types/Icon/IconProp";
 import StartAndEndDate, {
   StartAndEndDateType,
@@ -41,6 +42,10 @@ function sumBuckets(result: AggregatedResult): number {
   );
 }
 
+/*
+ * Thin wrapper over the shared InfoCard so every stat tile in the product
+ * (Home overview, monitor summaries, AI task outcomes) reads the same.
+ */
 const KpiCard: FunctionComponent<{
   label: string;
   value: string;
@@ -51,17 +56,19 @@ const KpiCard: FunctionComponent<{
   hint?: string | undefined;
 }): ReactElement => {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="text-[11px] uppercase tracking-wide text-gray-400">
-        {props.label}
-      </div>
-      <div className="mt-1 text-2xl font-semibold text-gray-900">
-        {props.value}
-      </div>
-      {props.hint ? (
-        <div className="mt-0.5 text-xs text-gray-400">{props.hint}</div>
-      ) : null}
-    </div>
+    <InfoCard
+      title={props.label}
+      value={
+        <div className="mt-1">
+          <div className="text-2xl font-semibold text-gray-900">
+            {props.value}
+          </div>
+          {props.hint ? (
+            <div className="mt-1 text-sm text-gray-500">{props.hint}</div>
+          ) : null}
+        </div>
+      }
+    />
   );
 };
 

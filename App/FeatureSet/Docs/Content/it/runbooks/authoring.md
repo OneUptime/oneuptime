@@ -58,6 +58,22 @@ Configura due cose in un passo Bash:
 
 Se l'agente selezionato è offline quando il runbook arriva a questo passo, il passo attende fino al **claim timeout** (default 2 minuti) e poi fallisce con `TimedOut`. Aggiungi un agente in **Runbook → Impostazioni → Agenti** prima di affidarti a un passo Bash.
 
+### AI
+
+Chiedi all'AI di analizzare, riassumere o decidere qualcosa durante l'esecuzione. Il prompt viene inviato al provider LLM del tuo progetto (**Impostazioni → AI → LLM Providers**) e la risposta del modello diventa l'output del passo nella timeline dell'esecuzione. I passi AI girano direttamente sul Worker OneUptime; non serve alcun agente.
+
+Configura in un passo AI:
+
+- **Prompt** — cosa deve fare l'AI. Per esempio: "Esamina l'output dei passi precedenti e indica se è sicuro procedere con la remediation."
+- **Includi il contesto dei passi precedenti** — se attivo, l'AI vede tutto ciò che riguarda i passi eseguiti prima di questo: titolo, tipo, stato, output e messaggi di errore.
+- **Includi il contesto del trigger** — se attivo, l'AI vede cosa ha avviato l'esecuzione: l'incidente, l'allarme o la manutenzione programmata collegati (descrizione, gravità, stato corrente, monitor interessati, causa principale, timeline degli stati e note pubbliche), oppure chi ha eseguito il runbook manualmente.
+
+Abbina un passo AI a **Richiede approvazione** per mettere un umano nel loop: l'AI analizza, chi risponde legge la sua risposta e approva, e solo allora parte il passo successivo (di remediation).
+
+**Cosa l'AI non vede mai.** La risposta di un passo AI viene salvata come output del passo sull'esecuzione, e le esecuzioni sono leggibili da chiunque abbia il permesso di lettura sui runbook — un pubblico più ampio della ACL dell'incidente. Per questo il contesto del trigger esclude deliberatamente le **note interne private** e i **messaggi dei canali Slack/Teams**: restano dentro l'incidente, dove gli attuali generatori di postmortem e di note conservano il testo che ne derivano. L'output dei passi precedenti viene analizzato alla ricerca di segreti (token, chiavi, credenziali) e redatto prima di essere inviato al modello.
+
+I passi AI sono conteggiati e fatturati come ogni altra funzionalità AI. Se non è configurato alcun provider LLM per il progetto, il passo fallisce con un errore chiaro (imposta **Continua in caso di errore** se il resto del runbook deve comunque girare).
+
 ## Salvare e modificare
 
 Clicca **Salva passi** per persistere. Le esecuzioni in corso di versioni precedenti del runbook non vengono toccate — continuano a usare il loro snapshot.

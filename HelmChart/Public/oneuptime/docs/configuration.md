@@ -128,6 +128,7 @@ features. See the full [Local AI with vLLM](ai-vllm.md) guide.
 |------------------------------------|------------------------------------------|---------|
 | `extraTemplates`                   | Extra templates to add to the deployment.| `[]`    |
 | `script.workflowScriptTimeoutInMs` | Timeout for workflow scripts.            | `5000`  |
+| `script.workflowTimeoutInMs`       | Wall-clock timeout for a workflow execution attempt. | `120000` |
 | `dnsConfig`                        | Chart-wide fallback pod `dnsConfig` used by services that support DNS overrides (currently the probes) when they don't set their own. Ships an `ndots:1` + fallback-nameservers default to avoid `getaddrinfo EAI_AGAIN` — see [Probes](#probes). | `ndots:1` + `8.8.8.8`/`1.1.1.1` |
 | `dnsPolicy`                        | Chart-wide fallback pod `dnsPolicy`. Left unset so Kubernetes uses `ClusterFirst` (in-cluster API keeps resolving). | `nil`   |
 

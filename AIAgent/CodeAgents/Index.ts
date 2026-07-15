@@ -13,4 +13,3 @@ export {
 
 export { default as CodeAgentFactory } from "./CodeAgentFactory";
 export { default as InHouseCodeAgent } from "./InHouseCodeAgent";
-export { default as OpenCodeAgent } from "./OpenCodeAgent";

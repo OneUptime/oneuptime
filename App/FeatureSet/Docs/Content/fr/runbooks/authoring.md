@@ -58,6 +58,22 @@ Configurez deux choses sur une étape Bash :
 
 Si l'agent sélectionné est hors ligne lorsque le runbook atteint cette étape, l'étape attend jusqu'au **claim timeout** (par défaut 2 minutes) puis échoue avec `TimedOut`. Ajoutez un agent dans **Runbooks → Paramètres → Agents** avant de dépendre d'une étape Bash.
 
+### AI
+
+Demandez à l'IA d'analyser, de résumer ou de décider quelque chose en cours d'exécution. Le prompt est envoyé au fournisseur LLM de votre projet (**Paramètres → AI → LLM Providers**) et la réponse du modèle devient la sortie de l'étape sur la chronologie d'exécution. Les étapes AI tournent sur le Worker OneUptime ; aucun agent requis.
+
+Configurez sur une étape AI :
+
+- **Prompt** — ce que l'IA doit faire. Par exemple : « Examine la sortie des étapes précédentes et indique s'il est sûr de poursuivre la remédiation. »
+- **Inclure le contexte des étapes précédentes** — si activé, l'IA voit tout ce qui concerne les étapes exécutées avant celle-ci : titre, type, statut, sortie et messages d'erreur.
+- **Inclure le contexte du déclencheur** — si activé, l'IA voit ce qui a démarré l'exécution : l'incident, l'alerte ou l'événement de maintenance planifiée lié (sa description, sa gravité, son état actuel, les moniteurs affectés, la cause racine, la chronologie des états et les notes publiques), ou qui a lancé le runbook manuellement.
+
+Combinez une étape AI avec **Exiger une approbation** pour garder un humain dans la boucle : l'IA analyse, un répondeur lit sa réponse et approuve, et alors seulement l'étape suivante (de remédiation) s'exécute.
+
+**Ce que l'IA ne voit jamais.** La réponse d'une étape AI est stockée comme sortie d'étape sur l'exécution, et les exécutions sont lisibles par toute personne disposant de la permission de lecture des runbooks — un public plus large que l'ACL de l'incident. Le contexte du déclencheur exclut donc délibérément les **notes internes privées** et les **messages des canaux Slack/Teams** : ils restent à l'intérieur de l'incident, où les générateurs existants de post-mortems et de notes conservent leur texte dérivé. La sortie des étapes précédentes est analysée à la recherche de secrets (tokens, clés, identifiants) et caviardée avant d'être envoyée au modèle.
+
+Les étapes AI sont mesurées et facturées comme toute autre fonctionnalité d'IA. Si aucun fournisseur LLM n'est configuré pour le projet, l'étape échoue avec une erreur claire (activez **Continuer en cas d'échec** si le reste du runbook doit quand même s'exécuter).
+
 ## Sauvegarde et édition
 
 Cliquez sur **Enregistrer les étapes** pour persister. Les exécutions en cours d'anciennes versions du runbook ne sont pas affectées — elles continuent avec leur snapshot.

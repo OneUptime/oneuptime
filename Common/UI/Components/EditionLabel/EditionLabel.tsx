@@ -1,5 +1,5 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
-import Icon, { IconType, SizeProp } from "../Icon/Icon";
+import Icon, { IconType } from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Input from "../Input/Input";
 import Button, { ButtonStyleType } from "../Button/Button";
@@ -34,6 +34,19 @@ export interface ComponentProps {
 }
 
 const ENTERPRISE_URL: string = "https://oneuptime.com/enterprise/demo";
+const SALES_EMAIL: string = "sales@oneuptime.com";
+const SALES_MAILTO_URL: string = "mailto:sales@oneuptime.com";
+
+/*
+ * Seat usage at or above this percent asks the admin to talk to OneUptime about
+ * expanding. Matches CRITICAL_CAPACITY_PERCENT in
+ * App/FeatureSet/Workers/Jobs/InstanceHealth/EvaluateClickhouseCapacity.ts.
+ */
+const SEAT_WARNING_PERCENT: number = 90;
+
+type SeatTone = "healthy" | "approaching" | "breached";
+
+type PillTone = "normal" | "warning" | "alerted";
 
 type ParseLicenseInstancesFunction = (
   value: unknown,
@@ -310,7 +323,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     return currentUserCount > userLimit;
   }, [licenseValid, userLimit, currentUserCount]);
 
-  const userUsagePercent: number | null = useMemo(() => {
+  /*
+   * Unclamped and unrounded. The only value that can tell 120/120 apart from
+   * 240/120. Null means there is no seat limit to measure against, either
+   * because the license is unlimited or because usage has not been reported.
+   */
+  const rawUserUsagePercent: number | null = useMemo(() => {
     if (typeof userLimit !== "number" || userLimit <= 0) {
       return null;
     }
@@ -319,11 +337,164 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return null;
     }
 
-    return Math.min(
-      100,
-      Math.max(0, Math.round((currentUserCount / userLimit) * 100)),
-    );
+    return Math.max(0, (currentUserCount / userLimit) * 100);
   }, [userLimit, currentUserCount]);
+
+  /*
+   * The percent the admin reads, and the one the warning fires on. May exceed
+   * 100 so a breach shows a real figure. Floored to 99 when rounding would
+   * claim 100% while a seat is genuinely free, so 599/600 never reads
+   * "100% of licensed seats in use" next to "1 seat remaining".
+   */
+  const seatUsageDisplayPercent: number | null = useMemo(() => {
+    if (rawUserUsagePercent === null) {
+      return null;
+    }
+
+    const rounded: number = Math.round(rawUserUsagePercent);
+
+    if (rounded >= 100 && rawUserUsagePercent < 100) {
+      return 99;
+    }
+
+    return rounded;
+  }, [rawUserUsagePercent]);
+
+  /*
+   * The displayed percent clamped to 0-100. Drives the bar width and
+   * aria-valuenow, so the fill can never overflow its track and aria-valuenow
+   * can never exceed aria-valuemax. Derived from the displayed percent rather
+   * than the raw ratio so the fill always agrees with the caption beneath it:
+   * 599/600 reads 99% and fills to 99%, not to a visually full 100%. The true
+   * figure for a breach goes in aria-valuetext.
+   */
+  const seatUsageBarPercent: number = useMemo(() => {
+    if (seatUsageDisplayPercent === null) {
+      return 0;
+    }
+
+    return Math.min(100, Math.max(0, seatUsageDisplayPercent));
+  }, [seatUsageDisplayPercent]);
+
+  const seatsRemaining: number | null = useMemo(() => {
+    if (typeof userLimit !== "number" || userLimit <= 0) {
+      return null;
+    }
+
+    if (typeof currentUserCount !== "number") {
+      return null;
+    }
+
+    return userLimit - currentUserCount;
+  }, [userLimit, currentUserCount]);
+
+  const seatsRemainingText: string = useMemo(() => {
+    if (typeof seatsRemaining !== "number") {
+      return "";
+    }
+
+    if (seatsRemaining > 0) {
+      return `${seatsRemaining.toLocaleString()} ${
+        seatsRemaining === 1 ? "seat" : "seats"
+      } remaining`;
+    }
+
+    if (seatsRemaining === 0) {
+      return "No seats remaining";
+    }
+
+    return `${Math.abs(seatsRemaining).toLocaleString()} over limit`;
+  }, [seatsRemaining]);
+
+  /*
+   * Total and mutually exclusive. isUserLimitBreached is tested first, so
+   * reaching the >= 90 test structurally guarantees the limit is not exceeded
+   * and the amber nudge can never co-fire with the red breach.
+   *
+   * The test runs on the displayed percent rather than the raw ratio so that
+   * the number triggering the warning is the number printed under the bar.
+   */
+  const seatTone: SeatTone = useMemo(() => {
+    if (!licenseValid) {
+      return "healthy";
+    }
+
+    if (isUserLimitBreached) {
+      return "breached";
+    }
+
+    if (
+      typeof seatUsageDisplayPercent === "number" &&
+      seatUsageDisplayPercent >= SEAT_WARNING_PERCENT
+    ) {
+      return "approaching";
+    }
+
+    return "healthy";
+  }, [licenseValid, isUserLimitBreached, seatUsageDisplayPercent]);
+
+  /*
+   * Copy containing apostrophes lives in string literals rather than JSX text,
+   * because react/no-unescaped-entities is enforced in this repo.
+   */
+  const seatAdvisoryTitle: string = useMemo(() => {
+    if (seatTone === "breached") {
+      const over: number = Math.abs(seatsRemaining || 0);
+
+      return over === 1
+        ? "1 user over your licensed seats"
+        : `${over.toLocaleString()} users over your licensed seats`;
+    }
+
+    if (seatTone === "approaching") {
+      if (seatsRemaining === 0) {
+        return "Every licensed seat is in use";
+      }
+
+      return seatsRemaining === 1
+        ? "Only 1 seat left on your license"
+        : `Only ${(seatsRemaining || 0).toLocaleString()} seats left on your license`;
+    }
+
+    return "";
+  }, [seatTone, seatsRemaining]);
+
+  const seatAdvisoryBody: string = useMemo(() => {
+    const limitText: string = (userLimit || 0).toLocaleString();
+    const inUse: string = `${(currentUserCount || 0).toLocaleString()} of ${limitText}`;
+
+    if (seatTone === "breached") {
+      return `This installation is using ${inUse} licensed seats. Expand your license so it covers everyone on the platform.`;
+    }
+
+    if (seatTone === "approaching") {
+      return `You're using ${inUse} licensed seats. Anyone you add beyond ${limitText} puts this installation over its licensed limit — if more people are joining, it's worth talking to OneUptime about expanding now.`;
+    }
+
+    return "";
+  }, [seatTone, currentUserCount, userLimit]);
+
+  const seatUsageAriaValueText: string = useMemo(() => {
+    if (typeof seatUsageDisplayPercent !== "number") {
+      return "";
+    }
+
+    if (seatTone === "breached") {
+      return `${seatUsageDisplayPercent}% of licensed seats in use — ${seatAdvisoryTitle}`;
+    }
+
+    if (typeof seatsRemaining === "number") {
+      return `${seatUsageDisplayPercent}% of licensed seats in use — ${seatsRemainingText}`;
+    }
+
+    return `${seatUsageDisplayPercent}% of licensed seats in use`;
+  }, [
+    seatUsageDisplayPercent,
+    seatTone,
+    seatAdvisoryTitle,
+    seatsRemaining,
+    seatsRemainingText,
+  ]);
 
   const editionName: string = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
@@ -352,12 +523,16 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return "bg-red-500";
     }
 
-    if (isUserLimitBreached) {
+    if (seatTone === "breached") {
       return "bg-red-500";
     }
 
+    if (seatTone === "approaching") {
+      return "bg-amber-500";
+    }
+
     return "bg-emerald-500";
-  }, [isConfigLoading, licenseValid, isUserLimitBreached]);
+  }, [isConfigLoading, licenseValid, seatTone]);
 
   const ctaLabel: string = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
@@ -372,12 +547,109 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return "Validate license";
     }
 
-    if (isUserLimitBreached) {
+    if (seatTone === "breached") {
       return "User limit exceeded";
     }
 
+    if (seatTone === "approaching") {
+      return "Seats nearly full";
+    }
+
     return "View details";
+  }, [isConfigLoading, licenseValid, seatTone]);
+
+  const pillTone: PillTone = useMemo(() => {
+    if (!IS_ENTERPRISE_EDITION || isConfigLoading) {
+      return "normal";
+    }
+
+    if (
+      seatTone === "breached" ||
+      (!licenseValid && Boolean(globalConfig?.enterpriseLicenseKey))
+    ) {
+      return "alerted";
+    }
+
+    if (seatTone === "approaching") {
+      return "warning";
+    }
+
+    return "normal";
+  }, [
+    isConfigLoading,
+    licenseValid,
+    seatTone,
+    globalConfig?.enterpriseLicenseKey,
+  ]);
+
+  const modalIcon: IconProp = useMemo(() => {
+    if (!IS_ENTERPRISE_EDITION || isConfigLoading) {
+      return IconProp.Cube;
+    }
+
+    if (!licenseValid || isUserLimitBreached) {
+      return IconProp.Alert;
+    }
+
+    return IconProp.ShieldCheck;
   }, [isConfigLoading, licenseValid, isUserLimitBreached]);
+
+  const modalIconType: IconType = useMemo(() => {
+    if (!IS_ENTERPRISE_EDITION || isConfigLoading) {
+      return IconType.Info;
+    }
+
+    if (!licenseValid || isUserLimitBreached) {
+      return IconType.Danger;
+    }
+
+    return IconType.Success;
+  }, [isConfigLoading, licenseValid, isUserLimitBreached]);
+
+  const modalDescription: string = useMemo(() => {
+    if (!IS_ENTERPRISE_EDITION) {
+      return "You are running the free, open-source build of OneUptime.";
+    }
+
+    if (isConfigLoading) {
+      return "Checking your license with OneUptime...";
+    }
+
+    if (!licenseValid) {
+      return "Validate your license key to activate Enterprise Edition.";
+    }
+
+    return "License, seat usage, and the instances covered by this key.";
+  }, [isConfigLoading, licenseValid]);
+
+  /*
+   * The per-instance counts only exceed the unique total when someone actually
+   * appears on more than one instance, and the component cannot know whether
+   * they do — it receives per-instance counts and the unique total separately.
+   * So the summation is stated as a possibility, and is dropped entirely when
+   * there is no unique total to compare against. It names the unique user count
+   * rather than "the total above", which would be ambiguous next to a hero
+   * reading "119 / 120 seats".
+   */
+  const instanceOverlapText: string = useMemo(() => {
+    const countingRule: string = `Seats are counted uniquely across all ${licenseInstances.length} instances that share this license — the same person on multiple instances uses one seat.`;
+
+    if (typeof currentUserCount !== "number") {
+      return countingRule;
+    }
+
+    return `${countingRule} Per-instance counts can therefore add up to more than the ${currentUserCount.toLocaleString()} unique ${
+      currentUserCount === 1 ? "user" : "users"
+    } counted above.`;
+  }, [licenseInstances.length, currentUserCount]);
+
+  const licenseKeyHelperText: string = useMemo(() => {
+    if (isChangingLicense) {
+      return "Enter the new enterprise license key and validate it to replace the current one. Your existing license stays active until the new key is validated.";
+    }
+
+    return "You have installed Enterprise Edition of OneUptime. You need to validate your license key. Need a license key? Contact our sales team at";
+  }, [isChangingLicense]);
 
   const communityFeatures: Array<string> = useMemo(() => {
     return [
@@ -438,6 +710,38 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     closeDialog();
+  };
+
+  type BuildSeatExpansionMailtoFunction = () => string;
+
+  const buildSeatExpansionMailto: BuildSeatExpansionMailtoFunction =
+    (): string => {
+      const subject: string =
+        seatTone === "breached"
+          ? "Expand OneUptime license - over seat limit"
+          : "Expand OneUptime license - nearly out of seats";
+
+      const body: string = [
+        "Hi OneUptime,",
+        "",
+        "We would like to expand the seat count on our enterprise license.",
+        "",
+        `Company: ${globalConfig?.enterpriseCompanyName || "Not specified"}`,
+        `Seats in use: ${(currentUserCount || 0).toLocaleString()} of ${(
+          userLimit || 0
+        ).toLocaleString()}`,
+        `Instances on this license: ${licenseInstances.length}`,
+      ].join("\n");
+
+      return `${SALES_MAILTO_URL}?subject=${encodeURIComponent(
+        subject,
+      )}&body=${encodeURIComponent(body)}`;
+    };
+
+  const handleRequestMoreSeats: () => void = () => {
+    if (typeof window !== "undefined") {
+      window.location.href = buildSeatExpansionMailto();
+    }
   };
 
   const runLicenseValidation: (
@@ -514,6 +818,27 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   const shouldShowEnterpriseValidationButton: boolean = showLicenseKeyInput;
 
+  /*
+   * Collapses the !configError && !isConfigLoading && licenseValid chain that
+   * gates the stat strip, the seat card and the instances card.
+   */
+  const showLicenseDetails: boolean =
+    IS_ENTERPRISE_EDITION && !configError && !isConfigLoading && licenseValid;
+
+  const showEnterpriseFeatureList: boolean =
+    IS_ENTERPRISE_EDITION && !configError && !isConfigLoading && !licenseValid;
+
+  /*
+   * GlobalConfigAPI returns userLimit and currentUserCount to anonymous callers
+   * because the same route serves the signed-out login page, and gates only
+   * licenseKey, token, instances and instanceId on isAuthenticatedUser. Gate
+   * the sales ask on a field the server does redact, so a signed-out visitor is
+   * never shown an administrator-targeted CTA.
+   */
+  const canSeeLicenseAdmin: boolean = Boolean(
+    globalConfig?.enterpriseLicenseKey,
+  );
+
   const modalSubmitButtonText: string | undefined = IS_ENTERPRISE_EDITION
     ? shouldShowEnterpriseValidationButton
       ? "Validate License"
@@ -537,19 +862,56 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       : undefined
     : false;
 
-  const showAlertedPill: boolean =
-    IS_ENTERPRISE_EDITION &&
-    !isConfigLoading &&
-    (isUserLimitBreached ||
-      (!licenseValid && Boolean(globalConfig?.enterpriseLicenseKey)));
+  const modalRightElement: ReactElement | undefined = showLicenseDetails ? (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+        seatTone === "breached"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : seatTone === "approaching"
+            ? "border-amber-200 bg-amber-50 text-amber-800"
+            : "border-emerald-200 bg-emerald-50 text-emerald-800"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+          seatTone === "breached"
+            ? "bg-red-500"
+            : seatTone === "approaching"
+              ? "bg-amber-500"
+              : "bg-emerald-500"
+        }`}
+      />
+      {seatTone === "breached"
+        ? "Seat limit exceeded"
+        : seatTone === "approaching"
+          ? "Seats nearly full"
+          : "License active"}
+    </span>
+  ) : undefined;
 
-  const pillClassName: string = showAlertedPill
-    ? "group inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-    : "group inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white px-3 py-1 text-xs font-medium text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+  const modalLeftFooterElement: ReactElement | undefined =
+    showLicenseDetails && !isChangingLicense ? (
+      <Button
+        title="Change license key"
+        icon={IconProp.Edit}
+        buttonStyle={ButtonStyleType.NORMAL}
+        onClick={handleStartChangingLicense}
+      />
+    ) : undefined;
 
-  const pillCtaTextClassName: string = showAlertedPill
-    ? "text-[11px] text-red-500 group-hover:text-red-600"
-    : "text-[11px] text-indigo-500 group-hover:text-indigo-600";
+  const pillClassName: string =
+    pillTone === "alerted"
+      ? "group inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+      : pillTone === "warning"
+        ? "group inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 shadow-sm transition hover:border-amber-300 hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+        : "group inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white px-3 py-1 text-xs font-medium text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+
+  const pillCtaTextClassName: string =
+    pillTone === "alerted"
+      ? "text-[11px] text-red-500 group-hover:text-red-600"
+      : pillTone === "warning"
+        ? "text-[11px] text-amber-600 group-hover:text-amber-700"
+        : "text-[11px] text-indigo-500 group-hover:text-indigo-600";
 
   return (
     <>
@@ -564,11 +926,16 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
          */
         aria-label={`${editionName}, ${ctaLabel}`}
       >
-        {showAlertedPill && (
+        {pillTone !== "normal" && (
           <Icon
-            icon={IconProp.Alert}
-            size={SizeProp.Small}
-            className="text-red-600"
+            icon={
+              pillTone === "alerted"
+                ? IconProp.Alert
+                : IconProp.ExclaimationCircle
+            }
+            className={`h-3 w-3 ${
+              pillTone === "alerted" ? "text-red-600" : "text-amber-600"
+            }`}
           />
         )}
         <span
@@ -581,353 +948,479 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       {isDialogOpen && (
         <Modal
           title={editionName}
+          description={modalDescription}
+          icon={modalIcon}
+          iconType={modalIconType}
+          rightElement={modalRightElement}
           submitButtonText={modalSubmitButtonText}
           closeButtonText="Close"
           onClose={closeDialog}
           onSubmit={modalOnSubmit}
-          modalWidth={ModalWidth.Large}
+          modalWidth={ModalWidth.Medium}
           isLoading={modalIsLoading}
           disableSubmitButton={modalDisableSubmitButton}
           isBodyLoading={IS_ENTERPRISE_EDITION ? isConfigLoading : false}
+          leftFooterElement={modalLeftFooterElement}
         >
-          <div className="space-y-3 text-sm text-gray-600">
+          <div className="space-y-4 text-sm text-gray-600">
             {IS_ENTERPRISE_EDITION ? (
               <>
+                {!configError && successMessage && (
+                  <Alert type={AlertType.SUCCESS} title={successMessage} />
+                )}
+
                 {configError && (
-                  <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                    <p className="font-semibold">
-                      Unable to load license details
-                    </p>
-                    <p className="mt-1">{configError}</p>
-                    <div className="mt-3 -ml-3">
-                      <Button
-                        title="Retry"
-                        buttonStyle={ButtonStyleType.DANGER}
-                        onClick={handleRetryFetch}
-                        isLoading={isConfigLoading}
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                    <div className="flex items-start gap-2.5">
+                      <Icon
+                        icon={IconProp.Alert}
+                        className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
                       />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-red-900">
+                          Unable to load license details
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-red-800">
+                          {configError}
+                        </p>
+                        <div className="mt-3">
+                          <Button
+                            title="Try again"
+                            buttonStyle={ButtonStyleType.DANGER}
+                            onClick={handleRetryFetch}
+                            isLoading={isConfigLoading}
+                            className="!mt-0 md:!ml-0"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {!configError && !isConfigLoading && licenseValid && (
-                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-                    <p className="font-semibold">License verified</p>
-                    <p className="mt-1">
-                      <span className="font-medium">Company:</span>{" "}
-                      {globalConfig?.enterpriseCompanyName || "Not specified"}
-                    </p>
-                    {licenseExpiresAtText && (
-                      <p>
-                        <span className="font-medium">Expires:</span>{" "}
-                        {licenseExpiresAtText}
-                      </p>
-                    )}
-                  </div>
+                {showLicenseDetails && (
+                  <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-2">
+                    <div className="min-w-0 bg-white px-4 py-3">
+                      <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                        Licensed to
+                      </dt>
+                      <dd
+                        className="mt-1 truncate text-sm font-medium text-gray-900"
+                        title={globalConfig?.enterpriseCompanyName || undefined}
+                      >
+                        {globalConfig?.enterpriseCompanyName || "Not specified"}
+                      </dd>
+                    </div>
+                    <div className="bg-white px-4 py-3">
+                      <dt className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                        Expires
+                      </dt>
+                      <dd className="mt-1 text-sm font-medium tabular-nums text-gray-900">
+                        {licenseExpiresAtText || "—"}
+                      </dd>
+                    </div>
+                  </dl>
                 )}
 
-                {!configError && !isConfigLoading && licenseValid && (
-                  <div
-                    className={`rounded-lg border p-4 shadow-sm ${
-                      isUserLimitBreached
-                        ? "border-red-200 bg-red-50"
-                        : "border-gray-200 bg-white"
-                    }`}
+                {showLicenseDetails && (
+                  <section
+                    aria-labelledby="edition-seats-heading"
+                    className="rounded-xl border border-gray-200 bg-white p-5"
                   >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                          isUserLimitBreached
-                            ? "bg-red-100 text-red-600"
-                            : "bg-indigo-100 text-indigo-600"
-                        }`}
-                      >
-                        <Icon
-                          icon={
-                            isUserLimitBreached ? IconProp.Alert : IconProp.User
-                          }
-                          size={SizeProp.Regular}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h3
-                            className={`text-sm font-semibold ${
-                              isUserLimitBreached
-                                ? "text-red-900"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            User Usage
-                          </h3>
-                          {isUserLimitBreached && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                              Limit exceeded
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="mt-2 flex items-baseline gap-1">
-                          <span
-                            className={`text-2xl font-semibold ${
-                              isUserLimitBreached
-                                ? "text-red-700"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {typeof currentUserCount === "number"
-                              ? currentUserCount.toLocaleString()
-                              : "—"}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {" / "}
-                            {typeof userLimit === "number" && userLimit > 0
-                              ? `${userLimit.toLocaleString()} users`
-                              : "unlimited"}
-                          </span>
-                        </div>
-
-                        {typeof userUsagePercent === "number" && (
-                          <div className="mt-3">
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  isUserLimitBreached
-                                    ? "bg-red-500"
-                                    : userUsagePercent >= 80
-                                      ? "bg-amber-500"
-                                      : "bg-emerald-500"
-                                }`}
-                                style={{ width: `${userUsagePercent}%` }}
-                              />
-                            </div>
-                            <p className="mt-1 text-xs text-gray-500">
-                              {userUsagePercent}% of licensed seats in use
-                            </p>
-                          </div>
-                        )}
-
-                        {isUserLimitBreached && (
-                          <p className="mt-3 text-xs text-red-700">
-                            Your installation has more users than your license
-                            permits. Please contact{" "}
-                            <a
-                              href="mailto:sales@oneuptime.com"
-                              className="font-medium text-red-800 underline hover:text-red-900"
-                            >
-                              sales@oneuptime.com
-                            </a>{" "}
-                            to expand your license.
-                          </p>
-                        )}
-
-                        {licenseInstances.length > 1 && (
-                          <p className="mt-3 text-xs text-gray-500">
-                            Users are counted uniquely across all{" "}
-                            {licenseInstances.length} instances that share this
-                            license — the same user on multiple instances uses
-                            one seat.
-                          </p>
-                        )}
-
-                        <p className="mt-3 text-xs text-gray-500">
-                          {userCountUpdatedAtText
-                            ? `Last reported to OneUptime on ${userCountUpdatedAtText}.`
-                            : "User count has not been reported to OneUptime yet. The first report will be sent within 24 hours."}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <h4
+                          id="edition-seats-heading"
+                          className="text-sm font-semibold text-gray-900"
+                        >
+                          Licensed seats
+                        </h4>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          Unique users across every instance on this license.
                         </p>
                       </div>
+                      {seatTone !== "healthy" && (
+                        <span
+                          className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                            seatTone === "breached"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {seatTone === "breached"
+                            ? "Limit exceeded"
+                            : "Nearly full"}
+                        </span>
+                      )}
                     </div>
-                  </div>
+
+                    <div className="mt-4 flex items-end justify-between gap-4">
+                      <p className="flex items-baseline gap-1.5">
+                        <span
+                          className={`text-3xl font-semibold leading-none tabular-nums ${
+                            typeof currentUserCount !== "number"
+                              ? "text-gray-300"
+                              : seatTone === "breached"
+                                ? "text-red-700"
+                                : "text-gray-900"
+                          }`}
+                        >
+                          {typeof currentUserCount === "number"
+                            ? currentUserCount.toLocaleString()
+                            : "—"}
+                        </span>
+                        <span className="text-sm tabular-nums text-gray-500">
+                          {" / "}
+                          {typeof userLimit === "number" && userLimit > 0
+                            ? `${userLimit.toLocaleString()} seats`
+                            : "unlimited"}
+                        </span>
+                      </p>
+                      {typeof seatsRemaining === "number" && (
+                        <p
+                          className={`text-xs font-medium tabular-nums ${
+                            seatTone === "breached"
+                              ? "text-red-700"
+                              : seatTone === "approaching"
+                                ? "text-amber-700"
+                                : "text-gray-500"
+                          }`}
+                        >
+                          {seatsRemainingText}
+                        </p>
+                      )}
+                    </div>
+
+                    {typeof seatUsageDisplayPercent === "number" && (
+                      <div className="mt-2.5">
+                        <div
+                          className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100"
+                          role="progressbar"
+                          aria-label="Licensed seat usage"
+                          aria-valuenow={seatUsageBarPercent}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuetext={seatUsageAriaValueText}
+                        >
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ease-out ${
+                              seatTone === "breached"
+                                ? "bg-red-500"
+                                : seatTone === "approaching"
+                                  ? "bg-amber-500"
+                                  : "bg-emerald-500"
+                            }`}
+                            style={{ width: `${seatUsageBarPercent}%` }}
+                          />
+                        </div>
+                        <p className="mt-1.5 text-xs tabular-nums text-gray-500">
+                          {seatUsageDisplayPercent}% of licensed seats in use
+                        </p>
+                      </div>
+                    )}
+
+                    {seatTone !== "healthy" && canSeeLicenseAdmin && (
+                      <div
+                        role={seatTone === "breached" ? "alert" : "status"}
+                        className={`mt-4 rounded-lg border p-3.5 ${
+                          seatTone === "breached"
+                            ? "border-red-200 bg-red-50"
+                            : "border-amber-200 bg-amber-50"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          {/*
+                           * Colour comes from className only. Never add a type
+                           * prop here: Icon emits both the type colour and
+                           * className into one class attribute, so two colour
+                           * classes would land on one svg and Tailwind's
+                           * emission order would pick the winner.
+                           */}
+                          <Icon
+                            icon={
+                              seatTone === "breached"
+                                ? IconProp.Alert
+                                : IconProp.ExclaimationCircle
+                            }
+                            className={`mt-0.5 h-4 w-4 shrink-0 ${
+                              seatTone === "breached"
+                                ? "text-red-600"
+                                : "text-amber-600"
+                            }`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <h5
+                              className={`text-sm font-semibold ${
+                                seatTone === "breached"
+                                  ? "text-red-900"
+                                  : "text-amber-900"
+                              }`}
+                            >
+                              {seatAdvisoryTitle}
+                            </h5>
+                            <p
+                              className={`mt-1 text-xs leading-relaxed ${
+                                seatTone === "breached"
+                                  ? "text-red-800"
+                                  : "text-amber-800"
+                              }`}
+                            >
+                              {seatAdvisoryBody}
+                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                              <Button
+                                title={
+                                  seatTone === "breached"
+                                    ? "Expand your license"
+                                    : "Request more seats"
+                                }
+                                icon={IconProp.Email}
+                                buttonStyle={
+                                  seatTone === "breached"
+                                    ? ButtonStyleType.DANGER
+                                    : ButtonStyleType.PRIMARY
+                                }
+                                onClick={handleRequestMoreSeats}
+                                className="!mt-0 md:!ml-0"
+                              />
+                              <span
+                                className={`text-[11px] ${
+                                  seatTone === "breached"
+                                    ? "text-red-700"
+                                    : "text-amber-700"
+                                }`}
+                              >
+                                Or email{" "}
+                                <a
+                                  href={SALES_MAILTO_URL}
+                                  className={`font-medium underline ${
+                                    seatTone === "breached"
+                                      ? "text-red-800 hover:text-red-900"
+                                      : "text-amber-900 hover:text-amber-950"
+                                  }`}
+                                >
+                                  {SALES_EMAIL}
+                                </a>{" "}
+                                directly.
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-4 border-t border-gray-100 pt-3">
+                      <p className="text-xs text-gray-500">
+                        {userCountUpdatedAtText
+                          ? `Last reported to OneUptime on ${userCountUpdatedAtText}.`
+                          : "User count has not been reported to OneUptime yet. The first report will be sent within 24 hours."}
+                      </p>
+                    </div>
+                  </section>
                 )}
 
-                {!configError &&
-                  !isConfigLoading &&
-                  licenseValid &&
-                  licenseInstances.length > 0 && (
-                    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-gray-900">
-                          Instances using this license
-                        </h3>
-                        <span className="text-xs text-gray-500">
-                          {licenseInstances.length}{" "}
-                          {licenseInstances.length === 1
-                            ? "instance"
-                            : "instances"}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-gray-500">
-                        Use the same license key on every instance you deploy
-                        (staging, production, and so on). Each instance reports
-                        its usage daily.
+                {showLicenseDetails && licenseInstances.length > 0 && (
+                  <section
+                    aria-labelledby="edition-instances-heading"
+                    className="rounded-xl border border-gray-200 bg-white p-5"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h4
+                        id="edition-instances-heading"
+                        className="text-sm font-semibold text-gray-900"
+                      >
+                        Instances on this license
+                      </h4>
+                      <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600">
+                        {licenseInstances.length}{" "}
+                        {licenseInstances.length === 1
+                          ? "instance"
+                          : "instances"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                      Use the same license key on every instance you deploy
+                      (staging, production, and so on). Each instance reports
+                      its usage daily.
+                    </p>
+                    {licenseInstances.length > 1 && (
+                      <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
+                        {instanceOverlapText}
                       </p>
-                      <ul className="mt-3 divide-y divide-gray-100">
-                        {licenseInstances.map(
-                          (
-                            instance: EnterpriseLicenseInstanceSummary,
-                            index: number,
-                          ) => {
-                            const isThisInstance: boolean =
-                              Boolean(thisInstanceId) &&
-                              instance.instanceId === thisInstanceId;
+                    )}
+                    <ul className="mt-3 divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
+                      {licenseInstances.map(
+                        (
+                          instance: EnterpriseLicenseInstanceSummary,
+                          index: number,
+                        ) => {
+                          const isThisInstance: boolean =
+                            Boolean(thisInstanceId) &&
+                            instance.instanceId === thisInstanceId;
 
-                            return (
-                              <li
-                                key={instance.instanceId || index}
-                                className="flex items-center justify-between gap-3 py-2"
-                              >
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-medium text-gray-900">
+                          return (
+                            <li
+                              key={instance.instanceId || index}
+                              className="flex items-center justify-between gap-4 bg-white px-3 py-2.5 transition-colors hover:bg-gray-50"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span
+                                    className="truncate text-sm font-medium text-gray-900"
+                                    title={instance.host || "Unknown host"}
+                                  >
                                     {instance.host || "Unknown host"}
-                                    {isThisInstance && (
-                                      <span className="ml-2 inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                                        This instance
-                                      </span>
-                                    )}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {formatInstanceReportedAt(
-                                      instance.lastReportedAt,
-                                    )}
-                                  </p>
+                                  </span>
+                                  {isThisInstance && (
+                                    <span className="shrink-0 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700">
+                                      This instance
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="shrink-0 text-right text-sm text-gray-700">
-                                  {typeof instance.userCount === "number"
-                                    ? `${instance.userCount.toLocaleString()} ${
-                                        instance.userCount === 1
-                                          ? "user"
-                                          : "users"
-                                      }`
-                                    : "—"}
-                                </div>
-                              </li>
-                            );
-                          },
-                        )}
-                      </ul>
-                    </div>
-                  )}
-
-                {!configError &&
-                  !isConfigLoading &&
-                  licenseValid &&
-                  !isChangingLicense && (
-                    <div className="-ml-3">
-                      <Button
-                        title="Change license key"
-                        icon={IconProp.Edit}
-                        buttonStyle={ButtonStyleType.NORMAL}
-                        onClick={handleStartChangingLicense}
-                      />
-                    </div>
-                  )}
+                                <p className="mt-0.5 truncate text-xs text-gray-500">
+                                  {formatInstanceReportedAt(
+                                    instance.lastReportedAt,
+                                  )}
+                                </p>
+                              </div>
+                              <div className="flex shrink-0 items-baseline justify-end gap-1">
+                                {typeof instance.userCount === "number" ? (
+                                  <>
+                                    <span className="text-sm font-medium tabular-nums text-gray-900">
+                                      {instance.userCount.toLocaleString()}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {instance.userCount === 1
+                                        ? "user"
+                                        : "users"}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-sm text-gray-400">
+                                    —
+                                  </span>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        },
+                      )}
+                    </ul>
+                  </section>
+                )}
 
                 {!configError &&
                   !isConfigLoading &&
                   !licenseValid &&
                   globalConfig?.enterpriseLicenseKey && (
-                    <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                      <p className="font-semibold">
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                      <p className="text-sm font-semibold text-red-900">
                         License validation required
                       </p>
-                      <p className="mt-1">
+                      <p className="mt-1 text-xs leading-relaxed text-red-800">
                         The stored license information could not be verified.
                         Please validate the license key again.
                       </p>
                     </div>
                   )}
 
-                {!configError && (
-                  <>
-                    {successMessage && (
-                      <Alert type={AlertType.SUCCESS} title={successMessage} />
+                {!configError && showLicenseKeyInput && (
+                  <section className="rounded-xl border border-gray-200 bg-white p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <label
+                          htmlFor="enterprise-license-key"
+                          className="text-sm font-semibold text-gray-900"
+                        >
+                          {isChangingLicense
+                            ? "New license key"
+                            : "License key"}
+                        </label>
+                        <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
+                          {licenseKeyHelperText}
+                          {!isChangingLicense && (
+                            <>
+                              {" "}
+                              <a
+                                href={SALES_MAILTO_URL}
+                                className="font-medium text-indigo-600 hover:text-indigo-700"
+                              >
+                                {SALES_EMAIL}
+                              </a>
+                              .
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      {isChangingLicense && (
+                        <Button
+                          title="Cancel"
+                          buttonStyle={ButtonStyleType.NORMAL}
+                          onClick={handleCancelChangingLicense}
+                          className="!mt-0 shrink-0 md:!ml-0"
+                        />
+                      )}
+                    </div>
+                    <div className="mt-3">
+                      <Input
+                        id="enterprise-license-key"
+                        value={licenseKeyInput}
+                        onChange={(value: string) => {
+                          setLicenseKeyInput(value);
+                          licenseInputEditedRef.current = true;
+                        }}
+                        placeholder="Enter your enterprise license key"
+                        disableSpellCheck={true}
+                      />
+                    </div>
+                    {validationError && (
+                      <div className="mt-3">
+                        <Alert
+                          type={AlertType.DANGER}
+                          title={validationError}
+                        />
+                      </div>
                     )}
-
-                    {showLicenseKeyInput && (
-                      <>
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">
-                            {isChangingLicense
-                              ? "New License Key"
-                              : "License Key"}
-                          </label>
-                          <Input
-                            value={licenseKeyInput}
-                            onChange={(value: string) => {
-                              setLicenseKeyInput(value);
-                              licenseInputEditedRef.current = true;
-                            }}
-                            placeholder="Enter your enterprise license key"
-                            disableSpellCheck={true}
-                          />
-                        </div>
-
-                        {validationError && (
-                          <Alert
-                            type={AlertType.DANGER}
-                            title={validationError}
-                          />
-                        )}
-
-                        {isChangingLicense ? (
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-xs text-gray-500">
-                              Enter the new enterprise license key and validate
-                              it to replace the current one. Your existing
-                              license stays active until the new key is
-                              validated.
-                            </p>
-                            <Button
-                              title="Cancel"
-                              buttonStyle={ButtonStyleType.NORMAL}
-                              onClick={handleCancelChangingLicense}
-                            />
-                          </div>
-                        ) : (
-                          <p className="text-xs text-gray-500">
-                            You have installed Enterprise Edition of OneUptime.
-                            You need to validate your license key. Need a
-                            license key? Contact our sales team at{" "}
-                            <a
-                              href="mailto:sales@oneuptime.com"
-                              className="font-medium text-indigo-600 hover:text-indigo-700"
-                            >
-                              sales@oneuptime.com
-                            </a>
-                            .
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </>
+                  </section>
                 )}
 
-                <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
-                  <h3 className="text-sm font-semibold text-indigo-900">
-                    Enterprise Edition Features
-                  </h3>
-                  <ul className="mt-3 space-y-2 text-sm text-indigo-900">
-                    {enterpriseFeatures.map(
-                      (feature: string, index: number) => {
-                        return (
-                          <li key={index} className="flex items-start gap-2">
-                            <Icon
-                              icon={IconProp.Check}
-                              type={IconType.Success}
-                              size={SizeProp.Small}
-                              className="mt-0.5"
-                            />
-                            <span className="leading-snug">{feature}</span>
-                          </li>
-                        );
-                      },
-                    )}
-                  </ul>
-                  <p className="mt-3 text-xs text-indigo-700">
-                    Already have a license? Validate it above to unlock these
-                    premium capabilities immediately.
-                  </p>
-                </div>
+                {showEnterpriseFeatureList && (
+                  <section
+                    aria-labelledby="edition-features-heading"
+                    className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-5"
+                  >
+                    <h4
+                      id="edition-features-heading"
+                      className="text-sm font-semibold text-indigo-900"
+                    >
+                      What your license unlocks
+                    </h4>
+                    <p className="mt-0.5 text-xs text-indigo-700">
+                      Validate your key above to turn these on immediately.
+                    </p>
+                    <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {enterpriseFeatures.map(
+                        (feature: string, index: number) => {
+                          return (
+                            <li
+                              key={index}
+                              className="flex items-start gap-2 rounded-lg border border-gray-100 bg-white px-3 py-2.5"
+                            >
+                              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-50">
+                                <Icon
+                                  icon={IconProp.Check}
+                                  className="h-3 w-3 text-indigo-600"
+                                />
+                              </span>
+                              <span className="text-xs leading-snug text-gray-700">
+                                {feature}
+                              </span>
+                            </li>
+                          );
+                        },
+                      )}
+                    </ul>
+                  </section>
+                )}
               </>
             ) : (
               <>
@@ -937,10 +1430,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   fit for your team.
                 </p>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                    <h3 className="text-sm font-semibold text-gray-900">
+                  <div className="rounded-xl border border-gray-200 bg-white p-4">
+                    <h4 className="text-sm font-semibold text-gray-900">
                       Community Edition
-                    </h3>
+                    </h4>
                     <ul className="mt-3 space-y-2 text-sm text-gray-600">
                       {communityFeatures.map(
                         (feature: string, index: number) => {
@@ -948,8 +1441,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                             <li key={index} className="flex items-start gap-2">
                               <Icon
                                 icon={IconProp.Check}
-                                size={SizeProp.Small}
-                                className="mt-0.5 text-gray-400"
+                                className="mt-0.5 h-3 w-3 shrink-0 text-gray-400"
                               />
                               <span className="leading-snug">{feature}</span>
                             </li>
@@ -962,10 +1454,10 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                       workflows.
                     </p>
                   </div>
-                  <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
-                    <h3 className="text-sm font-semibold text-indigo-900">
+                  <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-4">
+                    <h4 className="text-sm font-semibold text-indigo-900">
                       Enterprise Edition
-                    </h3>
+                    </h4>
                     <ul className="mt-3 space-y-2 text-sm text-indigo-900">
                       {enterpriseFeatures.map(
                         (feature: string, index: number) => {
@@ -973,9 +1465,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                             <li key={index} className="flex items-start gap-2">
                               <Icon
                                 icon={IconProp.Check}
-                                type={IconType.Success}
-                                size={SizeProp.Small}
-                                className="mt-0.5"
+                                className="mt-0.5 h-3 w-3 shrink-0 text-indigo-600"
                               />
                               <span className="leading-snug">{feature}</span>
                             </li>

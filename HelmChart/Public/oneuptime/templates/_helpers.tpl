@@ -737,7 +737,7 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 
 - name: WORKFLOW_TIMEOUT_IN_MS
-  value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
+  value: {{ $.Values.script.workflowTimeoutInMs | squote }}
 
 - name: AVERAGE_SPAN_ROW_SIZE_IN_BYTES
   value: {{ $.Values.billing.telemetry.averageSpanRowSizeInBytes | quote }}

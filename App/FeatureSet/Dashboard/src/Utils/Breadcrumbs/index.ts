@@ -21,6 +21,7 @@ export * from "./CephBreadcrumbs";
 export * from "./HostBreadcrumbs";
 export * from "./DashboardBreadCrumbs";
 export * from "./AIAgentTasksBreadcrumbs";
+export * from "./AIInsightsBreadcrumbs";
 export * from "./ExceptionsBreadcrumbs";
 export * from "./ProfilesBreadcrumbs";
 export * from "./UsersBreadcrumbs";

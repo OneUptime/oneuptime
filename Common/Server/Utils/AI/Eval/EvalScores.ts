@@ -1,10 +1,10 @@
 import AIRunHumanVerdict from "../../../../Types/AI/AIRunHumanVerdict";
 import AIRunAutoGrade from "../../../../Types/AI/AIRunAutoGrade";
-import SentinelConfidenceSignal from "../Sentinel/ConfidenceSignal";
+import AIConfidenceSignal from "../SRE/ConfidenceSignal";
 import { GoldenCase, GoldenCaseConfidenceStats } from "./EvalCorpus";
 
 /*
- * Sentinel eval harness — scoring (G3 bootstrap). Pure: given a GoldenCase
+ * AI eval harness — scoring (G3 bootstrap). Pure: given a GoldenCase
  * corpus (EvalCorpus.ts), compute the four roadmap scores from recorded runs
  * and their labels — no LLM is re-run, no database is touched.
  *
@@ -77,7 +77,7 @@ export default class EvalScores {
 
   /*
    * Would the deterministic evidence floor have flagged this run inconclusive?
-   * Reuses SentinelConfidenceSignal.hasVerifiableEvidence — the LIVE floor —
+   * Reuses AIConfidenceSignal.hasVerifiableEvidence — the LIVE floor —
    * over the corpus stats, so the offline answer can never drift from what
    * production would actually have decided: zero citations minted AND zero
    * data-bearing tool calls.
@@ -85,7 +85,7 @@ export default class EvalScores {
   public static wouldDeterministicFloorFlagInconclusive(
     confidence: GoldenCaseConfidenceStats,
   ): boolean {
-    return !SentinelConfidenceSignal.hasVerifiableEvidence({
+    return !AIConfidenceSignal.hasVerifiableEvidence({
       citationCount: confidence.citationsMinted,
       dataBearingToolCallCount: confidence.dataBearingToolCalls,
       anyToolReturnedData: confidence.dataBearingToolCalls > 0,

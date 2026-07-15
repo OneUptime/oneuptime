@@ -446,6 +446,7 @@ export class Service extends DatabaseService<Model> {
     name: Name | undefined;
     isEmailVerified?: boolean;
     generateRandomPassword?: boolean;
+    createdByUserId?: ObjectID | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<Model> {
     const { email, props } = data;
@@ -456,6 +457,15 @@ export class Service extends DatabaseService<Model> {
       user.name = data.name;
     }
     user.isEmailVerified = data.isEmailVerified || false;
+
+    /*
+     * Record who created this user, when they were created on behalf of
+     * another user (for example, when invited to a project by a team member).
+     * This lets the admin dashboard show who invited a given user.
+     */
+    if (data.createdByUserId) {
+      user.createdByUserId = data.createdByUserId;
+    }
 
     if (data.generateRandomPassword) {
       user.password = new HashedString(Text.generateRandomText(20));

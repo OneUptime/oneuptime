@@ -233,6 +233,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/custom-code-monitor",
       },
       {
+        title: "SQL Query Monitor",
+        url: "/docs/monitor/sql-monitor",
+      },
+      {
         title: "Synthetic Monitor",
         url: "/docs/monitor/synthetic-monitor",
       },
@@ -586,9 +590,9 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
-    title: "Sentinel",
+    title: "AI",
     links: [
-      { title: "Sentinel AI SRE", url: "/docs/ai/sentinel" },
+      { title: "AI SRE", url: "/docs/ai/ai-sre" },
       { title: "Fix Tasks", url: "/docs/ai/ai-agent" },
       { title: "LLM Providers", url: "/docs/ai/llm-provider" },
       { title: "MCP Server", url: "/docs/ai/mcp-server" },

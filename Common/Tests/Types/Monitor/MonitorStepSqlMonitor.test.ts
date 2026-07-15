@@ -21,7 +21,9 @@ describe("MonitorStepSqlMonitorUtil", () => {
       expect(def.port).toBe(5432);
       expect(def.useSsl).toBe(false);
       expect(def.rejectUnauthorizedSsl).toBe(true);
-      expect(def.statementTimeoutInMs).toBe(DEFAULT_SQL_STATEMENT_TIMEOUT_IN_MS);
+      expect(def.statementTimeoutInMs).toBe(
+        DEFAULT_SQL_STATEMENT_TIMEOUT_IN_MS,
+      );
       expect(def.connectionTimeoutInMs).toBe(
         DEFAULT_SQL_CONNECTION_TIMEOUT_IN_MS,
       );
@@ -83,7 +85,9 @@ describe("MonitorStepSqlMonitorUtil", () => {
       expect(parsed.useSsl).toBe(true);
       expect(parsed.rejectUnauthorizedSsl).toBe(false);
       // clamped
-      expect(parsed.connectionTimeoutInMs).toBe(MAX_SQL_CONNECTION_TIMEOUT_IN_MS);
+      expect(parsed.connectionTimeoutInMs).toBe(
+        MAX_SQL_CONNECTION_TIMEOUT_IN_MS,
+      );
       expect(parsed.maxRows).toBe(MAX_SQL_MAX_ROWS);
 
       const roundTripped: MonitorStepSqlMonitor =

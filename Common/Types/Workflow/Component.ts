@@ -67,6 +67,13 @@ export interface Argument {
   type: ComponentInputType;
   id: string;
   isAdvanced?: boolean | undefined;
+  /**
+   * When true, the resolved value is replaced with a redaction marker in this
+   * component's WorkflowLog argument entry. The real value is still passed to
+   * the component at runtime. If it is reused by another component, that
+   * component's own argument metadata controls its logging.
+   */
+  isSensitive?: boolean | undefined;
   placeholder?: string | undefined;
 }
 
@@ -76,6 +83,12 @@ export interface ReturnValue {
   description: string;
   type: ComponentInputType;
   required: boolean;
+  /**
+   * When true, the returned value is available to downstream components but is
+   * redacted from this component's WorkflowLog return-value entry. A downstream
+   * component may still log the resolved value under its own metadata.
+   */
+  isSensitive?: boolean | undefined;
   placeholder?: string | undefined;
 }
 

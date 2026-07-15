@@ -70,7 +70,7 @@ export interface ObservabilityAssistantRequest {
   feature: string;
   /*
    * Extra instructions appended to the base observability system prompt — used
-   * to give an autonomous run (e.g. Sentinel incident investigation) a distinct
+   * to give an autonomous run (e.g. AI incident investigation) a distinct
    * persona and task framing while keeping the same hard rules (citations, no
    * fabrication, read-only). The base prompt's grounding rules always win.
    */

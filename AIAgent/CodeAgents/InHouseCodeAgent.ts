@@ -27,8 +27,8 @@ import { ChildProcess, spawn } from "child_process";
  * server-mediated via POST /ai-agent-data/llm-completion — metered, logged
  * to LlmLog against the run, inside the G4 daily budget, and under per-run
  * loop budgets enforced server-side. The worker never holds a provider
- * secret; this replaces the OpenCode CLI shell-out (which remains available
- * for one release behind CODE_AGENT_TYPE=OpenCode).
+ * secret; this replaced the OpenCode CLI shell-out (removed after its one
+ * grace release).
  *
  * Tool surface: read_file / write_file / list_directory / search_files
  * (all path-guarded to the workspace) and run_command (workspace cwd,
@@ -45,7 +45,7 @@ export default class InHouseCodeAgent implements CodeAgent {
   private currentProcess: ChildProcess | null = null;
   private aborted: boolean = false;
 
-  // Default wall-clock timeout: 30 minutes (matches the OpenCode path).
+  // Default wall-clock timeout: 30 minutes.
   private static readonly DEFAULT_TIMEOUT_MS: number = 30 * 60 * 1000;
 
   /*
@@ -281,8 +281,8 @@ export default class InHouseCodeAgent implements CodeAgent {
   }
 
   /*
-   * System prompt = the recipe prompt (built by the task handler, exactly
-   * as the OpenCode path received it) + the tool-use contract.
+   * System prompt = the recipe prompt (built by the task handler) + the
+   * tool-use contract.
    */
   private buildSystemPrompt(task: CodeAgentTask): string {
     let recipePrompt: string = task.prompt;
@@ -673,7 +673,7 @@ export default class InHouseCodeAgent implements CodeAgent {
     );
   }
 
-  // Get list of modified files using git (same detection as OpenCode's).
+  // Get list of modified files using git.
   private async getModifiedFiles(
     workingDirectory: string,
   ): Promise<Array<string>> {

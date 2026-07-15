@@ -1896,6 +1896,9 @@
             "properties": {
                 "workflowScriptTimeoutInMs": {
                     "type": "integer"
+                },
+                "workflowTimeoutInMs": {
+                    "type": "integer"
                 }
             },
             "additionalProperties": false

@@ -149,7 +149,7 @@ export default class TaskLogger {
     this.addToBuffer(LogSeverity.Trace, message);
   }
 
-  // Log output from external processes like OpenCode
+  // Log output from external processes (e.g. the code agent's tool runs)
   public async logProcessOutput(
     processName: string,
     output: string,

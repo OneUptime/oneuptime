@@ -11,6 +11,7 @@ import ObjectID from "Common/Types/ObjectID";
 import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
 import RunbookAgentJobStatus from "Common/Types/Runbook/RunbookAgentJobStatus";
 import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
+import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 
 export interface StepRunResult {
   success: boolean;
@@ -21,6 +22,17 @@ export interface StepRunResult {
 export interface StepExecutionContext {
   projectId: ObjectID;
   runbookExecutionId: ObjectID;
+  /*
+   * Extra execution context consumed by AI steps: what triggered the run,
+   * and the state of every step that ran before the current one. Optional
+   * so agent/HTTP steps can keep ignoring it.
+   */
+  runbookName?: string | undefined;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  triggeredByUserId?: ObjectID | undefined;
+  previousStepExecutions?: Array<RunbookStepExecutionState> | undefined;
 }
 
 const MAX_OUTPUT_BYTES: number = 50_000;
@@ -28,7 +40,7 @@ const DEFAULT_SCRIPT_TIMEOUT_MS: number = 30_000;
 const DEFAULT_HTTP_TIMEOUT_MS: number = 30_000;
 const DEFAULT_AGENT_CLAIM_TIMEOUT_MS: number = 2 * 60_000;
 
-function truncate(s: string): string {
+export function truncate(s: string): string {
   if (Buffer.byteLength(s, "utf8") <= MAX_OUTPUT_BYTES) {
     return s;
   }

@@ -129,6 +129,37 @@ const Users: FunctionComponent = (): ReactElement => {
                 fieldType: FieldType.Boolean,
                 placeholder: t("common.no"),
               },
+              {
+                field: {
+                  createdByUser: {
+                    name: true,
+                    email: true,
+                  },
+                },
+                title: "Invited By",
+                description:
+                  "The user who invited this user to OneUptime. Empty if the user signed up on their own.",
+                fieldType: FieldType.Element,
+                getElement: (item: User): ReactElement => {
+                  if (!item.createdByUser) {
+                    return <p>-</p>;
+                  }
+
+                  const name: string | undefined =
+                    item.createdByUser.name?.toString() || undefined;
+                  const email: string | undefined =
+                    item.createdByUser.email?.toString() || undefined;
+
+                  return (
+                    <div>
+                      <p className="font-medium">{name || email || "-"}</p>
+                      {name && email ? (
+                        <p className="text-xs text-gray-500">{email}</p>
+                      ) : null}
+                    </div>
+                  );
+                },
+              },
             ],
             modelId: modelId,
           }}

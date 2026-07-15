@@ -146,7 +146,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     const expressApp: ExpressApplication = Express.getExpressApp();
     expressApp.use("/", AppMetricsAPI);
 
-    // Admin instance-health overview (master-admin only).
+    // Admin OneUptime Health overview (master-admin only).
     expressApp.use("/api/admin/health", AdminHealthAPI);
 
     // Initialize feature sets

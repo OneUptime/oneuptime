@@ -46,6 +46,7 @@ import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import useServiceNames from "../Telemetry/useServiceNames";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -517,6 +518,15 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return id.toString();
     });
   }, [props.serviceIds]);
+
+  /*
+   * Resolve the scoped service id(s) to names so the read-only "Service" chip
+   * shows the service name instead of a raw UUID. Filtering still uses the
+   * stable id (primaryEntityId); this only maps that id to a friendly label.
+   */
+  const scopedServiceNameMap: Record<string, string> = useServiceNames(
+    props.serviceIds,
+  );
 
   /*
    * Extract trace/span IDs for API calls (histogram + facets must respect these
@@ -1483,11 +1493,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
     if (props.serviceIds && props.serviceIds.length > 0) {
       for (const primaryEntityId of props.serviceIds) {
+        const serviceIdString: string = primaryEntityId.toString();
         filters.push({
           facetKey: "primaryEntityId",
-          value: primaryEntityId.toString(),
+          value: serviceIdString,
           displayKey: "Service",
-          displayValue: primaryEntityId.toString(),
+          displayValue:
+            scopedServiceNameMap[serviceIdString] || serviceIdString,
           readOnly: true,
         });
       }
@@ -1537,7 +1549,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     }
 
     return filters;
-  }, [props.serviceIds, props.traceIds, props.spanIds, logQueryAttributes]);
+  }, [
+    props.serviceIds,
+    props.traceIds,
+    props.spanIds,
+    logQueryAttributes,
+    scopedServiceNameMap,
+  ]);
 
   // Build activeFilters array for UI display
   const activeFilters: Array<ActiveFilter> = useMemo(() => {

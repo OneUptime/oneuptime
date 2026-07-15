@@ -58,6 +58,22 @@ Konfigurieren Sie zwei Dinge an einem Bash-Schritt:
 
 Wenn der ausgewählte Agent offline ist, wenn das Runbook diesen Schritt erreicht, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann mit `TimedOut` fehl. Fügen Sie unter **Runbooks → Settings → Agents** einen Agent hinzu, bevor Sie sich auf einen Bash-Schritt verlassen.
 
+### AI
+
+Bitten Sie eine KI, mitten im Lauf etwas zu analysieren, zusammenzufassen oder zu entscheiden. Der Prompt wird an den LLM-Provider Ihres Projekts gesendet (**Settings → AI → LLM Providers**), und die Antwort des Modells wird zur Schrittausgabe auf der Ausführungs-Timeline. AI-Schritte laufen auf dem OneUptime-Worker; kein Agent nötig.
+
+Konfigurieren Sie an einem AI-Schritt:
+
+- **Prompt** — was die KI tun soll. Zum Beispiel: „Prüfe die Ausgabe der vorherigen Schritte und gib an, ob es sicher ist, mit der Behebung fortzufahren."
+- **Kontext vorheriger Schritte einbeziehen** — wenn an, sieht die KI alles über die Schritte, die vor diesem gelaufen sind: Titel, Typ, Status, Ausgabe und Fehlermeldungen.
+- **Auslöser-Kontext einbeziehen** — wenn an, sieht die KI, was die Ausführung gestartet hat: den verknüpften Vorfall, die Warnmeldung oder das geplante Wartungsereignis (Beschreibung, Schweregrad, aktueller Status, betroffene Monitore, Ursache, Status-Timeline und öffentliche Notizen), oder wer das Runbook manuell ausgeführt hat.
+
+Kombinieren Sie einen AI-Schritt mit **Freigabe erforderlich**, um einen Menschen in die Schleife zu holen: Die KI analysiert, eine reagierende Person liest ihre Antwort und gibt frei, und erst dann läuft der nächste (Behebungs-)Schritt.
+
+**Was die KI nie sieht.** Die Antwort eines AI-Schritts wird als Schrittausgabe auf der Ausführung gespeichert, und Ausführungen sind für alle mit Runbook-Leseberechtigung lesbar — ein größerer Personenkreis als die ACL des Vorfalls. Deshalb schließt der Auslöser-Kontext **private interne Notizen** und **Slack-/Teams-Kanalnachrichten** bewusst aus: Sie bleiben im Vorfall, wo die bestehenden Postmortem- und Notiz-Generatoren ihre abgeleiteten Texte halten. Die Ausgabe früherer Schritte wird auf Geheimnisse (Tokens, Schlüssel, Zugangsdaten) geprüft und geschwärzt, bevor sie an das Modell gesendet wird.
+
+AI-Schritte werden wie jedes andere KI-Feature gemessen und abgerechnet. Wenn für das Projekt kein LLM-Provider konfiguriert ist, schlägt der Schritt mit einem klaren Fehler fehl (setzen Sie **Bei Fehler fortfahren**, wenn der Rest des Runbooks trotzdem laufen soll).
+
 ## Speichern und Bearbeiten
 
 Drücken Sie **Schritte speichern**, um zu persistieren. Laufende Ausführungen älterer Versionen des Runbooks sind nicht betroffen — sie verwenden weiter ihren Snapshot.

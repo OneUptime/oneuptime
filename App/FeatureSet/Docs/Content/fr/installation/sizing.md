@@ -88,7 +88,7 @@ Les magasins de données intégrés au chart s'exécutent en **instances uniques
 
 - **PostgreSQL** — activez l'opérateur [CloudNativePG](https://cloudnative-pg.io) embarqué (`postgresOperator.cnpg.enabled`) avec **3 instances** (1 primaire + 2 standbys à chaud) pour un basculement automatique.
 - **ClickHouse** — activez l'opérateur [Altinity](https://github.com/Altinity/clickhouse-operator) embarqué (`clickhouseOperator.altinity.enabled`) avec **≥2 réplicas par shard** et **3 nœuds ClickHouse Keeper** pour le quorum. Ajoutez des shards une fois que le disque ou la RAM d'un seul nœud devient la limite.
-- **Redis** — le chart n'a pas de réplication intégrée. Pour la HA, pointez OneUptime vers un **Redis managé externe** (ou un déploiement Sentinel/cluster).
+- **Redis** — le chart n'a pas de réplication intégrée. Pour la HA, pointez OneUptime vers un **Redis managé externe** (ou un déploiement AI/cluster).
 
 ## Rétention et son impact sur le stockage
 

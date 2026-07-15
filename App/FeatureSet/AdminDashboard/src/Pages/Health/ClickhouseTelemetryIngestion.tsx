@@ -48,7 +48,7 @@ const formatCount: (value: number | null) => string = (
 
 /*
  * Format a byte count into a human-readable size (B / KB / MB / GB / TB / PB),
- * picking whichever unit is relevant. Base-1024, matching the instance-health
+ * picking whichever unit is relevant. Base-1024, matching the OneUptime Health
  * overview page. Returns "—" for a missing value.
  */
 const bytesToReadable: (value: number | null) => string = (

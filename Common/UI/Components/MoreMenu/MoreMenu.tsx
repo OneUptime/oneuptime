@@ -201,7 +201,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
           <div
             ref={ref}
             id={menuId}
-            className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1"
+            className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-lg bg-white shadow-xl ring-1 ring-gray-200 focus:outline-none py-1"
             role="menu"
             aria-orientation="vertical"
             aria-labelledby={buttonId}

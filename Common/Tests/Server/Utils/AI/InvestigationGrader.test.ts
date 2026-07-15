@@ -1,4 +1,4 @@
-import InvestigationGrader from "../../../../Server/Utils/AI/Sentinel/InvestigationGrader";
+import InvestigationGrader from "../../../../Server/Utils/AI/SRE/InvestigationGrader";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
@@ -268,8 +268,12 @@ describe("InvestigationGrader.gradeInvestigationOnResolve", () => {
         projectId,
         incidentId,
         aiRunId: run.id,
-        // Budget coverage: must be an AUTONOMOUS_AI_FEATURES member.
-        feature: "Sentinel Investigation Grading",
+        /*
+         * Budget coverage: must be an AUTONOMOUS_AI_FEATURES member. Pinned as
+         * a literal on purpose — this string is persisted into LlmLog.feature
+         * and the G4 budget sums by matching it, so a rename must break here.
+         */
+        feature: "AI Investigation Grading",
         // Grades live on the run — no prompt previews in LlmLog.
         storeContentPreviews: false,
       }),

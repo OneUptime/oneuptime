@@ -1,3 +1,4 @@
+import RemoveLegacySentinelInsightCron from "./RemoveLegacySentinelInsightCron";
 import SeedGlobalLlmProviderFromEnv from "./SeedGlobalLlmProviderFromEnv";
 import StartupMigrationBase from "./StartupMigrationBase";
 
@@ -7,6 +8,7 @@ import StartupMigrationBase from "./StartupMigrationBase";
  */
 const StartupMigrations: Array<StartupMigrationBase> = [
   new SeedGlobalLlmProviderFromEnv(),
+  new RemoveLegacySentinelInsightCron(),
 ];
 
 export default StartupMigrations;

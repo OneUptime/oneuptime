@@ -11,6 +11,7 @@ import {
   Gray500,
 } from "Common/Types/BrandColors";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 /*
  * Shared status presentation for code-fix AIRuns (the rows behind the AI
@@ -24,10 +25,11 @@ export interface CodeFixRunStatusText {
 }
 
 /*
- * Human labels for the task-type discriminator on code-fix runs
- * (`codeFixTaskType` on the /code-fix-run/list and /get responses — the
- * server normalizes missing values to FixException, so it is never null on
- * the wire).
+ * Human labels for the task-type discriminator on code-fix runs. A null
+ * `codeFixTaskType` means FixException — rows predating task recipes — so it
+ * is treated as such below. The backfill migration writes the value
+ * explicitly, and /code-fix-run/get still normalizes it on the wire, but the
+ * standard CRUD the list reads returns the column verbatim.
  */
 const TASK_TYPE_LABEL: { [key in CodeFixTaskType]: string } = {
   [CodeFixTaskType.FixException]: "Fix Exception",
@@ -50,12 +52,11 @@ export function getCodeFixTaskTypeLabel(taskType: string | undefined): string {
 const STATUS_TEXT: { [key in AIRunStatus]: CodeFixRunStatusText } = {
   [AIRunStatus.Queued]: {
     title: "Queued",
-    description:
-      "The fix task is queued and waiting to be picked up by Sentinel.",
+    description: "The fix task is queued and waiting to be picked up by AI.",
   },
   [AIRunStatus.Running]: {
     title: "In Progress",
-    description: "Sentinel is working on a fix for this exception.",
+    description: "AI is working on a fix for this exception.",
   },
   [AIRunStatus.WaitingForApproval]: {
     title: "Waiting for Approval",
@@ -64,20 +65,20 @@ const STATUS_TEXT: { [key in AIRunStatus]: CodeFixRunStatusText } = {
   [AIRunStatus.Completed]: {
     title: "Completed",
     description:
-      "Sentinel finished. Review the pull request it opened for the proposed fix.",
+      "AI finished. Review the pull request it opened for the proposed fix.",
   },
   [AIRunStatus.Error]: {
     title: "Error",
-    description: "Sentinel could not complete the fix.",
+    description: "AI could not complete the fix.",
   },
   [AIRunStatus.Cancelled]: {
     title: "Cancelled",
-    description: "The fix task was cancelled before Sentinel completed it.",
+    description: "The fix task was cancelled before AI completed it.",
   },
   [AIRunStatus.Stale]: {
     title: "Stale",
     description:
-      "Sentinel stopped reporting progress and the run was marked as stale. You can retry the fix.",
+      "AI stopped reporting progress and the run was marked as stale. You can retry the fix.",
   },
 };
 
@@ -102,6 +103,33 @@ export function getCodeFixRunStatusText(
     title: status || "Unknown",
     description: "",
   };
+}
+
+/*
+ * Filter dropdown options for the tasks list. These carry the same wording as
+ * the status pill and the Task column rather than the raw enum values, so the
+ * filter chip reads "Task is Fix Exception", not "Task is FixException".
+ */
+export function getCodeFixTaskTypeDropdownOptions(): Array<DropdownOption> {
+  return Object.values(CodeFixTaskType).map(
+    (taskType: CodeFixTaskType): DropdownOption => {
+      return {
+        label: getCodeFixTaskTypeLabel(taskType),
+        value: taskType,
+      };
+    },
+  );
+}
+
+export function getCodeFixRunStatusDropdownOptions(): Array<DropdownOption> {
+  return Object.values(AIRunStatus).map(
+    (status: AIRunStatus): DropdownOption => {
+      return {
+        label: getCodeFixRunStatusText(status).title,
+        value: status,
+      };
+    },
+  );
 }
 
 export interface ComponentProps {

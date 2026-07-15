@@ -437,7 +437,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
 };
 
 /*
- * The "Background queues" section of the instance health page: a cross-queue
+ * The "Background queues" section of the OneUptime Health page: a cross-queue
  * summary, a per-queue breakdown with a health indicator, and a drill-in to the
  * recent failed jobs for any queue that is reporting failures.
  */

@@ -480,7 +480,7 @@ export const WorkflowScriptTimeoutInMS: number = process.env[
 
 export const WorkflowTimeoutInMs: number = process.env["WORKFLOW_TIMEOUT_IN_MS"]
   ? parseInt(process.env["WORKFLOW_TIMEOUT_IN_MS"].toString())
-  : 5000;
+  : 120000;
 
 export const AllowedActiveMonitorCountInFreePlan: number = process.env[
   "ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN"

@@ -4,7 +4,6 @@ import URL from "Common/Types/API/URL";
 import API from "Common/Utils/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
-import LlmType from "Common/Types/LLM/LlmType";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import {
   ImplicatedSpan,
@@ -18,14 +17,6 @@ import {
 import logger from "Common/Server/Utils/Logger";
 
 // API Response types
-interface LLMConfigResponse {
-  llmType: LlmType;
-  apiKey?: string;
-  baseUrl?: string;
-  modelName?: string;
-  message?: string;
-}
-
 interface ExceptionResponse {
   id: string;
   message: string;
@@ -98,13 +89,6 @@ interface UpdateTaskStatusResponse {
 }
 
 // Exported types
-export interface LLMConfig {
-  llmType: LlmType;
-  apiKey?: string;
-  baseUrl?: string;
-  modelName?: string;
-}
-
 export interface ExceptionDetails {
   exception: {
     id: string;
@@ -223,59 +207,6 @@ export default class BackendAPI {
 
   public constructor() {
     this.baseUrl = URL.fromString(ONEUPTIME_URL.toString());
-  }
-
-  /*
-   * DEPRECATED (B4 Tier 0, Internal/Roadmap/CodeFixSandboxDesign.md): only
-   * the legacy OpenCode fallback (CODE_AGENT_TYPE=OpenCode) calls this —
-   * it fetches the RAW provider apiKey for unmetered direct LLM calls.
-   * The default in-house agent uses llmCompletion() instead and never
-   * receives a provider secret. Remove together with OpenCodeAgent.
-   *
-   * Get LLM configuration for a project.
-   */
-  public async getLLMConfig(projectId: string): Promise<LLMConfig> {
-    const url: URL = URL.fromURL(this.baseUrl).addRoute(
-      "/api/ai-agent-data/get-llm-config",
-    );
-
-    const response: HTTPResponse<JSONObject> = await API.post({
-      url,
-      data: {
-        ...AIAgentAPIRequest.getDefaultRequestBody(),
-        projectId: projectId,
-      },
-    });
-
-    if (!response.isSuccess()) {
-      const data: LLMConfigResponse =
-        response.data as unknown as LLMConfigResponse;
-      const errorMessage: string = data?.message || "Failed to get LLM config";
-      throw new Error(errorMessage);
-    }
-
-    const data: LLMConfigResponse =
-      response.data as unknown as LLMConfigResponse;
-
-    logger.debug(`Got LLM config for project ${projectId}: ${data.llmType}`);
-
-    const llmConfig: LLMConfig = {
-      llmType: data.llmType,
-    };
-
-    if (data.apiKey) {
-      llmConfig.apiKey = data.apiKey;
-    }
-
-    if (data.baseUrl) {
-      llmConfig.baseUrl = data.baseUrl;
-    }
-
-    if (data.modelName) {
-      llmConfig.modelName = data.modelName;
-    }
-
-    return llmConfig;
   }
 
   // Get exception details with telemetry service info

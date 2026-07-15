@@ -5,7 +5,7 @@ Runbooks sind wiederverwendbare Reaktionsverfahren — geordnete Listen aus manu
 ## Auf einen Blick
 
 - **Top-Level-Feature** im OneUptime-Dashboard unter **Analytics & Automation → Runbooks**.
-- **Vier Schritttypen**: Manuelle Checkliste, JavaScript (in Sandbox) und Bash (beide laufen auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur), HTTP-Anfrage.
+- **Fünf Schritttypen**: Manuelle Checkliste, JavaScript (in Sandbox) und Bash (beide laufen auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur), HTTP-Anfrage und AI (analysiert Vorfall- und Schrittkontext mit dem LLM-Provider Ihres Projekts).
 - **Drei Auslösepfade**: Regeln, die auf Vorfälle/Warnmeldungen/geplante Wartung passen, oder ein manueller „Runbook ausführen"-Button auf jedem Ereignis.
 - **Snapshot-Semantik**: Wenn ein Runbook startet, werden seine Schritte auf die Ausführung kopiert. Späteres Bearbeiten der Vorlage verändert nie einen laufenden Ablauf.
 - **Vollständiger Audit-Trail**: Status, Ausgabe, Fehlermeldung und Dauer jedes Schritts werden für immer auf der Ausführung festgehalten.
@@ -27,14 +27,14 @@ Ein paar Begriffe tauchen in den restlichen Runbook-Docs immer wieder auf. Klär
 | Begriff           | Bedeutung                                                                                                                                                                                                                                                       |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**       | Die Vorlage. Eine benannte, wiederverwendbare Prozedur mit einer geordneten Schrittliste und einem `isEnabled`-Flag.                                                                                                                                            |
-| **Schritt**       | Ein Eintrag in einem Runbook. Hat einen Typ (Manuell / JavaScript / HTTP / Bash), einen Titel, eine Beschreibung und typspezifische Konfiguration.                                                                                                              |
+| **Schritt**       | Ein Eintrag in einem Runbook. Hat einen Typ (Manuell / JavaScript / HTTP / Bash / AI), einen Titel, eine Beschreibung und typspezifische Konfiguration.                                                                                                              |
 | **Runbook-Regel** | Ein Muster, das eines oder mehrere Runbooks automatisch an Vorfälle, Warnmeldungen oder geplante Wartungsereignisse anhängt, wenn deren Titel oder Beschreibung einem Regex entspricht.                                                                         |
 | **Ausführung**    | Ein Lauf eines Runbooks. Wird erstellt, wenn eine Regel feuert, jemand „Runbook ausführen" auf einem Ereignis klickt oder jemand „Jetzt ausführen" auf dem Runbook selbst klickt. Enthält einen Snapshot der Schritte und den Status / die Ausgabe pro Schritt. |
 | **Snapshot**      | Die eingefrorene Kopie der Runbook-Schritte, die auf jeder Ausführung lebt. Damit können Sie die Vorlage später bearbeiten, ohne die Historie umzuschreiben.                                                                                                    |
 
 ## Der Lebenszyklus eines Runbooks
 
-1. **Verfassen** — Erstellen Sie ein Runbook und legen Sie eine Mischung aus manuellen, JavaScript-, HTTP- und Bash-Schritten an. Speichern.
+1. **Verfassen** — Erstellen Sie ein Runbook und legen Sie eine Mischung aus manuellen, JavaScript-, HTTP-, Bash- und AI-Schritten an. Speichern.
 2. **(Optional) Eine Regel hinzufügen** — Sagen Sie OneUptime in den Einstellungen von Vorfällen, Warnmeldungen oder geplanter Wartung, dieses Runbook zu starten, sobald der Titel oder die Beschreibung eines Ereignisses einem Regex entspricht.
 3. **Auslösen** — Entweder feuert die Regel automatisch, wenn ein passendes Ereignis erstellt wird, oder eine reagierende Person klickt manuell auf **Runbook ausführen**.
 4. **Ausführen** — Eine neue Ausführung wird mit einem Snapshot der Schritte erstellt. Automatisierte Schritte laufen inline auf dem Runbook-Worker; die Ausführung pausiert an jedem manuellen Schritt, bis jemand ihn abhakt.
@@ -50,8 +50,9 @@ Ein schneller Entscheidungsguide. Die längere Erklärung steht in [Ein Runbook 
 | **JavaScript**   | Sie brauchen eine kleine, abgeschlossene Berechnung — einen Config-Service abfragen, ein Payload transformieren, vor dem nächsten Schritt Logik laufen lassen. Läuft sandboxed auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur. | Aktuelles Replica-Lag berechnen und entscheiden, ob weitergemacht wird.                      |
 | **HTTP-Anfrage** | Sie rufen ein bestehendes API auf — Ihren eigenen Admin-Endpoint, einen Cloud-Provider, PagerDuty, Slack.                                                                                                                                                       | `POST` an Ihren Failover-Orchestrator.                                                       |
 | **Bash**         | Sie müssen Shell-Befehle in Ihrer eigenen Infrastruktur ausführen — einen Dienst neu starten, `kubectl` aufrufen, ein Deploy-Skript aufrufen. Benötigt einen [Runbook-Agent](/docs/runbooks/agents), der in Ihrer Umgebung installiert ist.                     | Einen Dienst neu starten, `kubectl rollout restart` ausführen, ein Recovery-Skript aufrufen. |
+| **AI**           | Sie möchten mitten im Lauf eine Analyse, Zusammenfassung oder ein Urteil — mit Schlussfolgerungen über den auslösenden Vorfall und die Ausgaben früherer Schritte über den LLM-Provider Ihres Projekts.                                                         | „Prüfen Sie die Diagnosen oben — ist es sicher, mit dem Failover fortzufahren?"              |
 
-Sie können alle vier in einem einzigen Runbook mischen — die Stärke von Runbooks liegt darin, menschliche Verifizierung mit Automatisierung zu verschränken.
+Sie können alle fünf in einem einzigen Runbook mischen — die Stärke von Runbooks liegt darin, menschliche Verifizierung mit Automatisierung und AI-Analyse zu verschränken.
 
 ## Wo Runbooks im Dashboard leben
 
@@ -114,7 +115,7 @@ Runbooks:       [DB-Primary-Failover]
 
 ## Wo weiterlesen
 
-- [Ein Runbook verfassen](/docs/runbooks/authoring) — Runbooks erstellen, die vier Schritttypen und was jeder tut.
+- [Ein Runbook verfassen](/docs/runbooks/authoring) — Runbooks erstellen, die fünf Schritttypen und was jeder tut.
 - [Runbook-Regeln](/docs/runbooks/rules) — Runbooks automatisch an Vorfälle, Warnmeldungen und geplante Wartungsereignisse anhängen.
 - [Ein Runbook ausführen](/docs/runbooks/running) — manuelle Auslöser, die Ausführungsansicht und wie manuelle Schritte mit automatisierten interagieren.
 - [Runbook-Agents](/docs/runbooks/agents) — die Agents installieren, die Bash-Schritte in Ihrer eigenen Infrastruktur ausführen.

@@ -5,6 +5,7 @@ process.env["PROBE_KEY"] = "test-probe-key";
 import SqlMonitor, {
   SqlQueryValidator,
 } from "../../../../Utils/Monitors/MonitorTypes/SqlMonitor";
+import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
 import { describe, expect, it } from "@jest/globals";
 
 describe("SqlQueryValidator.getRejectionReason", () => {
@@ -17,9 +18,7 @@ describe("SqlQueryValidator.getRejectionReason", () => {
   });
 
   it("allows lower-case and leading whitespace", () => {
-    expect(
-      SqlQueryValidator.getRejectionReason("   select 1 "),
-    ).toBeNull();
+    expect(SqlQueryValidator.getRejectionReason("   select 1 ")).toBeNull();
   });
 
   it("allows the cursorable read statements WITH (CTE), VALUES, TABLE", () => {
@@ -36,7 +35,9 @@ describe("SqlQueryValidator.getRejectionReason", () => {
     expect(
       SqlQueryValidator.getRejectionReason("SHOW server_version"),
     ).toBeTruthy();
-    expect(SqlQueryValidator.getRejectionReason("EXPLAIN SELECT 1")).toBeTruthy();
+    expect(
+      SqlQueryValidator.getRejectionReason("EXPLAIN SELECT 1"),
+    ).toBeTruthy();
   });
 
   it("allows a single trailing semicolon", () => {
@@ -72,9 +73,7 @@ describe("SqlQueryValidator.getRejectionReason", () => {
       SqlQueryValidator.getRejectionReason("SELECT 1; DROP TABLE orders"),
     ).toBeTruthy();
     expect(
-      SqlQueryValidator.getRejectionReason(
-        "SELECT 1; SELECT 2",
-      ),
+      SqlQueryValidator.getRejectionReason("SELECT 1; SELECT 2"),
     ).toBeTruthy();
   });
 
@@ -98,6 +97,49 @@ describe("SqlQueryValidator.getRejectionReason", () => {
       SqlQueryValidator.getRejectionReason("/* readonly */ DELETE FROM orders"),
     ).toBeTruthy();
   });
+
+  it("rejects a T-SQL second statement separated by whitespace only (no semicolon)", () => {
+    for (const q of [
+      "SELECT 1 EXEC xp_cmdshell 'dir'",
+      "SELECT 1 exec sp_who",
+      "SELECT 1 EXECUTE sp_configure",
+      "SELECT id FROM t DROP TABLE t",
+    ]) {
+      expect(SqlQueryValidator.getRejectionReason(q)).toBeTruthy();
+    }
+  });
+
+  it("rejects read-time file writes and remote data-source access", () => {
+    for (const q of [
+      "SELECT secret FROM users INTO OUTFILE '/var/lib/mysql-files/x.txt'",
+      "SELECT secret FROM users INTO DUMPFILE '/tmp/x'",
+      "SELECT * FROM OPENROWSET('SQLNCLI', 'server', 'SELECT 1')",
+      "SELECT * FROM OPENQUERY(linked, 'SELECT 1')",
+    ]) {
+      expect(SqlQueryValidator.getRejectionReason(q)).toBeTruthy();
+    }
+  });
+
+  it("does not flag read-only functions or identifiers that merely contain a keyword", () => {
+    // REPLACE() is a read-only string function, not a write.
+    expect(
+      SqlQueryValidator.getRejectionReason(
+        "SELECT REPLACE(name, 'a', 'b') FROM orders",
+      ),
+    ).toBeNull();
+    // Column names that embed a keyword must not trip the whole-word denylist.
+    expect(
+      SqlQueryValidator.getRejectionReason(
+        "SELECT created_at, updated_at, delete_flag FROM orders",
+      ),
+    ).toBeNull();
+    // A keyword inside a string literal is stripped before the denylist scan.
+    expect(
+      SqlQueryValidator.getRejectionReason(
+        "SELECT id FROM orders WHERE note = 'please delete this soon'",
+      ),
+    ).toBeNull();
+  });
 });
 
 describe("SqlMonitor.sanitizeError", () => {
@@ -112,7 +154,9 @@ describe("SqlMonitor.sanitizeError", () => {
 
   it("redacts a connection URI", () => {
     const msg: string = SqlMonitor.sanitizeError(
-      new Error("could not connect to postgres://user:pw@db.internal:5432/orders"),
+      new Error(
+        "could not connect to postgres://user:pw@db.internal:5432/orders",
+      ),
       "pw",
     );
     expect(msg).not.toContain("db.internal");
@@ -122,6 +166,38 @@ describe("SqlMonitor.sanitizeError", () => {
   it("handles a non-Error value and empty password", () => {
     expect(typeof SqlMonitor.sanitizeError("boom", undefined)).toBe("string");
     expect(SqlMonitor.sanitizeError("boom", "")).toContain("boom");
+  });
+
+  it("redacts other secret-backed fields (host / username / databaseName)", () => {
+    const msg: string = SqlMonitor.sanitizeError(
+      new Error(
+        "Access denied for user 'svc_secret'@'secret-host.internal' to database 'privatedb'",
+      ),
+      "",
+      ["secret-host.internal", "svc_secret", "privatedb"],
+    );
+    expect(msg).not.toContain("secret-host.internal");
+    expect(msg).not.toContain("svc_secret");
+    expect(msg).not.toContain("privatedb");
+    expect(msg).toContain("***");
+  });
+
+  it("does not mangle short, common field values (length < 4 are left alone)", () => {
+    const msg: string = SqlMonitor.sanitizeError(
+      new Error("could not connect to host db"),
+      "",
+      ["db"],
+    );
+    // "db" is too short to redact safely, so the message is untouched.
+    expect(msg).toContain("db");
+  });
+
+  it("redacts a password value that contains spaces (connection-string form)", () => {
+    const msg: string = SqlMonitor.sanitizeError(
+      new Error("login failed: Server=db;Password=my secret pass;Uid=sa"),
+      undefined,
+    );
+    expect(msg).not.toContain("my secret pass");
   });
 });
 
@@ -149,7 +225,6 @@ describe("SqlMonitor.shapeRows", () => {
       isRowsCapped: boolean;
     } = SqlMonitor.shapeRows({
       rows: [{ cancelled: 7, other: "x" }],
-      fields: [{ name: "cancelled" } as any, { name: "other" } as any],
       maxRows: 100,
     });
 
@@ -170,7 +245,6 @@ describe("SqlMonitor.shapeRows", () => {
       isRowsCapped: boolean;
     } = SqlMonitor.shapeRows({
       rows,
-      fields: [{ name: "n" } as any],
       maxRows: 5,
     });
 
@@ -183,7 +257,7 @@ describe("SqlMonitor.shapeRows", () => {
       rowCount: number;
       scalarValue: string | number | boolean | null;
       firstRow: Record<string, unknown> | null;
-    } = SqlMonitor.shapeRows({ rows: [], fields: [], maxRows: 100 });
+    } = SqlMonitor.shapeRows({ rows: [], maxRows: 100 });
 
     expect(shaped.rowCount).toBe(0);
     expect(shaped.scalarValue).toBeNull();
@@ -193,7 +267,7 @@ describe("SqlMonitor.shapeRows", () => {
 
 describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
   it("returns a failure for a write query without connecting", async () => {
-    const response = await SqlMonitor.execute(
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
       {
         databaseType: "PostgreSQL" as any,
         host: "db.internal",
@@ -218,11 +292,11 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
   });
 
   it("returns a failure for an unsupported database type without connecting", async () => {
-    const response = await SqlMonitor.execute(
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
       {
-        databaseType: "MySQL" as any,
+        databaseType: "OracleDatabase" as any,
         host: "db.internal",
-        port: 3306,
+        port: 1521,
         databaseName: "orders",
         username: "readonly",
         password: "",
@@ -239,5 +313,35 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
     expect(response).not.toBeNull();
     expect(response!.isOnline).toBe(false);
     expect(response!.failureCause).toContain("not supported");
+  });
+
+  it("rejects a write query before connecting, for every supported engine", async () => {
+    for (const databaseType of [
+      "PostgreSQL",
+      "MySQL",
+      "Microsoft SQL Server",
+    ]) {
+      const response: SqlMonitorResponse | null = await SqlMonitor.execute(
+        {
+          databaseType: databaseType as any,
+          host: "db.internal",
+          port: 5432,
+          databaseName: "orders",
+          username: "readonly",
+          password: "",
+          useSsl: false,
+          rejectUnauthorizedSsl: true,
+          query: "DELETE FROM orders",
+          connectionTimeoutInMs: 10000,
+          statementTimeoutInMs: 15000,
+          maxRows: 100,
+        },
+        { isOnlineCheckRequest: true },
+      );
+
+      expect(response).not.toBeNull();
+      expect(response!.isOnline).toBe(false);
+      expect(response!.queryError).toBeTruthy();
+    }
   });
 });

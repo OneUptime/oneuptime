@@ -20,7 +20,7 @@ export class Service extends DatabaseService<Model> {
   /*
    * Append one event to a run's glass-box trail, allocating the next
    * sequence number from the run's current event count — the same idiom
-   * SentinelInvestigationEngine uses, factored out for callers that emit
+   * AIInvestigationEngine uses, factored out for callers that emit
    * events one at a time (the code-fix agent's HTTP protocol) rather than
    * holding a sequence counter across a whole in-process run.
    *

@@ -83,7 +83,7 @@ const WorkflowFeatureSet: FeatureSet = {
                 ? new ObjectID(job.data["workflowLogId"] as string)
                 : null,
               arguments: job.data.data as JSONObject,
-              timeout: WorkflowTimeoutInMs || 5000,
+              timeout: WorkflowTimeoutInMs || 120000,
               callChain:
                 (job.data["callChain"] as Array<string> | undefined) || [],
               isResume: job.data["isResume"] === true,

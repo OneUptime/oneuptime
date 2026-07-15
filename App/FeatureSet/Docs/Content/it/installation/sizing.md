@@ -88,7 +88,7 @@ I datastore integrati nella chart girano come **istanze singole** per impostazio
 
 - **PostgreSQL** — abilita l'operatore [CloudNativePG](https://cloudnative-pg.io) incluso (`postgresOperator.cnpg.enabled`) con **3 istanze** (1 primaria + 2 hot standby) per il failover automatico.
 - **ClickHouse** — abilita l'operatore [Altinity](https://github.com/Altinity/clickhouse-operator) incluso (`clickhouseOperator.altinity.enabled`) con **≥2 repliche per shard** e **3 nodi ClickHouse Keeper** per il quorum. Aggiungi shard una volta che il disco o la RAM di un singolo nodo diventano il limite.
-- **Redis** — la chart non ha replica interna. Per l'HA, punta OneUptime a un **Redis gestito esterno** (o a un'installazione Sentinel/cluster).
+- **Redis** — la chart non ha replica interna. Per l'HA, punta OneUptime a un **Redis gestito esterno** (o a un'installazione AI/cluster).
 
 ## La retention e come influisce sullo storage
 

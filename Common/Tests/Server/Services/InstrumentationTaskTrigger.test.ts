@@ -1,4 +1,4 @@
-import InstrumentationTaskTrigger from "../../../Server/Utils/AI/Sentinel/InstrumentationTaskTrigger";
+import InstrumentationTaskTrigger from "../../../Server/Utils/AI/SRE/InstrumentationTaskTrigger";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import ProjectService from "../../../Server/Services/ProjectService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
@@ -13,7 +13,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
- * The ImproveInstrumentation trigger: an INCONCLUSIVE Sentinel investigation
+ * The ImproveInstrumentation trigger: an INCONCLUSIVE AI investigation
  * enqueues a CodeFix AIRun that opens an instrumentation PR — but ONLY for
  * projects that explicitly opted in (enableInstrumentationFixTasks, default
  * FALSE — G11 posture), only when a GitHub-App repo exists to open the PR

@@ -51,15 +51,6 @@ RUN apt-get update && apt-get upgrade -y \
 COPY ./SslCertificates /usr/local/share/ca-certificates
 RUN update-ca-certificates
 
-# Install OpenCode AI coding assistant. The installer defaults to
-# $HOME/.opencode (i.e. /root/.opencode), which is unreachable from non-root
-# users because /root is mode 700. Relocate to /usr/local/opencode so the
-# `node` user can read+execute the CLI when we drop privileges below.
-RUN curl -fsSL https://opencode.ai/install | bash \
-    && mv /root/.opencode /usr/local/opencode \
-    && chmod -R a+rx /usr/local/opencode
-ENV PATH="/usr/local/opencode/bin:${PATH}"
-
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 

@@ -87,7 +87,7 @@ import ProjectService from "./ProjectService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplate from "../../Models/DatabaseModels/IncidentTemplate";
 import AIService, { AILogResponse } from "./AIService";
-import SentinelIncidentInvestigationRunner from "../Utils/AI/Sentinel/IncidentInvestigationRunner";
+import AIIncidentInvestigationRunner from "../Utils/AI/SRE/IncidentInvestigationRunner";
 import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
@@ -1242,21 +1242,21 @@ export class Service extends DatabaseService<Model> {
       })
       .then(async () => {
         /*
-         * Sentinel (AI SRE): automatically investigate the new incident and post
+         * AI (AI SRE): automatically investigate the new incident and post
          * a cited root cause analysis to the incident timeline + Slack/Teams.
          * Runs last so the workspace channels already exist, and is gated per
          * project (opt-in) + requires a configured LLM provider. Read-only.
          */
         try {
           if (createdItem.projectId && createdItem.id) {
-            await SentinelIncidentInvestigationRunner.investigateNewIncident({
+            await AIIncidentInvestigationRunner.investigateNewIncident({
               incidentId: createdItem.id,
               projectId: createdItem.projectId,
             });
           }
         } catch (error) {
           logger.error(
-            `Sentinel incident investigation failed in IncidentService.onCreateSuccess: ${error}`,
+            `AI incident investigation failed in IncidentService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               incidentId: createdItem.id?.toString(),
@@ -2803,7 +2803,7 @@ ${incidentSeverity.name}
    * every incident metric (all values strings for ClickHouse
    * Map(String, String) storage; arrays joined comma-separated). Factored
    * out of refreshIncidentMetrics so one-off metric writers — e.g. the
-   * Sentinel time-to-rca metric recorded when an investigation posts its
+   * AI time-to-rca metric recorded when an investigation posts its
    * analysis — record the exact same attribute shape.
    */
   @CaptureSpan()
@@ -2944,7 +2944,7 @@ ${incidentSeverity.name}
   }
 
   /*
-   * Sentinel measurement layer: record how long the incident waited for its
+   * AI measurement layer: record how long the incident waited for its
    * AI root-cause analysis — seconds from incident creation to now, written
    * once from IncidentInvestigationRunner.postAnalysis. Deliberately NOT
    * part of refreshIncidentMetrics: the refresh's replace-list excludes
@@ -3034,8 +3034,8 @@ ${incidentSeverity.name}
     }
 
     /*
-     * aiInvestigated dimension for MTTA/MTTR (Sentinel measurement layer):
-     * did a completed Sentinel investigation run for this incident? One
+     * aiInvestigated dimension for MTTA/MTTR (AI measurement layer):
+     * did a completed AI investigation run for this incident? One
      * indexed countBy per metric refresh (triggeredByIncidentId is indexed)
      * — acceptable at refresh frequency. Failure must never break metric
      * recording, so this is best-effort false.
@@ -3205,7 +3205,7 @@ ${incidentSeverity.name}
               OneUptimeDate.getCurrentDate(),
             incidentStartsAt,
           );
-          // aiInvestigated: the MTTA with/without-Sentinel dimension.
+          // aiInvestigated: the MTTA with/without-AI dimension.
           timeToAcknowledgeMetric.attributes = {
             ...baseMetricAttributes,
             aiInvestigated: aiInvestigated.toString(),
@@ -3260,7 +3260,7 @@ ${incidentSeverity.name}
             OneUptimeDate.getCurrentDate(),
           incidentStartsAt,
         );
-        // aiInvestigated: the MTTR with/without-Sentinel dimension.
+        // aiInvestigated: the MTTR with/without-AI dimension.
         timeToResolveMetric.attributes = {
           ...baseMetricAttributes,
           aiInvestigated: aiInvestigated.toString(),

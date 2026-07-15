@@ -83,36 +83,36 @@ const AI_TASK_PRESENTATION: {
 } = {
   [CodeFixTaskType.FixException]: {
     taskType: CodeFixTaskType.FixException,
-    activeCardTitle: "Sentinel Fix Task Status",
-    activeCardDescription: "Sentinel is working on fixing this exception.",
-    failedCardTitle: "Sentinel fix attempt failed",
+    activeCardTitle: "AI Fix Task Status",
+    activeCardDescription: "AI is working on fixing this exception.",
+    failedCardTitle: "AI fix attempt failed",
     failedCardDescription:
-      "The last Sentinel fix task for this exception did not complete.",
+      "The last AI fix task for this exception did not complete.",
     retryActionName: "Retry Fix",
-    completedStrongTitle: "Previous Sentinel fix completed",
+    completedStrongTitle: "Previous AI fix completed",
     completedTitle:
-      "Sentinel has already completed a fix task for this exception. Click to view the completed task.",
-    startCardTitle: "Fix this exception with Sentinel",
+      "AI has already completed a fix task for this exception. Click to view the completed task.",
+    startCardTitle: "Fix this exception with AI",
     startCardDescription:
-      "Sentinel will analyze this exception, identify the root cause, and submit a Pull Request with the fix to your code repository.",
-    startActionName: "Fix with Sentinel",
+      "AI will analyze this exception, identify the root cause, and submit a Pull Request with the fix to your code repository.",
+    startActionName: "Fix with AI",
     startActionIcon: IconProp.Bolt,
   },
   [CodeFixTaskType.WriteRegressionTest]: {
     taskType: CodeFixTaskType.WriteRegressionTest,
     activeCardTitle: "Regression Test Task Status",
     activeCardDescription:
-      "Sentinel is writing a failing regression test that reproduces this exception.",
+      "AI is writing a failing regression test that reproduces this exception.",
     failedCardTitle: "Regression test attempt failed",
     failedCardDescription:
       "The last regression test task for this exception did not complete.",
     retryActionName: "Retry Regression Test",
     completedStrongTitle: "Regression test completed",
     completedTitle:
-      "Sentinel has already completed a regression test task for this exception. Click to view the completed task.",
+      "AI has already completed a regression test task for this exception. Click to view the completed task.",
     startCardTitle: "Generate Regression Test",
     startCardDescription:
-      "Sentinel will write a failing test that reproduces this exception and open a Pull Request with it. This does not fix the bug — the test should fail until the bug is fixed.",
+      "AI will write a failing test that reproduces this exception and open a Pull Request with it. This does not fix the bug — the test should fail until the bug is fixed.",
     startActionName: "Generate Regression Test",
     startActionIcon: IconProp.Beaker,
   },
@@ -941,7 +941,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       {aiTaskError && !isResolved && (
         <Alert
           type={AlertType.DANGER}
-          strongTitle="Could not start Sentinel task"
+          strongTitle="Could not start AI task"
           title={aiTaskError}
           onClose={() => {
             setAITaskError(undefined);
@@ -955,8 +955,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         isAIFixBlockedBySetup &&
         aiFixReadiness && (
           <Card
-            title="Set up Sentinel for this exception"
-            description="Sentinel can analyze this exception and submit a Pull Request — a fix or a failing regression test. A few things need to be set up first."
+            title="Set up AI for this exception"
+            description="AI can analyze this exception and submit a Pull Request — a fix or a failing regression test. A few things need to be set up first."
           >
             <div className="mt-4 space-y-3">
               {aiFixReadiness.checks.map(

@@ -22,6 +22,34 @@ Make an HTTP request to any URL.
 
 Use this for: any external API, your own admin endpoints, or any integration that doesn't have its own component.
 
+## AI
+
+### Generate Text with AI
+
+Generate one text response from a prompt and optional JSON context. The component uses the project's configured default LLM provider, falling back to the installation's global provider when one is available. Provider credentials and endpoints are configured centrally; they are not workflow arguments.
+
+**Settings**:
+
+- **System Instructions** — optional guidance for the model's role, tone, and constraints.
+- **Prompt** — the required task. It can include workflow variables and outputs from earlier components.
+- **Context** — optional JSON that you deliberately include with the request. It is appended after an explicit end-of-message trust marker and treated as untrusted data through the rest of the message.
+- **Temperature** — variation from `0` to `1`. The default is `0.2` for predictable automation.
+- **Maximum Output Tokens** — from `1` to `4096`. The default is `1024`.
+
+The combined System Instructions, Prompt, and serialized Context are limited to 50,000 characters. The provider request has a 60-second maximum duration and is attempted once. At most three workflow AI requests can run concurrently per project.
+
+**Outputs**:
+
+- **Response** — the generated text.
+- **Provider** and **Model** — the configuration used for the call.
+- **Total Tokens** and **Completion Tokens** — usage reported by the provider.
+- **LLM Log ID** — the metered AI log entry for the call.
+- **Error** — the validation, access, provider, budget, billing, or timeout error, when present.
+
+Connect **Success** to components that should use the response. Connect **Error** to an explicit fallback, alert, or log path. The component makes one model request without tool definitions or provider-native capability fields: it cannot query OneUptime, call APIs, or change project data by itself. Besides OneUptime's fixed component-safety instructions, only the System Instructions, Prompt, and Context you configure are sent to the provider, after workflow variables in those fields are resolved. The configured provider/model remains a trust boundary because a model can have intrinsic provider-managed capabilities.
+
+Model output is untrusted text. Review it before sending customer-facing communications, and do not use free-form AI text alone to authorize destructive workflow actions. See [Configuration & Safety](/docs/workflows/configuration) for provider, egress, logging, and cost details.
+
 ## Webhook (outbound)
 
 A simpler version of the API component for "fire and forget" cases. Posts a JSON body to a URL.
@@ -137,6 +165,7 @@ A few quick rules:
 
 - If there's a dedicated block for what you want (Slack, Email, a OneUptime record), use it — you get nicer error handling and clearer logs.
 - For any other external API, use **API**.
+- To summarize, classify, or draft text from explicitly selected workflow data, use **Generate Text with AI**.
 - To reshape data between blocks, use **Custom Code** or **JSON**.
 - To take different actions based on a value, use **Conditions**.
 

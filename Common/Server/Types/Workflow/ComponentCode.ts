@@ -27,6 +27,12 @@ export interface RunOptions {
   projectId: ObjectID;
   onError: (exception: Exception) => Exception;
   /**
+   * Remaining wall-clock time for this execution attempt. Components that
+   * perform network requests should use this to keep their own request timeout
+   * inside the workflow deadline.
+   */
+  getRemainingExecutionTimeInMs?: (() => number) | undefined;
+  /**
    * Fire-and-forget trigger for another workflow in the same project.
    * Enqueues the target workflow with the given `returnValues` as its arguments
    * (the payload a Manual trigger in the child workflow will receive on its
