@@ -16,6 +16,7 @@ import {
 import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
 import { QueryAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
+import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
 import { RecentChangesTool } from "./RecentChangesTools";
@@ -73,6 +74,7 @@ export default class AIToolbox {
     SearchIncidentsTool,
     QueryAlertsTool,
     QueryMonitorsTool,
+    QueryScheduledMaintenanceTool,
     TopExceptionsTool,
     SearchLogsTool,
     LogHistogramTool,

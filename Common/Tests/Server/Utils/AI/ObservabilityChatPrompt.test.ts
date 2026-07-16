@@ -58,14 +58,15 @@ describe("buildPageContextSection", () => {
     expect(section).toContain(`get_trace using traceId="${TRACE_ID}"`);
   });
 
-  test("scheduled maintenance guidance is honest about missing tooling", () => {
+  test("scheduled maintenance guidance names query_scheduled_maintenance", () => {
     const section: string = buildPageContextSection({
       type: AIChatPageContextType.ScheduledMaintenanceEvent,
       entityId: ENTITY_ID,
     });
 
-    expect(section).toContain("no tool that fetches a scheduled maintenance");
-    expect(section).toContain("recent_changes");
+    expect(section).toContain(
+      `query_scheduled_maintenance using scheduledMaintenanceId="${ENTITY_ID}"`,
+    );
   });
 
   test("the entity title is included in quotes when present", () => {
@@ -82,7 +83,10 @@ describe("buildPageContextSection", () => {
     [AIChatPageContextType.IncidentsList, "query_incidents"],
     [AIChatPageContextType.AlertsList, "query_alerts"],
     [AIChatPageContextType.MonitorsList, "query_monitors"],
-    [AIChatPageContextType.ScheduledMaintenanceList, "recent_changes"],
+    [
+      AIChatPageContextType.ScheduledMaintenanceList,
+      "query_scheduled_maintenance",
+    ],
     [AIChatPageContextType.LogsExplorer, "log_histogram"],
     [AIChatPageContextType.TracesExplorer, "query_traces"],
     [AIChatPageContextType.MetricsExplorer, "query_metrics"],
