@@ -11,7 +11,7 @@ const components: Array<ComponentMetadata> = [
     title: "Execute Workflow",
     category: "Utils",
     description:
-      "Execute another workflow in the same project (fire-and-forget)",
+      "Execute another workflow in the same project (fire-and-forget). To use this: 1) Create a separate workflow with a 'Manual' trigger. 2) Copy its Trigger ID from the workflow settings. 3) Select that workflow in the 'Workflow' dropdown below.",
     iconProp: IconProp.Workflow,
     componentType: ComponentType.Component,
     arguments: [
@@ -19,7 +19,7 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.WorkflowSelect,
         name: "Workflow",
         description:
-          "Pick the workflow to execute. The workflow must be in the same project and be enabled. It must have a Manual trigger to receive the arguments passed below.",
+          "Pick the workflow to execute. The target workflow must be in the same project, be enabled, and have a Manual trigger. Select it from the dropdown — all eligible workflows in this project are listed.",
         required: true,
         id: "workflowId",
         placeholder: "Select a workflow",
@@ -28,7 +28,7 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.JSON,
         name: "Arguments",
         description:
-          "JSON payload to pass to the target workflow. The target workflow's Manual trigger will emit this object on its output port.",
+          "JSON payload to pass to the target workflow. The target workflow's Manual trigger will emit this object on its output port. Use {{local.components.COMPONENT_ID.returnValue}} to include output from previous components.",
         required: false,
         id: "arguments",
         placeholder: '{ "key": "value" }',
