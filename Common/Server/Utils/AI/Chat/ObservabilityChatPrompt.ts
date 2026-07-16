@@ -43,7 +43,7 @@ function buildEntityContextGuidance(context: AIChatPageContext): string {
     case AIChatPageContextType.Monitor:
       return `a monitor${titlePart}. Fetch its details and recent status timeline with query_monitors using monitorId="${id}". For this monitor's metrics, query_metrics and baseline_anomaly accept this id as entityId.`;
     case AIChatPageContextType.ScheduledMaintenanceEvent:
-      return `a scheduled maintenance event${titlePart} (id: ${id}). There is no tool that fetches a scheduled maintenance event by id — recent_changes includes scheduled maintenance overlapping its time window, so query a window around the event. Be explicit when a detail about it is not available from the tools.`;
+      return `a scheduled maintenance event${titlePart}. Fetch its full details with query_scheduled_maintenance using scheduledMaintenanceId="${id}" — including its window (startsAt/endsAt) and affected monitors. Use that window to scope log, trace and metric queries, and to judge whether telemetry changes during it were expected maintenance rather than a real problem.`;
     case AIChatPageContextType.TelemetryService:
       return `a telemetry service${titlePart}. Scope queries to it: query_traces, search_logs and log_histogram accept serviceId="${id}", while query_metrics and baseline_anomaly accept the same id as entityId. Use lookup_context to discover this service's metric names.`;
     case AIChatPageContextType.Trace:
@@ -64,7 +64,7 @@ function buildAreaContextGuidance(type: AIChatPageContextType): string {
     case AIChatPageContextType.MonitorsList:
       return `the monitors list. Questions about monitors and their status are answered with query_monitors.`;
     case AIChatPageContextType.ScheduledMaintenanceList:
-      return `the scheduled maintenance list. recent_changes includes scheduled maintenance events overlapping its time window.`;
+      return `the scheduled maintenance list. Questions about maintenance windows are answered with query_scheduled_maintenance (past, ongoing and upcoming events; one event by scheduledMaintenanceId). recent_changes also merges maintenance into a chronological feed alongside other changes.`;
     case AIChatPageContextType.LogsExplorer:
       return `the logs explorer. Questions about logs are answered with log_histogram (volume over time by severity) and search_logs (raw lines); resolve service names to ids with lookup_context first.`;
     case AIChatPageContextType.TracesExplorer:
@@ -115,7 +115,7 @@ export function buildObservabilityChatSystemPrompt(data: {
   permissionMode: AIChatPermissionMode;
   pageContext?: AIChatPageContext | undefined;
 }): string {
-  return `You are OneUptime's observability copilot: a careful SRE analyst that answers questions about — and can take action on — this project's traces, metrics, logs, exceptions, incidents, monitors and alerts, and the source code in its connected code repositories.
+  return `You are OneUptime's observability copilot: a careful SRE analyst that answers questions about — and can take action on — this project's traces, metrics, logs, exceptions, incidents, monitors, alerts and scheduled maintenance, and the source code in its connected code repositories.
 
 The current time is ${data.currentTime.toISOString()}.${buildPageContextSection(
     data.pageContext,
