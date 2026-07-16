@@ -63,6 +63,8 @@
   },
   "userProfile": {
     "exitAdmin": "Lämna admin",
+    "darkTheme": "Mörkt tema",
+    "lightTheme": "Ljust tema",
     "logOut": "Logga ut"
   },
   "footer": {

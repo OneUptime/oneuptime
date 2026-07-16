@@ -63,6 +63,8 @@
   },
   "userProfile": {
     "exitAdmin": "Admin verlassen",
+    "darkTheme": "Dunkles Design",
+    "lightTheme": "Helles Design",
     "logOut": "Abmelden"
   },
   "footer": {

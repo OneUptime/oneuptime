@@ -1,6 +1,7 @@
 /*
- * Dashboard theme tokens. Light is intentionally the default; the dark
- * values are activated only by the explicit class applied to <html>.
+ * Shared dashboard theme tokens (Dashboard + Admin Dashboard). Light is
+ * intentionally the default; the dark values are activated only by the
+ * explicit class applied to <html>.
  */
 :root {
   color-scheme: light;
@@ -477,9 +478,15 @@ html.dark :is(
   --tw-gradient-to: rgb(17 24 39 / 0%) var(--tw-gradient-to-position);
 }
 
+/*
+ * Tailwind's via-* classes bake the middle color into --tw-gradient-stops
+ * directly (there is no --tw-gradient-via variable), so the stops list must be
+ * rebuilt to recolor the middle stop.
+ */
 html.dark :is(.via-white, .via-gray-200) {
-  --tw-gradient-via: var(--ou-surface-secondary)
-    var(--tw-gradient-via-position);
+  --tw-gradient-stops: var(--tw-gradient-from),
+    var(--ou-surface-secondary) var(--tw-gradient-via-position),
+    var(--tw-gradient-to);
 }
 
 html.dark :is(
@@ -523,7 +530,9 @@ html.dark :is(
 }
 
 html.dark .via-indigo-50 {
-  --tw-gradient-via: rgb(49 46 129 / 34%) var(--tw-gradient-via-position);
+  --tw-gradient-stops: var(--tw-gradient-from),
+    rgb(49 46 129 / 34%) var(--tw-gradient-via-position),
+    var(--tw-gradient-to);
 }
 
 html.dark :is(.to-red-100, .to-rose-50) {

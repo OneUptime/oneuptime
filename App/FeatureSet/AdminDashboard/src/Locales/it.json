@@ -63,6 +63,8 @@
   },
   "userProfile": {
     "exitAdmin": "Esci dall'admin",
+    "darkTheme": "Tema scuro",
+    "lightTheme": "Tema chiaro",
     "logOut": "Disconnetti"
   },
   "footer": {

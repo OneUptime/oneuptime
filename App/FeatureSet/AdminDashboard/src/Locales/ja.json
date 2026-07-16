@@ -63,6 +63,8 @@
   },
   "userProfile": {
     "exitAdmin": "管理者を終了",
+    "darkTheme": "ダークテーマ",
+    "lightTheme": "ライトテーマ",
     "logOut": "ログアウト"
   },
   "footer": {
