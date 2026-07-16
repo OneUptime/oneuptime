@@ -97,7 +97,7 @@
     "Incoming Email Monitor": "आने वाले ईमेल मॉनिटर",
     "External Status Page Monitor": "बाहरी स्थिति पृष्ठ मॉनिटर",
     "Server / VM Monitor": "सर्वर / VM मॉनिटर",
-    "SNMP Monitor": "SNMP मॉनिटर",
+    "Network Device Monitor": "नेटवर्क डिवाइस मॉनिटर",
     "Kubernetes Monitor": "Kubernetes मॉनिटर",
     "Kubernetes Agent (Helm install)": "Kubernetes एजेंट (Helm स्थापना)",
     "Docker Monitor": "Docker मॉनिटर",

@@ -855,13 +855,35 @@ export default class SnmpMonitor {
     }
 
     if (Buffer.isBuffer(value)) {
+      if (value.length === 0) {
+        return undefined;
+      }
+
+      // Native fast paths.
+      if (value.length <= 6) {
+        return value.readUIntBE(0, value.length);
+      }
       if (value.length === 8) {
         return Number(value.readBigUInt64BE());
       }
-      if (value.length > 0 && value.length <= 6) {
-        return value.readUIntBE(0, value.length);
+
+      /*
+       * net-snmp hands Counter64 varbinds over as minimal-length big-endian
+       * buffers, so 7-byte (2^48..2^56-1) and 9-byte (a leading 0x00 pad on
+       * values >= 2^63) encodings both occur. Accumulate as BigInt over all
+       * bytes so those aren't dropped; >8 significant bytes can't fit a
+       * Counter64, so bail rather than return a wrong number.
+       */
+      let accumulator: bigint = BigInt(0);
+      const eight: bigint = BigInt(8);
+      for (const byte of value) {
+        accumulator = (accumulator << eight) | BigInt(byte);
       }
-      return undefined;
+      // Max Counter64 is 2^64 - 1; anything larger can't be a valid counter.
+      if (accumulator > BigInt("18446744073709551615")) {
+        return undefined;
+      }
+      return Number(accumulator);
     }
 
     return undefined;

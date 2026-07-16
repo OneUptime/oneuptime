@@ -109,6 +109,20 @@ async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
       snmpPort: scan.snmpPort,
     });
 
+    /*
+     * The scan model has no column for the ICMP pre-sweep count, so it rides
+     * along in statusMessage (which the ingest endpoint already accepts)
+     * instead of a payload field the server would silently drop.
+     */
+    const statusMessage: string =
+      scanResult.respondedToPingCount !== undefined
+        ? `Swept ${scanResult.scannedHostCount} hosts: ` +
+          `${scanResult.respondedToPingCount} answered ICMP ping, ` +
+          `${scanResult.discoveredHosts.length} answered SNMP.`
+        : `Swept ${scanResult.scannedHostCount} hosts via SNMP ` +
+          `(ICMP pre-sweep unavailable on this probe): ` +
+          `${scanResult.discoveredHosts.length} answered SNMP.`;
+
     await API.fetch<JSONArray>({
       method: HTTPMethod.POST,
       url: resultUrl,
@@ -116,6 +130,7 @@ async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
         ...ProbeAPIRequest.getDefaultRequestBody(),
         scanId: scan.id?.toString(),
         success: true,
+        statusMessage: statusMessage,
         discoveredDevices: scanResult.discoveredHosts as unknown as JSONArray,
         scannedHostCount: scanResult.scannedHostCount,
       },

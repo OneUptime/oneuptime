@@ -12,7 +12,9 @@ import FetchMonitorList from "./Jobs/Monitor/FetchList";
 import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
 import FetchDiscoveryScans from "./Jobs/Discovery/FetchScans";
 import Register from "./Services/Register";
+import NetFlowReceiver from "./Services/NetFlowReceiver";
 import SnmpTrapReceiver from "./Services/SnmpTrapReceiver";
+import SyslogReceiver from "./Services/SyslogReceiver";
 import MetricsAPI from "./API/Metrics";
 import IncomingRequestIngressAPI from "./API/IncomingRequestIngress";
 import ProxyConfig from "./Utils/ProxyConfig";
@@ -118,6 +120,12 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();
+
+      // Optional syslog receiver (PROBE_SYSLOG_RECEIVER_ENABLED).
+      SyslogReceiver.start();
+
+      // Optional NetFlow v5 receiver (PROBE_NETFLOW_RECEIVER_ENABLED).
+      NetFlowReceiver.start();
 
       await Register.reportIfOffline();
     } catch (err) {

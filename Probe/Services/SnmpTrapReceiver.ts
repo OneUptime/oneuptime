@@ -5,6 +5,7 @@ import {
   PROBE_SNMP_TRAP_RECEIVER_PORT,
 } from "../Config";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
+import ProxyConfig from "../Utils/ProxyConfig";
 import URL from "Common/Types/API/URL";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import { JSONObject } from "Common/Types/JSON";
@@ -131,14 +132,24 @@ export default class SnmpTrapReceiver {
       `SNMP trap received from ${trap.sourceIpAddress}: ${trap.trapOid}`,
     );
 
+    /*
+     * Build the URL from a fresh copy of PROBE_INGEST_URL — Route.addRoute
+     * mutates in place, so calling it on the shared global would permanently
+     * append "/probe/snmp-trap" to the base URL used by every probe request.
+     */
+    const ingestUrl: URL = URL.fromString(
+      PROBE_INGEST_URL.toString(),
+    ).addRoute("/probe/snmp-trap");
+
     await API.fetch<JSONObject>({
       method: HTTPMethod.POST,
-      url: URL.fromString(
-        PROBE_INGEST_URL.addRoute("/probe/snmp-trap").toString(),
-      ),
+      url: ingestUrl,
       data: {
         ...ProbeAPIRequest.getDefaultRequestBody(),
         snmpTrap: trap as unknown as JSONObject,
+      },
+      options: {
+        ...ProxyConfig.getRequestProxyAgents(ingestUrl),
       },
     });
   }

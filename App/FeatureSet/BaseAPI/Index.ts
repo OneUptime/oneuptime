@@ -100,6 +100,7 @@ import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
+import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
@@ -4265,6 +4266,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkDeviceTopologyAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkDeviceFlowAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

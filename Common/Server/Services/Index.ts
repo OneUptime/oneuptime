@@ -253,6 +253,7 @@ import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryS
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
 import MonitorLogService from "./MonitorLogService";
+import NetworkFlowService from "./NetworkFlowService";
 
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import ProjectSCIMLogService from "./ProjectSCIMLogService";
@@ -535,6 +536,7 @@ export const AnalyticsServices: Array<
   MetricBaselineService,
   ExceptionInstanceService,
   MonitorLogService,
+  NetworkFlowService,
   ProfileService,
   ProfileSampleService,
   AuditLogService,

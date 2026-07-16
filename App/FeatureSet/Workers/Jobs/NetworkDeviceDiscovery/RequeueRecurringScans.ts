@@ -1,0 +1,81 @@
+import RunCron from "../../Utils/Cron";
+import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import OneUptimeDate from "Common/Types/Date";
+import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import logger from "Common/Server/Utils/Logger";
+
+/*
+ * Re-queues recurring subnet discovery scans that are due.
+ *
+ * The lifecycle: the probe-ingest result endpoint (Telemetry/API/ProbeIngest/
+ * DiscoveryScan.ts) stamps nextScanAt when a recurring scan completes or
+ * fails. Once that moment passes, this job flips the scan back to Pending so
+ * the probe's FetchScans poller picks it up again like a brand-new scan.
+ *
+ * Only Completed/Failed scans are eligible — a scan that is still Pending or
+ * In Progress must never be re-queued underneath the probe that is running
+ * it. nextScanAt is cleared on re-queue so a scan the probe never picks up
+ * (probe offline) cannot be re-queued twice.
+ *
+ * discoveredDevices from the previous run are intentionally KEPT: the
+ * dashboard's "Review Results" flow is only reachable while status is
+ * Completed, so stale results are not reviewable during the re-run anyway,
+ * and the ingest endpoint overwrites them the moment new results arrive.
+ * Clearing them here would only destroy the last good inventory.
+ */
+RunCron(
+  "NetworkDeviceDiscovery:RequeueRecurringScans",
+  { schedule: EVERY_MINUTE, runOnStartup: false },
+  async () => {
+    const dueScans: Array<NetworkDeviceDiscoveryScan> =
+      await NetworkDeviceDiscoveryScanService.findAllBy({
+        query: {
+          isRecurring: true,
+          nextScanAt: QueryHelper.lessThanEqualTo(
+            OneUptimeDate.getCurrentDate(),
+          ),
+          status: QueryHelper.any(["Completed", "Failed"]),
+        },
+        select: {
+          _id: true,
+          cidr: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const scan of dueScans) {
+      logger.debug(
+        `Re-queueing recurring discovery scan ${scan.id?.toString()} (${scan.cidr}).`,
+      );
+
+      await NetworkDeviceDiscoveryScanService.updateOneById({
+        id: scan.id!,
+        /*
+         * Cast: the model's JSON column makes DeepPartial recursion blow up
+         * (same workaround as the probe-ingest endpoints). Run-state columns
+         * are reset so the row reads as a fresh Pending scan; nextScanAt is
+         * cleared so this job cannot claim it again before it runs.
+         */
+        data: {
+          status: "Pending",
+          statusMessage: null,
+          startedAt: null,
+          completedAt: null,
+          nextScanAt: null,
+        } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (dueScans.length > 0) {
+      logger.debug(`Re-queued ${dueScans.length} recurring discovery scan(s).`);
+    }
+  },
+);

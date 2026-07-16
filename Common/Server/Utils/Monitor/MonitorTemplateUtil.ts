@@ -15,6 +15,10 @@ import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/S
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import SnmpTrap, {
+  SnmpTrapVarbind,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import DnsMonitorResponse, {
   DnsRecordResponse,
 } from "../../../Types/Monitor/DnsMonitor/DnsMonitorResponse";
@@ -276,6 +280,96 @@ export default class MonitorTemplateUtil {
               storageMap[oidResponse.name] = oidResponse.value;
             }
           }
+        }
+
+        /*
+         * Interface walk results (populated when interface monitoring is
+         * enabled on the monitor step). Counts follow the same semantics as
+         * NetworkInventoryUtil: administratively disabled interfaces are
+         * intentionally down and never count as failures, so
+         * `interfacesDown` / `downInterfaces` only cover interfaces that are
+         * admin-up but oper-down. Lets templates say
+         * "{{downInterfaces.0.name}} on {{sysName}} is down".
+         */
+        if (snmpResponse?.interfaces && snmpResponse.interfaces.length > 0) {
+          const interfaces: Array<SnmpInterface> = snmpResponse.interfaces;
+
+          const downInterfaces: Array<SnmpInterface> = interfaces.filter(
+            (snmpInterface: SnmpInterface) => {
+              return (
+                snmpInterface.isAdministrativelyUp &&
+                !snmpInterface.isOperationallyUp
+              );
+            },
+          );
+
+          storageMap["interfacesTotal"] = interfaces.length;
+          storageMap["interfacesUp"] = interfaces.filter(
+            (snmpInterface: SnmpInterface) => {
+              return (
+                snmpInterface.isAdministrativelyUp &&
+                snmpInterface.isOperationallyUp
+              );
+            },
+          ).length;
+          storageMap["interfacesDown"] = downInterfaces.length;
+          storageMap["downInterfaces"] = downInterfaces.map(
+            (snmpInterface: SnmpInterface) => {
+              return {
+                name: snmpInterface.name,
+                alias: snmpInterface.alias || "",
+                interfaceIndex: snmpInterface.interfaceIndex,
+              };
+            },
+          );
+        }
+
+        if (snmpResponse?.interfaceWalkFailure) {
+          storageMap["interfaceWalkFailure"] =
+            snmpResponse.interfaceWalkFailure;
+        }
+
+        /*
+         * Device system identity (SNMPv2 system group), when collected.
+         * Missing fields default to "" so templates render blank instead of
+         * a raw {{placeholder}} — but never clobber a value the user already
+         * exposed via a custom OID named sysName/sysDescr/etc. above.
+         */
+        if (snmpResponse?.systemInfo) {
+          const systemInfoFields: Array<[string, string | undefined]> = [
+            ["sysName", snmpResponse.systemInfo.sysName],
+            ["sysDescr", snmpResponse.systemInfo.sysDescr],
+            ["sysObjectId", snmpResponse.systemInfo.sysObjectId],
+            ["sysLocation", snmpResponse.systemInfo.sysLocation],
+          ];
+
+          for (const [fieldName, fieldValue] of systemInfoFields) {
+            if (fieldValue || storageMap[fieldName] === undefined) {
+              storageMap[fieldName] = fieldValue || "";
+            }
+          }
+        }
+
+        /*
+         * Trap payload — only present when this check was triggered by an
+         * SNMP trap received by a probe's trap receiver (rather than a
+         * scheduled poll).
+         */
+        const snmpTrapResponse: SnmpTrap | undefined = (
+          data.dataToProcess as ProbeMonitorResponse
+        ).snmpTrapResponse;
+
+        if (snmpTrapResponse) {
+          storageMap["trapOid"] = snmpTrapResponse.trapOid;
+          storageMap["trapSourceIp"] = snmpTrapResponse.sourceIpAddress;
+          storageMap["trapVarbinds"] = snmpTrapResponse.varbinds.map(
+            (varbind: SnmpTrapVarbind) => {
+              return {
+                oid: varbind.oid,
+                value: varbind.value,
+              };
+            },
+          );
         }
       }
 
