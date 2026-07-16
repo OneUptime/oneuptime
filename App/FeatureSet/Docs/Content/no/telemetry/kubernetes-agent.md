@@ -278,7 +278,6 @@ Avanserte brukere kan overstyre forhåndsinnstillingens valg med `logs.mode`:
 >
 > Det ene unntaket er plattformen, ikke modusen: **EKS Fargate kan ikke planlegge DaemonSets i det hele tatt**, så det finnes ingen node-collector der, og metrikker per node/pod/container er utilgjengelige. GKE Autopilot kjører node-collectoren fint, men blokkerer `hostPath`, så den samler inn kubelet- og cAdvisor-metrikker uten `hostmetrics`-metrikkene (disk-I/O, inoder, NIC-feil) som må lese vertens `/proc` og `/sys`.
 
-
 Den eksplisitte `logs.mode` vinner alltid over forhåndsinnstillingens standard. Bruk dette hvis du kjenner klyngen din bedre enn forhåndsinnstillingen gjør.
 
 ### Aktiver overvåking av control plane

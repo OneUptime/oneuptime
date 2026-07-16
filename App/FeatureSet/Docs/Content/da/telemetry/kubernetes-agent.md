@@ -172,6 +172,7 @@ Container-runtimes registrerer ikke en alvorlighed på loglinjen, så agenten pa
 | `daemonset` | `stderr` → behandles som ERROR (beholdes), `stdout` → behandles som INFO (droppes af en WARN-tærskel) | Container-runtimen registrerer, hvilken stream hver linje kom fra. |
 | `api` | **Beholdes** altid | Kubernetes' `pods/log`-API fletter stdout og stderr sammen til én stream uden markør pr. linje. I stedet for at gætte beholder agenten linjen. |
 
+> Så `api`-tilstand dropper strengt mindre end `daemonset`-tilstand. Det er med vilje: en Python-stacktrace eller `npm ERR!` bærer ikke noget alvorlighedsnøgleord, og at slette den i stilhed er præcis den fejl, som en alvorlighedstærskel er ment til at beskytte dig imod.
 
 Flerlinje-events samles **før** filtrering i begge tilstande, så en Java-stacktrace bedømmes på sin første linje og beholdes eller droppes som helhed — du får aldrig en nøgen `ERROR`-linje med dens frames skrællet af.
 

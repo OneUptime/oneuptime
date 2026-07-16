@@ -461,9 +461,7 @@ Les journaux de conteneurs constituent presque toujours la plus grande part de l
     --set logs.enabled=false
   ```
 
-  > **Cela désactive également les métriques de nœuds, de pods, de conteneurs et d'hôtes.** Les récepteurs kubelet, cAdvisor et hostmetrics vivent tous dans le même DaemonSet log-collector : désactiver les journaux de pods les supprime donc eux aussi — ainsi que les moniteurs d'OOM-kill, de throttling CPU et de disque faible des PVC. Il en va de même pour `logs.mode: api` et `logs.mode: disabled`.
-  >
-  > Si vous voulez moins de journaux mais souhaitez conserver vos métriques, restez sur `logs.mode: daemonset` et utilisez plutôt `namespaceFilters` ou `filters.logs.minSeverity` ci-dessus.
+  > Cela n'arrête que les journaux de pods. Les métriques de nœuds, de pods et de conteneurs continuent de circuler, et les moniteurs construits dessus (OOM kills, throttling CPU, disque faible des PVC) continuent de fonctionner — le collecteur de nœuds reste en place, il cesse simplement de lire `/var/log/pods`. Il en va de même pour `logs.mode: api` et `logs.mode: disabled`.
 
 ### Levier 2 — Réduire l'auto-instrumentation eBPF
 
@@ -602,8 +600,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Keep the DaemonSet — it is what collects kubelet, cAdvisor and host
-# metrics as well as logs — but only ship logs worth alerting on.
+# Keep pod logs, but only ship the ones worth alerting on. (Metrics do
+# not depend on this — the node collector runs either way.)
 logs:
   enabled: true
   mode: daemonset

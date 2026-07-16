@@ -172,6 +172,7 @@ Container-runtimes registreren geen severity op de logregel, dus parseert de age
 | `daemonset` | `stderr` → behandeld als ERROR (behouden), `stdout` → behandeld als INFO (weggegooid bij een WARN-drempel) | De container-runtime registreert uit welke stream elke regel afkomstig is. |
 | `api` | Altijd **behouden** | De Kubernetes `pods/log`-API voegt stdout en stderr samen tot één enkele stream zonder markering per regel. In plaats van te gokken behoudt de agent de regel. |
 
+> Dus `api`-modus gooit strikt minder weg dan `daemonset`-modus. Dat is bewust: een Python-traceback of `npm ERR!` bevat geen severity-trefwoord, en het stilzwijgend verwijderen daarvan is precies het falen waartegen een severity-drempel je hoort te beschermen.
 
 Multi-regel-events worden in beide modi **vóór** het filteren weer samengevoegd, dus een Java-stacktrace wordt beoordeeld op zijn eerste regel en in zijn geheel behouden of weggegooid — je krijgt nooit een kale `ERROR`-regel waarvan de frames zijn afgestript.
 
@@ -276,7 +277,6 @@ Gevorderde gebruikers kunnen de keuze van de preset overschrijven met `logs.mode
 > De logmodus bepaalt alleen waar **pod-logs** vandaan komen. Node-metrieken worden daar los van verzameld, dus `api` en `disabled` behouden je kubelet-, cAdvisor- en hostmetrieken.
 >
 > De enige uitzondering is het platform, niet de modus: **EKS Fargate kan helemaal geen DaemonSets inplannen**, dus daar is geen node-collector en zijn metrieken per node/pod/container niet beschikbaar. GKE Autopilot draait de node-collector prima, maar blokkeert `hostPath`, dus verzamelt het kubelet- en cAdvisor-metrieken zonder de `hostmetrics`-metrieken (disk-I/O, inodes, NIC-fouten) die de `/proc` en `/sys` van de host moeten lezen.
-
 
 De expliciete `logs.mode` wint altijd van de preset-standaard. Gebruik dit als je je cluster beter kent dan de preset.
 

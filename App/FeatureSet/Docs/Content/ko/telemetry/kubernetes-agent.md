@@ -599,8 +599,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# DaemonSet을 유지하세요 — 로그뿐 아니라 kubelet, cAdvisor 및 호스트 메트릭을
-# 수집하는 것이 바로 이것입니다 — 다만 알림 가치가 있는 로그만 전송합니다.
+# 파드 로그는 유지하되 알림 가치가 있는 것만 전송합니다. (메트릭은 이것에
+# 의존하지 않습니다 — 노드 컬렉터는 어느 쪽이든 실행됩니다.)
 logs:
   enabled: true
   mode: daemonset

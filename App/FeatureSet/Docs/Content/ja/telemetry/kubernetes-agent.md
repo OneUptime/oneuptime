@@ -599,8 +599,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# DaemonSet は維持します — これはログだけでなく kubelet、cAdvisor、ホストの
-# メトリクスも収集するものです — ただしアラートに値するログのみを送信します。
+# Pod ログは維持しますが、アラートに値するものだけを送信します。(メトリクスは
+# これに依存しません — ノードコレクターはどちらにせよ動作します。)
 logs:
   enabled: true
   mode: daemonset

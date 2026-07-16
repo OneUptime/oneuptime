@@ -278,8 +278,6 @@ Usuários avançados podem sobrescrever a escolha do preset com `logs.mode`:
 >
 > A única exceção é a plataforma, não o modo: **o EKS Fargate não consegue agendar DaemonSets de forma alguma**, portanto não há coletor de nós ali e as métricas por nó/pod/contêiner ficam indisponíveis. O GKE Autopilot executa o coletor de nós normalmente, mas bloqueia `hostPath`, então coleta métricas do kubelet e do cAdvisor sem as do `hostmetrics` (E/S de disco, inodes, erros de NIC), que precisam ler o `/proc` e o `/sys` do host.
 
-> Tanto o `api` quanto o `disabled` removem o DaemonSet coletor de logs e, com ele, as métricas de nó, de pod, de contêiner e de host descritas acima — o mesmo trade-off do `logs.enabled=false`. Somente o modo `daemonset` as coleta. É por isso que os presets do GKE Autopilot e do EKS Fargate, que forçam o modo `api`, não reportam métricas do kubelet.
-
 O `logs.mode` explícito sempre prevalece sobre o padrão do preset. Use isso se você conhecer seu cluster melhor do que o preset.
 
 ### Habilitar Monitoramento do Plano de Controle

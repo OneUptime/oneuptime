@@ -460,9 +460,7 @@ Container-Logs sind fast immer der größte Anteil am Ingest, weil es ein Datens
     --set logs.enabled=false
   ```
 
-  > **Das deaktiviert auch Node-, Pod-, Container- und Host-Metriken.** Die kubelet-, cAdvisor- und hostmetrics-Receiver leben alle im selben Log-Collector-DaemonSet, sodass das Ausschalten der Pod-Logs sie ebenfalls entfernt — zusammen mit den OOM-Kill-, CPU-Throttling- und PVC-Low-Disk-Monitoren. Dasselbe gilt für `logs.mode: api` und `logs.mode: disabled`.
-  >
-  > Wenn Sie weniger Logs möchten, aber Ihre Metriken behalten wollen, bleiben Sie bei `logs.mode: daemonset` und greifen Sie stattdessen zu `namespaceFilters` oder `filters.logs.minSeverity` weiter oben.
+  > Das stoppt nur die Pod-Logs. Node-, Pod- und Container-Metriken fließen weiter, und die darauf aufbauenden Monitore (OOM-Kills, CPU-Throttling, PVC-Low-Disk) funktionieren weiterhin — der Node-Collector bleibt, er hört lediglich auf, `/var/log/pods` zu lesen. Dasselbe gilt für `logs.mode: api` und `logs.mode: disabled`.
 
 ### Hebel 2 — eBPF-Auto-Instrumentierung eingrenzen
 
@@ -601,8 +599,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Keep the DaemonSet — it is what collects kubelet, cAdvisor and host
-# metrics as well as logs — but only ship logs worth alerting on.
+# Keep pod logs, but only ship the ones worth alerting on. (Metrics do
+# not depend on this — the node collector runs either way.)
 logs:
   enabled: true
   mode: daemonset

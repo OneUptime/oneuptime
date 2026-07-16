@@ -600,8 +600,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Keep the DaemonSet — it is what collects kubelet, cAdvisor and host
-# metrics as well as logs — but only ship logs worth alerting on.
+# Keep pod logs, but only ship the ones worth alerting on. (Metrics do
+# not depend on this — the node collector runs either way.)
 logs:
   enabled: true
   mode: daemonset
