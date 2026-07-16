@@ -22,6 +22,11 @@ export interface ComponentProps {
    * switcher). Kept as a slot so the composer stays reusable across surfaces.
    */
   leading?: ReactElement | undefined;
+  /*
+   * Optional page-context pill rendered inside the composer, above the
+   * textarea — like an attachment, it shows what the question is grounded in.
+   */
+  contextChip?: ReactElement | undefined;
   placeholder?: string | undefined;
 }
 
@@ -59,48 +64,53 @@ const ChatInput: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="border-t border-gray-200 bg-white px-4 pb-4 pt-3">
-      <div className="flex items-end gap-2 rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 transition-all focus-within:border-gray-300 focus-within:ring-4 focus-within:ring-gray-900/[0.04]">
-        <textarea
-          ref={textareaRef}
-          rows={1}
-          value={props.value}
-          autoFocus={true}
-          placeholder={
-            props.placeholder ||
-            (props.isWorking
-              ? "Type your next question — it can be sent when this answer finishes…"
-              : "Ask about your logs, traces, metrics, incidents…")
-          }
-          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            props.onChange(event.target.value);
-          }}
-          onKeyDown={(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              trySend();
+      <div className="rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 transition-all focus-within:border-gray-300 focus-within:ring-4 focus-within:ring-gray-900/[0.04]">
+        {props.contextChip && (
+          <div className="mb-2 flex min-w-0">{props.contextChip}</div>
+        )}
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={props.value}
+            autoFocus={true}
+            placeholder={
+              props.placeholder ||
+              (props.isWorking
+                ? "Type your next question — it can be sent when this answer finishes…"
+                : "Ask about your logs, traces, metrics, incidents…")
             }
-          }}
-          className="max-h-40 flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
-        />
-        <button
-          type="button"
-          title="Send (Enter)"
-          disabled={!isSendable}
-          onClick={() => {
-            trySend();
-          }}
-          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
-            isSendable
-              ? "bg-gray-900 text-white hover:bg-gray-800"
-              : "bg-gray-100 text-gray-300"
-          }`}
-        >
-          {props.isWorking ? (
-            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-400"></span>
-          ) : (
-            <Icon icon={IconProp.PaperAirplane} className="h-4 w-4" />
-          )}
-        </button>
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+              props.onChange(event.target.value);
+            }}
+            onKeyDown={(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                trySend();
+              }
+            }}
+            className="max-h-40 flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
+          />
+          <button
+            type="button"
+            title="Send (Enter)"
+            disabled={!isSendable}
+            onClick={() => {
+              trySend();
+            }}
+            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
+              isSendable
+                ? "bg-gray-900 text-white hover:bg-gray-800"
+                : "bg-gray-100 text-gray-300"
+            }`}
+          >
+            {props.isWorking ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-400"></span>
+            ) : (
+              <Icon icon={IconProp.PaperAirplane} className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
       <div className="mt-2.5 space-y-2 px-1">
         {/*

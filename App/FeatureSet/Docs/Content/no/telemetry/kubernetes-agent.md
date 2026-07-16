@@ -214,6 +214,42 @@ Notater som vil spare deg for en hendelse:
 
 > **Test et regex før du ruller det ut.** Mønstre kompileres av collectoren ved oppstart, ikke per post, så et ugyldig et oppfører seg ikke feil i stillhet — collectoren nekter å starte og går i CrashLoopBackOff, og tar den collectorens **logger** med seg sammen med metrikkene. Helm kan ikke kompilere RE2, så `helm upgrade` godtar et dårlig mønster uten å si ifra.
 
+### Sampling av sporinger
+
+Filtrene ovenfor fjerner en **kategori** av telemetri — et namespace, en alvorlighetsgrad, et metrikknavn. Sampling er annerledes: den beholder hver kategori og tynner ut populasjonen i stedet. Sett `sampling.traces.percentage` til andelen sporinger du vil beholde:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Det beholder én sporing av ti og dropper de andre ni på agenten, før de forlater klyngen din.
+
+**Du får hele sporinger, ikke fragmenter.** Avgjørelsen er en hash av sporings-ID-en i stedet for et myntkast per span, så hvert span i en sporing beholdes eller droppes samlet — sporingene som overlever, er komplette og lesbare fra ende til ende. Det er denne egenskapen som gjør det trygt å slå på sampling.
+
+**De metrikkbaserte monitorene dine rikker seg ikke.** eBPF RED-metrikkene — forespørselsrate, feilrate, varighet — er en *metrikk*familie. OBI beregner dem fra hver forespørsel, og de går gjennom metrikk-pipelinen, som sampleren ikke står i. Med `percentage: 10` får du en tidel av sporingene og 100 % nøyaktig rate/feil/latens. Dashbord og monitorer bygget på disse metrikkene påvirkes ikke.
+
+**Det gjør de span-baserte monitorene dine.** Alt OneUptime avleder fra spansene selv, skaleres ned med raten — se advarselen nedenfor før du slår dette på.
+
+| Nøkkel | Betydning |
+| --- | ------- |
+| `sampling.traces.percentage` | Prosentandel sporinger som skal **beholdes**, 0-100. Standardverdien er `100` (behold alt). |
+| `sampling.traces.hashSeed` | Seed for sporings-ID-hashen. Standardverdien er `22`. |
+
+Notater som vil spare deg for en hendelse:
+
+- **`0` beholder ingen sporinger i det hele tatt.** Det er en rate, ikke en av-bryter — den sletter hver eneste sporing mens eBPF-DaemonSet-en fortsetter å kjøre og koste deg penger. Vil du ikke ha sporinger, bruk `ebpf.enabled=false`. Vil du ikke ha sporinger, men *vil* ha RED-metrikker og service-kartet, la eBPF være på og sett denne til `0` med hensikt.
+- **Gjelder kun når `ebpf.enabled`.** Sporings-pipelinen finnes ikke ellers, så med `ebpf.enabled=false` gjør denne verdien ingenting.
+- **Kun sporinger.** Det finnes ingen `sampling.logs` eller `sampling.metrics`, og det er med hensikt — se notatet nedenfor.
+- **Brøkdeler krever `--set-json`, og de har en nedre grense.** `--set sampling.traces.percentage=0.5` feiler, fordi Helm leser `0.5` som en streng. Bruk `--set-json 'sampling.traces.percentage=0.5'` eller en values-fil. Hele tall fungerer fint med `--set`. Under omtrent `0.0061` kvantiseres raten til null og oppfører seg nøyaktig som `0` — hver eneste sporing droppes, uten noen feil. `0.01` (én av ti tusen) er den minste verdien som gjør det den sier.
+- **Flere klynger fungerer som standard.** To agenter beholder den samme sporingen kun hvis de er enige om både `hashSeed` og `percentage`. Begge har den samme standardverdien overalt, så en sporing som krysser to klynger, overlever i sin helhet uten noen ekstra konfigurasjon. Endre `hashSeed` kun for med hensikt å *dekorrelere* to samplingsnivåer — fordi avgjørelsen er en terskel på den samme hashen, nøstes den samme seeden med ulike rater, så et andre nivå bare velger på nytt blant sporingene det første allerede beholdt, i stedet for å trekke uavhengig.
+- **Pod-logger samples aldri**, så med `ebpf.logToTraceCorrelation: true` bærer hver eneste loggpost fortsatt en sporings-ID, mens kun `percentage` % av disse sporingene beholdes. Omtrent (100 − `percentage`) % av loggpostene vil vise en sporingslenke som ender i ingenting. Navigering fra sporing → logger påvirkes ikke; kun logger → sporing kan bomme.
+
+> **Juster tersklene på de span-baserte monitorene dine på nytt når du setter denne.** Sampling reduserer spansene som når OneUptime, så alt som teller dem, teller mindre: en **Traces**-monitor på `Span Count` og en **Exceptions**-monitor på `Exception Count` vil se omtrent `percentage` % av gårsdagens volum. En terskel som er innstilt på usamplet trafikk, slutter i stillhet å bli krysset — monitoren feiler ikke, den blir bare stille. Del disse tersklene på den samme faktoren når du setter raten; raten gjelder hele klyngen, så det finnes ingen måte å unnta en enkelt tjeneste fra den. **Gruppering** av feil degraderes verre enn lineært: et vanlig unntak dukker fortsatt opp, men et sjeldent engangstilfelle forsvinner heller helt enn å dukke opp en tidel så ofte.
+
+> **Hvorfor det ikke finnes logg- eller metrikk-sampling her.** Collectorens sampler kan ikke sample metrikker i det hele tatt. Den kan sample logger, men den henter tilfeldigheten sin fra sporings-ID-en — og pod-logger har ingen. Hver post uten sporings-ID hasher da til den samme bøtta, så en logg-rate ville ikke tynnet ut strømmen: den ville beholdt alt eller slettet alt, avhengig av seeden. I stedet for å levere en spak som i stillhet sletter loggene dine, tilbyr ikke chartet noen. Tynn ut logger med [Filtrering etter loggalvorlighetsgrad](#filtrering-etter-loggalvorlighetsgrad) og [Namespace-filtrering](#namespace-filtrering), som er presise på hva de fjerner.
+
 ### Deaktiver logginnsamling
 
 Hvis du ikke trenger pod-logger:
@@ -241,7 +277,6 @@ Avanserte brukere kan overstyre forhåndsinnstillingens valg med `logs.mode`:
 > Loggmodusen bestemmer bare hvor **pod-logger** kommer fra. Node-metrikker samles inn uavhengig av den, så `api` og `disabled` beholder kubelet-, cAdvisor- og host-metrikkene dine.
 >
 > Det ene unntaket er plattformen, ikke modusen: **EKS Fargate kan ikke planlegge DaemonSets i det hele tatt**, så det finnes ingen node-collector der, og metrikker per node/pod/container er utilgjengelige. GKE Autopilot kjører node-collectoren fint, men blokkerer `hostPath`, så den samler inn kubelet- og cAdvisor-metrikker uten `hostmetrics`-metrikkene (disk-I/O, inoder, NIC-feil) som må lese vertens `/proc` og `/sys`.
-
 
 Den eksplisitte `logs.mode` vinner alltid over forhåndsinnstillingens standard. Bruk dette hvis du kjenner klyngen din bedre enn forhåndsinnstillingen gjør.
 
@@ -380,17 +415,18 @@ Trikset er å **slutte å samle inn det du ikke kommer til å se på**, i stedet
 | Signal                               | Største driver                                                    | Skru det ned med                                                                             |
 | ------------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Pod-logger**                       | Hver linje fra hver container, på tvers av hele klyngen           | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
-| **eBPF-sporinger og span-metrikker** | Én sporing per forespørsel fra hver instrumentert prosess         | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **eBPF-sporinger og span-metrikker** | Én sporing per forespørsel fra hver instrumentert prosess         | `sampling.traces.percentage`, `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths` |
 | **Metrikk-datapunkter**              | Skrapefrekvens × antall poder/containere                          | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
 | **Metrikk-kardinalitet**             | Antall distinkte serier (per container, per PVC, …)               | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Opt-in-ekstrafunksjoner**          | Profilering, revisjonslogger, control plane, inter-sone-metrikker | La dem være av (det er de allerede som standard)                                             |
 
-To måter å kutte volum på, og det er verdt å vite hvilken av dem du bruker:
+Tre måter å kutte volum på, og det er verdt å vite hvilken av dem du bruker:
 
 - **På mottakeren** — dataene samles aldri inn. `namespaceFilters` på pod-logger, `cadvisor.metricsAllowlist`, et lengre `collectionInterval`. Koster ingenting å kjøre og sparer CPU, egress og ingest på én gang. Foretrekk alltid disse der de dekker ditt tilfelle.
 - **På filter-prosessoren** — dataene samles inn, og droppes så før eksport. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Litt mer collector-CPU, men det fungerer på tvers av mottakere og kan uttrykke ting en mottaker ikke kan.
+- **På sampleren** — dataene samles inn, og så beholdes en representativ brøkdel. `sampling.traces.percentage`. Den som skiller seg ut: de to ovenfor fjerner en hel *kategori* av telemetri, så det de dropper, er borte fra hver eneste sporing. Sampling beholder hver kategori og tynner ut populasjonen, så det som overlever, er fortsatt komplett og representativt.
 
-Begge er **irreversible**: det du dropper her, når aldri OneUptime, og enhver monitor som er bygget på det, blir stille. Hvis du heller vil bestemme deg senere, kan OneUptime droppe data på serversiden i stedet (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — det koster fortsatt egress, men det er en innstilling du kan endre uten en ny deploy.
+Alle tre er **irreversible**: det du dropper her, når aldri OneUptime, og alle tre kan gjøre at en monitor blir stille. De to første gjør en monitor stille ved å fjerne signalet den følger med på. Sampling er smalere: eBPF RED-metrikkene beregnes før sampleren kjører, så metrikkbaserte monitorer forblir eksakte — men monitorer som teller *spans* (Traces på `Span Count`, Exceptions på `Exception Count`) ser proporsjonalt færre og trenger tersklene sine justert på nytt med den samme faktoren. Hvis du heller vil bestemme deg senere, kan OneUptime droppe data på serversiden i stedet (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — det koster fortsatt egress, men det er en innstilling du kan endre uten en ny deploy.
 
 ### Spak 1 — Pod-logger er vanligvis den enkeltstående største kilden
 
@@ -522,6 +558,29 @@ Disse er **av som standard** nettopp fordi de legger til belastning — aktiver 
 | `ebpf.features.networkInterZoneMetrics`                   | Dobler kardinaliteten for nettverksflytmetrikker                                              |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Ekstra Prometheus-skrapejobber                                                                |
 
+### Spak 6 — Sample sporinger i stedet for å droppe dem
+
+Hver spak ovenfor kjøper volum ved å gi opp noe: et namespace du slutter å følge med på, en alvorlighetsgrad du slutter å beholde, en metrikkfamilie du slutter å samle inn. Sampling er unntaket, og på en travel klynge er det ofte den største reduksjonen som er tilgjengelig, for det minste tapet:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Det er en 90 % reduksjon i sporingsvolum for et smalere tap enn noen annen spak her:
+
+- Sporingene du beholder, er **hele** — avgjørelsen hasher sporings-ID-en, så alle spans i en sporing deler den. Du får færre sporinger, ikke ødelagte.
+- **RED-metrikkene dine forblir eksakte.** Forespørselsrate, feilrate og varighet beregnes av OBI fra hver forespørsel og går gjennom metrikk-pipelinen, som sampleren ikke står i. Hvert dashbord og hver monitor bygget på dem viser det samme som før.
+
+Det du gir opp, er stort sett eksempelsporinger: når en monitor utløses, har du en tidel så mange sporinger å åpne. På en klynge som håndterer tusenvis av identiske forespørsler i sekundet, er det vanligvis en god handel — det hundrede identiske `/healthz`-spanet lærer deg ingenting det første ikke gjorde. På en stille klynge er det en dårlig en, fordi du kanskje ikke har noe eksempel på den sjeldne forespørselen som feilet.
+
+Unntaket, og den ene tingen du bør sjekke før du ruller dette ut: monitorer som **teller spans** i stedet for metrikker — Traces på `Span Count`, Exceptions på `Exception Count` — ser proporsjonalt færre, så tersklene deres må justeres på nytt med den samme faktoren. Se [Sampling av sporinger](#sampling-av-sporinger).
+
+Grip til denne når eBPF-sporinger utgjør en stor andel av ingesten din, men du fortsatt vil ha service-kartet og RED-metrikkene intakt. Foretrekk Spak 2 når du vil slutte å instrumentere noe helt.
+
+Se [Sampling av sporinger](#sampling-av-sporinger) for den fullstendige oppførselen, inkludert hvorfor `0` er en rate snarere enn en av-bryter, og hvorfor det ikke finnes noen logg- eller metrikk-ekvivalent.
+
 ### Et slankt utgangspunkt
 
 Hvis du vil ha et mindre fotavtrykk, men fortsatt vil at monitorene skal fungere, beholder denne profilen **full metrikkdekning** og kutter de to tingene som faktisk driver volumet — logglinjer og eBPF-spans:
@@ -571,7 +630,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Stram inn ytterligere ved behov: hev `minSeverity` til `ERROR`, legg til `namespaceFilters.applyTo.metrics=true`, eller sett `ebpf.enabled=false` hvis du allerede leverer sporinger fra OTel-SDK-er.
 
-> **Vær forsiktig med hva du kutter.** Noen monitorer avhenger av spesifikke signaler: å deaktivere `cadvisor` fjerner OOM-kill- og CPU-throttling-monitorene; å deaktivere `kubeletstats.volumeMetrics` fjerner PVC-lavdisk-monitoren; å deaktivere logger (eller å slå av DaemonSet-en) fjerner loggbaserte varsler *og* node-metrikkene dine. Trim signalene du ikke handler på, ikke de en monitor følger med på.
+> **Vær forsiktig med hva du kutter.** Noen monitorer avhenger av spesifikke signaler: å deaktivere `cadvisor` fjerner OOM-kill- og CPU-throttling-monitorene; å deaktivere `kubeletstats.volumeMetrics` fjerner PVC-lavdisk-monitoren; å deaktivere logger fjerner loggbaserte varsler; og `sampling.traces.percentage` fjerner ingen monitor, men skalerer ned de span-baserte (Traces på `Span Count`, Exceptions på `Exception Count`), så juster tersklene deres tilsvarende. Trim signalene du ikke handler på, ikke de en monitor følger med på.
 
 ### Mål effekten
 

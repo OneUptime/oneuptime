@@ -54,20 +54,12 @@ function getAttrValue(
   return undefined;
 }
 
-/*
- * Coerce a raw attribute / row value to a string for comparison.
- * Object-typed values are returned as "" rather than JSON.stringify'd:
- * meaningfully matching against the stringified form of a nested
- * attribute is a rare power-user case, and the per-record stringify
- * cost dominated bursty ingest. Users who need nested matching
- * should reach for a structured query at read time.
- */
 function stringifyAttrValue(val: unknown): string {
   if (val === undefined || val === null) {
     return "";
   }
   if (typeof val === "object") {
-    return "";
+    return JSON.stringify(val);
   }
   return String(val);
 }
@@ -82,7 +74,7 @@ function getFieldValue(logRow: JSONObject, fieldPath: string): string {
 
   const topLevel: unknown = logRow[fieldPath];
   if (topLevel !== undefined && topLevel !== null) {
-    return stringifyAttrValue(topLevel);
+    return String(topLevel);
   }
 
   /*
@@ -454,16 +446,21 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
         case "!=":
           return fieldVal !== comp.value;
         case "LIKE": {
+          const raw: string = String(comp.value);
           /*
-           * Pre-compiled at filter-load time; both fields are set
-           * by compileExpr above. likeRegex === null means the
-           * pattern had no `%` and we should substring-match.
+           * The UI labels this operator "contains", so a value without any
+           * `%` wildcard means substring match — not exact match. Only honor
+           * SQL LIKE semantics (`%` -> .*, `_` -> .) when the user explicitly
+           * uses `%` in the pattern.
            */
-          if (comp.likeRegex) {
-            return comp.likeRegex.test(fieldVal);
+          if (!raw.includes("%")) {
+            return fieldVal.toLowerCase().includes(raw.toLowerCase());
           }
-          const needle: string = comp.likeSubstring ?? "";
-          return fieldVal.toLowerCase().includes(needle);
+          const pattern: string = raw
+            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            .replace(/%/g, ".*")
+            .replace(/_/g, ".");
+          return new RegExp(`^${pattern}$`, "i").test(fieldVal);
         }
         case "IN": {
           // Pre-compiled Set lookup. O(1) vs the old Array.includes.

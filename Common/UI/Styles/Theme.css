@@ -1,6 +1,7 @@
 /*
- * Dashboard theme tokens. Light is intentionally the default; the dark
- * values are activated only by the explicit class applied to <html>.
+ * Shared dashboard theme tokens (Dashboard + Admin Dashboard). Light is
+ * intentionally the default; the dark values are activated only by the
+ * explicit class applied to <html>.
  */
 :root {
   color-scheme: light;
@@ -32,7 +33,8 @@
   --ou-success-text: #166534;
   --ou-tool-text: #0e7490;
   --ou-warning-text: #b45309;
-  --ou-card-shadow: 0 1px 4px 0 rgb(0 0 0 / 4%), 0 1px 2px -1px rgb(0 0 0 / 3%);
+  --ou-card-shadow: 0 1px 4px 0 rgb(0 0 0 / 4%),
+    0 1px 2px -1px rgb(0 0 0 / 3%);
   --ou-card-shadow-hover: 0 8px 25px -5px rgb(0 0 0 / 10%),
     0 4px 10px -6px rgb(0 0 0 / 5%);
   --ou-card-shadow-selected: 0 4px 12px -2px rgb(59 130 246 / 12%),
@@ -81,7 +83,8 @@ html.dark {
     0 0 0 1px rgb(96 165 250 / 36%);
   --ou-card-shadow-dragging: 0 24px 48px -10px rgb(0 0 0 / 68%),
     0 0 0 2px rgb(96 165 250 / 48%);
-  --ou-shadow-sm: 0 2px 6px rgb(0 0 0 / 36%), 0 0 0 1px rgb(148 163 184 / 8%);
+  --ou-shadow-sm: 0 2px 6px rgb(0 0 0 / 36%),
+    0 0 0 1px rgb(148 163 184 / 8%);
   --ou-shadow-md: 0 12px 28px -8px rgb(0 0 0 / 52%),
     0 0 0 1px rgb(148 163 184 / 10%);
   --ou-shadow-lg: 0 24px 52px -14px rgb(0 0 0 / 64%),
@@ -110,8 +113,7 @@ html.dark [class~="!bg-white"] {
   background-color: var(--ou-surface-primary) !important;
 }
 
-html.dark
-  :is(
+html.dark :is(
     [class~="bg-white/60"],
     [class~="bg-white/80"],
     [class~="bg-white/90"],
@@ -133,8 +135,7 @@ html.dark body.bg-gray-50 {
   background-color: var(--ou-background-primary) !important;
 }
 
-html.dark
-  :is(
+html.dark :is(
     [class~="bg-gray-50/30"],
     [class~="bg-gray-50/40"],
     [class~="bg-gray-50/50"],
@@ -154,8 +155,7 @@ html.dark [class~="!bg-gray-100"] {
   background-color: var(--ou-surface-tertiary) !important;
 }
 
-html.dark
-  :is(
+html.dark :is(
     [class~="bg-gray-100/50"],
     [class~="bg-gray-100/60"],
     [class~="bg-gray-100/70"]
@@ -193,8 +193,7 @@ html.dark [class~="bg-gray-900/5"] {
 }
 
 /* State variants that otherwise flash back to literal light Tailwind colors. */
-html.dark
-  :is(
+html.dark :is(
     [class~="hover:bg-gray-50"],
     [class*="hover:bg-gray-50/"],
     [class~="hover:bg-slate-50"],
@@ -205,8 +204,7 @@ html.dark :is([class~="focus:bg-gray-50"], [class~="focus:bg-white"]):focus {
   background-color: var(--ou-surface-secondary) !important;
 }
 
-html.dark
-  :is(
+html.dark :is(
     [class~="hover:bg-gray-100"],
     [class*="hover:bg-gray-100/"],
     [class~="active:bg-gray-100"]
@@ -216,20 +214,22 @@ html.dark [class~="disabled:bg-gray-100"]:disabled {
   background-color: var(--ou-surface-tertiary) !important;
 }
 
-html.dark
-  :is(
+html.dark :is(
     [class~="hover:bg-gray-200"],
     [class*="hover:bg-gray-200/"],
     [class~="group-hover:bg-gray-200"]
   ):hover,
-html.dark
-  .group:hover
-  :is([class~="group-hover:bg-gray-200"], [class*="group-hover:bg-gray-50/"]) {
+html.dark .group:hover :is(
+    [class~="group-hover:bg-gray-200"],
+    [class*="group-hover:bg-gray-50/"]
+  ) {
   background-color: var(--ou-surface-quaternary) !important;
 }
 
-html.dark
-  :is([class~="hover:bg-gray-300"], [class~="group-hover:bg-gray-300"]):hover,
+html.dark :is(
+    [class~="hover:bg-gray-300"],
+    [class~="group-hover:bg-gray-300"]
+  ):hover,
 html.dark .group:hover [class~="group-hover:bg-gray-300"] {
   background-color: var(--ou-border-default) !important;
 }
@@ -270,8 +270,7 @@ html.dark :is(.text-gray-300, .text-slate-300) {
   color: #cbd5e1;
 }
 
-html.dark
-  :is(
+html.dark :is(
     [class~="hover:text-gray-500"],
     [class~="hover:text-gray-600"],
     [class~="hover:text-gray-700"],
@@ -287,16 +286,49 @@ html.dark :is(.placeholder-gray-400, .placeholder-gray-500)::placeholder {
   color: var(--ou-text-subtle);
 }
 
-/* Neutral borders, dividers, rings and SVG utility colors. */
-html.dark :is(.border-gray-50, .border-gray-100, .border-slate-200),
+/*
+ * Neutral borders, dividers, rings and SVG utility colors.
+ *
+ * Tailwind emits one class token per variant, and a class selector matches
+ * only the exact token: `.border-gray-200` never matches `sm:border-gray-200`,
+ * so an uncovered variant keeps its literal light Tailwind color and paints
+ * near-white on a dark surface. Two kinds of variant, handled differently:
+ *
+ *   Responsive (sm:/md:/lg:/xl:) -- the same static color at a different
+ *   breakpoint. Listed alongside the bare token, one color per step below.
+ *
+ *   State (hover:/group-hover:/focus-within:) -- a DIFFERENT color, and only
+ *   while the state holds. These need their own state-qualified rules; folding
+ *   them in here would paint the state color permanently. For the same reason
+ *   never widen these to [class*="border-gray-200"] -- that substring also
+ *   matches `hover:border-gray-200`, which would give a permanent border to
+ *   every `border-transparent hover:border-gray-200` element.
+ *
+ * When adding a variant to a component, add its token to the matching step.
+ */
+html.dark :is(
+    .border-gray-50,
+    .border-gray-100,
+    .border-slate-200,
+    [class~="sm:border-gray-100"],
+    [class~="md:border-gray-100"],
+    [class~="lg:border-gray-100"],
+    [class~="xl:border-gray-100"]
+  ),
 html.dark [class~="border-gray-100/80"],
 html.dark [class~="!border-gray-100"] {
   border-color: var(--ou-border-subtle) !important;
 }
 
-html.dark :is(.border-gray-200, .border-slate-300),
-html.dark
-  :is(
+html.dark :is(
+    .border-gray-200,
+    .border-slate-300,
+    [class~="sm:border-gray-200"],
+    [class~="md:border-gray-200"],
+    [class~="lg:border-gray-200"],
+    [class~="xl:border-gray-200"]
+  ),
+html.dark :is(
     [class~="border-gray-200/60"],
     [class~="border-gray-200/70"],
     [class~="border-gray-200/80"]
@@ -304,13 +336,18 @@ html.dark
   border-color: var(--ou-border-default);
 }
 
-html.dark .border-gray-300,
+html.dark :is(
+    .border-gray-300,
+    [class~="sm:border-gray-300"],
+    [class~="md:border-gray-300"],
+    [class~="lg:border-gray-300"],
+    [class~="xl:border-gray-300"]
+  ),
 html.dark [class~="!border-gray-300"] {
   border-color: var(--ou-border-strong) !important;
 }
 
-html.dark
-  :is(
+html.dark :is(
     [class~="hover:border-gray-200"],
     [class~="hover:border-gray-300"],
     [class~="hover:border-gray-400"],
@@ -320,20 +357,51 @@ html.dark [class~="focus-within:border-gray-300"]:focus-within {
   border-color: #64748b !important;
 }
 
-html.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
-html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
-html.dark [class~="divide-gray-100/80"] > :not([hidden]) ~ :not([hidden]),
-html.dark [class~="lg:divide-gray-100"] > :not([hidden]) ~ :not([hidden]) {
+/*
+ * A group-hover border rides alongside a hover background change, so it stays
+ * subtle -- the background is what carries the hover affordance.
+ */
+html.dark .group:hover [class~="group-hover:border-gray-200"] {
   border-color: var(--ou-border-subtle);
 }
 
-html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
-html.dark .divide-gray-300 > :not([hidden]) ~ :not([hidden]) {
+/* Divider scale: bare + responsive variants share one color per step. */
+html.dark :is(
+    .divide-gray-50,
+    .divide-gray-100,
+    [class~="divide-gray-100/80"],
+    [class~="sm:divide-gray-100"],
+    [class~="md:divide-gray-100"],
+    [class~="lg:divide-gray-100"],
+    [class~="xl:divide-gray-100"]
+  ) > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--ou-border-subtle);
+}
+
+html.dark :is(
+    .divide-gray-200,
+    .divide-gray-300,
+    [class~="sm:divide-gray-200"],
+    [class~="md:divide-gray-200"],
+    [class~="lg:divide-gray-200"],
+    [class~="xl:divide-gray-200"]
+  ) > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--ou-border-default);
 }
 
-html.dark
-  :is(
+/*
+ * Exception, and the only one in the scale: the TopSection rule spans the full
+ * header width, so it reads subtle in dark even though gray-200 dividers map to
+ * --ou-border-default above. Light mode keeps gray-200, where a subtler step
+ * would all but vanish against the white header -- which is why this is a theme
+ * exception and not a different token on the component.
+ * Must stay after the scale: equal specificity, so source order decides.
+ */
+html.dark [class~="lg:divide-gray-200"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--ou-border-subtle);
+}
+
+html.dark :is(
     .ring-gray-100,
     .ring-gray-200,
     .ring-slate-200,
@@ -358,8 +426,7 @@ html.dark .ring-white {
   --tw-ring-color: var(--ou-surface-primary);
 }
 
-html.dark
-  :is(
+html.dark :is(
     [class~="focus-visible:ring-gray-200"],
     [class~="focus-visible:ring-gray-300"]
   ):focus-visible {
@@ -401,8 +468,7 @@ html.dark :is(.shadow-lg, .shadow-xl, .shadow-2xl) {
 }
 
 /* Light gradients become layered dark surfaces. */
-html.dark
-  :is(
+html.dark :is(
     .from-white,
     .from-gray-50,
     [class~="from-gray-50/50"],
@@ -412,19 +478,26 @@ html.dark
   --tw-gradient-to: rgb(17 24 39 / 0%) var(--tw-gradient-to-position);
 }
 
+/*
+ * Tailwind's via-* classes bake the middle color into --tw-gradient-stops
+ * directly (there is no --tw-gradient-via variable), so the stops list must be
+ * rebuilt to recolor the middle stop.
+ */
 html.dark :is(.via-white, .via-gray-200) {
-  --tw-gradient-via: var(--ou-surface-secondary) var(--tw-gradient-via-position);
+  --tw-gradient-stops: var(--tw-gradient-from),
+    var(--ou-surface-secondary) var(--tw-gradient-via-position),
+    var(--tw-gradient-to);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .to-white,
     .to-gray-50,
     .to-gray-100,
     .to-slate-50,
     [class~="to-gray-50/50"]
   ) {
-  --tw-gradient-to: var(--ou-surface-secondary) var(--tw-gradient-to-position);
+  --tw-gradient-to: var(--ou-surface-secondary)
+    var(--tw-gradient-to-position);
 }
 
 html.dark :is(.from-red-50, .from-rose-50, .from-orange-50) {
@@ -447,13 +520,19 @@ html.dark :is(.from-blue-50, .from-sky-50, .from-cyan-50) {
   --tw-gradient-to: rgb(30 64 175 / 0%) var(--tw-gradient-to-position);
 }
 
-html.dark :is(.from-indigo-50, .from-violet-50, [class~="from-indigo-50/40"]) {
+html.dark :is(
+    .from-indigo-50,
+    .from-violet-50,
+    [class~="from-indigo-50/40"]
+  ) {
   --tw-gradient-from: rgb(49 46 129 / 42%) var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(49 46 129 / 0%) var(--tw-gradient-to-position);
 }
 
 html.dark .via-indigo-50 {
-  --tw-gradient-via: rgb(49 46 129 / 34%) var(--tw-gradient-via-position);
+  --tw-gradient-stops: var(--tw-gradient-from),
+    rgb(49 46 129 / 34%) var(--tw-gradient-via-position),
+    var(--tw-gradient-to);
 }
 
 html.dark :is(.to-red-100, .to-rose-50) {
@@ -472,13 +551,15 @@ html.dark :is(.to-blue-100, .to-sky-100) {
   --tw-gradient-to: rgb(30 64 175 / 40%) var(--tw-gradient-to-position);
 }
 
-html.dark :is(.to-indigo-50, [class~="to-indigo-50/50"]) {
+html.dark :is(
+    .to-indigo-50,
+    [class~="to-indigo-50/50"]
+  ) {
   --tw-gradient-to: rgb(49 46 129 / 42%) var(--tw-gradient-to-position);
 }
 
 /* Semantic light surfaces retain hue without becoming luminous cards. */
-html.dark
-  :is(
+html.dark :is(
     .bg-red-50,
     .bg-red-100,
     [class~="bg-red-50/30"],
@@ -493,8 +574,7 @@ html.dark :is(.bg-orange-50, .bg-orange-100) {
   background-color: rgb(124 45 18 / 32%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .bg-amber-50,
     .bg-amber-100,
     [class~="bg-amber-50/30"],
@@ -513,8 +593,7 @@ html.dark :is(.bg-green-50, .bg-green-100, [class~="bg-green-50/50"]) {
   background-color: rgb(20 83 45 / 32%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .bg-emerald-50,
     .bg-emerald-100,
     [class~="bg-emerald-50/60"],
@@ -535,8 +614,7 @@ html.dark :is(.bg-sky-50, .bg-sky-100, [class~="bg-sky-50/60"]) {
   background-color: rgb(12 74 110 / 32%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .bg-blue-50,
     .bg-blue-100,
     [class~="bg-blue-50/40"],
@@ -545,8 +623,7 @@ html.dark
   background-color: rgb(30 64 175 / 28%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .bg-indigo-50,
     .bg-indigo-100,
     .bg-indigo-200,
@@ -581,8 +658,7 @@ html.dark :is(.bg-rose-50, .bg-rose-100, [class~="bg-rose-50/60"]) {
   background-color: rgb(136 19 55 / 32%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .text-red-500,
     .text-red-600,
     .text-red-700,
@@ -593,13 +669,16 @@ html.dark
   color: #fca5a5;
 }
 
-html.dark
-  :is(.text-orange-600, .text-orange-700, .text-orange-800, .text-orange-900) {
+html.dark :is(
+    .text-orange-600,
+    .text-orange-700,
+    .text-orange-800,
+    .text-orange-900
+  ) {
   color: #fdba74;
 }
 
-html.dark
-  :is(
+html.dark :is(
     .text-amber-600,
     .text-amber-700,
     .text-amber-800,
@@ -614,18 +693,25 @@ html.dark .text-amber-500 {
   color: #fbbf24;
 }
 
-html.dark
-  :is(.text-yellow-600, .text-yellow-700, .text-yellow-800, .text-yellow-900) {
+html.dark :is(
+    .text-yellow-600,
+    .text-yellow-700,
+    .text-yellow-800,
+    .text-yellow-900
+  ) {
   color: #fde047;
 }
 
-html.dark
-  :is(.text-green-600, .text-green-700, .text-green-800, .text-green-900) {
+html.dark :is(
+    .text-green-600,
+    .text-green-700,
+    .text-green-800,
+    .text-green-900
+  ) {
   color: #86efac;
 }
 
-html.dark
-  :is(
+html.dark :is(
     .text-emerald-600,
     .text-emerald-700,
     .text-emerald-800,
@@ -643,8 +729,7 @@ html.dark :is(.text-cyan-600, .text-cyan-700, .text-cyan-800) {
   color: #67e8f9;
 }
 
-html.dark
-  :is(
+html.dark :is(
     .text-sky-600,
     .text-sky-700,
     .text-sky-800,
@@ -654,8 +739,7 @@ html.dark
   color: #7dd3fc;
 }
 
-html.dark
-  :is(
+html.dark :is(
     .text-blue-500,
     .text-blue-600,
     .text-blue-700,
@@ -665,8 +749,7 @@ html.dark
   color: #93c5fd;
 }
 
-html.dark
-  :is(
+html.dark :is(
     .text-indigo-500,
     .text-indigo-600,
     .text-indigo-700,
@@ -677,8 +760,7 @@ html.dark
   color: #a5b4fc;
 }
 
-html.dark
-  :is(
+html.dark :is(
     .text-violet-500,
     .text-violet-600,
     .text-violet-700,
@@ -688,8 +770,12 @@ html.dark
   color: #c4b5fd;
 }
 
-html.dark
-  :is(.text-purple-600, .text-purple-700, .text-purple-800, .text-purple-900) {
+html.dark :is(
+    .text-purple-600,
+    .text-purple-700,
+    .text-purple-800,
+    .text-purple-900
+  ) {
   color: #d8b4fe;
 }
 
@@ -701,8 +787,7 @@ html.dark :is(.text-pink-600, .text-pink-700) {
   color: #f9a8d4;
 }
 
-html.dark
-  :is(
+html.dark :is(
     .text-rose-500,
     .text-rose-600,
     .text-rose-700,
@@ -713,8 +798,7 @@ html.dark
   color: #fda4af;
 }
 
-html.dark
-  :is(
+html.dark :is(
     .border-red-100,
     .border-red-200,
     .border-red-300,
@@ -726,8 +810,7 @@ html.dark
   --tw-ring-color: rgb(248 113 113 / 35%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .border-amber-100,
     .border-amber-200,
     .border-amber-300,
@@ -739,8 +822,7 @@ html.dark
   --tw-ring-color: rgb(251 191 36 / 32%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .border-green-100,
     .border-green-200,
     .border-emerald-100,
@@ -753,8 +835,7 @@ html.dark
   --tw-ring-color: rgb(52 211 153 / 32%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .border-fuchsia-100,
     .border-pink-100,
     .ring-fuchsia-200,
@@ -764,8 +845,7 @@ html.dark
   --tw-ring-color: rgb(244 114 182 / 35%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .border-blue-100,
     .border-blue-200,
     .border-blue-300,
@@ -779,8 +859,7 @@ html.dark
   --tw-ring-color: rgb(96 165 250 / 32%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .border-indigo-100,
     .border-indigo-200,
     .border-indigo-300,
@@ -801,8 +880,7 @@ html.dark .border-violet-200 {
   border-color: rgb(129 140 248 / 45%);
 }
 
-html.dark
-  :is(
+html.dark :is(
     .border-yellow-100,
     .border-yellow-200,
     .border-orange-100,
@@ -817,25 +895,21 @@ html.dark
 }
 
 /* Semantic interaction variants use the same dark palette as their base. */
-html.dark
-  :is(
+html.dark :is(
     [class*="hover:bg-indigo-50"],
     [class~="hover:bg-indigo-100"],
     [class~="hover:bg-indigo-200"],
     [class~="group-hover:bg-indigo-50"],
     [class~="group-hover:bg-indigo-100"]
   ):hover,
-html.dark
-  .group:hover
-  :is(
+html.dark .group:hover :is(
     [class*="group-hover:bg-indigo-50"],
     [class~="group-hover:bg-indigo-100"]
   ) {
   background-color: rgb(49 46 129 / 48%) !important;
 }
 
-html.dark
-  :is(
+html.dark :is(
     [class*="hover:bg-red-50"],
     [class~="hover:bg-red-100"],
     [class*="hover:bg-amber-50"],
@@ -903,14 +977,15 @@ html.dark [class*="focus:ring-green-"]:focus {
   --tw-ring-color: rgb(96 165 250 / 50%) !important;
 }
 
-html.dark
-  :is([class*="hover:border-indigo-"], [class*="focus:border-indigo-"]):hover,
+html.dark :is(
+    [class*="hover:border-indigo-"],
+    [class*="focus:border-indigo-"]
+  ):hover,
 html.dark [class*="focus:border-indigo-"]:focus {
   border-color: #818cf8 !important;
 }
 
-html.dark
-  :is(
+html.dark :is(
     .ring-indigo-50,
     .ring-red-50,
     .ring-blue-50,
@@ -1109,12 +1184,7 @@ html.dark :is(.react-flow, .react-flow__renderer) {
   background-color: var(--ou-background-primary);
 }
 
-html.dark
-  :is(
-    .react-flow__node-default,
-    .react-flow__node-input,
-    .react-flow__node-output
-  ) {
+html.dark :is(.react-flow__node-default, .react-flow__node-input, .react-flow__node-output) {
   background-color: var(--ou-surface-primary);
   border-color: var(--ou-border-default);
   color: var(--ou-text-primary);
@@ -1167,9 +1237,7 @@ html.dark .oneuptime-calendar .rbc-agenda-time-cell {
   color: var(--ou-text-secondary);
 }
 
-html.dark
-  .oneuptime-calendar
-  :is(
+html.dark .oneuptime-calendar :is(
     .rbc-month-view,
     .rbc-time-view,
     .rbc-agenda-view,
@@ -1182,9 +1250,7 @@ html.dark
   border-color: var(--ou-border-default);
 }
 
-html.dark
-  .oneuptime-calendar
-  :is(
+html.dark .oneuptime-calendar :is(
     .rbc-header,
     .rbc-off-range-bg,
     .rbc-toolbar button:hover,
@@ -1225,9 +1291,7 @@ html.dark .oneuptime-calendar .rbc-current-time-indicator {
   background-color: #818cf8;
 }
 
-html.dark
-  .oneuptime-calendar
-  :is(
+html.dark .oneuptime-calendar :is(
     .rbc-month-row,
     .rbc-day-bg,
     .rbc-header,
@@ -1241,9 +1305,7 @@ html.dark
 }
 
 /* SVG/Recharts literals used by older widgets. */
-html.dark
-  svg
-  :is(
+html.dark svg :is(
     [stroke="#f1f5f9"],
     [stroke="#e2e8f0"],
     [stroke="#e5e7eb"],

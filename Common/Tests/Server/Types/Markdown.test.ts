@@ -12,7 +12,10 @@ import Markdown from "../../../Server/Types/Markdown";
 describe("Markdown.slugify", () => {
   describe("English headings keep their existing ids", () => {
     test.each([
-      ["Reducing the Volume of Data Collected", "reducing-the-volume-of-data-collected"],
+      [
+        "Reducing the Volume of Data Collected",
+        "reducing-the-volume-of-data-collected",
+      ],
       ["Filtering by Log Severity", "filtering-by-log-severity"],
       ["Step 1 — Install the Collector", "step-1-install-the-collector"],
       ["What's New?", "whats-new"],
@@ -48,7 +51,10 @@ describe("Markdown.slugify", () => {
       ["ログの重大度によるフィルタリング", "ログの重大度によるフィルタリング"],
       ["按日志严重性过滤", "按日志严重性过滤"],
       ["로그 심각도별 필터링", "로그-심각도별-필터링"],
-      ["लॉग गंभीरता के अनुसार फ़िल्टर करना", "लॉग-गंभीरता-के-अनुसार-फ़िल्टर-करना"],
+      [
+        "लॉग गंभीरता के अनुसार फ़िल्टर करना",
+        "लॉग-गंभीरता-के-अनुसार-फ़िल्टर-करना",
+      ],
     ])("%s", (heading: string, expected: string) => {
       const slug: string = Markdown.slugify(heading);
       expect(slug).not.toBe("");
@@ -58,8 +64,14 @@ describe("Markdown.slugify", () => {
 
   describe("accented Latin keeps the accented letter", () => {
     test.each([
-      ["Filtrage par gravité des journaux", "filtrage-par-gravité-des-journaux"],
-      ["Reduktion af mængden af indsamlede data", "reduktion-af-mængden-af-indsamlede-data"],
+      [
+        "Filtrage par gravité des journaux",
+        "filtrage-par-gravité-des-journaux",
+      ],
+      [
+        "Reduktion af mængden af indsamlede data",
+        "reduktion-af-mængden-af-indsamlede-data",
+      ],
       ["Fehlerbehebung für Größen", "fehlerbehebung-für-größen"],
     ])("%s", (heading: string, expected: string) => {
       expect(Markdown.slugify(heading)).toBe(expected);
@@ -68,7 +80,9 @@ describe("Markdown.slugify", () => {
 
   describe("markup and punctuation are still stripped", () => {
     test("strips inline HTML tags", () => {
-      expect(Markdown.slugify("A <em>heading</em> here")).toBe("a-heading-here");
+      expect(Markdown.slugify("A <em>heading</em> here")).toBe(
+        "a-heading-here",
+      );
     });
 
     test("strips HTML entities", () => {

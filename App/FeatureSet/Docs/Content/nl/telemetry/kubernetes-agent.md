@@ -172,6 +172,7 @@ Container-runtimes registreren geen severity op de logregel, dus parseert de age
 | `daemonset` | `stderr` → behandeld als ERROR (behouden), `stdout` → behandeld als INFO (weggegooid bij een WARN-drempel) | De container-runtime registreert uit welke stream elke regel afkomstig is. |
 | `api` | Altijd **behouden** | De Kubernetes `pods/log`-API voegt stdout en stderr samen tot één enkele stream zonder markering per regel. In plaats van te gokken behoudt de agent de regel. |
 
+> Dus `api`-modus gooit strikt minder weg dan `daemonset`-modus. Dat is bewust: een Python-traceback of `npm ERR!` bevat geen severity-trefwoord, en het stilzwijgend verwijderen daarvan is precies het falen waartegen een severity-drempel je hoort te beschermen.
 
 Multi-regel-events worden in beide modi **vóór** het filteren weer samengevoegd, dus een Java-stacktrace wordt beoordeeld op zijn eerste regel en in zijn geheel behouden of weggegooid — je krijgt nooit een kale `ERROR`-regel waarvan de frames zijn afgestript.
 
@@ -213,6 +214,42 @@ Notities die je een incident besparen:
 
 > **Test een regex voordat je hem uitrolt.** Patronen worden door de collector bij het opstarten gecompileerd, niet per record, dus een ongeldig patroon gedraagt zich niet stilletjes verkeerd — de collector weigert te starten en belandt in CrashLoopBackOff, waarmee ook de **logs** van die collector uitvallen, samen met zijn metrieken. Helm kan RE2 niet compileren, dus `helm upgrade` accepteert een fout patroon zonder morren.
 
+### Trace-sampling
+
+Elke andere knop op deze pagina verwijdert een **categorie** telemetrie — een namespace, een severity, een metrieknaam. Sampling werkt anders: het behoudt elke categorie en dunt in plaats daarvan de populatie uit. Zet `sampling.traces.percentage` op het aandeel traces dat je wilt behouden:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Dat behoudt één trace op de tien en gooit de andere negen weg bij de agent, voordat ze je cluster verlaten.
+
+**Je krijgt hele traces, geen fragmenten.** De beslissing is een hash van de trace-ID en geen muntworp per span, dus elke span van een trace wordt samen behouden of weggegooid — de traces die overleven, zijn compleet en van begin tot eind leesbaar. Dat is de eigenschap die sampling veilig maakt om aan te zetten.
+
+**Je metriek-gebaseerde monitors bewegen niet mee.** De eBPF RED-metrieken — request rate, error rate, duur — zijn een *metrische* familie. OBI berekent ze uit elke request en ze reizen via de metrics-pipeline, waar de sampler niet in zit. Bij `percentage: 10` krijg je een tiende van de traces en 100% accurate rate/errors/latentie. Dashboards en monitors die op die metrieken gebouwd zijn, blijven onaangetast.
+
+**Je span-gebaseerde monitors wel.** Alles wat OneUptime uit de spans zelf afleidt, schaalt mee omlaag met het percentage — lees de waarschuwing hieronder voordat je dit aanzet.
+
+| Sleutel | Betekenis |
+| --- | --------- |
+| `sampling.traces.percentage` | Percentage traces om te **behouden**, 0-100. Standaard `100` (alles behouden). |
+| `sampling.traces.hashSeed` | Seed voor de hash van de trace-ID. Standaard `22`. |
+
+Notities die je een incident besparen:
+
+- **`0` behoudt helemaal geen traces.** Het is een percentage, geen uitschakelknop — het verwijdert elke trace terwijl de eBPF-DaemonSet blijft draaien en je geld blijft kosten. Wil je geen traces, gebruik dan `ebpf.enabled=false`. Wil je geen traces maar *wel* RED-metrieken en de service-map, laat eBPF dan aan en zet dit bewust op `0`.
+- **Geldt alleen wanneer `ebpf.enabled` aanstaat.** De traces-pipeline bestaat anders niet, dus bij `ebpf.enabled=false` doet deze waarde niets.
+- **Alleen traces.** Er is geen `sampling.logs` of `sampling.metrics`, en dat is bewust — zie de notitie hieronder.
+- **Breukgetallen vereisen `--set-json`, en ze hebben een ondergrens.** `--set sampling.traces.percentage=0.5` mislukt, omdat Helm `0.5` als een string leest. Gebruik `--set-json 'sampling.traces.percentage=0.5'` of een values-bestand. Hele getallen werken prima met `--set`. Onder ongeveer `0.0061` kwantiseert het percentage naar nul en gedraagt het zich precies als `0` — elke trace weggegooid, zonder foutmelding. `0.01` (één op de tienduizend) is de kleinste waarde die doet wat hij belooft.
+- **Multi-cluster werkt standaard.** Twee agents behouden dezelfde trace alleen als ze het eens zijn over zowel `hashSeed` als `percentage`. Beide hebben overal dezelfde standaardwaarde, dus een trace die twee clusters kruist, overleeft in zijn geheel zonder extra configuratie. Wijzig `hashSeed` alleen om twee sampling-niveaus bewust te *decorreleren* — omdat de beslissing een drempel op dezelfde hash is, nestelen twee niveaus met dezelfde seed maar verschillende percentages in elkaar, waardoor een tweede niveau simpelweg de traces herkiest die het eerste al had behouden, in plaats van onafhankelijk te trekken.
+- **Pod-logs worden nooit gesampled**, dus met `ebpf.logToTraceCorrelation: true` draagt elk logrecord nog steeds een trace-ID terwijl er maar `percentage`% van die traces behouden blijft. Ruwweg (100 − `percentage`)% van de logrecords toont een trace-link die doodloopt. Navigatie van trace → logs blijft onaangetast; alleen logs → trace kan missen.
+
+> **Stem je span-gebaseerde monitors opnieuw af wanneer je dit instelt.** Sampling vermindert de spans die OneUptime bereiken, dus alles wat ze telt, telt minder: een **Traces**-monitor op `Span Count` en een **Exceptions**-monitor op `Exception Count` zien ruwweg `percentage`% van het volume van gisteren. Een drempel die is afgestemd op ongesampled verkeer wordt stilletjes niet meer overschreden — de monitor geeft geen fout, hij valt gewoon stil. Deel die drempels door dezelfde factor wanneer je het percentage instelt; het percentage geldt cluster-breed, dus er is geen manier om een individuele service ervan uit te zonderen. Het **groeperen** van errors verslechtert erger dan lineair: een veelvoorkomende exception komt nog steeds bovendrijven, maar een zeldzame eenmalige verdwijnt eerder helemaal dan dat hij een tiende zo vaak verschijnt.
+
+> **Waarom er hier geen log- of metriek-sampling is.** De sampler van de collector kan metrieken helemaal niet samplen. Logs kan hij wel samplen, maar hij ontleent zijn willekeur aan de trace-ID — en pod-logs hebben er geen. Elk record zonder trace-ID hasht dan naar dezelfde bucket, dus een log-percentage zou de feed niet uitdunnen: het zou alles behouden of alles verwijderen, afhankelijk van de seed. In plaats van een knop uit te leveren die stilzwijgend je logs verwijdert, biedt de chart die niet aan. Dun logs uit met [Filteren op log-severity](#filteren-op-log-severity) en [Namespace-filtering](#namespace-filtering), die precies zijn over wat ze verwijderen.
+
 ### Logverzameling uitschakelen
 
 Als je geen pod-logs nodig hebt:
@@ -240,7 +277,6 @@ Gevorderde gebruikers kunnen de keuze van de preset overschrijven met `logs.mode
 > De logmodus bepaalt alleen waar **pod-logs** vandaan komen. Node-metrieken worden daar los van verzameld, dus `api` en `disabled` behouden je kubelet-, cAdvisor- en hostmetrieken.
 >
 > De enige uitzondering is het platform, niet de modus: **EKS Fargate kan helemaal geen DaemonSets inplannen**, dus daar is geen node-collector en zijn metrieken per node/pod/container niet beschikbaar. GKE Autopilot draait de node-collector prima, maar blokkeert `hostPath`, dus verzamelt het kubelet- en cAdvisor-metrieken zonder de `hostmetrics`-metrieken (disk-I/O, inodes, NIC-fouten) die de `/proc` en `/sys` van de host moeten lezen.
-
 
 De expliciete `logs.mode` wint altijd van de preset-standaard. Gebruik dit als je je cluster beter kent dan de preset.
 
@@ -379,17 +415,18 @@ De truc is om **te stoppen met het verzamelen van wat je toch niet bekijkt**, in
 | Signaal                          | Grootste veroorzaker                                       | Verminder het met                                                                            |
 | -------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Pod-logs**                     | Elke regel van elke container, cluster-breed               | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
-| **eBPF-traces & span-metrieken** | Eén trace per request van elk geïnstrumenteerd proces      | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **eBPF-traces & span-metrieken** | Eén trace per request van elk geïnstrumenteerd proces      | `sampling.traces.percentage`, `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths` |
 | **Metrische datapunten**         | Scrapefrequentie × aantal pods/containers                  | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
 | **Metrische cardinaliteit**      | Aantal afzonderlijke series (per container, per PVC, …)    | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Opt-in-extra's**               | Profiling, audit-logs, control plane, inter-zone-metrieken | Laat ze uit (dat zijn ze al standaard)                                                       |
 
-Er zijn twee manieren om volume te beperken, en het is de moeite waard om te weten welke je gebruikt:
+Er zijn drie manieren om volume te beperken, en het is de moeite waard om te weten welke je gebruikt:
 
 - **Bij de receiver** — de data wordt nooit verzameld. `namespaceFilters` op pod-logs, `cadvisor.metricsAllowlist`, een langer `collectionInterval`. Kost niets om uit te voeren en bespaart CPU, egress en ingest tegelijk. Geef hier altijd de voorkeur aan waar ze jouw geval dekken.
 - **Bij de filter-processor** — de data wordt verzameld en daarna vóór de export weggegooid. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Iets meer collector-CPU, maar het werkt over receivers heen en kan dingen uitdrukken die een receiver niet kan.
+- **Bij de sampler** — de data wordt verzameld en daarna wordt er een representatieve fractie van behouden. `sampling.traces.percentage`. De vreemde eend in de bijt: de twee hierboven verwijderen een hele *categorie* telemetrie, dus wat zij weggooien, is uit elke trace verdwenen. Sampling behoudt elke categorie en dunt de populatie uit, dus wat overleeft, is nog steeds compleet en representatief.
 
-Beide zijn **onomkeerbaar**: wat je hier weggooit, bereikt OneUptime nooit, en elke monitor die erop gebouwd is, valt stil. Als je liever later beslist, kan OneUptime data in plaats daarvan server-side laten vallen (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — dat kost nog steeds egress, maar het is een instelling die je kunt wijzigen zonder opnieuw te deployen.
+Alle drie zijn **onomkeerbaar**: wat je hier weggooit, bereikt OneUptime nooit, en bij alle drie kan een monitor stilvallen. De eerste twee leggen een monitor stil door het signaal weg te nemen waar hij naar kijkt. Sampling is beperkter: de eBPF RED-metrieken worden berekend vóórdat de sampler draait, dus metriek-gebaseerde monitors blijven exact — maar monitors die *spans* tellen (Traces op `Span Count`, Exceptions op `Exception Count`) zien er evenredig minder en hebben drempels nodig die met dezelfde factor opnieuw zijn afgestemd. Als je liever later beslist, kan OneUptime data in plaats daarvan server-side laten vallen (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — dat kost nog steeds egress, maar het is een instelling die je kunt wijzigen zonder opnieuw te deployen.
 
 ### Hendel 1 — Pod-logs zijn meestal de grootste afzonderlijke bron
 
@@ -521,6 +558,29 @@ Deze staan **standaard uit** juist omdat ze belasting toevoegen — schakel er a
 | `ebpf.features.networkInterZoneMetrics`                   | Verdubbelt de cardinaliteit van netwerkflowmetrieken                                          |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Extra Prometheus-scrape-jobs                                                                  |
 
+### Hendel 6 — Sample traces in plaats van ze weg te gooien
+
+Elke hendel hierboven koopt volume met iets dat je opgeeft: een namespace die je niet meer bekijkt, een severity die je niet meer behoudt, een metrische familie die je niet meer verzamelt. Sampling is de uitzondering, en op een druk cluster is het vaak de grootste besparing die beschikbaar is voor het kleinste verlies:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Dat is een besparing van 90% op je tracevolume, voor een beperkter verlies dan welke andere hendel hier ook:
+
+- De traces die je behoudt zijn **heel** — de beslissing hasht de trace-ID, dus alle spans van een trace delen hem. Je krijgt minder traces, geen kapotte.
+- Je **RED-metrieken blijven exact**. Request rate, error rate en duur worden door OBI uit elke request berekend en reizen via de metrics-pipeline, waar de sampler niet in zit. Elk dashboard en elke monitor die erop gebouwd is, leest hetzelfde als voorheen.
+
+Wat je opgeeft, zijn vooral voorbeeldtraces: wanneer een monitor afgaat, heb je een tiende zoveel traces om te openen. Op een cluster dat duizenden identieke requests per seconde afhandelt, is dat meestal een goede ruil — de honderdste identieke `/healthz`-span leert je niets wat de eerste je niet al leerde. Op een rustig cluster is het een slechte, omdat je misschien geen enkel voorbeeld hebt van de zeldzame request die stukging.
+
+De uitzondering, en het enige om te controleren voordat je dit uitrolt: monitors die **spans tellen** in plaats van metrieken — Traces op `Span Count`, Exceptions op `Exception Count` — zien er evenredig minder, dus hun drempels moeten met dezelfde factor opnieuw worden afgestemd. Zie [Trace-sampling](#trace-sampling).
+
+Grijp hiernaar wanneer eBPF-traces een groot deel van je ingest zijn maar je de service-map en RED-metrieken intact wilt houden. Geef de voorkeur aan Hendel 2 wanneer je ergens helemaal wilt stoppen met instrumenteren.
+
+Zie [Trace-sampling](#trace-sampling) voor het volledige gedrag, inclusief waarom `0` een percentage is en geen uitschakelknop, en waarom er geen log- of metriek-equivalent bestaat.
+
 ### Een minimaal startpunt
 
 Als je een kleinere footprint wilt maar toch wilt dat de monitors werken, behoudt dit profiel de **volledige metrische dekking** en snijdt het de twee dingen weg die het volume daadwerkelijk aanjagen — logregels en eBPF-spans:
@@ -570,7 +630,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Scherp verder aan waar nodig: verhoog `minSeverity` naar `ERROR`, voeg `namespaceFilters.applyTo.metrics=true` toe, of zet `ebpf.enabled=false` als je al traces verzendt vanuit OTel-SDK's.
 
-> **Let op wat je wegsnijdt.** Sommige monitors zijn afhankelijk van specifieke signalen: `cadvisor` uitschakelen verwijdert de OOM-kill- en CPU-throttling-monitors; `kubeletstats.volumeMetrics` uitschakelen verwijdert de PVC-lage-schijfruimte-monitor; logs uitschakelen verwijdert log-gebaseerde alerts. Snoei de signalen waarop je niet reageert, niet die waar een monitor op let.
+> **Let op wat je wegsnijdt.** Sommige monitors zijn afhankelijk van specifieke signalen: `cadvisor` uitschakelen verwijdert de OOM-kill- en CPU-throttling-monitors; `kubeletstats.volumeMetrics` uitschakelen verwijdert de PVC-lage-schijfruimte-monitor; logs uitschakelen verwijdert log-gebaseerde alerts; en `sampling.traces.percentage` verwijdert geen monitor, maar schaalt de span-gebaseerde monitors omlaag (Traces op `Span Count`, Exceptions op `Exception Count`), dus stem hun drempels daarop af. Snoei de signalen waarop je niet reageert, niet die waar een monitor op let.
 
 ### Meet het effect
 

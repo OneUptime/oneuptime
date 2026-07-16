@@ -120,6 +120,32 @@
       },
       "additionalProperties": false
     },
+    "sampling": {
+      "type": "object",
+      "description": "Keep a fraction of traces and drop the rest at the agent, before export",
+      "properties": {
+        "traces": {
+          "type": "object",
+          "description": "Trace sampling. Hash-based on the trace ID, so whole traces are kept or dropped together",
+          "properties": {
+            "percentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Percentage of traces to KEEP, 0-100. 100 keeps everything and omits the sampler. 0 keeps none — it is a rate, not an off switch; use ebpf.enabled=false to stop collecting traces. Only applies when ebpf.enabled. Does not affect eBPF RED metrics, which ride the metrics pipeline. Default: 100"
+            },
+            "hashSeed": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295,
+              "description": "Seed for the trace-ID hash. Collectors that must agree on which traces to keep need a matching hashSeed AND percentage. Change only to deliberately decorrelate two sampling tiers. Bounded to uint32 because the collector stores it as one and truncates silently past that. Default: 22"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "image": {
       "type": "object",
       "description": "OTel Collector image configuration",

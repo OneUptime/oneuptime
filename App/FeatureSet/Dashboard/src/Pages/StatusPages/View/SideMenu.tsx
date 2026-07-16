@@ -313,6 +313,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "MCP",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_MCP] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Terminal}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{

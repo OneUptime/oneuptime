@@ -214,6 +214,42 @@ Notas que te ahorrarán un incidente:
 
 > **Prueba una regex antes de desplegarla.** El colector compila los patrones al arrancar, no por registro, así que uno inválido no falla de forma discreta — el colector se niega a arrancar y entra en CrashLoopBackOff, tumbando los **logs** de ese colector junto con sus métricas. Helm no puede compilar RE2, por lo que `helm upgrade` acepta un patrón incorrecto sin rechistar.
 
+### Muestreo de trazas
+
+Los filtros anteriores eliminan una **categoría** de telemetría — un namespace, una severidad, un nombre de métrica. El muestreo es distinto: conserva todas las categorías y, en su lugar, adelgaza la población. Ajusta `sampling.traces.percentage` a la proporción de trazas que quieres conservar:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Eso conserva una traza de cada diez y descarta las otras nueve en el agente, antes de que salgan de tu clúster.
+
+**Obtienes trazas completas, no fragmentos.** La decisión es un hash del ID de traza en lugar de un lanzamiento de moneda por span, así que todos los spans de una traza se conservan o se descartan juntos — las trazas que sobreviven están completas y se leen de principio a fin. Esta es la propiedad que hace que el muestreo sea seguro de activar.
+
+**Tus monitores basados en métricas no se mueven.** Las métricas RED de eBPF — tasa de solicitudes, tasa de errores, duración — son una familia de *métricas*. OBI las calcula a partir de cada solicitud y viajan por la canalización de métricas, en la que el muestreador no está. Con `percentage: 10` obtienes una décima parte de las trazas y una tasa/error/latencia 100% exactas. Los paneles y monitores construidos sobre esas métricas no se ven afectados.
+
+**Tus monitores basados en spans sí.** Todo lo que OneUptime deriva de los propios spans se reduce con la tasa — consulta la advertencia de más abajo antes de activar esto.
+
+| Clave | Significado |
+| --- | ----------- |
+| `sampling.traces.percentage` | Porcentaje de trazas que **conservar**, 0-100. Predeterminado: `100` (conservarlo todo). |
+| `sampling.traces.hashSeed` | Semilla para el hash del ID de traza. Predeterminado: `22`. |
+
+Notas que te ahorrarán un incidente:
+
+- **`0` no conserva ninguna traza.** Es una tasa, no un interruptor de apagado — elimina todas las trazas mientras el DaemonSet de eBPF sigue ejecutándose y costándote. Si no quieres trazas, usa `ebpf.enabled=false`. Si no quieres trazas pero *sí* quieres las métricas RED y el mapa de servicios, deja eBPF activado y pon esto a `0` deliberadamente.
+- **Solo se aplica cuando `ebpf.enabled`.** De lo contrario, la canalización de trazas no existe, así que con `ebpf.enabled=false` este valor no hace nada.
+- **Solo trazas.** No hay `sampling.logs` ni `sampling.metrics`, y es deliberado — consulta la nota de abajo.
+- **Las fracciones necesitan `--set-json`, y tienen un suelo.** `--set sampling.traces.percentage=0.5` falla, porque Helm lee `0.5` como una cadena. Usa `--set-json 'sampling.traces.percentage=0.5'` o un archivo de valores. Los números enteros funcionan bien con `--set`. Por debajo de aproximadamente `0.0061` la tasa se cuantiza a cero y se comporta exactamente como `0` — todas las trazas descartadas, sin ningún error. `0.01` (una de cada diez mil) es el valor más pequeño que hace lo que dice.
+- **El multiclúster funciona de forma predeterminada.** Dos agentes conservan la misma traza solo si coinciden tanto en `hashSeed` como en `percentage`. Ambos tienen el mismo valor predeterminado en todas partes, así que una traza que cruza dos clústeres sobrevive entera sin ninguna configuración adicional. Cambia `hashSeed` solo para *descorrelacionar* deliberadamente dos niveles de muestreo — como la decisión es un umbral sobre el mismo hash, la misma semilla con tasas distintas se anida, por lo que un segundo nivel simplemente vuelve a elegir las trazas que el primero ya conservó en lugar de sortearlas de forma independiente.
+- **Los logs de pods nunca se muestrean**, así que con `ebpf.logToTraceCorrelation: true` cada registro de log sigue llevando un ID de traza mientras que solo se conserva el `percentage`% de esas trazas. Aproximadamente el (100 − `percentage`)% de los registros de log mostrará un enlace a una traza que no lleva a ninguna parte. La navegación de traza → logs no se ve afectada; solo la de logs → traza puede fallar.
+
+> **Reajusta tus monitores basados en spans cuando establezcas esto.** El muestreo reduce los spans que llegan a OneUptime, así que todo lo que los cuenta cuenta menos: un monitor **Traces** sobre `Span Count` y un monitor **Exceptions** sobre `Exception Count` verán aproximadamente el `percentage`% del volumen de ayer. Un umbral ajustado sobre tráfico sin muestrear deja de cruzarse en silencio — el monitor no da error, simplemente se queda callado. Divide esos umbrales por el mismo factor cuando establezcas la tasa; la tasa es de todo el clúster, así que no hay forma de eximir de ella a un servicio individual. La **agrupación** de errores se degrada peor que linealmente: una excepción común sigue apareciendo, pero una rara y puntual tiene más probabilidades de desaparecer por completo que de aparecer una décima parte de las veces.
+
+> **Por qué aquí no hay muestreo de logs ni de métricas.** El muestreador del colector no puede muestrear métricas en absoluto. Sí puede muestrear logs, pero extrae su aleatoriedad del ID de traza — y los logs de pods no tienen uno. Cada registro sin ID de traza acaba entonces en el mismo bucket del hash, así que una tasa para logs no adelgazaría el feed: lo conservaría entero o lo eliminaría entero según la semilla. En lugar de ofrecer un control que elimine tus logs de forma silenciosa, el chart no ofrece ninguno. Adelgaza los logs con [Filtrado por severidad de logs](#filtrado-por-severidad-de-logs) y [Filtrado de namespaces](#filtrado-de-namespaces), que son precisos sobre lo que eliminan.
+
 ### Deshabilitar la recopilación de logs
 
 Si no necesitas logs de pods:
@@ -379,17 +415,18 @@ El truco es **dejar de recopilar lo que no vas a mirar**, en lugar de recopilar 
 | Señal                                 | Mayor factor                                                         | Redúcelo con                                                                                 |
 | ------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Logs de pods**                      | Cada línea de cada contenedor, en todo el clúster                    | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
-| **Trazas de eBPF y métricas de span** | Una traza por solicitud de cada proceso instrumentado                | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **Trazas de eBPF y métricas de span** | Una traza por solicitud de cada proceso instrumentado                | `sampling.traces.percentage`, `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths` |
 | **Puntos de datos de métricas**       | Frecuencia de recopilación × número de pods/contenedores             | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
 | **Cardinalidad de métricas**          | Número de series distintas (por contenedor, por PVC, …)              | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Extras opcionales**                 | Profiling, logs de auditoría, plano de control, métricas entre zonas | Déjalos desactivados (ya lo están de forma predeterminada)                                   |
 
-Hay dos formas de recortar el volumen, y vale la pena saber cuál estás usando:
+Hay tres formas de recortar el volumen, y vale la pena saber cuál estás usando:
 
 - **En el receptor** — los datos nunca se recopilan. `namespaceFilters` en los logs de pods, `cadvisor.metricsAllowlist`, un `collectionInterval` más largo. No cuesta nada ejecutarlo y ahorra CPU, egreso e ingesta a la vez. Prefiere siempre estos cuando cubran tu caso.
 - **En el procesador de filtro** — los datos se recopilan y luego se descartan antes de exportarse. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Consume algo más de CPU del colector, pero funciona en todos los receptores y puede expresar cosas que un receptor no puede.
+- **En el muestreador** — los datos se recopilan y luego se conserva una fracción representativa. `sampling.traces.percentage`. Es el caso atípico: los dos anteriores eliminan una *categoría* entera de telemetría, así que lo que descartan desaparece de todas las trazas. El muestreo conserva todas las categorías y adelgaza la población, por lo que lo que sobrevive sigue siendo completo y representativo.
 
-Ambas son **irreversibles**: lo que descartes aquí nunca llega a OneUptime, y cualquier monitor construido sobre ello se queda en silencio. Si prefieres decidirlo más tarde, OneUptime puede descartar los datos del lado del servidor (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — eso sigue costando egreso, pero es una opción que puedes cambiar sin volver a desplegar.
+Las tres son **irreversibles**: lo que descartes aquí nunca llega a OneUptime, y las tres pueden dejar en silencio a un monitor. Las dos primeras silencian a un monitor eliminando la señal que vigila. El muestreo es más acotado: las métricas RED de eBPF se calculan antes de que se ejecute el muestreador, así que los monitores basados en métricas se mantienen exactos — pero los monitores que cuentan *spans* (**Traces** sobre `Span Count`, **Exceptions** sobre `Exception Count`) ven proporcionalmente menos y necesitan que reajustes sus umbrales por el mismo factor. Si prefieres decidirlo más tarde, OneUptime puede descartar los datos del lado del servidor (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — eso sigue costando egreso, pero es una opción que puedes cambiar sin volver a desplegar.
 
 ### Palanca 1 — Los logs de pods suelen ser la mayor fuente
 
@@ -521,6 +558,29 @@ Estas están **desactivadas de forma predeterminada** precisamente porque agrega
 | `ebpf.features.networkInterZoneMetrics`                   | Duplica la cardinalidad de las métricas de flujo de red                                                 |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Trabajos adicionales de recopilación de Prometheus                                                      |
 
+### Palanca 6 — Muestrea las trazas en lugar de descartarlas
+
+Cada palanca anterior compra volumen a cambio de renunciar a algo: un namespace que dejas de vigilar, una severidad que dejas de conservar, una familia de métricas que dejas de recopilar. El muestreo es la excepción, y en un clúster con mucha actividad suele ser la mayor reducción disponible por la menor pérdida:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Eso es un recorte del 90% en el volumen de trazas a cambio de una pérdida más acotada que la de cualquier otra palanca de aquí:
+
+- Las trazas que conservas están **enteras** — la decisión aplica un hash al ID de traza, así que todos los spans de una traza lo comparten. Obtienes menos trazas, no trazas rotas.
+- Tus **métricas RED se mantienen exactas**. La tasa de solicitudes, la tasa de errores y la duración las calcula OBI a partir de cada solicitud y viajan por la canalización de métricas, en la que el muestreador no está. Cada panel y monitor construido sobre ellas se lee igual que antes.
+
+Lo que cedes son sobre todo las trazas de ejemplo: cuando un monitor se dispara, tienes una décima parte de trazas que abrir. En un clúster que atiende miles de solicitudes idénticas por segundo, eso suele ser un buen trato — el span número cien de `/healthz` no te enseña nada que no te enseñara el primero. En un clúster tranquilo es un mal trato, porque puede que no tengas ningún ejemplo de la solicitud rara que falló.
+
+La excepción, y lo único que conviene comprobar antes de desplegar esto: los monitores que **cuentan spans** en lugar de métricas — **Traces** sobre `Span Count`, **Exceptions** sobre `Exception Count` — ven proporcionalmente menos, así que sus umbrales necesitan reajustarse por el mismo factor. Consulta [Muestreo de trazas](#muestreo-de-trazas).
+
+Recurre a esto cuando las trazas de eBPF sean una parte grande de tu ingesta pero aun así quieras el mapa de servicios y las métricas RED intactos. Prefiere la Palanca 2 cuando quieras dejar de instrumentar algo por completo.
+
+Consulta [Muestreo de trazas](#muestreo-de-trazas) para conocer el comportamiento completo, incluyendo por qué `0` es una tasa en lugar de un interruptor de apagado y por qué no hay un equivalente para logs ni métricas.
+
 ### Un punto de partida ligero
 
 Si quieres una huella más pequeña pero aun así quieres que los monitores funcionen, este perfil conserva la **cobertura completa de métricas** y recorta las dos cosas que realmente impulsan el volumen: las líneas de log y los spans de eBPF:
@@ -570,7 +630,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Ajústalo aún más según lo necesites: sube `minSeverity` a `ERROR`, añade `namespaceFilters.applyTo.metrics=true`, o establece `ebpf.enabled=false` si ya envías trazas desde SDK de OTel.
 
-> **Ten cuidado con lo que recortas.** Algunos monitores dependen de señales específicas: deshabilitar `cadvisor` elimina los monitores de OOM-kill y de throttling de CPU; deshabilitar `kubeletstats.volumeMetrics` elimina el monitor de poco espacio en disco de PVC; deshabilitar los logs elimina las alertas basadas en logs. Recorta las señales sobre las que no actúas, no las que un monitor está observando.
+> **Ten cuidado con lo que recortas.** Algunos monitores dependen de señales específicas: deshabilitar `cadvisor` elimina los monitores de OOM-kill y de throttling de CPU; deshabilitar `kubeletstats.volumeMetrics` elimina el monitor de poco espacio en disco de PVC; deshabilitar los logs elimina las alertas basadas en logs; y `sampling.traces.percentage` no elimina ningún monitor, pero reduce los basados en spans (**Traces** sobre `Span Count`, **Exceptions** sobre `Exception Count`), así que reajusta sus umbrales para que coincidan. Recorta las señales sobre las que no actúas, no las que un monitor está observando.
 
 ### Mide el efecto
 

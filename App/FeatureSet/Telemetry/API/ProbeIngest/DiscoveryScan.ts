@@ -61,6 +61,13 @@ router.post(
             snmpVersion: true,
             snmpCommunityString: true,
             snmpPort: true,
+            // v3 credentials must be selected here or they never reach the probe.
+            snmpV3SecurityLevel: true,
+            snmpV3Username: true,
+            snmpV3AuthProtocol: true,
+            snmpV3AuthKey: true,
+            snmpV3PrivProtocol: true,
+            snmpV3PrivKey: true,
           },
           sort: {
             createdAt: SortOrder.Ascending,

@@ -158,6 +158,95 @@ filters:
     # accept a bad pattern happily. Test a pattern before you roll it out.
     matchType: strict
 
+# Trace sampling — keep a fraction of traces and drop the rest at the agent,
+# before export.
+#
+# This is the one volume lever here that does not blind you. `filters` and
+# `namespaceFilters` remove a CATEGORY of telemetry, so whatever they drop is
+# gone from every trace forever. Sampling keeps every category and thins the
+# population instead: the traces you do get are whole and representative,
+# which is usually what you want from traces, where the hundredth identical
+# /healthz span teaches you nothing the first one didn't.
+#
+# The decision is a hash of the trace ID, not a coin flip, so it is
+# CONSISTENT: every span of a trace is kept or dropped together, by every
+# collector that sees it. You get whole traces, not fragments — which is the
+# thing that makes this safe to turn on. (OneUptime's server-side Trace Drop
+# Filters sample per-span instead, so they thin spans rather than traces.
+# Prefer this knob when you want traces you can actually read.)
+#
+# What sampling does NOT touch, and this is the point: the eBPF RED metrics —
+# request rate, error rate, duration — are a METRICS family. OBI computes them
+# from every request and they ride the metrics pipeline, which this sampler is
+# not in. `percentage: 10` gives you a tenth of the traces and 100% accurate
+# rate/error/latency, so the dashboards and monitors built on those metrics do
+# not move.
+#
+# What it DOES touch, and you have to know this before you turn it on: anything
+# OneUptime derives from the spans themselves scales down with the rate.
+# Traces monitors on Span Count, and Exceptions monitors on Exception Count,
+# count ingested spans — at `percentage: 10` they see a tenth of what they saw
+# yesterday and a threshold tuned on the old volume simply stops firing, with
+# no error anywhere. Retune those thresholds by the same factor when you set
+# this. Error GROUPING degrades worse than linearly: a common exception still
+# shows up, a rare one-off is more likely to vanish entirely than to appear a
+# tenth as often.
+sampling:
+  traces:
+    # Percentage of traces to KEEP, 0-100. 100 (default) keeps everything and
+    # leaves the sampler out of the pipeline entirely, so an install that
+    # never sets this renders exactly the config it renders today.
+    #
+    # 10 keeps a tenth. 0 keeps NONE — it is a real rate, not an off switch,
+    # and it deletes every trace while the eBPF DaemonSet keeps running and
+    # costing you. If you want no traces at all, `ebpf.enabled: false` is what
+    # you actually want; if you want no traces but still want RED metrics and
+    # the service map, keep eBPF on and set this to 0.
+    #
+    # Only applies when `ebpf.enabled` — the traces pipeline does not exist
+    # otherwise, and spans reach the agent only through it.
+    #
+    # Fractions are allowed (0.5 keeps one trace in two hundred), but `--set`
+    # cannot express them: Helm parses `--set ...percentage=0.5` as the STRING
+    # "0.5" and the schema rejects it. Whole numbers are fine with `--set`;
+    # for a fraction use `--set-json ...percentage=0.5` or a values file.
+    #
+    # Fractions have a FLOOR of about 0.0061. The sampler quantises the rate
+    # into 16384 buckets (`uint32(percentage * 163.84)`), so anything smaller
+    # rounds down to zero buckets and behaves exactly like `percentage: 0` —
+    # every trace dropped, no error, collector healthy, RED metrics still
+    # flowing to hide it. 0.01 (one in ten thousand) is the smallest value
+    # that does what it says.
+    #
+    # Traces only, deliberately. The OTel sampler cannot sample metrics at
+    # all. It can sample logs, but it draws its randomness from the trace ID,
+    # and pod logs do not have one: on this collector version every
+    # trace-ID-less record hashes to the same bucket, so a log rate would not
+    # thin the feed — it would keep all of it or delete all of it, flipping on
+    # the seed. That is a data-loss trap, so there is no `sampling.logs` here.
+    # Thin logs with `filters.logs.minSeverity` and `namespaceFilters`, which
+    # are precise about what they remove.
+    #
+    # One consequence of logs NOT being sampled: with
+    # `ebpf.logToTraceCorrelation: true`, pod logs are stamped with the trace
+    # ID of 100% of requests but only `percentage`% of the traces they point at
+    # are kept. So roughly (100 - percentage)% of log records will show a trace
+    # link that dead-ends. Trace → logs navigation is unaffected; it is only
+    # logs → trace that can miss.
+    percentage: 100
+    # Seed for the trace-ID hash. Collectors that need to agree on which
+    # traces to keep must share this value AND `percentage` — that is what
+    # keeps a trace whole across two clusters, or across this agent and a
+    # downstream gateway. Both default to the same everywhere, so multi-cluster
+    # traces survive without touching this.
+    #
+    # Change it only to deliberately DECORRELATE two sampling tiers. Because
+    # the decision is a threshold on the same hash, the same seed at different
+    # rates NESTS: every trace that survives 10% also survives 50%, so a second
+    # tier just re-picks the first tier's traces instead of drawing
+    # independently. Different seeds make the draws independent.
+    hashSeed: 22
+
 # OTel Collector image configuration
 image:
   repository: otel/opentelemetry-collector-contrib

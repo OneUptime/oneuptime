@@ -214,6 +214,42 @@ Hinweise, die Ihnen einen Incident ersparen:
 
 > **Testen Sie eine Regex, bevor Sie sie ausrollen.** Muster werden vom Collector beim Start kompiliert, nicht pro Datensatz, sodass sich ein ungültiges Muster nicht stillschweigend danebenbenimmt — der Collector verweigert den Start und geht in CrashLoopBackOff, wodurch neben den Metriken auch die **Logs** dieses Collectors ausfallen. Helm kann RE2 nicht kompilieren, sodass `helm upgrade` ein fehlerhaftes Muster kommentarlos akzeptiert.
 
+### Trace-Sampling
+
+Jede andere Stellschraube auf dieser Seite entfernt eine **Kategorie** von Telemetrie — einen Namespace, einen Schweregrad, einen Metriknamen. Sampling ist anders: Es behält jede Kategorie und dünnt stattdessen die Grundgesamtheit aus. Setzen Sie `sampling.traces.percentage` auf den Anteil der Traces, den Sie behalten möchten:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Das behält einen von zehn Traces und verwirft die anderen neun am Agent, bevor sie Ihr Cluster verlassen.
+
+**Sie erhalten vollständige Traces, keine Fragmente.** Die Entscheidung ist ein Hash der Trace-ID und kein Münzwurf pro Span, sodass jeder Span eines Traces gemeinsam behalten oder verworfen wird — die Traces, die überleben, sind vollständig und von Anfang bis Ende lesbar. Das ist die Eigenschaft, die Sampling gefahrlos aktivierbar macht.
+
+**Ihre metrikbasierten Monitore bewegen sich nicht.** Die eBPF-RED-Metriken — Request-Rate, Fehlerrate, Dauer — sind eine *Metrik*-Familie. OBI berechnet sie aus jedem Request, und sie durchlaufen die Metrik-Pipeline, in der der Sampler nicht sitzt. Bei `percentage: 10` erhalten Sie ein Zehntel der Traces und zu 100 % genaue Raten-, Fehler- und Latenzwerte. Dashboards und Monitore, die auf diesen Metriken aufbauen, sind nicht betroffen.
+
+**Ihre span-basierten Monitore schon.** Alles, was OneUptime aus den Spans selbst ableitet, skaliert mit der Rate herunter — siehe die Warnung weiter unten, bevor Sie dies aktivieren.
+
+| Schlüssel | Bedeutung |
+| --------- | --------- |
+| `sampling.traces.percentage` | Prozentsatz der Traces, die **behalten** werden sollen, 0-100. Standardwert `100` (alles behalten). |
+| `sampling.traces.hashSeed` | Seed für den Trace-ID-Hash. Standardwert `22`. |
+
+Hinweise, die Ihnen einen Incident ersparen:
+
+- **`0` behält überhaupt keine Traces.** Es ist eine Rate, kein Ausschalter — es löscht jeden Trace, während das eBPF-DaemonSet weiterläuft und Sie Geld kostet. Wenn Sie keine Traces möchten, verwenden Sie `ebpf.enabled=false`. Wenn Sie keine Traces möchten, aber RED-Metriken und die Service-Map *sehr wohl* wollen, lassen Sie eBPF an und setzen Sie dies bewusst auf `0`.
+- **Gilt nur, wenn `ebpf.enabled`.** Die Traces-Pipeline existiert sonst nicht, sodass dieser Wert bei `ebpf.enabled=false` nichts bewirkt.
+- **Nur Traces.** Es gibt kein `sampling.logs` und kein `sampling.metrics`, und das ist Absicht — siehe den Hinweis unten.
+- **Brüche benötigen `--set-json`, und sie haben eine Untergrenze.** `--set sampling.traces.percentage=0.5` schlägt fehl, weil Helm `0.5` als String liest. Verwenden Sie `--set-json 'sampling.traces.percentage=0.5'` oder eine Values-Datei. Ganze Zahlen funktionieren mit `--set` problemlos. Unterhalb von etwa `0.0061` quantisiert die Rate auf null und verhält sich exakt wie `0` — jeder Trace wird verworfen, ohne Fehlermeldung. `0.01` (einer von zehntausend) ist der kleinste Wert, der tut, was er verspricht.
+- **Multi-Cluster funktioniert standardmäßig.** Zwei Agents behalten denselben Trace nur dann, wenn sie sich sowohl bei `hashSeed` als auch bei `percentage` einig sind. Beide haben überall denselben Standardwert, sodass ein Trace, der zwei Cluster überquert, ohne zusätzliche Konfiguration vollständig überlebt. Ändern Sie `hashSeed` nur, um zwei Sampling-Stufen bewusst zu *entkoppeln* — weil die Entscheidung ein Schwellenwert auf demselben Hash ist, verschachtelt sich derselbe Seed bei unterschiedlichen Raten, sodass eine zweite Stufe lediglich die Traces erneut auswählt, die die erste bereits behalten hat, statt unabhängig zu ziehen.
+- **Pod-Logs werden niemals gesampelt**, sodass mit `ebpf.logToTraceCorrelation: true` jeder Log-Datensatz weiterhin eine Trace-ID trägt, während nur `percentage` % dieser Traces behalten werden. Ungefähr (100 − `percentage`) % der Log-Datensätze zeigen damit einen Trace-Link, der ins Leere führt. Die Navigation Trace → Logs ist davon nicht betroffen; nur Logs → Trace kann danebengehen.
+
+> **Justieren Sie Ihre span-basierten Monitore neu, wenn Sie dies setzen.** Sampling reduziert die Spans, die OneUptime erreichen, sodass alles, was sie zählt, weniger zählt: Ein **Traces**-Monitor auf `Span Count` und ein **Exceptions**-Monitor auf `Exception Count` sehen ungefähr `percentage` % des gestrigen Volumens. Ein Schwellenwert, der auf ungesampeltem Verkehr eingestellt wurde, wird stillschweigend nicht mehr überschritten — der Monitor meldet keinen Fehler, er verstummt einfach. Teilen Sie diese Schwellenwerte durch denselben Faktor, wenn Sie die Rate setzen; die Rate gilt clusterweit, es gibt also keine Möglichkeit, einen einzelnen Service davon auszunehmen. Die Fehler-**Gruppierung** verschlechtert sich schlechter als linear: Eine häufige Exception taucht weiterhin auf, aber ein seltener Einzelfall verschwindet eher ganz, als dass er ein Zehntel so oft erscheint.
+
+> **Warum es hier kein Log- oder Metrik-Sampling gibt.** Der Sampler des Collectors kann Metriken überhaupt nicht samplen. Logs kann er samplen, aber er bezieht seine Zufälligkeit aus der Trace-ID — und Pod-Logs haben keine. Jeder Datensatz ohne Trace-ID hasht dann in denselben Bucket, sodass eine Log-Rate den Feed nicht ausdünnen würde: Sie würde ihn je nach Seed vollständig behalten oder vollständig löschen. Statt eine Stellschraube auszuliefern, die stillschweigend Ihre Logs löscht, bietet das Chart keine an. Dünnen Sie Logs mit [Filterung nach Log-Schweregrad](#filterung-nach-log-schweregrad) und [Namespace-Filterung](#namespace-filterung) aus, die präzise darin sind, was sie entfernen.
+
 ### Log-Erfassung deaktivieren
 
 Wenn Sie keine Pod-Logs benötigen:
@@ -379,17 +415,18 @@ Der Trick besteht darin, **das zu erfassen aufzuhören, was Sie sich nicht anseh
 | Signal                          | Größter Treiber                                           | Herunterregeln mit                                                                           |
 | ------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Pod-Logs**                    | Jede Zeile aus jedem Container, clusterweit               | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
-| **eBPF-Traces & Span-Metriken** | Ein Trace pro Request von jedem instrumentierten Prozess  | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **eBPF-Traces & Span-Metriken** | Ein Trace pro Request von jedem instrumentierten Prozess  | `sampling.traces.percentage`, `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths` |
 | **Metrik-Datenpunkte**          | Scrape-Frequenz × Anzahl der Pods/Container               | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
 | **Metrik-Kardinalität**         | Anzahl der eindeutigen Serien (pro Container, pro PVC, …) | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Opt-in-Extras**               | Profiling, Audit-Logs, Control Plane, Inter-Zone-Metriken | Lassen Sie sie aus (das sind sie standardmäßig bereits)                                      |
 
-Es gibt zwei Wege, das Volumen zu senken, und es lohnt sich zu wissen, welchen Sie gerade verwenden:
+Es gibt drei Wege, das Volumen zu senken, und es lohnt sich zu wissen, welchen Sie gerade verwenden:
 
 - **Am Receiver** — die Daten werden nie erfasst. `namespaceFilters` bei Pod-Logs, `cadvisor.metricsAllowlist`, ein längeres `collectionInterval`. Das kostet im Betrieb nichts und spart CPU, Egress und Ingest zugleich. Bevorzugen Sie diese immer dort, wo sie Ihren Fall abdecken.
 - **Am Filter-Processor** — die Daten werden erfasst und dann vor dem Export verworfen. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Etwas mehr Collector-CPU, dafür wirkt es über Receiver hinweg und kann Dinge ausdrücken, die ein Receiver nicht kann.
+- **Am Sampler** — die Daten werden erfasst, und dann wird ein repräsentativer Anteil behalten. `sampling.traces.percentage`. Der Sonderfall: Die beiden oben entfernen eine ganze *Kategorie* von Telemetrie, sodass alles, was sie verwerfen, aus jedem Trace verschwunden ist. Sampling behält jede Kategorie und dünnt die Grundgesamtheit aus, sodass das, was überlebt, weiterhin vollständig und repräsentativ ist.
 
-Beide sind **unumkehrbar**: Was Sie hier verwerfen, erreicht OneUptime nie, und jeder darauf aufgebaute Monitor verstummt. Wenn Sie lieber später entscheiden möchten, kann OneUptime Daten stattdessen serverseitig verwerfen (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — das kostet weiterhin Egress, ist aber eine Einstellung, die Sie ohne erneutes Deployment ändern können.
+Alle drei sind **unumkehrbar**: Was Sie hier verwerfen, erreicht OneUptime nie, und alle drei können einen Monitor verstummen lassen. Die ersten beiden lassen einen Monitor verstummen, indem sie das Signal entfernen, das er beobachtet. Sampling ist enger gefasst: Die eBPF-RED-Metriken werden berechnet, bevor der Sampler läuft, sodass metrikbasierte Monitore exakt bleiben — aber Monitore, die *Spans* zählen (**Traces** auf `Span Count`, **Exceptions** auf `Exception Count`), sehen proportional weniger und benötigen ihre Schwellenwerte um denselben Faktor neu justiert. Wenn Sie lieber später entscheiden möchten, kann OneUptime Daten stattdessen serverseitig verwerfen (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — das kostet weiterhin Egress, ist aber eine Einstellung, die Sie ohne erneutes Deployment ändern können.
 
 ### Hebel 1 — Pod-Logs sind meist die mit Abstand größte Quelle
 
@@ -423,9 +460,7 @@ Container-Logs sind fast immer der größte Anteil am Ingest, weil es ein Datens
     --set logs.enabled=false
   ```
 
-  > **Das deaktiviert auch Node-, Pod-, Container- und Host-Metriken.** Die kubelet-, cAdvisor- und hostmetrics-Receiver leben alle im selben Log-Collector-DaemonSet, sodass das Ausschalten der Pod-Logs sie ebenfalls entfernt — zusammen mit den OOM-Kill-, CPU-Throttling- und PVC-Low-Disk-Monitoren. Dasselbe gilt für `logs.mode: api` und `logs.mode: disabled`.
-  >
-  > Wenn Sie weniger Logs möchten, aber Ihre Metriken behalten wollen, bleiben Sie bei `logs.mode: daemonset` und greifen Sie stattdessen zu `namespaceFilters` oder `filters.logs.minSeverity` weiter oben.
+  > Das stoppt nur die Pod-Logs. Node-, Pod- und Container-Metriken fließen weiter, und die darauf aufbauenden Monitore (OOM-Kills, CPU-Throttling, PVC-Low-Disk) funktionieren weiterhin — der Node-Collector bleibt, er hört lediglich auf, `/var/log/pods` zu lesen. Dasselbe gilt für `logs.mode: api` und `logs.mode: disabled`.
 
 ### Hebel 2 — eBPF-Auto-Instrumentierung eingrenzen
 
@@ -523,6 +558,29 @@ Diese sind **standardmäßig deaktiviert**, gerade weil sie Last hinzufügen —
 | `ebpf.features.networkInterZoneMetrics`                   | Verdoppelt die Netzwerkfluss-Metrik-Kardinalität                                             |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Zusätzliche Prometheus-Scrape-Jobs                                                           |
 
+### Hebel 6 — Traces samplen, statt sie zu verwerfen
+
+Jeder Hebel oben erkauft Volumen, indem er etwas aufgibt: einen Namespace, den Sie nicht mehr beobachten, einen Schweregrad, den Sie nicht mehr behalten, eine Metrikfamilie, die Sie nicht mehr erfassen. Sampling ist die Ausnahme, und auf einem ausgelasteten Cluster ist es oft die größte verfügbare Reduktion bei kleinstem Verlust:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Das ist eine Reduktion des Trace-Volumens um 90 % bei einem engeren Verlust als bei jedem anderen Hebel hier:
+
+- Die Traces, die Sie behalten, sind **vollständig** — die Entscheidung hasht die Trace-ID, sodass alle Spans eines Traces sie teilen. Sie erhalten weniger Traces, keine kaputten.
+- Ihre **RED-Metriken bleiben exakt**. Request-Rate, Fehlerrate und Dauer werden von OBI aus jedem Request berechnet und durchlaufen die Metrik-Pipeline, in der der Sampler nicht sitzt. Jedes Dashboard und jeder Monitor, das bzw. der darauf aufbaut, liest sich wie zuvor.
+
+Was Sie aufgeben, sind größtenteils Beispiel-Traces: Wenn ein Monitor auslöst, haben Sie ein Zehntel so viele Traces zum Öffnen. Auf einem Cluster, das Tausende identischer Requests pro Sekunde abwickelt, ist das meist ein guter Tausch — der hundertste identische `/healthz`-Span lehrt Sie nichts, was der erste nicht schon getan hätte. Auf einem ruhigen Cluster ist es ein schlechter, weil Sie womöglich kein Beispiel des seltenen Requests haben, der kaputtgegangen ist.
+
+Die Ausnahme, und das eine, was Sie vor dem Ausrollen prüfen sollten: Monitore, die **Spans zählen** statt Metriken — **Traces** auf `Span Count`, **Exceptions** auf `Exception Count` —, sehen proportional weniger, sodass ihre Schwellenwerte um denselben Faktor neu justiert werden müssen. Siehe [Trace-Sampling](#trace-sampling).
+
+Greifen Sie dazu, wenn eBPF-Traces einen großen Anteil an Ihrem Ingest ausmachen, Sie aber die Service-Map und die RED-Metriken intakt behalten möchten. Bevorzugen Sie Hebel 2, wenn Sie etwas vollständig nicht mehr instrumentieren möchten.
+
+Siehe [Trace-Sampling](#trace-sampling) für das vollständige Verhalten, einschließlich der Frage, warum `0` eine Rate und kein Ausschalter ist und warum es kein Log- oder Metrik-Äquivalent gibt.
+
 ### Ein schlanker Ausgangspunkt
 
 Wenn Sie einen kleineren Footprint möchten, aber weiterhin möchten, dass die Monitore funktionieren, behält dieses Profil die **vollständige Metrik-Abdeckung** und streicht die beiden Dinge, die das Volumen tatsächlich treiben — Log-Zeilen und eBPF-Spans:
@@ -541,8 +599,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Keep the DaemonSet — it is what collects kubelet, cAdvisor and host
-# metrics as well as logs — but only ship logs worth alerting on.
+# Keep pod logs, but only ship the ones worth alerting on. (Metrics do
+# not depend on this — the node collector runs either way.)
 logs:
   enabled: true
   mode: daemonset
@@ -572,7 +630,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Ziehen Sie bei Bedarf weiter an: Erhöhen Sie `minSeverity` auf `ERROR`, fügen Sie `namespaceFilters.applyTo.metrics=true` hinzu oder setzen Sie `ebpf.enabled=false`, wenn Sie Traces bereits über OTel-SDKs liefern.
 
-> **Achten Sie darauf, was Sie streichen.** Einige Monitore hängen von bestimmten Signalen ab: Das Deaktivieren von `cadvisor` entfernt die OOM-Kill- und CPU-Throttling-Monitore; das Deaktivieren von `kubeletstats.volumeMetrics` entfernt den PVC-Low-Disk-Monitor; das Deaktivieren von Logs (oder das Ausschalten des DaemonSets) entfernt log-basierte Alarme *und* Ihre Node-Metriken. Streichen Sie die Signale, auf die Sie nicht reagieren, nicht die, die ein Monitor überwacht.
+> **Achten Sie darauf, was Sie streichen.** Einige Monitore hängen von bestimmten Signalen ab: Das Deaktivieren von `cadvisor` entfernt die OOM-Kill- und CPU-Throttling-Monitore; das Deaktivieren von `kubeletstats.volumeMetrics` entfernt den PVC-Low-Disk-Monitor; das Deaktivieren von Logs entfernt log-basierte Alarme; und `sampling.traces.percentage` entfernt zwar keinen Monitor, skaliert aber die span-basierten herunter (**Traces** auf `Span Count`, **Exceptions** auf `Exception Count`), justieren Sie deren Schwellenwerte also entsprechend neu. Streichen Sie die Signale, auf die Sie nicht reagieren, nicht die, die ein Monitor überwacht.
 
 ### Die Auswirkung messen
 

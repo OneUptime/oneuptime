@@ -214,6 +214,42 @@ Kubernetes **事件**无法在代理侧按命名空间过滤。它们来自 `k8s
 
 > **在推广之前先测试你的正则。** 模式是由采集器在启动时编译的，而不是逐条记录编译，因此一个无效的模式并不会悄无声息地出问题——采集器会拒绝启动并进入 CrashLoopBackOff，从而把该采集器的**日志**连同它的指标一起拖垮。Helm 无法编译 RE2，因此 `helm upgrade` 会毫无怨言地接受一个错误的模式。
 
+### 追踪采样
+
+上面那些过滤器移除的都是一**类**遥测数据——一个命名空间、一个严重性、一个指标名称。采样则不同：它保留每一个类别，转而对总体做稀释。把 `sampling.traces.percentage` 设为你想保留的追踪比例：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+这会每十条追踪保留一条，其余九条在代理处、在它们离开你的集群之前就被丢弃。
+
+**你得到的是完整的追踪，而不是碎片。** 采样决策依据的是对追踪 ID 的哈希，而不是逐 span 抛一次硬币，因此一条追踪的每一个 span 会被一起保留或一起丢弃——存活下来的追踪是完整的，可以端到端读完。正是这一特性让采样可以放心开启。
+
+**你的基于指标的监视器不会有任何变动。** eBPF RED 指标——请求速率、错误率、持续时间——属于**指标**系列。OBI 会根据每一个请求计算它们，并且它们走的是指标流水线，而采样器并不在这条流水线上。在 `percentage: 10` 下，你得到的是十分之一的追踪，以及 100% 准确的速率/错误/延迟。构建在这些指标之上的仪表板和监视器不受影响。
+
+**但你的基于 span 的监视器会变。** 凡是 OneUptime 从 span 本身派生出来的东西，都会随着采样率一起按比例缩小——在开启它之前，请先看下面的警告。
+
+| 键 | 含义 |
+| --- | ------- |
+| `sampling.traces.percentage` | 要**保留**的追踪百分比，0-100。默认值 `100`（全部保留）。 |
+| `sampling.traces.hashSeed` | 追踪 ID 哈希所用的种子。默认值 `22`。 |
+
+一些能帮你避免一次故障的注意事项：
+
+- **`0` 表示一条追踪都不保留。** 它是一个采样率，而不是一个开关——它会删除每一条追踪，而 eBPF DaemonSet 仍在运行并持续消耗你的资源。如果你不想要追踪，请使用 `ebpf.enabled=false`。如果你不想要追踪但**确实**想要 RED 指标和服务地图，那就让 eBPF 保持开启，并有意识地把它设为 `0`。
+- **仅在 `ebpf.enabled` 时生效。** 否则追踪流水线根本不存在，因此在 `ebpf.enabled=false` 下这个值不起任何作用。
+- **仅限追踪。** 没有 `sampling.logs` 或 `sampling.metrics`，这是有意为之——参见下面的说明。
+- **小数需要用 `--set-json`，而且它们有一个下限。** `--set sampling.traces.percentage=0.5` 会失败，因为 Helm 会把 `0.5` 读成字符串。请使用 `--set-json 'sampling.traces.percentage=0.5'` 或一个 values 文件。整数用 `--set` 没有问题。低于约 `0.0061` 时，采样率会被量化为零，其行为与 `0` 完全一致——每一条追踪都被丢弃，且不会报错。`0.01`（万分之一）是最小的名副其实的值。
+- **多集群默认即可正常工作。** 两个代理只有在 `hashSeed` 和 `percentage` 上都一致时，才会保留同一条追踪。两者在各处的默认值都相同，因此一条跨越两个集群的追踪无需任何额外配置就能完整存活。只有当你想刻意让两个采样层级**去相关**时才去改 `hashSeed`——因为采样决策是对同一个哈希设定阈值，所以相同种子在不同比例下是嵌套的，第二个层级只会在第一个层级已经保留的追踪里再挑一遍，而不是独立抽样。
+- **Pod 日志从不会被采样**，因此在 `ebpf.logToTraceCorrelation: true` 下，每一条日志记录仍然带着追踪 ID，而这些追踪中只有 `percentage`% 会被保留。大约 (100 − `percentage`)% 的日志记录会显示一个走不通的追踪链接。追踪 → 日志的跳转不受影响；只有日志 → 追踪可能落空。
+
+> **设置这一项时，请重新调校你的基于 span 的监视器。** 采样会减少到达 OneUptime 的 span，因此凡是统计 span 的东西都会统计得更少：一个基于 `Span Count` 的 **Traces** 监视器，以及一个基于 `Exception Count` 的 **Exceptions** 监视器，都只会看到昨天数据量的约 `percentage`%。一个按未采样流量调校过的阈值会悄无声息地不再被跨越——监视器不会报错，它只是陷入沉默。设定采样率时，请把这些阈值除以同样的倍数；采样率是集群级的，因此没有办法让某个单独的服务豁免于它。错误**分组**的退化比线性还要糟糕：常见的异常仍然会浮现出来，但一个罕见的一次性异常更可能是彻底消失，而不是以十分之一的频率出现。
+
+> **为什么这里没有日志或指标采样。** 采集器的采样器根本无法对指标采样。它可以对日志采样，但它的随机性来源是追踪 ID——而 Pod 日志没有追踪 ID。于是每一条没有追踪 ID 的记录都会哈希到同一个桶里，因此一个日志采样率并不会稀释数据流：取决于种子，它要么全部保留，要么全部删除。与其提供一个会悄悄删除你日志的旋钮，这份 chart 索性不提供。请用[按日志严重性过滤](#按日志严重性过滤)和[命名空间过滤](#命名空间过滤)来精简日志，它们对自己移除的内容是精确的。
+
 ### 禁用日志采集
 
 如果你不需要 Pod 日志：
@@ -380,17 +416,18 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | 信号                      | 最主要的来源                             | 用以下项调低                                                                                 |
 | ------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Pod 日志**              | 整个集群中每个容器的每一行日志           | `namespaceFilters`、`filters.logs.minSeverity`、`logs.enabled`、`logs.mode`                  |
-| **eBPF 追踪与 span 指标** | 来自每个被埋点进程的每个请求一条追踪     | `ebpf.enabled`、`ebpf.features.*`、`ebpf.autoTargetExe`、`ebpf.excludeExePaths`              |
+| **eBPF 追踪与 span 指标** | 来自每个被埋点进程的每个请求一条追踪     | `sampling.traces.percentage`、`ebpf.enabled`、`ebpf.features.*`、`ebpf.autoTargetExe`、`ebpf.excludeExePaths` |
 | **指标数据点**            | 抓取频率 × Pod/容器数量                  | `collectionInterval`、`hostMetrics.collectionInterval`、`cadvisor.scrapeInterval`            |
 | **指标基数**              | 不同序列的数量（每容器、每 PVC，……）     | `filters.metrics.exclude`、`namespaceFilters.applyTo.metrics`、`cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics` |
 | **可选启用的额外项**      | 性能分析、审计日志、控制平面、跨区域指标 | 让它们保持关闭（它们默认已经是关闭的）                                                       |
 
-削减数据量有两种方式，值得弄清楚你正在使用的是哪一种：
+削减数据量有三种方式，值得弄清楚你正在使用的是哪一种：
 
 - **在接收器处**——数据从不会被采集。作用于 Pod 日志的 `namespaceFilters`、`cadvisor.metricsAllowlist`、更长的 `collectionInterval`。它的运行开销为零，并且同时节省 CPU、出口流量和摄取量。只要能覆盖你的场景，就应始终优先选择这些方式。
 - **在 filter 处理器处**——数据会被采集，然后在导出前被丢弃。`filters.logs.minSeverity`、`filters.metrics.*`、`namespaceFilters.applyTo.*`。采集器的 CPU 开销略高，但它可以跨接收器生效，并且能表达接收器无法表达的内容。
+- **在采样器处**——数据会被采集，然后从中保留有代表性的一部分。`sampling.traces.percentage`。它是个异类：上面两种方式移除的是一整**类**遥测数据，因此它们丢弃的内容会从每一条追踪里消失。采样保留每一个类别，只是对总体做稀释，因此存活下来的数据仍然是完整且有代表性的。
 
-两者都是**不可逆的**：你在此处丢弃的数据永远不会到达 OneUptime，任何构建在其之上的监视器都会陷入沉默。如果你更希望以后再做决定，OneUptime 可以改为在服务端丢弃数据（**Logs → Settings → Drop Filters**、**Metrics → Settings → Pipeline Rules**）——那样仍然会产生出口流量，但它是一项你无需重新部署即可更改的设置。
+三者都是**不可逆的**：你在此处丢弃的数据永远不会到达 OneUptime，并且三者都可能让某个监视器陷入沉默。前两种是通过移除监视器所观察的信号来让它沉默。采样的影响更窄一些：eBPF RED 指标是在采样器运行之前计算的，因此基于指标的监视器保持精确——但那些统计 *span* 的监视器（基于 `Span Count` 的 Traces、基于 `Exception Count` 的 Exceptions）看到的数量会按比例减少，需要把它们的阈值按同样的倍数重新调校。如果你更希望以后再做决定，OneUptime 可以改为在服务端丢弃数据（**Logs → Settings → Drop Filters**、**Metrics → Settings → Pipeline Rules**）——那样仍然会产生出口流量，但它是一项你无需重新部署即可更改的设置。
 
 ### 调整项 1 — Pod 日志通常是最大的单一来源
 
@@ -522,6 +559,29 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `ebpf.features.networkInterZoneMetrics`                   | 使网络流量指标基数翻倍                                                 |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 额外的 Prometheus 抓取作业                                             |
 
+### 调整项 6 — 采样追踪，而不是丢弃它们
+
+上面每一个调整项换来的数据量削减，都要以放弃某样东西为代价：一个你不再观察的命名空间、一个你不再保留的严重性、一个你不再采集的指标系列。采样是个例外，而在繁忙的集群上，它往往是以最小的损失换来的最大一笔削减：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+这是追踪数据量 90% 的削减，而它带来的损失比这里的任何其他调整项都要窄：
+
+- 你保留下来的追踪是**完整的**——采样决策对追踪 ID 做哈希，因此一条追踪的所有 span 共享同一个决策。你得到的是更少的追踪，而不是残缺的追踪。
+- 你的 **RED 指标保持精确**。请求速率、错误率和持续时间由 OBI 根据每一个请求计算，并且走的是指标流水线，而采样器并不在这条流水线上。构建在它们之上的每一个仪表板和监视器读数都与之前完全相同。
+
+你放弃的主要是示例追踪：当一个监视器触发时，你能打开的追踪只有原来的十分之一。在一个每秒处理数千个完全相同请求的集群上，这通常是一笔划算的交易——第一百个一模一样的 `/healthz` span 并不会告诉你第一个没告诉你的任何东西。而在一个安静的集群上，这笔交易并不划算，因为你可能一个出问题的稀有请求的样本都没有。
+
+例外情况，也是你在推广之前要检查的那一件事：那些统计 **span** 而非指标的监视器——基于 `Span Count` 的 Traces、基于 `Exception Count` 的 Exceptions——看到的数量会按比例减少，因此它们的阈值需要按同样的倍数重新调校。参见[追踪采样](#追踪采样)。
+
+当 eBPF 追踪在你的摄取量中占很大比例，但你仍然想让服务地图和 RED 指标保持完好时，就用这一项。如果你想彻底停止对某样东西埋点，请优先选择调整项 2。
+
+有关完整行为——包括为什么 `0` 是一个采样率而不是一个开关，以及为什么没有日志或指标的对应项——请参阅[追踪采样](#追踪采样)。
+
 ### 一个精简的起点
 
 如果你想要更小的占用但仍希望监视器能正常工作，这份配置会保留**完整的指标覆盖范围**，并削减真正驱动数据量的两样东西——日志行和 eBPF span：
@@ -571,7 +631,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 按需进一步收紧：把 `minSeverity` 提高到 `ERROR`、添加 `namespaceFilters.applyTo.metrics=true`，或者如果你已经从 OTel SDK 发送追踪，则设置 `ebpf.enabled=false`。
 
-> **注意你所削减的内容。** 某些监视器依赖特定的信号：禁用 `cadvisor` 会移除 OOM-kill 和 CPU 限流监视器；禁用 `kubeletstats.volumeMetrics` 会移除 PVC 磁盘空间不足监视器；禁用日志（或关闭 DaemonSet）会移除基于日志的告警*以及*你的节点指标。请削减你不会据以采取行动的信号，而不是某个监视器正在监视的信号。
+> **注意你所削减的内容。** 某些监视器依赖特定的信号：禁用 `cadvisor` 会移除 OOM-kill 和 CPU 限流监视器；禁用 `kubeletstats.volumeMetrics` 会移除 PVC 磁盘空间不足监视器；禁用日志会移除基于日志的告警；而 `sampling.traces.percentage` 不会移除某个监视器，但会按比例缩小那些基于 span 的监视器（基于 `Span Count` 的 Traces、基于 `Exception Count` 的 Exceptions），因此请相应地重新调校它们的阈值。请削减你不会据以采取行动的信号，而不是某个监视器正在监视的信号。
 
 ### 衡量效果
 

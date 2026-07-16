@@ -63,6 +63,8 @@
   },
   "userProfile": {
     "exitAdmin": "Выйти из админа",
+    "darkTheme": "Тёмная тема",
+    "lightTheme": "Светлая тема",
     "logOut": "Выйти"
   },
   "footer": {

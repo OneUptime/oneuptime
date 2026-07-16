@@ -63,6 +63,8 @@
   },
   "userProfile": {
     "exitAdmin": "एडमिन से बाहर निकलें",
+    "darkTheme": "गहरे रंग वाली थीम",
+    "lightTheme": "हल्के रंग वाली थीम",
     "logOut": "लॉग आउट"
   },
   "footer": {

@@ -1,0 +1,26 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=("Your OneUptime Enterprise license is over its user limit") }}
+
+{{> InfoBlock info="Your OneUptime Enterprise license is currently over its licensed user limit. Here are the details:"}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Company:" text=companyName }}
+{{> DetailBoxField title="License Key:" text=licenseKey }}
+{{> DetailBoxField title="Licensed Users:" text=userLimit }}
+{{> DetailBoxField title="Current Users:" text=currentUserCount }}
+{{> DetailBoxField title="Users Over Limit:" text=usersOverLimit }}
+{{> DetailBoxField title="Instances Reporting:" text=instanceCount }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info="Users are counted uniquely across all of your self-hosted instances (staging, production, etc.) that share this license."}}
+
+{{> InfoBlock info="To stay compliant, please reduce the number of users on your instances or contact us to increase your licensed user limit. Reply to this email or write to sales@oneuptime.com and we will be happy to help."}}
+
+{{> InfoBlock info="You are receiving this email because you are a master admin of a OneUptime instance using this license. This reminder is sent daily while the license is over its user limit."}}
+
+{{> Footer this }}
+
+{{> End this}}

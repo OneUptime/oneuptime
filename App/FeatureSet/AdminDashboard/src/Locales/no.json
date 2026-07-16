@@ -63,6 +63,8 @@
   },
   "userProfile": {
     "exitAdmin": "Avslutt admin",
+    "darkTheme": "Mørkt tema",
+    "lightTheme": "Lyst tema",
     "logOut": "Logg ut"
   },
   "footer": {

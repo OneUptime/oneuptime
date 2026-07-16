@@ -7,6 +7,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import AIChatMessageRole from "../../../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../../../Types/AI/AIChatMessageStatus";
+import { AIChatPageContext } from "../../../../Types/AI/AIChatPageContext";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
@@ -43,6 +44,13 @@ export interface ChatTurnRequest {
   llmProviderId?: ObjectID | undefined;
   // How much autonomy the agent has to run mutating tools in this conversation.
   permissionMode: AIChatPermissionMode;
+  /*
+   * What the user was looking at in the dashboard when they sent this message
+   * (already sanitized by the API). Folded into the system prompt so "this
+   * incident" resolves to the entity on screen. Per-turn: not persisted, and
+   * not needed on resume (the paused state already contains the built prompt).
+   */
+  pageContext?: AIChatPageContext | undefined;
   // The requesting user's real permission props, captured at request time.
   props: DatabaseCommonInteractionProps;
 }
@@ -891,6 +899,7 @@ export default class ChatAgentRunner {
         content: buildObservabilityChatSystemPrompt({
           currentTime: OneUptimeDate.getCurrentDate(),
           permissionMode: request.permissionMode,
+          pageContext: request.pageContext,
         }),
       },
     ];

@@ -556,3 +556,45 @@ filter/telemetry:
 {{- end }}
 {{- end }}
 {{- end -}}
+
+{{/*
+Trace sampling. Reads .Values.sampling.traces.
+
+These deliberately test for nil with `kindIs "invalid"` rather than piping
+through `default`: 0 is empty to Go templates, so `percentage | default 100`
+would silently rewrite an explicit `percentage: 0` ("keep no traces") into
+100 ("keep every trace") — the exact opposite of what was asked for, on the
+one setting where being wrong is unrecoverable. Same for `hashSeed: 0`.
+*/}}
+{{- define "kubernetes-agent.traceSamplingPercentage" -}}
+{{- $pct := (((.Values.sampling).traces).percentage) -}}
+{{- if kindIs "invalid" $pct -}}
+100
+{{- else -}}
+{{- $pct -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.traceSamplingHashSeed" -}}
+{{- $seed := (((.Values.sampling).traces).hashSeed) -}}
+{{- if kindIs "invalid" $seed -}}
+22
+{{- else -}}
+{{- $seed -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether to emit `probabilistic_sampler` at all.
+
+At 100 the sampler is a no-op, so we leave it out entirely and render the
+same config as an install that has never heard of sampling. Gated on
+ebpf.enabled too: the traces pipeline only exists there, and a processor
+configured but referenced by no pipeline is config the collector can never
+run — the same reason `filter/telemetry` is gated this way.
+Usage: {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.traceSamplingEnabled" -}}
+{{- $pct := float64 (include "kubernetes-agent.traceSamplingPercentage" .) -}}
+{{- and (.Values.ebpf.enabled | default false) (lt $pct 100.0) -}}
+{{- end -}}

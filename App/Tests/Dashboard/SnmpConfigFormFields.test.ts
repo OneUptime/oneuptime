@@ -11,6 +11,8 @@ import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
+import fs from "fs";
+import path from "path";
 
 /*
  * These tests pin the SNMP section of the Create/Edit Network Device forms.
@@ -433,4 +435,79 @@ describe("getSnmpConfigFormFields — switching version inside an open form", ()
       expect(isFieldVisible(key, values)).toBe(true);
     }
   });
+});
+
+/*
+ * The tests above pin the helper, and they were green the whole time the
+ * customer report was live: "Edit Network Device" on the device overview page
+ * never called the helper. It hand-rolled its own three-field SNMP block, so
+ * picking V3 revealed nothing and the community string it wrote went through
+ * FormFieldSchemaType.Password (a one-way hash the probe can never read back).
+ *
+ * Testing the helper therefore proves nothing on its own — the invariant that
+ * actually broke is that every SNMP form ROUTES THROUGH it. These tests read
+ * the page sources to pin that, which is the only way to catch a page that
+ * quietly stops calling the helper.
+ *
+ * Discovery.tsx is included even though it builds a form over
+ * NetworkDeviceDiscoveryScan rather than NetworkDevice: the helper is authored
+ * against the SnmpConfigModelFields shape both models satisfy, so it serves
+ * both. It had the same drift — a hand-rolled block offering V3 with no v3
+ * fields behind it.
+ */
+const SNMP_FORM_PAGES: Array<string> = [
+  "Devices.tsx",
+  "Discovery.tsx",
+  "View/Index.tsx",
+  "View/Settings.tsx",
+];
+
+function readNetworkDevicePage(relativePath: string): string {
+  return fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Pages",
+      "NetworkDevice",
+      relativePath,
+    ),
+    "utf8",
+  );
+}
+
+describe("NetworkDevice SNMP forms route through getSnmpConfigFormFields", () => {
+  test.each(SNMP_FORM_PAGES)("%s spreads the shared fields", (page: string) => {
+    // Matches both the bare call and the options form the scan page uses.
+    expect(readNetworkDevicePage(page)).toContain(
+      "...getSnmpConfigFormFields(",
+    );
+  });
+
+  /*
+   * The signature of a hand-rolled SNMP block: its own version dropdown.
+   * Only the helper is allowed to declare those options.
+   */
+  test.each(SNMP_FORM_PAGES)(
+    "%s does not hand-roll its own SNMP version dropdown",
+    (page: string) => {
+      expect(readNetworkDevicePage(page)).not.toContain('value: "V2c"');
+    },
+  );
+
+  /*
+   * Password hashes one-way, so a community string or v3 key saved through it
+   * is unusable by the probe. The helper uses EncryptedText, which round-trips.
+   */
+  test.each(SNMP_FORM_PAGES)(
+    "%s does not put SNMP credentials behind a one-way hash",
+    (page: string) => {
+      expect(readNetworkDevicePage(page)).not.toContain(
+        "FormFieldSchemaType.Password",
+      );
+    },
+  );
 });

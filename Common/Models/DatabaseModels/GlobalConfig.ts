@@ -899,6 +899,42 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.Email,
+    title: "Enterprise License Notification Email",
+    description:
+      "OneUptime email address CC'd on enterprise license notifications sent to customers (expiry reminders, seat-limit breaches). Only used on the hosted oneuptime.com (billing enabled).",
+  })
+  @Column({
+    type: ColumnType.Email,
+    length: ColumnLength.Email,
+    nullable: true,
+    transformer: Email.getDatabaseTransformer(),
+  })
+  public enterpriseLicenseNotificationEmail?: Email = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Enterprise License Expiry Reminder Days",
+    description:
+      "How many days before an enterprise license expires that expiry reminder emails start going out to the customer's master admins. Defaults to 45. Only used on the hosted oneuptime.com (billing enabled).",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public enterpriseLicenseExpiryReminderDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     type: TableColumnType.Number,
     title: "Monitor Log Retention Days",
     description:

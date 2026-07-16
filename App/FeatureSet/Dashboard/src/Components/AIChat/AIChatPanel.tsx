@@ -17,6 +17,7 @@ import ChatDownloadMenu from "./ChatDownloadMenu";
 import ChatHomeView from "./ChatHomeView";
 import ChatInput from "./ChatInput";
 import ChatMessageList from "./ChatMessageList";
+import PageContextChip from "./PageContextChip";
 import ProviderPicker from "./ProviderPicker";
 import PermissionModePicker from "./PermissionModePicker";
 import { useAiChat, UseAiChat } from "./useAiChat";
@@ -106,6 +107,26 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
     </div>
   );
 
+  const contextChip: ReactElement | undefined = chat.pageContext ? (
+    <PageContextChip
+      context={chat.pageContext}
+      isAttached={chat.isPageContextAttached}
+      onAttach={() => {
+        chat.setIsPageContextAttached(true);
+      }}
+      onDetach={() => {
+        chat.setIsPageContextAttached(false);
+      }}
+    />
+  ) : undefined;
+
+  const composerPlaceholder: string | undefined =
+    chat.pageContext && chat.isPageContextAttached && !chat.isWorking
+      ? chat.pageContext.isEntity
+        ? `Ask about this ${chat.pageContext.noun}…`
+        : `Ask about your ${chat.pageContext.noun}…`
+      : undefined;
+
   return (
     <div className="relative z-40" role="dialog" aria-modal="true">
       <div
@@ -149,7 +170,13 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
               <div className="truncate text-xs text-gray-400">
                 {chat.isWorking
                   ? "Investigating your data…"
-                  : "Your observability assistant"}
+                  : chat.pageContext && chat.isPageContextAttached
+                    ? chat.pageContext.entityTitle
+                      ? `Asking about: ${chat.pageContext.entityTitle}`
+                      : `Asking about ${
+                          chat.pageContext.isEntity ? "this " : ""
+                        }${chat.pageContext.noun}`
+                    : "Your observability assistant"}
               </div>
             </div>
           </div>
@@ -231,6 +258,8 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
               showNoProviderNotice={
                 chat.providersLoaded && chat.providers.length === 0
               }
+              pageContext={chat.pageContext}
+              isPageContextAttached={chat.isPageContextAttached}
               onOpenConversation={chat.openConversation}
               onDeleteConversation={chat.deleteConversation}
               onAsk={(question: string) => {
@@ -283,6 +312,8 @@ const AIChatPanel: FunctionComponent = (): ReactElement => {
           }
           isWorking={chat.isWorking}
           leading={composerLeading}
+          contextChip={contextChip}
+          placeholder={composerPlaceholder}
           onSend={() => {
             chat.sendMessage().catch(() => {
               // handled in the hook

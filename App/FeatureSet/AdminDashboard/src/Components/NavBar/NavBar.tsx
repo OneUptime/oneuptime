@@ -7,6 +7,7 @@ import NavBar, {
   MoreMenuItem,
   NavItem,
 } from "Common/UI/Components/Navbar/NavBar";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const DashboardNavbar: FunctionComponent = (): ReactElement => {
@@ -54,6 +55,23 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       iconColor: "emerald",
       category: managementCategory,
     },
+    // Licenses are issued and tracked on the hosted oneuptime.com only.
+    ...(BILLING_ENABLED
+      ? [
+          {
+            title: "Enterprise Licenses",
+            description:
+              "Self-hosted enterprise licenses, seat usage and expiry.",
+            route: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ENTERPRISE_LICENSES] as Route,
+            ),
+            activeRoute: RouteMap[PageMap.ENTERPRISE_LICENSES],
+            icon: IconProp.Lock,
+            iconColor: "violet",
+            category: managementCategory,
+          } as MoreMenuItem,
+        ]
+      : []),
     {
       title: "OneUptime Health",
       description: "Live status, datastore capacity and queue backlogs.",
