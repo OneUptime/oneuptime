@@ -23,6 +23,8 @@ import Dropdown, {
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import DictionaryForm from "Common/UI/Components/Dictionary/Dictionary";
 import { DictionaryEntryValue } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
+import SeriesColorSelector from "../../Metrics/SeriesColorSelector";
+import SeriesGroupColorSelector from "../../Metrics/SeriesGroupColorSelector";
 
 export interface ComponentProps {
   component: DashboardBaseComponent;
@@ -44,6 +46,8 @@ interface TraceChartArguments {
   groupByAttribute?: string | undefined;
   topLimit?: number | undefined;
   includeChildSpans?: boolean | undefined;
+  color?: string | undefined;
+  colorsByGroup?: Record<string, string> | undefined;
 }
 
 /*
@@ -256,6 +260,23 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
 
   const currentGroupBy: string = (args.groupByAttribute || "").trim();
 
+  /*
+   * Load value suggestions for the split attribute so the per-series color
+   * pin editor can autocomplete. Special columns (name/statusCode/kind) are
+   * skipped — the values endpoint only knows span attributes; pins on those
+   * dimensions can still be typed by hand.
+   */
+  useEffect(() => {
+    if (
+      isTable ||
+      !currentGroupBy ||
+      SPECIAL_SPLIT_VALUES.includes(currentGroupBy)
+    ) {
+      return;
+    }
+    void loadAttributeValues(currentGroupBy);
+  }, [currentGroupBy, isTable]);
+
   const splitOptions: Array<DropdownOption> = [
     ...SPECIAL_SPLIT_OPTIONS,
     ...attributeKeys
@@ -287,124 +308,179 @@ const TraceChartQueryEditor: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <CollapsibleSection
-      title="Query"
-      description={
-        isTable
-          ? "Choose which spans to tabulate and which dimension to break them into rows by."
-          : "Choose which spans to chart and how to split them into series."
-      }
-      variant="bordered"
-      defaultCollapsed={false}
-    >
-      <div className="space-y-5">
-        <Field
-          title="Span name contains"
-          description="Optional. Only include spans whose name contains this text."
-        >
-          <Input
-            value={args.spanNameContains || ""}
-            placeholder="/Shipment/ShipShipment"
-            onChange={(value: string): void => {
-              writeArgs({ spanNameContains: value.trim() ? value : undefined });
-            }}
-          />
-        </Field>
-
-        <Field
-          title="Filter to spans"
-          description="Optional. Only include spans where every attribute matches. Leave empty to include all spans."
-        >
-          <DictionaryForm
-            key={`${props.component.componentId.toString()}-trace-filters`}
-            initialValue={toFilterDictionary(args.attributeFilters)}
-            keys={attributeKeys}
-            isLoadingKeys={attributeKeysLoading}
-            valueSuggestions={valueSuggestions}
-            loadingValueKeys={loadingValueKeys}
-            addButtonSuffix="Filter"
-            keyPlaceholder="attribute (e.g. url.host)"
-            valuePlaceholder="value"
-            onKeySelected={(attributeKey: string): void => {
-              void loadAttributeValues(attributeKey);
-            }}
-            onChange={(value: Dictionary<DictionaryEntryValue>): void => {
-              const hasEntries: boolean =
-                Boolean(value) && Object.keys(value).length > 0;
-              writeArgs({
-                attributeFilters: hasEntries
-                  ? (value as unknown as Record<
-                      string,
-                      string | number | boolean
-                    >)
-                  : undefined,
-              });
-            }}
-          />
-        </Field>
-
-        <Field
-          title={isTable ? "Group rows by" : "Split into series by"}
-          description={
-            isTable
-              ? "Required. One row per value of this dimension (e.g. span name, status, or an attribute)."
-              : "Optional. Draw one line or bar per value of this dimension. Leave empty for a single series."
-          }
-        >
-          <Dropdown
-            options={splitOptions}
-            isMultiSelect={false}
-            value={selectedSplitOption}
-            placeholder="Search attributes…"
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ): void => {
-              const next: string =
-                value === null || value === undefined ? "" : String(value);
-              writeArgs({ groupByAttribute: next ? next : undefined });
-            }}
-          />
-        </Field>
-
-        {currentGroupBy ? (
+    <>
+      <CollapsibleSection
+        title="Query"
+        description={
+          isTable
+            ? "Choose which spans to tabulate and which dimension to break them into rows by."
+            : "Choose which spans to chart and how to split them into series."
+        }
+        variant="bordered"
+        defaultCollapsed={false}
+      >
+        <div className="space-y-5">
           <Field
-            title={isTable ? "Max rows" : "Max series"}
-            description={
-              isTable
-                ? "Cap on how many rows to show. Defaults to 10."
-                : "Cap on how many series to show when split. Defaults to 10."
-            }
+            title="Span name contains"
+            description="Optional. Only include spans whose name contains this text."
           >
             <Input
-              type={InputType.NUMBER}
-              value={args.topLimit === undefined ? "10" : String(args.topLimit)}
-              placeholder="10"
+              value={args.spanNameContains || ""}
+              placeholder="/Shipment/ShipShipment"
               onChange={(value: string): void => {
-                const parsed: number = parseInt(value, 10);
                 writeArgs({
-                  topLimit:
-                    value.trim() === "" || isNaN(parsed) ? undefined : parsed,
+                  spanNameContains: value.trim() ? value : undefined,
                 });
               }}
             />
           </Field>
-        ) : (
-          <></>
-        )}
 
-        <Field
-          title="Include child spans"
-          description="Off by default, so counts match the traces explorer (root spans only). Turn on to count every span."
-        >
-          <Toggle
-            value={Boolean(args.includeChildSpans)}
-            onChange={(checked: boolean): void => {
-              writeArgs({ includeChildSpans: checked });
-            }}
-          />
-        </Field>
-      </div>
-    </CollapsibleSection>
+          <Field
+            title="Filter to spans"
+            description="Optional. Only include spans where every attribute matches. Leave empty to include all spans."
+          >
+            <DictionaryForm
+              key={`${props.component.componentId.toString()}-trace-filters`}
+              initialValue={toFilterDictionary(args.attributeFilters)}
+              keys={attributeKeys}
+              isLoadingKeys={attributeKeysLoading}
+              valueSuggestions={valueSuggestions}
+              loadingValueKeys={loadingValueKeys}
+              addButtonSuffix="Filter"
+              keyPlaceholder="attribute (e.g. url.host)"
+              valuePlaceholder="value"
+              onKeySelected={(attributeKey: string): void => {
+                void loadAttributeValues(attributeKey);
+              }}
+              onChange={(value: Dictionary<DictionaryEntryValue>): void => {
+                const hasEntries: boolean =
+                  Boolean(value) && Object.keys(value).length > 0;
+                writeArgs({
+                  attributeFilters: hasEntries
+                    ? (value as unknown as Record<
+                        string,
+                        string | number | boolean
+                      >)
+                    : undefined,
+                });
+              }}
+            />
+          </Field>
+
+          <Field
+            title={isTable ? "Group rows by" : "Split into series by"}
+            description={
+              isTable
+                ? "Required. One row per value of this dimension (e.g. span name, status, or an attribute)."
+                : "Optional. Draw one line or bar per value of this dimension. Leave empty for a single series."
+            }
+          >
+            <Dropdown
+              options={splitOptions}
+              isMultiSelect={false}
+              value={selectedSplitOption}
+              placeholder="Search attributes…"
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ): void => {
+                const next: string =
+                  value === null || value === undefined ? "" : String(value);
+                writeArgs({ groupByAttribute: next ? next : undefined });
+              }}
+            />
+          </Field>
+
+          {currentGroupBy ? (
+            <Field
+              title={isTable ? "Max rows" : "Max series"}
+              description={
+                isTable
+                  ? "Cap on how many rows to show. Defaults to 10."
+                  : "Cap on how many series to show when split. Defaults to 10."
+              }
+            >
+              <Input
+                type={InputType.NUMBER}
+                value={
+                  args.topLimit === undefined ? "10" : String(args.topLimit)
+                }
+                placeholder="10"
+                onChange={(value: string): void => {
+                  const parsed: number = parseInt(value, 10);
+                  writeArgs({
+                    topLimit:
+                      value.trim() === "" || isNaN(parsed) ? undefined : parsed,
+                  });
+                }}
+              />
+            </Field>
+          ) : (
+            <></>
+          )}
+
+          <Field
+            title="Include child spans"
+            description="Off by default, so counts match the traces explorer (root spans only). Turn on to count every span."
+          >
+            <Toggle
+              value={Boolean(args.includeChildSpans)}
+              onChange={(checked: boolean): void => {
+                writeArgs({ includeChildSpans: checked });
+              }}
+            />
+          </Field>
+        </div>
+      </CollapsibleSection>
+
+      {/*
+       * Colors only apply to the chart widget — the trace table renders rows,
+       * not series.
+       */}
+      {!isTable && (
+        <div className="mt-3">
+          <CollapsibleSection
+            title="Colors"
+            description="Choose colors for the chart series."
+            variant="bordered"
+            defaultCollapsed={true}
+          >
+            <div className="space-y-5">
+              <SeriesColorSelector
+                label={currentGroupBy ? "Default series color" : "Series color"}
+                description={
+                  currentGroupBy
+                    ? "Colors the first unpinned series; the rest use the theme palette."
+                    : "Pick a color for the series, or leave on Auto to use the theme palette."
+                }
+                value={args.color}
+                onChange={(color: string | undefined): void => {
+                  writeArgs({ color });
+                }}
+              />
+
+              {currentGroupBy ? (
+                <SeriesGroupColorSelector
+                  groupByKeys={[currentGroupBy]}
+                  valueSuggestions={valueSuggestions}
+                  loadingKeys={loadingValueKeys}
+                  value={args.colorsByGroup || {}}
+                  onChange={(colorsByGroup: Record<string, string>): void => {
+                    writeArgs({
+                      colorsByGroup:
+                        Object.keys(colorsByGroup).length > 0
+                          ? colorsByGroup
+                          : undefined,
+                    });
+                  }}
+                />
+              ) : (
+                <></>
+              )}
+            </div>
+          </CollapsibleSection>
+        </div>
+      )}
+    </>
   );
 };
 

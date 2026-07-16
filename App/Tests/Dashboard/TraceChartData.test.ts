@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  TRACE_CHART_PALETTE,
   TimeseriesRow,
   TraceChartArguments,
   buildTraceAnalyticsRequest,
@@ -8,9 +9,11 @@ import {
   formatCount,
   formatDurationMs,
   formatTickTime,
+  hexToRgba,
   isDurationMetric,
   parseAttributeFilters,
   pivotTimeseries,
+  resolveTraceSeriesColor,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 
 /*
@@ -283,6 +286,73 @@ describe("TraceChartData.pivotTimeseries", () => {
     expect(pivotTimeseries(rows, "p90Duration").seriesKeys).toEqual([
       "p90Duration",
     ]);
+  });
+});
+
+describe("TraceChartData.resolveTraceSeriesColor", () => {
+  test("no overrides: colors follow the default palette by index", () => {
+    expect(resolveTraceSeriesColor("count", 0, {})).toBe(
+      TRACE_CHART_PALETTE[0],
+    );
+    expect(resolveTraceSeriesColor("b", 1, {})).toBe(TRACE_CHART_PALETTE[1]);
+    // Wraps around when there are more series than palette entries.
+    expect(resolveTraceSeriesColor("k", TRACE_CHART_PALETTE.length, {})).toBe(
+      TRACE_CHART_PALETTE[0],
+    );
+  });
+
+  test("lead color heads the palette (single series renders exactly it)", () => {
+    expect(resolveTraceSeriesColor("count", 0, { color: "#123456" })).toBe(
+      "#123456",
+    );
+    // The rest of the palette shifts down by one.
+    expect(resolveTraceSeriesColor("b", 1, { color: "#123456" })).toBe(
+      TRACE_CHART_PALETTE[0],
+    );
+  });
+
+  test("per-series pin wins over lead color and palette", () => {
+    const options: Parameters<typeof resolveTraceSeriesColor>[2] = {
+      color: "#123456",
+      groupByAttribute: "url.host",
+      colorsByGroup: { "url.host=api.example.com": "#10b981" },
+    };
+    expect(resolveTraceSeriesColor("api.example.com", 0, options)).toBe(
+      "#10b981",
+    );
+    // Unpinned series fall back to lead color / palette by position.
+    expect(resolveTraceSeriesColor("other.example.com", 1, options)).toBe(
+      TRACE_CHART_PALETTE[0],
+    );
+  });
+
+  test("pins keyed under a different split attribute do not match", () => {
+    expect(
+      resolveTraceSeriesColor("api.example.com", 0, {
+        groupByAttribute: "name",
+        colorsByGroup: { "url.host=api.example.com": "#10b981" },
+      }),
+    ).toBe(TRACE_CHART_PALETTE[0]);
+  });
+
+  test("pins are ignored when the chart is not split", () => {
+    expect(
+      resolveTraceSeriesColor("api.example.com", 0, {
+        colorsByGroup: { "url.host=api.example.com": "#10b981" },
+      }),
+    ).toBe(TRACE_CHART_PALETTE[0]);
+  });
+});
+
+describe("TraceChartData.hexToRgba", () => {
+  test("expands 6-digit and 3-digit hex", () => {
+    expect(hexToRgba("#6366f1", 0.08)).toBe("rgba(99,102,241,0.08)");
+    expect(hexToRgba("#fff", 0.5)).toBe("rgba(255,255,255,0.5)");
+  });
+
+  test("malformed input falls back to the default indigo", () => {
+    expect(hexToRgba("not-a-color", 0.08)).toBe("rgba(99,102,241,0.08)");
+    expect(hexToRgba("", 0.08)).toBe("rgba(99,102,241,0.08)");
   });
 });
 

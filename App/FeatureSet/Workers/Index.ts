@@ -205,6 +205,7 @@ import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 
 // Enterprise License usage reporting (self-hosted only).
 import "./Jobs/EnterpriseLicense/ReportUserCount";
+import "./Jobs/EnterpriseLicense/SendLicenseNotificationEmails";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
