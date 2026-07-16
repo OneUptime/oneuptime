@@ -5972,5 +5972,9 @@
   "No topology discovered yet": "Nenhuma topologia descoberta ainda",
   "As telemetry carrying multiple entities (e.g. a service running in a k8s pod on a node) is ingested, the inferred relationships — runs-on, member-of, hosted-on, part-of — will appear here as a graph.": "À medida que a telemetria com várias entidades (por ex., um serviço executando em um pod k8s em um nó) é ingerida, os relacionamentos inferidos — runs-on, member-of, hosted-on, part-of — aparecerão aqui como um grafo.",
   "No entities match your filters": "Nenhuma entidade corresponde aos seus filtros",
-  "Adjust the search text or re-enable entity types to see the graph.": "Ajuste o texto de pesquisa ou reabilite os tipos de entidade para ver o grafo."
+  "Adjust the search text or re-enable entity types to see the graph.": "Ajuste o texto de pesquisa ou reabilite os tipos de entidade para ver o grafo.",
+  "MCP Server": "Servidor MCP",
+  "Enable MCP Server": "Habilitar servidor MCP",
+  "Control whether AI agents can read this status page over the OneUptime MCP server": "Controle se os agentes IA podem ler esta página de status através do servidor MCP do OneUptime",
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "Quando habilitado, os agentes IA podem ler esta página de status através do servidor MCP público do OneUptime. Desativar isso não oculta o site da página de status, o seu feed RSS nem a sua API JSON pública."
 }

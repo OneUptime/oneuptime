@@ -79,7 +79,7 @@ Controleer of de agent-pods draaien:
 kubectl get pods -n oneuptime-agent
 ```
 
-Op een **standaard**cluster zie je een metrics-collector Deployment plus één log-collector DaemonSet-pod per node:
+Op een **standaard**cluster zie je een cluster-collector Deployment plus één node-collector DaemonSet-pod per node:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-Op **GKE Autopilot** of **EKS Fargate** zie je in plaats daarvan twee Deployments (geen DaemonSet):
+Op **GKE Autopilot** draait de node-collector nog steeds — hij verzamelt kubelet- en cAdvisor-metrieken zonder hostPath nodig te hebben — en een extra Deployment leest pod-logs via de Kubernetes API:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+Op **EKS Fargate** zie je twee Deployments en geen DaemonSet — Fargate geeft elke pod zijn eigen micro-VM en plant nooit DaemonSets in, dus metrieken op nodeniveau zijn daar niet beschikbaar:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -114,11 +123,136 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set "namespaceFilters.include={default,production,staging}"
 ```
 
-> Deze filters verminderen **niet** de node- / pod- / container-**metrieken** — die worden per node uit de kubelet gescrapet en worden altijd cluster-breed verzameld (series op node- en clusterniveau hebben geen namespace om op te filteren). `exclude` wint altijd van `include`. Zie [Het volume aan verzamelde data verminderen](#reducing-the-volume-of-data-collected) voor de volledige set aan volumecontroles.
+Om één luidruchtige namespace te negeren terwijl je alle andere behoudt, gebruik je in plaats daarvan `exclude`. `exclude` wint altijd van `include`, en de meegeleverde standaardwaarde is `[kube-system]` — noem hem dus opnieuw als je wilt dat hij uitgesloten blijft:
+
+```bash
+  --set "namespaceFilters.exclude={kube-system,noisy-namespace}"
+```
+
+Voor **pod-logs en eBPF-traces kost dit niets**: de namespace maakt deel uit van het pod-log-pad en van OBI's procesdetectie, dus een gefilterde namespace wordt sowieso nooit gelezen — geen CPU, geen egress.
+
+#### Namespace-filters toepassen op metrieken en traces
+
+Standaard dekken de bovenstaande lijsten alleen pod-logs en eBPF-traces. `applyTo` breidt ze uit naar andere signalen:
+
+```bash
+  --set namespaceFilters.applyTo.metrics=true \
+  --set namespaceFilters.applyTo.traces=true
+```
+
+| Instelling | Wat het dekt |
+| ---------- | ------------ |
+| `applyTo.metrics` | Metrieken per pod / per container van kubeletstats, cAdvisor en kube-state-metrics |
+| `applyTo.traces` | Spans die je applicaties naar het OTLP-endpoint van de agent sturen (eBPF-spans zijn al afgebakend) |
+
+Beide staan bewust **standaard uit**. `exclude: [kube-system]` wordt als standaardwaarde meegeleverd, dus door ze automatisch in te schakelen zouden bij een upgrade stilzwijgend de kube-system-metrieken van elke bestaande installatie worden verwijderd.
+
+> **Metrieken op node- en clusterniveau worden altijd behouden.** Een namespace is een eigenschap van een pod, niet van een node, dus series zoals node-CPU, node-geheugen en bestandssysteemgebruik hebben niets om op te matchen en worden nooit weggegooid. `applyTo.metrics` snoeit de cardinaliteit per pod zonder je ooit blind te maken voor een node die uitvalt.
+
+Kubernetes-**events** zijn bij de agent niet op namespace te filteren. Ze komen binnen via de `k8sobjects`-receiver zonder een `k8s.namespace.name`-attribuut — de namespace zit in de event-body — dus er is niets waar een filter op kan matchen. Laat die in plaats daarvan server-side vallen (zie hieronder).
+
+### Filteren op log-severity
+
+`filters.logs.minSeverity` laat **pod-log**records onder een bepaalde severity vallen, bij de agent, voordat er iets wordt verzonden:
+
+```bash
+  --set filters.logs.minSeverity=WARN
+```
+
+Accepteert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` behoudt WARN, ERROR en FATAL en laat INFO, DEBUG en TRACE vallen. De standaardwaarde (`""`) behoudt alles. Het geldt in **beide** logmodi — in `daemonset`-modus via de collector, in `api`-modus binnen de log-tailer zelf — zodat de presets het niet onder je vandaan kunnen uitschakelen.
+
+Container-runtimes registreren geen severity op de logregel, dus parseert de agent er zelf een uit de logtekst (`[ERROR]`, `WARN:`, `level=info`, …).
+
+> **Kubernetes-events en resource-specs worden hier nooit door gefilterd.** Ze komen binnen via de Kubernetes API zonder een eigen severity, dus een drempel zou de hele feed verwijderen in plaats van hem uit te dunnen — inclusief de `FailedScheduling`-, `BackOff`- en `OOMKilling`-waarschuwingen die je juist het hardst nodig hebt. Ze zijn laag in volume en hoog in waarde, dus de agent verzendt ze altijd. Om ze uit te dunnen, gebruik je in plaats daarvan de server-side **Logs → Settings → Drop Filters** in het dashboard.
+
+**Wat er gebeurt met een regel zonder herkenbaar niveau hangt af van de logmodus**, omdat de twee modi over verschillende informatie beschikken:
+
+| Modus | Regel zonder label | Waarom |
+| ----- | ------------------ | ------ |
+| `daemonset` | `stderr` → behandeld als ERROR (behouden), `stdout` → behandeld als INFO (weggegooid bij een WARN-drempel) | De container-runtime registreert uit welke stream elke regel afkomstig is. |
+| `api` | Altijd **behouden** | De Kubernetes `pods/log`-API voegt stdout en stderr samen tot één enkele stream zonder markering per regel. In plaats van te gokken behoudt de agent de regel. |
+
+> Dus `api`-modus gooit strikt minder weg dan `daemonset`-modus. Dat is bewust: een Python-traceback of `npm ERR!` bevat geen severity-trefwoord, en het stilzwijgend verwijderen daarvan is precies het falen waartegen een severity-drempel je hoort te beschermen.
+
+Multi-regel-events worden in beide modi **vóór** het filteren weer samengevoegd, dus een Java-stacktrace wordt beoordeeld op zijn eerste regel en in zijn geheel behouden of weggegooid — je krijgt nooit een kale `ERROR`-regel waarvan de frames zijn afgestript.
+
+### Metrieken op naam in- of uitsluiten
+
+`filters.metrics` bepaalt welke metrieken het cluster verlaten, over elke receiver in de pipeline heen.
+
+**Laat een paar luidruchtige metrieken vallen** (een denylist — meestal wat je wilt):
+
+```bash
+  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+```
+
+**Verzend alleen een vaste set** (een allowlist — al het andere wordt weggegooid):
+
+```bash
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+```
+
+**Match op patroon** in plaats van op exacte naam:
+
+```bash
+  --set filters.metrics.matchType=regexp \
+  --set-json 'filters.metrics.exclude=["^container_network_"]'
+```
+
+| Sleutel | Betekenis |
+| --- | --------- |
+| `filters.metrics.exclude` | Metrieknamen om te laten vallen. Wordt bovenop `include` toegepast, dus exclude wint altijd. |
+| `filters.metrics.include` | Indien niet leeg, worden **alleen** deze verzonden. |
+| `filters.metrics.matchType` | `strict` (exacte naam, de standaard) of `regexp` (RE2, **niet verankerd**). |
+
+Notities die je een incident besparen:
+
+- `regexp` is **niet verankerd** — `system.cpu` matcht ook `system.cpu.time`. Veranker het (`^system\.cpu$`) als je precies één metriek bedoelt.
+- RE2 heeft **geen lookahead**, dus `^(?!container_)` compileert niet. Druk "alles behalve" uit met `include`, niet met een negatieve regex.
+- `include` beslaat elke receiver tegelijk. Een allowlist die een metriek vergeet, verwijdert stilzwijgend de monitors die erop gebouwd zijn. Geef de voorkeur aan `exclude` tenzij je echt een gesloten set wilt.
+- Gebruik `--set-json` (of een values-bestand) voor lijsten. Een gewone `--set` vervangt een lijst in plaats van hem samen te voegen.
+
+> **Test een regex voordat je hem uitrolt.** Patronen worden door de collector bij het opstarten gecompileerd, niet per record, dus een ongeldig patroon gedraagt zich niet stilletjes verkeerd — de collector weigert te starten en belandt in CrashLoopBackOff, waarmee ook de **logs** van die collector uitvallen, samen met zijn metrieken. Helm kan RE2 niet compileren, dus `helm upgrade` accepteert een fout patroon zonder morren.
+
+### Trace-sampling
+
+Elke andere knop op deze pagina verwijdert een **categorie** telemetrie — een namespace, een severity, een metrieknaam. Sampling werkt anders: het behoudt elke categorie en dunt in plaats daarvan de populatie uit. Zet `sampling.traces.percentage` op het aandeel traces dat je wilt behouden:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Dat behoudt één trace op de tien en gooit de andere negen weg bij de agent, voordat ze je cluster verlaten.
+
+**Je krijgt hele traces, geen fragmenten.** De beslissing is een hash van de trace-ID en geen muntworp per span, dus elke span van een trace wordt samen behouden of weggegooid — de traces die overleven, zijn compleet en van begin tot eind leesbaar. Dat is de eigenschap die sampling veilig maakt om aan te zetten.
+
+**Je metriek-gebaseerde monitors bewegen niet mee.** De eBPF RED-metrieken — request rate, error rate, duur — zijn een *metrische* familie. OBI berekent ze uit elke request en ze reizen via de metrics-pipeline, waar de sampler niet in zit. Bij `percentage: 10` krijg je een tiende van de traces en 100% accurate rate/errors/latentie. Dashboards en monitors die op die metrieken gebouwd zijn, blijven onaangetast.
+
+**Je span-gebaseerde monitors wel.** Alles wat OneUptime uit de spans zelf afleidt, schaalt mee omlaag met het percentage — lees de waarschuwing hieronder voordat je dit aanzet.
+
+| Sleutel | Betekenis |
+| --- | --------- |
+| `sampling.traces.percentage` | Percentage traces om te **behouden**, 0-100. Standaard `100` (alles behouden). |
+| `sampling.traces.hashSeed` | Seed voor de hash van de trace-ID. Standaard `22`. |
+
+Notities die je een incident besparen:
+
+- **`0` behoudt helemaal geen traces.** Het is een percentage, geen uitschakelknop — het verwijdert elke trace terwijl de eBPF-DaemonSet blijft draaien en je geld blijft kosten. Wil je geen traces, gebruik dan `ebpf.enabled=false`. Wil je geen traces maar *wel* RED-metrieken en de service-map, laat eBPF dan aan en zet dit bewust op `0`.
+- **Geldt alleen wanneer `ebpf.enabled` aanstaat.** De traces-pipeline bestaat anders niet, dus bij `ebpf.enabled=false` doet deze waarde niets.
+- **Alleen traces.** Er is geen `sampling.logs` of `sampling.metrics`, en dat is bewust — zie de notitie hieronder.
+- **Breukgetallen vereisen `--set-json`, en ze hebben een ondergrens.** `--set sampling.traces.percentage=0.5` mislukt, omdat Helm `0.5` als een string leest. Gebruik `--set-json 'sampling.traces.percentage=0.5'` of een values-bestand. Hele getallen werken prima met `--set`. Onder ongeveer `0.0061` kwantiseert het percentage naar nul en gedraagt het zich precies als `0` — elke trace weggegooid, zonder foutmelding. `0.01` (één op de tienduizend) is de kleinste waarde die doet wat hij belooft.
+- **Multi-cluster werkt standaard.** Twee agents behouden dezelfde trace alleen als ze het eens zijn over zowel `hashSeed` als `percentage`. Beide hebben overal dezelfde standaardwaarde, dus een trace die twee clusters kruist, overleeft in zijn geheel zonder extra configuratie. Wijzig `hashSeed` alleen om twee sampling-niveaus bewust te *decorreleren* — omdat de beslissing een drempel op dezelfde hash is, nestelen twee niveaus met dezelfde seed maar verschillende percentages in elkaar, waardoor een tweede niveau simpelweg de traces herkiest die het eerste al had behouden, in plaats van onafhankelijk te trekken.
+- **Pod-logs worden nooit gesampled**, dus met `ebpf.logToTraceCorrelation: true` draagt elk logrecord nog steeds een trace-ID terwijl er maar `percentage`% van die traces behouden blijft. Ruwweg (100 − `percentage`)% van de logrecords toont een trace-link die doodloopt. Navigatie van trace → logs blijft onaangetast; alleen logs → trace kan missen.
+
+> **Stem je span-gebaseerde monitors opnieuw af wanneer je dit instelt.** Sampling vermindert de spans die OneUptime bereiken, dus alles wat ze telt, telt minder: een **Traces**-monitor op `Span Count` en een **Exceptions**-monitor op `Exception Count` zien ruwweg `percentage`% van het volume van gisteren. Een drempel die is afgestemd op ongesampled verkeer wordt stilletjes niet meer overschreden — de monitor geeft geen fout, hij valt gewoon stil. Deel die drempels door dezelfde factor wanneer je het percentage instelt; het percentage geldt cluster-breed, dus er is geen manier om een individuele service ervan uit te zonderen. Het **groeperen** van errors verslechtert erger dan lineair: een veelvoorkomende exception komt nog steeds bovendrijven, maar een zeldzame eenmalige verdwijnt eerder helemaal dan dat hij een tiende zo vaak verschijnt.
+
+> **Waarom er hier geen log- of metriek-sampling is.** De sampler van de collector kan metrieken helemaal niet samplen. Logs kan hij wel samplen, maar hij ontleent zijn willekeur aan de trace-ID — en pod-logs hebben er geen. Elk record zonder trace-ID hasht dan naar dezelfde bucket, dus een log-percentage zou de feed niet uitdunnen: het zou alles behouden of alles verwijderen, afhankelijk van de seed. In plaats van een knop uit te leveren die stilzwijgend je logs verwijdert, biedt de chart die niet aan. Dun logs uit met [Filteren op log-severity](#filteren-op-log-severity) en [Namespace-filtering](#namespace-filtering), die precies zijn over wat ze verwijderen.
 
 ### Logverzameling uitschakelen
 
-Als je alleen metrieken en events nodig hebt (geen pod-logs):
+Als je geen pod-logs nodig hebt:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -130,6 +264,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
+Je metrieken blijven onaangetast: de node-collector blijft draaien voor kubelet-, cAdvisor- en hostmetrieken, hij stopt alleen met het lezen van pod-logs. Log-gebaseerde alerts stoppen, en verder niets.
+
 ### Forceer een Specifieke Logverzamelmodus
 
 Gevorderde gebruikers kunnen de keuze van de preset overschrijven met `logs.mode`:
@@ -137,6 +273,10 @@ Gevorderde gebruikers kunnen de keuze van de preset overschrijven met `logs.mode
 - `logs.mode=daemonset` — hostPath DaemonSet (laagste overhead, vereist hostPath)
 - `logs.mode=api` — Kubernetes API log-tailer Deployment (werkt op elk cluster)
 - `logs.mode=disabled` — geen logverzameling
+
+> De logmodus bepaalt alleen waar **pod-logs** vandaan komen. Node-metrieken worden daar los van verzameld, dus `api` en `disabled` behouden je kubelet-, cAdvisor- en hostmetrieken.
+>
+> De enige uitzondering is het platform, niet de modus: **EKS Fargate kan helemaal geen DaemonSets inplannen**, dus daar is geen node-collector en zijn metrieken per node/pod/container niet beschikbaar. GKE Autopilot draait de node-collector prima, maar blokkeert `hostPath`, dus verzamelt het kubelet- en cAdvisor-metrieken zonder de `hostmetrics`-metrieken (disk-I/O, inodes, NIC-fouten) die de `/proc` en `/sys` van de host moeten lezen.
 
 De expliciete `logs.mode` wint altijd van de preset-standaard. Gebruik dit als je je cluster beter kent dan de preset.
 
@@ -274,25 +414,25 @@ De truc is om **te stoppen met het verzamelen van wat je toch niet bekijkt**, in
 
 | Signaal                          | Grootste veroorzaker                                       | Verminder het met                                                                            |
 | -------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Pod-logs**                     | Elke regel van elke container, cluster-breed               | `logs.enabled`, `logs.mode`, `namespaceFilters`                                              |
-| **eBPF-traces & span-metrieken** | Eén trace per request van elk geïnstrumenteerd proces      | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **Pod-logs**                     | Elke regel van elke container, cluster-breed               | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
+| **eBPF-traces & span-metrieken** | Eén trace per request van elk geïnstrumenteerd proces      | `sampling.traces.percentage`, `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths` |
 | **Metrische datapunten**         | Scrapefrequentie × aantal pods/containers                  | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
-| **Metrische cardinaliteit**      | Aantal afzonderlijke series (per container, per PVC, …)    | `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics`, `kubeletstats.utilizationMetrics` |
+| **Metrische cardinaliteit**      | Aantal afzonderlijke series (per container, per PVC, …)    | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Opt-in-extra's**               | Profiling, audit-logs, control plane, inter-zone-metrieken | Laat ze uit (dat zijn ze al standaard)                                                       |
+
+Er zijn drie manieren om volume te beperken, en het is de moeite waard om te weten welke je gebruikt:
+
+- **Bij de receiver** — de data wordt nooit verzameld. `namespaceFilters` op pod-logs, `cadvisor.metricsAllowlist`, een langer `collectionInterval`. Kost niets om uit te voeren en bespaart CPU, egress en ingest tegelijk. Geef hier altijd de voorkeur aan waar ze jouw geval dekken.
+- **Bij de filter-processor** — de data wordt verzameld en daarna vóór de export weggegooid. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Iets meer collector-CPU, maar het werkt over receivers heen en kan dingen uitdrukken die een receiver niet kan.
+- **Bij de sampler** — de data wordt verzameld en daarna wordt er een representatieve fractie van behouden. `sampling.traces.percentage`. De vreemde eend in de bijt: de twee hierboven verwijderen een hele *categorie* telemetrie, dus wat zij weggooien, is uit elke trace verdwenen. Sampling behoudt elke categorie en dunt de populatie uit, dus wat overleeft, is nog steeds compleet en representatief.
+
+Alle drie zijn **onomkeerbaar**: wat je hier weggooit, bereikt OneUptime nooit, en bij alle drie kan een monitor stilvallen. De eerste twee leggen een monitor stil door het signaal weg te nemen waar hij naar kijkt. Sampling is beperkter: de eBPF RED-metrieken worden berekend vóórdat de sampler draait, dus metriek-gebaseerde monitors blijven exact — maar monitors die *spans* tellen (Traces op `Span Count`, Exceptions op `Exception Count`) zien er evenredig minder en hebben drempels nodig die met dezelfde factor opnieuw zijn afgestemd. Als je liever later beslist, kan OneUptime data in plaats daarvan server-side laten vallen (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — dat kost nog steeds egress, maar het is een instelling die je kunt wijzigen zonder opnieuw te deployen.
 
 ### Hendel 1 — Pod-logs zijn meestal de grootste afzonderlijke bron
 
 Container-logs zijn vrijwel altijd het grootste deel van de ingest, omdat het één record per logregel is van elke container in het cluster.
 
-- **Heb je helemaal geen logs van OneUptime nodig?** Schakel ze volledig uit — je behoudt alle metrieken, events en traces:
-
-  ```bash
-  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
-    --set logs.enabled=false
-  ```
-
-- **Wil je alleen logs van bepaalde namespaces?** `namespaceFilters.include` beperkt pod-logs in beide logmodi (en eBPF-traces daarmee mee). Het matchen gebeurt op het pod-log-pad, dus gefilterde namespaces worden zelfs nooit gelezen:
+- **Wil je alleen logs van bepaalde namespaces?** `namespaceFilters` beperkt pod-logs in beide logmodi (en eBPF-traces daarmee mee). Het matchen gebeurt op het pod-log-pad, dus gefilterde namespaces worden zelfs nooit gelezen — dit is de goedkoopste hendel in dit document:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -300,7 +440,27 @@ Container-logs zijn vrijwel altijd het grootste deel van de ingest, omdat het é
     --set "namespaceFilters.include={default,production}"
   ```
 
-  (`kube-system` is al standaard uitgesloten.)
+  (`kube-system` is al standaard uitgesloten.) Om elke namespace op één na te behouden, gebruik je `--set "namespaceFilters.exclude={kube-system,noisy-namespace}"`.
+
+- **Geef je alleen om waarschuwingen en fouten?** `filters.logs.minSeverity` laat de rest bij de agent vallen. Op een spraakzaam cluster is dit vaak de grootste afzonderlijke vermindering die beschikbaar is, omdat INFO en DEBUG het leeuwendeel van de meeste applicatie-uitvoer vormen:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.logs.minSeverity=WARN
+  ```
+
+  Zie [Filteren op log-severity](#filteren-op-log-severity) voor hoe de severity wordt bepaald en wat er gebeurt met logs die het niet kan classificeren.
+
+- **Heb je helemaal geen pod-logs van OneUptime nodig?** Schakel ze uit:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+  > Dit stopt alleen pod-logs. Metrieken per node, pod en container blijven stromen, en de monitors die daarop gebouwd zijn (OOM-kills, CPU-throttling, PVC lage schijfruimte) blijven werken — de node-collector blijft, hij stopt alleen met het lezen van `/var/log/pods`. Hetzelfde geldt voor `logs.mode: api` en `logs.mode: disabled`.
 
 ### Hendel 2 — Snoei de eBPF-auto-instrumentatie
 
@@ -314,7 +474,7 @@ eBPF geeft je traces, RED-metrieken, de service-map en netwerkflowmetrieken zond
     --set ebpf.enabled=false
   ```
 
-- **Behoud de traces, laat de zware metrische families vallen.** De [signaalfamilie-tabel hierboven](#toggle-individual-signal-families) somt elke `ebpf.features.*`-vlag op. De families met het hoogste volume zijn netwerk- en span-metrieken — door ze uit te schakelen blijven traces, HTTP RED-metrieken en de service-map intact:
+- **Behoud de traces, laat de zware metrische families vallen.** De [signaalfamilie-tabel hierboven](#individuele-signaalfamilies-in-uitschakelen) somt elke `ebpf.features.*`-vlag op. De families met het hoogste volume zijn netwerk- en span-metrieken — door ze uit te schakelen blijven traces, HTTP RED-metrieken en de service-map intact:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -334,7 +494,7 @@ eBPF geeft je traces, RED-metrieken, de service-map en netwerkflowmetrieken zond
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
-  Zie [Individuele signaalfamilies in-/uitschakelen](#toggle-individual-signal-families) en de `excludeExePaths`-notitie in de chart-values voor de volledige standaardwaarden.
+  Zie [Individuele signaalfamilies in-/uitschakelen](#individuele-signaalfamilies-in-uitschakelen) en de `excludeExePaths`-notitie in de chart-values voor de volledige standaardwaarden.
 
 ### Hendel 3 — Vertraag de scrape-intervallen
 
@@ -366,6 +526,25 @@ Cardinaliteit (het aantal afzonderlijke tijdreeksen) is net zo belangrijk als fr
 
 - **Saturatiemetrieken** (`kubeletstats.utilizationMetrics.enabled`, standaard aan) voegen 8 afgeleide "% van request/limit"-families toe. Ze zijn goedkoop (geen extra scrape), maar als je de CPU-/Geheugen-vs-limit-monitors niet gebruikt, kun je ze verwijderen met `--set kubeletstats.utilizationMetrics.enabled=false`.
 
+- **Laat specifieke metrieken op naam vallen.** De allowlists hierboven gelden per receiver; `filters.metrics.exclude` beslaat ze allemaal, dus gebruik het voor alles wat de knoppen op receiver-niveau niet kunnen uitdrukken:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.metrics.matchType=regexp \
+    --set-json 'filters.metrics.exclude=["^container_network_"]'
+  ```
+
+  Zie [Metrieken op naam in- of uitsluiten](#metrieken-op-naam-in-of-uitsluiten) voor exacte-vs-regex-matching en de allowlist-vorm.
+
+- **Laat de metrieken van een hele namespace vallen.** Als een namespace luidruchtig is maar je zijn nodes toch in de gaten wilt houden, past `namespaceFilters.applyTo.metrics=true` je bestaande namespace-lijsten toe op series per pod en per container. Series op node- en clusterniveau worden altijd behouden:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set namespaceFilters.applyTo.metrics=true
+  ```
+
 ### Hendel 5 — Laat de zware opt-in-functies uit
 
 Deze staan **standaard uit** juist omdat ze belasting toevoegen — schakel er alleen een in wanneer je actief gebruikt wat het aandrijft, en schakel het weer uit als je het alleen maar uitprobeerde:
@@ -379,9 +558,32 @@ Deze staan **standaard uit** juist omdat ze belasting toevoegen — schakel er a
 | `ebpf.features.networkInterZoneMetrics`                   | Verdubbelt de cardinaliteit van netwerkflowmetrieken                                          |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Extra Prometheus-scrape-jobs                                                                  |
 
+### Hendel 6 — Sample traces in plaats van ze weg te gooien
+
+Elke hendel hierboven koopt volume met iets dat je opgeeft: een namespace die je niet meer bekijkt, een severity die je niet meer behoudt, een metrische familie die je niet meer verzamelt. Sampling is de uitzondering, en op een druk cluster is het vaak de grootste besparing die beschikbaar is voor het kleinste verlies:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Dat is een besparing van 90% op je tracevolume, voor een beperkter verlies dan welke andere hendel hier ook:
+
+- De traces die je behoudt zijn **heel** — de beslissing hasht de trace-ID, dus alle spans van een trace delen hem. Je krijgt minder traces, geen kapotte.
+- Je **RED-metrieken blijven exact**. Request rate, error rate en duur worden door OBI uit elke request berekend en reizen via de metrics-pipeline, waar de sampler niet in zit. Elk dashboard en elke monitor die erop gebouwd is, leest hetzelfde als voorheen.
+
+Wat je opgeeft, zijn vooral voorbeeldtraces: wanneer een monitor afgaat, heb je een tiende zoveel traces om te openen. Op een cluster dat duizenden identieke requests per seconde afhandelt, is dat meestal een goede ruil — de honderdste identieke `/healthz`-span leert je niets wat de eerste je niet al leerde. Op een rustig cluster is het een slechte, omdat je misschien geen enkel voorbeeld hebt van de zeldzame request die stukging.
+
+De uitzondering, en het enige om te controleren voordat je dit uitrolt: monitors die **spans tellen** in plaats van metrieken — Traces op `Span Count`, Exceptions op `Exception Count` — zien er evenredig minder, dus hun drempels moeten met dezelfde factor opnieuw worden afgestemd. Zie [Trace-sampling](#trace-sampling).
+
+Grijp hiernaar wanneer eBPF-traces een groot deel van je ingest zijn maar je de service-map en RED-metrieken intact wilt houden. Geef de voorkeur aan Hendel 2 wanneer je ergens helemaal wilt stoppen met instrumenteren.
+
+Zie [Trace-sampling](#trace-sampling) voor het volledige gedrag, inclusief waarom `0` een percentage is en geen uitschakelknop, en waarom er geen log- of metriek-equivalent bestaat.
+
 ### Een minimaal startpunt
 
-Als je een minimale footprint wilt en signalen weer toevoegt zodra je ze nodig hebt, laat dit profiel met **alleen metrieken + events** de logs en eBPF vallen en halveert het de scrape-frequentie:
+Als je een kleinere footprint wilt maar toch wilt dat de monitors werken, behoudt dit profiel de **volledige metrische dekking** en snijdt het de twee dingen weg die het volume daadwerkelijk aanjagen — logregels en eBPF-spans:
 
 ```yaml
 # lean-values.yaml
@@ -390,19 +592,34 @@ oneuptime:
   apiKey: YOUR_ONEUPTIME_API_KEY
 clusterName: my-cluster
 
+# Halve the metric data points. Coarser resolution, same coverage.
 collectionInterval: 60s
-
-logs:
-  enabled: false # no pod logs
-
-ebpf:
-  enabled: false # no auto-traces
-
 hostMetrics:
   collectionInterval: 60s
-
 cadvisor:
   scrapeInterval: 60s
+
+# Behoud pod-logs, maar verzend alleen die het alarmeren waard zijn.
+# (Metrieken hangen hier niet van af — de node-collector draait hoe dan ook.)
+logs:
+  enabled: true
+  mode: daemonset
+
+filters:
+  logs:
+    minSeverity: WARN # drop INFO / DEBUG / TRACE at the agent
+
+namespaceFilters:
+  exclude:
+    - kube-system
+    - noisy-namespace
+
+ebpf:
+  enabled: true
+  features:
+    networkMetrics: false # the heaviest eBPF families
+    tcpStats: false
+    spanMetrics: false
 ```
 
 ```bash
@@ -411,9 +628,9 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
   -f lean-values.yaml
 ```
 
-Vanaf daar schakel je weer in wat je nodig hebt: `logs.enabled=true` voor een paar namespaces in API-modus, of `ebpf.enabled=true` met een versmalde `autoTargetExe`.
+Scherp verder aan waar nodig: verhoog `minSeverity` naar `ERROR`, voeg `namespaceFilters.applyTo.metrics=true` toe, of zet `ebpf.enabled=false` als je al traces verzendt vanuit OTel-SDK's.
 
-> **Let op wat je wegsnijdt.** Sommige monitors zijn afhankelijk van specifieke signalen: `cadvisor` uitschakelen verwijdert de OOM-kill- en CPU-throttling-monitors; `kubeletstats.volumeMetrics` uitschakelen verwijdert de PVC-lage-schijfruimte-monitor; logs uitschakelen verwijdert log-gebaseerde alerts. Snoei de signalen waarop je niet reageert, niet die waar een monitor op let.
+> **Let op wat je wegsnijdt.** Sommige monitors zijn afhankelijk van specifieke signalen: `cadvisor` uitschakelen verwijdert de OOM-kill- en CPU-throttling-monitors; `kubeletstats.volumeMetrics` uitschakelen verwijdert de PVC-lage-schijfruimte-monitor; logs uitschakelen verwijdert log-gebaseerde alerts; en `sampling.traces.percentage` verwijdert geen monitor, maar schaalt de span-gebaseerde monitors omlaag (Traces op `Span Count`, Exceptions op `Exception Count`), dus stem hun drempels daarop af. Snoei de signalen waarop je niet reageert, niet die waar een monitor op let.
 
 ### Meet het effect
 
@@ -475,7 +692,7 @@ De meest voorkomende reden — vooral na een herinstallatie — is een **verkeer
 
 ### Geen metrieken zichtbaar
 
-1. Sluit eerst een geweigerde ingestion-sleutel uit — het is de meest voorkomende oorzaak en is onzichtbaar vanaf de agent-kant. Zie [Agent toont "Disconnected"](#agent-shows-disconnected) hierboven (of voer gewoon het diagnosescript uit).
+1. Sluit eerst een geweigerde ingestion-sleutel uit — het is de meest voorkomende oorzaak en is onzichtbaar vanaf de agent-kant. Zie [Agent toont "Disconnected"](#agent-toont-disconnected) hierboven (of voer gewoon het diagnosescript uit).
 2. Controleer of de cluster-identifier overeenkomt met de waarde die je hebt doorgegeven als `clusterName`
 3. Verifieer de RBAC-permissies: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Controleer de OTel-collector-logs op export-fouten

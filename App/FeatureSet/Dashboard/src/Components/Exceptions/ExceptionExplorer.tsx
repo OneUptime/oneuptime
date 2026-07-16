@@ -23,6 +23,11 @@ import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import {
+  AIFixReadiness,
+  AIFixReadinessCheck,
+  AIFixReadinessCheckId,
+} from "Common/Types/AI/AIFixReadiness";
 import ActionCard from "Common/UI/Components/ActionCard/ActionCard";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
@@ -62,13 +67,19 @@ type ExceptionAITaskType =
   | CodeFixTaskType.FixException
   | CodeFixTaskType.WriteRegressionTest;
 
-// Wording for one task type's card group (active / failed / completed / start).
+/*
+ * Wording for one task type's card group (active / unsuccessful / completed /
+ * start). "Unsuccessful" covers both a failed attempt and one that ran fine
+ * but found no fix — they share a card, and differ in wording and severity.
+ */
 interface AITaskPresentation {
   taskType: ExceptionAITaskType;
   activeCardTitle: string;
   activeCardDescription: string;
   failedCardTitle: string;
   failedCardDescription: string;
+  noFixCardTitle: string;
+  noFixCardDescription: string;
   retryActionName: string;
   completedStrongTitle: string;
   completedTitle: string;
@@ -88,6 +99,9 @@ const AI_TASK_PRESENTATION: {
     failedCardTitle: "AI fix attempt failed",
     failedCardDescription:
       "The last AI fix task for this exception did not complete.",
+    noFixCardTitle: "AI did not find a fix",
+    noFixCardDescription:
+      "The last AI fix task reviewed this exception and had no fix to propose.",
     retryActionName: "Retry Fix",
     completedStrongTitle: "Previous AI fix completed",
     completedTitle:
@@ -106,6 +120,9 @@ const AI_TASK_PRESENTATION: {
     failedCardTitle: "Regression test attempt failed",
     failedCardDescription:
       "The last regression test task for this exception did not complete.",
+    noFixCardTitle: "AI did not write a regression test",
+    noFixCardDescription:
+      "The last regression test task reviewed this exception and had no test to propose.",
     retryActionName: "Retry Regression Test",
     completedStrongTitle: "Regression test completed",
     completedTitle:
@@ -134,6 +151,23 @@ function isAITaskFailed(task: AIAgentTaskInfo): boolean {
   );
 }
 
+/*
+ * The attempt ran to completion but proposed nothing. Not a failure, but it
+ * shares the failure card's shape: it stays visible, and offers a retry —
+ * a repeat run can succeed where one before it found nothing.
+ */
+function isAITaskNoFixFound(task: AIAgentTaskInfo): boolean {
+  return !isAITaskActive(task) && task.status === AIRunStatus.NoFixFound;
+}
+
+/*
+ * Any terminal attempt that produced no pull request. These share one card;
+ * isAITaskFailed decides whether it reads as an error or as a plain result.
+ */
+function isAITaskUnsuccessful(task: AIAgentTaskInfo): boolean {
+  return isAITaskFailed(task) || isAITaskNoFixFound(task);
+}
+
 function isAITaskCompleted(task: AIAgentTaskInfo): boolean {
   return !isAITaskActive(task) && task.status === AIRunStatus.Completed;
 }
@@ -148,6 +182,9 @@ function getAIAgentTaskAlertType(task: AIAgentTaskInfo): AlertType {
       return AlertType.INFO;
     case AIRunStatus.Completed:
       return AlertType.SUCCESS;
+    // Nothing went wrong — the agent just had nothing to propose.
+    case AIRunStatus.NoFixFound:
+      return AlertType.INFO;
     case AIRunStatus.Error:
       return AlertType.DANGER;
     case AIRunStatus.Stale:
@@ -155,24 +192,6 @@ function getAIAgentTaskAlertType(task: AIAgentTaskInfo): AlertType {
     default:
       return AlertType.INFO;
   }
-}
-
-type AIFixReadinessCheckId =
-  | "llmProvider"
-  | "repositoryResolved"
-  | "agentAvailable";
-
-interface AIFixReadinessCheck {
-  id: AIFixReadinessCheckId;
-  ok: boolean;
-  title: string;
-  // Empty when ok — otherwise says exactly what to do next.
-  detail: string;
-}
-
-interface AIFixReadinessInfo {
-  ready: boolean;
-  checks: Array<AIFixReadinessCheck>;
 }
 
 // A deep link that takes the user to the page where a failing check is fixed.
@@ -217,7 +236,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [isAIAgentTaskLoading, setIsAIAgentTaskLoading] =
     React.useState<boolean>(false);
   const [aiFixReadiness, setAIFixReadiness] = React.useState<
-    AIFixReadinessInfo | undefined
+    AIFixReadiness | undefined
   >(undefined);
   /*
    * Errors from AI-task actions render inline in the AI card area. The
@@ -815,16 +834,28 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           </Card>
         )}
 
-        {/** Latest attempt failed — keep it visible and offer a retry. */}
+        {/**
+         * Latest attempt produced no pull request — keep it visible and offer
+         * a retry. A run that failed reads as an error; one that simply found
+         * no fix reads as a neutral result.
+         */}
 
-        {isAITaskFailed(task) && (
+        {isAITaskUnsuccessful(task) && (
           <Card
-            title={presentation.failedCardTitle}
-            description={presentation.failedCardDescription}
+            title={
+              isAITaskFailed(task)
+                ? presentation.failedCardTitle
+                : presentation.noFixCardTitle
+            }
+            description={
+              isAITaskFailed(task)
+                ? presentation.failedCardDescription
+                : presentation.noFixCardDescription
+            }
           >
             <div className="space-y-3">
               <Alert
-                type={AlertType.DANGER}
+                type={getAIAgentTaskAlertType(task)}
                 strongTitle={task.statusTitle}
                 title={task.statusMessage || task.statusDescription}
               />
@@ -876,8 +907,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
   /*
    * The "start a task" ActionCard for one task type — shown when a new task
-   * can be started, setup is complete, and the latest attempt did not fail
-   * (retry after an error lives in the failure card).
+   * can be started, setup is complete, and the latest attempt produced a
+   * pull request (retry after an error or a fruitless run lives in that
+   * attempt's own card, so showing this too would double up the button).
    */
   const renderStartAITaskCard: RenderStartAITaskCardFunction = (
     task: AIAgentTaskInfo | undefined,
@@ -886,7 +918,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     if (
       !canStartAITask(task) ||
       isAIFixBlockedBySetup ||
-      (task && isAITaskFailed(task))
+      (task && isAITaskUnsuccessful(task))
     ) {
       return <></>;
     }

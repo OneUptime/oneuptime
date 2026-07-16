@@ -1,6 +1,7 @@
 import SnmpMonitor from "../Monitors/MonitorTypes/SnmpMonitor";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
-import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
+import { SnmpVersionUtil } from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
+import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import logger from "Common/Server/Utils/Logger";
 
 export interface DiscoveredHost {
@@ -13,6 +14,7 @@ export interface SubnetScanConfig {
   cidr: string;
   snmpVersion?: string | undefined;
   snmpCommunityString?: string | undefined;
+  snmpV3Auth?: SnmpV3Auth | undefined;
   snmpPort?: number | undefined;
 }
 
@@ -66,10 +68,18 @@ export default class SubnetScanner {
       while (cursor < hosts.length) {
         const host: string = hosts[cursor++]!;
         const snmpConfig: MonitorStepSnmpMonitor = {
-          snmpVersion: (config.snmpVersion as SnmpVersion) || SnmpVersion.V2c,
+          /*
+           * Parse, don't cast: the stored version is the dropdown key
+           * ("V1"/"V2c"/"V3") while SnmpMonitor branches on the enum value
+           * ("1"/"2c"/"3"). A bare cast leaves "V3" unequal to SnmpVersion.V3,
+           * so the session would silently downgrade to v2c. parse() normalizes
+           * both spellings (and defaults to V2c when unset).
+           */
+          snmpVersion: SnmpVersionUtil.parse(config.snmpVersion),
           hostname: host,
           port: config.snmpPort || 161,
           communityString: config.snmpCommunityString || "public",
+          snmpV3Auth: config.snmpV3Auth,
           oids: [],
           timeout: 2000,
           retries: 0,

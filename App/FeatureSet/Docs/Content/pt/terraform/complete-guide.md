@@ -235,12 +235,175 @@ O provedor Terraform do OneUptime suporta os seguintes recursos:
 ### Catálogo de Serviços
 
 - `oneuptime_service_catalog` - Gerenciar entradas do catálogo de serviços
+
+### Catálogo de Serviços
+
 - `oneuptime_service` - Definir serviços
 - `oneuptime_service_dependency` - Mapear dependências de serviços
 
 ### Fontes de Dados
 
 Nota: As fontes de dados não estão disponíveis atualmente no provedor, pois nenhuma fonte de dados está definida no esquema do provedor.
+
+## Exemplos
+
+### Configuração Completa de Monitoramento
+
+```hcl
+# Variáveis
+variable "oneuptime_api_key" {
+  description = "Chave de API do OneUptime"
+  type        = string
+  sensitive   = true
+}
+
+variable "project_id" {
+  description = "ID do projeto OneUptime (crie o projeto manualmente no painel)"
+  type        = string
+}
+
+variable "oneuptime_url" {
+  description = "URL do OneUptime"
+  type        = string
+  default     = "https://oneuptime.com"
+}
+
+# Configuração do provedor
+terraform {
+  required_providers {
+    oneuptime = {
+      source  = "oneuptime/oneuptime"
+      version = "~> 7.0"
+    }
+  }
+}
+
+provider "oneuptime" {
+  oneuptime_url = var.oneuptime_url
+  api_key       = var.oneuptime_api_key
+}
+
+# Equipe
+resource "oneuptime_team" "platform" {
+  name        = "Equipe de Plataforma"
+  description = "Equipe de engenharia de plataforma"
+}
+
+# Monitores
+resource "oneuptime_monitor" "api" {
+  name        = "Verificação de Saúde da API"
+  description = "Monitor para o endpoint de saúde da API"
+  data        = jsonencode({
+    url = "https://api.mycompany.com/health"
+    method = "GET"
+    interval = "1m"
+    timeout = "30s"
+  })
+}
+
+resource "oneuptime_monitor" "database" {
+  name       = "Conexão com o Banco de Dados"
+  project_id = oneuptime_project.production.id
+
+  monitor_type = "port"
+  hostname     = "db.mycompany.com"
+  port         = 5432
+  interval     = "2m"
+
+  tags = {
+    service     = "database"
+    environment = "production"
+    criticality = "critical"
+  }
+}
+
+# Política de plantão
+resource "oneuptime_on_call_policy" "platform_oncall" {
+  name       = "Plantão de Plataforma"
+  project_id = oneuptime_project.production.id
+  team_id    = oneuptime_team.platform.id
+
+  schedules {
+    name      = "Horário Comercial"
+    timezone  = "America/New_York"
+
+    layers {
+      name = "Primário"
+      users = ["user1@mycompany.com", "user2@mycompany.com"]
+      rotation_type = "weekly"
+      start_time = "09:00"
+      end_time = "17:00"
+      days = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+    }
+  }
+}
+
+# Política de alertas
+resource "oneuptime_alert_policy" "critical_alerts" {
+  name       = "Alertas Críticos do Sistema"
+  project_id = oneuptime_project.production.id
+
+  conditions {
+    monitor_id = oneuptime_monitor.api.id
+    threshold  = "down"
+  }
+
+  conditions {
+    monitor_id = oneuptime_monitor.database.id
+    threshold  = "down"
+  }
+
+  actions {
+    type = "webhook"
+    url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  }
+
+  actions {
+    type           = "oncall_escalation"
+    oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
+  }
+}
+
+# Página de status
+resource "oneuptime_status_page" "public" {
+  name       = "Status da MyCompany"
+  project_id = oneuptime_project.production.id
+
+  domain = "status.mycompany.com"
+
+  components {
+    name       = "API"
+    monitor_id = oneuptime_monitor.api.id
+  }
+
+  components {
+    name       = "Banco de Dados"
+    monitor_id = oneuptime_monitor.database.id
+  }
+}
+```
+
+### Exemplo de Configuração Auto-Hospedada
+
+```hcl
+# Para instância auto-hospedada do OneUptime versão 7.0.123
+terraform {
+  required_providers {
+    oneuptime = {
+      source  = "oneuptime/oneuptime"
+      version = "= 7.0.123"  # Deve corresponder exatamente à sua versão do OneUptime
+    }
+  }
+  required_version = ">= 1.0"
+}
+
+provider "oneuptime" {
+  oneuptime_url = "https://oneuptime.mycompany.com"  # Sua URL auto-hospedada
+  api_key       = var.oneuptime_api_key
+}
+
+# Restante da sua configuração...
+```
 
 ## Melhores Práticas
 

@@ -180,6 +180,43 @@ export default class AIRun extends BaseModel {
   })
   public codeFixTaskType?: CodeFixTaskType = undefined;
 
+  /*
+   * The per-project sequential task number shown as "#42" — the stable handle
+   * a human cites when reporting a bad run, the same role Incident.incidentNumber
+   * plays. Set only on CodeFix runs (the AI Tasks list): chat turns and
+   * investigations also live in this table but are not tasks, so numbering them
+   * would burn the counter on every Ask-AI message. Null therefore means "not a
+   * task", and also covers CodeFix rows created before this column existed —
+   * the backfill numbers those by age.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Number,
+    title: "Task Number",
+    description:
+      "Per-project sequential number for this AI task (code-fix runs only).",
+    example: 42,
+    computed: true,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public taskNumber?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

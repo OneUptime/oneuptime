@@ -26,6 +26,10 @@ const targetTypeToPageMap: { [key in AIChatCitationTargetType]: PageMap } = {
   [AIChatCitationTargetType.AlertView]: PageMap.ALERT_VIEW,
   [AIChatCitationTargetType.Monitors]: PageMap.MONITORS,
   [AIChatCitationTargetType.MonitorView]: PageMap.MONITOR_VIEW,
+  [AIChatCitationTargetType.ScheduledMaintenanceEvents]:
+    PageMap.SCHEDULED_MAINTENANCE_EVENTS,
+  [AIChatCitationTargetType.ScheduledMaintenanceView]:
+    PageMap.SCHEDULED_MAINTENANCE_VIEW,
 };
 
 const targetTypeToIcon: { [key in AIChatCitationTargetType]: IconProp } = {
@@ -40,6 +44,8 @@ const targetTypeToIcon: { [key in AIChatCitationTargetType]: IconProp } = {
   [AIChatCitationTargetType.AlertView]: IconProp.Bell,
   [AIChatCitationTargetType.Monitors]: IconProp.Cube,
   [AIChatCitationTargetType.MonitorView]: IconProp.Cube,
+  [AIChatCitationTargetType.ScheduledMaintenanceEvents]: IconProp.Clock,
+  [AIChatCitationTargetType.ScheduledMaintenanceView]: IconProp.Clock,
 };
 
 /*

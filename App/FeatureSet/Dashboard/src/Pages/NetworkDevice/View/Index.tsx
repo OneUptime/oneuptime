@@ -10,6 +10,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { getSnmpConfigFormFields } from "../SnmpConfigFormFields";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const NetworkDeviceView: FunctionComponent<
@@ -90,39 +91,7 @@ const NetworkDeviceView: FunctionComponent<
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
           },
-          {
-            field: {
-              snmpVersion: true,
-            },
-            title: "SNMP Version",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              { label: "V1", value: "V1" },
-              { label: "V2c", value: "V2c" },
-              { label: "V3", value: "V3" },
-            ],
-            required: true,
-            placeholder: "V2c",
-          },
-          {
-            field: {
-              snmpCommunityString: true,
-            },
-            title: "SNMP Community String",
-            fieldType: FormFieldSchemaType.Password,
-            required: false,
-            placeholder: "public",
-            description: "Required for SNMP V1 and V2c. Not used for V3.",
-          },
-          {
-            field: {
-              snmpPort: true,
-            },
-            title: "SNMP Port",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "161",
-          },
+          ...getSnmpConfigFormFields(),
         ]}
         modelDetailProps={{
           modelType: NetworkDevice,
@@ -188,6 +157,52 @@ const NetworkDeviceView: FunctionComponent<
               fieldType: FieldType.HiddenText,
               showIf: (item: NetworkDevice): boolean => {
                 return Boolean(item.snmpCommunityString);
+              },
+            },
+            /*
+             * v3 credentials are readable by viewer roles, so the auth/priv
+             * keys are deliberately not surfaced here — only the settings a
+             * user needs to confirm the device is configured the way they
+             * expect.
+             */
+            {
+              field: {
+                snmpV3SecurityLevel: true,
+              },
+              title: "SNMP v3 Security Level",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.snmpV3SecurityLevel);
+              },
+            },
+            {
+              field: {
+                snmpV3Username: true,
+              },
+              title: "SNMP v3 Username",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.snmpV3Username);
+              },
+            },
+            {
+              field: {
+                snmpV3AuthProtocol: true,
+              },
+              title: "SNMP v3 Authentication Protocol",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.snmpV3AuthProtocol);
+              },
+            },
+            {
+              field: {
+                snmpV3PrivProtocol: true,
+              },
+              title: "SNMP v3 Privacy Protocol",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.snmpV3PrivProtocol);
               },
             },
             {

@@ -45,7 +45,7 @@ export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,device.id=sens
 | `OTEL_EXPORTER_OTLP_HEADERS`  | 是       | `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`                                                    |
 | `OTEL_RESOURCE_ATTRIBUTES`    | 是       | 以逗號分隔的資源屬性。必須包含 `iot.fleet.name`、`device.id` 與 `service.name=iot/<fleet>`            |
 
-請使用下方的 `iot_*` 名稱將你的讀數作為指標發送（參閱[指標慣例](#metric-conventions)）。大約一分鐘內，裝置就會出現在 OneUptime 儀表板的 **IoT** 區段下。
+請使用下方的 `iot_*` 名稱將你的讀數作為指標發送（參閱[指標慣例](#指標慣例)）。大約一分鐘內，裝置就會出現在 OneUptime 儀表板的 **IoT** 區段下。
 
 ## 透過 OpenTelemetry Collector 傳送指標
 
@@ -94,6 +94,103 @@ service:
 - 請在每個資料點上保留 `device.id`（以及選用的 `iot.device.kind` / `iot.device.type` / `iot.device.firmware`），讓 OneUptime 能解析出機群內的個別裝置。
 - **`otlphttp`** 會透過 HTTPS 並附帶擷取權杖傳送到 OneUptime。請注意 `encoding: json` 與 `Content-Type: application/json` 標頭為必填。
 
+## 透過 MQTT 傳送指標
+
+OneUptime 內建了 MQTT 端點，因此已經會使用 MQTT 的裝置可以直接推送讀數 — 不需要 OpenTelemetry SDK、collector 或橋接。透過 MQTT 發布的一切都會進入與 OTLP 相同的管線：機群會自動建立、裝置清單會更新，而且每個 IoT 監控器與警示範本都能原封不動地運作。
+
+**端點**
+
+| 傳輸方式              | 位址                                    | 備註                                                                                     |
+| --------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| MQTT over WebSocket   | `wss://<your-host>/mqtt`                | 適用於所有部署 — 透過 OneUptime ingress 走一般的 HTTPS 連接埠                            |
+| MQTT over TCP         | `<app-host>:1883`（`MQTT_INGEST_PORT`） | 自我託管：預設僅限叢集／compose 網路內部；若有需要請自行對外開放                          |
+
+**驗證** — 有兩種選項：
+
+- **專案層級**：將你的**遙測擷取權杖**作為 MQTT 密碼傳送（使用者名稱會被忽略；如果你的用戶端只提供使用者名稱欄位，請改將權杖放在那裡）。適合代表多個裝置發布的閘道器。
+- **個別裝置層級**（建議直接連線的裝置採用）：在儀表板中該機群的 **Device Registry** 分頁下註冊裝置。註冊會發給每個裝置一組憑證 — 憑證 ID 即 MQTT **使用者名稱**，密鑰即**密碼**。以裝置身分驗證的用戶端只能在自己的 `oneuptime/<fleet>/<device>/…` 主題下發布；單一遭入侵的裝置可從儀表板撤銷，而不影響機群的其餘部分（撤銷大約在一分鐘內生效，即使是已連線的工作階段也一樣）；而且已註冊的裝置具備**無聲死亡離線偵測（silent-death offline detection）**：當它們停止回報時，會以 Offline 狀態留在清單中而不會消失，且即使裝置在沒有 Last Will 的情況下死亡，**Device Offline** 警示範本仍會為它們觸發。
+
+無效的憑證會在 CONNECT 時以回應碼 4（使用者名稱或密碼錯誤）被拒絕，因此設定錯誤的裝置會明確地失敗。
+
+**主題** — 請在固定的 `oneuptime/` 前綴下發布。機群與裝置區段不得包含 `/`、`+` 或 `#`，且長度限制為 100 個字元：
+
+| 主題                                             | 酬載                                                                                                 |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `oneuptime/<fleet>/<device>/telemetry`           | 讀數的 JSON 物件 — `{ "metrics": { "iot_temperature_celsius": 21.5 } }`，或一個以數值欄位作為指標的扁平物件 |
+| `oneuptime/<fleet>/<device>/metrics/<metricName>`| 單一值 — 一個裸數字（`23.4`）或 `{ "value": 23.4 }`                                                   |
+| `oneuptime/<fleet>/<device>/status`              | `"online"` 或 `"offline"`（也接受 `1`/`0`、`true`/`false`、`up`/`down`） — 對應到 `iot_device_up`     |
+
+遙測酬載也可以攜帶 `"attributes"`（一個會標記在每個資料點上的字串對應表 — 可用於 `iot.device.kind`、`iot.device.type`、`iot.device.firmware` 或你自己的標籤）與 `"timestamp"`（ISO-8601，或 unix 秒／毫秒）。兩者皆為選用；當 `timestamp` 不存在時，會使用擷取時間。
+
+**使用 Last Will 進行離線偵測** — 在 `oneuptime/<fleet>/<device>/status` 上註冊一個酬載為 `offline` 的 MQTT Last Will。如果裝置死亡或從網路上掉線，broker 會在工作階段結束的當下代替它發布 `iot_device_up = 0` — 這會觸發內建的 **Device Offline** 警示範本，並將裝置在清單中翻轉為下線，不需要輪詢，也不必等待錯過的抓取。連線之後請向同一個主題發布 `online`，讓裝置再次顯示為上線。
+
+使用 `mosquitto_pub` 的範例（原始 TCP，自我託管）：
+
+```bash
+mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
+  -u oneuptime -P "YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -t "oneuptime/building-a-sensors/sensor-001/telemetry" \
+  -m '{"metrics":{"iot_device_up":1,"iot_battery_percent":87,"iot_temperature_celsius":21.5},"attributes":{"iot.device.type":"temp-sensor","iot.device.firmware":"1.4.2"}}'
+```
+
+使用 Node.js `mqtt` 透過 WebSocket 的範例（可對 oneuptime.com 以及任何自我託管的執行個體運作）：
+
+```javascript
+const mqtt = require("mqtt");
+
+const client = mqtt.connect("wss://oneuptime.com/mqtt", {
+  username: "oneuptime", // 會被忽略 — 進行驗證的是下方的權杖
+  password: "YOUR_TELEMETRY_INGESTION_TOKEN",
+  will: {
+    topic: "oneuptime/building-a-sensors/sensor-001/status",
+    payload: "offline",
+  },
+});
+
+client.on("connect", () => {
+  client.publish("oneuptime/building-a-sensors/sensor-001/status", "online");
+  setInterval(() => {
+    client.publish(
+      "oneuptime/building-a-sensors/sensor-001/telemetry",
+      JSON.stringify({
+        metrics: {
+          iot_device_up: 1,
+          iot_battery_percent: readBattery(),
+          iot_temperature_celsius: readTemperature(),
+        },
+      }),
+    );
+  }, 60 * 1000);
+});
+```
+
+使用 Python `paho-mqtt` 透過 WebSocket 的範例：
+
+```python
+import json
+import paho.mqtt.client as mqtt
+
+client = mqtt.Client(transport="websockets")
+client.username_pw_set("oneuptime", "YOUR_TELEMETRY_INGESTION_TOKEN")
+client.tls_set()
+client.will_set("oneuptime/building-a-sensors/sensor-001/status", "offline")
+client.ws_set_options(path="/mqtt")
+client.connect("oneuptime.com", 443)
+
+client.publish("oneuptime/building-a-sensors/sensor-001/status", "online")
+client.publish(
+    "oneuptime/building-a-sensors/sensor-001/telemetry",
+    json.dumps({"metrics": {"iot_device_up": 1, "iot_temperature_celsius": 21.5}}),
+)
+```
+
+注意事項：
+
+- 此端點**僅供擷取**：訂閱會被拒絕（SUBACK 失敗）。如果你希望 broker 確認收到，請使用 QoS 1。擷取為**至少一次（at-least-once）** — 在確認遺失之後的 QoS 1/2 重傳可能會產生重複的資料點。
+- 在主題約定之外發布，或是酬載格式錯誤的發布，會被接受並**丟棄**（MQTT 3.1.1 沒有針對單一訊息的錯誤回覆） — 伺服器會記錄一則含有原因的警告，因此若資料未送達，請檢查 OneUptime 應用程式記錄。
+- 在 WebSocket 端點上，請將 MQTT keepalive 保持在 **5 分鐘以內** — OneUptime ingress 會在 300 秒後關閉閒置的 WebSocket 連線，這會觸發你的 Last Will 以及一則錯誤的 Device Offline 警示。用戶端函式庫的預設值（`mqtt` 與 `paho-mqtt` 皆為 60 秒）沒有問題。原始 TCP 端點則沒有這樣的上限。
+- 酬載上限為每次發布 128 KB 與 100 個指標；過大的封包會中斷連線。
+
 ## 指標慣例
 
 OneUptime 可辨識下列 `iot_*` 指標名稱。每個資料點都應帶有 `device.id` 標籤，讓讀數歸屬於正確的裝置。你只需要傳送對你的裝置有意義的指標 — 缺少的指標單純不會繪製成圖表。
@@ -137,7 +234,7 @@ OneUptime 可辨識下列 `iot_*` 指標名稱。每個資料點都應帶有 `de
 
 ### 指標未繪製成圖表
 
-1. 確認你使用的是[指標慣例](#metric-conventions)表格中完全一致的 `iot_*` 指標名稱 — 無法辨識的名稱會被儲存為一般指標，且不會填入 IoT 圖表。
+1. 確認你使用的是[指標慣例](#指標慣例)表格中完全一致的 `iot_*` 指標名稱 — 無法辨識的名稱會被儲存為一般指標，且不會填入 IoT 圖表。
 2. 請記得 `iot_cpu_usage_ratio` 是 `0`–`1` 的比值；傳送原始比值，OneUptime 會將它以百分比呈現。
 3. 裝置開始回報後，請預留最多一分鐘讓第一批資料點浮現。
 

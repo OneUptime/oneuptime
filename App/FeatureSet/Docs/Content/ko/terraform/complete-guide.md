@@ -4,14 +4,14 @@ OneUptime Terraform 공급자를 통해 인프라 코드(IaC)를 사용하여 On
 
 ## 목차
 
-- [설치](#installation)
-- [공급자 구성](#provider-configuration)
-- [빠른 시작](#quick-start)
-- [버전 호환성](#version-compatibility)
-- [사용 가능한 리소스](#available-resources)
-- [예시](#examples)
-- [모범 사례](#best-practices)
-- [마이그레이션 가이드](#migration-guide)
+- [설치](#설치)
+- [공급자 구성](#공급자-구성)
+- [빠른 시작](#빠른-시작)
+- [버전 호환성](#버전-호환성)
+- [사용 가능한 리소스](#사용-가능한-리소스)
+- [예시](#예시)
+- [모범 사례](#모범-사례)
+- [마이그레이션 가이드](#마이그레이션-가이드)
 
 ## 설치
 
@@ -302,6 +302,87 @@ resource "oneuptime_monitor" "api" {
     interval = "1m"
     timeout = "30s"
   })
+  }
+}
+
+resource "oneuptime_monitor" "database" {
+  name       = "데이터베이스 연결"
+  project_id = oneuptime_project.production.id
+
+  monitor_type = "port"
+  hostname     = "db.mycompany.com"
+  port         = 5432
+  interval     = "2m"
+
+  tags = {
+    service     = "database"
+    environment = "production"
+    criticality = "critical"
+  }
+}
+
+# 온콜 정책
+resource "oneuptime_on_call_policy" "platform_oncall" {
+  name       = "플랫폼 온콜"
+  project_id = oneuptime_project.production.id
+  team_id    = oneuptime_team.platform.id
+
+  schedules {
+    name      = "업무 시간"
+    timezone  = "America/New_York"
+
+    layers {
+      name = "기본"
+      users = ["user1@mycompany.com", "user2@mycompany.com"]
+      rotation_type = "weekly"
+      start_time = "09:00"
+      end_time = "17:00"
+      days = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+    }
+  }
+}
+
+# 알림 정책
+resource "oneuptime_alert_policy" "critical_alerts" {
+  name       = "중요 시스템 알림"
+  project_id = oneuptime_project.production.id
+
+  conditions {
+    monitor_id = oneuptime_monitor.api.id
+    threshold  = "down"
+  }
+
+  conditions {
+    monitor_id = oneuptime_monitor.database.id
+    threshold  = "down"
+  }
+
+  actions {
+    type = "webhook"
+    url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  }
+
+  actions {
+    type           = "oncall_escalation"
+    oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
+  }
+}
+
+# 상태 페이지
+resource "oneuptime_status_page" "public" {
+  name       = "MyCompany 상태"
+  project_id = oneuptime_project.production.id
+
+  domain = "status.mycompany.com"
+
+  components {
+    name       = "API"
+    monitor_id = oneuptime_monitor.api.id
+  }
+
+  components {
+    name       = "데이터베이스"
+    monitor_id = oneuptime_monitor.database.id
   }
 }
 ```

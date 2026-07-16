@@ -69,12 +69,13 @@ describe("AIAgentTaskStatusHelper", () => {
   });
 
   describe("isTerminalStatus", () => {
-    test.each([AIAgentTaskStatus.Completed, AIAgentTaskStatus.Error])(
-      "returns true for terminal status %s",
-      (status: AIAgentTaskStatus) => {
-        expect(AIAgentTaskStatusHelper.isTerminalStatus(status)).toBe(true);
-      },
-    );
+    test.each([
+      AIAgentTaskStatus.Completed,
+      AIAgentTaskStatus.NoFixFound,
+      AIAgentTaskStatus.Error,
+    ])("returns true for terminal status %s", (status: AIAgentTaskStatus) => {
+      expect(AIAgentTaskStatusHelper.isTerminalStatus(status)).toBe(true);
+    });
 
     test.each([AIAgentTaskStatus.Scheduled, AIAgentTaskStatus.InProgress])(
       "returns false for non-terminal status %s",

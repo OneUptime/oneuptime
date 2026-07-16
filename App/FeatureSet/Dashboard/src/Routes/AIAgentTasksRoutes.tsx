@@ -12,12 +12,13 @@ import AIAgentTasks from "../Pages/AIAgentTasks/AIAgentTasks";
 
 import AIAgentTaskView from "../Pages/AIAgentTasks/View/Index";
 
+import AIAgentTaskViewLogs from "../Pages/AIAgentTasks/View/Logs";
+
 import AIAgentTaskViewPullRequests from "../Pages/AIAgentTasks/View/PullRequests";
 
 /*
- * Task detail routes point at CodeFix AIRun ids. The legacy Logs and Delete
- * routes are gone: new runs record AIRunEvents (shown on the Overview) and
- * are not user-deletable.
+ * Task detail routes point at CodeFix AIRun ids. No Delete route: runs are
+ * not user-deletable.
  */
 const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -55,6 +56,15 @@ const AIAgentTasksRoutes: FunctionComponent<ComponentProps> = (
             <AIAgentTaskView
               {...props}
               pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.AI_AGENT_TASK_VIEW_LOGS)}
+          element={
+            <AIAgentTaskViewLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.AI_AGENT_TASK_VIEW_LOGS] as Route}
             />
           }
         />

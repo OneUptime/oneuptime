@@ -525,7 +525,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <p>
                   1. Each category rule has a filter condition (e.g.{" "}
                   <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    severityText = &apos;ERROR&apos;
+                    severityText = &apos;Error&apos;
                   </code>
                   ).
                 </p>
@@ -548,7 +548,7 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
               <div className="mt-2 p-2 bg-gray-900 rounded text-[11px] font-mono text-gray-300 leading-relaxed">
                 <span className="text-gray-500">
                   // Rule: &quot;Critical Errors&quot; when severityText =
-                  &apos;ERROR&apos;
+                  &apos;Error&apos;
                 </span>
                 <br />
                 <span className="text-gray-500">
@@ -559,13 +559,13 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
                 <span className="text-gray-500">// Before processing</span>
                 <br />
                 <span className="text-amber-400">severityText</span>:{" "}
-                <span className="text-sky-400">&quot;ERROR&quot;</span>,{" "}
+                <span className="text-sky-400">&quot;Error&quot;</span>,{" "}
                 <span className="text-amber-400">attributes</span>: {"{"} {"}"}
                 <br />
                 <span className="text-gray-500">// After processing</span>
                 <br />
                 <span className="text-amber-400">severityText</span>:{" "}
-                <span className="text-sky-400">&quot;ERROR&quot;</span>,{" "}
+                <span className="text-sky-400">&quot;Error&quot;</span>,{" "}
                 <span className="text-amber-400">attributes</span>: {"{"}{" "}
                 <span className="text-emerald-400">&quot;category&quot;</span>:{" "}
                 <span className="text-sky-400">

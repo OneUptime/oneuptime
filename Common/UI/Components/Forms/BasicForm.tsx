@@ -508,18 +508,36 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
               },
             ) || [];
 
+          /*
+           * An ObjectID initial value arrives as an instance while options
+           * hold the string form, so canonicalize once — before comparing and
+           * before storing back.
+           */
+          let normalizedValue: DropdownValue = (values as any)[fieldName];
+
+          if ((normalizedValue as any) instanceof ObjectID) {
+            normalizedValue = normalizedValue.toString();
+          }
+
           const dropdownOption: DropdownOption | undefined =
             flatDropdownOptions.find((option: DropdownOption) => {
-              let valueToCompare: DropdownValue = (values as any)[fieldName];
-
-              if ((valueToCompare as any) instanceof ObjectID) {
-                valueToCompare = valueToCompare.toString();
-              }
-
-              return option.value === valueToCompare;
+              return option.value === normalizedValue;
             });
 
-          (values as any)[fieldName] = dropdownOption?.value || null;
+          /*
+           * Keep the stored value when no option matches; do not null it.
+           * Submit sends every selected field, so a value wiped here is PUT
+           * back as null and clears a column the user never touched. Options
+           * legitimately fail to contain a valid value: a permission-scoped
+           * or truncated entity list, a failed options fetch, or a column
+           * holding a spelling the options don't list verbatim. An unmatched
+           * value renders as the placeholder either way, so preserving costs
+           * nothing visually and stops the form destroying data it can't
+           * display.
+           */
+          (values as any)[fieldName] = dropdownOption
+            ? dropdownOption.value
+            : normalizedValue;
         }
 
         if (

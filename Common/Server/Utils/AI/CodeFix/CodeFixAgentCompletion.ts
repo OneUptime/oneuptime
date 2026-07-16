@@ -3,9 +3,11 @@ import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import AIRunService from "../../../Services/AIRunService";
+import AIRunEventService from "../../../Services/AIRunEventService";
 import LlmLogService from "../../../Services/LlmLogService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import AIService, {
@@ -227,6 +229,41 @@ export default class CodeFixAgentCompletion {
 
     const toolCalls: Array<LLMToolCall> = response.toolCalls || [];
 
+    /*
+     * Record this call on the run's transcript. This is the only place a
+     * code-fix run's LLM content is persisted — LlmLog holds the metering and
+     * deliberately redacts the content just above — so it is what the Logs
+     * page reads to show what the model was actually asked and answered.
+     */
+    await AIRunEventService.appendEventToRun({
+      projectId: run.projectId,
+      aiRunId: request.aiRunId,
+      eventType: AIRunEventType.LlmCallCompleted,
+      resultSummary: {
+        durationInMs: response.llmLog.durationMs,
+        message: `LLM call ${usage.completionCalls + 1} of ${MAX_COMPLETION_CALLS_PER_RUN} — ${
+          toolCalls.length > 0
+            ? `requested ${toolCalls.length} tool call(s)`
+            : "returned a final answer"
+        }`,
+      },
+      contentPayload: {
+        requestMessages: this.getNewMessagesForTranscript(request.messages),
+        responseContent: response.content,
+        responseToolCalls: toolCalls.map((toolCall: LLMToolCall) => {
+          return {
+            ...(toolCall.id ? { id: toolCall.id } : {}),
+            name: toolCall.name,
+            ...(toolCall.arguments ? { arguments: toolCall.arguments } : {}),
+          };
+        }),
+        ...(llmProvider.modelName ? { modelName: llmProvider.modelName } : {}),
+        stopReason: toolCalls.length > 0 ? "tool_use" : "stop",
+        completionTokens: response.llmLog.completionTokens,
+        totalTokens: response.llmLog.totalTokens,
+      },
+    });
+
     return {
       content: response.content,
       toolCalls: toolCalls,
@@ -239,5 +276,43 @@ export default class CodeFixAgentCompletion {
         maxOutputTokens: MAX_OUTPUT_TOKENS_PER_RUN,
       },
     };
+  }
+
+  /*
+   * The messages that are NEW on this call.
+   *
+   * The worker replays its whole conversation on every call, so recording
+   * `request.messages` verbatim each time would store the history again and
+   * again — quadratic in the turn count, on prompts that embed source files.
+   *
+   * Everything up to and including the last assistant message has already been
+   * recorded: the earlier turns by earlier calls, and the trailing assistant
+   * message as the previous event's `responseContent`. So the new content is
+   * exactly the tail after the last assistant message — the tool results (and
+   * any wind-down nudge) the worker appended since. On the first call there is
+   * no assistant message yet and the tail is the whole array, which is what we
+   * want: the system prompt and the opening instruction.
+   *
+   * Concatenating every event's requestMessages + responseContent in sequence
+   * order therefore reproduces the entire session, each part stored once.
+   */
+  private static getNewMessagesForTranscript(
+    messages: Array<LLMMessage>,
+  ): Array<{ role: string; content: string }> {
+    let lastAssistantIndex: number = -1;
+
+    for (let i: number = messages.length - 1; i >= 0; i--) {
+      if (messages[i]!.role === "assistant") {
+        lastAssistantIndex = i;
+        break;
+      }
+    }
+
+    return messages.slice(lastAssistantIndex + 1).map((message: LLMMessage) => {
+      return {
+        role: message.role,
+        content: message.content || "",
+      };
+    });
   }
 }

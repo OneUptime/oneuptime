@@ -755,6 +755,7 @@ const LineChart: React.ForwardRefExoticComponent<
                 transform: "translate(0, 6)",
                 fontSize: 10,
                 fontWeight: 500,
+                fill: "var(--ou-chart-tick)",
               }}
               ticks={
                 startEndOnly
@@ -797,6 +798,7 @@ const LineChart: React.ForwardRefExoticComponent<
                 transform: "translate(-4, 0)",
                 fontSize: 10,
                 fontWeight: 500,
+                fill: "var(--ou-chart-tick)",
               }}
               fill=""
               stroke=""
@@ -822,7 +824,7 @@ const LineChart: React.ForwardRefExoticComponent<
               )}
             </YAxis>
             <Tooltip
-              wrapperStyle={{ outline: "none" }}
+              wrapperStyle={{ outline: "none", zIndex: 10 }}
               isAnimationActive={true}
               animationDuration={100}
               cursor={{
@@ -1069,7 +1071,11 @@ const LineChart: React.ForwardRefExoticComponent<
                     <Label
                       value="E"
                       position="center"
-                      fill="var(--ou-chart-marker-ring, #ffffff)"
+                      /*
+                       * Sits on the dot's purple, not on the surface, so it must
+                       * not follow the ring token that flips dark with the theme.
+                       */
+                      fill="#ffffff"
                       fontSize={8}
                       fontWeight={700}
                     />

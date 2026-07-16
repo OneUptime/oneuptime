@@ -51,7 +51,7 @@ Keycloak es una popular solución de código abierto para gestión de identidade
    - **Nombre**: Un nombre descriptivo (por ejemplo, `my-project-oneuptime`)
    - **URL de inicio de sesión**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Emisor**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
-   - **Certificado**: Consulta el [Paso 2](#step-2-get-the-keycloak-certificate) a continuación
+   - **Certificado**: Consulta el [Paso 2](#paso-2-obtener-el-certificado-de-keycloak) a continuación
    - **Algoritmo de firma**: `RSA-SHA-256`
    - **Algoritmo de resumen**: `SHA256`
 4. Guarda la configuración
@@ -116,9 +116,9 @@ Microsoft Entra ID es el servicio de gestión de identidades y accesos en la nub
 2. Navega a **Configuración del proyecto** > **Autenticación** > **SSO**
 3. Haz clic en **Crear SSO** y completa lo siguiente:
    - **Nombre**: Un nombre descriptivo (por ejemplo, `Azure AD SAML`)
-   - **URL de inicio de sesión**: La obtendrás de Entra ID en el [Paso 3](#step-3-copy-entra-id-saml-metadata-to-oneuptime)
-   - **Emisor**: Lo obtendrás de Entra ID en el [Paso 3](#step-3-copy-entra-id-saml-metadata-to-oneuptime)
-   - **Certificado**: Lo obtendrás de Entra ID en el [Paso 3](#step-3-copy-entra-id-saml-metadata-to-oneuptime)
+   - **URL de inicio de sesión**: La obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
+   - **Emisor**: Lo obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
+   - **Certificado**: Lo obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
    - **Algoritmo de firma**: `RSA-SHA-256`
    - **Algoritmo de resumen**: `SHA256`
 4. Haz clic en **Ver configuración SSO** y copia el **Identificador (ID de entidad)** y la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: los necesitarás para Entra ID
@@ -201,9 +201,9 @@ Okta es una plataforma de identidad ampliamente utilizada que proporciona sólid
 2. Navega a **Configuración del proyecto** > **Autenticación** > **SSO**
 3. Haz clic en **Crear SSO** y completa lo siguiente:
    - **Nombre**: Un nombre descriptivo (por ejemplo, `Okta SAML`)
-   - **URL de inicio de sesión**: La obtendrás de Okta en el [Paso 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
-   - **Emisor**: Lo obtendrás de Okta en el [Paso 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
-   - **Certificado**: Lo obtendrás de Okta en el [Paso 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
+   - **URL de inicio de sesión**: La obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
+   - **Emisor**: Lo obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
+   - **Certificado**: Lo obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)
    - **Algoritmo de firma**: `RSA-SHA-256`
    - **Algoritmo de resumen**: `SHA256`
 4. Haz clic en **Ver configuración SSO** y copia el **Identificador (ID de entidad)** y la **URL de respuesta (URL del Servicio de consumidor de aserciones)**: los necesitarás para Okta

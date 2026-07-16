@@ -38,6 +38,8 @@ jobs:
       - run: npm run lint
       - name: Validate locale files (key parity + placeholders)
         run: npm run i18n:validate
+      - name: Validate docs anchor links resolve to a heading
+        run: npm run docs:check-anchors
       - name: Show how to fix lint
         if: ${{ failure() }}
-        run: echo "Please run 'npm run fix' to auto-fix lint, and 'npm run i18n:validate' locally to see any missing/extra locale keys or broken placeholders."
+        run: echo "Please run 'npm run fix' to auto-fix lint, 'npm run i18n:validate' to see any missing/extra locale keys or broken placeholders, and 'npm run docs:check-anchors' to see any in-page doc links pointing at a heading that does not exist."

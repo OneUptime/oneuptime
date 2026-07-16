@@ -116,9 +116,9 @@ Microsoft Entra ID er Microsofts skybaserte identitets- og tilgangsstyringstjene
 2. Naviger til **Prosjektinnstillinger** > **Autentisering** > **SSO**
 3. Klikk **Opprett SSO** og fyll inn følgende:
    - **Navn**: Et beskrivende navn (f.eks. `Azure AD SAML`)
-   - **Innloggings-URL**: Du henter dette fra Entra ID i [Trinn 3](#trinn-3-kopier-entra-id-saml-metadata-til-oneuptime)
-   - **Utsteder**: Du henter dette fra Entra ID i [Trinn 3](#trinn-3-kopier-entra-id-saml-metadata-til-oneuptime)
-   - **Sertifikat**: Du henter dette fra Entra ID i [Trinn 3](#trinn-3-kopier-entra-id-saml-metadata-til-oneuptime)
+   - **Innloggings-URL**: Du henter dette fra Entra ID i [Trinn 3](#trinn-3-konfigurer-saml-sso-i-entra-id)
+   - **Utsteder**: Du henter dette fra Entra ID i [Trinn 3](#trinn-3-konfigurer-saml-sso-i-entra-id)
+   - **Sertifikat**: Du henter dette fra Entra ID i [Trinn 3](#trinn-3-konfigurer-saml-sso-i-entra-id)
    - **Signaturalgoritme**: `RSA-SHA-256`
    - **Sammendragsalgoritme**: `SHA256`
 4. Klikk **Vis SSO-konfig** og kopier **Identifikator (Entity ID)** og **Svar-URL (Assertion Consumer Service URL)** – du trenger disse for Entra ID

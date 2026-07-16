@@ -50,6 +50,7 @@ const MAX_VISIBLE_STEPS: number = 500;
  * rather than the AIRun model.
  */
 interface TaskDetail {
+  taskNumber: number | undefined;
   taskType: string;
   status: AIRunStatus | undefined;
   createdAt: Date | undefined;
@@ -71,6 +72,7 @@ const toTaskDetail: ToTaskDetailFunction = (
   const run: AIRun = AIRun.fromJSONObject(runJson, AIRun);
 
   return {
+    taskNumber: run.taskNumber,
     taskType: (runJson["codeFixTaskType"] as string) || "FixException",
     status: run.status,
     createdAt: run.createdAt,
@@ -197,6 +199,22 @@ const AIAgentTaskViewPage: FunctionComponent<
   );
 
   const fields: Array<Field<TaskDetail>> = [
+    {
+      key: "taskNumber",
+      title: "Task Number",
+      /*
+       * Null on runs created before task numbers existed (the backfill covers
+       * existing rows, but a run whose counter allocation failed stays null).
+       */
+      showIf: (item: TaskDetail): boolean => {
+        return Boolean(item.taskNumber);
+      },
+      getElement: (item: TaskDetail): ReactElement => {
+        return (
+          <span className="font-medium text-gray-900">#{item.taskNumber}</span>
+        );
+      },
+    },
     {
       key: "taskType",
       title: "Task",

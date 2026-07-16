@@ -333,6 +333,7 @@ export class Service extends DatabaseService<Model> {
           select: {
             _id: true,
             name: true,
+            description: true,
             llmType: true,
             modelName: true,
             isDefault: true,
@@ -356,6 +357,7 @@ export class Service extends DatabaseService<Model> {
           select: {
             _id: true,
             name: true,
+            description: true,
             llmType: true,
             modelName: true,
             isDefault: true,

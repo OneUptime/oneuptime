@@ -12,9 +12,40 @@ import { JSONArray } from "Common/Types/JSON";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
+import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
+import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
+import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import ProxyConfig from "../../Utils/ProxyConfig";
+
+/*
+ * Assembles the SnmpV3Auth the scanner needs from the scan's flattened
+ * snmpV3* columns. Mirrors NetworkDeviceHydrationUtil.buildSnmpV3Auth: no
+ * username means no v3 config, so return undefined and let the scan run as
+ * v1/v2c.
+ */
+function buildSnmpV3Auth(
+  scan: NetworkDeviceDiscoveryScan,
+): SnmpV3Auth | undefined {
+  if (!scan.snmpV3Username) {
+    return undefined;
+  }
+
+  return {
+    securityLevel:
+      (scan.snmpV3SecurityLevel as SnmpSecurityLevel) ||
+      SnmpSecurityLevel.NoAuthNoPriv,
+    username: scan.snmpV3Username,
+    authProtocol:
+      (scan.snmpV3AuthProtocol as SnmpAuthProtocol | undefined) || undefined,
+    authKey: scan.snmpV3AuthKey || undefined,
+    privProtocol:
+      (scan.snmpV3PrivProtocol as SnmpPrivProtocol | undefined) || undefined,
+    privKey: scan.snmpV3PrivKey || undefined,
+  };
+}
 
 const InitJob: VoidFunction = (): void => {
   BasicCron({
@@ -74,6 +105,7 @@ async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
       cidr: scan.cidr || "",
       snmpVersion: scan.snmpVersion,
       snmpCommunityString: scan.snmpCommunityString,
+      snmpV3Auth: buildSnmpV3Auth(scan),
       snmpPort: scan.snmpPort,
     });
 

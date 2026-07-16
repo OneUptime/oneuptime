@@ -22,6 +22,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import PageContextUtil, { DashboardPageContext } from "./PageContext";
 
 const POLL_INTERVAL_MS: number = 1200;
 
@@ -32,6 +33,7 @@ const POLL_INTERVAL_MS: number = 1200;
 export interface ChatProvider {
   id: string;
   name: string;
+  description: string | null;
   llmType: string | null;
   modelName: string | null;
   isDefault: boolean;
@@ -65,6 +67,15 @@ export interface UseAiChat {
   selectedProvider: ChatProvider | undefined;
   permissionMode: AIChatPermissionMode;
   setPermissionMode: (mode: AIChatPermissionMode) => void;
+  /*
+   * What the user was looking at when they opened this chat surface (an
+   * incident, a monitor, the logs explorer, …). Null when the page carries no
+   * useful context. While attached, it is sent with every message so the
+   * agent knows what "this incident" means; the composer chip toggles it.
+   */
+  pageContext: DashboardPageContext | null;
+  isPageContextAttached: boolean;
+  setIsPageContextAttached: (attached: boolean) => void;
   isSubmittingApproval: boolean;
   respondToApproval: (
     assistantMessageId: string,
@@ -112,6 +123,11 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
   );
   const [isSubmittingApproval, setIsSubmittingApproval] =
     useState<boolean>(false);
+  const [pageContext, setPageContext] = useState<DashboardPageContext | null>(
+    null,
+  );
+  const [isPageContextAttached, setIsPageContextAttached] =
+    useState<boolean>(false);
 
   const activeConversationIdRef: React.MutableRefObject<string | undefined> =
     useRef<string | undefined>(undefined);
@@ -124,6 +140,14 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
   const permissionModeRef: React.MutableRefObject<AIChatPermissionMode> =
     useRef<AIChatPermissionMode>(permissionMode);
   permissionModeRef.current = permissionMode;
+
+  const pageContextRef: React.MutableRefObject<DashboardPageContext | null> =
+    useRef<DashboardPageContext | null>(null);
+  pageContextRef.current = pageContext;
+
+  const isPageContextAttachedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  isPageContextAttachedRef.current = isPageContextAttached;
 
   const latestRunIdRef: React.MutableRefObject<string | undefined> = useRef<
     string | undefined
@@ -178,6 +202,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
           return {
             id: provider["id"] as string,
             name: provider["name"] as string,
+            description: (provider["description"] as string) || null,
             llmType: (provider["llmType"] as string) || null,
             modelName: (provider["modelName"] as string) || null,
             isDefault: Boolean(provider["isDefault"]),
@@ -423,6 +448,42 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     }
   }, [enabled, fetchConversations, fetchProviders]);
 
+  /*
+   * Detect page context each time the surface opens: what page was the user
+   * on when they reached for Ask AI? Attached by default (the composer chip
+   * lets them detach), with the entity's display title resolved async.
+   */
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const detected: DashboardPageContext | null =
+      PageContextUtil.detectPageContext();
+
+    setPageContext(detected);
+    setIsPageContextAttached(Boolean(detected));
+
+    if (detected?.isEntity) {
+      PageContextUtil.resolveEntityTitle(detected)
+        .then((title: string | null) => {
+          if (!title) {
+            return;
+          }
+          setPageContext((current: DashboardPageContext | null) => {
+            // Only decorate the context this fetch was started for.
+            if (current && current.entityId === detected.entityId) {
+              return { ...current, entityTitle: title };
+            }
+            return current;
+          });
+        })
+        .catch(() => {
+          // The generic chip label is fine without a title.
+        });
+    }
+  }, [enabled]);
+
   // ---- working state + polling ---------------------------------------------
 
   const hasWorkingMessage: boolean = messages.some(
@@ -631,6 +692,13 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
               ...(selectedProviderIdRef.current
                 ? { llmProviderId: selectedProviderIdRef.current }
                 : {}),
+              ...(isPageContextAttachedRef.current && pageContextRef.current
+                ? {
+                    pageContext: PageContextUtil.toRequestPayload(
+                      pageContextRef.current,
+                    ),
+                  }
+                : {}),
             },
             headers: ModelAPI.getCommonHeaders(),
           });
@@ -765,6 +833,9 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     selectedProvider,
     permissionMode,
     setPermissionMode,
+    pageContext,
+    isPageContextAttached,
+    setIsPageContextAttached,
     isSubmittingApproval,
     respondToApproval,
     sendMessage,

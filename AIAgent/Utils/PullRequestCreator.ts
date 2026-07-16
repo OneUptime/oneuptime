@@ -2,7 +2,7 @@ import API from "Common/Utils/API";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
-import { JSONObject, JSONArray } from "Common/Types/JSON";
+import { JSONObject, JSONArray, JSONValue } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import Headers from "Common/Types/API/Headers";
 import TaskLogger from "./TaskLogger";
@@ -78,11 +78,13 @@ export default class PullRequestCreator {
       };
     };
 
-    let response: HTTPResponse<JSONObject> = await API.post({
-      url,
-      data: requestBody(asDraft),
-      headers,
-    });
+    let response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+      {
+        url,
+        data: requestBody(asDraft),
+        headers,
+      },
+    );
 
     /*
      * Draft rejected by this repository (422 naming drafts): retry once as
@@ -90,13 +92,12 @@ export default class PullRequestCreator {
      * state is a review-pressure signal, not the safety boundary.
      */
     if (
-      !response.isSuccess() &&
+      response instanceof HTTPErrorResponse &&
       asDraft &&
       this.isDraftNotSupportedError(response)
     ) {
-      const errorData: JSONObject = response.data as JSONObject;
       const rejectionMessage: string =
-        (errorData["message"] as string) || "draft pull request rejected";
+        response.message || "draft pull request rejected";
 
       logger.warn(
         `GitHub rejected the draft pull request for ${options.organizationName}/${options.repositoryName} (${rejectionMessage}); retrying as a non-draft pull request.`,
@@ -112,10 +113,9 @@ export default class PullRequestCreator {
       });
     }
 
-    if (!response.isSuccess()) {
-      const errorData: JSONObject = response.data as JSONObject;
+    if (response instanceof HTTPErrorResponse) {
       const errorMessage: string =
-        (errorData["message"] as string) || "Failed to create pull request";
+        PullRequestCreator.describeGitHubError(response);
       logger.error(`GitHub API error: ${errorMessage}`);
       throw new Error(`Failed to create pull request: ${errorMessage}`);
     }
@@ -143,9 +143,7 @@ export default class PullRequestCreator {
    * Anything else (bad branch, permissions, validation) must NOT trigger
    * the non-draft retry.
    */
-  private isDraftNotSupportedError(
-    response: HTTPResponse<JSONObject> | HTTPErrorResponse,
-  ): boolean {
+  private isDraftNotSupportedError(response: HTTPErrorResponse): boolean {
     if (response.statusCode !== 422) {
       return false;
     }
@@ -158,6 +156,50 @@ export default class PullRequestCreator {
     ];
 
     return textParts.join(" ").toLowerCase().includes("draft");
+  }
+
+  /*
+   * GitHub's top-level `message` on a 422 is only ever "Validation Failed" —
+   * the actionable part ("A pull request already exists for...", an invalid
+   * `head`) lives in the `errors` array, so fold both into one line.
+   */
+  private static describeGitHubError(response: HTTPErrorResponse): string {
+    const parts: Array<string> = [];
+
+    if (response.message) {
+      parts.push(response.message);
+    }
+
+    const errors: JSONValue | undefined = (response.data as JSONObject)?.[
+      "errors"
+    ];
+
+    if (Array.isArray(errors) && errors.length > 0) {
+      const details: string = errors
+        .map((error: JSONValue) => {
+          if (typeof error === "string") {
+            return error;
+          }
+
+          const errorObject: JSONObject = error as JSONObject;
+
+          return (
+            (errorObject["message"] as string) ||
+            [errorObject["field"], errorObject["code"]]
+              .filter(Boolean)
+              .join(" ") ||
+            JSON.stringify(error)
+          );
+        })
+        .filter(Boolean)
+        .join("; ");
+
+      if (details) {
+        parts.push(`(${details})`);
+      }
+    }
+
+    return parts.join(" ") || `GitHub returned HTTP ${response.statusCode}`;
   }
 
   // Get an existing pull request by number
@@ -173,12 +215,13 @@ export default class PullRequestCreator {
 
     const headers: Headers = this.getHeaders(token);
 
-    const response: HTTPResponse<JSONObject> = await API.get({
-      url,
-      headers,
-    });
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.get({
+        url,
+        headers,
+      });
 
-    if (!response.isSuccess()) {
+    if (response instanceof HTTPErrorResponse) {
       return null;
     }
 
@@ -220,7 +263,7 @@ export default class PullRequestCreator {
       },
     );
 
-    if (!response.isSuccess()) {
+    if (response instanceof HTTPErrorResponse) {
       return null;
     }
 
@@ -255,17 +298,17 @@ export default class PullRequestCreator {
 
     const headers: Headers = this.getHeaders(token);
 
-    const response: HTTPResponse<JSONObject> = await API.patch({
-      url,
-      data: updates,
-      headers,
-    });
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.patch({
+        url,
+        data: updates,
+        headers,
+      });
 
-    if (!response.isSuccess()) {
-      const errorData: JSONObject = response.data as JSONObject;
-      const errorMessage: string =
-        (errorData["message"] as string) || "Failed to update pull request";
-      throw new Error(`Failed to update pull request: ${errorMessage}`);
+    if (response instanceof HTTPErrorResponse) {
+      throw new Error(
+        `Failed to update pull request: ${PullRequestCreator.describeGitHubError(response)}`,
+      );
     }
 
     const data: JSONObject = response.data as JSONObject;
@@ -296,14 +339,17 @@ export default class PullRequestCreator {
 
     const headers: Headers = this.getHeaders(token);
 
-    const response: HTTPResponse<JSONObject> = await API.post({
-      url,
-      data: { labels },
-      headers,
-    });
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post({
+        url,
+        data: { labels },
+        headers,
+      });
 
-    if (!response.isSuccess()) {
-      logger.warn(`Failed to add labels to PR #${issueNumber}`);
+    if (response instanceof HTTPErrorResponse) {
+      logger.warn(
+        `Failed to add labels to PR #${issueNumber}: ${PullRequestCreator.describeGitHubError(response)}`,
+      );
     }
   }
 
@@ -332,14 +378,17 @@ export default class PullRequestCreator {
       data["team_reviewers"] = teamReviewers;
     }
 
-    const response: HTTPResponse<JSONObject> = await API.post({
-      url,
-      data,
-      headers,
-    });
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post({
+        url,
+        data,
+        headers,
+      });
 
-    if (!response.isSuccess()) {
-      logger.warn(`Failed to request reviewers for PR #${pullNumber}`);
+    if (response instanceof HTTPErrorResponse) {
+      logger.warn(
+        `Failed to request reviewers for PR #${pullNumber}: ${PullRequestCreator.describeGitHubError(response)}`,
+      );
     }
   }
 
@@ -359,14 +408,17 @@ export default class PullRequestCreator {
 
     const headers: Headers = this.getHeaders(token);
 
-    const response: HTTPResponse<JSONObject> = await API.post({
-      url,
-      data: { body: comment },
-      headers,
-    });
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post({
+        url,
+        data: { body: comment },
+        headers,
+      });
 
-    if (!response.isSuccess()) {
-      logger.warn(`Failed to add comment to PR #${issueNumber}`);
+    if (response instanceof HTTPErrorResponse) {
+      logger.warn(
+        `Failed to add comment to PR #${issueNumber}: ${PullRequestCreator.describeGitHubError(response)}`,
+      );
     }
   }
 

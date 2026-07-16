@@ -9,6 +9,10 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import LogSeverity, {
+  LogSeverityNumber,
+  normalizeLogSeverity,
+} from "Common/Types/Log/LogSeverity";
 
 export interface SeverityMapping {
   matchValue: string;
@@ -23,23 +27,25 @@ export interface ComponentProps {
   canDelete: boolean;
 }
 
+/*
+ * These write straight onto the log row, so they must be the exact strings
+ * ingest stores — the seven LogSeverity members. This dropdown used to offer
+ * TRACE/DEBUG/INFO/WARNING/ERROR/FATAL, which meant a remapped log was saved
+ * with a severityText no filter could ever match.
+ *
+ * Unspecified is deliberately absent: remapping a log TO "no severity" is not a
+ * thing anyone wants, and it is the value this processor exists to replace.
+ */
 const severityOptions: Array<DropdownOption> = [
-  { value: "TRACE", label: "TRACE" },
-  { value: "DEBUG", label: "DEBUG" },
-  { value: "INFO", label: "INFO" },
-  { value: "WARNING", label: "WARNING" },
-  { value: "ERROR", label: "ERROR" },
-  { value: "FATAL", label: "FATAL" },
-];
-
-const severityNumberMap: Record<string, number> = {
-  TRACE: 1,
-  DEBUG: 5,
-  INFO: 9,
-  WARNING: 13,
-  ERROR: 17,
-  FATAL: 21,
-};
+  LogSeverity.Trace,
+  LogSeverity.Debug,
+  LogSeverity.Information,
+  LogSeverity.Warning,
+  LogSeverity.Error,
+  LogSeverity.Fatal,
+].map((severity: LogSeverity) => {
+  return { value: severity, label: severity };
+});
 
 const SeverityMappingRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -66,21 +72,27 @@ const SeverityMappingRow: FunctionComponent<ComponentProps> = (
       <div className="col-span-5">
         <Dropdown
           options={severityOptions}
-          value={
-            mapping.severityText
-              ? {
-                  value: mapping.severityText,
-                  label: mapping.severityText,
-                }
-              : undefined
-          }
+          /*
+           * Normalised so a pipeline saved with the old "INFO" / "WARNING"
+           * values still shows its selection instead of an empty dropdown.
+           * Re-saving the pipeline then writes the corrected value back.
+           */
+          value={((): DropdownOption | undefined => {
+            const severity: LogSeverity | null = normalizeLogSeverity(
+              mapping.severityText,
+            );
+            return severity ? { value: severity, label: severity } : undefined;
+          })()}
           placeholder="Select severity..."
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            const text: string = value?.toString() || "";
+            const severity: LogSeverity | null = normalizeLogSeverity(
+              value?.toString() || "",
+            );
             props.onChange({
               ...mapping,
-              severityText: text,
-              severityNumber: severityNumberMap[text] || 0,
+              severityText: severity || "",
+              // Kept in step with the text so the row cannot disagree with itself.
+              severityNumber: severity ? LogSeverityNumber[severity] : 0,
             });
           }}
         />

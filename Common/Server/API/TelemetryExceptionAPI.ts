@@ -4,11 +4,11 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TelemetryExceptionService, {
-  AIFixReadiness,
   DashboardServiceSummary,
   DashboardSummaryResult,
   Service as TelemetryExceptionServiceType,
 } from "../Services/TelemetryExceptionService";
+import { AIFixReadiness } from "../../Types/AI/AIFixReadiness";
 import AIRunService from "../Services/AIRunService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
@@ -50,6 +50,11 @@ const CODE_FIX_STATUS_TEXT: {
     title: "Completed",
     description:
       "The AI agent finished. Review the pull request it opened for the proposed fix.",
+  },
+  [AIRunStatus.NoFixFound]: {
+    title: "No Fix Found",
+    description:
+      "The AI agent reviewed the code and did not find a fix to propose, so it opened no pull request.",
   },
   [AIRunStatus.Error]: {
     title: "Error",

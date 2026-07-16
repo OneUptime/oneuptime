@@ -118,6 +118,93 @@ export class Service extends DatabaseService<StatusPage> {
     this.statusPageUrlCache.clear();
   }
 
+  /*
+   * Mirrors `resolveStatusPageIdOrThrow` in `Common/Server/API/StatusPageAPI.ts`
+   * (module-private there), but returns null instead of throwing so callers can
+   * collapse "no such page" and "page exists but is gated" into one answer.
+   * The dot check — not a UUID check — is the discriminator, so both resolvers
+   * agree on dotless hostnames like "localhost".
+   */
+  @CaptureSpan()
+  public async resolveStatusPageIdOrNull(
+    statusPageIdOrDomain: string,
+  ): Promise<ObjectID | null> {
+    if (!statusPageIdOrDomain) {
+      return null;
+    }
+
+    if (statusPageIdOrDomain.includes(".")) {
+      const statusPageDomain: StatusPageDomain | null =
+        await StatusPageDomainService.findOneBy({
+          query: {
+            fullDomain: statusPageIdOrDomain,
+            domain: {
+              isVerified: true,
+            } as any,
+          },
+          select: {
+            statusPageId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!statusPageDomain || !statusPageDomain.statusPageId) {
+        return null;
+      }
+
+      return statusPageDomain.statusPageId;
+    }
+
+    try {
+      ObjectID.validateUUID(statusPageIdOrDomain);
+      return new ObjectID(statusPageIdOrDomain);
+    } catch (err) {
+      logger.error(
+        `Error converting statusPageIdOrDomain to ObjectID: ${statusPageIdOrDomain}`,
+      );
+      logger.error(err);
+      return null;
+    }
+  }
+
+  /*
+   * Folds existence and the `enableMcpServer` flag into a single query so the
+   * caller cannot distinguish "not found" from "disabled". The public MCP tools
+   * need no API key, so a distinct "disabled" message would be a status page
+   * enumeration oracle.
+   *
+   * Throws on database failure rather than returning false, so the caller
+   * reports an error instead of reporting the page as gated.
+   */
+  @CaptureSpan()
+  public async isMcpServerEnabled(
+    statusPageIdOrDomain: string,
+  ): Promise<boolean> {
+    const statusPageId: ObjectID | null =
+      await this.resolveStatusPageIdOrNull(statusPageIdOrDomain);
+
+    if (!statusPageId) {
+      return false;
+    }
+
+    const statusPage: StatusPage | null = await this.findOneBy({
+      query: {
+        _id: statusPageId,
+        enableMcpServer: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(statusPage);
+  }
+
   public static getDefaultEmailFooterText(): string {
     return "This is an automated email sent to you because you are subscribed to this Status Page.";
   }

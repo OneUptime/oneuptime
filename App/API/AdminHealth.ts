@@ -1547,6 +1547,7 @@ async function getPostgresClusterHealth(): Promise<JSONObject> {
     database: null,
     wraparound: null,
     topTablesByDeadTuples: [],
+    topTablesBySize: [],
     databaseSizeInBytes: null,
   };
 
@@ -1848,7 +1849,61 @@ async function getPostgresClusterHealth(): Promise<JSONObject> {
       logger.debug(err);
     }
 
-    // 8. Total database size.
+    /*
+     * 8. Largest tables by total size — where the disk actually goes. The three
+     * component sizes are reported so they sum back to the total: pg_table_size
+     * already INCLUDES the toast heap + toast index, so toast is subtracted out
+     * of it to leave the main heap (plus fsm/vm). Without that subtraction toast
+     * would be counted twice and a toast-heavy table (large JSONB / text columns)
+     * would read as a bloated heap, pointing the operator at a vacuum instead of
+     * at the column that is actually costing the disk.
+     */
+    try {
+      const sizeTableRows: Array<{
+        schemaname: string;
+        relname: string;
+        total_bytes: string;
+        table_bytes: string;
+        index_bytes: string;
+        toast_bytes: string;
+        live_tuples: string;
+        dead_tuples: string;
+      }> = await dataSource.query(
+        `SELECT
+           s.schemaname,
+           s.relname,
+           pg_total_relation_size(s.relid) AS total_bytes,
+           pg_table_size(s.relid)
+             - COALESCE(pg_total_relation_size(c.reltoastrelid), 0) AS table_bytes,
+           pg_indexes_size(s.relid) AS index_bytes,
+           COALESCE(pg_total_relation_size(c.reltoastrelid), 0) AS toast_bytes,
+           s.n_live_tup AS live_tuples,
+           s.n_dead_tup AS dead_tuples
+         FROM pg_stat_user_tables s
+         JOIN pg_class c ON c.oid = s.relid
+         ORDER BY pg_total_relation_size(s.relid) DESC
+         LIMIT 10`,
+      );
+
+      result["topTablesBySize"] = sizeTableRows.map(
+        (row: (typeof sizeTableRows)[number]): JSONObject => {
+          return {
+            name: `${row.schemaname}.${row.relname}`,
+            totalSizeInBytes: toNumberOrNull(row.total_bytes),
+            tableSizeInBytes: toNumberOrNull(row.table_bytes),
+            indexSizeInBytes: toNumberOrNull(row.index_bytes),
+            toastSizeInBytes: toNumberOrNull(row.toast_bytes),
+            liveTuples: toNumberOrNull(row.live_tuples),
+            deadTuples: toNumberOrNull(row.dead_tuples),
+          };
+        },
+      );
+    } catch (err) {
+      logger.debug("AdminHealth: table size probe failed");
+      logger.debug(err);
+    }
+
+    // 9. Total database size.
     try {
       const sizeRows: Array<{ size: string }> = await dataSource.query(
         "SELECT pg_database_size(current_database()) AS size",

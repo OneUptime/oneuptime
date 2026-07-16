@@ -2144,6 +2144,48 @@ export class ProjectService extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Allocate the next AI task number for a project. Unlike the counters
+   * above there is no companion prefix column — AI task numbers are not
+   * user-customizable, so the caller renders a plain "#N".
+   */
+  @CaptureSpan()
+  public async incrementAndGetAIRunCounter(
+    projectId: ObjectID,
+  ): Promise<number> {
+    const mutex: SemaphoreMutex = await Semaphore.lock({
+      key: projectId.toString(),
+      namespace: "ProjectService.aiRunCounter",
+    });
+
+    try {
+      await this.atomicIncrementColumnValueByOne({
+        id: projectId,
+        columnName: "aiRunCounter",
+      });
+
+      const project: Model | null = await this.findOneById({
+        id: projectId,
+        select: {
+          aiRunCounter: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!project || project.aiRunCounter === undefined) {
+        throw new BadDataException(
+          `Could not read aiRunCounter for project ${projectId.toString()}`,
+        );
+      }
+
+      return project.aiRunCounter;
+    } finally {
+      await Semaphore.release(mutex);
+    }
+  }
+
   @CaptureSpan()
   public async isSMSNotificationsEnabled(
     projectId: ObjectID,

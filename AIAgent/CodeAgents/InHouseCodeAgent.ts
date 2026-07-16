@@ -22,6 +22,18 @@ import path from "path";
 import { ChildProcess, spawn } from "child_process";
 
 /*
+ * One tool execution: the one-line narration for the activity feed, and the
+ * verbatim output the model saw. Both are shipped to the run's trail — the
+ * narration as the event message, the output onto the transcript the Logs
+ * page reads — so a bad run can be debugged from what the model was actually
+ * told, not just from a summary of it.
+ */
+interface ToolExecution {
+  narration: string;
+  output: string;
+}
+
+/*
  * The in-house code agent (B4 Tier 0, Internal/Roadmap/
  * CodeFixSandboxDesign.md): a tool loop whose every LLM completion is
  * server-mediated via POST /ai-agent-data/llm-completion — metered, logged
@@ -33,7 +45,8 @@ import { ChildProcess, spawn } from "child_process";
  * Tool surface: read_file / write_file / list_directory / search_files
  * (all path-guarded to the workspace) and run_command (workspace cwd,
  * 120s timeout, output truncated). Every tool call is narrated to the run's
- * glass-box trail as a ProgressLog event via the TaskLogger.
+ * glass-box trail as a ToolCallCompleted event via the TaskLogger, carrying
+ * the verbatim arguments and output for the Logs page.
  */
 export default class InHouseCodeAgent implements CodeAgent {
   public readonly name: string = "InHouse";
@@ -412,16 +425,39 @@ export default class InHouseCodeAgent implements CodeAgent {
     workspaceRoot: string,
     toolCall: LLMToolCall,
   ): Promise<string> {
+    const args: JSONObject = toolCall.arguments || {};
+
+    const execution: ToolExecution = await this.runTool(
+      workspaceRoot,
+      toolCall,
+      args,
+    );
+
+    /*
+     * Narrate once, centrally, with the verbatim arguments and output
+     * attached — so every tool is recorded the same way and no branch can
+     * quietly skip the trail.
+     */
+    await this.reportToolCall(toolCall.name, args, execution);
+
+    return execution.output;
+  }
+
+  private async runTool(
+    workspaceRoot: string,
+    toolCall: LLMToolCall,
+    args: JSONObject,
+  ): Promise<ToolExecution> {
     /*
      * Malformed argument JSON must never execute a tool with empty
      * arguments — surface the parse error so the model retries.
      */
     if (toolCall.argumentsParseError) {
-      await this.progress(`refused ${toolCall.name}: malformed tool arguments`);
-      return `Error: ${toolCall.argumentsParseError} Retry the tool call with valid JSON arguments.`;
+      return {
+        narration: `refused ${toolCall.name}: malformed tool arguments`,
+        output: `Error: ${toolCall.argumentsParseError} Retry the tool call with valid JSON arguments.`,
+      };
     }
-
-    const args: JSONObject = toolCall.arguments || {};
 
     try {
       switch (toolCall.name) {
@@ -436,21 +472,25 @@ export default class InHouseCodeAgent implements CodeAgent {
         case "run_command":
           return await this.toolRunCommand(workspaceRoot, args);
         default:
-          await this.progress(`refused unknown tool ${toolCall.name}`);
-          return `Error: unknown tool "${toolCall.name}".`;
+          return {
+            narration: `refused unknown tool ${toolCall.name}`,
+            output: `Error: unknown tool "${toolCall.name}".`,
+          };
       }
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
-      await this.progress(`${toolCall.name} failed: ${errorMessage}`);
-      return `Error: ${errorMessage}`;
+      return {
+        narration: `${toolCall.name} failed: ${errorMessage}`,
+        output: `Error: ${errorMessage}`,
+      };
     }
   }
 
   private async toolReadFile(
     workspaceRoot: string,
     args: JSONObject,
-  ): Promise<string> {
+  ): Promise<ToolExecution> {
     const requestedPath: string = (args["path"] as string) || "";
     const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
       workspaceRoot,
@@ -463,15 +503,17 @@ export default class InHouseCodeAgent implements CodeAgent {
       );
 
     const content: string = await LocalFile.read(absolutePath);
-    await this.progress(`read ${relativePath}`);
 
-    return CodeAgentWorkspaceGuard.truncateToolOutput(content);
+    return {
+      narration: `read ${relativePath}`,
+      output: CodeAgentWorkspaceGuard.truncateToolOutput(content),
+    };
   }
 
   private async toolWriteFile(
     workspaceRoot: string,
     args: JSONObject,
-  ): Promise<string> {
+  ): Promise<ToolExecution> {
     const requestedPath: string = (args["path"] as string) || "";
     const content: string = (args["content"] as string) ?? "";
     const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
@@ -486,15 +528,17 @@ export default class InHouseCodeAgent implements CodeAgent {
 
     await LocalFile.makeDirectory(path.dirname(absolutePath));
     await LocalFile.write(absolutePath, content);
-    await this.progress(`wrote ${relativePath} (${content.length} chars)`);
 
-    return `Wrote ${content.length} characters to ${relativePath}.`;
+    return {
+      narration: `wrote ${relativePath} (${content.length} chars)`,
+      output: `Wrote ${content.length} characters to ${relativePath}.`,
+    };
   }
 
   private async toolListDirectory(
     workspaceRoot: string,
     args: JSONObject,
-  ): Promise<string> {
+  ): Promise<ToolExecution> {
     const requestedPath: string = (args["path"] as string) || ".";
     const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
       workspaceRoot,
@@ -509,30 +553,37 @@ export default class InHouseCodeAgent implements CodeAgent {
     const entries: Array<{ name: string; isDirectory(): boolean }> =
       await LocalFile.readDirectory(absolutePath);
 
-    await this.progress(`listed ${relativePath}`);
-
     if (entries.length === 0) {
-      return "(empty directory)";
+      return {
+        narration: `listed ${relativePath}`,
+        output: "(empty directory)",
+      };
     }
 
-    return CodeAgentWorkspaceGuard.truncateToolOutput(
-      entries
-        .map((entry: { name: string; isDirectory(): boolean }) => {
-          return entry.isDirectory() ? `${entry.name}/` : entry.name;
-        })
-        .sort()
-        .join("\n"),
-    );
+    return {
+      narration: `listed ${relativePath}`,
+      output: CodeAgentWorkspaceGuard.truncateToolOutput(
+        entries
+          .map((entry: { name: string; isDirectory(): boolean }) => {
+            return entry.isDirectory() ? `${entry.name}/` : entry.name;
+          })
+          .sort()
+          .join("\n"),
+      ),
+    };
   }
 
   private async toolSearchFiles(
     workspaceRoot: string,
     args: JSONObject,
-  ): Promise<string> {
+  ): Promise<ToolExecution> {
     const pattern: string = (args["pattern"] as string) || "";
 
     if (!pattern) {
-      return "Error: a search pattern is required.";
+      return {
+        narration: "refused search_files: no pattern given",
+        output: "Error: a search pattern is required.",
+      };
     }
 
     /*
@@ -555,7 +606,7 @@ export default class InHouseCodeAgent implements CodeAgent {
       );
     }
 
-    await this.progress(`searched files for "${pattern}"`);
+    const narration: string = `searched files for "${pattern}"`;
 
     try {
       const output: string = await Execute.executeCommandFile({
@@ -566,23 +617,32 @@ export default class InHouseCodeAgent implements CodeAgent {
         timeoutInMS: 30 * 1000,
       });
 
-      return CodeAgentWorkspaceGuard.truncateToolOutput(
-        output.trim() || "No matches found.",
-      );
+      return {
+        narration,
+        output: CodeAgentWorkspaceGuard.truncateToolOutput(
+          output.trim() || "No matches found.",
+        ),
+      };
     } catch {
       // git grep exits non-zero on no matches (and on invalid patterns).
-      return "No matches found (or the pattern was invalid).";
+      return {
+        narration,
+        output: "No matches found (or the pattern was invalid).",
+      };
     }
   }
 
   private async toolRunCommand(
     workspaceRoot: string,
     args: JSONObject,
-  ): Promise<string> {
+  ): Promise<ToolExecution> {
     const command: string = (args["command"] as string) || "";
 
     if (!command) {
-      return "Error: a command is required.";
+      return {
+        narration: "refused run_command: no command given",
+        output: "Error: a command is required.",
+      };
     }
 
     const result: {
@@ -591,19 +651,18 @@ export default class InHouseCodeAgent implements CodeAgent {
       timedOut: boolean;
     } = await this.runShellCommand(workspaceRoot, command);
 
-    await this.progress(
-      `ran ${command.substring(0, 200)} (${
-        result.timedOut ? "timed out" : `exit ${result.exitCode ?? "unknown"}`
-      })`,
-    );
-
     const header: string = result.timedOut
       ? `Command timed out after ${InHouseCodeAgent.RUN_COMMAND_TIMEOUT_MS / 1000} seconds.`
       : `Exit code: ${result.exitCode ?? "unknown"}`;
 
-    return CodeAgentWorkspaceGuard.truncateToolOutput(
-      `${header}\n${result.output}`.trim(),
-    );
+    return {
+      narration: `ran ${command.substring(0, 200)} (${
+        result.timedOut ? "timed out" : `exit ${result.exitCode ?? "unknown"}`
+      })`,
+      output: CodeAgentWorkspaceGuard.truncateToolOutput(
+        `${header}\n${result.output}`.trim(),
+      ),
+    };
   }
 
   /*
@@ -721,16 +780,32 @@ export default class InHouseCodeAgent implements CodeAgent {
   }
 
   /*
-   * Narrate one tool step: ProgressLog event on the run's glass-box trail
-   * (via the task-log route) + the streaming progress callback.
+   * Narrate one tool step AND record the verbatim detail behind it: the
+   * arguments as executed and the full output the model saw. The server
+   * stores the detail on the run's transcript, where the Logs page reads it.
+   * Without this the trail says "read Index.ts" but never what the model was
+   * shown — which is exactly what you need when a fix goes wrong.
    */
-  private async progress(message: string): Promise<void> {
-    await this.log(message);
+  private async reportToolCall(
+    toolName: string,
+    args: JSONObject,
+    execution: ToolExecution,
+  ): Promise<void> {
+    if (this.taskLogger) {
+      await this.taskLogger.toolCall({
+        toolName,
+        message: `[${this.name}] ${execution.narration}`,
+        toolArguments: args,
+        toolResult: execution.output,
+      });
+    } else {
+      logger.debug(`[${this.name}] ${execution.narration}`);
+    }
 
     if (this.progressCallback) {
       const event: CodeAgentProgressEvent = {
         type: "status",
-        message,
+        message: execution.narration,
         timestamp: new Date(),
       };
 

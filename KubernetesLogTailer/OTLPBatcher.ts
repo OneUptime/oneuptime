@@ -6,6 +6,7 @@ import {
   BATCH_MAX_RECORDS,
   CLUSTER_NAME,
   EXPORT_MAX_RETRIES,
+  MIN_SEVERITY,
   ONEUPTIME_API_KEY,
   ONEUPTIME_LABELS,
   ONEUPTIME_URL,
@@ -81,26 +82,74 @@ const kv: (key: string, value: string) => OtlpKeyValue = (
   return { key, value: { stringValue: value } };
 };
 
+/*
+ * `parsed` records whether the severity was actually read off the log line, or
+ * merely assumed. Only a SEVERITY_REGEX hit counts as parsed; both fallbacks
+ * below are guesses.
+ *
+ * This distinction is what MIN_SEVERITY filters on, and it matters because the
+ * stream fallback is unreliable in this mode: the Kubernetes pods/log API
+ * merges stdout and stderr into one stream with no per-line marker, so
+ * LogStream always reports "stdout" (see LogStream.ts). Dropping on an assumed
+ * INFO would therefore delete exactly the records the threshold exists to
+ * preserve — a Python traceback or `npm ERR!` on stderr carries no severity
+ * keyword and would look like INFO.
+ */
 const deriveSeverity: (
   body: string,
   stream: Stream,
-) => { text: string; number: number } = (
+) => { text: string; number: number; parsed: boolean } = (
   body: string,
   stream: Stream,
-): { text: string; number: number } => {
+): { text: string; number: number; parsed: boolean } => {
   const match: RegExpMatchArray | null = body.match(SEVERITY_REGEX);
   if (match && match[1]) {
     const text: string = match[1].toUpperCase();
     const num: number | undefined = severityTextToNumber[text];
     if (num !== undefined) {
-      return { text, number: num };
+      return { text, number: num, parsed: true };
     }
   }
   if (stream === "stderr") {
-    return { text: "ERROR", number: severityTextToNumber["ERROR"]! };
+    return {
+      text: "ERROR",
+      number: severityTextToNumber["ERROR"]!,
+      parsed: false,
+    };
   }
-  return { text: "INFO", number: severityTextToNumber["INFO"]! };
+  return { text: "INFO", number: severityTextToNumber["INFO"]!, parsed: false };
 };
+
+/*
+ * The severity floor, resolved once at startup. 0 means "keep everything",
+ * which is also what an unrecognised MIN_SEVERITY resolves to — the safe
+ * failure for a filter is to send too much, not to silently delete logs.
+ *
+ * Only the six canonical levels are accepted here, matching the enum the Helm
+ * chart's values.schema.json allows. The aliases in severityTextToNumber
+ * (WARNING, ERR, CRIT, PANIC, ...) exist to parse what applications *emit*;
+ * they are not threshold values a user configures.
+ */
+const minSeverityNumber: number = ((): number => {
+  if (!MIN_SEVERITY) {
+    return 0;
+  }
+  const allowed: Array<string> = [
+    "TRACE",
+    "DEBUG",
+    "INFO",
+    "WARN",
+    "ERROR",
+    "FATAL",
+  ];
+  if (!allowed.includes(MIN_SEVERITY)) {
+    Logger.warn(
+      `MIN_SEVERITY "${MIN_SEVERITY}" is not one of ${allowed.join(", ")} - keeping all logs`,
+    );
+    return 0;
+  }
+  return severityTextToNumber[MIN_SEVERITY] ?? 0;
+})();
 
 const groupByResource: (entries: Array<LogEntry>) => Array<OtlpResourceLogs> = (
   entries: Array<LogEntry>,
@@ -183,6 +232,25 @@ class OTLPBatcher {
   public enqueue(entry: LogEntry): void {
     if (this.stopped) {
       return;
+    }
+    /*
+     * Drop below the severity floor before buffering, so filtered logs cost no
+     * memory and no egress. deriveSeverity runs again in groupByResource for
+     * the records that survive; it is one regex against a line we are about to
+     * ship over the network either way.
+     *
+     * Only records whose severity we actually parsed are eligible to be
+     * dropped. An assumed severity is not evidence, and keeping a line we could
+     * not classify is the safe failure — see deriveSeverity.
+     */
+    if (minSeverityNumber > 0) {
+      const severity: { number: number; parsed: boolean } = deriveSeverity(
+        entry.body,
+        entry.stream,
+      );
+      if (severity.parsed && severity.number < minSeverityNumber) {
+        return;
+      }
     }
     this.buffer.push(entry);
     if (this.buffer.length >= BATCH_MAX_RECORDS) {

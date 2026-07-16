@@ -16,6 +16,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { getApiUrl } from "../Config/ServerConfig";
+import StatusPageService from "Common/Server/Services/StatusPageService";
 
 // Common input schema for status page identifier
 const statusPageIdentifierSchema: JSONSchema = {
@@ -50,6 +51,8 @@ function createGetOverviewTool(): McpToolInfo {
 
 This tool does NOT require an API key and works with public status pages.
 
+Status page owners can disable MCP access for their status page. If disabled, this tool returns an error and the data must be read from the status page website or its RSS feed instead.
+
 USAGE:
 - By domain: statusPageIdOrDomain = "status.company.com"
 - By ID: statusPageIdOrDomain = "550e8400-e29b-41d4-a716-446655440000"
@@ -80,6 +83,8 @@ function createGetIncidentsTool(): McpToolInfo {
     description: `Get incidents from a public status page.
 
 This tool does NOT require an API key and works with public status pages.
+
+Status page owners can disable MCP access for their status page. If disabled, this tool returns an error and the data must be read from the status page website or its RSS feed instead.
 
 USAGE:
 - By domain: statusPageIdOrDomain = "status.company.com"
@@ -125,6 +130,8 @@ function createGetScheduledMaintenanceTool(): McpToolInfo {
 
 This tool does NOT require an API key and works with public status pages.
 
+Status page owners can disable MCP access for their status page. If disabled, this tool returns an error and the data must be read from the status page website or its RSS feed instead.
+
 USAGE:
 - By domain: statusPageIdOrDomain = "status.company.com"
 - By ID: statusPageIdOrDomain = "550e8400-e29b-41d4-a716-446655440000"
@@ -169,6 +176,8 @@ function createGetAnnouncementsTool(): McpToolInfo {
     description: `Get announcements from a public status page.
 
 This tool does NOT require an API key and works with public status pages.
+
+Status page owners can disable MCP access for their status page. If disabled, this tool returns an error and the data must be read from the status page website or its RSS feed instead.
 
 USAGE:
 - By domain: statusPageIdOrDomain = "status.company.com"
@@ -271,6 +280,26 @@ export async function handlePublicStatusPageTool(
   }
 
   try {
+    /*
+     * Gate the whole tool surface rather than individual tools: every branch
+     * below serves data for this status page. Inside the try so a database
+     * failure lands in the catch and fails closed.
+     */
+    const isEnabled: boolean =
+      await StatusPageService.isMcpServerEnabled(statusPageIdOrDomain);
+
+    if (!isEnabled) {
+      /*
+       * Same message for "does not exist" and "MCP disabled" — these tools need
+       * no API key, so a distinguishing message would let anyone enumerate
+       * status pages.
+       */
+      return JSON.stringify({
+        success: false,
+        error: `Status page '${statusPageIdOrDomain}' is not available over MCP.`,
+      });
+    }
+
     switch (toolName) {
       case "get_public_status_page_overview":
         return await getStatusPageOverview(statusPageIdOrDomain);

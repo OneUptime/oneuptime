@@ -62,6 +62,11 @@ spec:
               value: {{ join "," .Values.namespaceFilters.include | quote }}
             - name: NAMESPACE_EXCLUDE
               value: {{ join "," .Values.namespaceFilters.exclude | quote }}
+            # This mode posts OTLP straight to OneUptime, so it never passes
+            # through the collector's filter/telemetry processor. The tailer
+            # applies the same threshold itself — see KubernetesLogTailer/Config.ts.
+            - name: MIN_SEVERITY
+              value: {{ (((.Values.filters).logs).minSeverity) | default "" | quote }}
             - name: AGENT_NAMESPACE
               value: {{ .Release.Namespace | quote }}
             - name: AGENT_LABEL_SELECTOR

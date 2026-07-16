@@ -520,7 +520,25 @@ export async function dropClickhousePartition(data: {
   const cluster: string = escapeStringLiteral(getClickhouseClusterName());
   const partitionId: string = escapeStringLiteral(data.partitionId);
 
+  /*
+   * max_partition_size_to_drop = 0 lifts the server's 50 GB drop guard
+   * (query-level since ClickHouse 23.12) for this statement only. That guard
+   * exists to stop a human fat-fingering a DROP: it cannot tell a wrong
+   * partition from a merely large one, and every partition reaching this call
+   * has already cleared the PRUNABLE_LOCAL_TABLES allowlist, the daily
+   * partition id check, newest-partition protection and a capacity plan that
+   * only selects partitions relieving a disk still over target. A single day
+   * of spans routinely exceeds 50 GB, so the guard rejects precisely the drops
+   * capacity pruning exists to perform. Setting it per statement rather than
+   * in config.xml keeps the guard in force for manual operator DDL, which is
+   * the fat-finger case it is actually for.
+   *
+   * Debugging note: ClickHouse strips this SETTINGS clause from the query text
+   * it stores in the distributed DDL queue and propagates the setting in the
+   * task's separate settings field, so system.distributed_ddl_queue shows the
+   * ALTER without it. The setting is still applied on every replica.
+   */
   await getClient().command({
-    query: `ALTER TABLE ${database}.${tableName} ON CLUSTER '${cluster}' DROP PARTITION ID '${partitionId}'`,
+    query: `ALTER TABLE ${database}.${tableName} ON CLUSTER '${cluster}' DROP PARTITION ID '${partitionId}' SETTINGS max_partition_size_to_drop = 0`,
   });
 }

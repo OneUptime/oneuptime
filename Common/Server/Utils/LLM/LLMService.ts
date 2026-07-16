@@ -1,5 +1,6 @@
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Headers from "../../../Types/API/Headers";
 import URL from "../../../Types/API/URL";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
@@ -85,6 +86,32 @@ export interface LLMProviderConfig {
   modelName?: string;
 }
 
+/**
+ * Which spelling of the output-token cap an OpenAI-style endpoint accepts.
+ *
+ *  - Default: send the legacy `max_tokens` unless additionalParams opted into
+ *    `max_completion_tokens`. This is the historical behavior.
+ *  - MaxCompletionTokens: the model rejects `max_tokens` (reasoning models).
+ *  - MaxTokens: the model rejects `max_completion_tokens` (older models and
+ *    Azure API versions before 2024-08-01-preview).
+ */
+enum TokenLimitParam {
+  Default = "Default",
+  MaxCompletionTokens = "MaxCompletionTokens",
+  MaxTokens = "MaxTokens",
+}
+
+/**
+ * Per-endpoint compatibility adjustments for the OpenAI chat-completions wire
+ * format. Model families disagree about which generation parameters they
+ * accept, so a request may need reshaping before a given deployment takes it.
+ */
+interface OpenAIRequestAdaptation {
+  tokenLimitParam: TokenLimitParam;
+  /** Generation params this model rejects outright, so we omit them. */
+  unsupportedParams: Set<string>;
+}
+
 export default class LLMService {
   /*
    * Provider-level parameters allowed on protected, unattended completions.
@@ -115,6 +142,145 @@ export default class LLMService {
       "top_p",
       "verbosity",
     ]);
+
+  /*
+   * Generation params that reasoning models (o-series, gpt-5) reject outright.
+   * When a provider names one of these in an error, we drop it and retry
+   * rather than failing the whole completion. Only params that merely tune
+   * sampling are droppable — never anything that changes what the model is
+   * asked to do.
+   */
+  private static readonly DROPPABLE_UNSUPPORTED_PARAMETERS: Set<string> =
+    new Set([
+      "frequency_penalty",
+      "logit_bias",
+      "logprobs",
+      "presence_penalty",
+      "temperature",
+      "top_logprobs",
+      "top_p",
+    ]);
+
+  /*
+   * Reasoning models require `max_completion_tokens` and reject the legacy
+   * `max_tokens`. Detecting them by name lets the first request succeed
+   * instead of burning a round trip on a rejected one.
+   *
+   * On Azure this is only a hint: the `model` field there is the *deployment*
+   * name, which the operator chooses freely ("dumbo_o3", "prod-fast"), so it
+   * may not resemble the underlying model at all. A wrong guess in either
+   * direction is corrected by the error-driven retry in
+   * postOpenAIChatCompletion, which is what actually makes this correct.
+   */
+  private static readonly REASONING_MODEL_NAME_REGEX: RegExp =
+    /^(?:o\d+(?:[-_.]|$)|gpt-?5|codex-mini)/i;
+
+  /*
+   * Backstop only. A provider names one offending parameter per response, so
+   * the worst legitimate chain is both token spellings plus one drop for each
+   * droppable param. The loop already terminates on its own — every rule
+   * refuses to re-suggest a fix it has applied — so this just stops a
+   * misbehaving endpoint from looping forever. Sizing it below the reachable
+   * chain would fail requests the next attempt would have fixed.
+   */
+  private static readonly MAX_REQUEST_ADAPTATION_ATTEMPTS: number =
+    2 + LLMService.DROPPABLE_UNSUPPORTED_PARAMETERS.size;
+
+  /*
+   * Remembers what a given endpoint actually accepted, so only the first
+   * completion per provider pays for the discovery. API.post retries 4xx, so
+   * a rejected request costs several full prompt uploads plus backoff —
+   * re-learning that on every call would be expensive on hot paths like the
+   * AI agent loop.
+   *
+   * Keyed by provider + base URL + model, so editing any of them re-probes.
+   * Entries also expire: what a deployment accepts is not fixed forever — the
+   * operator can repoint a deployment at a different model, upgrade the Azure
+   * api-version, or change reasoning_effort (gpt-5.1 accepts temperature when
+   * it is "none"). Without expiry we would keep dropping a parameter the model
+   * has since started accepting.
+   */
+  private static readonly requestAdaptationCache: Map<
+    string,
+    { adaptation: OpenAIRequestAdaptation; learnedAt: number }
+  > = new Map();
+
+  private static readonly MAX_ADAPTATION_CACHE_ENTRIES: number = 500;
+
+  private static readonly ADAPTATION_CACHE_TTL_IN_MS: number = 60 * 60 * 1000;
+
+  private static getAdaptationCacheKey(
+    config: LLMProviderConfig,
+    modelName: string,
+  ): string {
+    return `${config.llmType}|${config.baseUrl || ""}|${modelName}`;
+  }
+
+  private static getInitialRequestAdaptation(
+    config: LLMProviderConfig,
+    modelName: string,
+  ): OpenAIRequestAdaptation {
+    const key: string = this.getAdaptationCacheKey(config, modelName);
+    const cached:
+      | { adaptation: OpenAIRequestAdaptation; learnedAt: number }
+      | undefined = this.requestAdaptationCache.get(key);
+
+    if (cached) {
+      if (Date.now() - cached.learnedAt < this.ADAPTATION_CACHE_TTL_IN_MS) {
+        return {
+          tokenLimitParam: cached.adaptation.tokenLimitParam,
+          unsupportedParams: new Set(cached.adaptation.unsupportedParams),
+        };
+      }
+
+      this.requestAdaptationCache.delete(key);
+    }
+
+    return {
+      tokenLimitParam: this.REASONING_MODEL_NAME_REGEX.test(modelName)
+        ? TokenLimitParam.MaxCompletionTokens
+        : TokenLimitParam.Default,
+      unsupportedParams: new Set(),
+    };
+  }
+
+  private static cacheRequestAdaptation(
+    config: LLMProviderConfig,
+    modelName: string,
+    adaptation: OpenAIRequestAdaptation,
+  ): void {
+    const key: string = this.getAdaptationCacheKey(config, modelName);
+
+    // Bound the cache; Map iterates in insertion order, so this drops the oldest.
+    if (
+      !this.requestAdaptationCache.has(key) &&
+      this.requestAdaptationCache.size >= this.MAX_ADAPTATION_CACHE_ENTRIES
+    ) {
+      const oldestKey: string | undefined = this.requestAdaptationCache
+        .keys()
+        .next().value;
+
+      if (oldestKey !== undefined) {
+        this.requestAdaptationCache.delete(oldestKey);
+      }
+    }
+
+    this.requestAdaptationCache.set(key, {
+      adaptation: {
+        tokenLimitParam: adaptation.tokenLimitParam,
+        unsupportedParams: new Set(adaptation.unsupportedParams),
+      },
+      learnedAt: Date.now(),
+    });
+  }
+
+  /**
+   * Test seam: provider compatibility is remembered process-wide, so tests
+   * must be able to start from a clean slate.
+   */
+  public static clearRequestAdaptationCache(): void {
+    this.requestAdaptationCache.clear();
+  }
 
   @CaptureSpan()
   public static async getCompletion(
@@ -268,6 +434,7 @@ export default class LLMService {
   private static buildOpenAIRequestBody(
     modelName: string,
     request: LLMCompletionRequest,
+    adaptation: OpenAIRequestAdaptation,
   ): JSONObject {
     const data: JSONObject = {
       model: modelName,
@@ -346,7 +513,227 @@ export default class LLMService {
       delete data["max_tokens"];
     }
 
+    /*
+     * Applied last so it overrides every other source: this is what the
+     * endpoint has actually told us (or the model name strongly implies) it
+     * will accept, and a request it rejects is worth nothing.
+     */
+    this.applyRequestAdaptation(data, adaptation);
+
     return data;
+  }
+
+  private static applyRequestAdaptation(
+    data: JSONObject,
+    adaptation: OpenAIRequestAdaptation,
+  ): void {
+    if (adaptation.tokenLimitParam === TokenLimitParam.MaxCompletionTokens) {
+      const tokenLimit: unknown =
+        data["max_tokens"] ?? data["max_completion_tokens"];
+
+      delete data["max_tokens"];
+
+      if (tokenLimit !== undefined) {
+        data["max_completion_tokens"] = tokenLimit as number;
+      }
+    } else if (adaptation.tokenLimitParam === TokenLimitParam.MaxTokens) {
+      const tokenLimit: unknown =
+        data["max_completion_tokens"] ?? data["max_tokens"];
+
+      delete data["max_completion_tokens"];
+
+      if (tokenLimit !== undefined) {
+        data["max_tokens"] = tokenLimit as number;
+      }
+    }
+
+    for (const unsupportedParam of adaptation.unsupportedParams) {
+      delete data[unsupportedParam];
+    }
+  }
+
+  /**
+   * Work out how to reshape a request that the provider rejected on
+   * parameter-compatibility grounds. Returns undefined when the error is
+   * something else (bad key, unknown model, rate limit) or when we have
+   * already applied the only remedy we have — the caller then surfaces the
+   * provider's error as-is.
+   */
+  private static getRequestAdaptationForError(
+    response: HTTPErrorResponse,
+    adaptation: OpenAIRequestAdaptation,
+    attemptedTokenLimitParams: Set<TokenLimitParam>,
+  ): OpenAIRequestAdaptation | undefined {
+    const error: JSONObject | undefined = (response.data as JSONObject)?.[
+      "error"
+    ] as JSONObject | undefined;
+
+    if (!error) {
+      return undefined;
+    }
+
+    const param: string = (error["param"] as string) || "";
+    const code: string = (error["code"] as string) || "";
+    const message: string = (error["message"] as string) || "";
+
+    /*
+     * "Unsupported parameter: 'max_tokens' is not supported with this model.
+     * Use 'max_completion_tokens' instead." — every o-series and gpt-5 model.
+     *
+     * The code/message check matters: a too-large or wrong-type value is also
+     * reported with param "max_tokens", and renaming the parameter would not
+     * fix it. It would only replace the provider's real complaint with a
+     * confusing one about a parameter the caller never set.
+     */
+    if (
+      param === "max_tokens" &&
+      (code === "unsupported_parameter" ||
+        message.includes("max_completion_tokens")) &&
+      !attemptedTokenLimitParams.has(TokenLimitParam.MaxCompletionTokens)
+    ) {
+      return {
+        ...adaptation,
+        tokenLimitParam: TokenLimitParam.MaxCompletionTokens,
+      };
+    }
+
+    /*
+     * The reverse: older models and Azure API versions before
+     * 2024-08-01-preview reject max_completion_tokens. This one reports param
+     * and code as null, so the message is the only signal. Matching
+     * "argument" rather than "argument supplied" also catches the plural the
+     * endpoint uses when more than one parameter is unrecognized.
+     *
+     * Both spellings are tried at most once each. A deployment that rejects
+     * both (a reasoning model behind an API version too old to know the new
+     * parameter) has no working request, so we stop and let the provider's
+     * own error explain it rather than flip-flopping until the attempt cap.
+     */
+    if (
+      (message.includes("Unrecognized request argument") ||
+        (param === "max_completion_tokens" &&
+          code === "unsupported_parameter")) &&
+      message.includes("max_completion_tokens") &&
+      !attemptedTokenLimitParams.has(TokenLimitParam.MaxTokens)
+    ) {
+      return {
+        ...adaptation,
+        tokenLimitParam: TokenLimitParam.MaxTokens,
+      };
+    }
+
+    /*
+     * Reasoning models reject temperature, top_p and the penalty/logprob
+     * params. Both codes appear in the wild for these:
+     * unsupported_parameter ("is not supported with this model") and
+     * unsupported_value ("does not support 0 with this model").
+     */
+    if (
+      (code === "unsupported_parameter" || code === "unsupported_value") &&
+      this.DROPPABLE_UNSUPPORTED_PARAMETERS.has(param) &&
+      !adaptation.unsupportedParams.has(param)
+    ) {
+      return {
+        ...adaptation,
+        unsupportedParams: new Set(adaptation.unsupportedParams).add(param),
+      };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * POST an OpenAI-style chat completion, reshaping and retrying when the
+   * endpoint rejects a generation parameter it does not support.
+   *
+   * This is error-driven rather than model-driven on purpose. Azure sends the
+   * deployment name in `model`, and operators name deployments whatever they
+   * like, so there is no reliable way to know up front whether a deployment is
+   * a reasoning model. The provider itself is the only authority, and it names
+   * the offending parameter in the 400 — one parameter per response, hence the
+   * loop.
+   */
+  private static async postOpenAIChatCompletion(data: {
+    requestUrl: string;
+    headers: Headers;
+    config: LLMProviderConfig;
+    modelName: string;
+    request: LLMCompletionRequest;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    let adaptation: OpenAIRequestAdaptation = this.getInitialRequestAdaptation(
+      data.config,
+      data.modelName,
+    );
+
+    /*
+     * Which spellings have actually gone out on the wire. Read off the built
+     * body rather than the adaptation, because TokenLimitParam.Default is a
+     * sentinel meaning "whatever the body already carried" — recording it
+     * would mark neither spelling as tried and let the loop resend a
+     * byte-identical request.
+     */
+    const attemptedTokenLimitParams: Set<TokenLimitParam> = new Set();
+
+    const post: () => Promise<
+      HTTPResponse<JSONObject> | HTTPErrorResponse
+    > = (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      const body: JSONObject = this.buildOpenAIRequestBody(
+        data.modelName,
+        data.request,
+        adaptation,
+      );
+
+      if (body["max_completion_tokens"] !== undefined) {
+        attemptedTokenLimitParams.add(TokenLimitParam.MaxCompletionTokens);
+      } else if (body["max_tokens"] !== undefined) {
+        attemptedTokenLimitParams.add(TokenLimitParam.MaxTokens);
+      }
+
+      return API.post<JSONObject>({
+        url: URL.fromString(data.requestUrl),
+        data: body,
+        headers: data.headers,
+        options: {
+          retries: data.request.requestRetries ?? 2,
+          exponentialBackoff: true,
+          timeout: data.request.requestTimeoutInMs ?? 120000,
+        },
+      });
+    };
+
+    let response: HTTPResponse<JSONObject> | HTTPErrorResponse = await post();
+
+    for (
+      let attempt: number = 0;
+      attempt < this.MAX_REQUEST_ADAPTATION_ATTEMPTS &&
+      response instanceof HTTPErrorResponse;
+      attempt++
+    ) {
+      const nextAdaptation: OpenAIRequestAdaptation | undefined =
+        this.getRequestAdaptationForError(
+          response,
+          adaptation,
+          attemptedTokenLimitParams,
+        );
+
+      if (!nextAdaptation) {
+        return response;
+      }
+
+      adaptation = nextAdaptation;
+
+      logger.debug(
+        `${data.config.llmType} rejected a generation parameter for model ${data.modelName}. Retrying with a request adapted to what the model accepts.`,
+      );
+
+      response = await post();
+    }
+
+    if (!(response instanceof HTTPErrorResponse)) {
+      this.cacheRequestAdaptation(data.config, data.modelName, adaptation);
+    }
+
+    return response;
   }
 
   private static parseOpenAIResponse(
@@ -545,11 +932,8 @@ export default class LLMService {
     const modelName: string =
       config.modelName || defaultModels[config.llmType] || "gpt-4o";
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post<JSONObject>({
-        url: URL.fromString(
-          this.buildOpenAICompatibleChatCompletionsUrl(baseUrl),
-        ),
-        data: this.buildOpenAIRequestBody(modelName, request),
+      await this.postOpenAIChatCompletion({
+        requestUrl: this.buildOpenAICompatibleChatCompletionsUrl(baseUrl),
         headers: {
           "Content-Type": "application/json",
           /*
@@ -561,11 +945,9 @@ export default class LLMService {
             ? { Authorization: `Bearer ${config.apiKey}` }
             : {}),
         },
-        options: {
-          retries: request.requestRetries ?? 2,
-          exponentialBackoff: true,
-          timeout: request.requestTimeoutInMs ?? 120000,
-        },
+        config: config,
+        modelName: modelName,
+        request: request,
       });
 
     const logAttributes: LogAttributes = {
@@ -632,18 +1014,15 @@ export default class LLMService {
     );
 
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
-      await API.post<JSONObject>({
-        url: URL.fromString(requestUrl),
-        data: this.buildOpenAIRequestBody(modelName, request),
+      await this.postOpenAIChatCompletion({
+        requestUrl: requestUrl,
         headers: {
           "api-key": config.apiKey,
           "Content-Type": "application/json",
         },
-        options: {
-          retries: request.requestRetries ?? 2,
-          exponentialBackoff: true,
-          timeout: request.requestTimeoutInMs ?? 120000,
-        },
+        config: config,
+        modelName: modelName,
+        request: request,
       });
 
     const logAttributes: LogAttributes = {

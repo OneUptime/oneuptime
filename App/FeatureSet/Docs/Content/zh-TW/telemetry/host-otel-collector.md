@@ -549,7 +549,7 @@ sc.exe query "otelcol-contrib"
 
 ### 資料量的來源
 
-| Signal               | Biggest driver                              | Turn it down with                                                    |
+| 訊號                 | 最大來源                                    | 調降方式                                                             |
 | -------------------- | ------------------------------------------- | -------------------------------------------------------------------- |
 | **日誌**             | 來自每個檔案 / journald unit / 頻道的每一行 | 縮小 receiver 範圍；`query:` 篩選器；針對嚴重性的 `filter` processor |
 | **主機指標**         | 抓取頻率 × series 數量                      | `collection_interval`；捨棄 `process` scraper；scraper 的選擇        |
@@ -572,7 +572,7 @@ sc.exe query "otelcol-contrib"
       priority: warning # info and debug are dropped before export
   ```
 
-- **Windows 事件記錄** — `Security` 頻道是流量遠高於其他頻道的頻道。使用 `query:` 將其縮小至您實際稽核的事件 ID（如上方 [Windows 事件記錄](#windows-event-logs) 所示），或在您不需要時完全捨棄該頻道。
+- **Windows 事件記錄** — `Security` 頻道是流量遠高於其他頻道的頻道。使用 `query:` 將其縮小至您實際稽核的事件 ID（如上方 [Windows 事件記錄](#windows-事件記錄) 所示），或在您不需要時完全捨棄該頻道。
 
 ### 槓桿 2 — 放慢指標間隔
 
@@ -622,11 +622,41 @@ processors:
     error_mode: ignore
     logs:
       log_record:
-        # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # 捨棄嚴重性低於 WARN 的所有內容（info、debug、trace）。
+        # UNSPECIFIED 防護條件是必要的 — 請見下方的警告。
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-捨棄您不繪製圖表的特定吵雜指標：
+> **請勿移除 `UNSPECIFIED` 防護條件。** `SEVERITY_NUMBER_UNSPECIFIED` 是 `0`，而 `SEVERITY_NUMBER_WARN` 是 `13`，因此單純的 `severity_number < SEVERITY_NUMBER_WARN` 就是 `0 < 13` — **對於每一筆嚴重性從未被解析過的記錄都成立**。單純的 `filelog` receiver 並不會從日誌行解析嚴重性：本頁面的 `filelog` 範例中沒有任何一個設定了 `operators:`，因此那些記錄抵達 filter 時帶著 `severity_number: 0`。若沒有該防護條件，那個條件會默默刪除 **100% 的** `/var/log/syslog`、`/var/log/messages` 與 `/var/log/auth.log` — 而且任何地方都不會出現錯誤。有了該防護條件，未被分類的記錄會被保留，而您會看到它們以嚴重性 `Unspecified` 抵達 OneUptime，這會告訴您：您真正需要的其實是一個 severity parser。
+
+若要*正確地*依嚴重性篩選檔案日誌，請先在 receiver 上使用 [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) operator 解析出嚴重性，讓記錄在抵達 filter 之前就帶有真正的層級：
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # 從類似 "2026-01-01 ERROR something broke" 的行中取出層級。
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # 沒有可辨識層級的行會以未解析的狀態通過，而不是被丟棄，
+        # 接著會被上方的防護條件保留下來。
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+在 systemd 主機上，您完全不需要這些 — `journald` 的 `priority:`（槓桿 1）會在 `journalctl` 本身之中依層級篩選，也就是在 OTel 記錄存在之前。
+
+捨棄您不繪製圖表的指標 — 精確名稱，或一個模式：
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # 精確的指標名稱。
         - 'name == "system.paging.faults"'
+        # 或者是一整個族群。IsMatch 使用 RE2 且未錨定，因此當您的意思是
+        # 「開頭為」時，請自行用 ^ 加上錨點。
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+透過反轉條件來**只**傳送固定的一組指標（允許清單）— `filter` 會捨棄符合的內容，因此 `not (...)` 會捨棄所有您沒有指名的項目：
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+請將該條件保持在**同一行**。允許清單是一把大鎚：任何您忘記指名的項目都會消失，連同以其為基礎所建立的 monitor 一起。請優先捨棄您不想要的那少數幾個指標，或者乾脆省略產生它們的 scraper（槓桿 3）— 一個從未被收集的指標，篩選它不需要任何代價。
 
 接著將該 processor 加入相關的管線 — 順序很重要，因此請將 `filter` 放在 `batch` 之前：
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **正在編輯 OneUptime 為您產生的設定？** 上方的管線對應的是本頁面上的完整範例。來自儀表板（Hosts → Documentation）的設定，其命名方式並不相同：它的 processor 是 `resourcedetection` 與 `batch`（**沒有** `resource` processor），而它的 exporter 是 `otlphttp/oneuptime`。參照一個未被定義的 processor 會讓 collector 在啟動時停止，並出現 `references processor "resource" which is not configured`。請將 filter 加入既有的內容之中，而不是把這個區塊貼上去覆蓋它：
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> 請保留 `resourcedetection` — OneUptime 是使用它所設定的 `host.name` / `host.id` 來將遙測資料對應到某台主機。該產生的設定也是**僅指標**的：在您加入之前，它並沒有 `logs:` 管線，因此在您於其旁加入一個 `filelog` 或 `journald` receiver 之前，`filter/drop-low-severity` 沒有任何東西可以篩選。
+
+> **在 macOS 上，請使用 tarball，而非 Homebrew。** Homebrew formula 隨附的是**核心（core）** collector，而 `filter` 是 contrib 專屬的 processor — 無論您的 YAML 是否正確，collector 都會拒絕啟動。
 
 ### 精簡的起點
 
@@ -730,7 +792,7 @@ OpenTelemetry Collector 遵循標準的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **exporter 傳回 HTTP 401** — 擷取權杖無效或已撤銷。從 _Project Settings → Telemetry Ingestion Keys_ 產生一個新的。
 - **`Security` Windows 事件記錄傳回 access denied** — 該服務未以足夠的權限執行。在 `LocalSystem` 下重新建立它（`sc.exe create` 的預設值），或授予服務帳戶 _Manage auditing and security log_ 使用者權限。
 - **`journald` receiver 無法啟動** — 確保 `journalctl` 在 collector 的 `PATH` 上，且 `/var/log/journal` 存在（若不存在，請執行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
-- **高流量 / 高成本** — 請參閱 [減少收集的資料量](#reducing-the-volume-of-data-collected)：縮小 receiver 範圍（特定 Windows 頻道、systemd units、日誌檔）、提高指標的 `collection_interval`、捨棄每個行程的 scraper，或新增一個 `filter` processor 以在匯出前捨棄低嚴重性記錄。
+- **高流量 / 高成本** — 請參閱 [減少收集的資料量](#減少收集的資料量)：縮小 receiver 範圍（特定 Windows 頻道、systemd units、日誌檔）、提高指標的 `collection_interval`、捨棄每個行程的 scraper，或新增一個 `filter` processor 以在匯出前捨棄低嚴重性記錄。
 
 ## 後續步驟
 

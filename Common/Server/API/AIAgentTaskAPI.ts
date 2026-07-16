@@ -196,6 +196,7 @@ export default class AIAgentTaskAPI {
           const validStatuses: Array<AIAgentTaskStatus> = [
             AIAgentTaskStatus.InProgress,
             AIAgentTaskStatus.Completed,
+            AIAgentTaskStatus.NoFixFound,
             AIAgentTaskStatus.Error,
           ];
 
@@ -249,16 +250,35 @@ export default class AIAgentTaskAPI {
               },
             });
           } else {
-            const toStatus: AIRunStatus =
-              status === AIAgentTaskStatus.Completed
-                ? AIRunStatus.Completed
-                : AIRunStatus.Error;
+            /*
+             * Agents that predate NoFixFound report a fruitless run as Error,
+             * so an Error report still maps straight through — those runs keep
+             * looking exactly as they do today until the agent is upgraded.
+             */
+            let toStatus: AIRunStatus = AIRunStatus.Error;
+
+            if (status === AIAgentTaskStatus.Completed) {
+              toStatus = AIRunStatus.Completed;
+            } else if (status === AIAgentTaskStatus.NoFixFound) {
+              toStatus = AIRunStatus.NoFixFound;
+            }
 
             /*
-             * CAS Running -> Completed/Error. Losing the race (0 rows) means
-             * another actor already finalized the run — e.g. the sweeper
-             * marked it Error after a heartbeat gap — and that outcome wins;
-             * we do not clobber it or write a duplicate terminal event.
+             * Both terminal outcomes that carry a reason store it in
+             * errorMessage — the column is the run's only message field, and
+             * every reader (the detail page, the exception page's
+             * statusMessage) already renders it.
+             */
+            const shouldStoreMessage: boolean =
+              Boolean(statusMessage) &&
+              (toStatus === AIRunStatus.Error ||
+                toStatus === AIRunStatus.NoFixFound);
+
+            /*
+             * CAS Running -> Completed/NoFixFound/Error. Losing the race (0
+             * rows) means another actor already finalized the run — e.g. the
+             * sweeper marked it Error after a heartbeat gap — and that outcome
+             * wins; we do not clobber it or write a duplicate terminal event.
              */
             const transitionedCount: number =
               await AIRunService.attemptStatusTransition({
@@ -268,7 +288,7 @@ export default class AIAgentTaskAPI {
                   status: toStatus,
                   completedAt: OneUptimeDate.getCurrentDate(),
                   lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
-                  ...(toStatus === AIRunStatus.Error && statusMessage
+                  ...(shouldStoreMessage
                     ? { errorMessage: statusMessage }
                     : {}),
                 },
@@ -278,10 +298,16 @@ export default class AIAgentTaskAPI {
               await AIRunEventService.appendEventToRun({
                 projectId: existingRun.projectId,
                 aiRunId: runId,
+                /*
+                 * Only a genuine failure closes the event trail with
+                 * RunFailed. A NoFixFound run ran to completion and reported
+                 * a conclusion, so it closes with RunCompleted and carries
+                 * the "no fix" reason in resultSummary.
+                 */
                 eventType:
-                  toStatus === AIRunStatus.Completed
-                    ? AIRunEventType.RunCompleted
-                    : AIRunEventType.RunFailed,
+                  toStatus === AIRunStatus.Error
+                    ? AIRunEventType.RunFailed
+                    : AIRunEventType.RunCompleted,
                 ...(statusMessage
                   ? { resultSummary: { message: statusMessage } }
                   : {}),

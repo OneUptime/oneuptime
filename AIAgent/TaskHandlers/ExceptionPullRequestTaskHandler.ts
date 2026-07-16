@@ -204,14 +204,23 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
         };
       }
 
-      // No PRs created - mark as error
-      await this.log(context, this.noActionMessage, "error");
-      return this.createFailureResult(
-        errors.length > 0
-          ? `${this.noActionMessage}. Errors: ${errors.join("; ")}`
-          : this.noActionMessage,
-        { isError: true },
-      );
+      /*
+       * No PRs created. Two very different outcomes reach here: repositories
+       * that actually blew up (an error worth surfacing in red), and a clean
+       * run that simply found nothing worth changing (a legitimate negative
+       * result). Only the former is an Error.
+       */
+      if (errors.length > 0) {
+        const failureMessage: string = `${this.noActionMessage}. Errors: ${errors.join("; ")}`;
+        await this.log(context, failureMessage, "error");
+        return this.createFailureResult(failureMessage, {
+          isError: true,
+          errors,
+        });
+      }
+
+      await this.log(context, this.noActionMessage, "warning");
+      return this.createNoFixResult(this.noActionMessage);
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);

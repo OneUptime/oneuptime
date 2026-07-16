@@ -4,6 +4,7 @@ import DataTypeDetailServiceHandler from "./Service/DataTypeDetail";
 import ErrorServiceHandler from "./Service/Errors";
 import OpenAPIServiceHandler from "./Service/OpenAPI";
 import IntroductionServiceHandler from "./Service/Introduction";
+import MasterAdminApisServiceHandler from "./Service/MasterAdminApis";
 import ModelServiceHandler from "./Service/Model";
 import PageNotFoundServiceHandler from "./Service/PageNotFound";
 import PaginationServiceHandler from "./Service/Pagination";
@@ -14,6 +15,7 @@ import { DEFAULT_DOCS_LANGUAGE, isSupportedDocsLanguage } from "./Utils/I18n";
 import ResourceUtil, { ModelDocumentation } from "./Utils/Resources";
 import DataTypeUtil, { DataTypeDocumentation } from "./Utils/DataTypes";
 import Dictionary from "Common/Types/Dictionary";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
@@ -136,6 +138,13 @@ const APIReferenceFeatureSet: FeatureSet = {
           return OpenAPIServiceHandler.executeResponse(req, res);
         } else if (page === "status") {
           return StatusServiceHandler.executeResponse(req, res);
+        } else if (page === "master-admin-apis" && !IsBillingEnabled) {
+          /*
+           * Master admin APIs are only reachable by whoever holds the instance
+           * master API key, which only exists on a self-hosted install. On the
+           * billing-enabled (SaaS) build the page falls through to a 404.
+           */
+          return MasterAdminApisServiceHandler.executeResponse(req, res);
         } else if (page === "data-types") {
           return DataTypeServiceHandler.executeResponse(req, res);
         } else if (DataTypeDictionary[page]) {

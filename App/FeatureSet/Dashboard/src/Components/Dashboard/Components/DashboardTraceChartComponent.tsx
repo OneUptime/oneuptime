@@ -199,7 +199,17 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
           labelFormatter={(label: unknown): string => {
             return formatTickTime(String(label ?? ""));
           }}
-          contentStyle={{ fontSize: "11px" }}
+          /*
+           * Recharts hardcodes a white tooltip background inline, and the label
+           * inherits the page text colour, so it turns white-on-white in dark mode.
+           */
+          contentStyle={{
+            fontSize: "11px",
+            backgroundColor: "var(--ou-surface-primary)",
+            border: "1px solid var(--ou-border-default)",
+            borderRadius: "6px",
+          }}
+          labelStyle={{ color: "var(--ou-text-secondary)" }}
         />
       </>
     );

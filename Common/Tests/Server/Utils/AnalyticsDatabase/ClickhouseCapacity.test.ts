@@ -1,9 +1,14 @@
 import {
+  ClickhouseAppInstance,
+  ClickhouseClient,
+} from "../../../../Server/Infrastructure/ClickhouseDatabase";
+import {
   buildClickhousePruningPlan,
   ClickhouseDiskSnapshot,
   ClickhousePartitionCandidate,
   ClickhousePlannedPartition,
   ClickhousePruningPlan,
+  dropClickhousePartition,
 } from "../../../../Server/Utils/AnalyticsDatabase/ClickhouseCapacity";
 import "../../TestingUtils/Init";
 
@@ -154,5 +159,63 @@ describe("ClickHouse capacity pruning planner", () => {
     expect(plan.estimatedFreedBytes).toBe(25);
     expect(plan.projectedMaxUtilizationPercent).toBe(75);
     expect(plan.targetReachable).toBe(false);
+  });
+});
+
+describe("dropClickhousePartition", () => {
+  const command: jest.Mock = jest.fn();
+
+  beforeEach(() => {
+    command.mockReset();
+    command.mockResolvedValue({});
+    jest.spyOn(ClickhouseAppInstance, "getDataSource").mockReturnValue({
+      command,
+    } as unknown as ClickhouseClient);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /*
+   * A day of spans on a large instance far exceeds the server's default 50 GB
+   * drop guard, which rejects the drop with TABLE_SIZE_EXCEEDS_MAX_DROP_SIZE_LIMIT
+   * unless the statement lifts it. Without the SETTINGS clause capacity pruning
+   * cannot prune the tables it exists for.
+   */
+  test("lifts the server drop-size guard on the statement", async () => {
+    await dropClickhousePartition({
+      tableName: "SpanItemV3Local",
+      partitionId: "20260101",
+    });
+
+    expect(command).toHaveBeenCalledWith({
+      query:
+        "ALTER TABLE `oneuptime`.`SpanItemV3Local` ON CLUSTER 'oneuptime' " +
+        "DROP PARTITION ID '20260101' SETTINGS max_partition_size_to_drop = 0",
+    });
+  });
+
+  // Lifting the size guard must not widen WHAT is droppable.
+  test("refuses a table outside the pruning allowlist", async () => {
+    await expect(
+      dropClickhousePartition({
+        tableName: "AuditLogV2Local",
+        partitionId: "20260101",
+      }),
+    ).rejects.toThrow("ClickHouse table is not eligible for pruning");
+
+    expect(command).not.toHaveBeenCalled();
+  });
+
+  test("refuses a partition id that is not a daily partition", async () => {
+    await expect(
+      dropClickhousePartition({
+        tableName: "SpanItemV3Local",
+        partitionId: "202601",
+      }),
+    ).rejects.toThrow("Invalid ClickHouse daily partition id");
+
+    expect(command).not.toHaveBeenCalled();
   });
 });

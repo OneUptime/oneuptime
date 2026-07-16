@@ -79,7 +79,7 @@ Sjekk at agent-podene kjører:
 kubectl get pods -n oneuptime-agent
 ```
 
-På en **standard**-klynge vil du se en metrics-collector Deployment pluss én log-collector DaemonSet-pod per node:
+På en **standard**-klynge vil du se en cluster-collector Deployment pluss én node-collector DaemonSet-pod per node:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-På **GKE Autopilot** eller **EKS Fargate** vil du se to Deployments i stedet (ingen DaemonSet):
+På **GKE Autopilot** kjører node-collectoren fortsatt — den samler inn kubelet- og cAdvisor-metrikker uten å trenge hostPath — og et ekstra Deployment leser pod-logger via Kubernetes-API-et:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+På **EKS Fargate** vil du se to Deployments og ingen DaemonSet — Fargate gir hver pod sin egen mikro-VM og planlegger aldri DaemonSets, så metrikker på nodenivå er ikke tilgjengelige der:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -114,11 +123,136 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set "namespaceFilters.include={default,production,staging}"
 ```
 
-> Disse filtrene reduserer **ikke** node- / pod- / container-**metrikker** — disse skrapes per node fra kubelet-en og samles alltid inn på tvers av hele klyngen (serier på node- og klyngenivå har ingen namespace å filtrere på). `exclude` vinner alltid over `include`. Se [Redusere volumet av data som samles inn](#reducing-the-volume-of-data-collected) for hele settet med volumkontroller.
+For å ignorere ett støyende namespace mens du beholder alle de andre, bruk `exclude` i stedet. `exclude` vinner alltid over `include`, og standardverdien som følger med er `[kube-system]` — så list den opp på nytt hvis du fortsatt vil ha den ekskludert:
+
+```bash
+  --set "namespaceFilters.exclude={kube-system,noisy-namespace}"
+```
+
+For **pod-logger og eBPF-sporinger koster dette ingenting**: namespacet er en del av pod-logg-stien og av OBIs prosessoppdagelse, så et filtrert namespace blir aldri lest i utgangspunktet — ingen CPU, ingen egress.
+
+#### Anvende namespace-filtre på metrikker og sporinger
+
+Som standard dekker listene ovenfor kun pod-logger og eBPF-sporinger. `applyTo` utvider dem til andre signaler:
+
+```bash
+  --set namespaceFilters.applyTo.metrics=true \
+  --set namespaceFilters.applyTo.traces=true
+```
+
+| Innstilling | Hva den dekker |
+| ----------- | -------------- |
+| `applyTo.metrics` | Metrikker per pod / per container fra kubeletstats, cAdvisor og kube-state-metrics |
+| `applyTo.traces` | Spans som applikasjonene dine sender til agentens OTLP-endepunkt (eBPF-spans er allerede avgrenset) |
+
+Begge er **av som standard** med hensikt. `exclude: [kube-system]` følger med som standardverdi, så å slå disse på automatisk ville i stillhet slettet kube-system-metrikker fra hver eksisterende installasjon ved oppgradering.
+
+> **Metrikker på node- og klyngenivå beholdes alltid.** Et namespace er en egenskap ved en pod, ikke ved en node, så serier som node-CPU, node-minne og filsystembruk har ingenting å matche på og blir aldri droppet. `applyTo.metrics` trimmer kardinaliteten per pod uten noen gang å gjøre deg blind for at en node blir dårlig.
+
+Kubernetes-**hendelser** kan ikke namespace-filtreres på agenten. De ankommer fra `k8sobjects`-mottakeren uten et `k8s.namespace.name`-attributt — namespacet ligger inne i hendelseskroppen — så det er ingenting for et filter å matche på. Drop dem heller på serversiden (se nedenfor).
+
+### Filtrering etter loggalvorlighetsgrad
+
+`filters.logs.minSeverity` dropper **pod-logg**-poster under en alvorlighetsgrad, på agenten, før noe som helst sendes:
+
+```bash
+  --set filters.logs.minSeverity=WARN
+```
+
+Godtar `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` beholder WARN, ERROR og FATAL og dropper INFO, DEBUG og TRACE. Standardverdien (`""`) beholder alt. Det gjelder i **begge** loggmodusene — i `daemonset`-modus via collectoren, i `api`-modus inne i selve log-taileren — så forhåndsinnstillingene kan ikke slå det av bak ryggen på deg.
+
+Container-runtime-er registrerer ikke en alvorlighetsgrad på selve logglinjen, så agenten parser en ut av loggteksten selv (`[ERROR]`, `WARN:`, `level=info`, …).
+
+> **Kubernetes-hendelser og ressursspesifikasjoner filtreres aldri av dette.** De ankommer fra Kubernetes-API-et uten en egen alvorlighetsgrad, så en terskel ville slettet hele strømmen i stedet for å tynne den ut — inkludert `FailedScheduling`-, `BackOff`- og `OOMKilling`-advarslene du helst vil ha. De har lavt volum og høy verdi, så agenten sender dem alltid. For å tynne dem ut, bruk heller dashbordets serversidige **Logs → Settings → Drop Filters**.
+
+**Hva som skjer med en linje uten et gjenkjennelig nivå, avhenger av loggmodusen**, fordi de to modusene har ulik informasjon tilgjengelig:
+
+| Modus | Umerket linje | Hvorfor |
+| ---- | --------------- | --- |
+| `daemonset` | `stderr` → behandles som ERROR (beholdes), `stdout` → behandles som INFO (droppes av en WARN-terskel) | Container-runtime-en registrerer hvilken strøm hver linje kom fra. |
+| `api` | Beholdes **alltid** | Kubernetes-`pods/log`-API-et slår sammen stdout og stderr til én enkelt strøm uten markør per linje. I stedet for å gjette beholder agenten linjen. |
+
+> Så `api`-modus dropper strengt mindre enn `daemonset`-modus. Det er med hensikt: en Python-traceback eller `npm ERR!` bærer ingen alvorlighetsgrad-nøkkelord, og å slette den i stillhet er nøyaktig den feilen en alvorlighetsgradsterskel skal beskytte deg mot.
+
+Flerlinjede hendelser settes sammen igjen **før** filtrering i begge modusene, så en Java-stacktrace vurderes ut fra sin første linje og beholdes eller droppes i sin helhet — du vil aldri få en naken `ERROR`-linje med rammene strippet vekk.
+
+### Inkludere eller ekskludere metrikker etter navn
+
+`filters.metrics` styrer hvilke metrikker som forlater klyngen, på tvers av hver mottaker i pipelinen.
+
+**Drop noen få støyende metrikker** (en ekskluderingsliste — vanligvis det du vil ha):
+
+```bash
+  --set-json 'filters.metrics.exclude=["k8s.volume.available","k8s.volume.capacity"]'
+```
+
+**Send kun et fast sett** (en tillatelsesliste — alt annet droppes):
+
+```bash
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+```
+
+**Match etter mønster** i stedet for etter eksakt navn:
+
+```bash
+  --set filters.metrics.matchType=regexp \
+  --set-json 'filters.metrics.exclude=["^container_network_"]'
+```
+
+| Nøkkel | Betydning |
+| --- | ------- |
+| `filters.metrics.exclude` | Metrikknavn som skal droppes. Anvendes oppå `include`, så exclude vinner alltid. |
+| `filters.metrics.include` | Når den ikke er tom, sendes **kun** disse. |
+| `filters.metrics.matchType` | `strict` (eksakt navn, standardverdien) eller `regexp` (RE2, **uforankret**). |
+
+Notater som vil spare deg for en hendelse:
+
+- `regexp` er **uforankret** — `system.cpu` matcher også `system.cpu.time`. Forankre den (`^system\.cpu$`) når du mener nøyaktig én metrikk.
+- RE2 har **ingen lookahead**, så `^(?!container_)` vil ikke kompilere. Uttrykk "alt bortsett fra" med `include`, ikke med et negativt regex.
+- `include` spenner over hver mottaker på én gang. En tillatelsesliste som glemmer en metrikk, fjerner i stillhet monitorene som er bygget på den. Foretrekk `exclude` med mindre du virkelig vil ha et lukket sett.
+- Bruk `--set-json` (eller en values-fil) for lister. Vanlig `--set` erstatter en liste i stedet for å slå den sammen.
+
+> **Test et regex før du ruller det ut.** Mønstre kompileres av collectoren ved oppstart, ikke per post, så et ugyldig et oppfører seg ikke feil i stillhet — collectoren nekter å starte og går i CrashLoopBackOff, og tar den collectorens **logger** med seg sammen med metrikkene. Helm kan ikke kompilere RE2, så `helm upgrade` godtar et dårlig mønster uten å si ifra.
+
+### Sampling av sporinger
+
+Filtrene ovenfor fjerner en **kategori** av telemetri — et namespace, en alvorlighetsgrad, et metrikknavn. Sampling er annerledes: den beholder hver kategori og tynner ut populasjonen i stedet. Sett `sampling.traces.percentage` til andelen sporinger du vil beholde:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Det beholder én sporing av ti og dropper de andre ni på agenten, før de forlater klyngen din.
+
+**Du får hele sporinger, ikke fragmenter.** Avgjørelsen er en hash av sporings-ID-en i stedet for et myntkast per span, så hvert span i en sporing beholdes eller droppes samlet — sporingene som overlever, er komplette og lesbare fra ende til ende. Det er denne egenskapen som gjør det trygt å slå på sampling.
+
+**De metrikkbaserte monitorene dine rikker seg ikke.** eBPF RED-metrikkene — forespørselsrate, feilrate, varighet — er en *metrikk*familie. OBI beregner dem fra hver forespørsel, og de går gjennom metrikk-pipelinen, som sampleren ikke står i. Med `percentage: 10` får du en tidel av sporingene og 100 % nøyaktig rate/feil/latens. Dashbord og monitorer bygget på disse metrikkene påvirkes ikke.
+
+**Det gjør de span-baserte monitorene dine.** Alt OneUptime avleder fra spansene selv, skaleres ned med raten — se advarselen nedenfor før du slår dette på.
+
+| Nøkkel | Betydning |
+| --- | ------- |
+| `sampling.traces.percentage` | Prosentandel sporinger som skal **beholdes**, 0-100. Standardverdien er `100` (behold alt). |
+| `sampling.traces.hashSeed` | Seed for sporings-ID-hashen. Standardverdien er `22`. |
+
+Notater som vil spare deg for en hendelse:
+
+- **`0` beholder ingen sporinger i det hele tatt.** Det er en rate, ikke en av-bryter — den sletter hver eneste sporing mens eBPF-DaemonSet-en fortsetter å kjøre og koste deg penger. Vil du ikke ha sporinger, bruk `ebpf.enabled=false`. Vil du ikke ha sporinger, men *vil* ha RED-metrikker og service-kartet, la eBPF være på og sett denne til `0` med hensikt.
+- **Gjelder kun når `ebpf.enabled`.** Sporings-pipelinen finnes ikke ellers, så med `ebpf.enabled=false` gjør denne verdien ingenting.
+- **Kun sporinger.** Det finnes ingen `sampling.logs` eller `sampling.metrics`, og det er med hensikt — se notatet nedenfor.
+- **Brøkdeler krever `--set-json`, og de har en nedre grense.** `--set sampling.traces.percentage=0.5` feiler, fordi Helm leser `0.5` som en streng. Bruk `--set-json 'sampling.traces.percentage=0.5'` eller en values-fil. Hele tall fungerer fint med `--set`. Under omtrent `0.0061` kvantiseres raten til null og oppfører seg nøyaktig som `0` — hver eneste sporing droppes, uten noen feil. `0.01` (én av ti tusen) er den minste verdien som gjør det den sier.
+- **Flere klynger fungerer som standard.** To agenter beholder den samme sporingen kun hvis de er enige om både `hashSeed` og `percentage`. Begge har den samme standardverdien overalt, så en sporing som krysser to klynger, overlever i sin helhet uten noen ekstra konfigurasjon. Endre `hashSeed` kun for med hensikt å *dekorrelere* to samplingsnivåer — fordi avgjørelsen er en terskel på den samme hashen, nøstes den samme seeden med ulike rater, så et andre nivå bare velger på nytt blant sporingene det første allerede beholdt, i stedet for å trekke uavhengig.
+- **Pod-logger samples aldri**, så med `ebpf.logToTraceCorrelation: true` bærer hver eneste loggpost fortsatt en sporings-ID, mens kun `percentage` % av disse sporingene beholdes. Omtrent (100 − `percentage`) % av loggpostene vil vise en sporingslenke som ender i ingenting. Navigering fra sporing → logger påvirkes ikke; kun logger → sporing kan bomme.
+
+> **Juster tersklene på de span-baserte monitorene dine på nytt når du setter denne.** Sampling reduserer spansene som når OneUptime, så alt som teller dem, teller mindre: en **Traces**-monitor på `Span Count` og en **Exceptions**-monitor på `Exception Count` vil se omtrent `percentage` % av gårsdagens volum. En terskel som er innstilt på usamplet trafikk, slutter i stillhet å bli krysset — monitoren feiler ikke, den blir bare stille. Del disse tersklene på den samme faktoren når du setter raten; raten gjelder hele klyngen, så det finnes ingen måte å unnta en enkelt tjeneste fra den. **Gruppering** av feil degraderes verre enn lineært: et vanlig unntak dukker fortsatt opp, men et sjeldent engangstilfelle forsvinner heller helt enn å dukke opp en tidel så ofte.
+
+> **Hvorfor det ikke finnes logg- eller metrikk-sampling her.** Collectorens sampler kan ikke sample metrikker i det hele tatt. Den kan sample logger, men den henter tilfeldigheten sin fra sporings-ID-en — og pod-logger har ingen. Hver post uten sporings-ID hasher da til den samme bøtta, så en logg-rate ville ikke tynnet ut strømmen: den ville beholdt alt eller slettet alt, avhengig av seeden. I stedet for å levere en spak som i stillhet sletter loggene dine, tilbyr ikke chartet noen. Tynn ut logger med [Filtrering etter loggalvorlighetsgrad](#filtrering-etter-loggalvorlighetsgrad) og [Namespace-filtrering](#namespace-filtrering), som er presise på hva de fjerner.
 
 ### Deaktiver logginnsamling
 
-Hvis du kun trenger metrikker og hendelser (ingen pod-logger):
+Hvis du ikke trenger pod-logger:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -130,6 +264,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
+Metrikkene dine påvirkes ikke: node-collectoren fortsetter å kjøre for kubelet-, cAdvisor- og host-metrikker, den slutter bare å lese pod-logger. Loggbaserte varsler stopper, og ingenting annet.
+
 ### Tving en spesifikk logginnsamlingsmodus
 
 Avanserte brukere kan overstyre forhåndsinnstillingens valg med `logs.mode`:
@@ -137,6 +273,10 @@ Avanserte brukere kan overstyre forhåndsinnstillingens valg med `logs.mode`:
 - `logs.mode=daemonset` — hostPath DaemonSet (lavest overhead, krever hostPath)
 - `logs.mode=api` — Kubernetes API log-tailer Deployment (fungerer på enhver klynge)
 - `logs.mode=disabled` — ingen logginnsamling
+
+> Loggmodusen bestemmer bare hvor **pod-logger** kommer fra. Node-metrikker samles inn uavhengig av den, så `api` og `disabled` beholder kubelet-, cAdvisor- og host-metrikkene dine.
+>
+> Det ene unntaket er plattformen, ikke modusen: **EKS Fargate kan ikke planlegge DaemonSets i det hele tatt**, så det finnes ingen node-collector der, og metrikker per node/pod/container er utilgjengelige. GKE Autopilot kjører node-collectoren fint, men blokkerer `hostPath`, så den samler inn kubelet- og cAdvisor-metrikker uten `hostmetrics`-metrikkene (disk-I/O, inoder, NIC-feil) som må lese vertens `/proc` og `/sys`.
 
 Den eksplisitte `logs.mode` vinner alltid over forhåndsinnstillingens standard. Bruk dette hvis du kjenner klyngen din bedre enn forhåndsinnstillingen gjør.
 
@@ -274,25 +414,25 @@ Trikset er å **slutte å samle inn det du ikke kommer til å se på**, i stedet
 
 | Signal                               | Største driver                                                    | Skru det ned med                                                                             |
 | ------------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Pod-logger**                       | Hver linje fra hver container, på tvers av hele klyngen           | `logs.enabled`, `logs.mode`, `namespaceFilters`                                              |
-| **eBPF-sporinger og span-metrikker** | Én sporing per forespørsel fra hver instrumentert prosess         | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **Pod-logger**                       | Hver linje fra hver container, på tvers av hele klyngen           | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
+| **eBPF-sporinger og span-metrikker** | Én sporing per forespørsel fra hver instrumentert prosess         | `sampling.traces.percentage`, `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths` |
 | **Metrikk-datapunkter**              | Skrapefrekvens × antall poder/containere                          | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
-| **Metrikk-kardinalitet**             | Antall distinkte serier (per container, per PVC, …)               | `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics`, `kubeletstats.utilizationMetrics` |
+| **Metrikk-kardinalitet**             | Antall distinkte serier (per container, per PVC, …)               | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Opt-in-ekstrafunksjoner**          | Profilering, revisjonslogger, control plane, inter-sone-metrikker | La dem være av (det er de allerede som standard)                                             |
+
+Tre måter å kutte volum på, og det er verdt å vite hvilken av dem du bruker:
+
+- **På mottakeren** — dataene samles aldri inn. `namespaceFilters` på pod-logger, `cadvisor.metricsAllowlist`, et lengre `collectionInterval`. Koster ingenting å kjøre og sparer CPU, egress og ingest på én gang. Foretrekk alltid disse der de dekker ditt tilfelle.
+- **På filter-prosessoren** — dataene samles inn, og droppes så før eksport. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Litt mer collector-CPU, men det fungerer på tvers av mottakere og kan uttrykke ting en mottaker ikke kan.
+- **På sampleren** — dataene samles inn, og så beholdes en representativ brøkdel. `sampling.traces.percentage`. Den som skiller seg ut: de to ovenfor fjerner en hel *kategori* av telemetri, så det de dropper, er borte fra hver eneste sporing. Sampling beholder hver kategori og tynner ut populasjonen, så det som overlever, er fortsatt komplett og representativt.
+
+Alle tre er **irreversible**: det du dropper her, når aldri OneUptime, og alle tre kan gjøre at en monitor blir stille. De to første gjør en monitor stille ved å fjerne signalet den følger med på. Sampling er smalere: eBPF RED-metrikkene beregnes før sampleren kjører, så metrikkbaserte monitorer forblir eksakte — men monitorer som teller *spans* (Traces på `Span Count`, Exceptions på `Exception Count`) ser proporsjonalt færre og trenger tersklene sine justert på nytt med den samme faktoren. Hvis du heller vil bestemme deg senere, kan OneUptime droppe data på serversiden i stedet (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — det koster fortsatt egress, men det er en innstilling du kan endre uten en ny deploy.
 
 ### Spak 1 — Pod-logger er vanligvis den enkeltstående største kilden
 
 Container-logger er nesten alltid den største andelen av ingest, fordi det er én post per logglinje fra hver container i klyngen.
 
-- **Trenger du ikke logger fra OneUptime i det hele tatt?** Slå dem helt av — du beholder alle metrikker, hendelser og sporinger:
-
-  ```bash
-  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
-    --set logs.enabled=false
-  ```
-
-- **Vil du bare ha logger fra bestemte namespaces?** `namespaceFilters.include` avgrenser pod-logger i begge loggmodusene (og eBPF-sporinger sammen med dem). Matching skjer på pod-logg-stien, så filtrerte namespaces blir aldri engang lest:
+- **Vil du bare ha logger fra bestemte namespaces?** `namespaceFilters` avgrenser pod-logger i begge loggmodusene (og eBPF-sporinger sammen med dem). Matching skjer på pod-logg-stien, så filtrerte namespaces blir aldri engang lest — dette er den billigste spaken i dette dokumentet:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -300,7 +440,27 @@ Container-logger er nesten alltid den største andelen av ingest, fordi det er �
     --set "namespaceFilters.include={default,production}"
   ```
 
-  (`kube-system` er allerede ekskludert som standard.)
+  (`kube-system` er allerede ekskludert som standard.) For å beholde alle namespaces bortsett fra ett, bruk `--set "namespaceFilters.exclude={kube-system,noisy-namespace}"`.
+
+- **Bryr du deg bare om advarsler og feil?** `filters.logs.minSeverity` dropper resten på agenten. På en pratsom klynge er dette ofte den enkeltstående største reduksjonen som er tilgjengelig, fordi INFO og DEBUG utgjør hoveddelen av de fleste applikasjoners utdata:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.logs.minSeverity=WARN
+  ```
+
+  Se [Filtrering etter loggalvorlighetsgrad](#filtrering-etter-loggalvorlighetsgrad) for hvordan alvorlighetsgrad fastslås og hva som skjer med logger den ikke klarer å klassifisere.
+
+- **Trenger du ikke pod-logger fra OneUptime i det hele tatt?** Slå dem av:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set logs.enabled=false
+  ```
+
+  > Dette stopper bare pod-logger. Metrikker per node, pod og container fortsetter å strømme, og monitorene som er bygget på dem (OOM-kills, CPU-throttling, PVC lav disk) fortsetter å virke — node-collectoren blir værende, den slutter bare å lese `/var/log/pods`. Det samme gjelder `logs.mode: api` og `logs.mode: disabled`.
 
 ### Spak 2 — Trim eBPF-autoinstrumentering
 
@@ -314,7 +474,7 @@ eBPF gir deg sporinger, RED-metrikker, service-kartet og nettverksflytmetrikker 
     --set ebpf.enabled=false
   ```
 
-- **Behold sporingene, dropp de tunge metrikkfamiliene.** [Signalfamilie-tabellen ovenfor](#toggle-individual-signal-families) lister opp hvert `ebpf.features.*`-flagg. Familiene med høyest volum er nettverks- og span-metrikker — å slå dem av lar sporinger, HTTP RED-metrikker og service-kartet være intakte:
+- **Behold sporingene, dropp de tunge metrikkfamiliene.** [Signalfamilie-tabellen ovenfor](#slå-individuelle-signalfamilier-av-og-på) lister opp hvert `ebpf.features.*`-flagg. Familiene med høyest volum er nettverks- og span-metrikker — å slå dem av lar sporinger, HTTP RED-metrikker og service-kartet være intakte:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -334,7 +494,7 @@ eBPF gir deg sporinger, RED-metrikker, service-kartet og nettverksflytmetrikker 
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
-  Se [Slå individuelle signalfamilier av og på](#toggle-individual-signal-families) og `excludeExePaths`-notatet i chart-verdiene for de fullstendige standardverdiene.
+  Se [Slå individuelle signalfamilier av og på](#slå-individuelle-signalfamilier-av-og-på) og `excludeExePaths`-notatet i chart-verdiene for de fullstendige standardverdiene.
 
 ### Spak 3 — Senk skrapeintervallene
 
@@ -366,6 +526,25 @@ Kardinalitet (antallet distinkte tidsserier) betyr like mye som frekvens, fordi 
 
 - **Metningsmetrikker** (`kubeletstats.utilizationMetrics.enabled`, på som standard) legger til 8 avledede "% av request/limit"-familier. De er billige (ingen ekstra skrape), men hvis du ikke bruker CPU/Minne-mot-grense-monitorene, kan du droppe dem med `--set kubeletstats.utilizationMetrics.enabled=false`.
 
+- **Drop spesifikke metrikker etter navn.** Tillatelseslistene ovenfor er per mottaker; `filters.metrics.exclude` spenner over dem alle, så bruk den for alt de mottaker-nivå-knappene ikke kan uttrykke:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set filters.metrics.matchType=regexp \
+    --set-json 'filters.metrics.exclude=["^container_network_"]'
+  ```
+
+  Se [Inkludere eller ekskludere metrikker etter navn](#inkludere-eller-ekskludere-metrikker-etter-navn) for eksakt matching kontra regex-matching og for tillatelsesliste-formen.
+
+- **Drop metrikkene til et helt namespace.** Hvis et namespace er støyende, men du fortsatt vil ha nodene dets overvåket, anvender `namespaceFilters.applyTo.metrics=true` de eksisterende namespace-listene dine på serier per pod og per container. Serier på node- og klyngenivå beholdes alltid:
+
+  ```bash
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+    --namespace oneuptime-agent --reuse-values \
+    --set namespaceFilters.applyTo.metrics=true
+  ```
+
 ### Spak 5 — La de tunge opt-in-funksjonene være av
 
 Disse er **av som standard** nettopp fordi de legger til belastning — aktiver kun én når du aktivt bruker det den driver, og slå den av igjen hvis du bare prøvde den ut:
@@ -379,9 +558,32 @@ Disse er **av som standard** nettopp fordi de legger til belastning — aktiver 
 | `ebpf.features.networkInterZoneMetrics`                   | Dobler kardinaliteten for nettverksflytmetrikker                                              |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Ekstra Prometheus-skrapejobber                                                                |
 
+### Spak 6 — Sample sporinger i stedet for å droppe dem
+
+Hver spak ovenfor kjøper volum ved å gi opp noe: et namespace du slutter å følge med på, en alvorlighetsgrad du slutter å beholde, en metrikkfamilie du slutter å samle inn. Sampling er unntaket, og på en travel klynge er det ofte den største reduksjonen som er tilgjengelig, for det minste tapet:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+Det er en 90 % reduksjon i sporingsvolum for et smalere tap enn noen annen spak her:
+
+- Sporingene du beholder, er **hele** — avgjørelsen hasher sporings-ID-en, så alle spans i en sporing deler den. Du får færre sporinger, ikke ødelagte.
+- **RED-metrikkene dine forblir eksakte.** Forespørselsrate, feilrate og varighet beregnes av OBI fra hver forespørsel og går gjennom metrikk-pipelinen, som sampleren ikke står i. Hvert dashbord og hver monitor bygget på dem viser det samme som før.
+
+Det du gir opp, er stort sett eksempelsporinger: når en monitor utløses, har du en tidel så mange sporinger å åpne. På en klynge som håndterer tusenvis av identiske forespørsler i sekundet, er det vanligvis en god handel — det hundrede identiske `/healthz`-spanet lærer deg ingenting det første ikke gjorde. På en stille klynge er det en dårlig en, fordi du kanskje ikke har noe eksempel på den sjeldne forespørselen som feilet.
+
+Unntaket, og den ene tingen du bør sjekke før du ruller dette ut: monitorer som **teller spans** i stedet for metrikker — Traces på `Span Count`, Exceptions på `Exception Count` — ser proporsjonalt færre, så tersklene deres må justeres på nytt med den samme faktoren. Se [Sampling av sporinger](#sampling-av-sporinger).
+
+Grip til denne når eBPF-sporinger utgjør en stor andel av ingesten din, men du fortsatt vil ha service-kartet og RED-metrikkene intakt. Foretrekk Spak 2 når du vil slutte å instrumentere noe helt.
+
+Se [Sampling av sporinger](#sampling-av-sporinger) for den fullstendige oppførselen, inkludert hvorfor `0` er en rate snarere enn en av-bryter, og hvorfor det ikke finnes noen logg- eller metrikk-ekvivalent.
+
 ### Et slankt utgangspunkt
 
-Hvis du vil ha et minimalt fotavtrykk og vil legge til signaler etter hvert som du trenger dem, dropper denne **kun metrikker + hendelser**-profilen logger og eBPF og halverer skrapefrekvensen:
+Hvis du vil ha et mindre fotavtrykk, men fortsatt vil at monitorene skal fungere, beholder denne profilen **full metrikkdekning** og kutter de to tingene som faktisk driver volumet — logglinjer og eBPF-spans:
 
 ```yaml
 # lean-values.yaml
@@ -390,19 +592,34 @@ oneuptime:
   apiKey: YOUR_ONEUPTIME_API_KEY
 clusterName: my-cluster
 
+# Halverer metrikk-datapunktene. Grovere oppløsning, samme dekning.
 collectionInterval: 60s
-
-logs:
-  enabled: false # no pod logs
-
-ebpf:
-  enabled: false # no auto-traces
-
 hostMetrics:
   collectionInterval: 60s
-
 cadvisor:
   scrapeInterval: 60s
+
+# Behold pod-logger, men send bare de som er verdt å varsle på.
+# (Metrikker avhenger ikke av dette — node-collectoren kjører uansett.)
+logs:
+  enabled: true
+  mode: daemonset
+
+filters:
+  logs:
+    minSeverity: WARN # drop INFO / DEBUG / TRACE på agenten
+
+namespaceFilters:
+  exclude:
+    - kube-system
+    - noisy-namespace
+
+ebpf:
+  enabled: true
+  features:
+    networkMetrics: false # de tyngste eBPF-familiene
+    tcpStats: false
+    spanMetrics: false
 ```
 
 ```bash
@@ -411,9 +628,9 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
   -f lean-values.yaml
 ```
 
-Derfra kan du re-aktivere hva enn du trenger: `logs.enabled=true` for noen få namespaces i API-modus, eller `ebpf.enabled=true` med en innsnevret `autoTargetExe`.
+Stram inn ytterligere ved behov: hev `minSeverity` til `ERROR`, legg til `namespaceFilters.applyTo.metrics=true`, eller sett `ebpf.enabled=false` hvis du allerede leverer sporinger fra OTel-SDK-er.
 
-> **Vær forsiktig med hva du kutter.** Noen monitorer avhenger av spesifikke signaler: å deaktivere `cadvisor` fjerner OOM-kill- og CPU-throttling-monitorene; å deaktivere `kubeletstats.volumeMetrics` fjerner PVC-lavdisk-monitoren; å deaktivere logger fjerner loggbaserte varsler. Trim signalene du ikke handler på, ikke de en monitor følger med på.
+> **Vær forsiktig med hva du kutter.** Noen monitorer avhenger av spesifikke signaler: å deaktivere `cadvisor` fjerner OOM-kill- og CPU-throttling-monitorene; å deaktivere `kubeletstats.volumeMetrics` fjerner PVC-lavdisk-monitoren; å deaktivere logger fjerner loggbaserte varsler; og `sampling.traces.percentage` fjerner ingen monitor, men skalerer ned de span-baserte (Traces på `Span Count`, Exceptions på `Exception Count`), så juster tersklene deres tilsvarende. Trim signalene du ikke handler på, ikke de en monitor følger med på.
 
 ### Mål effekten
 
@@ -475,7 +692,7 @@ Den vanligste årsaken — spesielt etter en reinstallasjon — er en **feil ell
 
 ### Ingen metrikker vises
 
-1. Utelukk først en avvist ingest-nøkkel — det er den vanligste årsaken og er usynlig fra agentsiden. Se [Agenten viser "Disconnected"](#agent-shows-disconnected) ovenfor (eller bare kjør diagnostikkskriptet).
+1. Utelukk først en avvist ingest-nøkkel — det er den vanligste årsaken og er usynlig fra agentsiden. Se [Agenten viser "Disconnected"](#agenten-viser-disconnected) ovenfor (eller bare kjør diagnostikkskriptet).
 2. Sjekk at klyngeidentifikatoren matcher verdien du sendte som `clusterName`
 3. Verifiser RBAC-tillatelsene: `kubectl get clusterrolebinding | grep kubernetes-agent`
 4. Sjekk OTel-collector-loggene for eksportfeil

@@ -4,14 +4,14 @@ OneUptime Terraform Provider 讓您能夠使用基礎設施即程式碼（IaC）
 
 ## 目錄
 
-- [安裝](#installation)
-- [Provider 設定](#provider-configuration)
-- [快速開始](#quick-start)
-- [版本相容性](#version-compatibility)
-- [可用資源](#available-resources)
-- [範例](#examples)
-- [最佳實踐](#best-practices)
-- [遷移指南](#migration-guide)
+- [安裝](#安裝)
+- [Provider 設定](#provider-設定)
+- [快速開始](#快速開始)
+- [版本相容性](#版本相容性)
+- [可用資源](#可用資源)
+- [範例](#範例)
+- [最佳實踐](#最佳實踐)
+- [遷移指南](#遷移指南)
 
 ## 安裝
 

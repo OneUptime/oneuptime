@@ -21,6 +21,10 @@ import SubscriptionPlan, {
 import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import AIChatMessageRole from "../../Types/AI/AIChatMessageRole";
 import AIChatMessageStatus from "../../Types/AI/AIChatMessageStatus";
+import {
+  AIChatPageContext,
+  AIChatPageContextHelper,
+} from "../../Types/AI/AIChatPageContext";
 import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "../../Types/AI/AIChatPermissionMode";
@@ -142,6 +146,16 @@ router.post(
         AIChatPermissionModeHelper.isValid(req.body["permissionMode"] as string)
           ? (req.body["permissionMode"] as AIChatPermissionMode)
           : undefined;
+
+      /*
+       * Optional page context — what the user was looking at when they asked
+       * (an incident, a monitor, the logs explorer, …). It is a hint for the
+       * system prompt, so an invalid payload is dropped, never an error.
+       */
+      const pageContext: AIChatPageContext | undefined =
+        AIChatPageContextHelper.sanitize(
+          req.body["pageContext"] as JSONObject | undefined,
+        );
 
       // Plan gate: custom endpoints get no automatic billing check.
       if (
@@ -435,6 +449,7 @@ router.post(
         aiRunId: createdRun.id!,
         llmProviderId: effectiveLlmProviderId,
         permissionMode: effectivePermissionMode,
+        pageContext: pageContext,
         props: props,
       }).catch((error: Error) => {
         logger.error(`AI chat turn crashed: ${error.message}`);
@@ -498,6 +513,7 @@ router.post(
           return {
             id: provider.id?.toString(),
             name: provider.name,
+            description: provider.description || null,
             llmType: provider.llmType?.toString() || null,
             modelName: provider.modelName || null,
             isDefault: provider.isDefault || false,

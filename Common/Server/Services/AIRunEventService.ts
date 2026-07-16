@@ -2,13 +2,17 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
-import { AIRunEventResultSummary } from "../../Types/AI/AIChatTypes";
+import {
+  AIRunEventContentPayload,
+  AIRunEventResultSummary,
+} from "../../Types/AI/AIChatTypes";
 import CountBy from "../Types/Database/CountBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnFind } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/AIRunEvent";
 import { pinQueryToRequestingUser } from "../Utils/AI/AIChatPrivacyFilter";
+import AIRunTranscript from "../Utils/AI/AIRunTranscript";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 
@@ -36,6 +40,7 @@ export class Service extends DatabaseService<Model> {
     toolArguments?: JSONObject | undefined;
     resultSummary?: AIRunEventResultSummary | undefined;
     citationId?: string | undefined;
+    contentPayload?: AIRunEventContentPayload | undefined;
   }): Promise<void> {
     try {
       const sequence: number = (
@@ -62,6 +67,15 @@ export class Service extends DatabaseService<Model> {
       }
       if (data.citationId) {
         event.citationId = data.citationId;
+      }
+      /*
+       * Capped here rather than at the call sites, so no caller can write an
+       * unbounded transcript row by forgetting to clamp.
+       */
+      if (data.contentPayload) {
+        event.contentPayload = AIRunTranscript.clampPayload(
+          data.contentPayload,
+        );
       }
 
       await this.create({

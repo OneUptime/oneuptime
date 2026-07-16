@@ -565,10 +565,25 @@ function getPartitionsToReconcile(
 ): Array<ClickhousePlannedPartition> {
   const metadata: JSONObject = log.metadata || {};
   const droppedPartitions: unknown = metadata["droppedPartitions"];
+  const unconfirmedPartitions: unknown = metadata["unconfirmedPartitions"];
+
+  /*
+   * Reconcile every partition whose DDL was ISSUED, not only the ones confirmed
+   * dropped. An issued drop whose outcome is unknown may still be removing
+   * parts, and ignoring it would let the next batch be planned against space
+   * that is about to disappear anyway.
+   */
+  const issuedPartitions: Array<unknown> = [
+    ...(Array.isArray(droppedPartitions) ? droppedPartitions : []),
+    ...(Array.isArray(unconfirmedPartitions) ? unconfirmedPartitions : []),
+  ];
+
+  /*
+   * A worker that died mid-batch recorded neither list, so fall back to the
+   * whole plan: anything it planned might have been issued.
+   */
   const rawPartitions: unknown =
-    Array.isArray(droppedPartitions) && droppedPartitions.length > 0
-      ? droppedPartitions
-      : metadata["partitions"];
+    issuedPartitions.length > 0 ? issuedPartitions : metadata["partitions"];
 
   if (!Array.isArray(rawPartitions)) {
     return [];
@@ -707,6 +722,40 @@ async function shouldKeepWaitingForReclaim(
     logger.error(`${JOB_NAME}: Reclaim reconciliation failed: ${errorMessage}`);
     return true;
   }
+}
+
+function getFailedBatchMessage(data: {
+  droppedCount: number;
+  unconfirmedCount: number;
+  errorMessage: string;
+}): string {
+  // The batch failed on its first drop, so there is no "more" to speak of.
+  if (data.unconfirmedCount > 0 && data.droppedCount === 0) {
+    return (
+      `Issued ${data.unconfirmedCount} ClickHouse partition drop(s) whose outcome ` +
+      `is unknown. Waiting for reclaim to establish what actually left disk before ` +
+      `evaluating another batch. Error: ${data.errorMessage}`
+    );
+  }
+
+  if (data.unconfirmedCount > 0) {
+    return (
+      `Dropped ${data.droppedCount} ClickHouse partition(s) and issued ` +
+      `${data.unconfirmedCount} more whose outcome is unknown. Waiting for reclaim ` +
+      `to establish what actually left disk before evaluating another batch. ` +
+      `Error: ${data.errorMessage}`
+    );
+  }
+
+  if (data.droppedCount > 0) {
+    return (
+      `Dropped ${data.droppedCount} ClickHouse partition(s), but the batch then ` +
+      `failed. Waiting for reclaim before evaluating another batch. ` +
+      `Error: ${data.errorMessage}`
+    );
+  }
+
+  return `ClickHouse pruning failed before any partition drop was issued. Error: ${data.errorMessage}`;
 }
 
 export async function evaluatePruning(data: {
@@ -851,6 +900,7 @@ export async function evaluatePruning(data: {
 
   let runningLog: InstanceHealthLog | null = null;
   const droppedPartitions: Array<ClickhousePlannedPartition> = [];
+  let inFlightPartition: ClickhousePlannedPartition | null = null;
 
   try {
     const candidates: Array<ClickhousePartitionCandidate> =
@@ -905,10 +955,21 @@ export async function evaluatePruning(data: {
     });
 
     for (const partition of plan.partitions) {
+      /*
+       * Mark the partition in-flight BEFORE issuing the DDL. An ON CLUSTER drop
+       * is committed to Keeper before the client can see a result, so it goes on
+       * to execute on every replica even when the client errors or times out.
+       * The client cannot distinguish a pre-commit rejection from a post-commit
+       * abort, so any error leaves this partition's outcome UNKNOWN. Recording
+       * it only on success would let the batch report that nothing was dropped
+       * while ClickHouse is deleting the data.
+       */
+      inFlightPartition = partition;
       await dropClickhousePartition({
         tableName: partition.tableName,
         partitionId: partition.partitionId,
       });
+      inFlightPartition = null;
       droppedPartitions.push(partition);
     }
 
@@ -939,6 +1000,25 @@ export async function evaluatePruning(data: {
     });
   } catch (error) {
     const errorMessage: string = getErrorMessage(error);
+    /*
+     * The loop clears inFlightPartition only after a drop resolves, so a
+     * non-null value here is a partition whose DDL was issued but whose outcome
+     * this worker never learned. It must be reconciled against ClickHouse, not
+     * assumed undone.
+     */
+    const unconfirmedPartitions: Array<ClickhousePlannedPartition> =
+      inFlightPartition ? [inFlightPartition] : [];
+    const issuedPartitionCount: number =
+      droppedPartitions.length + unconfirmedPartitions.length;
+    /*
+     * Cadence keys on CONFIRMED drops, status on issued ones. A confirmed drop
+     * means real reclaim is under way, so re-check soon. A batch whose only
+     * issued drop is unconfirmed may have accomplished nothing: a pre-commit
+     * rejection (ACCESS_DENIED, TABLE_IS_READ_ONLY) is indistinguishable from a
+     * post-commit abort at the client, and an error that never clears would
+     * otherwise re-issue destructive DDL every RECLAIM_CHECK_DELAY_IN_MINUTES
+     * forever. Hold the long cooldown instead.
+     */
     const nextCheckAt: Date = OneUptimeDate.getSomeMinutesAfter(
       droppedPartitions.length > 0
         ? RECLAIM_CHECK_DELAY_IN_MINUTES
@@ -950,15 +1030,16 @@ export async function evaluatePruning(data: {
         id: runningLog.id,
         data: {
           status:
-            droppedPartitions.length > 0
+            issuedPartitionCount > 0
               ? InstanceHealthLogStatus.WaitingForReclaim
               : InstanceHealthLogStatus.Failed,
-          message:
-            droppedPartitions.length > 0
-              ? `Dropped ${droppedPartitions.length} ClickHouse partition(s), but the batch then failed: ${errorMessage}. Waiting for reclaim before evaluating another batch.`
-              : `ClickHouse pruning failed before any confirmed partition drop: ${errorMessage}`,
+          message: getFailedBatchMessage({
+            droppedCount: droppedPartitions.length,
+            unconfirmedCount: unconfirmedPartitions.length,
+            errorMessage,
+          }),
           completedAt:
-            droppedPartitions.length > 0
+            issuedPartitionCount > 0
               ? (null as unknown as Date)
               : OneUptimeDate.getCurrentDate(),
           nextCheckAt,
@@ -966,6 +1047,8 @@ export async function evaluatePruning(data: {
             error: errorMessage,
             droppedPartitionCount: droppedPartitions.length,
             droppedPartitions: serializeForMetadata(droppedPartitions),
+            unconfirmedPartitionCount: unconfirmedPartitions.length,
+            unconfirmedPartitions: serializeForMetadata(unconfirmedPartitions),
           }),
         },
         props: {

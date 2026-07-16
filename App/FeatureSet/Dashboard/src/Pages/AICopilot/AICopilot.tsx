@@ -1,9 +1,11 @@
 import PageComponentProps from "../PageComponentProps";
 import AIPlanGate from "../../Components/AI/AIPlanGate";
 import ChatActivityFeed from "../../Components/AIChat/ChatActivityFeed";
+import ChatDownloadMenu from "../../Components/AIChat/ChatDownloadMenu";
 import ChatHomeView from "../../Components/AIChat/ChatHomeView";
 import ChatInput from "../../Components/AIChat/ChatInput";
 import ChatMessageList from "../../Components/AIChat/ChatMessageList";
+import PageContextChip from "../../Components/AIChat/PageContextChip";
 import ProviderPicker from "../../Components/AIChat/ProviderPicker";
 import PermissionModePicker from "../../Components/AIChat/PermissionModePicker";
 import { useAiChat, UseAiChat } from "../../Components/AIChat/useAiChat";
@@ -59,6 +61,24 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
     </div>
   );
+
+  /*
+   * The full page lives on its own route, so detection usually yields no
+   * context — this only renders when the user deep-linked here from a page
+   * that provided one.
+   */
+  const contextChip: ReactElement | undefined = chat.pageContext ? (
+    <PageContextChip
+      context={chat.pageContext}
+      isAttached={chat.isPageContextAttached}
+      onAttach={() => {
+        chat.setIsPageContextAttached(true);
+      }}
+      onDetach={() => {
+        chat.setIsPageContextAttached(false);
+      }}
+    />
+  ) : undefined;
 
   return (
     <Page title="AI" description={AI_CHAT_DESCRIPTION}>
@@ -165,17 +185,28 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
               </div>
             </div>
             {chat.isConversationView && (
-              <button
-                type="button"
-                title="New chat"
-                onClick={() => {
-                  chat.newConversation();
-                }}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
-              >
-                <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
-                New chat
-              </button>
+              <div className="flex items-center gap-1.5">
+                {chat.messages.length > 0 && (
+                  <ChatDownloadMenu
+                    title={chat.activeConversationTitle}
+                    messages={chat.messages}
+                    latestRun={chat.latestRun}
+                    onError={chat.setError}
+                    triggerClassName="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+                  />
+                )}
+                <button
+                  type="button"
+                  title="New chat"
+                  onClick={() => {
+                    chat.newConversation();
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
+                  New chat
+                </button>
+              </div>
             )}
           </div>
 
@@ -217,6 +248,8 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   showNoProviderNotice={
                     chat.providersLoaded && chat.providers.length === 0
                   }
+                  pageContext={chat.pageContext}
+                  isPageContextAttached={chat.isPageContextAttached}
                   onOpenConversation={chat.openConversation}
                   onDeleteConversation={chat.deleteConversation}
                   onAsk={(question: string) => {
@@ -265,6 +298,7 @@ const AICopilot: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
               isWorking={chat.isWorking}
               leading={composerLeading}
+              contextChip={contextChip}
               onSend={() => {
                 chat.sendMessage().catch(() => {
                   // handled in the hook

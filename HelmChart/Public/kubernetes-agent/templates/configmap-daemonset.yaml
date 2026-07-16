@@ -1,4 +1,10 @@
-{{- if and .Values.logs.enabled (eq (include "kubernetes-agent.logMode" .) "daemonset") }}
+{{- /*
+  Config for the node collector. Rendered whenever that DaemonSet runs, which is
+  now independent of logs: the filelog receiver and the logs pipeline are the
+  only parts gated on pod-log collection. Everything else here is metrics.
+*/}}
+{{- $wantLogs := eq (include "kubernetes-agent.daemonSetLogsEnabled" .) "true" }}
+{{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -91,7 +97,7 @@ data:
                   action: keep
       {{- end }}
 
-      {{- if .Values.hostMetrics.enabled }}
+      {{- if eq (include "kubernetes-agent.hostMetricsEnabled" .) "true" }}
       # OS-level metrics that kubeletstats doesn't surface: disk I/O
       # queue depth, filesystem inode usage, NIC error counters, load
       # average, paging stats. Reads /proc and /sys directly (mounted
@@ -113,7 +119,7 @@ data:
           processes:
       {{- end }}
 
-      {{- if .Values.auditLogs.enabled }}
+      {{- if and .Values.auditLogs.enabled $wantLogs }}
       # Kubernetes API server audit log. Self-managed clusters only;
       # managed K8s (EKS / GKE / AKS / DOKS) routes audit logs to the
       # cloud provider's sink instead of writing them to a file.
@@ -143,6 +149,7 @@ data:
             value: "kubernetes-audit"
       {{- end }}
 
+      {{- if $wantLogs }}
       # Collect pod logs from /var/log/pods.
       #
       # The namespace is encoded in the pod-log directory name
@@ -332,6 +339,7 @@ data:
           - type: remove
             id: remove-severity-attr
             field: attributes.severity_text
+      {{- end }}
 
     processors:
       # Enrich with K8s metadata
@@ -399,6 +407,10 @@ data:
               - set(attributes["service.name"], attributes["k8s.statefulset.name"]) where attributes["k8s.statefulset.name"] != nil and attributes["k8s.statefulset.name"] != "" and attributes["k8s.deployment.name"] == nil
               - set(attributes["service.name"], attributes["k8s.daemonset.name"]) where attributes["k8s.daemonset.name"] != nil and attributes["k8s.daemonset.name"] != "" and attributes["k8s.deployment.name"] == nil and attributes["k8s.statefulset.name"] == nil
 
+      {{- if or (eq (include "kubernetes-agent.logFiltersEnabled" .) "true") (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") }}
+      {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" (list "logs" "metrics")) | nindent 6 }}
+      {{- end }}
+
       batch:
         send_batch_size: 1024
         timeout: 10s
@@ -452,17 +464,23 @@ data:
             {{- if .Values.cadvisor.enabled }}
             - prometheus/cadvisor
             {{- end }}
-            {{- if .Values.hostMetrics.enabled }}
+            {{- if eq (include "kubernetes-agent.hostMetricsEnabled" .) "true" }}
             - hostmetrics
             {{- end }}
           processors:
             - memory_limiter
             - k8sattributes
+            {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
+            # After k8sattributes so namespace conditions can match; before
+            # batch so dropped series never leave the node.
+            - filter/telemetry
+            {{- end }}
             - resource
             - transform
             - batch
           exporters:
             - otlphttp
+        {{- if $wantLogs }}
         logs:
           receivers:
             - filelog
@@ -472,9 +490,15 @@ data:
           processors:
             - memory_limiter
             - k8sattributes
+            {{- if eq (include "kubernetes-agent.logFiltersEnabled" .) "true" }}
+            # Severity is set by the receiver's operator chain above, so the
+            # filter sees a real severity_number by the time it runs here.
+            - filter/telemetry
+            {{- end }}
             - resource
             - transform
             - batch
           exporters:
             - otlphttp
+        {{- end }}
 {{- end }}

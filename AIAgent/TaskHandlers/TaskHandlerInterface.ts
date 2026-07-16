@@ -8,8 +8,17 @@ export interface TaskResultData {
   pullRequests?: Array<string>;
   // Errors encountered during processing
   errors?: Array<string>;
-  // Flag to indicate if this is an error result (not just "no action taken")
+  /*
+   * True when the task could not finish — the run is reported as Error.
+   * A task that ran fine but produced no pull request sets noFixFound
+   * instead; see createNoFixResult.
+   */
   isError?: boolean;
+  /*
+   * The task completed but had no fix to propose. Not a failure — the run is
+   * reported as NoFixFound rather than Error.
+   */
+  noFixFound?: boolean;
   // Additional data fields
   [key: string]: unknown;
 }
@@ -123,12 +132,19 @@ export abstract class BaseTaskHandler implements TaskHandler {
     return result;
   }
 
-  // Create a result for when no action was taken
-  protected createNoActionResult(message: string): TaskResult {
+  /*
+   * Create a result for a task that ran to completion but had no fix to
+   * propose. success is false because no pull request came out of it, but
+   * isError is not set — the caller reports NoFixFound, not Error.
+   */
+  protected createNoFixResult(message: string): TaskResult {
     return {
-      success: true,
+      success: false,
       message,
       pullRequestsCreated: 0,
+      data: {
+        noFixFound: true,
+      },
     };
   }
 

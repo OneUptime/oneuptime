@@ -2,6 +2,12 @@ enum AIAgentTaskStatus {
   Scheduled = "Scheduled",
   InProgress = "InProgress",
   Completed = "Completed",
+  /*
+   * The agent finished cleanly but had no fix to propose, so it opened no
+   * pull request. Reported instead of Error so a negative result is not
+   * counted as a failure — see AIRunStatus.NoFixFound, which this maps to.
+   */
+  NoFixFound = "NoFixFound",
   Error = "Error",
 }
 
@@ -33,6 +39,12 @@ export class AIAgentTaskStatusHelper {
         description: "Task has been completed successfully.",
       },
       {
+        status: AIAgentTaskStatus.NoFixFound,
+        title: "No Fix Found",
+        description:
+          "Task ran successfully but AI did not find a fix to propose.",
+      },
+      {
         status: AIAgentTaskStatus.Error,
         title: "Error",
         description: "Task encountered an error during execution.",
@@ -59,6 +71,7 @@ export class AIAgentTaskStatusHelper {
   public static isTerminalStatus(status: AIAgentTaskStatus): boolean {
     return (
       status === AIAgentTaskStatus.Completed ||
+      status === AIAgentTaskStatus.NoFixFound ||
       status === AIAgentTaskStatus.Error
     );
   }

@@ -361,6 +361,34 @@ data:
               - set(severity_text, "WARN") where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
               - set(severity_number, SEVERITY_NUMBER_WARN) where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
 
+      {{- /* No "logs" signal here, deliberately. `filters.logs.minSeverity` is a
+             POD LOG control, and no pod log flows through this collector — the
+             only logs pipeline here carries the k8sobjects watch (Kubernetes
+             events and resource specs). Those arrive with no severity, and
+             transform/severity above stamps them INFO, so a WARN threshold
+             would silently delete the entire events feed. Pod-log severity is
+             applied where pod logs actually are: the DaemonSet's filter, and
+             the API tailer's MIN_SEVERITY.
+             The traces pipeline only exists when ebpf.enabled, so span rules
+             are only emitted when there is a pipeline to run them in. */}}
+      {{- $signals := ternary (list "metrics" "traces") (list "metrics") (.Values.ebpf.enabled | default false) }}
+      {{- if or (eq (include "kubernetes-agent.metricFiltersEnabled" .) "true") (and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true")) }}
+      {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" $signals) | nindent 6 }}
+      {{- end }}
+
+      {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
+      # Keep .Values.sampling.traces.percentage% of traces, drop the rest.
+      # The decision is a hash of the trace ID, so every span of a trace is
+      # kept or dropped together and what reaches OneUptime is whole traces
+      # rather than fragments. Only in the traces pipeline: the eBPF RED
+      # metrics run through `metrics` and stay complete.
+      probabilistic_sampler:
+        sampling_percentage: {{ include "kubernetes-agent.traceSamplingPercentage" . }}
+        # Every collector that must agree on a trace needs this AND
+        # sampling_percentage to match. See values.yaml.
+        hash_seed: {{ include "kubernetes-agent.traceSamplingHashSeed" . }}
+      {{- end }}
+
       # Batch telemetry for efficient export
       batch:
         send_batch_size: 100
@@ -413,6 +441,9 @@ data:
           processors:
             - memory_limiter
             - k8sattributes
+            {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
+            - filter/telemetry
+            {{- end }}
             - resource
             - batch
           exporters:
@@ -425,6 +456,9 @@ data:
             - k8sattributes
             - resource
             - transform/severity
+            # Intentionally NOT filtered by filters.logs.minSeverity — see the
+            # note on $signals above. Kubernetes events are a low-volume,
+            # high-value signal, and every one of them would be dropped.
             - batch
           exporters:
             - otlphttp
@@ -441,6 +475,18 @@ data:
           processors:
             - memory_limiter
             - k8sattributes
+            {{- if and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true") }}
+            # k8sattributes resolves the sending pod to a namespace, so this
+            # must stay after it — before it, every span looks namespace-less.
+            - filter/telemetry
+            {{- end }}
+            {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
+            # After filter/telemetry so the sample is drawn from the traces you
+            # actually asked to keep, not from ones about to be dropped anyway.
+            # Before batch so a sampled-out span never occupies a batch slot or
+            # leaves the cluster.
+            - probabilistic_sampler
+            {{- end }}
             - batch
           exporters:
             - otlphttp

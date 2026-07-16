@@ -27,6 +27,10 @@ export const targetTypeToPageMap: {
   [AIChatCitationTargetType.AlertView]: PageMap.ALERT_VIEW,
   [AIChatCitationTargetType.Monitors]: PageMap.MONITORS,
   [AIChatCitationTargetType.MonitorView]: PageMap.MONITOR_VIEW,
+  [AIChatCitationTargetType.ScheduledMaintenanceEvents]:
+    PageMap.SCHEDULED_MAINTENANCE_EVENTS,
+  [AIChatCitationTargetType.ScheduledMaintenanceView]:
+    PageMap.SCHEDULED_MAINTENANCE_VIEW,
 };
 
 export const targetTypeToIcon: {
@@ -43,6 +47,8 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.AlertView]: IconProp.Bell,
   [AIChatCitationTargetType.Monitors]: IconProp.Cube,
   [AIChatCitationTargetType.MonitorView]: IconProp.Cube,
+  [AIChatCitationTargetType.ScheduledMaintenanceEvents]: IconProp.Clock,
+  [AIChatCitationTargetType.ScheduledMaintenanceView]: IconProp.Clock,
 };
 
 export function getRouteForCitationTarget(
