@@ -35,6 +35,14 @@ enum MonitorMetricType {
   SnmpInterfaceErrorsPerSecond = "oneuptime.monitor.snmp.interface.errors.per.second",
 
   /*
+   * One series per polled OID that returned a numeric value (oid / oidName
+   * attributes) — CPU, memory, temperature from vendor templates and any
+   * custom OID a user adds. This is what makes polled OIDs chartable and
+   * evaluable over time.
+   */
+  SnmpOidValue = "oneuptime.monitor.snmp.oid.value",
+
+  /*
    * Extended server/VM metrics. Emitted when the agent payload contains them;
    * absent for older agents, which keeps the pipeline backwards-compatible.
    */

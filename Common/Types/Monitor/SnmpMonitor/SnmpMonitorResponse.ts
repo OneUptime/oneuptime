@@ -2,6 +2,9 @@ import ProbeAttempt from "../../Probe/ProbeAttempt";
 import SnmpDataType from "./SnmpDataType";
 import SnmpInterface from "./SnmpInterface";
 import LldpNeighbor from "./LldpNeighbor";
+import CdpNeighbor from "./CdpNeighbor";
+import SnmpSystemInfo from "./SnmpSystemInfo";
+import SnmpEntityInfo from "./SnmpEntityInfo";
 
 export interface SnmpOidResponse {
   oid: string;
@@ -26,18 +29,24 @@ export default interface SnmpMonitorResponse {
   interfaces?: Array<SnmpInterface> | undefined;
   interfaceWalkFailure?: string | undefined;
   /*
-   * System-group identity (sysDescr / sysName), collected alongside the
-   * interface walk. Used to enrich the NetworkDevice resource.
+   * System-group identity, collected alongside the interface walk. Used to
+   * enrich the NetworkDevice resource. Older probes send only
+   * sysDescr/sysName.
    */
-  systemInfo?:
-    | {
-        sysDescr?: string | undefined;
-        sysName?: string | undefined;
-      }
-    | undefined;
+  systemInfo?: SnmpSystemInfo | undefined;
+  /*
+   * ENTITY-MIB hardware identity (manufacturer/model/serial/firmware),
+   * collected alongside the interface walk on devices that implement it.
+   */
+  entityInfo?: SnmpEntityInfo | undefined;
   /*
    * LLDP neighbors discovered during the walk (when interface monitoring is
    * enabled). Used to build the network topology graph.
    */
   lldpNeighbors?: Array<LldpNeighbor> | undefined;
+  /*
+   * CDP neighbors, walked as a complement to LLDP for Cisco estates.
+   * Undefined on older probes and non-CDP devices.
+   */
+  cdpNeighbors?: Array<CdpNeighbor> | undefined;
 }

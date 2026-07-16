@@ -455,6 +455,7 @@ import { AddAITaskNumberAndRunTranscript1784124919694 } from "./1784124919694-Ad
 import { AllowNullAiAgentOnPullRequest1784135099754 } from "./1784135099754-AllowNullAiAgentOnPullRequest";
 import { AddEnableMcpServerToStatusPage1784137457184 } from "./1784137457184-AddEnableMcpServerToStatusPage";
 import { AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan1784200000000 } from "./1784200000000-AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan";
+import { AddNetworkDeviceInventoryAndDiscoverySchedule1784211212164 } from "./1784211212164-AddNetworkDeviceInventoryAndDiscoverySchedule";
 
 export default [
   InitialMigration,
@@ -914,4 +915,5 @@ export default [
   AllowNullAiAgentOnPullRequest1784135099754,
   AddEnableMcpServerToStatusPage1784137457184,
   AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan1784200000000,
+  AddNetworkDeviceInventoryAndDiscoverySchedule1784211212164,
 ];

@@ -6,6 +6,10 @@ import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import LldpNeighbor from "../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
+import CdpNeighbor from "../../../Types/Monitor/SnmpMonitor/CdpNeighbor";
+import SnmpSystemInfo from "../../../Types/Monitor/SnmpMonitor/SnmpSystemInfo";
+import SnmpEntityInfo from "../../../Types/Monitor/SnmpMonitor/SnmpEntityInfo";
+import SnmpVendorTemplateUtil from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
@@ -43,11 +47,14 @@ export default class NetworkInventoryUtil {
     const deviceId: ObjectID = new ObjectID(deviceIdAsString);
     const walkedInterfaces: Array<SnmpInterface> =
       data.dataToProcess.snmpResponse?.interfaces || [];
-    const systemInfo:
-      | { sysDescr?: string | undefined; sysName?: string | undefined }
-      | undefined = data.dataToProcess.snmpResponse?.systemInfo;
+    const systemInfo: SnmpSystemInfo | undefined =
+      data.dataToProcess.snmpResponse?.systemInfo;
+    const entityInfo: SnmpEntityInfo | undefined =
+      data.dataToProcess.snmpResponse?.entityInfo;
     const lldpNeighbors: Array<LldpNeighbor> | undefined =
       data.dataToProcess.snmpResponse?.lldpNeighbors;
+    const cdpNeighbors: Array<CdpNeighbor> | undefined =
+      data.dataToProcess.snmpResponse?.cdpNeighbors;
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -63,14 +70,65 @@ export default class NetworkInventoryUtil {
       if (systemInfo?.sysName) {
         deviceUpdate["sysName"] = systemInfo.sysName.substring(0, 100);
       }
+      if (systemInfo?.sysObjectId) {
+        deviceUpdate["sysObjectId"] = systemInfo.sysObjectId.substring(0, 100);
+      }
+      if (systemInfo?.sysLocation) {
+        deviceUpdate["sysLocation"] = systemInfo.sysLocation.substring(0, 100);
+      }
+      if (systemInfo?.sysContact) {
+        deviceUpdate["sysContact"] = systemInfo.sysContact.substring(0, 100);
+      }
+      if (systemInfo?.sysUpTimeSeconds !== undefined) {
+        deviceUpdate["lastRebootedAt"] = new Date(
+          now.getTime() - systemInfo.sysUpTimeSeconds * 1000,
+        );
+      }
+
+      /*
+       * Vendor: ENTITY-MIB manufacturer when the device implements it,
+       * otherwise fingerprinted from the sysObjectID enterprise arc.
+       */
+      const vendor: string | undefined =
+        entityInfo?.manufacturer ||
+        SnmpVendorTemplateUtil.getVendorNameBySysObjectId(
+          systemInfo?.sysObjectId,
+        );
+      if (vendor) {
+        deviceUpdate["vendor"] = vendor.substring(0, 100);
+      }
+      if (entityInfo?.model) {
+        deviceUpdate["deviceModel"] = entityInfo.model.substring(0, 100);
+      }
+      if (entityInfo?.serialNumber) {
+        deviceUpdate["serialNumber"] = entityInfo.serialNumber.substring(
+          0,
+          100,
+        );
+      }
+      if (entityInfo?.firmwareVersion) {
+        deviceUpdate["firmwareVersion"] = entityInfo.firmwareVersion.substring(
+          0,
+          100,
+        );
+      }
+      if (entityInfo?.softwareVersion) {
+        deviceUpdate["softwareVersion"] = entityInfo.softwareVersion.substring(
+          0,
+          100,
+        );
+      }
 
       /*
        * Store the LLDP snapshot (capped) whenever the walk ran, even if it
        * found nothing — clearing stale neighbors is as important as adding
-       * new ones for keeping the topology accurate.
+       * new ones for keeping the topology accurate. Same for CDP.
        */
       if (lldpNeighbors !== undefined) {
         deviceUpdate["lldpNeighbors"] = lldpNeighbors.slice(0, 256);
+      }
+      if (cdpNeighbors !== undefined) {
+        deviceUpdate["cdpNeighbors"] = cdpNeighbors.slice(0, 256);
       }
 
       if (walkedInterfaces.length > 0) {
@@ -138,6 +196,10 @@ export default class NetworkInventoryUtil {
         const interfaceData: Record<string, unknown> = {
           name: (walked.name || "").substring(0, 100),
           alias: walked.alias ? walked.alias.substring(0, 100) : null,
+          macAddress: walked.macAddress
+            ? walked.macAddress.substring(0, 100)
+            : null,
+          interfaceType: walked.interfaceType ?? null,
           isOperationallyUp: walked.isOperationallyUp,
           isAdministrativelyUp: walked.isAdministrativelyUp,
           speedInMbps:
@@ -173,6 +235,12 @@ export default class NetworkInventoryUtil {
           newInterface.name = (walked.name || "").substring(0, 100);
           if (walked.alias) {
             newInterface.alias = walked.alias.substring(0, 100);
+          }
+          if (walked.macAddress) {
+            newInterface.macAddress = walked.macAddress.substring(0, 100);
+          }
+          if (walked.interfaceType !== undefined) {
+            newInterface.interfaceType = walked.interfaceType;
           }
           newInterface.isMonitored = true;
           newInterface.isOperationallyUp = walked.isOperationallyUp;
