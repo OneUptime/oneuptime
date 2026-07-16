@@ -24,6 +24,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import ExplorerLink from "../../Metrics/Utils/ExplorerLink";
+import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -200,6 +202,26 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     };
   }, [queryConfigs, formulaConfigs, startAndEndDate, getMetricChartType]);
 
+  /*
+   * "Open in Explorer" deep link for this widget's queries. Suppressed on
+   * the unauthenticated public dashboard (no project session, so the
+   * explorer route would just bounce to login) and in edit mode (a
+   * navigation mid-edit would drop unsaved dashboard changes).
+   */
+  const showOpenInExplorer: boolean =
+    !isPublicDashboard() && !props.isEditMode && queryConfigs.length > 0;
+
+  const handleOpenInExplorer: (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>): void => {
+      // Don't let the click also select/drag the widget underneath.
+      event.stopPropagation();
+      ExplorerLink.openInExplorer(chartMetricViewData);
+    },
+    [chartMetricViewData],
+  );
+
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for chart - only on initial load
     return (
@@ -245,17 +267,30 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       }}
     >
       {(props.component.arguments.chartTitle ||
-        props.component.arguments.chartDescription) && (
-        <div className="px-2 pt-2 pb-1 flex-shrink-0">
-          {props.component.arguments.chartTitle && (
-            <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
-              {props.component.arguments.chartTitle}
-            </h3>
-          )}
-          {props.component.arguments.chartDescription && (
-            <p className="mt-0.5 text-xs text-gray-400">
-              {props.component.arguments.chartDescription}
-            </p>
+        props.component.arguments.chartDescription ||
+        showOpenInExplorer) && (
+        <div className="px-2 pt-2 pb-1 flex-shrink-0 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            {props.component.arguments.chartTitle && (
+              <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
+                {props.component.arguments.chartTitle}
+              </h3>
+            )}
+            {props.component.arguments.chartDescription && (
+              <p className="mt-0.5 text-xs text-gray-400">
+                {props.component.arguments.chartDescription}
+              </p>
+            )}
+          </div>
+          {showOpenInExplorer && (
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-full w-5 h-5 flex-shrink-0 text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
+              title="Open in Metric Explorer"
+              onClick={handleOpenInExplorer}
+            >
+              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+            </button>
           )}
         </div>
       )}

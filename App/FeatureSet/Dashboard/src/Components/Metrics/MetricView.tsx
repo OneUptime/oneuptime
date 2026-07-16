@@ -33,8 +33,12 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
+import ObjectID from "Common/Types/ObjectID";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
+import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
 
 const getFetchRelevantState: (data: MetricViewData) => unknown = (
   data: MetricViewData,
@@ -133,6 +137,25 @@ export interface ComponentProps {
   hideCardInQueryElements?: boolean;
   hideCardInCharts?: boolean;
   chartCssClass?: string | undefined;
+  /*
+   * Cache-bypass nonce. Bumping it forces a refetch (and a fresh network
+   * fetch past the aggregate result cache) even when the fetch-relevant
+   * view state hasn't changed — used by the explorer's manual Refresh on
+   * a pinned absolute window.
+   */
+  refreshNonce?: number | undefined;
+  /*
+   * Override for chart drag-to-zoom. When absent, the default handler
+   * narrows the view's own window via onChange (clearing any relative
+   * rangeToken), so any host whose onChange round-trips the data gets
+   * zoom for free.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  // Time-anchored annotations forwarded to every chart (see MetricCharts).
+  timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
+  referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
+  // Fired when a results fetch starts/finishes (drives host refresh UI).
+  onIsFetchingResultsChange?: ((isFetching: boolean) => void) | undefined;
 }
 
 const getNextUnusedVariable: (input: {
@@ -189,6 +212,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
       });
 
       return {
+        id: ObjectID.generate().toString(),
         metricAliasData: {
           metricVariable: currentVar,
           title: "",
@@ -283,10 +307,15 @@ const MetricView: FunctionComponent<ComponentProps> = (
    * Seed from the already-memoized effectiveData (aligned window) so the
    * first fetch-effect run sees an unchanged snapshot and doesn't duplicate
    * the mount fetch. effectiveData is in scope above; referencing it here
-   * avoids re-running the alignment math on every render.
+   * avoids re-running the alignment math on every render. The host's
+   * refreshNonce is part of the snapshot so bumping it forces a refetch
+   * even when the view state itself is unchanged (pinned-window refresh).
    */
   const lastFetchSnapshotRef: React.MutableRefObject<string> = React.useRef(
-    JSON.stringify(getFetchRelevantState(effectiveData)),
+    JSON.stringify({
+      fetchState: getFetchRelevantState(effectiveData),
+      refreshNonce: props.refreshNonce ?? null,
+    }),
   );
 
   useEffect(() => {
@@ -314,9 +343,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
       props.data,
     );
 
-    const currentFetchSnapshot: string = JSON.stringify(
-      getFetchRelevantState(effectiveData),
-    );
+    const currentFetchSnapshot: string = JSON.stringify({
+      fetchState: getFetchRelevantState(effectiveData),
+      refreshNonce: props.refreshNonce ?? null,
+    });
 
     const shouldFetch: boolean =
       currentFetchSnapshot !== lastFetchSnapshotRef.current &&
@@ -333,7 +363,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
     if (hasChanged) {
       metricViewDataRef.current = props.data;
     }
-  }, [props.data, effectiveData]);
+  }, [props.data, effectiveData, props.refreshNonce]);
 
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
@@ -342,6 +372,15 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const [isMetricResultsLoading, setIsMetricResultsLoading] =
     useState<boolean>(false);
   const [metricResultsError, setMetricResultsError] = useState<string>("");
+  /*
+   * Once the first results fetch completes, MetricCharts stays MOUNTED
+   * through subsequent refetches (a subtle overlay indicates loading
+   * instead) so per-chart series-control state (hidden series, search,
+   * sort) survives refreshes. Only the very first load shows the block
+   * loader.
+   */
+  const [hasFetchedResultsOnce, setHasFetchedResultsOnce] =
+    useState<boolean>(false);
 
   const loadMetricTypes: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -364,19 +403,20 @@ const MetricView: FunctionComponent<ComponentProps> = (
       setIsPageLoading(false);
       setPageError("");
 
-      /// if there's no query then set the default query and fetch results.
-      if (
-        props.data.queryConfigs.length === 0 &&
-        metricTypes.length > 0 &&
-        metricTypes[0] &&
-        metricTypes[0].name
-      ) {
-        // then  add a default query which would be the first
+      /*
+       * If there's no query yet, seed one EMPTY query row so the metric
+       * picker renders — deliberately without a metric name. Auto-charting
+       * the catalog's first metric here charted something arbitrary on
+       * direct navigation; the empty state below prompts a selection
+       * instead.
+       */
+      if (props.data.queryConfigs.length === 0) {
         if (props.onChange) {
           props.onChange({
             ...props.data,
             queryConfigs: [
               {
+                id: ObjectID.generate().toString(),
                 metricAliasData: {
                   metricVariable: "a",
                   legend: "",
@@ -386,7 +426,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 },
                 metricQueryData: {
                   filterData: {
-                    metricName: metricTypes[0].name,
+                    metricName: "",
                     aggegationType: MetricsAggregationType.Avg,
                   },
                 },
@@ -616,18 +656,43 @@ const MetricView: FunctionComponent<ComponentProps> = (
   const fetchAggregatedResults: PromiseVoidFunction =
     async (): Promise<void> => {
       setIsMetricResultsLoading(true);
+      props.onIsFetchingResultsChange?.(true);
 
       if (
         !effectiveData.startAndEndDate?.startValue ||
         !effectiveData.startAndEndDate?.endValue
       ) {
         setIsMetricResultsLoading(false);
+        props.onIsFetchingResultsChange?.(false);
         return;
       }
+
+      /*
+       * Nothing chartable selected yet (fresh explorer, or the user
+       * cleared every metric name) — show the empty state instead of
+       * firing aggregate queries for empty metric names.
+       */
+      const hasAnySelectedMetric: boolean = effectiveData.queryConfigs.some(
+        (queryConfig: MetricQueryConfigData) => {
+          return Boolean(
+            queryConfig.metricQueryData?.filterData?.metricName?.toString(),
+          );
+        },
+      );
+
+      if (!hasAnySelectedMetric) {
+        setMetricResults([]);
+        setMetricResultsError("");
+        setIsMetricResultsLoading(false);
+        props.onIsFetchingResultsChange?.(false);
+        return;
+      }
+
       try {
         const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
           metricViewData: effectiveData,
           aggregationInterval: aggregationInterval,
+          refreshNonce: props.refreshNonce,
         });
 
         setMetricResults(results);
@@ -637,7 +702,41 @@ const MetricView: FunctionComponent<ComponentProps> = (
       }
 
       setIsMetricResultsLoading(false);
+      setHasFetchedResultsOnce(true);
+      props.onIsFetchingResultsChange?.(false);
     };
+
+  /*
+   * Chart drag-to-zoom. A host override wins; otherwise narrow the view's
+   * own window through onChange — any embed whose onChange round-trips
+   * the data gets zoom for free. A zoomed window is pinned, so any
+   * relative rangeToken is cleared.
+   */
+  const handleChartTimeRangeSelect: (startTime: Date, endTime: Date) => void = (
+    startTime: Date,
+    endTime: Date,
+  ): void => {
+    if (props.onTimeRangeSelect) {
+      props.onTimeRangeSelect(startTime, endTime);
+      return;
+    }
+
+    if (props.onChange) {
+      props.onChange({
+        ...props.data,
+        startAndEndDate: new InBetween<Date>(startTime, endTime),
+        rangeToken: undefined,
+      });
+    }
+  };
+
+  const hasAnySelectedMetric: boolean = props.data.queryConfigs.some(
+    (queryConfig: MetricQueryConfigData) => {
+      return Boolean(
+        queryConfig.metricQueryData?.filterData?.metricName?.toString(),
+      );
+    },
+  );
 
   if (isPageLoading) {
     return <PageLoader isVisible={true} />;
@@ -697,6 +796,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     }}
                     data={queryConfig}
                     hideCard={props.hideCardInQueryElements}
+                    canOverlayWithPreviousQuery={index > 0}
                     telemetryAttributes={
                       telemetryAttributesByMetric[
                         queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
@@ -965,34 +1065,83 @@ const MetricView: FunctionComponent<ComponentProps> = (
         )}
 
         {/* Chart results */}
-        {isMetricResultsLoading && <ComponentLoader />}
+        {isMetricResultsLoading && !hasFetchedResultsOnce && (
+          <ComponentLoader />
+        )}
 
         {metricResultsError && <ErrorMessage message={metricResultsError} />}
 
-        {!isMetricResultsLoading && !metricResultsError && (
-          <div
-            className={
-              props.hideCardInCharts
-                ? "pt-4 mt-2 border-t border-gray-200 flex flex-col flex-1 w-full"
-                : "grid grid-cols-1 gap-4"
-            }
-            style={{
-              /*
-               * Give each metric result ~20rem of height (matching the
-               * chart's previous fixed h-80 / 320px height).
-               */
-              minHeight: metricResults.length * 20 + "rem",
-            }}
-          >
-            <MetricCharts
-              hideCard={props.hideCardInCharts}
-              metricResults={metricResults}
-              metricTypes={metricTypes}
-              metricViewData={effectiveData}
-              chartCssClass={props.chartCssClass}
+        {!metricResultsError && !hasAnySelectedMetric && (
+          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
+            <Icon
+              icon={IconProp.ChartBar}
+              className="mx-auto h-8 w-8 text-gray-300"
             />
+            <p className="mt-3 text-sm font-medium text-gray-700">
+              Select a metric to get started
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              {props.hideQueryElements
+                ? "No metric is configured for this view."
+                : "Pick a metric in the query editor above and its chart will appear here."}
+            </p>
           </div>
         )}
+
+        {!metricResultsError &&
+          hasAnySelectedMetric &&
+          (!isMetricResultsLoading || hasFetchedResultsOnce) && (
+            <div className="relative">
+              {/*
+               * Subtle refetch indicator — the charts stay mounted (see
+               * hasFetchedResultsOnce) so series-control state survives.
+               */}
+              {isMetricResultsLoading && (
+                <div className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm">
+                  <Icon
+                    icon={IconProp.Refresh}
+                    className="h-3 w-3 animate-spin text-gray-400"
+                  />
+                  Refreshing
+                </div>
+              )}
+              <div
+                className={`${
+                  props.hideCardInCharts
+                    ? "pt-4 mt-2 border-t border-gray-200 flex flex-col flex-1 w-full"
+                    : "grid grid-cols-1 gap-4"
+                }${isMetricResultsLoading ? " opacity-75 transition-opacity" : ""}`}
+                style={{
+                  /*
+                   * Give each metric result ~20rem of height (matching the
+                   * chart's previous fixed h-80 / 320px height).
+                   */
+                  minHeight: metricResults.length * 20 + "rem",
+                }}
+              >
+                <MetricCharts
+                  hideCard={props.hideCardInCharts}
+                  metricResults={metricResults}
+                  metricTypes={metricTypes}
+                  metricViewData={effectiveData}
+                  chartCssClass={props.chartCssClass}
+                  onQueryConfigsChange={(
+                    queryConfigs: Array<MetricQueryConfigData>,
+                  ) => {
+                    if (props.onChange) {
+                      props.onChange({
+                        ...props.data,
+                        queryConfigs: queryConfigs,
+                      });
+                    }
+                  }}
+                  onTimeRangeSelect={handleChartTimeRangeSelect}
+                  timeReferenceLines={props.timeReferenceLines}
+                  referenceRegions={props.referenceRegions}
+                />
+              </div>
+            </div>
+          )}
       </div>
 
       {showCannotRemoveOneRemainingQueryError ? (

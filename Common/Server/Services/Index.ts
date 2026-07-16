@@ -70,6 +70,9 @@ import MailService from "./MailService";
 import MetricService from "./MetricService";
 import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
 import MetricItemAggMV1mByHostV2Service from "./MetricItemAggMV1mByHostV2Service";
+import MetricItemAggMV1mByServiceService from "./MetricItemAggMV1mByServiceService";
+import MetricItemAggMV1mByK8sClusterService from "./MetricItemAggMV1mByK8sClusterService";
+import MetricItemAggMV1mByContainerService from "./MetricItemAggMV1mByContainerService";
 import MutableMetricService from "./MutableMetricService";
 import MetricBaselineService from "./MetricBaselineService";
 import MonitorCustomFieldService from "./MonitorCustomFieldService";
@@ -532,6 +535,9 @@ export const AnalyticsServices: Array<
    */
   MetricItemAggMV1mService,
   MetricItemAggMV1mByHostV2Service,
+  MetricItemAggMV1mByServiceService,
+  MetricItemAggMV1mByK8sClusterService,
+  MetricItemAggMV1mByContainerService,
   MetricBaselineService,
   ExceptionInstanceService,
   MonitorLogService,

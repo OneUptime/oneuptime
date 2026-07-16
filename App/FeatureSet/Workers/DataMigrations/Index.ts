@@ -91,6 +91,7 @@ import DropPreclusteredAnalyticsBackupTables from "./DropPreclusteredAnalyticsBa
 import AddAttributeKeysToExceptionInstance from "./AddAttributeKeysToExceptionInstance";
 import AddMutableMetricTable from "./AddMutableMetricTable";
 import AddInstanceIdToGlobalConfig from "./AddInstanceIdToGlobalConfig";
+import AddMetricEntityMinuteAggregateMaterializedViews from "./AddMetricEntityMinuteAggregateMaterializedViews";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -227,6 +228,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * existed. No-op when already set.
    */
   new AddInstanceIdToGlobalConfig(),
+  /*
+   * Backfills the per-entity (service / k8s cluster / container) metric
+   * minute rollups from MetricItemV3. Table + MV creation is owned by the
+   * models + boot schema-sync (which runs before migrations), so this can
+   * safely assume the raw table and the model definitions exist; ordered
+   * with the other late ClickHouse migrations, before the cluster
+   * conversion (it is single-node only — see runsInClusterMode).
+   */
+  new AddMetricEntityMinuteAggregateMaterializedViews(),
   /*
    * Cluster conversion. Runs only when CLICKHOUSE_CLUSTER_NAME is set (a no-op
    * otherwise) and after every legacy ClickHouse migration has been baselined,

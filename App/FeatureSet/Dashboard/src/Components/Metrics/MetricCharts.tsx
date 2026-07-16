@@ -18,7 +18,7 @@ import { XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxi
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import {
+import MetricQueryConfigData, {
   ChartSeries,
   MetricChartType,
 } from "Common/Types/Metrics/MetricQueryConfigData";
@@ -30,6 +30,8 @@ import YScaleMaxMin from "Common/UI/Components/Charts/Types/YAxis/YAxisMaxMin";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
+import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import {
@@ -42,13 +44,19 @@ import {
 import { LineChartPalette } from "Common/UI/Components/Charts/Line/LineChart";
 import { AreaChartPalette } from "Common/UI/Components/Charts/Area/AreaChart";
 import { BarChartPalette } from "Common/UI/Components/Charts/Bar/BarChart";
-import MetricUtil from "./Utils/Metrics";
+import MetricUtil, {
+  DEFAULT_TOP_N_SERIES,
+  SHOW_ALL_SERIES_TOP_N,
+  sanitizeAttributeFilters,
+} from "./Utils/Metrics";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
+  DictionaryEntryValue,
   DictionaryFilterOperator,
   DictionaryFilterOperatorOption,
   detectOperatorFromValue,
@@ -61,14 +69,33 @@ export interface ComponentProps {
   metricTypes: Array<MetricType>;
   hideCard?: boolean | undefined;
   chartCssClass?: string | undefined;
+  /*
+   * Called with the FULL replacement queryConfigs array when a chart
+   * control changes query-level state (currently: the per-chart Top-N /
+   * "Show all" controls writing `metricQueryData.topN`). Passing the
+   * whole array lets one interaction update several queries (an overlay
+   * panel spans many) in a single parent onChange, which also triggers
+   * the parent's refetch. When absent, those controls fall back to
+   * transient Top-N overrides applied on the next fetch (see
+   * MetricUtil.setQueryTopNOverride).
+   */
+  onQueryConfigsChange?:
+    | ((queryConfigs: Array<MetricQueryConfigData>) => void)
+    | undefined;
+  /*
+   * Drag-to-zoom: when set, every panel's chart supports drag-selecting a
+   * time range and calls back with the selected [start, end) window. The
+   * host is expected to narrow its query window in response.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /*
+   * Time-anchored annotations rendered on EVERY panel (query and formula
+   * charts alike): vertical event markers (e.g. incident/alert created)
+   * and shaded regions (e.g. incident open windows).
+   */
+  timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
+  referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
 }
-
-/*
- * Default cap on visible series per chart. Above this, we keep the
- * top-K by peak value and surface a "Show all N" toggle so the chart
- * (and its legend) stays readable at high cardinality.
- */
-const DEFAULT_TOP_N_SERIES: number = 10;
 
 /*
  * How the per-series node list (the interactive legend below the chart) is
@@ -94,6 +121,9 @@ const SERIES_SORT_OPTIONS: Array<SeriesSortOption> = [
   { key: "latest", label: "Latest", rankedByLabel: "latest value" },
   { key: "name", label: "Name", rankedByLabel: "peak value" },
 ];
+
+// Choices offered by the per-chart Top-N series selector.
+const TOP_N_CHOICES: Array<number> = [5, 10, 25, 50];
 
 type SeriesValueStat = "peak" | "avg" | "latest";
 
@@ -215,6 +245,13 @@ interface SeriesControlsState {
   showAllSeries: boolean;
   // How the node list is ranked and ordered (defaults to peak value).
   sortBy: SeriesSortBy;
+  /*
+   * Local Top-N choice, used only when no onQueryConfigsChange hook is
+   * wired (the choice then can't be persisted onto the query config, so
+   * this keeps the selector and the display cap responsive while the
+   * transient fetch override takes effect on the next fetch).
+   */
+  topNOverride: number | undefined;
 }
 
 const defaultSeriesControlsState: SeriesControlsState = {
@@ -222,6 +259,7 @@ const defaultSeriesControlsState: SeriesControlsState = {
   hiddenSeries: new Set<string>(),
   showAllSeries: false,
   sortBy: "peak",
+  topNOverride: undefined,
 };
 
 /*
@@ -306,11 +344,354 @@ function resolveSeriesColor(
   return opts.effectivePalette[index % opts.effectivePalette.length]!;
 }
 
+// Maps a series' display name and position to its rendered color.
+type SeriesColorResolver = (
+  seriesName: string,
+  index: number,
+) => ChartColorValue;
+
+/*
+ * Stable identity for a query's chart panel and its per-chart UI state
+ * (hidden series, search, Top-N, sort). Prefers the query's persistent
+ * `id` (assigned at creation sites), then its metric variable — unique
+ * within a view and stable across remove/reorder — then the metric name,
+ * and only as a last resort the array position. Callers dedupe collisions
+ * via a used-id set so two id-less queries on the same metric still get
+ * distinct state buckets.
+ */
+function getStableQueryChartId(
+  queryConfig: MetricQueryConfigData,
+  index: number,
+): string {
+  if (queryConfig.id) {
+    return `id-${queryConfig.id}`;
+  }
+  const metricVariable: string | undefined =
+    queryConfig.metricAliasData?.metricVariable;
+  if (metricVariable) {
+    return `var-${metricVariable}`;
+  }
+  const metricName: string =
+    queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+  return metricName ? `metric-${metricName}` : `query-${index}`;
+}
+
+function dedupeChartId(candidate: string, usedIds: Set<string>): string {
+  let unique: string = candidate;
+  let suffix: number = 2;
+  while (usedIds.has(unique)) {
+    unique = `${candidate}-${suffix}`;
+    suffix++;
+  }
+  usedIds.add(unique);
+  return unique;
+}
+
+// Composite key for exemplar fetch/state: metric name + sanitized filters.
+function getExemplarStateKey(queryConfig: MetricQueryConfigData): string {
+  const metricName: string =
+    queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+  const sanitized: Dictionary<DictionaryEntryValue> | undefined =
+    sanitizeAttributeFilters(
+      queryConfig.metricQueryData.filterData.attributes as
+        | Dictionary<DictionaryEntryValue>
+        | undefined,
+    );
+  return `${metricName}::${MetricUtil.serializeAttributeFiltersForKey(sanitized)}`;
+}
+
+function getXAxisAggregationTypeForQuery(
+  queryConfig: MetricQueryConfigData,
+): XAxisAggregateType {
+  const aggregationType: MetricsAggregationType | undefined = queryConfig
+    .metricQueryData.filterData.aggegationType as
+    | MetricsAggregationType
+    | undefined;
+
+  if (
+    aggregationType === MetricsAggregationType.Sum ||
+    aggregationType === MetricsAggregationType.Count
+  ) {
+    return XAxisAggregateType.Sum;
+  }
+  if (aggregationType === MetricsAggregationType.Max) {
+    return XAxisAggregateType.Max;
+  }
+  if (aggregationType === MetricsAggregationType.Min) {
+    return XAxisAggregateType.Min;
+  }
+  return XAxisAggregateType.Average;
+}
+
+function getChartTypeForConfig(
+  chartType: MetricChartType | undefined,
+): ChartType {
+  if (chartType === MetricChartType.BAR) {
+    return ChartType.BAR;
+  }
+  if (chartType === MetricChartType.LINE) {
+    return ChartType.LINE;
+  }
+  return ChartType.AREA;
+}
+
+/*
+ * Warning/critical threshold reference lines. Shared by query panels
+ * (each overlaid query contributes its own thresholds, formatted in its
+ * own display unit) and formula charts.
+ */
+function buildThresholdReferenceLines(input: {
+  warningThreshold?: number | undefined;
+  criticalThreshold?: number | undefined;
+  unit: string;
+  formatterOptions?: { metricName: string } | undefined;
+}): Array<ChartReferenceLineProps> {
+  const referenceLines: Array<ChartReferenceLineProps> = [];
+
+  if (input.warningThreshold !== undefined && input.warningThreshold !== null) {
+    referenceLines.push({
+      value: input.warningThreshold,
+      label: `Warning: ${ValueFormatter.formatValue(input.warningThreshold, input.unit, input.formatterOptions)}`,
+      color: "#f59e0b", // amber
+    });
+  }
+
+  if (
+    input.criticalThreshold !== undefined &&
+    input.criticalThreshold !== null
+  ) {
+    referenceLines.push({
+      value: input.criticalThreshold,
+      label: `Critical: ${ValueFormatter.formatValue(input.criticalThreshold, input.unit, input.formatterOptions)}`,
+      color: "#ef4444", // red
+    });
+  }
+
+  return referenceLines;
+}
+
+/*
+ * Build one query's chart series from its aggregated result: the
+ * grouped-series splitter (explicit getSeries, or synthesized from
+ * groupByAttributeKeys), the optional per-datapoint value transform, and
+ * the optional per-second rate transform. Extracted so overlay panels can
+ * build each member query's series independently before merging.
+ */
+function buildQuerySeries(
+  queryConfig: MetricQueryConfigData,
+  result: AggregatedResult,
+): Array<SeriesPoint> {
+  const chartSeries: Array<SeriesPoint> = [];
+
+  /*
+   * If the user picked attribute keys to group by (e.g. host.name)
+   * and no explicit getSeries was provided, synthesize one so the
+   * chart splits rows into one line per unique label combination.
+   * Without this, all groupByAttributeKeys series would collapse
+   * onto a single line indistinguishable from whole-monitor mode.
+   */
+  const groupByAttributeKeys: Array<string> =
+    queryConfig.metricQueryData.groupByAttributeKeys || [];
+
+  const effectiveGetSeries:
+    | ((data: AggregatedModel) => ChartSeries)
+    | undefined = queryConfig.getSeries
+    ? queryConfig.getSeries
+    : groupByAttributeKeys.length > 0
+      ? (item: AggregatedModel): ChartSeries => {
+          const attributes: Record<string, unknown> =
+            ((item as unknown as Dictionary<unknown>)["attributes"] as
+              | Record<string, unknown>
+              | undefined) || {};
+
+          const parts: Array<string> = groupByAttributeKeys.map(
+            (key: string) => {
+              const value: unknown = attributes[key];
+              const displayValue: string =
+                value === undefined || value === null || value === ""
+                  ? "(unset)"
+                  : String(value);
+              return `${key}=${displayValue}`;
+            },
+          );
+
+          return {
+            title: parts.join(", "),
+          };
+        }
+      : undefined;
+
+  /*
+   * Optional per-datapoint value transform (e.g. divide K8s CPU
+   * cores by the node's allocatable CPU to get a true percentage).
+   * Reads grouped attributes off the datapoint, so it must run
+   * before the series points are built.
+   */
+  const transformPointValue: (item: AggregatedModel) => number = (
+    item: AggregatedModel,
+  ): number => {
+    return queryConfig.transformValue
+      ? queryConfig.transformValue(item.value, item)
+      : item.value;
+  };
+
+  if (effectiveGetSeries) {
+    for (const item of result.data) {
+      const series: ChartSeries = effectiveGetSeries(item);
+      const seriesName: string = series.title;
+
+      const existingSeries: SeriesPoint | undefined = chartSeries.find(
+        (s: SeriesPoint) => {
+          return s.seriesName === seriesName;
+        },
+      );
+
+      if (existingSeries) {
+        existingSeries.data.push({
+          x: OneUptimeDate.fromString(item.timestamp),
+          y: transformPointValue(item),
+        });
+      } else {
+        const newSeries: SeriesPoint = {
+          seriesName: seriesName,
+          data: [
+            {
+              x: OneUptimeDate.fromString(item.timestamp),
+              y: transformPointValue(item),
+            },
+          ],
+        };
+
+        chartSeries.push(newSeries);
+      }
+    }
+  } else {
+    chartSeries.push({
+      seriesName:
+        queryConfig.metricAliasData?.legend ||
+        queryConfig.metricQueryData.filterData.metricName?.toString() ||
+        "",
+      data: result.data.map((item: AggregatedModel) => {
+        return {
+          x: OneUptimeDate.fromString(item.timestamp),
+          y: transformPointValue(item),
+        };
+      }),
+    });
+  }
+
+  /*
+   * Cumulative-counter rate transform. OTel hostmetrics emits metrics
+   * like `system.disk.io` and `system.network.io` as cumulative counters
+   * (bytes since process start). Plotting the raw value gives a
+   * monotonically-growing line that's hard to read. With
+   * `transformAsRate`, each series is converted to a per-second rate
+   * of change: `(yi - y(i-1)) / Δt`. Negative deltas — which happen
+   * when the agent restarts and the counter resets to 0 — clamp to 0
+   * so the chart doesn't show a spurious dive.
+   */
+  if (queryConfig.transformAsRate) {
+    for (const series of chartSeries) {
+      const sortedPoints: typeof series.data = [...series.data].sort(
+        (a: { x: Date; y: number }, b: { x: Date; y: number }) => {
+          return a.x.getTime() - b.x.getTime();
+        },
+      );
+      const ratePoints: typeof series.data = [];
+      for (let i: number = 1; i < sortedPoints.length; i++) {
+        const current: { x: Date; y: number } = sortedPoints[i]!;
+        const prev: { x: Date; y: number } = sortedPoints[i - 1]!;
+        const dtSeconds: number =
+          (current.x.getTime() - prev.x.getTime()) / 1000;
+        if (dtSeconds <= 0) {
+          continue;
+        }
+        const delta: number = current.y - prev.y;
+        const rate: number = delta < 0 ? 0 : delta / dtSeconds;
+        ratePoints.push({ x: current.x, y: rate });
+      }
+      series.data = ratePoints;
+    }
+  }
+
+  return chartSeries;
+}
+
+// One query's contribution to a chart panel.
+interface PanelMember {
+  queryConfig: MetricQueryConfigData;
+  // Position in metricViewData.queryConfigs (== index into metricResults).
+  queryConfigIndex: number;
+  result: AggregatedResult;
+  series: Array<SeriesPoint>;
+  // Effective display unit: metricAliasData.legendUnit || MetricType.unit.
+  unit: string;
+  metricName: string;
+}
+
+/*
+ * A chart panel: one rendered chart card. Normally one query, but
+ * consecutive queries with `overlayWithPreviousQuery` chain onto the
+ * previous query's panel and share its axes.
+ */
+interface ChartPanel {
+  id: string;
+  members: Array<PanelMember>;
+}
+
+/*
+ * Disambiguate series names that collide across a panel's member queries.
+ * Within one query, rows of the same name merge into one series (that's
+ * the grouped-series contract) — but across overlaid queries a name
+ * collision means two DIFFERENT series (e.g. both queries left their
+ * default legend, or both group by the same key values), so colliding
+ * names are prefixed with the owning query's alias/legend. Non-colliding
+ * names are left untouched.
+ */
+function applyPanelSeriesNaming(members: Array<PanelMember>): void {
+  if (members.length <= 1) {
+    return;
+  }
+
+  const memberCountByName: Map<string, number> = new Map<string, number>();
+  for (const member of members) {
+    const namesInMember: Set<string> = new Set<string>(
+      member.series.map((series: SeriesPoint) => {
+        return series.seriesName;
+      }),
+    );
+    for (const name of namesInMember) {
+      memberCountByName.set(name, (memberCountByName.get(name) || 0) + 1);
+    }
+  }
+
+  members.forEach((member: PanelMember, memberIndex: number) => {
+    const label: string =
+      member.queryConfig.metricAliasData?.legend ||
+      member.metricName ||
+      `Query ${memberIndex + 1}`;
+    for (const series of member.series) {
+      if ((memberCountByName.get(series.seriesName) || 0) <= 1) {
+        continue;
+      }
+      /*
+       * When the series name IS the query label (the ungrouped default is
+       * legend||metricName), prefixing would just double it — disambiguate
+       * with the query variable (or position) instead.
+       */
+      series.seriesName =
+        label === series.seriesName
+          ? `${series.seriesName} (${member.queryConfig.metricAliasData?.metricVariable || String(memberIndex + 1)})`
+          : `${label}: ${series.seriesName}`;
+    }
+  });
+}
+
 /**
  * Render the per-chart control panel for a high-cardinality metric
- * chart. Combines a compact toolbar (search, Top-N toggle, reset
- * hidden) with an interactive colored legend that doubles as the
- * chart's legend — the Recharts built-in legend is suppressed when
+ * chart. Combines a compact toolbar (search, Top-N selector, show-all
+ * toggle, reset hidden) with an interactive colored legend that doubles
+ * as the chart's legend — the Recharts built-in legend is suppressed when
  * this panel is present (see ChartGroup). Each chip shows the same
  * color as its line on the chart, and clicking a chip toggles
  * visibility so users can isolate one series out of hundreds.
@@ -327,18 +708,35 @@ function renderSeriesControls(input: {
   totalSeries: number;
   hiddenFromTopN: number;
   needsTopN: boolean;
-  chartType: ChartType;
+  // Effective Top-N cap for this chart (query topN or the default).
+  effectiveTopN: number;
+  // Whether the Top-N cap is currently lifted (client toggle or topN write).
+  isShowAllActive: boolean;
+  onToggleShowAll: () => void;
   /*
-   * The query's single lead color (hex or named key), if any — heads the
-   * palette so the chips match the recolored chart series.
+   * When set, renders the Top-N count selector (5/10/25/50) — provided by
+   * query panels, which persist the choice as `metricQueryData.topN`.
+   * Formula charts (client-side evaluation, nothing to refetch) omit it.
    */
-  color?: string | undefined;
+  onTopNChange?: ((topN: number) => void) | undefined;
   /*
-   * Per-group color pins keyed by "key=value" segment (see resolveSeriesColor).
+   * Total number of matching groups reported by the server's Top-K
+   * ranking phase — drives the "Showing top k of N series" banner when
+   * it exceeds what was fetched.
    */
-  colorsByGroup?: Record<string, string> | undefined;
-  // The query's group-by attribute keys, for key-aware segment matching.
-  groupByKeys?: Array<string> | undefined;
+  serverTotalGroups?: number | undefined;
+  // Result hit a server LIMIT without Top-K metadata — completeness unknown.
+  serverTruncatedWithoutTopK?: boolean | undefined;
+  /*
+   * Maps a displayed series (by name + display position) to the exact
+   * color the chart renders it in, so chips and lines always agree.
+   */
+  resolveColor: SeriesColorResolver;
+  /*
+   * Rendered at the top of the panel — used for the mixed-display-unit
+   * warning on overlay panels.
+   */
+  warningElement?: ReactElement | undefined;
   /*
    * Formats a series value (peak/avg/latest) for display next to its name,
    * using the same unit/precision as the chart's y-axis.
@@ -354,10 +752,14 @@ function renderSeriesControls(input: {
     totalSeries,
     hiddenFromTopN,
     needsTopN,
-    chartType,
-    color,
-    colorsByGroup,
-    groupByKeys,
+    effectiveTopN,
+    isShowAllActive,
+    onToggleShowAll,
+    onTopNChange,
+    serverTotalGroups,
+    serverTruncatedWithoutTopK,
+    resolveColor,
+    warningElement,
     valueFormatter,
   } = input;
 
@@ -374,30 +776,17 @@ function renderSeriesControls(input: {
     })?.rankedByLabel || "peak value";
 
   /*
-   * Map each currently-rendered series to the same palette color the
-   * chart library assigned it (position-based: colors[index % len]).
-   * Series that aren't on the chart right now (hidden by user or
-   * filtered out) get no color and render as a muted dot below.
+   * Map each currently-rendered series to the same color the chart
+   * assigned it (position-based over the displayed series). Series that
+   * aren't on the chart right now (hidden by user or filtered out) get
+   * no color and render as a muted dot below.
    */
-  const basePalette: Array<AvailableChartColorsKeys> =
-    getChartPalette(chartType);
-  const effectivePalette: Array<ChartColorValue> = color
-    ? [color, ...basePalette]
-    : basePalette;
-  const chipColorsByGroup: Record<string, string> = colorsByGroup || {};
   const colorByName: Map<string, ChartColorValue> = new Map<
     string,
     ChartColorValue
   >();
   displayableSeries.forEach((series: SeriesPoint, i: number) => {
-    colorByName.set(
-      series.seriesName,
-      resolveSeriesColor(series.seriesName, i, {
-        colorsByGroup: chipColorsByGroup,
-        effectivePalette,
-        groupByKeys: groupByKeys || [],
-      }),
-    );
+    colorByName.set(series.seriesName, resolveColor(series.seriesName, i));
   });
 
   /*
@@ -420,9 +809,7 @@ function renderSeriesControls(input: {
    * across refreshes (colors are assigned by chart-series position).
    */
   const visibleForChips: Array<SeriesPoint> = sortSeriesForDisplay(
-    controls.showAllSeries
-      ? seriesForChips
-      : seriesForChips.slice(0, DEFAULT_TOP_N_SERIES),
+    isShowAllActive ? seriesForChips : seriesForChips.slice(0, effectiveTopN),
     sortBy,
   );
 
@@ -438,13 +825,41 @@ function renderSeriesControls(input: {
     updateControls(chartId, { hiddenSeries: next });
   };
 
+  const serverHasMoreSeries: boolean =
+    serverTotalGroups !== undefined && serverTotalGroups > totalSeries;
+
   const hasStatus: boolean =
-    hiddenFromTopN > 0 || controls.hiddenSeries.size > 0;
+    hiddenFromTopN > 0 ||
+    controls.hiddenSeries.size > 0 ||
+    Boolean(serverTruncatedWithoutTopK);
 
   const visibleCount: number = displayableSeries.length;
 
+  /*
+   * Label the show-all toggle with the true group count when the server
+   * told us it kept only the top K of a larger set.
+   */
+  const showAllCount: number = serverHasMoreSeries
+    ? serverTotalGroups!
+    : totalSeries;
+  const revertTopNLabel: number =
+    effectiveTopN >= SHOW_ALL_SERIES_TOP_N
+      ? DEFAULT_TOP_N_SERIES
+      : effectiveTopN;
+
+  const topNSelectValue: string =
+    effectiveTopN >= SHOW_ALL_SERIES_TOP_N ? "all" : String(effectiveTopN);
+  const topNChoices: Array<number> = TOP_N_CHOICES.includes(effectiveTopN)
+    ? TOP_N_CHOICES
+    : effectiveTopN >= SHOW_ALL_SERIES_TOP_N
+      ? TOP_N_CHOICES
+      : [...TOP_N_CHOICES, effectiveTopN].sort((a: number, b: number) => {
+          return a - b;
+        });
+
   return (
     <div className="space-y-2">
+      {warningElement || null}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[220px]">
           <svg
@@ -492,19 +907,50 @@ function renderSeriesControls(input: {
               );
             })}
           </select>
-          {needsTopN ? (
+          {onTopNChange &&
+          (needsTopN ||
+            isShowAllActive ||
+            effectiveTopN !== DEFAULT_TOP_N_SERIES) ? (
+            <>
+              <label htmlFor={`series-top-n-${chartId}`} className="sr-only">
+                Number of series to show
+              </label>
+              <select
+                id={`series-top-n-${chartId}`}
+                value={topNSelectValue}
+                title="How many series to fetch and plot"
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
+                  if (e.target.value === "all") {
+                    return;
+                  }
+                  onTopNChange(Number(e.target.value));
+                }}
+                className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              >
+                {topNChoices.map((choice: number) => {
+                  return (
+                    <option key={choice} value={String(choice)}>
+                      {`Top ${choice}`}
+                    </option>
+                  );
+                })}
+                {topNSelectValue === "all" ? (
+                  <option value="all">All series</option>
+                ) : null}
+              </select>
+            </>
+          ) : null}
+          {needsTopN || isShowAllActive ? (
             <button
               type="button"
               className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
               onClick={(): void => {
-                updateControls(chartId, {
-                  showAllSeries: !controls.showAllSeries,
-                });
+                onToggleShowAll();
               }}
             >
-              {controls.showAllSeries
-                ? `Top ${DEFAULT_TOP_N_SERIES}`
-                : `Show all ${totalSeries}`}
+              {isShowAllActive
+                ? `Top ${revertTopNLabel}`
+                : `Show all ${showAllCount}`}
             </button>
           ) : null}
           {controls.hiddenSeries.size > 0 ? (
@@ -521,6 +967,16 @@ function renderSeriesControls(input: {
             </button>
           ) : null}
         </div>
+        {serverHasMoreSeries ? (
+          <span className="text-xs text-gray-500">
+            Showing top{" "}
+            <span className="font-medium text-gray-700">{totalSeries}</span> of{" "}
+            <span className="font-medium text-gray-700">
+              {serverTotalGroups}
+            </span>{" "}
+            series
+          </span>
+        ) : null}
       </div>
 
       {hasStatus ? (
@@ -536,6 +992,12 @@ function renderSeriesControls(input: {
             <span className="text-gray-400">
               {" "}
               · {controls.hiddenSeries.size} hidden
+            </span>
+          ) : null}
+          {serverTruncatedWithoutTopK ? (
+            <span className="text-amber-600">
+              {" "}
+              · results truncated by server row limit — data may be incomplete
             </span>
           ) : null}
         </div>
@@ -625,8 +1087,13 @@ function renderSeriesControls(input: {
 const MetricCharts: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  // Exemplar data keyed by metric name
-  const [exemplarsByMetric, setExemplarsByMetric] = useState<
+  /*
+   * Exemplar data keyed by (metric name + sanitized attribute filters) —
+   * see getExemplarStateKey. Two differently-filtered charts of the same
+   * metric get their own (matching) dot sets; identically-filtered charts
+   * share one fetch.
+   */
+  const [exemplarsByQueryKey, setExemplarsByQueryKey] = useState<
     Record<string, Array<ExemplarPoint>>
   >({});
 
@@ -663,8 +1130,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
    * depended on `props.metricViewData.queryConfigs` (a fresh array on
    * every parent render) which kicked off N exemplar requests per
    * widget per re-render. We now key off the start/end timestamps and
-   * the deduplicated set of metric names — re-runs only when the time
-   * window or metric set actually changes.
+   * the deduplicated set of (metric name + sanitized filters) targets —
+   * re-runs only when the time window, metric set, or filters actually
+   * change.
    */
   const startMs: number | undefined =
     props.metricViewData.startAndEndDate?.startValue instanceof Date
@@ -675,28 +1143,53 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       ? (props.metricViewData.startAndEndDate.endValue as Date).getTime()
       : undefined;
 
-  const uniqueMetricNamesKey: string = (() => {
-    const names: Set<string> = new Set<string>();
+  interface ExemplarTarget {
+    key: string;
+    metricName: string;
+    attributes: Dictionary<DictionaryEntryValue> | undefined;
+  }
+
+  const exemplarTargets: Array<ExemplarTarget> = (() => {
+    const targetsByKey: Map<string, ExemplarTarget> = new Map<
+      string,
+      ExemplarTarget
+    >();
     for (const queryConfig of props.metricViewData.queryConfigs) {
-      const name: string =
+      const metricName: string =
         queryConfig.metricQueryData.filterData.metricName?.toString() || "";
-      if (name) {
-        names.add(name);
+      if (!metricName) {
+        continue;
       }
+      const key: string = getExemplarStateKey(queryConfig);
+      if (targetsByKey.has(key)) {
+        continue;
+      }
+      targetsByKey.set(key, {
+        key,
+        metricName,
+        attributes: sanitizeAttributeFilters(
+          queryConfig.metricQueryData.filterData.attributes as
+            | Dictionary<DictionaryEntryValue>
+            | undefined,
+        ),
+      });
     }
-    return Array.from(names).sort().join("|");
+    return Array.from(targetsByKey.values());
   })();
+
+  const exemplarTargetsKey: string = exemplarTargets
+    .map((target: ExemplarTarget) => {
+      return target.key;
+    })
+    .sort()
+    .join("\n");
 
   useEffect(() => {
     if (startMs === undefined || endMs === undefined) {
       return;
     }
 
-    const metricNames: Array<string> = uniqueMetricNamesKey
-      ? uniqueMetricNamesKey.split("|")
-      : [];
-
-    if (metricNames.length === 0) {
+    if (exemplarTargets.length === 0) {
       return;
     }
 
@@ -706,27 +1199,32 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     );
 
     /*
-     * Fetch exemplars per unique metric name (was: per queryConfig, which
-     * caused 5 charts of the same metric to issue 5 identical requests).
+     * Fetch exemplars once per unique (metric name + sanitized filters)
+     * pair — identically-configured charts share one request, while
+     * differently-filtered charts of the same metric each get dots that
+     * match the rows they actually plot.
      */
-    for (const metricName of metricNames) {
+    for (const target of exemplarTargets) {
       MetricUtil.fetchExemplars({
-        metricName,
+        metricName: target.metricName,
         startAndEndDate,
+        attributes: target.attributes,
       })
         .then((exemplars: Array<ExemplarPoint>) => {
-          setExemplarsByMetric((prev: Record<string, Array<ExemplarPoint>>) => {
-            return {
-              ...prev,
-              [metricName]: exemplars,
-            };
-          });
+          setExemplarsByQueryKey(
+            (prev: Record<string, Array<ExemplarPoint>>) => {
+              return {
+                ...prev,
+                [target.key]: exemplars,
+              };
+            },
+          );
         })
         .catch(() => {
           // Best-effort: don't break charts if exemplar fetch fails
         });
     }
-  }, [startMs, endMs, uniqueMetricNamesKey]);
+  }, [startMs, endMs, exemplarTargetsKey]);
 
   const handleExemplarClick: (exemplar: ExemplarPoint) => void = useCallback(
     (exemplar: ExemplarPoint): void => {
@@ -768,218 +1266,294 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
     return XAxisType.Date;
   };
 
+  /*
+   * Write a new Top-N onto every member query of a panel. Preferred path:
+   * hand the parent a full replacement queryConfigs array (persists
+   * `metricQueryData.topN` and triggers the parent's fetch). Fallback when
+   * no parent hook is wired (read-only chart surfaces): register transient
+   * overrides that Utils/Metrics.fetchResults applies on the NEXT fetch.
+   */
+  const writePanelTopN: (
+    members: Array<PanelMember>,
+    topN: number | undefined,
+  ) => void = (members: Array<PanelMember>, topN: number | undefined): void => {
+    if (props.onQueryConfigsChange) {
+      const memberIndexes: Set<number> = new Set<number>(
+        members.map((member: PanelMember) => {
+          return member.queryConfigIndex;
+        }),
+      );
+      const updatedQueryConfigs: Array<MetricQueryConfigData> =
+        props.metricViewData.queryConfigs.map(
+          (queryConfig: MetricQueryConfigData, index: number) => {
+            if (!memberIndexes.has(index)) {
+              return queryConfig;
+            }
+            return {
+              ...queryConfig,
+              metricQueryData: {
+                ...queryConfig.metricQueryData,
+                topN,
+              },
+            };
+          },
+        );
+      props.onQueryConfigsChange(updatedQueryConfigs);
+      return;
+    }
+
+    for (const member of members) {
+      MetricUtil.setQueryTopNOverride(
+        MetricUtil.getQueryConfigTopNKey(
+          member.queryConfig,
+          member.queryConfigIndex,
+        ),
+        topN,
+      );
+    }
+  };
+
+  /*
+   * Shared display pipeline for one chart's series: rank by the active
+   * value stat (so breaching series are retained by the Top-N cut), apply
+   * the user's search filter, hidden set, and Top-N cap, then restore a
+   * stable natural-name order (colors are assigned by chart-series
+   * position, so a value-ordered chart would reshuffle every series'
+   * color whenever the ranking changed on refresh). Also builds the
+   * controls panel. Used by query panels and formula charts alike.
+   */
+  const buildSeriesPresentation: (input: {
+    chartId: string;
+    allSeries: Array<SeriesPoint>;
+    effectiveTopN: number;
+    makeResolveColor: (
+      displayableSeries: Array<SeriesPoint>,
+    ) => SeriesColorResolver;
+    hasColorCustomization: boolean;
+    valueFormatter: (value: number) => string;
+    onShowAllToggled?: ((nextShowAll: boolean) => void) | undefined;
+    onTopNChange?: ((topN: number) => void) | undefined;
+    serverTotalGroups?: number | undefined;
+    serverTruncatedWithoutTopK?: boolean | undefined;
+    warningElement?: ReactElement | undefined;
+  }) => {
+    displayableSeries: Array<SeriesPoint>;
+    colorsOverride: Array<ChartColorValue> | undefined;
+    seriesControls: ReactElement | undefined;
+  } = (input: {
+    chartId: string;
+    allSeries: Array<SeriesPoint>;
+    effectiveTopN: number;
+    makeResolveColor: (
+      displayableSeries: Array<SeriesPoint>,
+    ) => SeriesColorResolver;
+    hasColorCustomization: boolean;
+    valueFormatter: (value: number) => string;
+    onShowAllToggled?: ((nextShowAll: boolean) => void) | undefined;
+    onTopNChange?: ((topN: number) => void) | undefined;
+    serverTotalGroups?: number | undefined;
+    serverTruncatedWithoutTopK?: boolean | undefined;
+    warningElement?: ReactElement | undefined;
+  }): {
+    displayableSeries: Array<SeriesPoint>;
+    colorsOverride: Array<ChartColorValue> | undefined;
+    seriesControls: ReactElement | undefined;
+  } => {
+    const controls: SeriesControlsState = getControls(input.chartId);
+    const rankingStat: SeriesValueStat = getRankingStat(controls.sortBy);
+    const rankedSeries: Array<SeriesPoint> = sortSeriesForDisplay(
+      input.allSeries,
+      rankingStat,
+    );
+
+    const totalSeries: number = rankedSeries.length;
+    const isShowAllActive: boolean =
+      controls.showAllSeries || input.effectiveTopN >= SHOW_ALL_SERIES_TOP_N;
+    const serverHasMoreSeries: boolean =
+      input.serverTotalGroups !== undefined &&
+      input.serverTotalGroups > totalSeries;
+    const needsTopN: boolean =
+      totalSeries > input.effectiveTopN || serverHasMoreSeries;
+
+    let displayableSeries: Array<SeriesPoint> = rankedSeries;
+
+    if (controls.searchQuery.trim() !== "") {
+      const q: string = controls.searchQuery.toLowerCase();
+      displayableSeries = displayableSeries.filter((s: SeriesPoint) => {
+        return s.seriesName.toLowerCase().includes(q);
+      });
+    }
+
+    if (controls.hiddenSeries.size > 0) {
+      displayableSeries = displayableSeries.filter((s: SeriesPoint) => {
+        return !controls.hiddenSeries.has(s.seriesName);
+      });
+    }
+
+    const topNCutApplied: boolean =
+      totalSeries > input.effectiveTopN && !isShowAllActive;
+
+    if (topNCutApplied) {
+      displayableSeries = displayableSeries.slice(0, input.effectiveTopN);
+    }
+
+    displayableSeries = displayableSeries.slice().sort(compareSeriesByName);
+
+    const resolveColor: SeriesColorResolver =
+      input.makeResolveColor(displayableSeries);
+
+    const colorsOverride: Array<ChartColorValue> | undefined =
+      input.hasColorCustomization
+        ? displayableSeries.map((s: SeriesPoint, i: number) => {
+            return resolveColor(s.seriesName, i);
+          })
+        : undefined;
+
+    const hiddenFromTopN: number = topNCutApplied
+      ? Math.max(0, totalSeries - input.effectiveTopN)
+      : 0;
+
+    const onToggleShowAll: () => void = (): void => {
+      const nextShowAll: boolean = !isShowAllActive;
+      updateControls(input.chartId, { showAllSeries: nextShowAll });
+      input.onShowAllToggled?.(nextShowAll);
+    };
+
+    // Build the controls panel — only when series cardinality warrants it.
+    const showControls: boolean =
+      totalSeries > 1 ||
+      serverHasMoreSeries ||
+      Boolean(input.serverTruncatedWithoutTopK) ||
+      Boolean(input.warningElement);
+
+    const seriesControls: ReactElement | undefined = showControls
+      ? renderSeriesControls({
+          chartId: input.chartId,
+          controls,
+          updateControls,
+          fullSeries: rankedSeries,
+          displayableSeries,
+          totalSeries,
+          hiddenFromTopN,
+          needsTopN,
+          effectiveTopN: input.effectiveTopN,
+          isShowAllActive,
+          onToggleShowAll,
+          onTopNChange: input.onTopNChange,
+          serverTotalGroups: input.serverTotalGroups,
+          serverTruncatedWithoutTopK: input.serverTruncatedWithoutTopK,
+          resolveColor,
+          warningElement: input.warningElement,
+          valueFormatter: input.valueFormatter,
+        })
+      : undefined;
+
+    return { displayableSeries, colorsOverride, seriesControls };
+  };
+
   type GetChartsFunction = () => Array<Chart>;
 
   const getCharts: GetChartsFunction = (): Array<Chart> => {
     const charts: Array<Chart> = [];
 
-    let index: number = 0;
-
     if (!props.metricResults) {
       return [];
     }
 
-    for (const queryConfig of props.metricViewData.queryConfigs) {
-      if (!props.metricResults[index]) {
-        continue;
-      }
+    /*
+     * Group queries into chart panels. Normally one query = one panel;
+     * a query flagged `overlayWithPreviousQuery` chains onto the
+     * previous query's panel so both plot on shared axes. Panel (and
+     * per-chart state) identity comes from the FIRST member's stable id,
+     * so removing/reordering queries doesn't transfer one chart's
+     * hidden-series/search state to another.
+     */
+    const usedChartIds: Set<string> = new Set<string>();
+    const panels: Array<ChartPanel> = [];
+    let previousPanel: ChartPanel | null = null;
 
-      let xAxisAggregationType: XAxisAggregateType = XAxisAggregateType.Average;
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Sum
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Sum;
-      }
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Count
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Sum;
-      }
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Max
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Max;
-      }
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Min
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Min;
-      }
-
-      if (
-        queryConfig.metricQueryData.filterData.aggegationType ===
-        MetricsAggregationType.Avg
-      ) {
-        xAxisAggregationType = XAxisAggregateType.Average;
-      }
-
-      const chartSeries: Array<SeriesPoint> = [];
-
-      /*
-       * If the user picked attribute keys to group by (e.g. host.name)
-       * and no explicit getSeries was provided, synthesize one so the
-       * chart splits rows into one line per unique label combination.
-       * Without this, all groupByAttributeKeys series would collapse
-       * onto a single line indistinguishable from whole-monitor mode.
-       */
-      const groupByAttributeKeys: Array<string> =
-        queryConfig.metricQueryData.groupByAttributeKeys || [];
-
-      const effectiveGetSeries:
-        | ((data: AggregatedModel) => ChartSeries)
-        | undefined = queryConfig.getSeries
-        ? queryConfig.getSeries
-        : groupByAttributeKeys.length > 0
-          ? (item: AggregatedModel): ChartSeries => {
-              const attributes: Record<string, unknown> =
-                ((item as unknown as Dictionary<unknown>)["attributes"] as
-                  | Record<string, unknown>
-                  | undefined) || {};
-
-              const parts: Array<string> = groupByAttributeKeys.map(
-                (key: string) => {
-                  const value: unknown = attributes[key];
-                  const displayValue: string =
-                    value === undefined || value === null || value === ""
-                      ? "(unset)"
-                      : String(value);
-                  return `${key}=${displayValue}`;
-                },
-              );
-
-              return {
-                title: parts.join(", "),
-              };
-            }
-          : undefined;
-
-      /*
-       * Optional per-datapoint value transform (e.g. divide K8s CPU
-       * cores by the node's allocatable CPU to get a true percentage).
-       * Reads grouped attributes off the datapoint, so it must run
-       * before the series points are built.
-       */
-      const transformPointValue: (item: AggregatedModel) => number = (
-        item: AggregatedModel,
-      ): number => {
-        return queryConfig.transformValue
-          ? queryConfig.transformValue(item.value, item)
-          : item.value;
-      };
-
-      if (effectiveGetSeries) {
-        for (const item of props.metricResults[index]!.data) {
-          const series: ChartSeries = effectiveGetSeries(item);
-          const seriesName: string = series.title;
-
-          const existingSeries: SeriesPoint | undefined = chartSeries.find(
-            (s: SeriesPoint) => {
-              return s.seriesName === seriesName;
-            },
-          );
-
-          if (existingSeries) {
-            existingSeries.data.push({
-              x: OneUptimeDate.fromString(item.timestamp),
-              y: transformPointValue(item),
-            });
-          } else {
-            const newSeries: SeriesPoint = {
-              seriesName: seriesName,
-              data: [
-                {
-                  x: OneUptimeDate.fromString(item.timestamp),
-                  y: transformPointValue(item),
-                },
-              ],
-            };
-
-            chartSeries.push(newSeries);
-          }
+    props.metricViewData.queryConfigs.forEach(
+      (queryConfig: MetricQueryConfigData, queryConfigIndex: number) => {
+        const result: AggregatedResult | undefined =
+          props.metricResults[queryConfigIndex];
+        if (!result) {
+          previousPanel = null;
+          return;
         }
-      } else {
-        chartSeries.push({
-          seriesName:
-            queryConfig.metricAliasData?.legend ||
-            queryConfig.metricQueryData.filterData.metricName?.toString() ||
-            "",
-          data: props.metricResults[index]!.data.map(
-            (result: AggregatedModel) => {
-              return {
-                x: OneUptimeDate.fromString(result.timestamp),
-                y: transformPointValue(result),
-              };
-            },
+
+        const metricType: MetricType | undefined = props.metricTypes.find(
+          (m: MetricType) => {
+            return m.name === queryConfig.metricQueryData.filterData.metricName;
+          },
+        );
+
+        const member: PanelMember = {
+          queryConfig,
+          queryConfigIndex,
+          result,
+          series: buildQuerySeries(queryConfig, result),
+          unit:
+            queryConfig.metricAliasData?.legendUnit || metricType?.unit || "",
+          metricName:
+            queryConfig.metricQueryData.filterData.metricName?.toString() || "",
+        };
+
+        if (queryConfig.overlayWithPreviousQuery === true && previousPanel) {
+          previousPanel.members.push(member);
+          return;
+        }
+
+        const panel: ChartPanel = {
+          id: dedupeChartId(
+            getStableQueryChartId(queryConfig, queryConfigIndex),
+            usedChartIds,
           ),
-        });
-      }
+          members: [member],
+        };
+        panels.push(panel);
+        previousPanel = panel;
+      },
+    );
+
+    for (const panel of panels) {
+      const members: Array<PanelMember> = panel.members;
+      const firstMember: PanelMember = members[0]!;
+      const firstQuery: MetricQueryConfigData = firstMember.queryConfig;
+
+      applyPanelSeriesNaming(members);
 
       /*
-       * Cumulative-counter rate transform. OTel hostmetrics emits metrics
-       * like `system.disk.io` and `system.network.io` as cumulative counters
-       * (bytes since process start). Plotting the raw value gives a
-       * monotonically-growing line that's hard to read. With
-       * `transformAsRate`, each series is converted to a per-second rate
-       * of change: `(yi - y(i-1)) / Δt`. Negative deltas — which happen
-       * when the agent restarts and the counter resets to 0 — clamp to 0
-       * so the chart doesn't show a spurious dive.
+       * Merged panel series + owner lookup (which member query a series
+       * came from) — the owner drives per-series color pins and threshold
+       * attribution for overlay panels.
        */
-      if (queryConfig.transformAsRate) {
-        for (const series of chartSeries) {
-          const sortedPoints: typeof series.data = [...series.data].sort(
-            (a: { x: Date; y: number }, b: { x: Date; y: number }) => {
-              return a.x.getTime() - b.x.getTime();
-            },
-          );
-          const ratePoints: typeof series.data = [];
-          for (let i: number = 1; i < sortedPoints.length; i++) {
-            const current: { x: Date; y: number } = sortedPoints[i]!;
-            const prev: { x: Date; y: number } = sortedPoints[i - 1]!;
-            const dtSeconds: number =
-              (current.x.getTime() - prev.x.getTime()) / 1000;
-            if (dtSeconds <= 0) {
-              continue;
-            }
-            const delta: number = current.y - prev.y;
-            const rate: number = delta < 0 ? 0 : delta / dtSeconds;
-            ratePoints.push({ x: current.x, y: rate });
-          }
-          series.data = ratePoints;
+      const panelSeries: Array<SeriesPoint> = [];
+      const seriesOwnerByName: Map<string, PanelMember> = new Map<
+        string,
+        PanelMember
+      >();
+      for (const member of members) {
+        for (const series of member.series) {
+          panelSeries.push(series);
+          seriesOwnerByName.set(series.seriesName, member);
         }
       }
 
-      let chartType: ChartType;
-      if (queryConfig.chartType === MetricChartType.BAR) {
-        chartType = ChartType.BAR;
-      } else if (queryConfig.chartType === MetricChartType.AREA) {
-        chartType = ChartType.AREA;
-      } else if (queryConfig.chartType === MetricChartType.LINE) {
-        chartType = ChartType.LINE;
-      } else {
-        chartType = ChartType.AREA;
-      }
+      /*
+       * Per-panel singletons resolve first-query-wins: chart type, x-axis
+       * aggregation, display unit / y-axis formatter, and the percent-scale
+       * heuristics below all come from the panel's first query.
+       */
+      const xAxisAggregationType: XAxisAggregateType =
+        getXAxisAggregationTypeForQuery(firstQuery);
+      const chartType: ChartType = getChartTypeForConfig(firstQuery.chartType);
 
-      // Resolve the unit for formatting
-      const metricType: MetricType | undefined = props.metricTypes.find(
-        (m: MetricType) => {
-          return m.name === queryConfig.metricQueryData.filterData.metricName;
-        },
-      );
-      const unit: string =
-        queryConfig.metricAliasData?.legendUnit || metricType?.unit || "";
-      const queryMetricName: string =
-        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
+      const unit: string = firstMember.unit;
+      const queryMetricName: string = firstMember.metricName;
       const formatterOptions: { metricName: string } = {
         metricName: queryMetricName,
       };
+
       /*
        * Show "%" on the y-axis legend for any percent-like metric — both
        * OTel ratio names (`.utilization`, `.ratio`, …) reported with unit "1"
@@ -995,38 +1569,53 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       let yAxisMin: YScaleMaxMin = "auto";
       let yAxisMax: YScaleMaxMin = "auto";
 
-      // Build reference lines from thresholds
+      /*
+       * Thresholds concatenate across the panel: every overlaid query's
+       * warning/critical lines render, each formatted in its own unit.
+       */
       const referenceLines: Array<ChartReferenceLineProps> = [];
-
-      if (
-        queryConfig.warningThreshold !== undefined &&
-        queryConfig.warningThreshold !== null
-      ) {
-        referenceLines.push({
-          value: queryConfig.warningThreshold,
-          label: `Warning: ${ValueFormatter.formatValue(queryConfig.warningThreshold, unit, formatterOptions)}`,
-          color: "#f59e0b", // amber
-        });
-      }
-
-      if (
-        queryConfig.criticalThreshold !== undefined &&
-        queryConfig.criticalThreshold !== null
-      ) {
-        referenceLines.push({
-          value: queryConfig.criticalThreshold,
-          label: `Critical: ${ValueFormatter.formatValue(queryConfig.criticalThreshold, unit, formatterOptions)}`,
-          color: "#ef4444", // red
-        });
+      for (const member of members) {
+        referenceLines.push(
+          ...buildThresholdReferenceLines({
+            warningThreshold: member.queryConfig.warningThreshold,
+            criticalThreshold: member.queryConfig.criticalThreshold,
+            unit: member.unit,
+            formatterOptions: { metricName: member.metricName },
+          }),
+        );
       }
 
       /*
-       * Build metric info for the info icon modal.
+       * Unit safety for overlay panels: data arrives converted to each
+       * query's display unit, so two members with different display units
+       * share one axis but not one scale. Warn (don't block).
+       */
+      const distinctUnits: Array<string> = Array.from(
+        new Set<string>(
+          members
+            .map((member: PanelMember) => {
+              return member.unit;
+            })
+            .filter((memberUnit: string) => {
+              return memberUnit !== "";
+            }),
+        ),
+      );
+      const unitMismatchWarning: ReactElement | undefined =
+        distinctUnits.length > 1 ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Overlaid queries use different units ({distinctUnits.join(", ")}) —
+            they share one axis, so values may not be directly comparable.
+          </div>
+        ) : undefined;
+
+      /*
+       * Build metric info for the info icon modal (first query's).
        * Skip empty key/value entries and surface the operator alongside
        * the value so users can see what's actually filtered.
        */
       const metricAttributes: Dictionary<string> = {};
-      const filterAttributes: Dictionary<unknown> | undefined = queryConfig
+      const filterAttributes: Dictionary<unknown> | undefined = firstQuery
         .metricQueryData.filterData.attributes as
         | Dictionary<unknown>
         | undefined;
@@ -1054,113 +1643,145 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       }
 
       const metricInfo: ChartMetricInfo = {
-        metricName:
-          queryConfig.metricQueryData.filterData.metricName?.toString() || "",
+        metricName: queryMetricName,
         aggregationType:
-          queryConfig.metricQueryData.filterData.aggegationType?.toString() ||
+          firstQuery.metricQueryData.filterData.aggegationType?.toString() ||
           "",
         attributes:
           Object.keys(metricAttributes).length > 0
             ? metricAttributes
             : undefined,
         groupByAttribute:
-          queryConfig.metricQueryData.filterData.groupByAttribute?.toString(),
+          firstQuery.metricQueryData.filterData.groupByAttribute?.toString(),
         unit,
       };
 
-      // Get exemplar data for this metric
-      const metricNameStr: string =
-        queryConfig.metricQueryData.filterData.metricName?.toString() || "";
-      const chartExemplars: Array<ExemplarPoint> =
-        exemplarsByMetric[metricNameStr] || [];
-
-      const chartId: string = index.toString();
-
       /*
-       * High-cardinality handling: rank series by the active value stat
-       * (default: peak value) so the breaching series surface first and
-       * are always retained by the Top-N cut, then apply the user's search
-       * filter, hidden set, and Top-N cap. The original chartSeries length
-       * is preserved for the controls panel so the "Show all N" button can
-       * show the true count.
+       * Exemplar dots: union across the panel's members, deduped (two
+       * overlaid queries of the same metric+filters share one exemplar
+       * set).
        */
-      const controls: SeriesControlsState = getControls(chartId);
-      const rankingStat: SeriesValueStat = getRankingStat(controls.sortBy);
-      const rankedSeries: Array<SeriesPoint> = sortSeriesForDisplay(
-        chartSeries,
-        rankingStat,
-      );
-
-      const totalSeries: number = rankedSeries.length;
-      const needsTopN: boolean = totalSeries > DEFAULT_TOP_N_SERIES;
-
-      let displayableSeries: Array<SeriesPoint> = rankedSeries;
-
-      if (controls.searchQuery.trim() !== "") {
-        const q: string = controls.searchQuery.toLowerCase();
-        displayableSeries = displayableSeries.filter((s: SeriesPoint) => {
-          return s.seriesName.toLowerCase().includes(q);
-        });
+      const chartExemplars: Array<ExemplarPoint> = [];
+      const seenExemplarKeys: Set<string> = new Set<string>();
+      for (const member of members) {
+        const memberExemplars: Array<ExemplarPoint> =
+          exemplarsByQueryKey[getExemplarStateKey(member.queryConfig)] || [];
+        for (const exemplar of memberExemplars) {
+          const exemplarKey: string = `${exemplar.traceId}-${exemplar.x.getTime()}-${exemplar.y}`;
+          if (seenExemplarKeys.has(exemplarKey)) {
+            continue;
+          }
+          seenExemplarKeys.add(exemplarKey);
+          chartExemplars.push(exemplar);
+        }
       }
 
-      if (controls.hiddenSeries.size > 0) {
-        displayableSeries = displayableSeries.filter((s: SeriesPoint) => {
-          return !controls.hiddenSeries.has(s.seriesName);
-        });
-      }
-
-      if (needsTopN && !controls.showAllSeries) {
-        displayableSeries = displayableSeries.slice(0, DEFAULT_TOP_N_SERIES);
-      }
+      const chartId: string = panel.id;
 
       /*
-       * The series drawn on the chart keep a stable natural-name order,
-       * regardless of the node-list sort. Line/legend colors are assigned
-       * by chart-series position, so ordering the chart by a live value
-       * (e.g. peak) would reshuffle every node's color whenever the ranking
-       * changed on refresh — making it impossible to track "the red line".
-       * The user-selected sort is applied to the node list (chips) only;
-       * the Top-N cut above still uses the value ranking so the highest
-       * nodes are the ones shown.
+       * Effective Top-N (display cap AND the server-side topK count the
+       * fetch layer sends for grouped queries) — first-query-wins like the
+       * other panel singletons; the write path below updates every member.
        */
-      displayableSeries = displayableSeries.slice().sort(compareSeriesByName);
+      const effectiveTopN: number =
+        getControls(chartId).topNOverride ??
+        firstQuery.metricQueryData.topN ??
+        DEFAULT_TOP_N_SERIES;
 
       /*
-       * Per-series colors. Per-group pins (colorsByGroup) win by "key=value"
-       * segment; otherwise the query's single `color` leads the palette. Built
-       * as an explicit array aligned to displayableSeries order (the chart
-       * library assigns colors by position), so it stays correct under
-       * Top-N/hidden/search filtering. Undefined when nothing is customized, so
-       * the wrapper falls back to its default palette (unchanged for existing
-       * charts). A color-only query yields exactly the prior lead-color array.
+       * Server truncation metadata: totalGroups sums across members (each
+       * member's grouped fetch reports its own group universe); a
+       * truncated result WITHOUT totalGroups means a plain row-limit hit
+       * whose completeness is unknown.
+       */
+      let serverTotalGroups: number | undefined = undefined;
+      let serverTruncatedWithoutTopK: boolean = false;
+      for (const member of members) {
+        if (member.result.totalGroups !== undefined) {
+          serverTotalGroups =
+            (serverTotalGroups ?? 0) + member.result.totalGroups;
+        } else if (member.result.truncated) {
+          serverTruncatedWithoutTopK = true;
+        }
+      }
+
+      /*
+       * Per-series colors. Single-query panels keep the exact prior
+       * behavior (per-group pins by "key=value" segment, then the query's
+       * lead color heading the palette). Overlay panels compose: each
+       * series resolves against its OWNING query's pins, the owner's lead
+       * color goes to that query's first displayed series, and everything
+       * else falls back to the shared palette by position.
        */
       const chartBasePalette: Array<AvailableChartColorsKeys> =
         getChartPalette(chartType);
-      const chartColorsByGroup: Record<string, string> =
-        queryConfig.colorsByGroup || {};
-      const chartGroupByKeys: Array<string> =
-        queryConfig.metricQueryData.groupByAttributeKeys || [];
-      const effectiveChartPalette: Array<ChartColorValue> = queryConfig.color
-        ? [queryConfig.color, ...chartBasePalette]
-        : chartBasePalette;
-      const hasColorCustomization: boolean =
-        Boolean(queryConfig.color) ||
-        Object.keys(chartColorsByGroup).length > 0;
-      const chartColorsOverride: Array<ChartColorValue> | undefined =
-        hasColorCustomization
-          ? displayableSeries.map((s: SeriesPoint, i: number) => {
-              return resolveSeriesColor(s.seriesName, i, {
-                colorsByGroup: chartColorsByGroup,
-                effectivePalette: effectiveChartPalette,
-                groupByKeys: chartGroupByKeys,
-              });
-            })
-          : undefined;
+      const hasColorCustomization: boolean = members.some(
+        (member: PanelMember) => {
+          return (
+            Boolean(member.queryConfig.color) ||
+            Object.keys(member.queryConfig.colorsByGroup || {}).length > 0
+          );
+        },
+      );
 
-      const hiddenFromTopN: number =
-        needsTopN && !controls.showAllSeries
-          ? Math.max(0, totalSeries - DEFAULT_TOP_N_SERIES)
-          : 0;
+      const makeResolveColor: (
+        displayableSeries: Array<SeriesPoint>,
+      ) => SeriesColorResolver = (
+        displayableSeries: Array<SeriesPoint>,
+      ): SeriesColorResolver => {
+        if (members.length === 1) {
+          const effectivePalette: Array<ChartColorValue> = firstQuery.color
+            ? [firstQuery.color, ...chartBasePalette]
+            : chartBasePalette;
+          return (seriesName: string, index: number): ChartColorValue => {
+            return resolveSeriesColor(seriesName, index, {
+              colorsByGroup: firstQuery.colorsByGroup || {},
+              effectivePalette,
+              groupByKeys:
+                firstQuery.metricQueryData.groupByAttributeKeys || [],
+            });
+          };
+        }
+
+        const firstDisplayIndexByOwner: Map<PanelMember, number> = new Map<
+          PanelMember,
+          number
+        >();
+        displayableSeries.forEach((series: SeriesPoint, index: number) => {
+          const owner: PanelMember | undefined = seriesOwnerByName.get(
+            series.seriesName,
+          );
+          if (owner && !firstDisplayIndexByOwner.has(owner)) {
+            firstDisplayIndexByOwner.set(owner, index);
+          }
+        });
+
+        return (seriesName: string, index: number): ChartColorValue => {
+          const owner: PanelMember | undefined =
+            seriesOwnerByName.get(seriesName);
+          if (owner) {
+            const pins: Record<string, string> =
+              owner.queryConfig.colorsByGroup || {};
+            const segments: Array<string> = splitSeriesNameIntoSegments(
+              seriesName,
+              owner.queryConfig.metricQueryData.groupByAttributeKeys || [],
+            );
+            for (const segment of segments) {
+              const pinned: string | undefined = pins[segment];
+              if (pinned) {
+                return pinned;
+              }
+            }
+            if (
+              owner.queryConfig.color &&
+              firstDisplayIndexByOwner.get(owner) === index
+            ) {
+              return owner.queryConfig.color;
+            }
+          }
+          return chartBasePalette[index % chartBasePalette.length]!;
+        };
+      };
 
       /*
        * Formats a series value for the node list using the same unit and
@@ -1170,31 +1791,61 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const seriesValueFormatter: (value: number) => string = (
         value: number,
       ): string => {
-        if (queryConfig.yAxisValueFormatter) {
-          return queryConfig.yAxisValueFormatter(value);
+        if (firstQuery.yAxisValueFormatter) {
+          return firstQuery.yAxisValueFormatter(value);
         }
         return ValueFormatter.formatValue(value, unit, formatterOptions);
       };
 
-      // Build the controls panel — only when series cardinality warrants it.
-      const seriesControls: ReactElement | undefined =
-        totalSeries > 1
-          ? renderSeriesControls({
-              chartId,
-              controls,
-              updateControls,
-              fullSeries: rankedSeries,
-              displayableSeries,
-              totalSeries,
-              hiddenFromTopN,
-              needsTopN,
-              chartType,
-              color: queryConfig.color,
-              colorsByGroup: queryConfig.colorsByGroup,
-              groupByKeys: queryConfig.metricQueryData.groupByAttributeKeys,
-              valueFormatter: seriesValueFormatter,
-            })
-          : undefined;
+      const {
+        displayableSeries,
+        colorsOverride,
+        seriesControls,
+      }: {
+        displayableSeries: Array<SeriesPoint>;
+        colorsOverride: Array<ChartColorValue> | undefined;
+        seriesControls: ReactElement | undefined;
+      } = buildSeriesPresentation({
+        chartId,
+        allSeries: panelSeries,
+        effectiveTopN,
+        makeResolveColor,
+        hasColorCustomization,
+        valueFormatter: seriesValueFormatter,
+        onShowAllToggled: (nextShowAll: boolean): void => {
+          /*
+           * "Show all" is a refetch concern only when the server actually
+           * held series back (topK truncation) — otherwise every series
+           * is already client-side and the display toggle suffices.
+           * Toggling back off a lifted topN reverts to the default cap.
+           */
+          if (nextShowAll) {
+            if (
+              serverTotalGroups !== undefined &&
+              serverTotalGroups > panelSeries.length
+            ) {
+              writePanelTopN(members, SHOW_ALL_SERIES_TOP_N);
+            }
+          } else if (effectiveTopN >= SHOW_ALL_SERIES_TOP_N) {
+            writePanelTopN(members, undefined);
+          }
+        },
+        onTopNChange: (topN: number): void => {
+          /*
+           * Without a parent write-path, also track the choice locally so
+           * the selector and the display cap respond immediately (the
+           * transient fetch override only applies on the next fetch).
+           */
+          updateControls(chartId, {
+            showAllSeries: false,
+            ...(props.onQueryConfigsChange ? {} : { topNOverride: topN }),
+          });
+          writePanelTopN(members, topN);
+        },
+        serverTotalGroups,
+        serverTruncatedWithoutTopK,
+        warningElement: unitMismatchWarning,
+      });
 
       /*
        * Soft 0–100% range computed from the currently visible series, so
@@ -1244,8 +1895,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const chart: Chart = {
         id: chartId,
         type: chartType,
-        title: queryConfig.metricAliasData?.title || metricNameStr || "",
-        description: queryConfig.metricAliasData?.description || "",
+        title: firstQuery.metricAliasData?.title || queryMetricName || "",
+        description: firstQuery.metricAliasData?.description || "",
         metricInfo,
         exemplarPoints: chartExemplars.length > 0 ? chartExemplars : undefined,
         onExemplarClick: handleExemplarClick,
@@ -1273,8 +1924,8 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
-                if (queryConfig.yAxisValueFormatter) {
-                  return queryConfig.yAxisValueFormatter(value);
+                if (firstQuery.yAxisValueFormatter) {
+                  return firstQuery.yAxisValueFormatter(value);
                 }
 
                 return ValueFormatter.formatValue(
@@ -1290,15 +1941,16 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           curve: ChartCurve.MONOTONE,
           sync: true,
-          colors: chartColorsOverride,
+          colors: colorsOverride,
           referenceLines:
             referenceLines.length > 0 ? referenceLines : undefined,
+          onTimeRangeSelect: props.onTimeRangeSelect,
+          timeReferenceLines: props.timeReferenceLines,
+          referenceRegions: props.referenceRegions,
         },
       };
 
       charts.push(chart);
-
-      index++;
     }
 
     /*
@@ -1328,63 +1980,107 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const formulaExpression: string =
         formulaConfig.metricFormulaData?.metricFormula || "";
 
-      const formulaChartSeries: Array<SeriesPoint> = [
-        {
-          seriesName:
-            formulaConfig.metricAliasData?.legend ||
-            formulaConfig.metricAliasData?.title ||
-            formulaExpression ||
-            "Formula",
+      const formulaChartType: ChartType = getChartTypeForConfig(
+        formulaConfig.chartType,
+      );
+
+      const formulaUnit: string =
+        formulaConfig.metricAliasData?.legendUnit || "";
+
+      const formulaBaseName: string =
+        formulaConfig.metricAliasData?.legend ||
+        formulaConfig.metricAliasData?.title ||
+        formulaExpression ||
+        "Formula";
+
+      const formulaChartVariable: string | undefined =
+        formulaConfig.metricAliasData?.metricVariable;
+      const formulaChartId: string = dedupeChartId(
+        formulaChartVariable
+          ? `formula-var-${formulaChartVariable}`
+          : `formula-${formulaIndex}`,
+        usedChartIds,
+      );
+
+      /*
+       * Multi-series formulas: the evaluator stamps each output row with
+       * the group's `attributes` (same shape grouped query rows use), so
+       * split rows into one series per group — mirroring the query-chart
+       * splitter — and let them flow through the same Top-N/legend
+       * machinery. Ungrouped formulas keep their single named series.
+       */
+      const formulaGroupKeys: Array<string> = (() => {
+        const keys: Set<string> = new Set<string>();
+        for (const row of formulaResult.data) {
+          const attributes: Record<string, unknown> | undefined = (
+            row as unknown as Dictionary<unknown>
+          )["attributes"] as Record<string, unknown> | undefined;
+          if (attributes) {
+            for (const key of Object.keys(attributes)) {
+              keys.add(key);
+            }
+          }
+        }
+        return Array.from(keys).sort();
+      })();
+
+      const formulaAllSeries: Array<SeriesPoint> = [];
+
+      if (formulaGroupKeys.length > 0) {
+        for (const row of formulaResult.data) {
+          const attributes: Record<string, unknown> =
+            ((row as unknown as Dictionary<unknown>)["attributes"] as
+              | Record<string, unknown>
+              | undefined) || {};
+          const seriesName: string = formulaGroupKeys
+            .map((key: string) => {
+              const value: unknown = attributes[key];
+              const displayValue: string =
+                value === undefined || value === null || value === ""
+                  ? "(unset)"
+                  : String(value);
+              return `${key}=${displayValue}`;
+            })
+            .join(", ");
+
+          const existingSeries: SeriesPoint | undefined = formulaAllSeries.find(
+            (s: SeriesPoint) => {
+              return s.seriesName === seriesName;
+            },
+          );
+
+          const point: { x: Date; y: number } = {
+            x: OneUptimeDate.fromString(row.timestamp),
+            y: row.value,
+          };
+
+          if (existingSeries) {
+            existingSeries.data.push(point);
+          } else {
+            formulaAllSeries.push({
+              seriesName,
+              data: [point],
+            });
+          }
+        }
+      } else {
+        formulaAllSeries.push({
+          seriesName: formulaBaseName,
           data: formulaResult.data.map((point: AggregatedModel) => {
             return {
               x: OneUptimeDate.fromString(point.timestamp),
               y: point.value,
             };
           }),
-        },
-      ];
-
-      let formulaChartType: ChartType;
-      if (formulaConfig.chartType === MetricChartType.BAR) {
-        formulaChartType = ChartType.BAR;
-      } else if (formulaConfig.chartType === MetricChartType.LINE) {
-        formulaChartType = ChartType.LINE;
-      } else {
-        formulaChartType = ChartType.AREA;
-      }
-
-      const formulaUnit: string =
-        formulaConfig.metricAliasData?.legendUnit || "";
-
-      const formulaReferenceLines: Array<ChartReferenceLineProps> = [];
-
-      if (
-        formulaConfig.warningThreshold !== undefined &&
-        formulaConfig.warningThreshold !== null
-      ) {
-        formulaReferenceLines.push({
-          value: formulaConfig.warningThreshold,
-          label: `Warning: ${ValueFormatter.formatValue(
-            formulaConfig.warningThreshold,
-            formulaUnit,
-          )}`,
-          color: "#f59e0b",
         });
       }
 
-      if (
-        formulaConfig.criticalThreshold !== undefined &&
-        formulaConfig.criticalThreshold !== null
-      ) {
-        formulaReferenceLines.push({
-          value: formulaConfig.criticalThreshold,
-          label: `Critical: ${ValueFormatter.formatValue(
-            formulaConfig.criticalThreshold,
-            formulaUnit,
-          )}`,
-          color: "#ef4444",
+      const formulaReferenceLines: Array<ChartReferenceLineProps> =
+        buildThresholdReferenceLines({
+          warningThreshold: formulaConfig.warningThreshold,
+          criticalThreshold: formulaConfig.criticalThreshold,
+          unit: formulaUnit,
         });
-      }
 
       const formulaMetricInfo: ChartMetricInfo = {
         metricName:
@@ -1395,8 +2091,65 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         unit: formulaUnit,
       };
 
+      const formulaBasePalette: Array<AvailableChartColorsKeys> =
+        getChartPalette(formulaChartType);
+      const formulaEffectivePalette: Array<ChartColorValue> =
+        formulaConfig.color
+          ? [formulaConfig.color, ...formulaBasePalette]
+          : formulaBasePalette;
+
+      /*
+       * Structurally invalid formula (Metrics.fetchResults attaches the
+       * evaluator's message): render the error in the chart slot instead
+       * of a silent empty chart. The empty series keeps the chart body
+       * rendering exactly like the old failure path.
+       */
+      const formulaHasError: boolean = Boolean(formulaResult.errorMessage);
+
+      const {
+        displayableSeries: formulaDisplayableSeries,
+        colorsOverride: formulaColorsOverride,
+        seriesControls: formulaSeriesControls,
+      }: {
+        displayableSeries: Array<SeriesPoint>;
+        colorsOverride: Array<ChartColorValue> | undefined;
+        seriesControls: ReactElement | undefined;
+      } = formulaHasError
+        ? {
+            displayableSeries: [
+              {
+                seriesName: formulaBaseName,
+                data: [],
+              },
+            ],
+            colorsOverride: undefined,
+            seriesControls: (
+              <ErrorMessage
+                message={`Formula error: ${formulaResult.errorMessage}`}
+              />
+            ),
+          }
+        : buildSeriesPresentation({
+            chartId: formulaChartId,
+            allSeries: formulaAllSeries,
+            effectiveTopN: DEFAULT_TOP_N_SERIES,
+            makeResolveColor: (): SeriesColorResolver => {
+              return (seriesName: string, index: number): ChartColorValue => {
+                return resolveSeriesColor(seriesName, index, {
+                  colorsByGroup: {},
+                  effectivePalette: formulaEffectivePalette,
+                  groupByKeys: formulaGroupKeys,
+                });
+              };
+            },
+            hasColorCustomization: Boolean(formulaConfig.color),
+            valueFormatter: (value: number): string => {
+              return ValueFormatter.formatValue(value, formulaUnit);
+            },
+          });
+
       const formulaChart: Chart = {
-        id: `formula-${formulaIndex}`,
+        id: formulaChartId,
         type: formulaChartType,
         title:
           formulaConfig.metricAliasData?.title ||
@@ -1405,8 +2158,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           formulaConfig.metricAliasData?.description ||
           `Evaluates: ${formulaExpression}`,
         metricInfo: formulaMetricInfo,
+        seriesControls: formulaSeriesControls,
         props: {
-          data: formulaChartSeries,
+          data: formulaDisplayableSeries,
           xAxis: {
             legend: "Time",
             options: {
@@ -1437,11 +2191,14 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           },
           curve: ChartCurve.MONOTONE,
           sync: true,
-          colors: formulaConfig.color ? [formulaConfig.color] : undefined,
+          colors: formulaColorsOverride,
           referenceLines:
             formulaReferenceLines.length > 0
               ? formulaReferenceLines
               : undefined,
+          onTimeRangeSelect: props.onTimeRangeSelect,
+          timeReferenceLines: props.timeReferenceLines,
+          referenceRegions: props.referenceRegions,
         },
       };
 

@@ -21,7 +21,17 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
-import { keyForHost } from "../../Utils/Telemetry/EntityKey";
+import {
+  canonicalizeEntityValue,
+  keyForHost,
+  keyForKubernetesCluster,
+  keyForService,
+} from "../../Utils/Telemetry/EntityKey";
+import { keyForContainer } from "../Utils/Telemetry/TelemetryEntity";
+import { EntityScopeQueryValue } from "../Utils/AnalyticsDatabase/StatementGenerator";
+import TelemetryEntityService from "./TelemetryEntityService";
+import TelemetryEntity from "../../Models/DatabaseModels/TelemetryEntity";
+import EntityType from "../../Types/Telemetry/EntityType";
 import ObjectID from "../../Types/ObjectID";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -46,6 +56,62 @@ const MAX_GROUP_BY_ATTRIBUTE_KEY_LENGTH: number = 256;
 
 const POINT_TYPE_CACHE_TTL_MS: number = 10 * 60 * 1000;
 const POINT_TYPE_CACHE_MAX_ENTRIES: number = 5000;
+
+/*
+ * Deliberately short: the registry gains a row for a NEW namespaced
+ * service variant asynchronously (throttled reconcile), and until this
+ * cache expires a routed service query would keep serving the stale
+ * (smaller) key set. 60s bounds that staleness to about one dashboard
+ * refresh while still collapsing the burst of per-metric aggregates a
+ * single refresh fires.
+ */
+const SERVICE_ENTITY_KEYS_CACHE_TTL_MS: number = 60 * 1000;
+const SERVICE_ENTITY_KEYS_CACHE_MAX_ENTRIES: number = 5000;
+
+type EntityMVRoute = {
+  /** The resource attribute the entity detail pages filter by. */
+  attributeKey: string;
+  /** The per-entity 1-minute rollup that serves the filter. */
+  tableName: AnalyticsTableName;
+  /** Scalar entity-key column — same name on the raw table and the MV. */
+  keyColumn: string;
+  /**
+   * Read-side key derivation, byte-identical to the ingest stamp. Only
+   * single-attribute identities are derivable this way; `null` means the
+   * key set must come from the registry instead (service — ingest folds
+   * service.namespace into the key when present, so one name can map to
+   * several keys and a computed bare key would silently drop the
+   * namespaced variants' data).
+   */
+  keyForValue: ((projectId: string, value: string) => string) | null;
+};
+
+const ENTITY_MV_ROUTES: ReadonlyArray<EntityMVRoute> = [
+  {
+    attributeKey: "resource.host.name",
+    tableName: AnalyticsTableName.MetricItemAggMV1mByHostV2,
+    keyColumn: "hostEntityKey",
+    keyForValue: keyForHost,
+  },
+  {
+    attributeKey: "resource.k8s.cluster.name",
+    tableName: AnalyticsTableName.MetricItemAggMV1mByK8sCluster,
+    keyColumn: "k8sClusterEntityKey",
+    keyForValue: keyForKubernetesCluster,
+  },
+  {
+    attributeKey: "resource.container.id",
+    tableName: AnalyticsTableName.MetricItemAggMV1mByContainer,
+    keyColumn: "containerEntityKey",
+    keyForValue: keyForContainer,
+  },
+  {
+    attributeKey: "resource.service.name",
+    tableName: AnalyticsTableName.MetricItemAggMV1mByService,
+    keyColumn: "serviceEntityKey",
+    keyForValue: null,
+  },
+];
 
 export class MetricService extends AnalyticsDatabaseService<Metric> {
   /*
@@ -73,6 +139,33 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   private inFlightPointTypeLookups: Map<string, Promise<string | null>> =
     new Map();
 
+  /*
+   * Registry-resolved serviceEntityKey set per aggregateBy call, for
+   * queries filtering by `resource.service.name`. Same hand-over pattern
+   * as the point-type hint: toAggregateStatement is synchronous, so the
+   * async Postgres lookup happens in aggregateBy and is keyed on the
+   * (shared) aggregateBy object. An empty array means "registry has no
+   * rows for this name" — the builder then refuses to route (raw path).
+   */
+  private serviceEntityKeysHintByAggregate: WeakMap<
+    AggregateBy<Metric>,
+    Array<string>
+  > = new WeakMap();
+
+  /*
+   * (projectId|canonical service name) -> serviceEntityKey set. Bounded +
+   * short-TTL'd (see SERVICE_ENTITY_KEYS_CACHE_TTL_MS): a dashboard
+   * refresh fires one aggregate per metric name, all for the same
+   * service, and each would otherwise hit Postgres.
+   */
+  private serviceEntityKeysCache: Map<
+    string,
+    { keys: Array<string>; expiresAt: number }
+  > = new Map();
+
+  private inFlightServiceEntityKeyLookups: Map<string, Promise<Array<string>>> =
+    new Map();
+
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: Metric, database: clickhouseDatabase });
   }
@@ -97,9 +190,210 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       const pointType: string | null =
         await this.resolveMetricPointType(aggregateBy);
       this.pointTypeHintByAggregate.set(aggregateBy, pointType);
+
+      /*
+       * Service-scoped queries need the registry-resolved serviceEntityKey
+       * set before the synchronous statement builder runs. Skipped when
+       * the point type already rules out MV routing (distribution
+       * metrics never touch the rollups).
+       */
+      if (!pointType || !DISTRIBUTION_POINT_TYPES.includes(pointType)) {
+        const serviceKeys: Array<string> | null =
+          await this.resolveServiceEntityKeysHint(aggregateBy);
+        if (serviceKeys) {
+          this.serviceEntityKeysHintByAggregate.set(aggregateBy, serviceKeys);
+        }
+      }
     }
 
     return super.aggregateBy(aggregateBy);
+  }
+
+  /**
+   * Resolves the serviceEntityKey set for a query whose only entity
+   * filter is a `resource.service.name` equality — the shape (and the
+   * only shape) the entity-MV builder routes to the per-service rollup.
+   * Returns null for every other query shape so no lookup is wasted.
+   */
+  private async resolveServiceEntityKeysHint(
+    aggregateBy: AggregateBy<Metric>,
+  ): Promise<Array<string> | null> {
+    const queryRecord: Record<string, unknown> =
+      (aggregateBy.query as unknown as Record<string, unknown>) || {};
+
+    // service + entityScope is never routed (see the entity-MV builder).
+    if (
+      queryRecord["entityScope"] !== undefined &&
+      queryRecord["entityScope"] !== null
+    ) {
+      return null;
+    }
+
+    const attrs: unknown = queryRecord["attributes"];
+    if (!attrs || typeof attrs !== "object") {
+      return null;
+    }
+    const attrEntries: Array<[string, unknown]> = Object.entries(
+      attrs as Record<string, unknown>,
+    );
+    if (attrEntries.length !== 1) {
+      return null;
+    }
+    const [attrKey, attrValue] = attrEntries[0]!;
+    if (
+      attrKey !== "resource.service.name" ||
+      typeof attrValue !== "string" ||
+      !attrValue
+    ) {
+      return null;
+    }
+
+    const projectIdValue: unknown = queryRecord["projectId"];
+    let projectId: string = "";
+    if (projectIdValue instanceof ObjectID) {
+      projectId = projectIdValue.toString();
+    } else if (typeof projectIdValue === "string") {
+      projectId = projectIdValue;
+    }
+    if (!projectId) {
+      return null;
+    }
+
+    const cacheKey: string = `${projectId}|${canonicalizeEntityValue(
+      attrValue,
+    )}`;
+    const cached: { keys: Array<string>; expiresAt: number } | undefined =
+      this.serviceEntityKeysCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.keys;
+    }
+
+    const inFlight: Promise<Array<string>> | undefined =
+      this.inFlightServiceEntityKeyLookups.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const lookup: Promise<Array<string>> = this.lookupServiceEntityKeys(
+      projectId,
+      attrValue,
+    )
+      .then((keys: Array<string>) => {
+        this.evictExpiredServiceEntityKeyCacheEntries();
+        this.serviceEntityKeysCache.set(cacheKey, {
+          keys,
+          expiresAt: Date.now() + SERVICE_ENTITY_KEYS_CACHE_TTL_MS,
+        });
+        return keys;
+      })
+      .finally(() => {
+        this.inFlightServiceEntityKeyLookups.delete(cacheKey);
+      });
+
+    this.inFlightServiceEntityKeyLookups.set(cacheKey, lookup);
+    return lookup;
+  }
+
+  /**
+   * All serviceEntityKeys the ingest pipeline can have stamped for rows
+   * reporting this `service.name`, from the Postgres TelemetryEntity
+   * registry. Service identity folds `service.namespace` into the key
+   * when the resource carries one (see the service resolver in
+   * Common/Server/Utils/Telemetry/TelemetryEntity), so one name maps to
+   * one key per namespace variant — only the registry knows them all.
+   *
+   * `displayName` equals the canonicalized service.name for every
+   * Service row the registry mints (deriveDisplayName prefers the
+   * `service.name` identifying attribute), so the query is indexed and
+   * tiny; the identifyingAttributes re-check below guards against a
+   * displayName that came from some other identity shape. Returns []
+   * on a registry miss or any lookup failure — the caller then refuses
+   * to route (an MV query must never return less data than the raw
+   * predicate it replaces, and rows of a namespaced service the
+   * registry does not know about would be silently dropped).
+   */
+  private async lookupServiceEntityKeys(
+    projectId: string,
+    serviceName: string,
+  ): Promise<Array<string>> {
+    try {
+      const canonicalName: string = canonicalizeEntityValue(serviceName);
+
+      const rows: Array<TelemetryEntity> = await TelemetryEntityService.findBy({
+        query: {
+          projectId: new ObjectID(projectId),
+          entityType: EntityType.Service,
+          displayName: canonicalName,
+        },
+        select: {
+          entityKey: true,
+          identifyingAttributes: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      const keys: Set<string> = new Set<string>();
+      for (const row of rows) {
+        const identifying: Record<string, unknown> =
+          (row.identifyingAttributes as Record<string, unknown>) || {};
+        if (identifying["service.name"] !== canonicalName) {
+          continue;
+        }
+        if (typeof row.entityKey === "string" && row.entityKey) {
+          keys.add(row.entityKey);
+        }
+      }
+
+      if (keys.size === 0) {
+        return [];
+      }
+
+      /*
+       * Union in the deterministic namespace-less key: a service that
+       * ALSO reports without a namespace may not have minted its bare
+       * registry row yet (reconcile is throttled and budget-gated), and
+       * adding a key can only widen the MV result, never narrow it.
+       */
+      keys.add(keyForService(projectId, serviceName));
+
+      return Array.from(keys).sort();
+    } catch (err) {
+      /*
+       * Lookup failures must not fail the aggregation — without the hint
+       * the builder falls back to the raw table, which is always correct.
+       */
+      logger.debug("Service entity key lookup failed");
+      logger.debug(err);
+      return [];
+    }
+  }
+
+  private evictExpiredServiceEntityKeyCacheEntries(): void {
+    if (
+      this.serviceEntityKeysCache.size < SERVICE_ENTITY_KEYS_CACHE_MAX_ENTRIES
+    ) {
+      return;
+    }
+    const now: number = Date.now();
+    for (const [key, entry] of this.serviceEntityKeysCache) {
+      if (entry.expiresAt <= now) {
+        this.serviceEntityKeysCache.delete(key);
+      }
+    }
+    // Mirrors evictExpiredPointTypeCacheEntries: never clear() wholesale.
+    while (
+      this.serviceEntityKeysCache.size >= SERVICE_ENTITY_KEYS_CACHE_MAX_ENTRIES
+    ) {
+      const oldestKey: string | undefined = this.serviceEntityKeysCache
+        .keys()
+        .next().value;
+      if (oldestKey === undefined) {
+        break;
+      }
+      this.serviceEntityKeysCache.delete(oldestKey);
+    }
   }
 
   private async resolveMetricPointType(
@@ -509,10 +803,11 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * The cascade only runs when the caller scoped the delete by
    * `primaryEntityId`. Global time-based purges (TTL cleanup) are handled
    * by each MV table's own `retentionDate TTL DELETE`, so cascading those
-   * would pointlessly scan the whole MV. The per-host MV
-   * (`MetricItemAggMV1mByHostV2`) is keyed by `hostEntityKey` rather than
-   * `primaryEntityId`, so an entity-scoped delete has nothing to remove
-   * there — skip it.
+   * would pointlessly scan the whole MV. The per-entity MVs
+   * (`MetricItemAggMV1mByHostV2` / `...ByService` / `...ByK8sCluster` /
+   * `...ByContainer`) are keyed by their scalar entity-key column rather
+   * than `primaryEntityId`, so an entity-scoped delete has nothing to
+   * remove there — skip them.
    */
   public override async deleteBy(deleteBy: DeleteBy<Metric>): Promise<void> {
     await super.deleteBy(deleteBy);
@@ -655,11 +950,12 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     if (!isPercentileAggregation(aggregateBy.aggregationType)) {
       /*
-       * Try the per-host MV first — host detail pages are the
-       * dominant attribute-filtered path and the per-host MV is
-       * the only one that can serve them. If it doesn't apply
-       * (no host filter, or extra attrs/groupBy), fall through
-       * to the project/primaryEntityId MV, then to the base table.
+       * Try the per-entity MVs first — entity detail pages (host, k8s
+       * cluster, container, service) are the dominant filtered path and
+       * the entity-keyed rollups are the only ones that can serve them.
+       * If none applies (no entity filter, or extra attrs/groupBy), fall
+       * through to the project/primaryEntityId MV, then to the base
+       * table.
        *
        * Distribution metrics (histograms/summaries) must skip the
        * MVs entirely: their states collapse `value`, which for
@@ -671,12 +967,12 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         attributeGroupKeys.length === 0 &&
         !this.isDistributionMetricAggregate(aggregateBy)
       ) {
-        const hostMvStatement: {
+        const entityMvStatement: {
           statement: Statement;
           columns: Array<string>;
-        } | null = this.tryBuildHostAggregateMVStatement(aggregateBy);
-        if (hostMvStatement) {
-          return hostMvStatement;
+        } | null = this.tryBuildEntityAggregateMVStatement(aggregateBy);
+        if (entityMvStatement) {
+          return entityMvStatement;
         }
         const mvStatement: {
           statement: Statement;
@@ -1807,30 +2103,55 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   }
 
   /*
-   * Per-host materialized-view fast path.
+   * Entity-scoped materialized-view fast path (per-entity 1-minute
+   * rollups, keyed by the ingest-stamped scalar entity-key columns).
+   * Entity keys canonicalize their value (trim + lowercase), so spelling
+   * drift in the reported identity still lands on one rollup stream.
    *
-   * Returns a statement that reads from MetricItemAggMV1mByHostV2
-   * (created by RekeyMetricHostRollupToEntityKey), which is keyed by
-   * the stable `hostEntityKey` — the incoming `resource.host.name`
-   * filter value is folded into that key server-side via
-   * EntityKey.keyForHost, so spelling drift (case/whitespace) in the
-   * reported hostname still lands on one rollup stream. Applies when:
+   * Routing decision table — ALL of these outer gates must hold:
+   *   Sum/Avg/Min/Max/Count over `value` bucketed by `time`; no group-by
+   *   of any kind (an entity-key-keyed MV cannot label legend series);
+   *   not a distribution metric and not a percentile (enforced by the
+   *   caller); a bucketed (non-Total) interval; a projectId (the entity
+   *   key is tenant-scoped by construction); and no query columns beyond
+   *   projectId/name/time/attributes/entityScope.
+   * Then exactly ONE of these entity-filter shapes routes:
    *
-   *   - The aggregation is Sum/Avg/Min/Max/Count over `value`.
-   *   - The only attribute filter is `resource.host.name` as a
-   *     bare-string equality (the dashboard's host detail page
-   *     pattern), and the query carries a `projectId` (the entity
-   *     key is tenant-scoped by construction).
-   *   - The query carries no group-by other than the time
-   *     bucket — the MV is keyed by hostEntityKey and does not
-   *     preserve other attribute breakdowns.
+   *   attributes == {resource.host.name: v}
+   *     -> MetricItemAggMV1mByHostV2, hostEntityKey = keyForHost(projectId, v)
+   *   attributes == {resource.k8s.cluster.name: v}
+   *     -> MetricItemAggMV1mByK8sCluster, k8sClusterEntityKey = keyForKubernetesCluster(projectId, v)
+   *   attributes == {resource.container.id: v}
+   *     -> MetricItemAggMV1mByContainer, containerEntityKey = keyForContainer(projectId, v)
+   *   attributes == {resource.service.name: v}
+   *     -> MetricItemAggMV1mByService, serviceEntityKey IN (<registry key set>)
+   *        The key set is resolved asynchronously in aggregateBy() from
+   *        the Postgres TelemetryEntity registry — service identity folds
+   *        service.namespace into the key at ingest, so one name can map
+   *        to several keys. No registry rows -> NO routing (raw path).
+   *   entityScope only, attributeKey in {host/k8s-cluster/container} and
+   *   entityKeys verified byte-equal to [keyFor<type>(projectId, attributeValue)]
+   *     -> same MV as the matching attribute shape. The scope's attribute
+   *        OR-fallback only adds rows ingested before the entity-key
+   *        columns existed — the same retention-bounded gap the original
+   *        per-host path accepted.
+   *   attributes(single recognized key) + entityScope agreeing on
+   *   attributeKey/attributeValue (the host/k8s Metrics-tab sparkline
+   *   shape; the scope is then redundant — A AND (B OR A) === A)
+   *     -> same MV as the attribute shape (service excluded).
    *
-   * Returns `null` if any condition fails so the caller falls
-   * through to the next fast path / base table. The result row
-   * shape (columns: aggregateColumn, timestampColumn) matches
-   * the base statement so downstream code needs no changes.
+   * Everything else falls through (minute MV, then raw): service +
+   * entityScope (a bare-key translation would drop namespaced variants),
+   * unverifiable or multi-key scopes, extra attribute filters, non-string
+   * values, k8s pod/node identities (composite cluster(+namespace)+uid —
+   * not derivable from a single attribute), and any other query column.
+   * When in doubt this method returns null; the raw path is always
+   * correct.
+   *
+   * The result row shape (columns: aggregateColumn, timestampColumn)
+   * matches the base statement so downstream code needs no changes.
    */
-  private tryBuildHostAggregateMVStatement(
+  private tryBuildEntityAggregateMVStatement(
     aggregateBy: AggregateBy<Metric>,
   ): { statement: Statement; columns: Array<string> } | null {
     const aggType: AggregationType = aggregateBy.aggregationType;
@@ -1863,61 +2184,12 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       return null;
     }
 
-    /*
-     * Inspect the attribute filter. This MV is only safe when
-     * the user is filtering by exactly one attribute,
-     * `resource.host.name`, with a bare-string value (the
-     * canonical Overview/Metrics-page pattern). Anything else —
-     * extra attribute filters, NotEqual, Search, etc. — has to
-     * fall back so the result stays correct.
-     */
     const queryRecord: Record<string, unknown> =
       (aggregateBy.query as unknown as Record<string, unknown>) || {};
-    const attrs: unknown = queryRecord["attributes"];
-    if (!attrs || typeof attrs !== "object") {
-      return null;
-    }
-    const attrEntries: Array<[string, unknown]> = Object.entries(
-      attrs as Record<string, unknown>,
-    );
-    if (attrEntries.length !== 1) {
-      return null;
-    }
-    const [attrKey, attrValue] = attrEntries[0]!;
-    if (attrKey !== "resource.host.name") {
-      return null;
-    }
-    if (attrValue === undefined || attrValue === null) {
-      return null;
-    }
 
     /*
-     * The MV only carries projectId/name/hostEntityKey/bucketTime. Any
-     * other query key (primaryEntityId, entityScope, entityKeys, ...)
-     * would compile to a WHERE over a column the MV does not have, so
-     * fall back to the raw table for those. Mirrors
-     * tryBuildMinuteAggregateMVStatement.
-     */
-    const mvQueryableColumns: ReadonlyArray<string> = [
-      "projectId",
-      "name",
-      "time", // stripped below; bucketTime range is added explicitly
-      "attributes", // rewritten below into the hostEntityKey predicate
-    ];
-    for (const queryKey of Object.keys(queryRecord)) {
-      if (!mvQueryableColumns.includes(queryKey)) {
-        return null;
-      }
-    }
-    const hostIdentifier: string =
-      typeof attrValue === "string" ? attrValue : "";
-    if (!hostIdentifier) {
-      return null;
-    }
-
-    /*
-     * The entity key folds the tenant in (sha256(projectId|host|...)), so
-     * the MV row can only be located when the query is project-scoped.
+     * The entity keys fold the tenant in (sha256(projectId|type|...)), so
+     * MV rows can only be located when the query is project-scoped.
      * Dashboard reads always are; anything else falls back safely.
      */
     const projectIdValue: unknown = queryRecord["projectId"];
@@ -1931,12 +2203,32 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       return null;
     }
 
+    const resolved: { route: EntityMVRoute; keys: Array<string> } | null =
+      this.resolveEntityMVRouteAndKeys(aggregateBy, queryRecord, projectId);
+    if (!resolved) {
+      return null;
+    }
+
     /*
-     * Same canonicalized key the ingest pipeline stamps into
-     * MetricItemV3.hostEntityKey (and the V2 MV groups by) — byte-equality
-     * is what makes this lookup correct, see Common/Utils/Telemetry/EntityKey.
+     * Each MV only carries projectId/name/<entity key>/bucketTime. Any
+     * other query key (primaryEntityId, entityKeys, ...) would compile to
+     * a WHERE over a column the MV does not have, so fall back to the raw
+     * table for those. Mirrors tryBuildMinuteAggregateMVStatement.
+     * `attributes` and `entityScope` are validated and rewritten into the
+     * entity-key predicate by resolveEntityMVRouteAndKeys above.
      */
-    const hostEntityKey: string = keyForHost(projectId, hostIdentifier);
+    const mvQueryableColumns: ReadonlyArray<string> = [
+      "projectId",
+      "name",
+      "time", // stripped below; bucketTime range is added explicitly
+      "attributes",
+      "entityScope",
+    ];
+    for (const queryKey of Object.keys(queryRecord)) {
+      if (!mvQueryableColumns.includes(queryKey)) {
+        return null;
+      }
+    }
 
     const interval: AggregationInterval = AggregateUtil.getAggregationInterval({
       startDate: aggregateBy.startTimestamp!,
@@ -1944,9 +2236,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       aggregationInterval: aggregateBy.aggregationInterval,
     });
     /*
-     * `Total` (whole-window, no bucketing) is not served by this
-     * time-bucketed per-host MV — fall back to the raw-table builder.
-     * Every other interval is >= the MV's 1-minute resolution and flows
+     * `Total` (whole-window, no bucketing) is not served by these
+     * time-bucketed per-entity MVs — fall back to the raw-table builder.
+     * Every other interval is >= the MVs' 1-minute resolution and flows
      * into the shared bucket expression below.
      */
     if (AggregateUtil.isTotalAggregation(interval)) {
@@ -1972,13 +2264,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     /*
-     * Strip both `time` (column doesn't exist on the MV; we
-     * inject an explicit bucketTime range below) and
-     * `attributes` (the attribute filter is now an explicit
-     * `hostEntityKey =` predicate against an MV column).
+     * Strip `time` (column doesn't exist on the MV; we inject an
+     * explicit bucketTime range below) plus `attributes`/`entityScope`
+     * (the entity filter is now an explicit predicate against the MV's
+     * entity-key column).
      */
     const filteredQuery: typeof aggregateBy.query =
-      this.stripAttributesAndTimeFromQuery(
+      this.stripEntityFilterAndTimeFromQuery(
         aggregateBy.query,
       ) as typeof aggregateBy.query;
     const nonTimeWhere: Statement =
@@ -1992,16 +2284,27 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(
       `SELECT ${mergedExpr} as value, ${AggregateUtil.buildBucketTimestampExpression(interval, "bucketTime")} as time`,
     );
-    statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1mByHostV2`);
+    statement.append(SQL` FROM ${databaseName}.`);
+    statement.append(resolved.route.tableName);
     statement.append(
       ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
     );
-    statement.append(
-      SQL` AND hostEntityKey = ${{
-        value: hostEntityKey,
-        type: TableColumnType.Text,
-      }}`,
-    );
+    statement.append(` AND ${resolved.route.keyColumn}`);
+    if (resolved.keys.length === 1) {
+      statement.append(
+        SQL` = ${{
+          value: resolved.keys[0]!,
+          type: TableColumnType.Text,
+        }}`,
+      );
+    } else {
+      statement.append(
+        SQL` IN ${{
+          value: resolved.keys,
+          type: TableColumnType.ArrayText,
+        }}`,
+      );
+    }
     statement.append(SQL` `).append(nonTimeWhere);
 
     statement.append(SQL` GROUP BY `).append(`time`);
@@ -2030,7 +2333,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       }),
     );
 
-    logger.debug(`${this.model.tableName} Host MV Aggregate Statement`, {
+    logger.debug(`${this.model.tableName} Entity MV Aggregate Statement`, {
       tableName: this.model.tableName,
     } as LogAttributes);
     logger.debug(statement, {
@@ -2046,13 +2349,139 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     };
   }
 
-  private stripAttributesAndTimeFromQuery(query: unknown): typeof query {
+  /**
+   * The single entity filter of a query, resolved to the MV route that
+   * serves it and the exact entity-key set to filter by — or null when
+   * no branch of the routing decision table (see
+   * tryBuildEntityAggregateMVStatement) matches. Never guesses: every
+   * shape it accepts is one whose MV predicate provably covers the raw
+   * predicate it replaces (modulo the accepted pre-entity-key-column
+   * rows).
+   */
+  private resolveEntityMVRouteAndKeys(
+    aggregateBy: AggregateBy<Metric>,
+    queryRecord: Record<string, unknown>,
+    projectId: string,
+  ): { route: EntityMVRoute; keys: Array<string> } | null {
+    const attrs: unknown = queryRecord["attributes"];
+    if (attrs !== undefined && attrs !== null && typeof attrs !== "object") {
+      return null;
+    }
+    const attrEntries: Array<[string, unknown]> =
+      attrs && typeof attrs === "object"
+        ? Object.entries(attrs as Record<string, unknown>)
+        : [];
+    if (attrEntries.length > 1) {
+      return null;
+    }
+
+    const scopeValue: unknown = queryRecord["entityScope"];
+    const scope: EntityScopeQueryValue | null =
+      scopeValue !== undefined &&
+      scopeValue !== null &&
+      typeof scopeValue === "object"
+        ? (scopeValue as EntityScopeQueryValue)
+        : null;
+    // A present-but-malformed entityScope is a filter we cannot honor.
+    if (scopeValue !== undefined && scopeValue !== null && !scope) {
+      return null;
+    }
+
+    if (attrEntries.length === 1) {
+      const [attrKey, attrValue] = attrEntries[0]!;
+      const route: EntityMVRoute | undefined = ENTITY_MV_ROUTES.find(
+        (candidate: EntityMVRoute) => {
+          return candidate.attributeKey === attrKey;
+        },
+      );
+      if (!route || typeof attrValue !== "string" || !attrValue) {
+        return null;
+      }
+
+      if (scope) {
+        /*
+         * The host/k8s Metrics tabs send the attribute filter AND a
+         * matching entityScope in the same query. When the scope is
+         * provably the SAME entity filter (same attributeKey/value), the
+         * conjunction reduces to the attribute equality — the scope's
+         * OR-fallback is subsumed — so route on the attribute alone. Any
+         * disagreement means a genuine second filter: fall back. Service
+         * is excluded outright: its scope keys cannot be verified against
+         * a computed key (namespace variants).
+         */
+        if (route.keyForValue === null) {
+          return null;
+        }
+        if (
+          scope.attributeKey !== attrKey ||
+          String(scope.attributeValue ?? "") !== attrValue
+        ) {
+          return null;
+        }
+      }
+
+      if (route.keyForValue === null) {
+        /*
+         * Service: the registry-resolved key set was handed over by
+         * aggregateBy(). Absent or empty (sync caller, registry miss,
+         * lookup failure) -> raw path.
+         */
+        const hintKeys: Array<string> | undefined =
+          this.serviceEntityKeysHintByAggregate.get(aggregateBy);
+        if (!hintKeys || hintKeys.length === 0) {
+          return null;
+        }
+        return { route, keys: hintKeys };
+      }
+
+      return { route, keys: [route.keyForValue(projectId, attrValue)] };
+    }
+
+    // No attribute filter: entityScope-only shape.
+    if (!scope) {
+      return null;
+    }
+    const route: EntityMVRoute | undefined = ENTITY_MV_ROUTES.find(
+      (candidate: EntityMVRoute) => {
+        return candidate.attributeKey === scope.attributeKey;
+      },
+    );
+    if (!route || route.keyForValue === null) {
+      return null;
+    }
+    const scopeAttributeValue: unknown = scope.attributeValue;
+    if (typeof scopeAttributeValue !== "string" || !scopeAttributeValue) {
+      return null;
+    }
+
+    /*
+     * `hasAny(entityKeys, [...])` is only translatable to the scalar
+     * entity-key column when every listed key IS the key this scope's
+     * attribute value derives to — recompute it server-side and require
+     * byte equality (a foreign or extra key would make the raw predicate
+     * match rows the MV predicate cannot).
+     */
+    const expectedKey: string = route.keyForValue(
+      projectId,
+      scopeAttributeValue,
+    );
+    const scopeKeys: Array<string> = Array.isArray(scope.entityKeys)
+      ? scope.entityKeys
+      : [];
+    if (scopeKeys.length !== 1 || scopeKeys[0] !== expectedKey) {
+      return null;
+    }
+
+    return { route, keys: [expectedKey] };
+  }
+
+  private stripEntityFilterAndTimeFromQuery(query: unknown): typeof query {
     if (!query || typeof query !== "object") {
       return query;
     }
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(query as Record<string, unknown>)) {
-      if (k === "time" || k === "attributes") {
+      if (k === "time" || k === "attributes" || k === "entityScope") {
         continue;
       }
       out[k] = v;

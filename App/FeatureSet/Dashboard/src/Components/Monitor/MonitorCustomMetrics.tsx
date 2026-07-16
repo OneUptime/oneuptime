@@ -1,12 +1,11 @@
 import React, {
   FunctionComponent,
   ReactElement,
-  useCallback,
   useEffect,
   useState,
 } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import MetricView from "../Metrics/MetricView";
+import EmbeddedMetricCard from "../Metrics/EmbeddedMetricCard";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -14,14 +13,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import RangeStartAndEndDateTime, {
-  RangeStartAndEndDateTimeUtil,
-} from "Common/Types/Time/RangeStartAndEndDateTime";
-import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
-import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import IconProp from "Common/Types/Icon/IconProp";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -102,10 +94,6 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
-  });
-
   const getQueryConfigs: () => Array<MetricQueryConfigData> =
     (): Array<MetricQueryConfigData> => {
       return customMetricNames.map(
@@ -139,39 +127,6 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
       );
     };
 
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate({
-      range: TimeRange.PAST_ONE_HOUR,
-    }),
-    queryConfigs: [],
-    formulaConfigs: [],
-  });
-
-  useEffect(() => {
-    if (customMetricNames.length > 0) {
-      setMetricViewData({
-        startAndEndDate:
-          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange),
-        queryConfigs: getQueryConfigs(),
-        formulaConfigs: [],
-      });
-    }
-  }, [customMetricNames]);
-
-  const handleTimeRangeChange: (
-    newTimeRange: RangeStartAndEndDateTime,
-  ) => void = useCallback((newTimeRange: RangeStartAndEndDateTime): void => {
-    setTimeRange(newTimeRange);
-    const dateRange: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
-    setMetricViewData((prev: MetricViewData) => {
-      return {
-        ...prev,
-        startAndEndDate: dateRange,
-      };
-    });
-  }, []);
-
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -192,30 +147,11 @@ const MonitorCustomMetrics: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <Card
+    <EmbeddedMetricCard
       title="Custom Metrics"
       description="Custom metrics captured from your monitor script using oneuptime.captureMetric()."
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={timeRange}
-          onChange={handleTimeRangeChange}
-        />
-      }
-    >
-      <MetricView
-        data={metricViewData}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        onChange={(data: MetricViewData) => {
-          setMetricViewData({
-            ...data,
-            queryConfigs: getQueryConfigs(),
-            formulaConfigs: [],
-          });
-        }}
-      />
-    </Card>
+      queryConfigs={getQueryConfigs()}
+    />
   );
 };
 

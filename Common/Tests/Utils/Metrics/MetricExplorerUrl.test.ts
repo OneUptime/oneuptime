@@ -14,6 +14,7 @@ import MetricQueryConfigData, {
 } from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import TimeRange from "../../../Types/Time/TimeRange";
 
 type BuildFullQueryConfigFunction = () => MetricQueryConfigData;
 
@@ -38,6 +39,7 @@ const buildFullQueryConfig: BuildFullQueryConfigFunction =
           aggegationType: MetricsAggregationType.P95,
         },
         groupByAttributeKeys: ["host.name", "service.name"],
+        topN: 25,
       },
       getSeries: (_data: AggregatedModel): ChartSeries => {
         return { title: "should never serialize" };
@@ -122,6 +124,7 @@ describe("MetricExplorerUrl", () => {
         criticalThreshold: 90.5,
         transformAsRate: true,
         overlayWithPreviousQuery: true,
+        topN: 25,
       });
     });
 
@@ -263,6 +266,48 @@ describe("MetricExplorerUrl", () => {
       expect(Object.keys(params)).toHaveLength(0);
     });
 
+    test("emits the range param only for a non-default relative token", () => {
+      const startTime: Date = OneUptimeDate.fromString(
+        "2026-07-16T10:00:00.000Z",
+      );
+      const endTime: Date = OneUptimeDate.fromString(
+        "2026-07-16T11:00:00.000Z",
+      );
+
+      const buildParamsForToken: (
+        rangeToken: string | undefined,
+      ) => Dictionary<string> = (
+        rangeToken: string | undefined,
+      ): Dictionary<string> => {
+        return MetricExplorerUrl.buildQueryParamsFromMetricViewData({
+          ...buildViewData({
+            queryConfigs: [buildFullQueryConfig()],
+            startAndEndDate: new InBetween(startTime, endTime),
+          }),
+          rangeToken,
+        });
+      };
+
+      // Non-default token → range param plus absolute back-compat window.
+      expect(buildParamsForToken(TimeRange.PAST_ONE_DAY)).toMatchObject({
+        [MetricExplorerUrlParam.Range]: TimeRange.PAST_ONE_DAY,
+        [MetricExplorerUrlParam.StartTime]: OneUptimeDate.toString(startTime),
+        [MetricExplorerUrlParam.EndTime]: OneUptimeDate.toString(endTime),
+      });
+
+      // Default Past 1 Hour token, custom, no token, garbage → omitted.
+      for (const omittedToken of [
+        TimeRange.PAST_ONE_HOUR,
+        TimeRange.CUSTOM,
+        undefined,
+        "Not A Range",
+      ]) {
+        expect(
+          buildParamsForToken(omittedToken)[MetricExplorerUrlParam.Range],
+        ).toBeUndefined();
+      }
+    });
+
     test("keeps a query whose only content is a display customization", () => {
       const colorOnlyConfig: MetricQueryConfigData = {
         metricQueryData: {
@@ -315,6 +360,7 @@ describe("MetricExplorerUrl", () => {
         { ...base, criticalThreshold: 20 },
         { ...base, transformAsRate: true },
         { ...base, overlayWithPreviousQuery: true },
+        { ...base, topN: 25 },
       ];
 
       for (const variant of meaningfulVariants) {
@@ -390,6 +436,7 @@ describe("MetricExplorerUrl", () => {
           criticalThreshold: 90,
           transformAsRate: "yes",
           overlayWithPreviousQuery: 1,
+          topN: "5",
           unknownField: "ignored",
         },
       ]);

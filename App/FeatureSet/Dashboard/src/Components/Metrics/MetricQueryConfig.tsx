@@ -14,6 +14,7 @@ import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Dictionary from "Common/Types/Dictionary";
@@ -51,6 +52,12 @@ export interface ComponentProps {
     | ((key: string, searchText: string) => void)
     | undefined;
   loadingAttributeValueKeys?: Array<string> | undefined;
+  /*
+   * Whether this query may overlay onto the previous query's chart panel
+   * (i.e. it is not the first query in the view). The overlay toggle in
+   * Display Settings is only rendered when true.
+   */
+  canOverlayWithPreviousQuery?: boolean | undefined;
 }
 
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
@@ -429,6 +436,17 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   }
                 }}
                 metricTypes={props.metricTypes}
+                transformAsRate={props.data?.transformAsRate}
+                onEnableRateTransform={() => {
+                  props.onBlur?.();
+                  props.onFocus?.();
+                  if (props.onChange) {
+                    props.onChange({
+                      ...props.data,
+                      transformAsRate: true,
+                    });
+                  }
+                }}
                 telemetryAttributes={props.telemetryAttributes}
                 telemetryAttributeValueSuggestions={
                   props.telemetryAttributeValueSuggestions
@@ -467,6 +485,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 {(props.data?.metricAliasData?.title ||
                   props.data?.color ||
                   hasActiveGroupColorPins ||
+                  props.data?.transformAsRate ||
+                  props.data?.overlayWithPreviousQuery ||
                   props.data?.warningThreshold !== undefined ||
                   props.data?.criticalThreshold !== undefined) && (
                   <span className="inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
@@ -536,6 +556,44 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                               Object.keys(colorsByGroup).length > 0
                                 ? colorsByGroup
                                 : undefined,
+                          });
+                        }
+                      }}
+                    />
+                  )}
+
+                  {/* Per-second rate transform (for cumulative counters) */}
+                  <Toggle
+                    title="Convert to per-second rate"
+                    description="Plot the per-second rate of change instead of the raw value. Recommended for cumulative counters (e.g. system.disk.io)."
+                    value={props.data?.transformAsRate || false}
+                    onChange={(checked: boolean) => {
+                      props.onBlur?.();
+                      props.onFocus?.();
+                      if (props.onChange) {
+                        props.onChange({
+                          ...props.data,
+                          transformAsRate: checked ? true : undefined,
+                        });
+                      }
+                    }}
+                  />
+
+                  {/* Overlay onto the previous query's chart panel */}
+                  {props.canOverlayWithPreviousQuery && (
+                    <Toggle
+                      title="Overlay with previous query"
+                      description="Draw this query on the previous query's chart instead of its own, sharing the same axes."
+                      value={props.data?.overlayWithPreviousQuery || false}
+                      onChange={(checked: boolean) => {
+                        props.onBlur?.();
+                        props.onFocus?.();
+                        if (props.onChange) {
+                          props.onChange({
+                            ...props.data,
+                            overlayWithPreviousQuery: checked
+                              ? true
+                              : undefined,
                           });
                         }
                       }}

@@ -13,6 +13,16 @@ export interface ChartSeries {
 }
 
 export default interface MetricQueryConfigData {
+  /*
+   * Stable identity for this query, independent of its position in the
+   * queryConfigs array. Chart layers key per-chart UI state (hidden
+   * series, search, Top-N, sort) on this id so removing/reordering
+   * queries doesn't transfer one chart's state to another. Assigned at
+   * query-creation sites (ObjectID-based); older persisted configs won't
+   * have it, so consumers must tolerate its absence. Intentionally NOT
+   * part of the explorer URL serialization.
+   */
+  id?: string | undefined;
   metricAliasData?: MetricAliasData | undefined;
   metricQueryData: MetricQueryData;
   getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;

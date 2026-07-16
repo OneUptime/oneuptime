@@ -16,4 +16,12 @@ export default interface AggregatedResult {
    * the window was fully served.
    */
   truncated?: boolean | undefined;
+  /**
+   * Human-readable reason this result carries no data — e.g. a metric
+   * formula that failed structural validation (bad syntax, unknown
+   * variable, disjoint groups). Only set by client-side evaluation
+   * layers; never returned by the server. Chart layers should render it
+   * in place of the empty chart instead of showing a silent "no data".
+   */
+  errorMessage?: string | undefined;
 }

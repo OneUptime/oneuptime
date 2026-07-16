@@ -7,6 +7,7 @@ import MetricQueryConfigData, {
 } from "../../Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../Types/Metrics/MetricsAggregationType";
+import TimeRange from "../../Types/Time/TimeRange";
 
 /*
  * Single source of truth for the metric explorer's URL schema — the
@@ -22,6 +23,13 @@ export enum MetricExplorerUrlParam {
   MetricFormulas = "metricFormulas",
   StartTime = "startTime",
   EndTime = "endTime",
+  /*
+   * Relative-time token (a TimeRange enum value, e.g. "Past 1 Day").
+   * Omitted for the default Past 1 Hour and for Custom/pinned absolute
+   * windows — startTime/endTime always carry the absolute window for
+   * back-compat, so older links keep working.
+   */
+  Range = "range",
 }
 
 export interface SerializedMetricQueryAlias {
@@ -52,6 +60,7 @@ export interface SerializedMetricQuery {
   criticalThreshold?: number | undefined;
   transformAsRate?: boolean | undefined;
   overlayWithPreviousQuery?: boolean | undefined;
+  topN?: number | undefined;
 }
 
 export interface SerializedMetricFormula {
@@ -107,7 +116,41 @@ export default class MetricExplorerUrl {
         OneUptimeDate.toString(endTimeValue);
     }
 
+    /*
+     * Relative token. Past 1 Hour is the explorer's default and stays
+     * implicit (mirrors the metrics list page's `range` convention);
+     * Custom windows are represented by the absolute params alone.
+     */
+    const rangeToken: string | undefined = MetricExplorerUrl.getValidRangeToken(
+      data.rangeToken,
+    );
+
+    if (rangeToken && rangeToken !== TimeRange.PAST_ONE_HOUR) {
+      params[MetricExplorerUrlParam.Range] = rangeToken;
+    }
+
     return params;
+  }
+
+  /*
+   * Returns the value as a relative TimeRange token when it is a known
+   * enum member other than Custom (Custom windows are carried by the
+   * absolute startTime/endTime params instead); undefined otherwise.
+   */
+  public static getValidRangeToken(value: unknown): string | undefined {
+    if (typeof value !== "string") {
+      return undefined;
+    }
+
+    const knownRanges: Array<string> = Object.values(
+      TimeRange,
+    ) as Array<string>;
+
+    if (!knownRanges.includes(value) || value === TimeRange.CUSTOM) {
+      return undefined;
+    }
+
+    return value;
   }
 
   public static buildSerializedMetricQuery(
@@ -156,6 +199,11 @@ export default class MetricExplorerUrl {
     const criticalThreshold: number | undefined =
       MetricExplorerUrl.getFiniteNumberFromValue(queryConfig.criticalThreshold);
 
+    const topN: number | undefined =
+      MetricExplorerUrl.getPositiveIntegerFromValue(
+        queryConfig.metricQueryData.topN,
+      );
+
     return {
       metricName,
       attributes,
@@ -173,6 +221,7 @@ export default class MetricExplorerUrl {
       ...(queryConfig.overlayWithPreviousQuery === true
         ? { overlayWithPreviousQuery: true }
         : {}),
+      ...(topN !== undefined ? { topN } : {}),
     };
   }
 
@@ -270,6 +319,9 @@ export default class MetricExplorerUrl {
           entryRecord["criticalThreshold"],
         );
 
+      const topN: number | undefined =
+        MetricExplorerUrl.getPositiveIntegerFromValue(entryRecord["topN"]);
+
       sanitizedQueries.push({
         metricName,
         attributes,
@@ -287,6 +339,7 @@ export default class MetricExplorerUrl {
         ...(entryRecord["overlayWithPreviousQuery"] === true
           ? { overlayWithPreviousQuery: true }
           : {}),
+        ...(topN !== undefined ? { topN } : {}),
       });
     }
 
@@ -402,6 +455,10 @@ export default class MetricExplorerUrl {
     }
 
     if (query.overlayWithPreviousQuery === true) {
+      return true;
+    }
+
+    if (query.topN !== undefined) {
       return true;
     }
 
@@ -583,6 +640,16 @@ export default class MetricExplorerUrl {
 
   private static getFiniteNumberFromValue(value: unknown): number | undefined {
     if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+
+    return undefined;
+  }
+
+  private static getPositiveIntegerFromValue(
+    value: unknown,
+  ): number | undefined {
+    if (typeof value === "number" && Number.isInteger(value) && value > 0) {
       return value;
     }
 

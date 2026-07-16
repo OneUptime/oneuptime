@@ -10,6 +10,14 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  keyForHost,
+  keyForKubernetesCluster,
+  keyForService,
+} from "../../../Utils/Telemetry/EntityKey";
+import { keyForContainer } from "../../../Server/Utils/Telemetry/TelemetryEntity";
+import TelemetryEntityService from "../../../Server/Services/TelemetryEntityService";
+import TelemetryEntity from "../../../Models/DatabaseModels/TelemetryEntity";
 
 describe("MetricService aggregate statement generation", () => {
   const projectId: ObjectID = ObjectID.generate();
@@ -812,6 +820,662 @@ describe("MetricService aggregate statement generation", () => {
 
       expect(result.totalGroups).toBe(3);
       expect(result.truncated).toBe(false);
+    });
+  });
+
+  /*
+   * Entity-scoped MV routing (tryBuildEntityAggregateMVStatement): each
+   * branch of the routing decision table either routes to the matching
+   * per-entity rollup with a key predicate at least as selective as (and
+   * no more lossy than) the raw predicate it replaces, or bails to the
+   * raw path. When in doubt the builder must NOT route.
+   */
+  describe("entity-scoped MV routing", () => {
+    type BuildEntityQueryFunction = (
+      entityFilter: Record<string, unknown>,
+      overrides?: Partial<AggregateBy<Metric>>,
+    ) => AggregateBy<Metric>;
+
+    const buildEntityAggregate: BuildEntityQueryFunction = (
+      entityFilter: Record<string, unknown>,
+      overrides?: Partial<AggregateBy<Metric>>,
+    ): AggregateBy<Metric> => {
+      return buildAggregateBy({
+        query: {
+          projectId: projectId,
+          name: "http.client.request.duration",
+          time: new InBetween(startDate, endDate),
+          ...entityFilter,
+        } as unknown as AggregateBy<Metric>["query"],
+        ...overrides,
+      });
+    };
+
+    describe("attribute-equality routes", () => {
+      it("routes a k8s.cluster.name filter to the per-cluster MV with the derived key", () => {
+        const result: { statement: Statement; columns: Array<string> } =
+          service.toAggregateStatement(
+            buildEntityAggregate({
+              attributes: { "resource.k8s.cluster.name": "Prod-EU-1" },
+            }),
+          );
+        const query: string = result.statement.query;
+
+        expect(query).toContain("MetricItemAggMV1mByK8sCluster");
+        expect(query).toMatch(/ AND k8sClusterEntityKey = \{p\d+:String\}/);
+        // Avg merges the stored sum/count states.
+        expect(query).toContain(
+          "sumMerge(valueSumState) / countMerge(valueCountState)",
+        );
+        // The key reaches SQL only as a bound parameter, byte-identical
+        // to what ingest stamps (canonicalized inside keyForKubernetesCluster).
+        expect(Object.values(result.statement.query_params)).toContain(
+          keyForKubernetesCluster(projectId.toString(), "Prod-EU-1"),
+        );
+      });
+
+      it("routes a container.id filter to the per-container MV with the derived key", () => {
+        const result: { statement: Statement; columns: Array<string> } =
+          service.toAggregateStatement(
+            buildEntityAggregate({
+              attributes: { "resource.container.id": "abc123def456" },
+            }),
+          );
+        const query: string = result.statement.query;
+
+        expect(query).toContain("MetricItemAggMV1mByContainer");
+        expect(query).toMatch(/ AND containerEntityKey = \{p\d+:String\}/);
+        expect(Object.values(result.statement.query_params)).toContain(
+          keyForContainer(projectId.toString(), "abc123def456"),
+        );
+      });
+
+      it("keeps routing a resource.host.name filter to the per-host MV (regression)", () => {
+        const result: { statement: Statement; columns: Array<string> } =
+          service.toAggregateStatement(
+            buildEntityAggregate({
+              attributes: { "resource.host.name": "web-01" },
+            }),
+          );
+        const query: string = result.statement.query;
+
+        expect(query).toContain("MetricItemAggMV1mByHostV2");
+        expect(query).toMatch(/ AND hostEntityKey = \{p\d+:String\}/);
+        expect(Object.values(result.statement.query_params)).toContain(
+          keyForHost(projectId.toString(), "web-01"),
+        );
+      });
+
+      it("merges the matching state per aggregation type", () => {
+        const cases: Array<[AggregationType, string]> = [
+          [AggregationType.Sum, "sumMerge(valueSumState) as value"],
+          [AggregationType.Count, "countMerge(valueCountState) as value"],
+          [AggregationType.Min, "minMerge(valueMinState) as value"],
+          [AggregationType.Max, "maxMerge(valueMaxState) as value"],
+        ];
+        for (const [aggregationType, expected] of cases) {
+          const query: string = getQuery(
+            buildEntityAggregate(
+              {
+                attributes: { "resource.k8s.cluster.name": "prod-eu-1" },
+              },
+              { aggregationType },
+            ),
+          );
+          expect(query).toContain("MetricItemAggMV1mByK8sCluster");
+          expect(query).toContain(expected);
+        }
+      });
+
+      it("caps execution time on the entity MV paths", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: { "resource.k8s.cluster.name": "prod-eu-1" },
+          }),
+        );
+        expect(query).toContain("max_execution_time = 45");
+        expect(query).toContain("timeout_overflow_mode = 'break'");
+      });
+    });
+
+    describe("service route (registry key set)", () => {
+      const setServiceKeysHint: (
+        aggregateBy: AggregateBy<Metric>,
+        keys: Array<string>,
+      ) => void = (
+        aggregateBy: AggregateBy<Metric>,
+        keys: Array<string>,
+      ): void => {
+        (
+          service as unknown as {
+            serviceEntityKeysHintByAggregate: WeakMap<
+              AggregateBy<Metric>,
+              Array<string>
+            >;
+          }
+        ).serviceEntityKeysHintByAggregate.set(aggregateBy, keys);
+      };
+
+      it("falls back to raw without a registry hint (sync caller / registry miss)", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: { "resource.service.name": "checkout" },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByService");
+        // Raw scalar path: distribution-aware expressions over the base table.
+        expect(query).toContain("sum(multiIf(isNotNull(count)");
+      });
+
+      it("routes with serviceEntityKey IN (<keys>) when the registry resolved several variants", () => {
+        const keys: Array<string> = [
+          "1111222233334444",
+          keyForService(projectId.toString(), "checkout"),
+        ].sort();
+        const aggregateBy: AggregateBy<Metric> = buildEntityAggregate({
+          attributes: { "resource.service.name": "checkout" },
+        });
+        setServiceKeysHint(aggregateBy, keys);
+
+        const result: { statement: Statement; columns: Array<string> } =
+          service.toAggregateStatement(aggregateBy);
+        const query: string = result.statement.query;
+
+        expect(query).toContain("MetricItemAggMV1mByService");
+        expect(query).toMatch(
+          / AND serviceEntityKey IN \{p\d+:Array\(String\)\}/,
+        );
+        expect(Object.values(result.statement.query_params)).toContainEqual(
+          keys,
+        );
+      });
+
+      it("routes a single-key registry hit as a plain equality", () => {
+        const keys: Array<string> = [
+          keyForService(projectId.toString(), "checkout"),
+        ];
+        const aggregateBy: AggregateBy<Metric> = buildEntityAggregate({
+          attributes: { "resource.service.name": "checkout" },
+        });
+        setServiceKeysHint(aggregateBy, keys);
+
+        const query: string = getQuery(aggregateBy);
+
+        expect(query).toContain("MetricItemAggMV1mByService");
+        expect(query).toMatch(/ AND serviceEntityKey = \{p\d+:String\}/);
+      });
+
+      it("never routes an empty hint (belt-and-braces for the raw fallback)", () => {
+        const aggregateBy: AggregateBy<Metric> = buildEntityAggregate({
+          attributes: { "resource.service.name": "checkout" },
+        });
+        setServiceKeysHint(aggregateBy, []);
+
+        expect(getQuery(aggregateBy)).not.toContain(
+          "MetricItemAggMV1mByService",
+        );
+      });
+    });
+
+    describe("entityScope routes", () => {
+      it("routes a verified single-key host entityScope (Host Metrics tab shape)", () => {
+        const hostKey: string = keyForHost(projectId.toString(), "web-01");
+        const result: { statement: Statement; columns: Array<string> } =
+          service.toAggregateStatement(
+            buildEntityAggregate({
+              entityScope: {
+                entityKeys: [hostKey],
+                attributeKey: "resource.host.name",
+                attributeValue: "web-01",
+              },
+            }),
+          );
+        const query: string = result.statement.query;
+
+        expect(query).toContain("MetricItemAggMV1mByHostV2");
+        expect(query).toMatch(/ AND hostEntityKey = \{p\d+:String\}/);
+        expect(Object.values(result.statement.query_params)).toContain(hostKey);
+      });
+
+      it("routes a verified single-key k8s cluster entityScope (Kubernetes Metrics tab shape)", () => {
+        const clusterKey: string = keyForKubernetesCluster(
+          projectId.toString(),
+          "prod-eu-1",
+        );
+        const query: string = getQuery(
+          buildEntityAggregate({
+            entityScope: {
+              entityKeys: [clusterKey],
+              attributeKey: "resource.k8s.cluster.name",
+              attributeValue: "prod-eu-1",
+            },
+          }),
+        );
+
+        expect(query).toContain("MetricItemAggMV1mByK8sCluster");
+        expect(query).toMatch(/ AND k8sClusterEntityKey = \{p\d+:String\}/);
+      });
+
+      it("routes a verified single-key container entityScope", () => {
+        const containerKey: string = keyForContainer(
+          projectId.toString(),
+          "abc123def456",
+        );
+        const query: string = getQuery(
+          buildEntityAggregate({
+            entityScope: {
+              entityKeys: [containerKey],
+              attributeKey: "resource.container.id",
+              attributeValue: "abc123def456",
+            },
+          }),
+        );
+
+        expect(query).toContain("MetricItemAggMV1mByContainer");
+        expect(query).toMatch(/ AND containerEntityKey = \{p\d+:String\}/);
+      });
+
+      it("bails when the scope key does not byte-match the derived key", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            entityScope: {
+              entityKeys: ["ffffffffffffffff"],
+              attributeKey: "resource.host.name",
+              attributeValue: "web-01",
+            },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByHostV2");
+      });
+
+      it("bails on a multi-key scope (hasAny over foreign keys is not translatable)", () => {
+        const hostKey: string = keyForHost(projectId.toString(), "web-01");
+        const query: string = getQuery(
+          buildEntityAggregate({
+            entityScope: {
+              entityKeys: [hostKey, "ffffffffffffffff"],
+              attributeKey: "resource.host.name",
+              attributeValue: "web-01",
+            },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByHostV2");
+      });
+
+      it("bails on a service entityScope (namespace variants make the bare key lossy)", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            entityScope: {
+              entityKeys: [keyForService(projectId.toString(), "checkout")],
+              attributeKey: "resource.service.name",
+              attributeValue: "checkout",
+            },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByService");
+      });
+
+      it("bails on an unknown scope attributeKey (e.g. k8s pod — composite identity)", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            entityScope: {
+              entityKeys: ["1234123412341234"],
+              attributeKey: "resource.k8s.pod.name",
+              attributeValue: "api-7f9c",
+            },
+          }),
+        );
+
+        expect(query).not.toMatch(/MetricItemAggMV1mBy/);
+      });
+    });
+
+    describe("attribute + entityScope combined (sparkline shape)", () => {
+      it("routes when the scope is redundant with the attribute filter", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: { "resource.host.name": "web-01" },
+            entityScope: {
+              entityKeys: [keyForHost(projectId.toString(), "web-01")],
+              attributeKey: "resource.host.name",
+              attributeValue: "web-01",
+            },
+          }),
+        );
+
+        expect(query).toContain("MetricItemAggMV1mByHostV2");
+        expect(query).toMatch(/ AND hostEntityKey = \{p\d+:String\}/);
+      });
+
+      it("bails when the scope disagrees on the attribute value (two genuine filters)", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: { "resource.host.name": "web-01" },
+            entityScope: {
+              entityKeys: [keyForHost(projectId.toString(), "web-02")],
+              attributeKey: "resource.host.name",
+              attributeValue: "web-02",
+            },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByHostV2");
+      });
+
+      it("bails when the scope filters a different entity type than the attribute", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: { "resource.host.name": "web-01" },
+            entityScope: {
+              entityKeys: [
+                keyForKubernetesCluster(projectId.toString(), "prod-eu-1"),
+              ],
+              attributeKey: "resource.k8s.cluster.name",
+              attributeValue: "prod-eu-1",
+            },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByHostV2");
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+      });
+
+      it("bails on service + entityScope even when they agree", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: { "resource.service.name": "checkout" },
+            entityScope: {
+              entityKeys: [keyForService(projectId.toString(), "checkout")],
+              attributeKey: "resource.service.name",
+              attributeValue: "checkout",
+            },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByService");
+      });
+    });
+
+    describe("bail conditions shared by every entity route", () => {
+      const clusterFilter: Record<string, unknown> = {
+        attributes: { "resource.k8s.cluster.name": "prod-eu-1" },
+      };
+
+      it("bails on group-by attribute keys (legend series need the raw table)", () => {
+        const query: string = getQuery(
+          buildEntityAggregate(clusterFilter, {
+            groupByAttributeKeys: ["k8s.node.name"],
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+        expect(query).toContain("__attr_grp_0");
+      });
+
+      it("bails on a model-column group-by", () => {
+        const query: string = getQuery(
+          buildEntityAggregate(clusterFilter, {
+            groupBy: {
+              metricPointType: true,
+            } as AggregateBy<Metric>["groupBy"],
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+      });
+
+      it("bails on percentile aggregations", () => {
+        const query: string = getQuery(
+          buildEntityAggregate(clusterFilter, {
+            aggregationType: AggregationType.P90,
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+        expect(query).toContain("quantileExactWeighted(0.9)");
+      });
+
+      it("bails on distribution metrics (states collapse the histogram sum)", () => {
+        const aggregateBy: AggregateBy<Metric> =
+          buildEntityAggregate(clusterFilter);
+        (
+          service as unknown as {
+            pointTypeHintByAggregate: WeakMap<
+              AggregateBy<Metric>,
+              string | null
+            >;
+          }
+        ).pointTypeHintByAggregate.set(aggregateBy, "Histogram");
+
+        const query: string = getQuery(aggregateBy);
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+        expect(query).toContain("sum(multiIf(isNotNull(count)");
+      });
+
+      it("bails when a second attribute filter is present", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: {
+              "resource.k8s.cluster.name": "prod-eu-1",
+              "k8s.namespace.name": "default",
+            },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+      });
+
+      it("bails when the query carries a column the MV does not have", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: { "resource.k8s.cluster.name": "prod-eu-1" },
+            metricPointType: "Sum",
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+      });
+
+      it("bails on Total (whole-window) aggregations", () => {
+        const query: string = getQuery(
+          buildEntityAggregate(clusterFilter, {
+            aggregationInterval: AggregationInterval.Total,
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+        expect(query).toContain("min(time) as time");
+      });
+
+      it("bails without a projectId (entity keys are tenant-scoped)", () => {
+        const query: string = getQuery(
+          buildAggregateBy({
+            query: {
+              name: "http.client.request.duration",
+              time: new InBetween(startDate, endDate),
+              attributes: { "resource.k8s.cluster.name": "prod-eu-1" },
+            } as unknown as AggregateBy<Metric>["query"],
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+      });
+
+      it("bails on a non-string attribute value", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: { "resource.k8s.cluster.name": 42 },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+      });
+
+      it("bails on a non-resource attribute spelling (datapoint attrs do not stamp entity keys)", () => {
+        const query: string = getQuery(
+          buildEntityAggregate({
+            attributes: { "k8s.cluster.name": "prod-eu-1" },
+          }),
+        );
+
+        expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
+      });
+    });
+
+    /*
+     * The async half of the service route: aggregateBy() resolves the
+     * key set from the TelemetryEntity registry (short-TTL cached) and
+     * hands it to the synchronous builder via the WeakMap hint.
+     */
+    describe("service registry lookup plumbing (aggregateBy)", () => {
+      type CapturedStatements = Array<{
+        query: string;
+        params: Record<string, unknown>;
+      }>;
+
+      const captureExecuteQuery: () => CapturedStatements = () => {
+        const captured: CapturedStatements = [];
+        (
+          service as unknown as {
+            executeQuery: (statement: Statement) => Promise<unknown>;
+          }
+        ).executeQuery = async (statement: Statement): Promise<unknown> => {
+          captured.push({
+            query: statement.query,
+            params: statement.query_params,
+          });
+          return {
+            json: async (): Promise<{
+              data: Array<Record<string, unknown>>;
+            }> => {
+              return { data: [] };
+            },
+          };
+        };
+        return captured;
+      };
+
+      const buildServiceAggregate: () => AggregateBy<Metric> =
+        (): AggregateBy<Metric> => {
+          return buildAggregateBy({
+            query: {
+              projectId: projectId,
+              name: "http.client.request.duration",
+              time: new InBetween(startDate, endDate),
+              attributes: { "resource.service.name": "Checkout" },
+            } as unknown as AggregateBy<Metric>["query"],
+          });
+        };
+
+      const originalFindBy: typeof TelemetryEntityService.findBy =
+        TelemetryEntityService.findBy;
+
+      afterEach(() => {
+        TelemetryEntityService.findBy = originalFindBy;
+      });
+
+      it("routes with the registry keys unioned with the bare-name key", async () => {
+        const namespacedKey: string = keyForService(
+          projectId.toString(),
+          "checkout",
+          "prod",
+        );
+        TelemetryEntityService.findBy = jest.fn(
+          async (): Promise<Array<TelemetryEntity>> => {
+            return [
+              {
+                entityKey: namespacedKey,
+                identifyingAttributes: {
+                  "service.name": "checkout",
+                  "service.namespace": "prod",
+                },
+              } as unknown as TelemetryEntity,
+            ];
+          },
+        ) as typeof TelemetryEntityService.findBy;
+
+        const captured: CapturedStatements = captureExecuteQuery();
+        await service.aggregateBy(buildServiceAggregate());
+
+        // Statement 1 is the point-type lookup; statement 2 the aggregate.
+        const aggregateStatement: { query: string } | undefined =
+          captured[captured.length - 1];
+        expect(aggregateStatement!.query).toContain(
+          "MetricItemAggMV1mByService",
+        );
+        const expectedKeys: Array<string> = [
+          namespacedKey,
+          keyForService(projectId.toString(), "Checkout"),
+        ].sort();
+        expect(
+          Object.values(captured[captured.length - 1]!.params),
+        ).toContainEqual(expectedKeys);
+      });
+
+      it("falls back to raw on a registry miss", async () => {
+        TelemetryEntityService.findBy = jest.fn(
+          async (): Promise<Array<TelemetryEntity>> => {
+            return [];
+          },
+        ) as typeof TelemetryEntityService.findBy;
+
+        const captured: CapturedStatements = captureExecuteQuery();
+        await service.aggregateBy(buildServiceAggregate());
+
+        const aggregateStatement: { query: string } | undefined =
+          captured[captured.length - 1];
+        expect(aggregateStatement!.query).not.toContain(
+          "MetricItemAggMV1mByService",
+        );
+      });
+
+      it("ignores registry rows whose identity is not this service.name (displayName collision guard)", async () => {
+        TelemetryEntityService.findBy = jest.fn(
+          async (): Promise<Array<TelemetryEntity>> => {
+            return [
+              {
+                entityKey: "1234123412341234",
+                identifyingAttributes: { "foo.name": "checkout" },
+              } as unknown as TelemetryEntity,
+            ];
+          },
+        ) as typeof TelemetryEntityService.findBy;
+
+        const captured: CapturedStatements = captureExecuteQuery();
+        await service.aggregateBy(buildServiceAggregate());
+
+        const aggregateStatement: { query: string } | undefined =
+          captured[captured.length - 1];
+        expect(aggregateStatement!.query).not.toContain(
+          "MetricItemAggMV1mByService",
+        );
+      });
+
+      it("caches the key set per (project, canonical name)", async () => {
+        const findBySpy: jest.Mock = jest.fn(
+          async (): Promise<Array<TelemetryEntity>> => {
+            return [
+              {
+                entityKey: keyForService(projectId.toString(), "checkout"),
+                identifyingAttributes: { "service.name": "checkout" },
+              } as unknown as TelemetryEntity,
+            ];
+          },
+        );
+        TelemetryEntityService.findBy =
+          findBySpy as unknown as typeof TelemetryEntityService.findBy;
+
+        captureExecuteQuery();
+        await service.aggregateBy(buildServiceAggregate());
+        await service.aggregateBy(buildServiceAggregate());
+
+        expect(findBySpy).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });
