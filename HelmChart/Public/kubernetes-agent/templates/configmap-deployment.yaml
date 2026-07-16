@@ -376,6 +376,19 @@ data:
       {{- include "kubernetes-agent.filterProcessor" (dict "root" . "signals" $signals) | nindent 6 }}
       {{- end }}
 
+      {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
+      # Keep .Values.sampling.traces.percentage% of traces, drop the rest.
+      # The decision is a hash of the trace ID, so every span of a trace is
+      # kept or dropped together and what reaches OneUptime is whole traces
+      # rather than fragments. Only in the traces pipeline: the eBPF RED
+      # metrics run through `metrics` and stay complete.
+      probabilistic_sampler:
+        sampling_percentage: {{ include "kubernetes-agent.traceSamplingPercentage" . }}
+        # Every collector that must agree on a trace needs this AND
+        # sampling_percentage to match. See values.yaml.
+        hash_seed: {{ include "kubernetes-agent.traceSamplingHashSeed" . }}
+      {{- end }}
+
       # Batch telemetry for efficient export
       batch:
         send_batch_size: 100
@@ -466,6 +479,13 @@ data:
             # k8sattributes resolves the sending pod to a namespace, so this
             # must stay after it — before it, every span looks namespace-less.
             - filter/telemetry
+            {{- end }}
+            {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
+            # After filter/telemetry so the sample is drawn from the traces you
+            # actually asked to keep, not from ones about to be dropped anyway.
+            # Before batch so a sampled-out span never occupies a batch slot or
+            # leaves the cluster.
+            - probabilistic_sampler
             {{- end }}
             - batch
           exporters:

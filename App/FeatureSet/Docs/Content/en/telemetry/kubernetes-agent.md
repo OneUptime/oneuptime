@@ -214,6 +214,42 @@ Notes that will save you an incident:
 
 > **Test a regex before you roll it out.** Patterns are compiled by the collector at startup, not per record, so an invalid one doesn't misbehave quietly — the collector refuses to start and CrashLoopBackOffs, taking that collector's **logs** down along with its metrics. Helm cannot compile RE2, so `helm upgrade` accepts a bad pattern without complaint.
 
+### Trace Sampling
+
+The filters above remove a **category** of telemetry — a namespace, a severity, a metric name. Sampling is different: it keeps every category and thins the population instead. Set `sampling.traces.percentage` to the share of traces you want to keep:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+That keeps one trace in ten and drops the other nine at the agent, before they leave your cluster.
+
+**You get whole traces, not fragments.** The decision is a hash of the trace ID rather than a coin flip per span, so every span of a trace is kept or dropped together — the traces that survive are complete and readable end to end. This is the property that makes sampling safe to turn on.
+
+**Your metric-based monitors do not move.** The eBPF RED metrics — request rate, error rate, duration — are a *metrics* family. OBI computes them from every request and they travel the metrics pipeline, which the sampler is not in. At `percentage: 10` you get a tenth of the traces and 100% accurate rate/error/latency. Dashboards and monitors built on those metrics are unaffected.
+
+**Your span-based monitors do.** Anything OneUptime derives from the spans themselves scales down with the rate — see the warning below before you turn this on.
+
+| Key | Meaning |
+| --- | ------- |
+| `sampling.traces.percentage` | Percentage of traces to **keep**, 0-100. Default `100` (keep everything). |
+| `sampling.traces.hashSeed` | Seed for the trace-ID hash. Default `22`. |
+
+Notes that will save you an incident:
+
+- **`0` keeps no traces at all.** It is a rate, not an off switch — it deletes every trace while the eBPF DaemonSet keeps running and costing you. If you want no traces, use `ebpf.enabled=false`. If you want no traces but *do* want RED metrics and the service map, keep eBPF on and set this to `0` deliberately.
+- **Only applies when `ebpf.enabled`.** The traces pipeline doesn't exist otherwise, so at `ebpf.enabled=false` this value does nothing.
+- **Traces only.** There is no `sampling.logs` or `sampling.metrics`, and that is deliberate — see the note below.
+- **Fractions need `--set-json`, and they have a floor.** `--set sampling.traces.percentage=0.5` fails, because Helm reads `0.5` as a string — use `--set-json 'sampling.traces.percentage=0.5'` or a values file. Whole numbers work fine with `--set`. Below about `0.0061` the rate quantises to zero and behaves exactly like `0` — every trace dropped, no error. `0.01` (one in ten thousand) is the smallest value that does what it says.
+- **Multi-cluster works by default.** Two agents keep the same trace only if they agree on both `hashSeed` and `percentage`. Both default to the same value everywhere, so a trace crossing two clusters survives whole without any extra configuration. Change `hashSeed` only to deliberately *decorrelate* two sampling tiers — because the decision is a threshold on the same hash, the same seed at different rates nests, so a second tier just re-picks the traces the first one already kept instead of drawing independently.
+- **Pod logs are never sampled**, so with `ebpf.logToTraceCorrelation: true` every log record still carries a trace ID while only `percentage`% of those traces are kept. Roughly (100 − `percentage`)% of log records will show a trace link that dead-ends. Trace → logs navigation is unaffected; only logs → trace can miss.
+
+> **Retune your span-based monitors when you set this.** Sampling reduces the spans that reach OneUptime, so anything counting them counts less: a **Traces** monitor on `Span Count` and an **Exceptions** monitor on `Exception Count` will see roughly `percentage`% of yesterday's volume. A threshold tuned on unsampled traffic quietly stops being crossed — the monitor doesn't error, it just goes silent. Divide those thresholds by the same factor when you set the rate; the rate is cluster-wide, so there is no way to exempt an individual service from it. Error **grouping** degrades worse than linearly: a common exception still surfaces, but a rare one-off is more likely to disappear entirely than to appear a tenth as often.
+
+> **Why there's no log or metric sampling here.** The collector's sampler cannot sample metrics at all. It can sample logs, but it draws its randomness from the trace ID — and pod logs don't have one. Every trace-ID-less record then hashes to the same bucket, so a log rate wouldn't thin the feed: it would keep all of it or delete all of it depending on the seed. Rather than ship a knob that silently deletes your logs, the chart doesn't offer one. Thin logs with [Filtering by Log Severity](#filtering-by-log-severity) and [Namespace Filtering](#namespace-filtering), which are precise about what they remove.
+
 ### Disable Log Collection
 
 If you don't need pod logs:
@@ -379,17 +415,18 @@ The trick is to **stop collecting what you will not look at**, rather than to co
 | Signal                         | Biggest driver                                           | Turn it down with                                                                            |
 | ------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **Pod logs**                   | Every line from every container, cluster-wide            | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
-| **eBPF traces & span metrics** | One trace per request from every instrumented process    | `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths`              |
+| **eBPF traces & span metrics** | One trace per request from every instrumented process    | `sampling.traces.percentage`, `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths` |
 | **Metric data points**         | Scrape frequency × number of pods/containers             | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
 | **Metric cardinality**         | Number of distinct series (per-container, per-PVC, …)    | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Opt-in extras**              | Profiling, audit logs, control plane, inter-zone metrics | Leave them off (they already are by default)                                                 |
 
-Two ways to cut volume, and it is worth knowing which one you are using:
+Three ways to cut volume, and it is worth knowing which one you are using:
 
 - **At the receiver** — the data is never collected. `namespaceFilters` on pod logs, `cadvisor.metricsAllowlist`, a longer `collectionInterval`. Costs nothing to run and saves CPU, egress and ingest together. Always prefer these where they cover your case.
 - **At the filter processor** — the data is collected, then dropped before export. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Slightly more collector CPU, but it works across receivers and can express things a receiver cannot.
+- **At the sampler** — the data is collected, then a representative fraction is kept. `sampling.traces.percentage`. The odd one out: the two above remove a whole *category* of telemetry, so whatever they drop is gone from every trace. Sampling keeps every category and thins the population, so what survives is still complete and representative.
 
-Both are **irreversible**: what you drop here never reaches OneUptime, and any monitor built on it goes quiet. If you would rather decide later, OneUptime can drop data server-side instead (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — that still costs egress, but it is a setting you can change without a redeploy.
+All three are **irreversible**: what you drop here never reaches OneUptime, and all three can make a monitor go quiet. The first two silence a monitor by removing the signal it watches. Sampling is narrower: the eBPF RED metrics are computed before the sampler runs, so metric-based monitors stay exact — but monitors that count *spans* (Traces on `Span Count`, Exceptions on `Exception Count`) see proportionally fewer and need their thresholds retuned by the same factor. If you would rather decide later, OneUptime can drop data server-side instead (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — that still costs egress, but it is a setting you can change without a redeploy.
 
 ### Lever 1 — Pod logs are usually the single biggest source
 
@@ -521,6 +558,29 @@ These are **off by default** precisely because they add load — only enable one
 | `ebpf.features.networkInterZoneMetrics`                   | Doubles network-flow metric cardinality                                            |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Extra Prometheus scrape jobs                                                       |
 
+### Lever 6 — Sample traces instead of dropping them
+
+Every lever above buys volume by giving something up: a namespace you stop watching, a severity you stop keeping, a metric family you stop collecting. Sampling is the exception, and on a busy cluster it is often the largest cut available for the smallest loss:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set sampling.traces.percentage=10
+```
+
+That is a 90% cut in trace volume for a narrower loss than any other lever here:
+
+- The traces you keep are **whole** — the decision hashes the trace ID, so all spans of a trace share it. You get fewer traces, not broken ones.
+- Your **RED metrics stay exact**. Request rate, error rate and duration are computed by OBI from every request and travel the metrics pipeline, which the sampler is not in. Every dashboard and monitor built on them reads the same as before.
+
+What you give up is mostly example traces: when a monitor fires, you have a tenth as many traces to open. On a cluster doing thousands of identical requests a second that is usually a good trade — the hundredth identical `/healthz` span teaches you nothing the first one didn't. On a quiet cluster it is a bad one, because you may have no example of the rare request that broke.
+
+The exception, and the one thing to check before you roll this out: monitors that **count spans** rather than metrics — Traces on `Span Count`, Exceptions on `Exception Count` — see proportionally fewer, so their thresholds need retuning by the same factor. See [Trace Sampling](#trace-sampling).
+
+Reach for this when eBPF traces are a large share of your ingest but you still want the service map and RED metrics intact. Prefer Lever 2 when you want to stop instrumenting something entirely.
+
+See [Trace Sampling](#trace-sampling) for the full behaviour, including why `0` is a rate rather than an off switch and why there is no log or metric equivalent.
+
 ### A lean starting point
 
 If you want a smaller footprint but still want the monitors to work, this profile keeps **full metric coverage** and cuts the two things that actually drive volume — log lines and eBPF spans:
@@ -570,7 +630,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Tighten further as needed: raise `minSeverity` to `ERROR`, add `namespaceFilters.applyTo.metrics=true`, or set `ebpf.enabled=false` if you already ship traces from OTel SDKs.
 
-> **Watch what you cut.** Some monitors depend on specific signals: disabling `cadvisor` removes the OOM-kill and CPU-throttling monitors; disabling `kubeletstats.volumeMetrics` removes the PVC low-disk monitor; disabling logs removes log-based alerts. Trim the signals you don't act on, not the ones a monitor is watching.
+> **Watch what you cut.** Some monitors depend on specific signals: disabling `cadvisor` removes the OOM-kill and CPU-throttling monitors; disabling `kubeletstats.volumeMetrics` removes the PVC low-disk monitor; disabling logs removes log-based alerts; and `sampling.traces.percentage` doesn't remove a monitor but scales down the span-based ones (Traces on `Span Count`, Exceptions on `Exception Count`), so retune their thresholds to match. Trim the signals you don't act on, not the ones a monitor is watching.
 
 ### Measure the effect
 
