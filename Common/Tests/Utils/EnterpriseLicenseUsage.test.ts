@@ -163,3 +163,79 @@ describe("EnterpriseLicenseUsageUtil.getUniqueUserCount", () => {
     expect(EnterpriseLicenseUsageUtil.getUniqueUserCount([], now)).toBe(0);
   });
 });
+
+describe("EnterpriseLicenseUsageUtil.sanitizeMasterAdminEmails", () => {
+  it("returns empty array for non-array input", () => {
+    expect(EnterpriseLicenseUsageUtil.sanitizeMasterAdminEmails(null)).toEqual(
+      [],
+    );
+    expect(
+      EnterpriseLicenseUsageUtil.sanitizeMasterAdminEmails("admin@acme.com"),
+    ).toEqual([]);
+    expect(EnterpriseLicenseUsageUtil.sanitizeMasterAdminEmails({})).toEqual(
+      [],
+    );
+  });
+
+  it("keeps only email-shaped strings, normalizes case and trims", () => {
+    const result: Array<string> =
+      EnterpriseLicenseUsageUtil.sanitizeMasterAdminEmails([
+        " Admin@Acme.COM ",
+        "not-an-email",
+        "missing@tld",
+        "spaces in@acme.com",
+        12345,
+        null,
+        "second.admin@acme.com",
+      ]);
+
+    expect(result).toEqual(["admin@acme.com", "second.admin@acme.com"]);
+  });
+
+  it("removes duplicates", () => {
+    const result: Array<string> =
+      EnterpriseLicenseUsageUtil.sanitizeMasterAdminEmails([
+        "admin@acme.com",
+        "ADMIN@ACME.COM",
+        "admin@acme.com",
+      ]);
+
+    expect(result).toEqual(["admin@acme.com"]);
+  });
+
+  it("caps the list size", () => {
+    const tooMany: Array<string> = [];
+
+    for (
+      let i: number = 0;
+      i < EnterpriseLicenseUsageUtil.maxMasterAdminEmailsPerInstance + 10;
+      i++
+    ) {
+      tooMany.push(`admin${i}@acme.com`);
+    }
+
+    const result: Array<string> =
+      EnterpriseLicenseUsageUtil.sanitizeMasterAdminEmails(tooMany);
+
+    expect(result.length).toBe(
+      EnterpriseLicenseUsageUtil.maxMasterAdminEmailsPerInstance,
+    );
+  });
+});
+
+describe("EnterpriseLicenseUsageUtil.maskLicenseKey", () => {
+  it("fully masks short keys", () => {
+    expect(EnterpriseLicenseUsageUtil.maskLicenseKey("")).toBe("••••••••");
+    expect(EnterpriseLicenseUsageUtil.maskLicenseKey("abcd1234")).toBe(
+      "••••••••",
+    );
+  });
+
+  it("keeps only the first and last four characters of longer keys", () => {
+    expect(
+      EnterpriseLicenseUsageUtil.maskLicenseKey(
+        "abcd-1234-efgh-5678-ijkl-9012",
+      ),
+    ).toBe("abcd••••9012");
+  });
+});
