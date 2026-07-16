@@ -83,7 +83,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
 
   const operatorHint: string | undefined =
     condition.operator === "LIKE"
-      ? "Matches if the value contains this text."
+      ? "Matches if the value contains this text. Use % for wildcards (e.g. %error%)"
       : condition.operator === "IN"
         ? "Comma-separated values"
         : undefined;
