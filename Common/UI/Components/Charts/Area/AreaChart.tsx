@@ -15,8 +15,13 @@ import YAxis from "../Types/YAxis/YAxis";
 import ChartCurve from "../Types/ChartCurve";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
 import FormattedExemplarPoint from "../ChartLibrary/Types/FormattedExemplarPoint";
+import FormattedReferenceRegion from "../ChartLibrary/Types/FormattedReferenceRegion";
+import FormattedTimeReferenceLine from "../ChartLibrary/Types/FormattedTimeReferenceLine";
 import DataPointUtil from "../Utils/DataPoint";
+import TimeAnnotationUtil from "../Utils/TimeAnnotation";
 import ChartReferenceLineProps from "../Types/ReferenceLineProps";
+import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
+import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
@@ -42,8 +47,20 @@ export interface ComponentProps {
   sync: boolean;
   heightInPx?: number | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  /*
+   * Time-anchored annotations: vertical event markers and shaded regions.
+   * Dates are snapped onto the categorical x-axis buckets; annotations
+   * outside the charted window are dropped (regions clamp to the edge).
+   */
+  timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
+  referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
+  /*
+   * When provided, the chart supports drag-to-select: dragging across
+   * buckets calls back with the [start, end) of the selected time range.
+   */
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
   showLegend?: boolean | undefined;
   /**
    * Render a shaded "expected range" band underneath the plotted lines.
@@ -117,6 +134,29 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
     });
   }, [props.exemplarPoints, props.xAxis]);
 
+  // Snap time annotations onto the categorical x-axis bucket labels
+  const formattedTimeReferenceLines: Array<FormattedTimeReferenceLine> =
+    useMemo(() => {
+      if (!props.timeReferenceLines || props.timeReferenceLines.length === 0) {
+        return [];
+      }
+      return TimeAnnotationUtil.formatTimeReferenceLines({
+        timeReferenceLines: props.timeReferenceLines,
+        xAxis: props.xAxis,
+      });
+    }, [props.timeReferenceLines, props.xAxis]);
+
+  const formattedReferenceRegions: Array<FormattedReferenceRegion> =
+    useMemo(() => {
+      if (!props.referenceRegions || props.referenceRegions.length === 0) {
+        return [];
+      }
+      return TimeAnnotationUtil.formatReferenceRegions({
+        referenceRegions: props.referenceRegions,
+        xAxis: props.xAxis,
+      });
+    }, [props.referenceRegions, props.xAxis]);
+
   const hasNoData: boolean =
     !props.data ||
     props.data.length === 0 ||
@@ -164,10 +204,21 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         {...maxValueProp}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
+        formattedTimeReferenceLines={
+          formattedTimeReferenceLines.length > 0
+            ? formattedTimeReferenceLines
+            : undefined
+        }
+        formattedReferenceRegions={
+          formattedReferenceRegions.length > 0
+            ? formattedReferenceRegions
+            : undefined
+        }
         formattedExemplarPoints={
           formattedExemplars.length > 0 ? formattedExemplars : undefined
         }
         onExemplarClick={props.onExemplarClick}
+        onTimeRangeSelect={props.onTimeRangeSelect}
         anomalyBandLowerKey={bandLower}
         anomalyBandUpperKey={bandUpper}
       />

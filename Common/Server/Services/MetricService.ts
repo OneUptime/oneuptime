@@ -18,6 +18,7 @@ import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import { keyForHost } from "../../Utils/Telemetry/EntityKey";
@@ -334,6 +335,162 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       statement.append(`, __attr_grp_${index}`);
     });
     statement.append(`) AS attributes`);
+  }
+
+  /**
+   * Validated Top-K spec, or null when the caller did not request one.
+   * `count` is parameter-bound where it reaches SQL and `rankBy` only
+   * ever selects between two hardcoded aggregate names, so this is
+   * shape validation (like getSanitizedGroupByAttributeKeys), not
+   * injection defense.
+   */
+  private getSanitizedTopK(
+    aggregateBy: AggregateBy<Metric>,
+  ): { count: number; rankBy: "max" | "avg" } | null {
+    const topK: AggregateBy<Metric>["topK"] = aggregateBy.topK;
+    if (!topK) {
+      return null;
+    }
+    const count: number = Math.floor(Number(topK.count));
+    if (!Number.isFinite(count) || count < 1 || count > LIMIT_PER_PROJECT) {
+      throw new BadDataException(
+        `topK.count must be a positive integer <= ${LIMIT_PER_PROJECT}.`,
+      );
+    }
+    if (topK.rankBy !== "max" && topK.rankBy !== "avg") {
+      throw new BadDataException(`topK.rankBy must be 'max' or 'avg'.`);
+    }
+    return { count, rankBy: topK.rankBy };
+  }
+
+  /**
+   * Appends the raw-table expressions that identify a group — model
+   * group-by columns as identifiers, attribute keys as parameter-bound
+   * `attributes[...]` lookups — in a FIXED order, so the Top-K
+   * IN-restriction tuple, the ranking subquery's SELECT/GROUP BY, and
+   * the totalGroups counter always line up element-for-element.
+   */
+  private appendRawGroupExpressionList(
+    statement: Statement,
+    groupByKeys: Array<string>,
+    attributeGroupKeys: Array<string>,
+  ): void {
+    let isFirst: boolean = true;
+    for (const key of groupByKeys) {
+      if (!isFirst) {
+        statement.append(`, `);
+      }
+      statement.append(key);
+      isFirst = false;
+    }
+    for (const key of attributeGroupKeys) {
+      if (!isFirst) {
+        statement.append(`, `);
+      }
+      statement.append(
+        SQL`attributes[${{ value: key, type: TableColumnType.Text }}]`,
+      );
+      isFirst = false;
+    }
+  }
+
+  /**
+   * Appends the Top-K group restriction predicate:
+   *
+   *   ` AND (<group exprs>) IN (SELECT <group exprs> FROM <table>
+   *      WHERE ... GROUP BY <group exprs>
+   *      ORDER BY max|avg(<column>) DESC LIMIT <k>)`
+   *
+   * The ranking subquery scores each group over the WHOLE query window
+   * (no time bucketing) so a series that spiked early ranks the same as
+   * one spiking late. Must be appended in raw-table WHERE scope — the
+   * innermost WHERE of the surrounding builder — where the group
+   * expressions are valid. Ranking uses plain max/avg of the raw
+   * column (not the distribution-aware expressions): for distribution
+   * metrics that scores by per-export-interval sums, which preserves
+   * relative group ordering well enough for series selection.
+   */
+  private appendTopKGroupRestriction(data: {
+    statement: Statement;
+    databaseName: string;
+    aggregateBy: AggregateBy<Metric>;
+    topK: { count: number; rankBy: "max" | "avg" };
+    groupByKeys: Array<string>;
+    attributeGroupKeys: Array<string>;
+  }): void {
+    const statement: Statement = data.statement;
+    const aggregationColumn: string =
+      data.aggregateBy.aggregateColumnName.toString();
+
+    statement.append(` AND (`);
+    this.appendRawGroupExpressionList(
+      statement,
+      data.groupByKeys,
+      data.attributeGroupKeys,
+    );
+    statement.append(`) IN (SELECT `);
+    this.appendRawGroupExpressionList(
+      statement,
+      data.groupByKeys,
+      data.attributeGroupKeys,
+    );
+    statement.append(
+      ` FROM ${data.databaseName}.${this.model.tableName} WHERE TRUE `,
+    );
+    statement.append(
+      this.statementGenerator.toWhereStatement(data.aggregateBy.query),
+    );
+    statement.append(this.getRetentionReadFilter());
+    statement.append(` GROUP BY `);
+    this.appendRawGroupExpressionList(
+      statement,
+      data.groupByKeys,
+      data.attributeGroupKeys,
+    );
+    statement.append(
+      ` ORDER BY ${data.topK.rankBy}(${aggregationColumn}) DESC`,
+    );
+    statement.append(
+      SQL` LIMIT ${{
+        value: data.topK.count,
+        type: TableColumnType.Number,
+      }}`,
+    );
+    statement.append(`)`);
+  }
+
+  /**
+   * Appends `, (SELECT uniqExact(<group exprs>) FROM <table>
+   * WHERE ...) AS __total_groups` — a scalar subquery counting every
+   * distinct group in the window BEFORE Top-K trims them. The value is
+   * constant across result rows; AnalyticsDatabaseService._aggregateBy
+   * reads it off the first row into AggregatedResult.totalGroups and it
+   * never reaches the per-row payload. Must be appended in SELECT-list
+   * position of the outer query.
+   */
+  private appendTotalGroupsColumn(data: {
+    statement: Statement;
+    databaseName: string;
+    aggregateBy: AggregateBy<Metric>;
+    groupByKeys: Array<string>;
+    attributeGroupKeys: Array<string>;
+  }): void {
+    const statement: Statement = data.statement;
+
+    statement.append(`, (SELECT uniqExact(`);
+    this.appendRawGroupExpressionList(
+      statement,
+      data.groupByKeys,
+      data.attributeGroupKeys,
+    );
+    statement.append(
+      `) FROM ${data.databaseName}.${this.model.tableName} WHERE TRUE `,
+    );
+    statement.append(
+      this.statementGenerator.toWhereStatement(data.aggregateBy.query),
+    );
+    statement.append(this.getRetentionReadFilter());
+    statement.append(`) AS __total_groups`);
   }
 
   /*
@@ -693,6 +850,30 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      */
     this.appendAttributeGroupMapColumn(statement, attributeGroupKeys);
 
+    /*
+     * Server-side Top-K: rank groups over the whole window, restrict
+     * the bucketed quantile to the winners, and surface the pre-trim
+     * group count. Only meaningful when the aggregation is grouped —
+     * p95-by-host must get the same series selection as the scalar
+     * paths.
+     */
+    const percentileTopK: { count: number; rankBy: "max" | "avg" } | null =
+      this.getSanitizedTopK(aggregateBy);
+    const percentileApplyTopK: boolean = Boolean(
+      percentileTopK &&
+        (groupByKeys.length > 0 || attributeGroupKeys.length > 0),
+    );
+
+    if (percentileApplyTopK) {
+      this.appendTotalGroupsColumn({
+        statement,
+        databaseName,
+        aggregateBy,
+        groupByKeys,
+        attributeGroupKeys,
+      });
+    }
+
     statement.append(SQL` FROM (`);
     statement.append(`SELECT ${innerSelectClause}`);
     this.appendAttributeGroupExtractionColumns(statement, attributeGroupKeys);
@@ -701,6 +882,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
     statement.append(whereStatement);
     statement.append(this.getRetentionReadFilter());
+    if (percentileApplyTopK) {
+      this.appendTopKGroupRestriction({
+        statement,
+        databaseName,
+        aggregateBy,
+        topK: percentileTopK!,
+        groupByKeys,
+        attributeGroupKeys,
+      });
+    }
     statement.append(SQL`) `);
 
     /*
@@ -748,12 +939,15 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     /*
      * Match the read-path settings the base aggregator now appends (see
-     * AnalyticsDatabaseService.toAggregateStatement). The percentile
-     * path bypasses the base method, so we mirror them here to keep
-     * cluster behavior consistent across aggregation kinds.
+     * AnalyticsDatabaseService.toAggregateStatement), including the
+     * 45s/'break' execution cap. The percentile path bypasses the base
+     * method, so we mirror them here to keep cluster behavior consistent
+     * across aggregation kinds.
      */
     statement.append(
       getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,
@@ -898,6 +1092,17 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     const statement: Statement = SQL``;
 
+    /*
+     * Server-side Top-K: rank groups over the whole window, restrict
+     * the bucketed aggregation to the winners, and surface the pre-trim
+     * group count. Only meaningful when the aggregation is grouped.
+     */
+    const scalarTopK: { count: number; rankBy: "max" | "avg" } | null =
+      this.getSanitizedTopK(aggregateBy);
+    const scalarApplyTopK: boolean = Boolean(
+      scalarTopK && (groupByKeys.length > 0 || attributeGroupKeys.length > 0),
+    );
+
     statement.append(
       `SELECT ${aggregationExpression} as ${aggregationColumn}, ${AggregateUtil.buildBucketTimestampSelect(resolvedInterval, aggregationTimestampColumn)}`,
     );
@@ -905,6 +1110,15 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       statement.append(`, ${key}`);
     }
     this.appendAttributeGroupMapColumn(statement, attributeGroupKeys);
+    if (scalarApplyTopK) {
+      this.appendTotalGroupsColumn({
+        statement,
+        databaseName,
+        aggregateBy,
+        groupByKeys,
+        attributeGroupKeys,
+      });
+    }
 
     if (attributeGroupKeys.length > 0) {
       /*
@@ -935,6 +1149,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       );
       statement.append(whereStatement);
       statement.append(this.getRetentionReadFilter());
+      if (scalarApplyTopK) {
+        this.appendTopKGroupRestriction({
+          statement,
+          databaseName,
+          aggregateBy,
+          topK: scalarTopK!,
+          groupByKeys,
+          attributeGroupKeys,
+        });
+      }
       statement.append(SQL`) `);
     } else {
       statement.append(
@@ -942,6 +1166,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       );
       statement.append(whereStatement);
       statement.append(this.getRetentionReadFilter());
+      if (scalarApplyTopK) {
+        this.appendTopKGroupRestriction({
+          statement,
+          databaseName,
+          aggregateBy,
+          topK: scalarTopK!,
+          groupByKeys,
+          attributeGroupKeys,
+        });
+      }
     }
 
     /*
@@ -988,6 +1222,8 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     statement.append(
       getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,
@@ -1049,11 +1285,37 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       aggregateBy.sort!,
     );
 
+    /*
+     * Server-side Top-K for the (model-column) grouped mutable path.
+     * The ranking subquery and totalGroups counter each re-run the
+     * dedup subquery (buildMutableMetricDedupSource) — acceptable
+     * because the mutable table is small by design (bounded-cardinality
+     * business metrics), unlike the raw Metric table.
+     */
+    const mutableTopK: { count: number; rankBy: "max" | "avg" } | null =
+      this.getSanitizedTopK(aggregateBy);
+    const mutableGroupByKeys: Array<string> = aggregateBy.groupBy
+      ? Object.keys(aggregateBy.groupBy)
+      : [];
+    const mutableApplyTopK: boolean = Boolean(
+      mutableTopK && mutableGroupByKeys.length > 0,
+    );
+
     const statement: Statement = SQL``;
 
+    statement.append(SQL`SELECT `).append(select.statement);
+
+    if (mutableApplyTopK) {
+      statement.append(`, (SELECT uniqExact(`);
+      this.appendRawGroupExpressionList(statement, mutableGroupByKeys, []);
+      statement.append(`)`);
+      statement.append(
+        this.buildMutableMetricDedupSource(databaseName, aggregateBy),
+      );
+      statement.append(`) AS __total_groups`);
+    }
+
     statement
-      .append(SQL`SELECT `)
-      .append(select.statement)
       .append(
         SQL`
           FROM (
@@ -1090,6 +1352,28 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       )
       .append(outerWhereStatement)
       .append(SQL` AND retentionDate >= now()`);
+
+    if (mutableApplyTopK) {
+      statement.append(` AND (`);
+      this.appendRawGroupExpressionList(statement, mutableGroupByKeys, []);
+      statement.append(`) IN (SELECT `);
+      this.appendRawGroupExpressionList(statement, mutableGroupByKeys, []);
+      statement.append(
+        this.buildMutableMetricDedupSource(databaseName, aggregateBy),
+      );
+      statement.append(` GROUP BY `);
+      this.appendRawGroupExpressionList(statement, mutableGroupByKeys, []);
+      statement.append(
+        ` ORDER BY ${mutableTopK!.rankBy}(${aggregateBy.aggregateColumnName.toString()}) DESC`,
+      );
+      statement.append(
+        SQL` LIMIT ${{
+          value: mutableTopK!.count,
+          type: TableColumnType.Number,
+        }}`,
+      );
+      statement.append(`)`);
+    }
 
     /*
      * Mirror the base builder's Total handling: the SELECT above (shared
@@ -1157,6 +1441,8 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     statement.append(
       getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
         additionalSettings: {
           optimize_move_to_prewhere: 1,
           max_threads: 4,
@@ -1175,6 +1461,63 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       statement,
       columns: select.columns,
     };
+  }
+
+  /**
+   * A fresh `FROM (...) WHERE ...` fragment over the argMax-deduped
+   * mutable-metric rows — the same source the main mutable aggregate
+   * reads from — for the Top-K ranking subquery and totalGroups
+   * counter, which need their own scan of the deduped rows (the
+   * versioned raw rows must never be ranked directly, or a metric
+   * updated N times would rank by its stalest value).
+   */
+  private buildMutableMetricDedupSource(
+    databaseName: string,
+    aggregateBy: AggregateBy<Metric>,
+  ): Statement {
+    const source: Statement = SQL``;
+    source
+      .append(
+        SQL`
+          FROM (
+            SELECT
+              projectId,
+              name,
+              primaryEntityId,
+              primaryEntityType,
+              metricPointId,
+              argMax(metricPointType, version) AS metricPointType,
+              argMax(time, version) AS time,
+              argMax(timeUnixNano, version) AS timeUnixNano,
+              argMax(attributes, version) AS attributes,
+              argMax(attributeKeys, version) AS attributeKeys,
+              argMax(value, version) AS value,
+              argMax(retentionDate, version) AS retentionDate,
+              argMax(isDeleted, version) AS isDeleted
+            FROM ${databaseName}.${AnalyticsTableName.MutableMetric}
+            WHERE TRUE
+        `,
+      )
+      .append(
+        this.statementGenerator.toWhereStatement(
+          this.getMutableMetricInnerQuery(aggregateBy.query),
+        ),
+      )
+      .append(
+        SQL`
+            GROUP BY
+              projectId,
+              name,
+              primaryEntityId,
+              primaryEntityType,
+              metricPointId
+          )
+          WHERE isDeleted = false
+        `,
+      )
+      .append(this.statementGenerator.toWhereStatement(aggregateBy.query))
+      .append(SQL` AND retentionDate >= now()`);
+    return source;
   }
 
   private getMutableMetricInnerQuery(query: Query<Metric>): Query<Metric> {
@@ -1323,10 +1666,11 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     });
     /*
      * The MV is bucketed at 1 minute, so every time-bucketed interval
-     * (Minute / Hour / Day / Week / Month / Year) is >= MV resolution and
-     * acceptable — the honored interval flows into the date_trunc below.
-     * `Total` (whole-window, no bucketing) is the one exception: fall back
-     * to the raw-table builder, which knows how to collapse the window.
+     * (Minute / FiveMinutes / ... / Year) is >= MV resolution and
+     * acceptable — the honored interval flows into the shared bucket
+     * expression below. `Total` (whole-window, no bucketing) is the one
+     * exception: fall back to the raw-table builder, which knows how to
+     * collapse the window.
      */
     if (AggregateUtil.isTotalAggregation(interval)) {
       return null;
@@ -1382,8 +1726,6 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
     const databaseName: string = this.database.getDatasourceOptions().database!;
 
-    const intervalLower: string = interval.toLowerCase();
-
     let mergedExpr: string;
     if (aggType === AggregationType.Sum) {
       mergedExpr = `sumMerge(valueSumState)`;
@@ -1414,7 +1756,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     const statement: Statement = SQL``;
 
     statement.append(
-      `SELECT ${mergedExpr} as value, date_trunc('${intervalLower}', toStartOfInterval(bucketTime, INTERVAL 1 ${intervalLower})) as time`,
+      `SELECT ${mergedExpr} as value, ${AggregateUtil.buildBucketTimestampExpression(interval, "bucketTime")} as time`,
     );
     statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1m`);
     statement.append(
@@ -1438,6 +1780,8 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
     statement.append(
       getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,
@@ -1603,7 +1947,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * `Total` (whole-window, no bucketing) is not served by this
      * time-bucketed per-host MV — fall back to the raw-table builder.
      * Every other interval is >= the MV's 1-minute resolution and flows
-     * into the date_trunc below.
+     * into the shared bucket expression below.
      */
     if (AggregateUtil.isTotalAggregation(interval)) {
       return null;
@@ -1613,8 +1957,6 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       this.useDefaultDatabase();
     }
     const databaseName: string = this.database.getDatasourceOptions().database!;
-
-    const intervalLower: string = interval.toLowerCase();
 
     let mergedExpr: string;
     if (aggType === AggregationType.Sum) {
@@ -1648,7 +1990,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     const statement: Statement = SQL``;
 
     statement.append(
-      `SELECT ${mergedExpr} as value, date_trunc('${intervalLower}', toStartOfInterval(bucketTime, INTERVAL 1 ${intervalLower})) as time`,
+      `SELECT ${mergedExpr} as value, ${AggregateUtil.buildBucketTimestampExpression(interval, "bucketTime")} as time`,
     );
     statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1mByHostV2`);
     statement.append(
@@ -1678,6 +2020,8 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
     statement.append(
       getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,

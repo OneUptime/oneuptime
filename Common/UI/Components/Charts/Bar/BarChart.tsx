@@ -3,13 +3,23 @@ import {
   AvailableChartColorsKeys,
   ChartColorValue,
 } from "../ChartLibrary/Utils/ChartColors";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+} from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
 import YAxis from "../Types/YAxis/YAxis";
 import ChartDataPoint from "../ChartLibrary/Types/ChartDataPoint";
+import FormattedReferenceRegion from "../ChartLibrary/Types/FormattedReferenceRegion";
+import FormattedTimeReferenceLine from "../ChartLibrary/Types/FormattedTimeReferenceLine";
 import DataPointUtil from "../Utils/DataPoint";
+import TimeAnnotationUtil from "../Utils/TimeAnnotation";
 import ChartReferenceLineProps from "../Types/ReferenceLineProps";
+import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
+import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
 
 export const BarChartPalette: Array<AvailableChartColorsKeys> = [
@@ -31,6 +41,13 @@ export interface ComponentProps {
   sync: boolean;
   heightInPx?: number | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  /*
+   * Time-anchored annotations: vertical event markers and shaded regions.
+   * Dates are snapped onto the categorical x-axis buckets; annotations
+   * outside the charted window are dropped (regions clamp to the edge).
+   */
+  timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
+  referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
   showLegend?: boolean | undefined;
   /*
    * Optional per-series color override. Each entry may be a named palette key
@@ -64,6 +81,29 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
     setRecords(records);
   }, [props.data]);
 
+  // Snap time annotations onto the categorical x-axis bucket labels
+  const formattedTimeReferenceLines: Array<FormattedTimeReferenceLine> =
+    useMemo(() => {
+      if (!props.timeReferenceLines || props.timeReferenceLines.length === 0) {
+        return [];
+      }
+      return TimeAnnotationUtil.formatTimeReferenceLines({
+        timeReferenceLines: props.timeReferenceLines,
+        xAxis: props.xAxis,
+      });
+    }, [props.timeReferenceLines, props.xAxis]);
+
+  const formattedReferenceRegions: Array<FormattedReferenceRegion> =
+    useMemo(() => {
+      if (!props.referenceRegions || props.referenceRegions.length === 0) {
+        return [];
+      }
+      return TimeAnnotationUtil.formatReferenceRegions({
+        referenceRegions: props.referenceRegions,
+        xAxis: props.xAxis,
+      });
+    }, [props.referenceRegions, props.xAxis]);
+
   const hasNoData: boolean =
     !props.data ||
     props.data.length === 0 ||
@@ -93,6 +133,16 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
         syncid={props.sync ? props.syncid : undefined}
         onValueChange={() => {}}
         referenceLines={props.referenceLines}
+        formattedTimeReferenceLines={
+          formattedTimeReferenceLines.length > 0
+            ? formattedTimeReferenceLines
+            : undefined
+        }
+        formattedReferenceRegions={
+          formattedReferenceRegions.length > 0
+            ? formattedReferenceRegions
+            : undefined
+        }
       />
       {hasNoData && <NoDataMessage />}
     </div>

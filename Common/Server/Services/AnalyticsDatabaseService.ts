@@ -892,8 +892,47 @@ export default class AnalyticsDatabaseService<
         aggregatedItems.push(aggregatedModel);
       }
 
+      /*
+       * Top-K statements (see MetricService) carry the pre-trim group
+       * count as a constant `__total_groups` column on every row; lift
+       * it off the first row into result metadata. The per-row copy
+       * loop above only projects timestamp/value/group-by columns, so
+       * the helper column never reaches the rows themselves.
+       */
+      let totalGroups: number | undefined = undefined;
+      const firstItem: JSONObject | undefined = items[0];
+      if (firstItem && firstItem["__total_groups"] !== undefined) {
+        const parsedTotalGroups: number = Number(firstItem["__total_groups"]);
+        if (Number.isFinite(parsedTotalGroups)) {
+          totalGroups = parsedTotalGroups;
+        }
+      }
+
+      /*
+       * Truncation detection. Row-count == LIMIT is a heuristic (an
+       * exactly-full window reads as truncated), but a false positive
+       * only over-warns; the silent-data-loss case it exists to catch
+       * (groups × buckets > limit dropping the oldest buckets) is
+       * always flagged. Top-K truncation is exact: the ranking phase
+       * counted every matching group.
+       */
+      const appliedLimit: number = Number(aggregateBy.limit);
+      let truncated: boolean =
+        Number.isFinite(appliedLimit) &&
+        appliedLimit > 0 &&
+        items.length >= appliedLimit;
+      if (
+        aggregateBy.topK &&
+        totalGroups !== undefined &&
+        totalGroups > aggregateBy.topK.count
+      ) {
+        truncated = true;
+      }
+
       return {
         data: aggregatedItems,
+        ...(totalGroups !== undefined ? { totalGroups } : {}),
+        truncated,
       };
     } catch (error) {
       await this.onFindError(error as Exception);
@@ -1306,6 +1345,12 @@ export default class AnalyticsDatabaseService<
     /*
      * Aggregation read-path settings.
      *
+     * - max_execution_time=45 + 'break': cap aggregate runtime below the
+     *   ClickHouse client's 58s request_timeout, same as the count/find
+     *   statements — a wide-window aggregate over a large table would
+     *   otherwise run until the HTTP client disconnects. 'break' returns
+     *   the partial buckets computed so far instead of throwing, which is
+     *   acceptable for chart rendering.
      * - optimize_aggregation_in_order: when GROUP BY is a prefix of the
      *   sort key (we always group by a time bucket and the time column
      *   is at the tail of every analytics primary key), ClickHouse can
@@ -1322,6 +1367,8 @@ export default class AnalyticsDatabaseService<
      */
     statement.append(
       getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: "break",
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,

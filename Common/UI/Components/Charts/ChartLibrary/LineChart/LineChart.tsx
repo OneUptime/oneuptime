@@ -12,6 +12,7 @@ import {
   Line,
   Legend as RechartsLegend,
   LineChart as RechartsLineChart,
+  ReferenceArea,
   ReferenceDot,
   ReferenceLine,
   ResponsiveContainer,
@@ -22,6 +23,9 @@ import {
 import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
 import ExemplarPoint from "../../Types/ExemplarPoint";
 import FormattedExemplarPoint from "../Types/FormattedExemplarPoint";
+import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
+import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
+import { CHART_DATA_POINT_DATE_KEY } from "../Types/ChartDataPoint";
 import { AxisDomain } from "recharts/types/util/types";
 
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
@@ -559,6 +563,15 @@ type BaseEventProps = {
 
 type LineChartEventProps = BaseEventProps | null | undefined;
 
+/*
+ * Subset of the recharts MouseHandlerDataParam passed to chart-level
+ * mouse handlers — just the fields range selection needs.
+ */
+type RangeSelectionChartState = {
+  activeTooltipIndex?: number | string | null | undefined;
+  activeLabel?: string | number | undefined;
+};
+
 interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   data: Record<string, any>[];
   index: string;
@@ -589,8 +602,11 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
   customTooltip?: React.ComponentType<TooltipProps>;
   syncid?: string | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  formattedTimeReferenceLines?: Array<FormattedTimeReferenceLine> | undefined;
+  formattedReferenceRegions?: Array<FormattedReferenceRegion> | undefined;
   formattedExemplarPoints?: Array<FormattedExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
+  onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
 }
 
 const LineChart: React.ForwardRefExoticComponent<
@@ -627,6 +643,9 @@ const LineChart: React.ForwardRefExoticComponent<
       legendPosition = "right",
       tooltipCallback,
       customTooltip,
+      formattedTimeReferenceLines,
+      formattedReferenceRegions,
+      onTimeRangeSelect,
       ...other
     } = props;
     const CustomTooltip: React.ComponentType<TooltipProps> | undefined =
@@ -640,6 +659,21 @@ const LineChart: React.ForwardRefExoticComponent<
     const [activeLegend, setActiveLegend] = React.useState<string | undefined>(
       undefined,
     );
+    const hasOnTimeRangeSelect: boolean = Boolean(onTimeRangeSelect);
+    const [rangeSelectionStart, setRangeSelectionStart] = React.useState<
+      string | null
+    >(null);
+    const [rangeSelectionEnd, setRangeSelectionEnd] = React.useState<
+      string | null
+    >(null);
+    const isRangeSelecting: React.MutableRefObject<boolean> =
+      React.useRef<boolean>(false);
+    const rangeSelectionStartIndexRef: React.MutableRefObject<number | null> =
+      React.useRef<number | null>(null);
+    const rangeSelectionEndIndexRef: React.MutableRefObject<number | null> =
+      React.useRef<number | null>(null);
+    const suppressNextClickRef: React.MutableRefObject<boolean> =
+      React.useRef<boolean>(false);
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
 
@@ -656,6 +690,11 @@ const LineChart: React.ForwardRefExoticComponent<
 
     function onDotClick(itemData: any, event: React.MouseEvent): void {
       event.stopPropagation();
+
+      // Ignore the click that immediately follows a drag-to-select.
+      if (suppressNextClickRef.current) {
+        return;
+      }
 
       if (!hasOnValueChange) {
         return;
@@ -685,6 +724,10 @@ const LineChart: React.ForwardRefExoticComponent<
     }
 
     function onCategoryClick(dataKey: string): void {
+      // Ignore the click that immediately follows a drag-to-select.
+      if (suppressNextClickRef.current) {
+        return;
+      }
       if (!hasOnValueChange) {
         return;
       }
@@ -706,15 +749,179 @@ const LineChart: React.ForwardRefExoticComponent<
       setActiveDot(undefined);
     }
 
+    function getRowIndexFromChartState(
+      chartState: RangeSelectionChartState,
+    ): number | null {
+      const activeTooltipIndex: number | string | null | undefined =
+        chartState.activeTooltipIndex;
+      const numericIndex: number =
+        typeof activeTooltipIndex === "number"
+          ? activeTooltipIndex
+          : Number(activeTooltipIndex);
+      if (
+        activeTooltipIndex !== undefined &&
+        activeTooltipIndex !== null &&
+        Number.isInteger(numericIndex) &&
+        numericIndex >= 0 &&
+        numericIndex < data.length
+      ) {
+        return numericIndex;
+      }
+      // Fall back to matching activeLabel against the row labels.
+      if (chartState.activeLabel !== undefined) {
+        const rowIndex: number = data.findIndex(
+          (row: Record<string, unknown>) => {
+            return row[index] === chartState.activeLabel;
+          },
+        );
+        return rowIndex >= 0 ? rowIndex : null;
+      }
+      return null;
+    }
+
+    function getBucketDateAtIndex(rowIndex: number): Date | null {
+      const rawDate: unknown = data[rowIndex]?.[CHART_DATA_POINT_DATE_KEY];
+      return typeof rawDate === "number" ? new Date(rawDate) : null;
+    }
+
+    function handleRangeSelectMouseDown(
+      chartState: RangeSelectionChartState,
+    ): void {
+      if (!hasOnTimeRangeSelect) {
+        return;
+      }
+      const rowIndex: number | null = getRowIndexFromChartState(chartState);
+      if (rowIndex === null) {
+        return;
+      }
+      const rowLabel: unknown = data[rowIndex]?.[index];
+      if (typeof rowLabel !== "string") {
+        return;
+      }
+      isRangeSelecting.current = true;
+      rangeSelectionStartIndexRef.current = rowIndex;
+      rangeSelectionEndIndexRef.current = rowIndex;
+      setRangeSelectionStart(rowLabel);
+      setRangeSelectionEnd(null);
+    }
+
+    function handleRangeSelectMouseMove(
+      chartState: RangeSelectionChartState,
+      mouseEvent: React.MouseEvent<SVGGraphicsElement>,
+    ): void {
+      if (!isRangeSelecting.current) {
+        return;
+      }
+      // Button was released outside the chart — abandon the selection.
+      if (mouseEvent.buttons === 0) {
+        isRangeSelecting.current = false;
+        rangeSelectionStartIndexRef.current = null;
+        rangeSelectionEndIndexRef.current = null;
+        setRangeSelectionStart(null);
+        setRangeSelectionEnd(null);
+        return;
+      }
+      const rowIndex: number | null = getRowIndexFromChartState(chartState);
+      if (rowIndex === null) {
+        return;
+      }
+      const rowLabel: unknown = data[rowIndex]?.[index];
+      if (typeof rowLabel !== "string") {
+        return;
+      }
+      rangeSelectionEndIndexRef.current = rowIndex;
+      setRangeSelectionEnd(rowLabel);
+    }
+
+    function handleRangeSelectMouseUp(): void {
+      if (!isRangeSelecting.current) {
+        return;
+      }
+      isRangeSelecting.current = false;
+
+      const startIndex: number | null = rangeSelectionStartIndexRef.current;
+      const endIndex: number | null = rangeSelectionEndIndexRef.current;
+      rangeSelectionStartIndexRef.current = null;
+      rangeSelectionEndIndexRef.current = null;
+      setRangeSelectionStart(null);
+      setRangeSelectionEnd(null);
+
+      /*
+       * A plain click (pointer never left the starting bucket) must keep
+       * behaving exactly as before — only a real drag selects a range.
+       */
+      if (startIndex === null || endIndex === null || startIndex === endIndex) {
+        return;
+      }
+
+      /*
+       * The browser fires a click right after mouseup; swallow it so a
+       * drag doesn't also toggle legend/dot selection. Cleared on a
+       * timeout so a never-delivered click can't suppress a later one.
+       */
+      suppressNextClickRef.current = true;
+      setTimeout(() => {
+        suppressNextClickRef.current = false;
+      }, 0);
+
+      if (!onTimeRangeSelect) {
+        return;
+      }
+
+      const lowerIndex: number = Math.min(startIndex, endIndex);
+      const upperIndex: number = Math.max(startIndex, endIndex);
+      const startDate: Date | null = getBucketDateAtIndex(lowerIndex);
+      const lastBucketDate: Date | null = getBucketDateAtIndex(upperIndex);
+      if (!startDate || !lastBucketDate) {
+        return;
+      }
+
+      /*
+       * Cover the full final bucket: its end is its start plus one
+       * bucket width, derived from adjacent row dates.
+       */
+      const adjacentDate: Date | null =
+        upperIndex > 0
+          ? getBucketDateAtIndex(upperIndex - 1)
+          : getBucketDateAtIndex(upperIndex + 1);
+      const bucketWidthInMs: number = adjacentDate
+        ? Math.abs(lastBucketDate.getTime() - adjacentDate.getTime())
+        : 0;
+      const endDate: Date = new Date(
+        lastBucketDate.getTime() + bucketWidthInMs,
+      );
+
+      onTimeRangeSelect(startDate, endDate);
+    }
+
     return (
-      <div ref={ref} className={cx("flex-1 w-full", className)} {...other}>
+      <div
+        ref={ref}
+        className={cx(
+          "flex-1 w-full",
+          hasOnTimeRangeSelect && "cursor-crosshair",
+          className,
+        )}
+        {...other}
+      >
         <ResponsiveContainer>
           <RechartsLineChart
             data={data}
             syncId={props.syncid?.toString() || ""}
+            {...(hasOnTimeRangeSelect
+              ? {
+                  onMouseDown: handleRangeSelectMouseDown,
+                  onMouseMove: handleRangeSelectMouseMove,
+                  onMouseUp: handleRangeSelectMouseUp,
+                }
+              : {})}
             onClick={
               hasOnValueChange && (activeLegend || activeDot)
                 ? () => {
+                    // Ignore the click that follows a drag-to-select.
+                    if (suppressNextClickRef.current) {
+                      return;
+                    }
                     setActiveDot(undefined);
                     setActiveLegend(undefined);
                     onValueChange?.(null);
@@ -1051,6 +1258,87 @@ const LineChart: React.ForwardRefExoticComponent<
                 );
               },
             )}
+            {/* Time-anchored shaded regions (e.g. incident/maintenance windows) */}
+            {formattedReferenceRegions?.map(
+              (region: FormattedReferenceRegion, regionIndex: number) => {
+                const regionColor: string = region.original.color || "#6366f1";
+                return (
+                  <ReferenceArea
+                    key={`ref-region-${regionIndex}`}
+                    x1={region.formattedX1}
+                    x2={region.formattedX2}
+                    fill={regionColor}
+                    fillOpacity={0.12}
+                    stroke={regionColor}
+                    strokeOpacity={0.35}
+                    strokeWidth={1}
+                    {...(region.original.onClick
+                      ? {
+                          style: { cursor: "pointer" as const },
+                          onClick: (): void => {
+                            if (suppressNextClickRef.current) {
+                              return;
+                            }
+                            region.original.onClick?.();
+                          },
+                        }
+                      : {})}
+                  >
+                    {region.original.label && (
+                      <Label
+                        value={region.original.label}
+                        position="insideTop"
+                        fill={regionColor}
+                        fontSize={10}
+                        fontWeight={500}
+                      />
+                    )}
+                  </ReferenceArea>
+                );
+              },
+            )}
+            {/* Time-anchored vertical event markers (e.g. deploys, incidents) */}
+            {formattedTimeReferenceLines?.map(
+              (
+                timeRefLine: FormattedTimeReferenceLine,
+                timeRefIndex: number,
+              ) => {
+                const lineColor: string =
+                  timeRefLine.original.color || "#f59e0b";
+                return (
+                  <ReferenceLine
+                    key={`time-ref-${timeRefIndex}`}
+                    x={timeRefLine.formattedX}
+                    stroke={lineColor}
+                    strokeDasharray={
+                      timeRefLine.original.strokeDasharray || "4 4"
+                    }
+                    strokeWidth={1.5}
+                    {...(timeRefLine.original.onClick
+                      ? {
+                          style: { cursor: "pointer" as const },
+                          onClick: (): void => {
+                            if (suppressNextClickRef.current) {
+                              return;
+                            }
+                            timeRefLine.original.onClick?.();
+                          },
+                        }
+                      : {})}
+                  >
+                    {timeRefLine.original.label && (
+                      <Label
+                        value={timeRefLine.original.label}
+                        position="insideTop"
+                        fill={lineColor}
+                        fontSize={10}
+                        fontWeight={500}
+                      />
+                    )}
+                  </ReferenceLine>
+                );
+              },
+            )}
             {/* Exemplar dots - clickable markers linking to traces */}
             {props.formattedExemplarPoints?.map(
               (exemplar: FormattedExemplarPoint, exemplarIndex: number) => {
@@ -1065,6 +1353,10 @@ const LineChart: React.ForwardRefExoticComponent<
                     strokeWidth={2}
                     style={{ cursor: "pointer" }}
                     onClick={() => {
+                      // Ignore the click that follows a drag-to-select.
+                      if (suppressNextClickRef.current) {
+                        return;
+                      }
                       props.onExemplarClick?.(exemplar.original);
                     }}
                   >
@@ -1083,6 +1375,17 @@ const LineChart: React.ForwardRefExoticComponent<
                 );
               },
             )}
+            {/* Live drag-to-select highlight */}
+            {rangeSelectionStart && rangeSelectionEnd ? (
+              <ReferenceArea
+                x1={rangeSelectionStart}
+                x2={rangeSelectionEnd}
+                fill="rgba(99,102,241,0.12)"
+                stroke="rgba(99,102,241,0.5)"
+                strokeWidth={1}
+                radius={2}
+              />
+            ) : null}
           </RechartsLineChart>
         </ResponsiveContainer>
       </div>

@@ -109,6 +109,27 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     }
   };
 
+  type GetDragToZoomHintFunction = (chart: Chart) => ReactElement;
+
+  // Same subtle hint the log/telemetry histograms show for drag-to-zoom.
+  const getDragToZoomHint: GetDragToZoomHintFunction = (
+    chart: Chart,
+  ): ReactElement => {
+    const supportsTimeRangeSelect: boolean =
+      (chart.type === ChartType.LINE || chart.type === ChartType.AREA) &&
+      Boolean(
+        (chart.props as LineChartProps | AreaChartProps).onTimeRangeSelect,
+      );
+
+    if (!supportsTimeRangeSelect) {
+      return <></>;
+    }
+
+    return (
+      <span className="ml-auto text-[10px] text-gray-300">Drag to zoom</span>
+    );
+  };
+
   type GetInfoIconFunction = (chart: Chart) => ReactElement;
 
   const getInfoIcon: GetInfoIconFunction = (chart: Chart): ReactElement => {
@@ -254,6 +275,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                         {chart.title}
                       </h3>
                       {getInfoIcon(chart)}
+                      {getDragToZoomHint(chart)}
                     </div>
                     {chart.description && (
                       <p className="mt-1 text-xs text-gray-500 hidden md:block">
@@ -299,6 +321,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   {chart.title}
                 </h2>
                 {getInfoIcon(chart)}
+                {getDragToZoomHint(chart)}
               </div>
               {chart.description && (
                 <p

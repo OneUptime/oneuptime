@@ -59,4 +59,12 @@ export default interface MetricQueryConfigData {
    * on agent restart) are clamped to 0.
    */
   transformAsRate?: boolean | undefined;
+  /*
+   * When true, the chart also plots this query evaluated over the
+   * immediately preceding window of equal length (shifted onto the
+   * current axis) for period-over-period comparison. Plain persisted
+   * data like the fields above — the explorer UI that toggles it and the
+   * chart rendering ship in a later stage.
+   */
+  overlayWithPreviousQuery?: boolean | undefined;
 }

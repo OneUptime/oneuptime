@@ -26,6 +26,20 @@ const buildQueryConfig: BuildQueryConfigFunction = (
   };
 };
 
+type BuildGroupedQueryConfigFunction = (
+  variable: string,
+  groupByAttributeKeys: Array<string>,
+) => MetricQueryConfigData;
+
+const buildGroupedQueryConfig: BuildGroupedQueryConfigFunction = (
+  variable: string,
+  groupByAttributeKeys: Array<string>,
+): MetricQueryConfigData => {
+  const config: MetricQueryConfigData = buildQueryConfig(variable);
+  config.metricQueryData.groupByAttributeKeys = groupByAttributeKeys;
+  return config;
+};
+
 type BuildResultFunction = (
   points: Array<{ timestamp: string; value: number }>,
 ) => AggregatedResult;
@@ -40,6 +54,38 @@ const buildResult: BuildResultFunction = (
         value: point.value,
       };
     }),
+  };
+};
+
+type BuildGroupedResultFunction = (
+  points: Array<{
+    timestamp: string;
+    value: number;
+    attributes: Record<string, string>;
+  }>,
+) => AggregatedResult;
+
+const buildGroupedResult: BuildGroupedResultFunction = (
+  points: Array<{
+    timestamp: string;
+    value: number;
+    attributes: Record<string, string>;
+  }>,
+): AggregatedResult => {
+  return {
+    data: points.map(
+      (point: {
+        timestamp: string;
+        value: number;
+        attributes: Record<string, string>;
+      }) => {
+        return {
+          timestamp: new Date(point.timestamp),
+          value: point.value,
+          attributes: point.attributes,
+        };
+      },
+    ),
   };
 };
 
@@ -230,6 +276,316 @@ describe("MetricFormulaEvaluator", () => {
         });
       }).toThrow(/unknown variable/i);
     });
+
+    test("throws a structural error for malformed formulas like a**b", () => {
+      expect(() => {
+        MetricFormulaEvaluator.evaluateFormula({
+          formula: "a ** b",
+          queryConfigs: [buildQueryConfig("a"), buildQueryConfig("b")],
+          formulaConfigs: [],
+          results: [
+            buildResult([{ timestamp: "2024-01-01T00:00:00.000Z", value: 2 }]),
+            buildResult([{ timestamp: "2024-01-01T00:00:00.000Z", value: 3 }]),
+          ],
+        });
+      }).toThrow(/missing an operand/i);
+    });
+  });
+
+  describe("group-aware evaluation", () => {
+    const timestamps: Array<string> = [
+      "2024-01-01T00:00:00.000Z",
+      "2024-01-01T00:01:00.000Z",
+    ];
+
+    test("evaluates grouped formulas once per group and stamps group attributes", () => {
+      const queryConfigs: Array<MetricQueryConfigData> = [
+        buildGroupedQueryConfig("a", ["host.name"]),
+        buildGroupedQueryConfig("b", ["host.name"]),
+      ];
+
+      const results: Array<AggregatedResult> = [
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 10,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[0]!,
+            value: 40,
+            attributes: { "host.name": "web-2" },
+          },
+          {
+            timestamp: timestamps[1]!,
+            value: 20,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[1]!,
+            value: 80,
+            attributes: { "host.name": "web-2" },
+          },
+        ]),
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 2,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[0]!,
+            value: 4,
+            attributes: { "host.name": "web-2" },
+          },
+          {
+            timestamp: timestamps[1]!,
+            value: 2,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[1]!,
+            value: 4,
+            attributes: { "host.name": "web-2" },
+          },
+        ]),
+      ];
+
+      const output: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: "a / b",
+        queryConfigs,
+        formulaConfigs: [],
+        results,
+      });
+
+      // Groups are ordered by canonical label key: web-1 first, then web-2.
+      expect(output.data).toEqual([
+        {
+          timestamp: new Date(timestamps[0]!),
+          value: 5,
+          attributes: { "host.name": "web-1" },
+        },
+        {
+          timestamp: new Date(timestamps[1]!),
+          value: 10,
+          attributes: { "host.name": "web-1" },
+        },
+        {
+          timestamp: new Date(timestamps[0]!),
+          value: 10,
+          attributes: { "host.name": "web-2" },
+        },
+        {
+          timestamp: new Date(timestamps[1]!),
+          value: 20,
+          attributes: { "host.name": "web-2" },
+        },
+      ]);
+    });
+
+    test("broadcasts an ungrouped variable across groups", () => {
+      const queryConfigs: Array<MetricQueryConfigData> = [
+        buildGroupedQueryConfig("a", ["host.name"]),
+        buildQueryConfig("b"),
+      ];
+
+      const results: Array<AggregatedResult> = [
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 10,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[0]!,
+            value: 30,
+            attributes: { "host.name": "web-2" },
+          },
+        ]),
+        buildResult([{ timestamp: timestamps[0]!, value: 2 }]),
+      ];
+
+      const output: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: "a / b",
+        queryConfigs,
+        formulaConfigs: [],
+        results,
+      });
+
+      expect(output.data).toEqual([
+        {
+          timestamp: new Date(timestamps[0]!),
+          value: 5,
+          attributes: { "host.name": "web-1" },
+        },
+        {
+          timestamp: new Date(timestamps[0]!),
+          value: 15,
+          attributes: { "host.name": "web-2" },
+        },
+      ]);
+    });
+
+    test("throws a structural error when grouped variables share no groups", () => {
+      const queryConfigs: Array<MetricQueryConfigData> = [
+        buildGroupedQueryConfig("a", ["host.name"]),
+        buildGroupedQueryConfig("b", ["region"]),
+      ];
+
+      const results: Array<AggregatedResult> = [
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 1,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[0]!,
+            value: 2,
+            attributes: { "host.name": "web-2" },
+          },
+        ]),
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 3,
+            attributes: { region: "us-east" },
+          },
+          {
+            timestamp: timestamps[0]!,
+            value: 4,
+            attributes: { region: "eu-west" },
+          },
+        ]),
+      ];
+
+      expect(() => {
+        MetricFormulaEvaluator.evaluateFormula({
+          formula: "a + b",
+          queryConfigs,
+          formulaConfigs: [],
+          results,
+        });
+      }).toThrow(/no series groups in common/i);
+    });
+
+    test("single-series inputs stay byte-identical to ungrouped behavior", () => {
+      /*
+       * The metric-monitor worker pre-buckets per series fingerprint and
+       * calls the evaluator with one series per variable — even though
+       * the query configs still carry groupByAttributeKeys and the rows
+       * still carry full attributes. Output must be exactly the legacy
+       * shape: unstamped {timestamp, value} rows.
+       */
+      const queryConfigs: Array<MetricQueryConfigData> = [
+        buildGroupedQueryConfig("a", ["host.name"]),
+        buildGroupedQueryConfig("b", ["host.name"]),
+      ];
+
+      const results: Array<AggregatedResult> = [
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 10,
+            attributes: { "host.name": "web-1", "process.pid": "42" },
+          },
+        ]),
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 4,
+            attributes: { "host.name": "web-1", "process.pid": "43" },
+          },
+        ]),
+      ];
+
+      const output: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: "a - b",
+        queryConfigs,
+        formulaConfigs: [],
+        results,
+      });
+
+      expect(output.data).toEqual([
+        { timestamp: new Date(timestamps[0]!), value: 6 },
+      ]);
+      expect(Object.keys(output.data[0]!)).toEqual(["timestamp", "value"]);
+    });
+
+    test("skips per-point gaps within a group silently", () => {
+      const queryConfigs: Array<MetricQueryConfigData> = [
+        buildGroupedQueryConfig("a", ["host.name"]),
+        buildGroupedQueryConfig("b", ["host.name"]),
+      ];
+
+      const results: Array<AggregatedResult> = [
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 10,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[1]!,
+            value: 20,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[0]!,
+            value: 30,
+            attributes: { "host.name": "web-2" },
+          },
+          {
+            timestamp: timestamps[1]!,
+            value: 40,
+            attributes: { "host.name": "web-2" },
+          },
+        ]),
+        buildGroupedResult([
+          // web-1 is missing the first timestamp for "b".
+          {
+            timestamp: timestamps[1]!,
+            value: 2,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[0]!,
+            value: 3,
+            attributes: { "host.name": "web-2" },
+          },
+          {
+            timestamp: timestamps[1]!,
+            value: 4,
+            attributes: { "host.name": "web-2" },
+          },
+        ]),
+      ];
+
+      const output: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: "a / b",
+        queryConfigs,
+        formulaConfigs: [],
+        results,
+      });
+
+      expect(output.data).toEqual([
+        {
+          timestamp: new Date(timestamps[1]!),
+          value: 10,
+          attributes: { "host.name": "web-1" },
+        },
+        {
+          timestamp: new Date(timestamps[0]!),
+          value: 10,
+          attributes: { "host.name": "web-2" },
+        },
+        {
+          timestamp: new Date(timestamps[1]!),
+          value: 10,
+          attributes: { "host.name": "web-2" },
+        },
+      ]);
+    });
   });
 
   describe("validateFormula", () => {
@@ -264,6 +620,38 @@ describe("MetricFormulaEvaluator", () => {
         availableVariables: ["a"],
       });
       expect(message).toMatch(/required/i);
+    });
+
+    test("rejects doubled binary operators like a**b", () => {
+      const message: string | null = MetricFormulaEvaluator.validateFormula({
+        formula: "a ** b",
+        availableVariables: ["a", "b"],
+      });
+      expect(message).toMatch(/missing an operand/i);
+    });
+
+    test("rejects trailing operators like a+", () => {
+      const message: string | null = MetricFormulaEvaluator.validateFormula({
+        formula: "a +",
+        availableVariables: ["a"],
+      });
+      expect(message).toMatch(/missing an operand/i);
+    });
+
+    test("rejects empty parentheses", () => {
+      const message: string | null = MetricFormulaEvaluator.validateFormula({
+        formula: "()",
+        availableVariables: ["a"],
+      });
+      expect(message).toMatch(/empty/i);
+    });
+
+    test("rejects adjacent values with no operator", () => {
+      const message: string | null = MetricFormulaEvaluator.validateFormula({
+        formula: "a b",
+        availableVariables: ["a", "b"],
+      });
+      expect(message).toMatch(/single value/i);
     });
   });
 });

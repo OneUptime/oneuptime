@@ -327,6 +327,23 @@ export default class BaseAnalyticsAPI<
     );
   }
 
+  /*
+   * Server-side clamp on the client-sent aggregate limit — nothing else
+   * bounds it, so an arbitrary client could request limit=999999999
+   * rows. Clamped to LIMIT_PER_PROJECT (never lower): grouped chart
+   * queries legitimately use the full 10k (groups × buckets).
+   * Non-numeric/absent limits are left untouched for the service layer's
+   * own defaulting.
+   */
+  public static clampAggregateLimit(
+    aggregateBy: AggregateBy<AnalyticsDataModel>,
+  ): void {
+    const requestedLimit: number = Number(aggregateBy.limit);
+    if (Number.isFinite(requestedLimit) && requestedLimit > LIMIT_PER_PROJECT) {
+      aggregateBy.limit = LIMIT_PER_PROJECT;
+    }
+  }
+
   @CaptureSpan()
   public async getAggregate(
     req: ExpressRequest,
@@ -356,6 +373,12 @@ export default class BaseAnalyticsAPI<
     if (!aggregateBy) {
       throw new BadRequestException("AggregateBy is required");
     }
+
+    /*
+     * Applied before the cache key is computed so an over-limit request
+     * shares the cache slot of its clamped equivalent.
+     */
+    BaseAnalyticsAPI.clampAggregateLimit(aggregateBy);
 
     const databaseProps: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);

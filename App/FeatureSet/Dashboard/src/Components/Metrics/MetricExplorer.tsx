@@ -13,16 +13,18 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import Dictionary from "Common/Types/Dictionary";
-import JSONFunctions from "Common/Types/JSONFunctions";
 import Text from "Common/Types/Text";
-import FilterData from "Common/UI/Components/Filters/Types/FilterData";
-import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
+import MetricExplorerUrl, {
+  MetricExplorerUrlParam,
+  SerializedMetricFormula,
+  SerializedMetricQuery,
+} from "Common/Utils/Metrics/MetricExplorerUrl";
 
 const MetricExplorer: FunctionComponent = (): ReactElement => {
-  const metricQueriesFromUrl: Array<MetricQueryFromUrl> =
+  const metricQueriesFromUrl: Array<SerializedMetricQuery> =
     getMetricQueriesFromQuery();
 
-  const metricFormulasFromUrl: Array<MetricFormulaFromUrl> =
+  const metricFormulasFromUrl: Array<SerializedMetricFormula> =
     getMetricFormulasFromQuery();
 
   const defaultEndDate: Date = OneUptimeDate.getCurrentDate();
@@ -41,9 +43,15 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   const initialQueryConfigs: Array<MetricQueryConfigData> =
     metricQueriesFromUrl.map(
       (
-        metricQuery: MetricQueryFromUrl,
+        metricQuery: SerializedMetricQuery,
         index: number,
       ): MetricQueryConfigData => {
+        /*
+         * Only plain data is reconstructed here. Runtime-injected
+         * function fields (getSeries, yAxisValueFormatter,
+         * transformValue) are attached downstream in MetricView before
+         * render, same as for queries built in the UI.
+         */
         return {
           metricAliasData: {
             metricVariable: Text.getLetterFromAByNumber(index),
@@ -55,11 +63,34 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
           metricQueryData: {
             filterData: {
               metricName: metricQuery.metricName,
-              attributes: metricQuery.attributes,
+              attributes: metricQuery.attributes || {},
               aggegationType:
                 metricQuery.aggregationType || MetricsAggregationType.Avg,
             },
+            ...(metricQuery.groupByAttributeKeys &&
+            metricQuery.groupByAttributeKeys.length > 0
+              ? { groupByAttributeKeys: metricQuery.groupByAttributeKeys }
+              : {}),
           },
+          ...(metricQuery.chartType
+            ? { chartType: metricQuery.chartType }
+            : {}),
+          ...(metricQuery.color ? { color: metricQuery.color } : {}),
+          ...(metricQuery.colorsByGroup
+            ? { colorsByGroup: metricQuery.colorsByGroup }
+            : {}),
+          ...(metricQuery.warningThreshold !== undefined
+            ? { warningThreshold: metricQuery.warningThreshold }
+            : {}),
+          ...(metricQuery.criticalThreshold !== undefined
+            ? { criticalThreshold: metricQuery.criticalThreshold }
+            : {}),
+          ...(metricQuery.transformAsRate === true
+            ? { transformAsRate: true }
+            : {}),
+          ...(metricQuery.overlayWithPreviousQuery === true
+            ? { overlayWithPreviousQuery: true }
+            : {}),
         };
       },
     );
@@ -67,7 +98,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
   const initialFormulaConfigs: Array<MetricFormulaConfigData> =
     metricFormulasFromUrl.map(
       (
-        formula: MetricFormulaFromUrl,
+        formula: SerializedMetricFormula,
         index: number,
       ): MetricFormulaConfigData => {
         /*
@@ -122,28 +153,10 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
     useRef<string>("");
 
   useEffect(() => {
-    const metricQueriesFromState: Array<MetricQueryFromUrl> =
-      buildMetricQueriesFromState(metricViewData);
+    const urlParams: Dictionary<string> =
+      MetricExplorerUrl.buildQueryParamsFromMetricViewData(metricViewData);
 
-    const metricQueriesForUrl: Array<MetricQueryFromUrl> =
-      metricQueriesFromState.filter(isMeaningfulMetricQuery);
-
-    const metricFormulasForUrl: Array<MetricFormulaFromUrl> =
-      buildMetricFormulasFromState(metricViewData).filter(
-        isMeaningfulMetricFormula,
-      );
-
-    const startTimeValue: Date | undefined =
-      metricViewData.startAndEndDate?.startValue;
-    const endTimeValue: Date | undefined =
-      metricViewData.startAndEndDate?.endValue;
-
-    const serializedState: string = JSON.stringify({
-      metricQueries: metricQueriesForUrl,
-      metricFormulas: metricFormulasForUrl,
-      startTime: startTimeValue ? OneUptimeDate.toString(startTimeValue) : null,
-      endTime: endTimeValue ? OneUptimeDate.toString(endTimeValue) : null,
-    });
+    const serializedState: string = JSON.stringify(urlParams);
 
     if (serializedState === lastSerializedStateRef.current) {
       return;
@@ -151,24 +164,14 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
     const params: URLSearchParams = new URLSearchParams(window.location.search);
 
-    if (metricQueriesForUrl.length > 0) {
-      params.set("metricQueries", JSON.stringify(metricQueriesForUrl));
-    } else {
-      params.delete("metricQueries");
-    }
+    for (const paramName of Object.values(MetricExplorerUrlParam)) {
+      const paramValue: string | undefined = urlParams[paramName];
 
-    if (metricFormulasForUrl.length > 0) {
-      params.set("metricFormulas", JSON.stringify(metricFormulasForUrl));
-    } else {
-      params.delete("metricFormulas");
-    }
-
-    if (startTimeValue && endTimeValue) {
-      params.set("startTime", OneUptimeDate.toString(startTimeValue));
-      params.set("endTime", OneUptimeDate.toString(endTimeValue));
-    } else {
-      params.delete("startTime");
-      params.delete("endTime");
+      if (paramValue !== undefined) {
+        params.set(paramName, paramValue);
+      } else {
+        params.delete(paramName);
+      }
     }
 
     params.delete("metricName");
@@ -198,119 +201,28 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
 export default MetricExplorer;
 
-type MetricQueryFromUrl = {
-  metricName: string;
-  attributes: Dictionary<string | number | boolean>;
-  aggregationType?: MetricsAggregationType;
-  alias?: MetricQueryAliasFromUrl;
-};
-
-type MetricQueryAliasFromUrl = {
-  title?: string;
-  description?: string;
-  legend?: string;
-  legendUnit?: string;
-};
-
-type MetricFormulaFromUrl = {
-  formula: string;
-  variable?: string;
-  alias?: MetricQueryAliasFromUrl;
-};
-
-function buildMetricQueriesFromState(
-  data: MetricViewData,
-): Array<MetricQueryFromUrl> {
-  return data.queryConfigs.map(
-    (queryConfig: MetricQueryConfigData): MetricQueryFromUrl => {
-      const filterData: FilterData<MetricsQuery> =
-        queryConfig.metricQueryData.filterData;
-      const filterDataRecord: Record<string, unknown> = filterData as Record<
-        string,
-        unknown
-      >;
-
-      const metricNameValue: unknown = filterDataRecord["metricName"];
-
-      const metricName: string =
-        typeof metricNameValue === "string" ? metricNameValue : "";
-
-      const aggregationValue: unknown = filterDataRecord["aggegationType"];
-
-      const aggregationType: MetricsAggregationType | undefined =
-        getAggregationTypeFromValue(aggregationValue);
-
-      const attributes: Dictionary<string | number | boolean> =
-        sanitizeAttributes(filterDataRecord["attributes"]);
-
-      const aliasData: MetricQueryAliasFromUrl | undefined =
-        buildAliasFromMetricAliasData(queryConfig.metricAliasData);
-
-      return {
-        metricName,
-        attributes,
-        ...(aggregationType ? { aggregationType } : {}),
-        ...(aliasData ? { alias: aliasData } : {}),
-      };
-    },
+function getMetricQueriesFromQuery(): Array<SerializedMetricQuery> {
+  const metricQueriesParam: string | null = Navigation.getQueryStringByName(
+    MetricExplorerUrlParam.MetricQueries,
   );
-}
-
-function getMetricQueriesFromQuery(): Array<MetricQueryFromUrl> {
-  const metricQueriesParam: string | null =
-    Navigation.getQueryStringByName("metricQueries");
 
   if (!metricQueriesParam) {
     return [];
   }
 
-  try {
-    const parsedValue: unknown = JSONFunctions.parse(metricQueriesParam);
+  return MetricExplorerUrl.parseMetricQueriesParam(metricQueriesParam);
+}
 
-    if (!Array.isArray(parsedValue)) {
-      return [];
-    }
+function getMetricFormulasFromQuery(): Array<SerializedMetricFormula> {
+  const formulasParam: string | null = Navigation.getQueryStringByName(
+    MetricExplorerUrlParam.MetricFormulas,
+  );
 
-    const sanitizedQueries: Array<MetricQueryFromUrl> = [];
-
-    for (const entry of parsedValue) {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        continue;
-      }
-
-      const entryRecord: Record<string, unknown> = entry as Record<
-        string,
-        unknown
-      >;
-
-      const metricName: string =
-        typeof entryRecord["metricName"] === "string"
-          ? (entryRecord["metricName"] as string)
-          : "";
-
-      const attributes: Dictionary<string | number | boolean> =
-        sanitizeAttributes(entryRecord["attributes"]);
-
-      const aggregationType: MetricsAggregationType | undefined =
-        getAggregationTypeFromValue(entryRecord["aggregationType"]);
-
-      const alias: MetricQueryAliasFromUrl | undefined = sanitizeAlias(
-        entryRecord["alias"],
-        entryRecord,
-      );
-
-      sanitizedQueries.push({
-        metricName,
-        attributes,
-        ...(aggregationType ? { aggregationType } : {}),
-        ...(alias ? { alias } : {}),
-      });
-    }
-
-    return sanitizedQueries;
-  } catch {
+  if (!formulasParam) {
     return [];
   }
+
+  return MetricExplorerUrl.parseMetricFormulasParam(formulasParam);
 }
 
 function getTimeRangeFromQuery(): InBetween<Date> | null {
@@ -342,247 +254,4 @@ function getTimeRangeFromQuery(): InBetween<Date> | null {
   } catch {
     return null;
   }
-}
-
-function sanitizeAttributes(
-  value: unknown,
-): Dictionary<string | number | boolean> {
-  if (value === null || value === undefined) {
-    return {};
-  }
-
-  let candidate: unknown = value;
-
-  if (typeof value === "string") {
-    try {
-      candidate = JSONFunctions.parse(value);
-    } catch {
-      return {};
-    }
-  }
-
-  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-    return {};
-  }
-
-  const attributes: Dictionary<string | number | boolean> = {};
-
-  for (const key in candidate as Record<string, unknown>) {
-    const attributeValue: unknown = (candidate as Record<string, unknown>)[key];
-
-    if (
-      typeof attributeValue === "string" ||
-      typeof attributeValue === "number" ||
-      typeof attributeValue === "boolean"
-    ) {
-      attributes[key] = attributeValue;
-    }
-  }
-
-  return attributes;
-}
-
-function buildAliasFromMetricAliasData(
-  data: MetricQueryConfigData["metricAliasData"],
-): MetricQueryAliasFromUrl | undefined {
-  if (!data) {
-    return undefined;
-  }
-
-  const alias: MetricQueryAliasFromUrl = {};
-
-  if (typeof data.title === "string" && data.title.trim() !== "") {
-    alias.title = data.title;
-  }
-
-  if (typeof data.description === "string" && data.description.trim() !== "") {
-    alias.description = data.description;
-  }
-
-  if (typeof data.legend === "string" && data.legend.trim() !== "") {
-    alias.legend = data.legend;
-  }
-
-  if (typeof data.legendUnit === "string" && data.legendUnit.trim() !== "") {
-    alias.legendUnit = data.legendUnit;
-  }
-
-  return Object.keys(alias).length > 0 ? alias : undefined;
-}
-
-function sanitizeAlias(
-  value: unknown,
-  fallback?: Record<string, unknown>,
-): MetricQueryAliasFromUrl | undefined {
-  const alias: MetricQueryAliasFromUrl = {};
-
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    const aliasRecord: Record<string, unknown> = value as Record<
-      string,
-      unknown
-    >;
-
-    if (typeof aliasRecord["title"] === "string") {
-      alias.title = aliasRecord["title"] as string;
-    }
-
-    if (typeof aliasRecord["description"] === "string") {
-      alias.description = aliasRecord["description"] as string;
-    }
-
-    if (typeof aliasRecord["legend"] === "string") {
-      alias.legend = aliasRecord["legend"] as string;
-    }
-
-    if (typeof aliasRecord["legendUnit"] === "string") {
-      alias.legendUnit = aliasRecord["legendUnit"] as string;
-    }
-  }
-
-  // Backward compatibility: allow flat keys on the main query record.
-  if (fallback) {
-    if (alias.title === undefined && typeof fallback["title"] === "string") {
-      alias.title = fallback["title"] as string;
-    }
-
-    if (
-      alias.description === undefined &&
-      typeof fallback["description"] === "string"
-    ) {
-      alias.description = fallback["description"] as string;
-    }
-
-    if (alias.legend === undefined && typeof fallback["legend"] === "string") {
-      alias.legend = fallback["legend"] as string;
-    }
-
-    if (
-      alias.legendUnit === undefined &&
-      typeof fallback["legendUnit"] === "string"
-    ) {
-      alias.legendUnit = fallback["legendUnit"] as string;
-    }
-  }
-
-  return Object.keys(alias).length > 0 ? alias : undefined;
-}
-
-function getAggregationTypeFromValue(
-  value: unknown,
-): MetricsAggregationType | undefined {
-  if (typeof value === "string") {
-    const aggregationTypeValues: Array<string> = Object.values(
-      MetricsAggregationType,
-    ) as Array<string>;
-
-    if (aggregationTypeValues.includes(value)) {
-      return value as MetricsAggregationType;
-    }
-  }
-
-  return undefined;
-}
-
-function buildMetricFormulasFromState(
-  data: MetricViewData,
-): Array<MetricFormulaFromUrl> {
-  return data.formulaConfigs.map(
-    (config: MetricFormulaConfigData): MetricFormulaFromUrl => {
-      const alias: MetricQueryAliasFromUrl | undefined =
-        buildAliasFromMetricAliasData(config.metricAliasData);
-      return {
-        formula: config.metricFormulaData?.metricFormula || "",
-        ...(config.metricAliasData?.metricVariable
-          ? { variable: config.metricAliasData.metricVariable }
-          : {}),
-        ...(alias ? { alias } : {}),
-      };
-    },
-  );
-}
-
-function getMetricFormulasFromQuery(): Array<MetricFormulaFromUrl> {
-  const formulasParam: string | null =
-    Navigation.getQueryStringByName("metricFormulas");
-
-  if (!formulasParam) {
-    return [];
-  }
-
-  try {
-    const parsedValue: unknown = JSONFunctions.parse(formulasParam);
-
-    if (!Array.isArray(parsedValue)) {
-      return [];
-    }
-
-    const formulas: Array<MetricFormulaFromUrl> = [];
-
-    for (const entry of parsedValue) {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        continue;
-      }
-
-      const entryRecord: Record<string, unknown> = entry as Record<
-        string,
-        unknown
-      >;
-
-      const formula: string =
-        typeof entryRecord["formula"] === "string"
-          ? (entryRecord["formula"] as string)
-          : "";
-
-      if (!formula) {
-        continue;
-      }
-
-      const variable: string | undefined =
-        typeof entryRecord["variable"] === "string"
-          ? (entryRecord["variable"] as string)
-          : undefined;
-
-      const alias: MetricQueryAliasFromUrl | undefined = sanitizeAlias(
-        entryRecord["alias"],
-        entryRecord,
-      );
-
-      formulas.push({
-        formula,
-        ...(variable ? { variable } : {}),
-        ...(alias ? { alias } : {}),
-      });
-    }
-
-    return formulas;
-  } catch {
-    return [];
-  }
-}
-
-function isMeaningfulMetricFormula(formula: MetricFormulaFromUrl): boolean {
-  return Boolean(formula.formula && formula.formula.trim());
-}
-
-function isMeaningfulMetricQuery(query: MetricQueryFromUrl): boolean {
-  if (query.metricName) {
-    return true;
-  }
-
-  if (Object.keys(query.attributes).length > 0) {
-    return true;
-  }
-
-  if (
-    query.aggregationType &&
-    query.aggregationType !== MetricsAggregationType.Avg
-  ) {
-    return true;
-  }
-
-  if (query.alias && Object.keys(query.alias).length > 0) {
-    return true;
-  }
-
-  return false;
 }

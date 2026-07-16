@@ -3,6 +3,7 @@ import { MetricService } from "../../../Server/Services/MetricService";
 import Metric from "../../../Models/AnalyticsModels/Metric";
 import AggregateBy from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
@@ -356,6 +357,461 @@ describe("MetricService aggregate statement generation", () => {
       expect(query).toContain("min(time) as time");
       expect(query).toContain("GROUP BY __attr_grp_0");
       expect(query).not.toContain("date_trunc");
+    });
+  });
+
+  /*
+   * The sub-hour tiers (FiveMinutes/FifteenMinutes/ThirtyMinutes) are NOT
+   * valid ClickHouse date_trunc units — they must compile through the
+   * shared AggregateUtil expression map to `toStartOfInterval(col,
+   * INTERVAL n MINUTE)`, never to `date_trunc('fiveminutes', ...)`.
+   */
+  describe("sub-hour interval tiers", () => {
+    const windowStart: Date = new Date("2026-07-09T00:00:00.000Z");
+
+    type BuildWindowedFunction = (
+      hours: number,
+      overrides?: Partial<AggregateBy<Metric>>,
+    ) => AggregateBy<Metric>;
+
+    const buildWindowed: BuildWindowedFunction = (
+      hours: number,
+      overrides?: Partial<AggregateBy<Metric>>,
+    ): AggregateBy<Metric> => {
+      const windowEnd: Date = new Date(
+        windowStart.getTime() + hours * 60 * 60 * 1000,
+      );
+      return buildAggregateBy({
+        query: {
+          projectId: projectId,
+          name: "http.client.request.duration",
+          time: new InBetween(windowStart, windowEnd),
+        } as AggregateBy<Metric>["query"],
+        startTimestamp: windowStart,
+        endTimestamp: windowEnd,
+        ...overrides,
+      });
+    };
+
+    it("serves a 4h window from the minute MV at 5-minute buckets", () => {
+      const query: string = getQuery(buildWindowed(4));
+
+      expect(query).toContain("MetricItemAggMV1m");
+      expect(query).toContain(
+        "toStartOfInterval(bucketTime, INTERVAL 5 MINUTE) as time",
+      );
+      expect(query).not.toContain("date_trunc");
+    });
+
+    it("serves an 18h window at 15-minute buckets and a 2d window at 30-minute buckets", () => {
+      const query18h: string = getQuery(buildWindowed(18));
+      expect(query18h).toContain(
+        "toStartOfInterval(bucketTime, INTERVAL 15 MINUTE) as time",
+      );
+
+      const query2d: string = getQuery(buildWindowed(48));
+      expect(query2d).toContain(
+        "toStartOfInterval(bucketTime, INTERVAL 30 MINUTE) as time",
+      );
+    });
+
+    it("keeps the legacy date_trunc form for windows <= 3h", () => {
+      const query: string = getQuery(buildWindowed(2));
+
+      expect(query).toContain(
+        "date_trunc('minute', toStartOfInterval(bucketTime, INTERVAL 1 minute))",
+      );
+      expect(query).not.toContain("INTERVAL 5 MINUTE");
+    });
+
+    it("compiles 5-minute buckets on the base scalar builder (distribution metric)", () => {
+      const aggregateBy: AggregateBy<Metric> = buildWindowed(4);
+      (
+        service as unknown as {
+          pointTypeHintByAggregate: WeakMap<AggregateBy<Metric>, string | null>;
+        }
+      ).pointTypeHintByAggregate.set(aggregateBy, "Histogram");
+
+      const query: string = getQuery(aggregateBy);
+
+      expect(query).not.toContain("MetricItemAggMV1m");
+      expect(query).toContain(
+        "toStartOfInterval(time, INTERVAL 5 MINUTE) as time",
+      );
+      expect(query).not.toContain("fiveminutes");
+    });
+
+    it("compiles 5-minute buckets on the percentile path", () => {
+      const query: string = getQuery(
+        buildWindowed(4, { aggregationType: AggregationType.P90 }),
+      );
+
+      expect(query).toContain("quantileExactWeighted(0.9)");
+      expect(query).toContain(
+        "toStartOfInterval(time, INTERVAL 5 MINUTE) as time",
+      );
+    });
+
+    it("compiles 5-minute buckets on the per-host MV path", () => {
+      const query: string = getQuery(
+        buildWindowed(4, {
+          query: {
+            projectId: projectId,
+            name: "http.client.request.duration",
+            time: new InBetween(
+              windowStart,
+              new Date(windowStart.getTime() + 4 * 60 * 60 * 1000),
+            ),
+            attributes: { "resource.host.name": "web-01" },
+          } as unknown as AggregateBy<Metric>["query"],
+        }),
+      );
+
+      expect(query).toContain("MetricItemAggMV1mByHostV2");
+      expect(query).toContain(
+        "toStartOfInterval(bucketTime, INTERVAL 5 MINUTE) as time",
+      );
+    });
+
+    it("honors an explicit FiveMinutes override independent of the window", () => {
+      // The default 5-minute window derives Minute; the override pins 5m.
+      const query: string = getQuery(
+        buildAggregateBy({
+          aggregationInterval: AggregationInterval.FiveMinutes,
+        }),
+      );
+
+      expect(query).toContain(
+        "toStartOfInterval(bucketTime, INTERVAL 5 MINUTE) as time",
+      );
+    });
+  });
+
+  describe("execution-time cap settings", () => {
+    const expectCapped: (query: string) => void = (query: string): void => {
+      expect(query).toContain("max_execution_time = 45");
+      expect(query).toContain("timeout_overflow_mode = 'break'");
+    };
+
+    it("caps the minute MV path", () => {
+      expectCapped(getQuery(buildAggregateBy()));
+    });
+
+    it("caps the base scalar path", () => {
+      expectCapped(
+        getQuery(
+          buildAggregateBy({
+            groupByAttributeKeys: ["host.name"],
+          }),
+        ),
+      );
+    });
+
+    it("caps the percentile path", () => {
+      expectCapped(
+        getQuery(buildAggregateBy({ aggregationType: AggregationType.P90 })),
+      );
+    });
+
+    it("caps the per-host MV path", () => {
+      expectCapped(
+        getQuery(
+          buildAggregateBy({
+            query: {
+              projectId: projectId,
+              name: "http.client.request.duration",
+              time: new InBetween(startDate, endDate),
+              attributes: { "resource.host.name": "web-01" },
+            } as unknown as AggregateBy<Metric>["query"],
+          }),
+        ),
+      );
+    });
+  });
+
+  /*
+   * Server-side Top-K: grouped aggregations rank groups over the whole
+   * window in an IN-subquery, restrict the bucketed aggregation to the
+   * winners, and carry the pre-trim group count as `__total_groups`.
+   */
+  describe("server-side Top-K", () => {
+    it("restricts a grouped scalar aggregation to the top K groups (rankBy max)", () => {
+      const result: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(
+          buildAggregateBy({
+            groupByAttributeKeys: ["host.name"],
+            topK: { count: 10, rankBy: "max" },
+          }),
+        );
+      const query: string = result.statement.query;
+
+      expect(query).toContain(") IN (SELECT ");
+      expect(query).toContain("ORDER BY max(value) DESC");
+      expect(query).toContain("uniqExact(");
+      expect(query).toContain("AS __total_groups");
+      // topK.count only reaches the SQL as a bound parameter.
+      expect(query).not.toContain("LIMIT 10)");
+      expect(
+        Object.values(result.statement.query_params).filter(
+          (value: unknown) => {
+            return value === 10;
+          },
+        ).length,
+      ).toBeGreaterThanOrEqual(1);
+    });
+
+    it("ranks by avg when requested", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          groupByAttributeKeys: ["host.name"],
+          topK: { count: 5, rankBy: "avg" },
+        }),
+      );
+
+      expect(query).toContain("ORDER BY avg(value) DESC");
+      expect(query).not.toContain("ORDER BY max(value) DESC");
+    });
+
+    it("applies Top-K to grouped percentile aggregations (p95-by-host)", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          aggregationType: AggregationType.P95,
+          groupByAttributeKeys: ["host.name"],
+          topK: { count: 10, rankBy: "max" },
+        }),
+      );
+
+      expect(query).toContain("quantileExactWeighted(0.95)");
+      expect(query).toContain(") IN (SELECT ");
+      expect(query).toContain("ORDER BY max(value) DESC");
+      expect(query).toContain("AS __total_groups");
+    });
+
+    it("applies Top-K to model-column group-bys on the scalar path", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          groupBy: { metricPointType: true } as AggregateBy<Metric>["groupBy"],
+          topK: { count: 3, rankBy: "max" },
+        }),
+      );
+
+      expect(query).toContain("metricPointType) IN (SELECT metricPointType");
+      expect(query).toContain("uniqExact(metricPointType)");
+    });
+
+    it("ignores topK for ungrouped aggregations", () => {
+      const query: string = getQuery(
+        buildAggregateBy({
+          // Attribute filter forces the base scalar builder, no grouping.
+          query: {
+            projectId: projectId,
+            name: "http.client.request.duration",
+            time: new InBetween(startDate, endDate),
+            attributes: { "oneuptime.service.name": "starship-web" },
+          } as unknown as AggregateBy<Metric>["query"],
+          topK: { count: 10, rankBy: "max" },
+        }),
+      );
+
+      expect(query).not.toContain("__total_groups");
+      expect(query).not.toContain(") IN (SELECT ");
+    });
+
+    it("rejects a non-positive topK.count", () => {
+      expect(() => {
+        return service.toAggregateStatement(
+          buildAggregateBy({
+            groupByAttributeKeys: ["host.name"],
+            topK: { count: 0, rankBy: "max" },
+          }),
+        );
+      }).toThrow(BadDataException);
+    });
+
+    it("rejects an unknown topK.rankBy", () => {
+      expect(() => {
+        return service.toAggregateStatement(
+          buildAggregateBy({
+            groupByAttributeKeys: ["host.name"],
+            topK: {
+              count: 10,
+              rankBy: "sum(1); DROP TABLE x" as unknown as "max",
+            },
+          }),
+        );
+      }).toThrow(BadDataException);
+    });
+
+    it("applies Top-K to grouped mutable-metric aggregations over the deduped rows", () => {
+      // "oneuptime.incident.count" is a registered mutable metric name.
+      const buildMutable: (
+        overrides?: Partial<AggregateBy<Metric>>,
+      ) => AggregateBy<Metric> = (
+        overrides?: Partial<AggregateBy<Metric>>,
+      ): AggregateBy<Metric> => {
+        return buildAggregateBy({
+          query: {
+            projectId: projectId,
+            name: "oneuptime.incident.count",
+            time: new InBetween(startDate, endDate),
+          } as AggregateBy<Metric>["query"],
+          groupBy: {
+            primaryEntityType: true,
+          } as AggregateBy<Metric>["groupBy"],
+          ...overrides,
+        });
+      };
+
+      const result: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(
+          buildMutable({ topK: { count: 5, rankBy: "max" } }),
+        );
+      const query: string = result.statement.query;
+
+      // Routed to the mutable table (bound as an identifier parameter).
+      expect(Object.values(result.statement.query_params)).toContain(
+        "MutableMetricItem",
+      );
+      expect(query).toContain(
+        "primaryEntityType) IN (SELECT primaryEntityType",
+      );
+      expect(query).toContain("ORDER BY max(value) DESC");
+      expect(query).toContain("uniqExact(primaryEntityType)");
+      expect(query).toContain("AS __total_groups");
+      // Ranking must run over the argMax-deduped rows, not raw versions.
+      expect(
+        query.split("argMax(value, version) AS value").length - 1,
+      ).toBeGreaterThanOrEqual(3);
+
+      // Without topK the mutable statement stays free of Top-K artifacts.
+      const plainQuery: string = getQuery(buildMutable());
+      expect(plainQuery).not.toContain("__total_groups");
+      expect(plainQuery).not.toContain(") IN (SELECT ");
+    });
+
+    it("emits an identical statement when topK is absent vs explicitly undefined", () => {
+      const withoutField: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(
+          buildAggregateBy({ groupByAttributeKeys: ["host.name"] }),
+        );
+      const withUndefined: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(
+          buildAggregateBy({
+            groupByAttributeKeys: ["host.name"],
+            topK: undefined,
+          }),
+        );
+
+      expect(withoutField.statement.query).toBe(withUndefined.statement.query);
+      expect(withoutField.statement.query_params).toStrictEqual(
+        withUndefined.statement.query_params,
+      );
+      // And no Top-K artifacts leak into the plain grouped statement.
+      expect(withoutField.statement.query).not.toContain("__total_groups");
+      expect(withoutField.statement.query).not.toContain(") IN (SELECT ");
+    });
+  });
+
+  /*
+   * Result assembly: `__total_groups` is lifted off the first row into
+   * AggregatedResult.totalGroups, and `truncated` flags both row-limit
+   * saturation (heuristic) and Top-K group truncation (exact).
+   */
+  describe("aggregate result assembly (truncated / totalGroups)", () => {
+    type MockRowsFunction = (rows: Array<Record<string, unknown>>) => void;
+
+    const mockExecuteQuery: MockRowsFunction = (
+      rows: Array<Record<string, unknown>>,
+    ): void => {
+      (
+        service as unknown as {
+          executeQuery: (statement: Statement) => Promise<unknown>;
+        }
+      ).executeQuery = async (): Promise<unknown> => {
+        return {
+          json: async (): Promise<{ data: Array<Record<string, unknown>> }> => {
+            return { data: rows };
+          },
+        };
+      };
+    };
+
+    const bucketRow: (
+      overrides?: Record<string, unknown>,
+    ) => Record<string, unknown> = (
+      overrides?: Record<string, unknown>,
+    ): Record<string, unknown> => {
+      return {
+        time: "2026-07-09T19:10:00.000Z",
+        value: 42,
+        attributes: { "host.name": "web-01" },
+        ...overrides,
+      };
+    };
+
+    it("returns truncated=false and no totalGroups on an unsaturated non-topK result", async () => {
+      mockExecuteQuery([bucketRow()]);
+
+      const result: AggregatedResult = await service.aggregateBy(
+        buildAggregateBy({ groupByAttributeKeys: ["host.name"] }),
+      );
+
+      expect(result.data).toHaveLength(1);
+      expect(result.truncated).toBe(false);
+      expect(result.totalGroups).toBeUndefined();
+    });
+
+    it("flags truncated=true when the row count hits the applied limit", async () => {
+      mockExecuteQuery([
+        bucketRow(),
+        bucketRow({ time: "2026-07-09T19:11:00.000Z" }),
+      ]);
+
+      const result: AggregatedResult = await service.aggregateBy(
+        buildAggregateBy({
+          groupByAttributeKeys: ["host.name"],
+          limit: 2,
+        }),
+      );
+
+      expect(result.data).toHaveLength(2);
+      expect(result.truncated).toBe(true);
+    });
+
+    it("lifts __total_groups into totalGroups and flags Top-K truncation", async () => {
+      mockExecuteQuery([
+        bucketRow({ __total_groups: "25" }),
+        bucketRow({
+          time: "2026-07-09T19:11:00.000Z",
+          __total_groups: "25",
+        }),
+      ]);
+
+      const result: AggregatedResult = await service.aggregateBy(
+        buildAggregateBy({
+          groupByAttributeKeys: ["host.name"],
+          topK: { count: 10, rankBy: "max" },
+        }),
+      );
+
+      expect(result.totalGroups).toBe(25);
+      expect(result.truncated).toBe(true);
+      // The helper column never reaches the per-row payload.
+      expect(result.data[0]!["__total_groups"]).toBeUndefined();
+    });
+
+    it("reports truncated=false when every group fit inside topK.count", async () => {
+      mockExecuteQuery([bucketRow({ __total_groups: "3" })]);
+
+      const result: AggregatedResult = await service.aggregateBy(
+        buildAggregateBy({
+          groupByAttributeKeys: ["host.name"],
+          topK: { count: 10, rankBy: "max" },
+        }),
+      );
+
+      expect(result.totalGroups).toBe(3);
+      expect(result.truncated).toBe(false);
     });
   });
 });
