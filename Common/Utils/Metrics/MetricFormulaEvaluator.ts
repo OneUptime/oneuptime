@@ -16,10 +16,12 @@ import { JSONObject, JSONValue } from "../../Types/JSON";
  * and its result carries multiple series, the formula is evaluated once
  * per group present in ALL grouped variables (Datadog-style), and the
  * group's attributes are stamped onto the output rows so chart layers
- * can split them back into one line per group. Ungrouped (single-series)
- * variables broadcast across groups. When every referenced variable has
- * a single series the evaluator behaves exactly like the original
- * timestamp-only join — no stamping, identical output.
+ * can split them back into one line per group. Ungrouped variables
+ * broadcast across groups; a variable whose QUERY was grouped is joined
+ * by group key even when it happens to return a single series (see
+ * isGroupedVariable). When every referenced variable has a single
+ * series the evaluator behaves exactly like the original timestamp-only
+ * join — no stamping, identical output.
  */
 
 enum TokenType {
@@ -117,11 +119,7 @@ export default class MetricFormulaEvaluator {
     }
 
     /*
-     * Bucket each variable's rows into series groups. A variable counts
-     * as "grouped" only when it actually carries two or more distinct
-     * series — a grouped query that returned a single series (or callers
-     * like the metric-monitor worker that pre-bucket per fingerprint
-     * before calling) keeps the original single-series behavior.
+     * Bucket each variable's rows into series groups.
      */
     const seriesBuckets: Record<string, Map<string, SeriesGroupBucket>> = {};
 
@@ -131,13 +129,21 @@ export default class MetricFormulaEvaluator {
       );
     }
 
-    const groupedVariables: Array<string> = referencedVariables.filter(
+    /*
+     * The grouped path only ENGAGES when some variable factually carries
+     * two or more series. Callers like the metric-monitor worker
+     * pre-bucket per series fingerprint and pass one series per variable
+     * (with grouped query configs still attached), and those inputs must
+     * remain an exact — byte-identical — passthrough of the original
+     * single-series behavior.
+     */
+    const hasMultiSeriesVariable: boolean = referencedVariables.some(
       (variableName: string) => {
         return (seriesBuckets[variableName]?.size || 0) >= 2;
       },
     );
 
-    if (groupedVariables.length === 0) {
+    if (!hasMultiSeriesVariable) {
       // Single-series inputs: exact passthrough of the original behavior.
       const seriesByVariable: Record<string, Array<AggregatedModel>> = {};
       for (const variableName of referencedVariables) {
@@ -153,6 +159,22 @@ export default class MetricFormulaEvaluator {
         }),
       };
     }
+
+    /*
+     * Once in the grouped path, classification switches from observed
+     * series count to query intent where available: a variable whose
+     * query was grouped joins by group key even when it returned a
+     * single series. Every multi-series variable satisfies the
+     * predicate too, so groupedVariables is never empty here.
+     */
+    const groupedVariables: Array<string> = referencedVariables.filter(
+      (variableName: string) => {
+        return MetricFormulaEvaluator.isGroupedVariable(
+          seriesBuckets[variableName],
+          variableData[variableName]!,
+        );
+      },
+    );
 
     /*
      * Groups the formula is evaluated for = groups present in EVERY
@@ -193,10 +215,15 @@ export default class MetricFormulaEvaluator {
       for (const variableName of referencedVariables) {
         const buckets: Map<string, SeriesGroupBucket> =
           seriesBuckets[variableName]!;
-        if (buckets.size >= 2) {
+        if (
+          MetricFormulaEvaluator.isGroupedVariable(
+            buckets,
+            variableData[variableName]!,
+          )
+        ) {
           seriesByVariable[variableName] = buckets.get(groupKey)?.samples || [];
         } else {
-          // Ungrouped / single-series variable: broadcast to every group.
+          // Ungrouped variable: broadcast to every group.
           seriesByVariable[variableName] =
             variableData[variableName]!.result.data;
         }
@@ -318,6 +345,37 @@ export default class MetricFormulaEvaluator {
     }
 
     return variableMap;
+  }
+
+  /**
+   * Whether a variable participates in per-group evaluation (joined by
+   * group key) rather than broadcasting across every group. True when
+   * it factually carries two or more series, OR when its QUERY was
+   * grouped (groupByAttributeKeys) and it returned at least one series:
+   * a grouped query that collapsed to a single series (e.g. only one
+   * host reported the denominator metric in the window) must still be
+   * matched group-by-group — broadcasting it would silently compute
+   * cross-group math stamped with another group's labels. Formula
+   * variables and ungrouped queries carry no grouping config, so they
+   * keep the observed >=2 heuristic. A config-grouped variable with an
+   * EMPTY result intentionally classifies as ungrouped: it degrades to
+   * per-point gaps (empty output) instead of a structural
+   * no-groups-in-common error.
+   *
+   * Only consulted once the grouped path has engaged — the passthrough
+   * gate in evaluateFormula deliberately does NOT use this predicate,
+   * so single-series inputs (the metric-monitor worker's per-fingerprint
+   * shape) stay a byte-identical passthrough.
+   */
+  private static isGroupedVariable(
+    buckets: Map<string, SeriesGroupBucket> | undefined,
+    variable: VariableSeriesData,
+  ): boolean {
+    const bucketCount: number = buckets?.size || 0;
+    if (bucketCount >= 2) {
+      return true;
+    }
+    return bucketCount >= 1 && variable.groupByAttributeKeys.length > 0;
   }
 
   /**

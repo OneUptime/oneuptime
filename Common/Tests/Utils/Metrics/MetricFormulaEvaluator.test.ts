@@ -469,6 +469,92 @@ describe("MetricFormulaEvaluator", () => {
       }).toThrow(/no series groups in common/i);
     });
 
+    test("joins a grouped variable that collapsed to a single series by group key (no cross-group broadcast)", () => {
+      /*
+       * Regression: $a and $b are both grouped by host.name, but in the
+       * charted window $b only returned rows for web-1 (web-2's
+       * denominator metric is missing). $b must NOT be treated as
+       * ungrouped-and-broadcast — that would compute a(web-2)/b(web-1)
+       * and stamp it as the web-2 series. Per the documented "groups
+       * present in ALL grouped variables" semantics, web-2 is dropped.
+       */
+      const queryConfigs: Array<MetricQueryConfigData> = [
+        buildGroupedQueryConfig("a", ["host.name"]),
+        buildGroupedQueryConfig("b", ["host.name"]),
+      ];
+
+      const results: Array<AggregatedResult> = [
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 10,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[0]!,
+            value: 40,
+            attributes: { "host.name": "web-2" },
+          },
+        ]),
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 2,
+            attributes: { "host.name": "web-1" },
+          },
+        ]),
+      ];
+
+      const output: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: "a / b",
+        queryConfigs,
+        formulaConfigs: [],
+        results,
+      });
+
+      // Only web-1 (the common group) is emitted — and with web-1 math.
+      expect(output.data).toEqual([
+        {
+          timestamp: new Date(timestamps[0]!),
+          value: 5,
+          attributes: { "host.name": "web-1" },
+        },
+      ]);
+    });
+
+    test("still broadcasts a config-grouped variable whose result is EMPTY (degrades to gaps, not a structural error)", () => {
+      const queryConfigs: Array<MetricQueryConfigData> = [
+        buildGroupedQueryConfig("a", ["host.name"]),
+        buildGroupedQueryConfig("b", ["host.name"]),
+      ];
+
+      const results: Array<AggregatedResult> = [
+        buildGroupedResult([
+          {
+            timestamp: timestamps[0]!,
+            value: 10,
+            attributes: { "host.name": "web-1" },
+          },
+          {
+            timestamp: timestamps[0]!,
+            value: 40,
+            attributes: { "host.name": "web-2" },
+          },
+        ]),
+        buildGroupedResult([]),
+      ];
+
+      const output: AggregatedResult = MetricFormulaEvaluator.evaluateFormula({
+        formula: "a / b",
+        queryConfigs,
+        formulaConfigs: [],
+        results,
+      });
+
+      // Every point misses $b, so every point is skipped silently.
+      expect(output.data).toEqual([]);
+    });
+
     test("single-series inputs stay byte-identical to ungrouped behavior", () => {
       /*
        * The metric-monitor worker pre-buckets per series fingerprint and

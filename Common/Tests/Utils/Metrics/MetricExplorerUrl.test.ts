@@ -101,6 +101,7 @@ describe("MetricExplorerUrl", () => {
       expect(parsed).toHaveLength(1);
       expect(parsed[0]).toEqual({
         metricName: "system.cpu.utilization",
+        variable: "a",
         attributes: {
           "host.name": "node-1",
           "is.prod": true,
@@ -144,7 +145,7 @@ describe("MetricExplorerUrl", () => {
       expect(rawQueries).not.toContain("should never serialize");
     });
 
-    test("round-trips formulas with variable and alias", () => {
+    test("round-trips formulas with variable, alias and display fields", () => {
       const formulaConfig: MetricFormulaConfigData = {
         metricAliasData: {
           metricVariable: "c",
@@ -156,6 +157,10 @@ describe("MetricExplorerUrl", () => {
         metricFormulaData: {
           metricFormula: "a / b * 100",
         },
+        chartType: MetricChartType.BAR,
+        color: "#ef4444",
+        warningThreshold: 5,
+        criticalThreshold: 12.5,
       };
 
       const params: Dictionary<string> =
@@ -182,8 +187,49 @@ describe("MetricExplorerUrl", () => {
             title: "Error Rate",
             legend: "errors",
           },
+          chartType: MetricChartType.BAR,
+          color: "#ef4444",
+          warningThreshold: 5,
+          criticalThreshold: 12.5,
         },
       ]);
+    });
+
+    test("preserves a non-positional query variable so formulas keep resolving", () => {
+      /*
+       * A lone query left named "b" (its "a" sibling was deleted in the
+       * live view) must serialize its variable — reconstruction would
+       * otherwise re-letter it to "a" positionally and break formulas
+       * that reference $b.
+       */
+      const queryConfig: MetricQueryConfigData = {
+        metricAliasData: {
+          metricVariable: "b",
+          title: "",
+          description: "",
+          legend: "",
+          legendUnit: "",
+        },
+        metricQueryData: {
+          filterData: {
+            metricName: "system.memory.usage",
+            attributes: {},
+            aggegationType: MetricsAggregationType.Avg,
+          },
+        },
+      };
+
+      const params: Dictionary<string> =
+        MetricExplorerUrl.buildQueryParamsFromMetricViewData(
+          buildViewData({ queryConfigs: [queryConfig] }),
+        );
+
+      const parsed: Array<SerializedMetricQuery> =
+        MetricExplorerUrl.parseMetricQueriesParam(
+          params[MetricExplorerUrlParam.MetricQueries] as string,
+        );
+
+      expect(parsed[0]?.variable).toBe("b");
     });
 
     test("emits startTime/endTime only when both ends of the window exist", () => {
@@ -266,7 +312,7 @@ describe("MetricExplorerUrl", () => {
       expect(Object.keys(params)).toHaveLength(0);
     });
 
-    test("emits the range param only for a non-default relative token", () => {
+    test("emits the range param for every relative token, including the default hour", () => {
       const startTime: Date = OneUptimeDate.fromString(
         "2026-07-16T10:00:00.000Z",
       );
@@ -288,20 +334,26 @@ describe("MetricExplorerUrl", () => {
         });
       };
 
-      // Non-default token → range param plus absolute back-compat window.
+      // Relative token → range param plus absolute back-compat window.
       expect(buildParamsForToken(TimeRange.PAST_ONE_DAY)).toMatchObject({
         [MetricExplorerUrlParam.Range]: TimeRange.PAST_ONE_DAY,
         [MetricExplorerUrlParam.StartTime]: OneUptimeDate.toString(startTime),
         [MetricExplorerUrlParam.EndTime]: OneUptimeDate.toString(endTime),
       });
 
-      // Default Past 1 Hour token, custom, no token, garbage → omitted.
-      for (const omittedToken of [
-        TimeRange.PAST_ONE_HOUR,
-        TimeRange.CUSTOM,
-        undefined,
-        "Not A Range",
-      ]) {
+      /*
+       * The default Past 1 Hour is emitted explicitly too: parsing treats
+       * absolute-only params as a pinned Custom window, so an implicit
+       * default would silently stop rolling on reload / Copy Link.
+       */
+      expect(
+        buildParamsForToken(TimeRange.PAST_ONE_HOUR)[
+          MetricExplorerUrlParam.Range
+        ],
+      ).toBe(TimeRange.PAST_ONE_HOUR);
+
+      // Custom, no token, garbage → omitted (pinned absolute window).
+      for (const omittedToken of [TimeRange.CUSTOM, undefined, "Not A Range"]) {
         expect(
           buildParamsForToken(omittedToken)[MetricExplorerUrlParam.Range],
         ).toBeUndefined();
@@ -426,6 +478,7 @@ describe("MetricExplorerUrl", () => {
         ["also garbage"],
         {
           metricName: "cpu",
+          variable: 42,
           attributes: "not an object",
           aggregationType: "NotAnAggregation",
           chartType: "pie",
@@ -479,6 +532,29 @@ describe("MetricExplorerUrl", () => {
         );
 
       expect(parsed).toEqual([{ formula: "a + b", variable: "c" }]);
+    });
+
+    test("parses old-format formulas without display fields and drops wrong-typed ones", () => {
+      const parsed: Array<SerializedMetricFormula> =
+        MetricExplorerUrl.parseMetricFormulasParam(
+          JSON.stringify([
+            // Old-format entry: no display fields at all.
+            { formula: "a * 2", variable: "b" },
+            // New-format entry with a mix of valid and garbage fields.
+            {
+              formula: "a / b",
+              chartType: "pie",
+              color: "   ",
+              warningThreshold: "high",
+              criticalThreshold: 95,
+            },
+          ]),
+        );
+
+      expect(parsed).toEqual([
+        { formula: "a * 2", variable: "b" },
+        { formula: "a / b", criticalThreshold: 95 },
+      ]);
     });
   });
 

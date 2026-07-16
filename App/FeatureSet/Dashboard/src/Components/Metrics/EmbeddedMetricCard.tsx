@@ -147,12 +147,36 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Re-resolves a relative range ("Past 1 hour") to fresh dates — the new
-   * end time changes MetricView's fetch snapshot, which triggers a
-   * refetch. A custom absolute range resolves to the same window and is
-   * a no-op by design.
+   * Chart drag-to-zoom: route the selected window through the same path
+   * as the header picker, as a pinned Custom range — the picker then
+   * shows "Custom" and the window narrows (or, in controlled modes, the
+   * page is asked to narrow it).
    */
+  const handleChartTimeRangeSelect: (startTime: Date, endTime: Date) => void =
+    useCallback(
+      (startTime: Date, endTime: Date): void => {
+        handleTimeRangeChange({
+          range: TimeRange.CUSTOM,
+          startAndEndDate: new InBetween<Date>(startTime, endTime),
+        });
+      },
+      [handleTimeRangeChange],
+    );
+
+  /*
+   * Re-resolves a relative range ("Past 1 hour") to fresh dates, and
+   * bumps the nonce so MetricView refetches (bypassing its result cache)
+   * even when the resolved window is unchanged — a custom absolute range
+   * resolves to the identical window, and without the nonce Refresh
+   * would be a no-op there (including after a failed fetch, which would
+   * otherwise have no retry path).
+   */
+  const [refreshNonce, setRefreshNonce] = useState<number>(0);
+
   const handleRefresh: () => void = useCallback((): void => {
+    setRefreshNonce((nonce: number) => {
+      return nonce + 1;
+    });
     if (props.startAndEndDate) {
       props.onTimeRangeChange?.(effectiveTimeRange);
       return;
@@ -162,13 +186,37 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
     );
   }, [props.startAndEndDate, props.onTimeRangeChange, effectiveTimeRange]);
 
+  /*
+   * MetricView writes query-config changes back through onChange — e.g.
+   * the per-chart Top-N picker and server-side "Show all" persist onto
+   * the configs and refetch. The card holds those writes locally so the
+   * controls work on this read-only surface; fresh configs from the page
+   * reset the override.
+   */
+  const [queryConfigsOverride, setQueryConfigsOverride] =
+    useState<Array<MetricQueryConfigData> | null>(null);
+
+  useEffect(() => {
+    setQueryConfigsOverride(null);
+  }, [props.queryConfigs]);
+
+  const effectiveQueryConfigs: Array<MetricQueryConfigData> =
+    queryConfigsOverride ?? props.queryConfigs ?? [];
+
   const metricViewData: MetricViewData = useMemo(() => {
     return {
       startAndEndDate: dateRange,
-      queryConfigs: props.queryConfigs || [],
+      queryConfigs: effectiveQueryConfigs,
       formulaConfigs: props.formulaConfigs || [],
     };
-  }, [dateRange, props.queryConfigs, props.formulaConfigs]);
+  }, [dateRange, effectiveQueryConfigs, props.formulaConfigs]);
+
+  const handleMetricViewChange: (data: MetricViewData) => void = useCallback(
+    (data: MetricViewData): void => {
+      setQueryConfigsOverride(data.queryConfigs);
+    },
+    [],
+  );
 
   /*
    * The explorer link needs queries or formulas to open — children-only
@@ -181,10 +229,10 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   const handleOpenInExplorer: () => void = useCallback((): void => {
     ExplorerLink.openInExplorer({
       startAndEndDate: dateRange,
-      queryConfigs: props.queryConfigs || [],
+      queryConfigs: effectiveQueryConfigs,
       formulaConfigs: props.formulaConfigs || [],
     });
-  }, [dateRange, props.queryConfigs, props.formulaConfigs]);
+  }, [dateRange, effectiveQueryConfigs, props.formulaConfigs]);
 
   const headerControls: ReactElement = (
     <div className="flex items-center gap-2">
@@ -230,7 +278,9 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
           hideQueryElements={true}
           hideStartAndEndDate={true}
           hideCardInCharts={true}
-          onChange={() => {}}
+          onChange={handleMetricViewChange}
+          onTimeRangeSelect={handleChartTimeRangeSelect}
+          refreshNonce={refreshNonce}
         />
       ) : null}
       {props.renderExtraCharts ? props.renderExtraCharts(dateRange) : null}

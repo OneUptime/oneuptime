@@ -151,6 +151,15 @@ export interface ComponentProps {
    * zoom for free.
    */
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
+  /*
+   * Set by hosts that cannot honor drag-to-zoom (their onChange ignores
+   * or drops startAndEndDate — e.g. the incident/alert view pages and
+   * the monitor step forms). Charts advertise the zoom affordance
+   * (crosshair cursor, "Drag to zoom" hint, live selection) purely on
+   * the presence of an onTimeRangeSelect callback, so this withholds it
+   * instead of rendering an interaction that silently does nothing.
+   */
+  disableChartZoom?: boolean | undefined;
   // Time-anchored annotations forwarded to every chart (see MetricCharts).
   timeReferenceLines?: Array<ChartTimeReferenceLineProps> | undefined;
   referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
@@ -292,6 +301,16 @@ const MetricView: FunctionComponent<ComponentProps> = (
     React.useRef<Record<string, number>>({});
 
   /*
+   * Monotonic sequence token for results fetches (same pattern as
+   * valueSearchSeqRef above). Overlapping fetches are routine — auto-
+   * refresh ticks, drag-to-zoom mid-flight, the mount-time fetch — and
+   * without this a slow stale fetch resolving AFTER a newer one would
+   * clobber the fresh results (and clear the loading state while the
+   * newer fetch is still in flight). Only the latest fetch may commit.
+   */
+  const fetchSeqRef: React.MutableRefObject<number> = React.useRef<number>(0);
+
+  /*
    * The window used for the query and the chart is aligned to the bucket
    * grid (see getAlignedWindowForData); the raw props.data is still used for
    * the query/time editors so the user sees their exact selected range.
@@ -373,11 +392,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [metricResultsError, setMetricResultsError] = useState<string>("");
   /*
-   * Once the first results fetch completes, MetricCharts stays MOUNTED
-   * through subsequent refetches (a subtle overlay indicates loading
-   * instead) so per-chart series-control state (hidden series, search,
-   * sort) survives refreshes. Only the very first load shows the block
-   * loader.
+   * Once the first results fetch SUCCEEDS, MetricCharts stays MOUNTED
+   * through subsequent refetches (a subtle overlay indicates loading,
+   * and a failed refetch renders an inline banner over the stale
+   * charts) so per-chart series-control state (hidden series, search,
+   * sort) survives refreshes. Until then the block loader / full error
+   * message render instead — success-only on purpose: a failed FIRST
+   * fetch leaves nothing to keep mounted.
    */
   const [hasFetchedResultsOnce, setHasFetchedResultsOnce] =
     useState<boolean>(false);
@@ -655,6 +676,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
   const fetchAggregatedResults: PromiseVoidFunction =
     async (): Promise<void> => {
+      /*
+       * Claim the latest-fetch token. Any fetch that starts after this
+       * one bumps the ref, and this fetch then drops its own results
+       * instead of committing them out of order.
+       */
+      const fetchSeq: number = ++fetchSeqRef.current;
+
       setIsMetricResultsLoading(true);
       props.onIsFetchingResultsChange?.(true);
 
@@ -693,16 +721,30 @@ const MetricView: FunctionComponent<ComponentProps> = (
           metricViewData: effectiveData,
           aggregationInterval: aggregationInterval,
           refreshNonce: props.refreshNonce,
+          /*
+           * MetricView renders MetricCharts' Top-N controls and the
+           * "Showing top k of N" truncation banner, so it opts in to
+           * the default server-side Top-N cap for grouped queries.
+           */
+          defaultTopN: true,
         });
+
+        // A newer fetch superseded this one — drop the stale results.
+        if (fetchSeqRef.current !== fetchSeq) {
+          return;
+        }
 
         setMetricResults(results);
         setMetricResultsError("");
+        setHasFetchedResultsOnce(true);
       } catch (err: unknown) {
+        if (fetchSeqRef.current !== fetchSeq) {
+          return;
+        }
         setMetricResultsError(API.getFriendlyErrorMessage(err as Error));
       }
 
       setIsMetricResultsLoading(false);
-      setHasFetchedResultsOnce(true);
       props.onIsFetchingResultsChange?.(false);
     };
 
@@ -1088,59 +1130,96 @@ const MetricView: FunctionComponent<ComponentProps> = (
         )}
 
         {/* Chart results */}
-        {isMetricResultsLoading && !hasFetchedResultsOnce && (
-          <ComponentLoader />
+        {/*
+         * Block loader for the very first load only. `!metricResultsError`
+         * keeps a retry after a failed FIRST fetch on the plain error
+         * message (matching the pre-banner behavior) instead of stacking
+         * a loader on top of it.
+         */}
+        {isMetricResultsLoading &&
+          !hasFetchedResultsOnce &&
+          !metricResultsError && <ComponentLoader />}
+
+        {/*
+         * Full-size error only before the FIRST successful fetch. Once
+         * results exist, a failed refetch renders as a compact banner
+         * above the still-mounted charts instead (below) — unmounting
+         * MetricCharts here would wipe its per-chart series-control
+         * state (hidden series, search, sort) and blank the charts even
+         * though stale data is available.
+         */}
+        {metricResultsError && !hasFetchedResultsOnce && (
+          <ErrorMessage message={metricResultsError} />
         )}
 
-        {metricResultsError && <ErrorMessage message={metricResultsError} />}
-
-        {!metricResultsError && !hasAnySelectedMetric && (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-              <Icon
-                icon={IconProp.ChartBar}
-                className="h-6 w-6 text-gray-400"
-              />
-            </div>
-            <p className="mt-4 text-sm font-medium text-gray-900">
-              Select a metric to get started
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              {props.hideQueryElements
-                ? "No metric is configured for this view."
-                : "Pick a metric in the query editor above and its chart will appear here."}
-            </p>
-            {!props.hideQueryElements && (
-              <div className="mt-4 flex justify-center">
-                <Button
-                  title="Add metric query"
-                  buttonStyle={ButtonStyleType.PRIMARY}
-                  buttonSize={ButtonSize.Small}
-                  icon={IconProp.Add}
-                  onClick={() => {
-                    if (props.onChange) {
-                      props.onChange({
-                        ...props.data,
-                        queryConfigs: [
-                          ...props.data.queryConfigs,
-                          getEmptyQueryConfigData(),
-                        ],
-                      });
-                    }
-                  }}
+        {(!metricResultsError || hasFetchedResultsOnce) &&
+          !hasAnySelectedMetric && (
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                <Icon
+                  icon={IconProp.ChartBar}
+                  className="h-6 w-6 text-gray-400"
                 />
               </div>
-            )}
-          </div>
-        )}
+              <p className="mt-4 text-sm font-medium text-gray-900">
+                Select a metric to get started
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                {props.hideQueryElements
+                  ? "No metric is configured for this view."
+                  : "Pick a metric in the query editor above and its chart will appear here."}
+              </p>
+              {!props.hideQueryElements && (
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    title="Add metric query"
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    buttonSize={ButtonSize.Small}
+                    icon={IconProp.Add}
+                    onClick={() => {
+                      if (props.onChange) {
+                        props.onChange({
+                          ...props.data,
+                          queryConfigs: [
+                            ...props.data.queryConfigs,
+                            getEmptyQueryConfigData(),
+                          ],
+                        });
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
-        {!metricResultsError &&
+        {(!metricResultsError || hasFetchedResultsOnce) &&
           hasAnySelectedMetric &&
           (!isMetricResultsLoading || hasFetchedResultsOnce) && (
             <div>
               {!props.hideQueryElements && (
                 <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
                   Charts
+                </div>
+              )}
+              {/*
+               * A refetch failed but earlier results are still on
+               * screen — surface the error inline and keep the (stale)
+               * charts mounted so series-control state survives.
+               */}
+              {metricResultsError && (
+                <div
+                  role="alert"
+                  className="mb-2 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+                >
+                  <Icon
+                    icon={IconProp.Error}
+                    className="h-4 w-4 shrink-0 text-red-500"
+                  />
+                  <span>
+                    Couldn&apos;t refresh — showing previously loaded data.{" "}
+                    {metricResultsError}
+                  </span>
                 </div>
               )}
               <div className="relative">
@@ -1187,7 +1266,17 @@ const MetricView: FunctionComponent<ComponentProps> = (
                         });
                       }
                     }}
-                    onTimeRangeSelect={handleChartTimeRangeSelect}
+                    onTimeRangeSelect={
+                      /*
+                       * Charts advertise drag-to-zoom (crosshair, hint,
+                       * selection) purely on this callback's presence —
+                       * hosts whose onChange can't honor a window change
+                       * disable it so the affordance isn't a no-op.
+                       */
+                      props.disableChartZoom
+                        ? undefined
+                        : handleChartTimeRangeSelect
+                    }
                     timeReferenceLines={props.timeReferenceLines}
                     referenceRegions={props.referenceRegions}
                   />

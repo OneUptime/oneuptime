@@ -28,11 +28,13 @@ import {
   keyForService,
 } from "../../Utils/Telemetry/EntityKey";
 import { keyForContainer } from "../Utils/Telemetry/TelemetryEntity";
+import { getEntityBudget } from "../Utils/Telemetry/EntityRegistry";
 import { EntityScopeQueryValue } from "../Utils/AnalyticsDatabase/StatementGenerator";
 import TelemetryEntityService from "./TelemetryEntityService";
 import TelemetryEntity from "../../Models/DatabaseModels/TelemetryEntity";
 import EntityType from "../../Types/Telemetry/EntityType";
 import ObjectID from "../../Types/ObjectID";
+import PositiveNumber from "../../Types/PositiveNumber";
 import logger, { LogAttributes } from "../Utils/Logger";
 
 /*
@@ -307,10 +309,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * `service.name` identifying attribute), so the query is indexed and
    * tiny; the identifyingAttributes re-check below guards against a
    * displayName that came from some other identity shape. Returns []
-   * on a registry miss or any lookup failure — the caller then refuses
-   * to route (an MV query must never return less data than the raw
-   * predicate it replaces, and rows of a namespaced service the
-   * registry does not know about would be silently dropped).
+   * on a registry miss, on any lookup failure, or when the project's
+   * Service registry is at/over its entity budget (new variants stop
+   * minting rows there, so the key set can be permanently partial) —
+   * the caller then refuses to route (an MV query must never return
+   * less data than the raw predicate it replaces, and rows of a
+   * namespaced service the registry does not know about would be
+   * silently dropped).
    */
   private async lookupServiceEntityKeys(
     projectId: string,
@@ -347,6 +352,35 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       }
 
       if (keys.size === 0) {
+        return [];
+      }
+
+      /*
+       * Budget-capped projects must not route. At/over the per-type
+       * entity budget, ingest stops minting NEW Service registry rows
+       * forever (TelemetryEntityService.beforeCreate) while namespaced
+       * serviceEntityKeys keep flowing on signal rows — so a non-empty
+       * registry key set may be PERMANENTLY missing identity variants,
+       * and a routed `serviceEntityKey IN (...)` would silently return
+       * less data than the raw attributes predicate it replaces (the
+       * invariant documented above). Same signal as the ingest-side
+       * gate; the [] is cached for 60s alongside key hits, so the extra
+       * countBy amortizes to one per (project, service name) per minute.
+       */
+      const serviceEntityCount: PositiveNumber =
+        await TelemetryEntityService.countBy({
+          query: {
+            projectId: new ObjectID(projectId),
+            entityType: EntityType.Service,
+          },
+          props: { isRoot: true },
+        });
+      if (
+        serviceEntityCount.toNumber() >= getEntityBudget(EntityType.Service)
+      ) {
+        logger.debug(
+          "Service entity registry is budget-capped; refusing MV routing",
+        );
         return [];
       }
 
@@ -691,7 +725,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   /**
    * Appends the Top-K group restriction predicate:
    *
-   *   ` AND (<group exprs>) IN (SELECT <group exprs> FROM <table>
+   *   ` AND (<group exprs>) GLOBAL IN (SELECT <group exprs> FROM <table>
    *      WHERE ... GROUP BY <group exprs>
    *      ORDER BY max|avg(<column>) DESC LIMIT <k>)`
    *
@@ -703,6 +737,19 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * column (not the distribution-aware expressions): for distribution
    * metrics that scores by per-export-interval sums, which preserves
    * relative group ordering well enough for series selection.
+   *
+   * GLOBAL IN is load-bearing: this predicate sits in a query on the
+   * Distributed Metric table whose subquery reads the SAME Distributed
+   * table, which multi-shard ClickHouse rejects outright as a
+   * double-distributed subquery (Code 288, distributed_product_mode =
+   * 'deny' by default) — every grouped Top-K chart would 500 on a
+   * 2+-shard cluster. A shard-local rewrite would be wrong anyway: the
+   * sharding key is cityHash64(projectId, name, primaryEntityId), so
+   * one project+metric's groups span shards and the ranking must be
+   * computed once globally, not per shard. On a single shard GLOBAL is
+   * a semantic no-op. (The mutable-metric twin below deliberately stays
+   * plain IN: its predicate lives in an initiator-evaluated outer query
+   * over a subquery-FROM, which is not subject to the denial.)
    */
   private appendTopKGroupRestriction(data: {
     statement: Statement;
@@ -722,7 +769,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       data.groupByKeys,
       data.attributeGroupKeys,
     );
-    statement.append(`) IN (SELECT `);
+    statement.append(`) GLOBAL IN (SELECT `);
     this.appendRawGroupExpressionList(
       statement,
       data.groupByKeys,
@@ -1235,19 +1282,28 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     /*
      * Match the read-path settings the base aggregator now appends (see
-     * AnalyticsDatabaseService.toAggregateStatement), including the
-     * 45s/'break' execution cap. The percentile path bypasses the base
-     * method, so we mirror them here to keep cluster behavior consistent
-     * across aggregation kinds.
+     * AnalyticsDatabaseService.toAggregateStatement), including the 45s
+     * execution cap and the caller-selected overflow mode. The
+     * percentile path bypasses the base method, so we mirror them here
+     * to keep cluster behavior consistent across aggregation kinds.
+     *
+     * transform_null_in=1 rides along only when the Top-K restriction
+     * is present: grouping by a Nullable model column (metricPointType,
+     * unit, ...) puts NULL group keys in play, and under the ClickHouse
+     * default (transform_null_in=0) NULL never matches an IN — a
+     * NULL-keyed group could win a ranking slot yet return zero rows.
+     * Query-wide it is safe here: user-filter IN lists are
+     * parameter-bound scalar arrays that never carry NULL.
      */
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        timeoutOverflowMode: this.getTimeoutOverflowMode(aggregateBy),
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,
           max_threads: 4,
+          ...(percentileApplyTopK ? { transform_null_in: 1 } : {}),
         },
       }),
     );
@@ -1516,14 +1572,19 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       }} `,
     );
 
+    /*
+     * transform_null_in=1 only when the Top-K IN restriction is present
+     * — see the percentile path's settings comment for the rationale.
+     */
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        timeoutOverflowMode: this.getTimeoutOverflowMode(aggregateBy),
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,
           max_threads: 4,
+          ...(scalarApplyTopK ? { transform_null_in: 1 } : {}),
         },
       }),
     );
@@ -1650,6 +1711,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       .append(SQL` AND retentionDate >= now()`);
 
     if (mutableApplyTopK) {
+      /*
+       * Plain (non-GLOBAL) IN is deliberate here, unlike
+       * appendTopKGroupRestriction: this predicate sits in the OUTER
+       * query whose FROM is the argMax-dedup subquery — the initiator
+       * evaluates it, so it is not a double-distributed subquery and
+       * multi-shard ClickHouse accepts it as-is.
+       */
       statement.append(` AND (`);
       this.appendRawGroupExpressionList(statement, mutableGroupByKeys, []);
       statement.append(`) IN (SELECT `);
@@ -1735,13 +1803,20 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       }}`,
     );
 
+    /*
+     * transform_null_in=1 only when the Top-K IN restriction is present
+     * — see the percentile path's settings comment for the rationale
+     * (mutable group-by keys are Nullable model columns too, e.g.
+     * primaryEntityType).
+     */
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        timeoutOverflowMode: this.getTimeoutOverflowMode(aggregateBy),
         additionalSettings: {
           optimize_move_to_prewhere: 1,
           max_threads: 4,
+          ...(mutableApplyTopK ? { transform_null_in: 1 } : {}),
         },
       }),
     );
@@ -2077,7 +2152,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        timeoutOverflowMode: this.getTimeoutOverflowMode(aggregateBy),
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,
@@ -2324,7 +2399,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
+        timeoutOverflowMode: this.getTimeoutOverflowMode(aggregateBy),
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,

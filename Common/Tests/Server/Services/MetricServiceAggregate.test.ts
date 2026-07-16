@@ -1,4 +1,6 @@
 import "../TestingUtils/Init";
+import fs from "fs";
+import path from "path";
 import { MetricService } from "../../../Server/Services/MetricService";
 import Metric from "../../../Models/AnalyticsModels/Metric";
 import AggregateBy from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
@@ -10,6 +12,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import {
   keyForHost,
   keyForKubernetesCluster,
@@ -535,15 +538,140 @@ describe("MetricService aggregate statement generation", () => {
         ),
       );
     });
+
+    /*
+     * Overflow-mode threading: chart callers keep the 'break' default
+     * (asserted by every expectCapped above), while alerting callers —
+     * the metric-monitor worker — pass timeoutOverflowMode: "throw" so
+     * a timed-out evaluation fails loudly instead of silently scoring
+     * partial buckets.
+     */
+    describe("timeoutOverflowMode threading", () => {
+      const expectThrows: (query: string) => void = (query: string): void => {
+        expect(query).toContain("timeout_overflow_mode = 'throw'");
+        expect(query).not.toContain("timeout_overflow_mode = 'break'");
+      };
+
+      it("threads 'throw' through the minute MV path", () => {
+        expectThrows(
+          getQuery(buildAggregateBy({ timeoutOverflowMode: "throw" })),
+        );
+      });
+
+      it("threads 'throw' through the base scalar path (grouped worker shape)", () => {
+        expectThrows(
+          getQuery(
+            buildAggregateBy({
+              groupByAttributeKeys: ["host.name"],
+              timeoutOverflowMode: "throw",
+            }),
+          ),
+        );
+      });
+
+      it("threads 'throw' through the percentile path", () => {
+        expectThrows(
+          getQuery(
+            buildAggregateBy({
+              aggregationType: AggregationType.P90,
+              timeoutOverflowMode: "throw",
+            }),
+          ),
+        );
+      });
+
+      it("threads 'throw' through the entity MV path", () => {
+        expectThrows(
+          getQuery(
+            buildAggregateBy({
+              query: {
+                projectId: projectId,
+                name: "http.client.request.duration",
+                time: new InBetween(startDate, endDate),
+                attributes: { "resource.host.name": "web-01" },
+              } as unknown as AggregateBy<Metric>["query"],
+              timeoutOverflowMode: "throw",
+            }),
+          ),
+        );
+      });
+
+      it("threads 'throw' through the mutable path", () => {
+        expectThrows(
+          getQuery(
+            buildAggregateBy({
+              query: {
+                projectId: projectId,
+                name: "oneuptime.incident.count",
+                time: new InBetween(startDate, endDate),
+              } as AggregateBy<Metric>["query"],
+              timeoutOverflowMode: "throw",
+            }),
+          ),
+        );
+      });
+
+      it("allow-lists the value: anything but the literal 'throw' degrades to 'break'", () => {
+        /*
+         * aggregateBy is deserialized wholesale from API clients and the
+         * setting reaches SQL as a literal, so it must never pass through.
+         */
+        const query: string = getQuery(
+          buildAggregateBy({
+            timeoutOverflowMode:
+              "break', max_execution_time = 0 --" as unknown as "break",
+          }),
+        );
+
+        expect(query).toContain("timeout_overflow_mode = 'break'");
+        expect(query).not.toContain("max_execution_time = 0");
+      });
+
+      it("the metric-monitor worker passes 'throw' on every aggregateBy call", () => {
+        /*
+         * Source-level pin: the worker lives in App (unimportable from
+         * this jest project without dragging in its queue/Redis import
+         * graph), but the invariant that alerting never evaluates
+         * silently-partial buckets is owned here, next to the setting
+         * it protects.
+         */
+        const workerSource: string = fs.readFileSync(
+          path.join(
+            __dirname,
+            "../../../../App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
+          ),
+          "utf8",
+        );
+
+        const callSites: Array<string> = workerSource
+          .split("MetricService.aggregateBy(")
+          .slice(1);
+
+        expect(callSites.length).toBeGreaterThanOrEqual(9);
+        for (const callSite of callSites) {
+          // Each call's argument object is well under 1200 characters.
+          expect(callSite.slice(0, 1200)).toContain(
+            'timeoutOverflowMode: "throw"',
+          );
+        }
+      });
+    });
   });
 
   /*
    * Server-side Top-K: grouped aggregations rank groups over the whole
    * window in an IN-subquery, restrict the bucketed aggregation to the
    * winners, and carry the pre-trim group count as `__total_groups`.
+   *
+   * The raw-table restriction must be GLOBAL IN: a plain IN over the
+   * same Distributed table is a double-distributed subquery, which any
+   * 2+-shard cluster rejects with Code 288 (distributed_product_mode =
+   * 'deny'), and the cityHash64(projectId, name, primaryEntityId)
+   * sharding key spreads one metric's groups across shards so the
+   * ranking must run once globally anyway.
    */
   describe("server-side Top-K", () => {
-    it("restricts a grouped scalar aggregation to the top K groups (rankBy max)", () => {
+    it("restricts a grouped scalar aggregation to the top K groups (rankBy max) via GLOBAL IN", () => {
       const result: { statement: Statement; columns: Array<string> } =
         service.toAggregateStatement(
           buildAggregateBy({
@@ -553,7 +681,9 @@ describe("MetricService aggregate statement generation", () => {
         );
       const query: string = result.statement.query;
 
-      expect(query).toContain(") IN (SELECT ");
+      expect(query).toContain(") GLOBAL IN (SELECT ");
+      // Never the multi-shard-fatal plain IN over the Distributed table.
+      expect(query).not.toContain(") IN (SELECT ");
       expect(query).toContain("ORDER BY max(value) DESC");
       expect(query).toContain("uniqExact(");
       expect(query).toContain("AS __total_groups");
@@ -590,7 +720,8 @@ describe("MetricService aggregate statement generation", () => {
       );
 
       expect(query).toContain("quantileExactWeighted(0.95)");
-      expect(query).toContain(") IN (SELECT ");
+      expect(query).toContain(") GLOBAL IN (SELECT ");
+      expect(query).not.toContain(") IN (SELECT ");
       expect(query).toContain("ORDER BY max(value) DESC");
       expect(query).toContain("AS __total_groups");
     });
@@ -603,7 +734,9 @@ describe("MetricService aggregate statement generation", () => {
         }),
       );
 
-      expect(query).toContain("metricPointType) IN (SELECT metricPointType");
+      expect(query).toContain(
+        "metricPointType) GLOBAL IN (SELECT metricPointType",
+      );
       expect(query).toContain("uniqExact(metricPointType)");
     });
 
@@ -623,6 +756,7 @@ describe("MetricService aggregate statement generation", () => {
 
       expect(query).not.toContain("__total_groups");
       expect(query).not.toContain(") IN (SELECT ");
+      expect(query).not.toContain("GLOBAL IN");
     });
 
     it("rejects a non-positive topK.count", () => {
@@ -683,6 +817,12 @@ describe("MetricService aggregate statement generation", () => {
       expect(query).toContain(
         "primaryEntityType) IN (SELECT primaryEntityType",
       );
+      /*
+       * The mutable restriction deliberately stays plain IN: it sits in
+       * the initiator-evaluated outer query over the argMax-dedup
+       * subquery, which multi-shard ClickHouse accepts without GLOBAL.
+       */
+      expect(query).not.toContain("GLOBAL IN");
       expect(query).toContain("ORDER BY max(value) DESC");
       expect(query).toContain("uniqExact(primaryEntityType)");
       expect(query).toContain("AS __total_groups");
@@ -717,6 +857,74 @@ describe("MetricService aggregate statement generation", () => {
       // And no Top-K artifacts leak into the plain grouped statement.
       expect(withoutField.statement.query).not.toContain("__total_groups");
       expect(withoutField.statement.query).not.toContain(") IN (SELECT ");
+      expect(withoutField.statement.query).not.toContain("GLOBAL IN");
+    });
+
+    /*
+     * NULL-keyed groups: metricPointType/primaryEntityType/unit are
+     * Nullable in ClickHouse, GROUP BY treats NULL as its own group, but
+     * under the default transform_null_in=0 a NULL key never satisfies
+     * the Top-K IN restriction — a NULL-keyed group could win a ranking
+     * slot yet return zero rows. Top-K statements must therefore carry
+     * transform_null_in=1; plain statements must not.
+     */
+    describe("NULL group keys (transform_null_in)", () => {
+      it("sets transform_null_in=1 on a Top-K model-column group-by (scalar path)", () => {
+        const query: string = getQuery(
+          buildAggregateBy({
+            groupBy: {
+              metricPointType: true,
+            } as AggregateBy<Metric>["groupBy"],
+            topK: { count: 10, rankBy: "max" },
+          }),
+        );
+
+        expect(query).toContain("transform_null_in = 1");
+      });
+
+      it("sets transform_null_in=1 on the Top-K percentile path", () => {
+        const query: string = getQuery(
+          buildAggregateBy({
+            aggregationType: AggregationType.P95,
+            groupByAttributeKeys: ["host.name"],
+            topK: { count: 10, rankBy: "max" },
+          }),
+        );
+
+        expect(query).toContain("transform_null_in = 1");
+      });
+
+      it("sets transform_null_in=1 on the Top-K mutable path", () => {
+        const query: string = getQuery(
+          buildAggregateBy({
+            query: {
+              projectId: projectId,
+              name: "oneuptime.incident.count",
+              time: new InBetween(startDate, endDate),
+            } as AggregateBy<Metric>["query"],
+            groupBy: {
+              primaryEntityType: true,
+            } as AggregateBy<Metric>["groupBy"],
+            topK: { count: 5, rankBy: "max" },
+          }),
+        );
+
+        expect(query).toContain("transform_null_in = 1");
+      });
+
+      it("leaves transform_null_in off statements without a Top-K restriction", () => {
+        const grouped: string = getQuery(
+          buildAggregateBy({
+            groupBy: {
+              metricPointType: true,
+            } as AggregateBy<Metric>["groupBy"],
+          }),
+        );
+        const plain: string = getQuery(buildAggregateBy());
+
+        expect(grouped).not.toContain("transform_null_in");
+        expect(plain).not.toContain("transform_null_in");
+      });
     });
   });
 
@@ -867,8 +1075,10 @@ describe("MetricService aggregate statement generation", () => {
         expect(query).toContain(
           "sumMerge(valueSumState) / countMerge(valueCountState)",
         );
-        // The key reaches SQL only as a bound parameter, byte-identical
-        // to what ingest stamps (canonicalized inside keyForKubernetesCluster).
+        /*
+         * The key reaches SQL only as a bound parameter, byte-identical
+         * to what ingest stamps (canonicalized inside keyForKubernetesCluster).
+         */
         expect(Object.values(result.statement.query_params)).toContain(
           keyForKubernetesCluster(projectId.toString(), "Prod-EU-1"),
         );
@@ -1374,9 +1584,29 @@ describe("MetricService aggregate statement generation", () => {
 
       const originalFindBy: typeof TelemetryEntityService.findBy =
         TelemetryEntityService.findBy;
+      const originalCountBy: typeof TelemetryEntityService.countBy =
+        TelemetryEntityService.countBy;
+
+      /*
+       * The registry lookup refuses to route when the project's Service
+       * registry is at/over its entity budget (10000), so every test
+       * that expects routing needs a comfortably-under-budget count.
+       */
+      const mockCountBy: (count: number) => void = (count: number): void => {
+        TelemetryEntityService.countBy = jest.fn(
+          async (): Promise<PositiveNumber> => {
+            return new PositiveNumber(count);
+          },
+        ) as typeof TelemetryEntityService.countBy;
+      };
+
+      beforeEach(() => {
+        mockCountBy(3);
+      });
 
       afterEach(() => {
         TelemetryEntityService.findBy = originalFindBy;
+        TelemetryEntityService.countBy = originalCountBy;
       });
 
       it("routes with the registry keys unioned with the bare-name key", async () => {
@@ -1475,6 +1705,47 @@ describe("MetricService aggregate statement generation", () => {
         await service.aggregateBy(buildServiceAggregate());
 
         expect(findBySpy).toHaveBeenCalledTimes(1);
+      });
+
+      it("refuses to route when the project's Service registry is budget-capped", async () => {
+        /*
+         * At/over the entity budget, ingest stops minting NEW Service
+         * registry rows forever while namespaced serviceEntityKeys keep
+         * flowing on signal rows — so a non-empty registry key set may
+         * be PERMANENTLY missing identity variants. Routing on such a
+         * partial set would silently under-report; the raw attributes
+         * predicate is the only complete one.
+         */
+        TelemetryEntityService.findBy = jest.fn(
+          async (): Promise<Array<TelemetryEntity>> => {
+            // A partial-but-non-empty key set (the dangerous state).
+            return [
+              {
+                entityKey: keyForService(
+                  projectId.toString(),
+                  "checkout",
+                  "prod",
+                ),
+                identifyingAttributes: {
+                  "service.name": "checkout",
+                  "service.namespace": "prod",
+                },
+              } as unknown as TelemetryEntity,
+            ];
+          },
+        ) as typeof TelemetryEntityService.findBy;
+        mockCountBy(10000); // getEntityBudget(EntityType.Service)
+
+        const captured: CapturedStatements = captureExecuteQuery();
+        await service.aggregateBy(buildServiceAggregate());
+
+        const aggregateStatement: { query: string } | undefined =
+          captured[captured.length - 1];
+        expect(aggregateStatement!.query).not.toContain(
+          "MetricItemAggMV1mByService",
+        );
+        // Raw fallback still serves the query.
+        expect(aggregateStatement!.query).toContain("MetricItemV3");
       });
     });
   });

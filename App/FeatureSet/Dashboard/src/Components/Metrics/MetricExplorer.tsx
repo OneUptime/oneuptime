@@ -71,6 +71,22 @@ const EVENT_OVERLAY_FETCH_LIMIT: number = 50;
 const INCIDENT_MARKER_COLOR: string = "#f87171"; // red-400
 const ALERT_MARKER_COLOR: string = "#fbbf24"; // amber-400
 
+/*
+ * Marker labels render vertically along the reference line, so an
+ * unbounded incident/alert title would run down the whole plot height.
+ * Only the chart label truncates — the marker's click-through target
+ * still opens the full record.
+ */
+const EVENT_MARKER_TITLE_MAX_LENGTH: number = 40;
+
+function truncateEventMarkerTitle(title: string): string {
+  if (title.length <= EVENT_MARKER_TITLE_MAX_LENGTH) {
+    return title;
+  }
+
+  return `${title.slice(0, EVENT_MARKER_TITLE_MAX_LENGTH).trimEnd()}…`;
+}
+
 // One toolbar-button idiom for the explorer's investigation row.
 const TOOLBAR_BUTTON_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
@@ -362,7 +378,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
             date: OneUptimeDate.fromString(
               incident.createdAt as unknown as string,
             ),
-            label: `Incident: ${incident.title || ""}`,
+            label: `Incident: ${truncateEventMarkerTitle(incident.title || "")}`,
             color:
               incident.incidentSeverity?.color?.toString() ||
               INCIDENT_MARKER_COLOR,
@@ -381,7 +397,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
             date: OneUptimeDate.fromString(
               alert.createdAt as unknown as string,
             ),
-            label: `Alert: ${alert.title || ""}`,
+            label: `Alert: ${truncateEventMarkerTitle(alert.title || "")}`,
             color: alert.alertSeverity?.color?.toString() || ALERT_MARKER_COLOR,
             route: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERT_VIEW]!,

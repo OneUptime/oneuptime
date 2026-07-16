@@ -42,6 +42,15 @@ import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
 import ChartCurve from "../../Types/ChartCurve";
 
+/*
+ * Incident/alert time markers each label at the same "insideTop" band, so
+ * several events in one window pile their labels into an unreadable stack.
+ * A single marker keeps the classic horizontal top label; a handful get
+ * rotated to run along their lines; past this cap inline labels are hidden
+ * entirely (the dashed lines and their click-through remain).
+ */
+const MAX_LABELED_TIME_REFERENCE_LINES: number = 6;
+
 //#region Legend
 
 interface LegendItemProps {
@@ -676,6 +685,10 @@ const LineChart: React.ForwardRefExoticComponent<
       React.useRef<boolean>(false);
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
+    const timeReferenceLineCount: number =
+      formattedTimeReferenceLines?.length || 0;
+    const showTimeReferenceLineLabels: boolean =
+      timeReferenceLineCount <= MAX_LABELED_TIME_REFERENCE_LINES;
 
     const yAxisDomain: (number | "auto")[] = getYAxisDomain(
       autoMinValue,
@@ -1326,15 +1339,26 @@ const LineChart: React.ForwardRefExoticComponent<
                         }
                       : {})}
                   >
-                    {timeRefLine.original.label && (
-                      <Label
-                        value={timeRefLine.original.label}
-                        position="insideTop"
-                        fill={lineColor}
-                        fontSize={10}
-                        fontWeight={500}
-                      />
-                    )}
+                    {timeRefLine.original.label &&
+                      showTimeReferenceLineLabels && (
+                        <Label
+                          value={timeRefLine.original.label}
+                          {...(timeReferenceLineCount > 1
+                            ? {
+                                /*
+                                 * Several markers: run each label down its
+                                 * own line so labels at different x stop
+                                 * sharing one horizontal band.
+                                 */
+                                position: "insideTopLeft" as const,
+                                angle: 90,
+                              }
+                            : { position: "insideTop" as const })}
+                          fill={lineColor}
+                          fontSize={10}
+                          fontWeight={500}
+                        />
+                      )}
                   </ReferenceLine>
                 );
               },

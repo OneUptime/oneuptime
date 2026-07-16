@@ -56,4 +56,15 @@ export default interface AggregateBy<TBaseModel extends GenericObject> {
         rankBy: "max" | "avg";
       }
     | undefined;
+  /**
+   * What ClickHouse does when the aggregate's execution-time cap fires.
+   * 'break' (the default when omitted) returns the partial buckets
+   * computed so far — acceptable for chart rendering. Callers that
+   * ALERT on the result (the metric-monitor worker) must pass 'throw'
+   * so a timed-out evaluation fails loudly instead of silently scoring
+   * partial data as if it were complete. The server allow-lists the
+   * value before it reaches SQL: anything other than the exact string
+   * "throw" is treated as 'break'.
+   */
+  timeoutOverflowMode?: "break" | "throw" | undefined;
 }

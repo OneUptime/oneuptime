@@ -543,6 +543,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
             hideCardInQueryElements={true}
             hideCardInCharts={true}
             chartCssClass="rounded-lg border border-gray-200 shadow-sm"
+            // onChange below drops startAndEndDate, so drag-zoom can't apply.
+            disableChartZoom={true}
             onChange={(viewData: MetricViewData) => {
               props.onChange({
                 ...monitorStepDockerSwarmMonitor,

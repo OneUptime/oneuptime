@@ -34,7 +34,14 @@ export const buildQueryConfigsFromSerializedQueries: BuildQueryConfigsFunction =
         return {
           id: ObjectID.generate().toString(),
           metricAliasData: {
-            metricVariable: Text.getLetterFromAByNumber(index),
+            /*
+             * Prefer the serialized variable so formulas referencing it
+             * keep resolving when the captured view's variables were not
+             * positional; older links without it fall back to positional
+             * lettering (a, b, ...), matching their formulas' era.
+             */
+            metricVariable:
+              metricQuery.variable || Text.getLetterFromAByNumber(index),
             title: metricQuery.alias?.title || "",
             description: metricQuery.alias?.description || "",
             legend: metricQuery.alias?.legend || "",
@@ -112,6 +119,14 @@ export const buildFormulaConfigsFromSerializedFormulas: BuildFormulaConfigsFunct
           metricFormulaData: {
             metricFormula: formula.formula,
           },
+          ...(formula.chartType ? { chartType: formula.chartType } : {}),
+          ...(formula.color ? { color: formula.color } : {}),
+          ...(formula.warningThreshold !== undefined
+            ? { warningThreshold: formula.warningThreshold }
+            : {}),
+          ...(formula.criticalThreshold !== undefined
+            ? { criticalThreshold: formula.criticalThreshold }
+            : {}),
         };
       },
     );

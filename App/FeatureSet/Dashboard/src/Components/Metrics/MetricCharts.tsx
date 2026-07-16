@@ -86,6 +86,17 @@ export interface ComponentProps {
     | ((queryConfigs: Array<MetricQueryConfigData>) => void)
     | undefined;
   /*
+   * Namespace for the transient Top-N overrides written when no
+   * onQueryConfigsChange hook is wired. The override registry is
+   * module-global and keyed by the query's stable key, which falls back
+   * to `var-<metricVariable>` for id-less configs — without a scope, two
+   * read-only widgets whose queries both use the default variable "a"
+   * would read each other's overrides. Hosts that own an instance
+   * identity (e.g. dashboard widgets → componentId) pass it here AND to
+   * MetricUtil.fetchResults so writes and reads stay paired.
+   */
+  topNOverrideScope?: string | undefined;
+  /*
    * Drag-to-zoom: when set, every panel's chart supports drag-selecting a
    * time range and calls back with the selected [start, end) window. The
    * host is expected to narrow its query window in response.
@@ -668,11 +679,37 @@ function applyPanelSeriesNaming(members: Array<PanelMember>): void {
     }
   }
 
+  /*
+   * Two overlaid queries can share the same label (e.g. both legends left
+   * at the metric-name default). Prefixing colliding grouped series with
+   * that shared label would rename both to the IDENTICAL string — and the
+   * chart layer merges same-named series into one line, plotting data
+   * that belongs to neither query — so shared labels are further
+   * disambiguated with the owning query's variable (or position).
+   */
+  const memberLabels: Array<string> = members.map(
+    (member: PanelMember, memberIndex: number) => {
+      return (
+        member.queryConfig.metricAliasData?.legend ||
+        member.metricName ||
+        `Query ${memberIndex + 1}`
+      );
+    },
+  );
+  const labelCount: Map<string, number> = new Map<string, number>();
+  for (const label of memberLabels) {
+    labelCount.set(label, (labelCount.get(label) || 0) + 1);
+  }
+
   members.forEach((member: PanelMember, memberIndex: number) => {
-    const label: string =
-      member.queryConfig.metricAliasData?.legend ||
-      member.metricName ||
-      `Query ${memberIndex + 1}`;
+    const label: string = memberLabels[memberIndex]!;
+    const memberDiscriminator: string =
+      member.queryConfig.metricAliasData?.metricVariable ||
+      String(memberIndex + 1);
+    const uniqueLabel: string =
+      (labelCount.get(label) || 0) > 1
+        ? `${label} (${memberDiscriminator})`
+        : label;
     for (const series of member.series) {
       if ((memberCountByName.get(series.seriesName) || 0) <= 1) {
         continue;
@@ -684,8 +721,8 @@ function applyPanelSeriesNaming(members: Array<PanelMember>): void {
        */
       series.seriesName =
         label === series.seriesName
-          ? `${series.seriesName} (${member.queryConfig.metricAliasData?.metricVariable || String(memberIndex + 1)})`
-          : `${label}: ${series.seriesName}`;
+          ? `${series.seriesName} (${memberDiscriminator})`
+          : `${uniqueLabel}: ${series.seriesName}`;
     }
   });
 }
@@ -853,8 +890,10 @@ function renderSeriesControls(input: {
     controls.hiddenSeries.size > 0 &&
     searchQuery === "";
 
-  // Single-series charts keep the meta strip + legend chip but skip the
-  // search/sort toolbar — there is nothing to filter or rank.
+  /*
+   * Single-series charts keep the meta strip + legend chip but skip the
+   * search/sort toolbar — there is nothing to filter or rank.
+   */
   const showToolbar: boolean =
     totalSeries > 1 ||
     needsTopN ||
@@ -1373,6 +1412,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         MetricUtil.getQueryConfigTopNKey(
           member.queryConfig,
           member.queryConfigIndex,
+          props.topNOverrideScope,
         ),
         topN,
       );

@@ -70,11 +70,14 @@ export default interface MetricQueryConfigData {
    */
   transformAsRate?: boolean | undefined;
   /*
-   * When true, the chart also plots this query evaluated over the
-   * immediately preceding window of equal length (shifted onto the
-   * current axis) for period-over-period comparison. Plain persisted
-   * data like the fields above — the explorer UI that toggles it and the
-   * chart rendering ship in a later stage.
+   * When true, this query is drawn on the PREVIOUS query's chart panel,
+   * sharing its axes, instead of getting a panel of its own. Consecutive
+   * flagged queries chain onto the same panel. Has no effect on the
+   * first query, or when the previous query produced no result (the
+   * query then falls back to its own panel). Both queries are evaluated
+   * over the SAME time window — this is a same-window visual overlay,
+   * not a period-over-period time shift. Plain persisted data like the
+   * fields above (dashboards, saved views, explorer URLs).
    */
   overlayWithPreviousQuery?: boolean | undefined;
 }

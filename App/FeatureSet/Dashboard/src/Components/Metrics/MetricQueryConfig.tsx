@@ -91,7 +91,14 @@ function getBadgeTintStyle(
   return {
     backgroundColor: `${color}1f`,
     borderColor: `${color}55`,
-    color: color,
+    /*
+     * Text stays theme-driven rather than using the raw user hex: a dark
+     * hex is illegible on the dark surface (and a pale hex on the light
+     * one), and inline styles would beat Theme.css's dark-mode overrides.
+     * The wash is only ~12% alpha over the card surface, so the theme's
+     * own text color is always readable on it in both modes.
+     */
+    color: "var(--ou-text-primary)",
   };
 }
 

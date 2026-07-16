@@ -229,22 +229,26 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddInstanceIdToGlobalConfig(),
   /*
-   * Backfills the per-entity (service / k8s cluster / container) metric
-   * minute rollups from MetricItemV3. Table + MV creation is owned by the
-   * models + boot schema-sync (which runs before migrations), so this can
-   * safely assume the raw table and the model definitions exist; ordered
-   * with the other late ClickHouse migrations, before the cluster
-   * conversion (it is single-node only — see runsInClusterMode).
-   */
-  new AddMetricEntityMinuteAggregateMaterializedViews(),
-  /*
    * Cluster conversion. Runs only when CLICKHOUSE_CLUSTER_NAME is set (a no-op
    * otherwise) and after every legacy ClickHouse migration has been baselined,
    * so the analytics tables are at their current model schema before being
    * converted in place to the sharded + replicated (Distributed over local
-   * ReplicatedMergeTree) layout. Must stay last.
+   * ReplicatedMergeTree) layout. Must stay after every legacy (baselined)
+   * ClickHouse migration; only cluster-correct migrations that depend on the
+   * converted layout (like the rollup backfill below) may follow it.
    */
   new ConvertAnalyticsTablesToCluster(),
+  /*
+   * Backfills the per-entity (service / k8s cluster / container) metric
+   * minute rollups from MetricItemV3. Table + MV creation is owned by the
+   * models + boot schema-sync (which runs before migrations), so this can
+   * safely assume the raw table and the model definitions exist. Fully
+   * cluster-correct (ON CLUSTER DDL, local-table TRUNCATE, cluster MV
+   * recreation) and ordered AFTER the cluster conversion so the MV layer
+   * has already been reconciled to the clustered layout before this drops,
+   * backfills and re-attaches the per-entity rollup triggers.
+   */
+  new AddMetricEntityMinuteAggregateMaterializedViews(),
 ];
 
 export default DataMigrations;

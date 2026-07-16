@@ -25,9 +25,11 @@ export enum MetricExplorerUrlParam {
   EndTime = "endTime",
   /*
    * Relative-time token (a TimeRange enum value, e.g. "Past 1 Day").
-   * Omitted for the default Past 1 Hour and for Custom/pinned absolute
-   * windows — startTime/endTime always carry the absolute window for
-   * back-compat, so older links keep working.
+   * Emitted for every relative range — including the default Past 1 Hour,
+   * so reloaded/shared links keep rolling instead of pinning — and
+   * omitted only for Custom/pinned absolute windows. startTime/endTime
+   * always carry the absolute window for back-compat, so older links
+   * (which never had a range param) keep working as pinned windows.
    */
   Range = "range",
 }
@@ -49,6 +51,15 @@ export interface SerializedMetricQueryAlias {
  */
 export interface SerializedMetricQuery {
   metricName: string;
+  /*
+   * The query's variable letter (metricAliasData.metricVariable), so
+   * formulas referencing it keep resolving after a round-trip even when
+   * the live view's variables are not positional (e.g. a lone query
+   * named "b" after "a" was deleted). Absent on links serialized by
+   * older versions — reconstruction then falls back to positional
+   * lettering (a, b, ...).
+   */
+  variable?: string | undefined;
   attributes?: Dictionary<string | number | boolean> | undefined;
   aggregationType?: MetricsAggregationType | undefined;
   alias?: SerializedMetricQueryAlias | undefined;
@@ -63,10 +74,20 @@ export interface SerializedMetricQuery {
   topN?: number | undefined;
 }
 
+/*
+ * Plain-data shape of one formula inside the `metricFormulas` param.
+ * Display customization (chart type, color, thresholds) round-trips just
+ * like it does for queries — dropping it on share/save would silently
+ * lose user work. All of it is optional so older links keep parsing.
+ */
 export interface SerializedMetricFormula {
   formula: string;
   variable?: string | undefined;
   alias?: SerializedMetricQueryAlias | undefined;
+  chartType?: MetricChartType | undefined;
+  color?: string | undefined;
+  warningThreshold?: number | undefined;
+  criticalThreshold?: number | undefined;
 }
 
 export default class MetricExplorerUrl {
@@ -117,15 +138,18 @@ export default class MetricExplorerUrl {
     }
 
     /*
-     * Relative token. Past 1 Hour is the explorer's default and stays
-     * implicit (mirrors the metrics list page's `range` convention);
-     * Custom windows are represented by the absolute params alone.
+     * Relative token. Emitted for every relative range — including the
+     * default Past 1 Hour, because parsing treats absolute-only params
+     * as a pinned Custom window, so leaving the default implicit would
+     * silently turn the rolling hour into a frozen window on reload or
+     * Copy Link. Custom windows are represented by the absolute params
+     * alone (getValidRangeToken filters Custom and garbage).
      */
     const rangeToken: string | undefined = MetricExplorerUrl.getValidRangeToken(
       data.rangeToken,
     );
 
-    if (rangeToken && rangeToken !== TimeRange.PAST_ONE_HOUR) {
+    if (rangeToken) {
       params[MetricExplorerUrlParam.Range] = rangeToken;
     }
 
@@ -206,6 +230,9 @@ export default class MetricExplorerUrl {
 
     return {
       metricName,
+      ...(queryConfig.metricAliasData?.metricVariable
+        ? { variable: queryConfig.metricAliasData.metricVariable }
+        : {}),
       attributes,
       ...(aggregationType ? { aggregationType } : {}),
       ...(alias ? { alias } : {}),
@@ -233,12 +260,35 @@ export default class MetricExplorerUrl {
         formulaConfig.metricAliasData,
       );
 
+    const chartType: MetricChartType | undefined =
+      MetricExplorerUrl.getChartTypeFromValue(formulaConfig.chartType);
+
+    const color: string | undefined =
+      typeof formulaConfig.color === "string" &&
+      formulaConfig.color.trim() !== ""
+        ? formulaConfig.color
+        : undefined;
+
+    const warningThreshold: number | undefined =
+      MetricExplorerUrl.getFiniteNumberFromValue(
+        formulaConfig.warningThreshold,
+      );
+
+    const criticalThreshold: number | undefined =
+      MetricExplorerUrl.getFiniteNumberFromValue(
+        formulaConfig.criticalThreshold,
+      );
+
     return {
       formula: formulaConfig.metricFormulaData?.metricFormula || "",
       ...(formulaConfig.metricAliasData?.metricVariable
         ? { variable: formulaConfig.metricAliasData.metricVariable }
         : {}),
       ...(alias ? { alias } : {}),
+      ...(chartType ? { chartType } : {}),
+      ...(color ? { color } : {}),
+      ...(warningThreshold !== undefined ? { warningThreshold } : {}),
+      ...(criticalThreshold !== undefined ? { criticalThreshold } : {}),
     };
   }
 
@@ -280,6 +330,11 @@ export default class MetricExplorerUrl {
         typeof entryRecord["metricName"] === "string"
           ? (entryRecord["metricName"] as string)
           : "";
+
+      const variable: string | undefined =
+        typeof entryRecord["variable"] === "string"
+          ? (entryRecord["variable"] as string)
+          : undefined;
 
       const attributes: Dictionary<string | number | boolean> =
         MetricExplorerUrl.sanitizeAttributes(entryRecord["attributes"]);
@@ -324,6 +379,7 @@ export default class MetricExplorerUrl {
 
       sanitizedQueries.push({
         metricName,
+        ...(variable ? { variable } : {}),
         attributes,
         ...(aggregationType ? { aggregationType } : {}),
         ...(alias ? { alias } : {}),
@@ -390,10 +446,33 @@ export default class MetricExplorerUrl {
       const alias: SerializedMetricQueryAlias | undefined =
         MetricExplorerUrl.sanitizeAlias(entryRecord["alias"], entryRecord);
 
+      const chartType: MetricChartType | undefined =
+        MetricExplorerUrl.getChartTypeFromValue(entryRecord["chartType"]);
+
+      const color: string | undefined =
+        typeof entryRecord["color"] === "string" &&
+        (entryRecord["color"] as string).trim() !== ""
+          ? (entryRecord["color"] as string)
+          : undefined;
+
+      const warningThreshold: number | undefined =
+        MetricExplorerUrl.getFiniteNumberFromValue(
+          entryRecord["warningThreshold"],
+        );
+
+      const criticalThreshold: number | undefined =
+        MetricExplorerUrl.getFiniteNumberFromValue(
+          entryRecord["criticalThreshold"],
+        );
+
       formulas.push({
         formula,
         ...(variable ? { variable } : {}),
         ...(alias ? { alias } : {}),
+        ...(chartType ? { chartType } : {}),
+        ...(color ? { color } : {}),
+        ...(warningThreshold !== undefined ? { warningThreshold } : {}),
+        ...(criticalThreshold !== undefined ? { criticalThreshold } : {}),
       });
     }
 

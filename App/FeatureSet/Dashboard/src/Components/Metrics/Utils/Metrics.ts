@@ -73,9 +73,14 @@ const AGGREGATE_RESULT_TTL_MS: number = 8_000;
 /*
  * Default cap on series per grouped query — sent to the server as
  * `topK.count` so only the top-N groups are fetched, and used by the
- * chart layer as the display cap. A query can override it via
- * `metricQueryData.topN` (persisted) or, for chart surfaces that cannot
- * write the query config, via the transient per-query override below.
+ * chart layer as the display cap. OPT-IN: fetchResults applies it only
+ * when the caller passes `defaultTopN: true` — chart surfaces that render
+ * the Top-N controls and truncation banner (MetricView, dashboard chart
+ * widgets) opt in, while consumers with no truncation UI (e.g. the
+ * dashboard table widget) keep fetching every group. A query can still
+ * set its own cap via `metricQueryData.topN` (persisted) or, for chart
+ * surfaces that cannot write the query config, via the transient
+ * per-query override below.
  */
 export const DEFAULT_TOP_N_SERIES: number = 10;
 
@@ -335,6 +340,23 @@ export default class MetricUtil {
      * absolute window whose fetch snapshot cannot otherwise change.
      */
     refreshNonce?: number | string | undefined;
+    /*
+     * Opt in to the DEFAULT_TOP_N_SERIES server-side cap for grouped
+     * queries. Only chart surfaces that render the Top-N controls and
+     * the "Showing top k of N" truncation banner (MetricView, the
+     * dashboard chart widget) should pass true — otherwise a grouped
+     * query silently loses groups with no indicator. Absent, grouped
+     * queries fetch every group unless the query config itself sets
+     * `metricQueryData.topN` (or a transient override is registered).
+     */
+    defaultTopN?: boolean | undefined;
+    /*
+     * Namespace for reading transient Top-N overrides — must match the
+     * `topNOverrideScope` the host passes to MetricCharts, so overrides
+     * written by one widget instance are never picked up by another
+     * id-less query that shares the same fallback key (e.g. `var-a`).
+     */
+    topNOverrideScope?: string | undefined;
   }): Promise<Array<AggregatedResult>> {
     const metricViewData: MetricViewData = data.metricViewData;
 
@@ -399,18 +421,24 @@ export default class MetricUtil {
            * (ranked by max over the window) are fetched, instead of every
            * bucket of every group. The effective N comes from a transient
            * per-query override (set by chart controls that can't write the
-           * view config) falling back to the persisted `topN` and then the
-           * default cap. Ungrouped queries return a single series and skip
-           * topK entirely. topK is part of the AggregateBy payload, so the
+           * view config) falling back to the persisted `topN` and then —
+           * only for callers that opted in via `defaultTopN` — the default
+           * cap; other callers get every group (undefined → no topK).
+           * Ungrouped queries return a single series and skip topK
+           * entirely. topK is part of the AggregateBy payload, so the
            * request cache/dedup key (buildAggregateCacheKey stringifies the
            * whole AggregateBy) busts automatically when it changes.
            */
-          const queryTopN: number =
+          const queryTopN: number | undefined =
             topNOverrideByQueryKey.get(
-              MetricUtil.getQueryConfigTopNKey(queryConfig, queryIndex),
+              MetricUtil.getQueryConfigTopNKey(
+                queryConfig,
+                queryIndex,
+                data.topNOverrideScope,
+              ),
             ) ??
             queryConfig.metricQueryData.topN ??
-            DEFAULT_TOP_N_SERIES;
+            (data.defaultTopN ? DEFAULT_TOP_N_SERIES : undefined);
 
           return dedupedAggregate(
             {
@@ -445,7 +473,7 @@ export default class MetricUtil {
               groupByAttributeKeys: hasGroupByAttributes
                 ? groupByAttributeKeys
                 : undefined,
-              ...(hasGroupByAttributes
+              ...(hasGroupByAttributes && queryTopN !== undefined
                 ? {
                     topK: {
                       count: queryTopN,
@@ -631,23 +659,29 @@ export default class MetricUtil {
    * Stable key identifying a query for the transient Top-N override
    * registry. Prefers the query's persistent `id`, then its metric
    * variable (unique within a view and stable across removal/reorder),
-   * then falls back to the array position. Must stay consistent between
-   * the chart layer (which writes overrides) and fetchResults (which
-   * reads them).
+   * then falls back to the array position. The optional `scope`
+   * namespaces the key to one host instance (e.g. a dashboard widget's
+   * componentId) — id-less configs fall back to variable/position keys
+   * that COLLIDE across widgets (every default widget query is "var-a"),
+   * so an unscoped override written by one widget would leak into every
+   * other. Must stay consistent between the chart layer (which writes
+   * overrides) and fetchResults (which reads them).
    */
   public static getQueryConfigTopNKey(
     queryConfig: MetricQueryConfigData,
     queryIndex: number,
+    scope?: string | undefined,
   ): string {
+    const scopePrefix: string = scope ? `${scope}:` : "";
     if (queryConfig.id) {
-      return `id-${queryConfig.id}`;
+      return `${scopePrefix}id-${queryConfig.id}`;
     }
     const metricVariable: string | undefined =
       queryConfig.metricAliasData?.metricVariable;
     if (metricVariable) {
-      return `var-${metricVariable}`;
+      return `${scopePrefix}var-${metricVariable}`;
     }
-    return `index-${queryIndex}`;
+    return `${scopePrefix}index-${queryIndex}`;
   }
 
   /**
@@ -665,6 +699,21 @@ export default class MetricUtil {
       return;
     }
     topNOverrideByQueryKey.set(queryKey, topN);
+  }
+
+  /**
+   * Drop every transient Top-N override registered under a host scope.
+   * Called on host unmount so a widget's "Show all" / Top-N choices
+   * don't outlive it (the registry is module-global and would otherwise
+   * keep applying them for the whole SPA session).
+   */
+  public static clearQueryTopNOverridesForScope(scope: string): void {
+    const prefix: string = `${scope}:`;
+    for (const key of Array.from(topNOverrideByQueryKey.keys())) {
+      if (key.startsWith(prefix)) {
+        topNOverrideByQueryKey.delete(key);
+      }
+    }
   }
 
   /**

@@ -13,7 +13,9 @@ import React, {
   useState,
 } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ObjectID from "Common/Types/ObjectID";
@@ -179,9 +181,9 @@ const MonitorCreate: FunctionComponent<
    * warning/critical criteria; otherwise criteria stay at the form's
    * defaults. Template links take priority — they carry full steps.
    */
-  const preSeedFromMetricExplorerLink: (rawMetricQueries: string) => void = (
+  const preSeedFromMetricExplorerLink: (
     rawMetricQueries: string,
-  ): void => {
+  ) => Promise<void> = async (rawMetricQueries: string): Promise<void> => {
     const serializedQueries: Array<SerializedMetricQuery> =
       MetricExplorerUrl.parseMetricQueriesParam(rawMetricQueries);
 
@@ -219,6 +221,38 @@ const MonitorCreate: FunctionComponent<
       },
       rollingTime: getNearestRollingTimeForWindow(),
     };
+
+    /*
+     * The MonitorSteps form only auto-fills the default (operational)
+     * monitor status when it bootstraps WITHOUT an initial value, so a
+     * pre-seeded MonitorSteps must carry it itself — otherwise
+     * validation blocks the criteria step with "Default Monitor Status
+     * is required" until the user finds the dropdown manually.
+     */
+    try {
+      const monitorStatusList: ListResult<MonitorStatus> =
+        await ModelAPI.getList({
+          modelType: MonitorStatus,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            isOperationalState: true,
+          },
+          sort: {},
+        });
+
+      const operationalStatus: MonitorStatus | undefined =
+        monitorStatusList.data.find((status: MonitorStatus) => {
+          return status.isOperationalState;
+        });
+
+      if (operationalStatus?.id) {
+        monitorSteps.setDefaultMonitorStatusId(operationalStatus.id);
+      }
+    } catch {
+      // Recoverable: the user can still pick the default status in the form.
+    }
 
     const warningFilters: Array<CriteriaFilter> = [];
     const criticalFilters: Array<CriteriaFilter> = [];
@@ -299,7 +333,15 @@ const MonitorCreate: FunctionComponent<
     );
 
     if (rawMetricQueries) {
-      preSeedFromMetricExplorerLink(rawMetricQueries);
+      /*
+       * Gate the form on loading (like the template flow) so the
+       * pre-seeded initial values — including the async-fetched default
+       * monitor status — are in place before the form mounts.
+       */
+      setIsLoading(true);
+      preSeedFromMetricExplorerLink(rawMetricQueries).finally(() => {
+        setIsLoading(false);
+      });
     }
   }, []);
 
