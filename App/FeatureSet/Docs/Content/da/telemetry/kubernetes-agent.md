@@ -79,7 +79,7 @@ Kontrollér, at agent-poddene kører:
 kubectl get pods -n oneuptime-agent
 ```
 
-På en **standard**-cluster vil du se en metrics-collector Deployment plus én log-collector DaemonSet-pod pr. node:
+På en **standard**-cluster vil du se en cluster-collector Deployment plus én node-collector DaemonSet-pod pr. node:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-På **GKE Autopilot** eller **EKS Fargate** vil du i stedet se to Deployments (ingen DaemonSet):
+På **GKE Autopilot** kører node-collectoren stadig — den indsamler kubelet- og cAdvisor-metrikker uden at have brug for hostPath — og en ekstra Deployment følger pod-logs via Kubernetes-API'en:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+På **EKS Fargate** vil du se to Deployments og ingen DaemonSet — Fargate giver hver pod sin egen mikro-VM og planlægger aldrig DaemonSets, så metrikker på node-niveau er ikke tilgængelige der:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -163,7 +172,6 @@ Container-runtimes registrerer ikke en alvorlighed på loglinjen, så agenten pa
 | `daemonset` | `stderr` → behandles som ERROR (beholdes), `stdout` → behandles som INFO (droppes af en WARN-tærskel) | Container-runtimen registrerer, hvilken stream hver linje kom fra. |
 | `api` | **Beholdes** altid | Kubernetes' `pods/log`-API fletter stdout og stderr sammen til én stream uden markør pr. linje. I stedet for at gætte beholder agenten linjen. |
 
-> `api`-tilstand dropper altså strengt mindre end `daemonset`-tilstand. Det er med vilje: en Python-traceback eller `npm ERR!` bærer intet alvorlighedsnøgleord, og lydløst at slette den er præcis den fejl, en alvorlighedstærskel skal beskytte dig imod.
 
 Flerlinje-events samles **før** filtrering i begge tilstande, så en Java-stacktrace bedømmes på sin første linje og beholdes eller droppes som helhed — du får aldrig en nøgen `ERROR`-linje med dens frames skrællet af.
 
@@ -219,7 +227,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-> **Dette fjerner også dine node-metrikker.** kubelet-, cAdvisor- og hostmetrics-receiverne bor inde i log-collector-DaemonSet'et, så at slå pod-logs fra sletter dem også — sammen med OOM-kill-, CPU-throttling- og PVC-lav-disk-monitorerne. Du beholder metrikker på cluster-niveau og Kubernetes-events, men ikke dem pr. node eller pr. container. For at skære i logvolumen og samtidig beholde metrikkerne skal du i stedet bruge [`filters.logs.minSeverity`](#filtrering-efter-log-alvorlighed) eller [`namespaceFilters`](#namespace-filtrering).
+Dine metrikker er upåvirkede: node-collectoren kører videre for kubelet-, cAdvisor- og host-metrikker, den holder blot op med at læse pod-logs. Log-baserede advarsler stopper, og intet andet gør.
 
 ### Gennemtving en bestemt logindsamlingstilstand
 
@@ -229,7 +237,9 @@ Avancerede brugere kan tilsidesætte forudindstillingens valg med `logs.mode`:
 - `logs.mode=api` — Kubernetes API log tailer Deployment (virker på enhver cluster)
 - `logs.mode=disabled` — ingen logindsamling
 
-> `api` og `disabled` fjerner begge log-collector-DaemonSet'et og dermed de node-, pod-, container- og host-metrikker, der er beskrevet ovenfor — den samme afvejning som `logs.enabled=false`. Kun `daemonset`-tilstand indsamler dem. Det er derfor, GKE Autopilot- og EKS Fargate-forudindstillingerne, som gennemtvinger `api`-tilstand, ikke rapporterer kubelet-metrikker.
+> Log-tilstanden bestemmer kun, hvor **pod-logs** kommer fra. Node-metrikker indsamles uafhængigt af den, så `api` og `disabled` bevarer dine kubelet-, cAdvisor- og host-metrikker.
+>
+> Den ene undtagelse er platformen, ikke tilstanden: **EKS Fargate kan slet ikke planlægge DaemonSets**, så der er ingen node-collector der, og metrikker pr. node, pr. pod og pr. container er utilgængelige. GKE Autopilot kører node-collectoren fint, men blokerer `hostPath`, så den indsamler kubelet- og cAdvisor-metrikker uden `hostmetrics`-metrikkerne (disk-I/O, inodes, NIC-fejl), der skal læse hostens `/proc` og `/sys`.
 
 Det eksplicitte `logs.mode` vinder altid over forudindstillingens standard. Brug dette, hvis du kender din cluster bedre, end forudindstillingen gør.
 
@@ -412,9 +422,7 @@ Container-logs er næsten altid den største andel af ingest, fordi det er én p
     --set logs.enabled=false
   ```
 
-  > **Dette deaktiverer også node-, pod-, container- og host-metrikker.** kubelet-, cAdvisor- og hostmetrics-receiverne bor alle i den samme log-collector-DaemonSet, så at slå pod-logs fra fjerner dem også — sammen med OOM-kill-, CPU-throttling- og PVC-lav-disk-monitorerne. Det samme gælder for `logs.mode: api` og `logs.mode: disabled`.
-  >
-  > Hvis du vil have færre logs, men gerne vil beholde dine metrikker, så bliv på `logs.mode: daemonset` og grib i stedet fat i `namespaceFilters` eller `filters.logs.minSeverity` ovenfor.
+  > Dette stopper kun pod-logs. Node-, pod- og container-metrikker flyder videre, og monitorerne bygget på dem (OOM-kills, CPU-throttling, PVC-lav-disk) virker fortsat — node-collectoren bliver, den holder blot op med at læse `/var/log/pods`. Det samme gælder for `logs.mode: api` og `logs.mode: disabled`.
 
 ### Håndtag 2 — Beskær eBPF-autoinstrumentering
 
@@ -428,7 +436,7 @@ eBPF giver dig sporinger, RED-metrikker, service map og netværksflow-metrikker 
     --set ebpf.enabled=false
   ```
 
-- **Behold sporingerne, drop de tunge metrik-familier.** [Signalfamilie-tabellen ovenfor](#sl-individuelle-signalfamilier-tilfra) viser hvert `ebpf.features.*`-flag. De familier med størst volumen er netværks- og span-metrikker — at slå dem fra efterlader sporinger, HTTP RED-metrikker og service map intakt:
+- **Behold sporingerne, drop de tunge metrik-familier.** [Signalfamilie-tabellen ovenfor](#slå-individuelle-signalfamilier-tilfra) viser hvert `ebpf.features.*`-flag. De familier med størst volumen er netværks- og span-metrikker — at slå dem fra efterlader sporinger, HTTP RED-metrikker og service map intakt:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -448,7 +456,7 @@ eBPF giver dig sporinger, RED-metrikker, service map og netværksflow-metrikker 
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
-  Se [Slå individuelle signalfamilier til/fra](#sl-individuelle-signalfamilier-tilfra) og `excludeExePaths`-noten i chart-værdierne for de fulde standarder.
+  Se [Slå individuelle signalfamilier til/fra](#slå-individuelle-signalfamilier-tilfra) og `excludeExePaths`-noten i chart-værdierne for de fulde standarder.
 
 ### Håndtag 3 — Sænk scrape-intervallerne
 
@@ -530,8 +538,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Keep the DaemonSet — it is what collects kubelet, cAdvisor and host
-# metrics as well as logs — but only ship logs worth alerting on.
+# Keep pod logs, but only ship the ones worth alerting on. (Metrics do
+# not depend on this — the node collector runs either way.)
 logs:
   enabled: true
   mode: daemonset
@@ -561,7 +569,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Stram yderligere efter behov: hæv `minSeverity` til `ERROR`, tilføj `namespaceFilters.applyTo.metrics=true`, eller sæt `ebpf.enabled=false`, hvis du allerede leverer sporinger fra OTel-SDK'er.
 
-> **Pas på, hvad du skærer væk.** Nogle monitorer afhænger af bestemte signaler: at deaktivere `cadvisor` fjerner OOM-kill- og CPU-throttling-monitorerne; at deaktivere `kubeletstats.volumeMetrics` fjerner PVC-lav-disk-monitoren; at deaktivere logs (eller slå DaemonSet'en fra) fjerner log-baserede advarsler *og* dine node-metrikker. Beskær de signaler, du ikke handler på, ikke dem, en monitor holder øje med.
+> **Pas på, hvad du skærer væk.** Nogle monitorer afhænger af bestemte signaler: at deaktivere `cadvisor` fjerner OOM-kill- og CPU-throttling-monitorerne; at deaktivere `kubeletstats.volumeMetrics` fjerner PVC-lav-disk-monitoren; at deaktivere logs fjerner log-baserede advarsler. Beskær de signaler, du ikke handler på, ikke dem, en monitor holder øje med.
 
 ### Mål effekten
 

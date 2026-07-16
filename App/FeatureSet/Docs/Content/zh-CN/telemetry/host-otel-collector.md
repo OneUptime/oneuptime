@@ -572,7 +572,7 @@ sc.exe query "otelcol-contrib"
       priority: warning # info and debug are dropped before export
   ```
 
-- **Windows 事件日志**——`Security` 通道的流量远高于其他通道。用 `query:` 将其缩小到你确实会审计的事件 ID（如上文 [Windows 事件日志](#windows-event-logs) 所示），如果不需要则直接丢弃整个通道。
+- **Windows 事件日志**——`Security` 通道的流量远高于其他通道。用 `query:` 将其缩小到你确实会审计的事件 ID（如上文 [Windows 事件日志](#windows-事件日志) 所示），如果不需要则直接丢弃整个通道。
 
 ### 杠杆 2——放慢指标的采集间隔
 
@@ -792,7 +792,7 @@ OpenTelemetry Collector 遵循标准的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _Project Settings → Telemetry Ingestion Keys_ 生成一个新令牌。
 - **`Security` Windows 事件日志返回拒绝访问（access denied）**——该服务未以足够的权限运行。在 `LocalSystem` 身份下重新创建它（`sc.exe create` 的默认设置），或为服务账户授予 _Manage auditing and security log_ 用户权限。
 - **`journald` 接收器无法启动**——确保 `journalctl` 在 collector 的 `PATH` 中，并且 `/var/log/journal` 存在（如不存在，请运行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
-- **流量 / 成本过高**——参见[减少采集的数据量](#reducing-the-volume-of-data-collected)：缩小接收器范围（特定的 Windows 通道、特定的 systemd 单元、特定的日志文件），提高指标的 `collection_interval`，丢弃每进程抓取器，或添加一个 `filter` 处理器以在导出前丢弃低严重性记录。
+- **流量 / 成本过高**——参见[减少采集的数据量](#减少采集的数据量)：缩小接收器范围（特定的 Windows 通道、特定的 systemd 单元、特定的日志文件），提高指标的 `collection_interval`，丢弃每进程抓取器，或添加一个 `filter` 处理器以在导出前丢弃低严重性记录。
 
 ## 后续步骤
 

@@ -81,7 +81,7 @@ Jira Cloud 使用 **Basic auth**，以您的電子郵件與 API token 進行 bas
 3. 開啟 workflow 的 **Logs** 分頁。**API** 區塊應顯示 `201` 狀態，以及一個包含新 issue 之 `key`（例如 `OPS-1234`）的回應主體。
 4. 檢查 Jira — issue 就在那裡。
 
-如果 API 區塊回傳錯誤，請在日誌中將它展開 — Jira 的回應會精確說明它拒絕了哪個欄位。請參閱 [疑難排解](#troubleshooting)。
+如果 API 區塊回傳錯誤，請在日誌中將它展開 — Jira 的回應會精確說明它拒絕了哪個欄位。請參閱 [疑難排解](#疑難排解)。
 
 ## 步驟 4 — 將事件連回該 issue（建議）
 

@@ -45,7 +45,7 @@ export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,device.id=sens
 | `OTEL_EXPORTER_OTLP_HEADERS`  | हाँ      | `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`                                                    |
 | `OTEL_RESOURCE_ATTRIBUTES`    | हाँ      | अल्पविराम से अलग किए गए रिसोर्स एट्रिब्यूट्स। इसमें `iot.fleet.name`, `device.id`, और `service.name=iot/<fleet>` शामिल होने चाहिए |
 
-नीचे दिए गए `iot_*` नामों का उपयोग करके अपने रीडिंग्स को मेट्रिक्स के रूप में उत्सर्जित करें (देखें [मेट्रिक परंपराएँ](#metric-conventions))। लगभग एक मिनट के भीतर डिवाइस OneUptime डैशबोर्ड के **IoT** अनुभाग के अंतर्गत दिखाई देता है।
+नीचे दिए गए `iot_*` नामों का उपयोग करके अपने रीडिंग्स को मेट्रिक्स के रूप में उत्सर्जित करें (देखें [मेट्रिक परंपराएँ](#मेट्रिक-परंपराएँ))। लगभग एक मिनट के भीतर डिवाइस OneUptime डैशबोर्ड के **IoT** अनुभाग के अंतर्गत दिखाई देता है।
 
 ## OpenTelemetry Collector के माध्यम से मेट्रिक्स भेजना
 
@@ -76,10 +76,7 @@ processors:
 exporters:
   otlphttp:
     endpoint: "https://oneuptime.com/otlp"
-    # OneUptime को डिफ़ॉल्ट Proto(buf) के बजाय JSON एन्कोडर की आवश्यकता होती है
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 
 service:
@@ -92,7 +89,104 @@ service:
 
 - **`resource`** प्रत्येक रिकॉर्ड को फ्लीट एट्रिब्यूट्स के साथ स्टैम्प करता है। प्रति गेटवे `iot.fleet.name` (और मेल खाता `service.name=iot/<fleet>`) सेट करें ताकि प्रत्येक गेटवे के डिवाइस सही फ्लीट में पहुँचें।
 - प्रत्येक डेटापॉइंट पर `device.id` (और वैकल्पिक रूप से `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) रखें ताकि OneUptime फ्लीट के भीतर व्यक्तिगत डिवाइस को हल कर सके।
-- **`otlphttp`** इन्जेस्शन टोकन संलग्न करके HTTPS पर OneUptime को भेजता है। ध्यान दें कि `encoding: json` और `Content-Type: application/json` हेडर आवश्यक हैं।
+- **`otlphttp`** इन्जेस्शन टोकन संलग्न करके HTTPS पर OneUptime को भेजता है। डिफ़ॉल्ट protobuf एन्कोडिंग और `encoding: json` दोनों स्वीकार किए जाते हैं।
+
+## MQTT के माध्यम से मेट्रिक्स भेजना
+
+OneUptime एक अंतर्निहित MQTT एंडपॉइंट के साथ आता है, इसलिए जो डिवाइस पहले से MQTT बोलते हैं वे सीधे रीडिंग्स पुश कर सकते हैं — किसी OpenTelemetry SDK, कलेक्टर या ब्रिज की आवश्यकता नहीं। MQTT पर प्रकाशित की गई हर चीज़ उसी पाइपलाइन में पहुँचती है जिसमें OTLP: फ्लीट स्वतः बन जाते हैं, डिवाइस इन्वेंट्री अपडेट होती है, और प्रत्येक IoT मॉनिटर और अलर्ट टेम्पलेट बिना किसी बदलाव के काम करता है।
+
+**एंडपॉइंट**
+
+| ट्रांसपोर्ट             | पता                                | टिप्पणियाँ                                                                                     |
+| --------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
+| WebSocket पर MQTT   | `wss://<your-host>/mqtt`               | हर डिप्लॉयमेंट पर काम करता है — OneUptime इनग्रेस के माध्यम से सामान्य HTTPS पोर्ट का उपयोग करता है     |
+| TCP पर MQTT         | `<app-host>:1883` (`MQTT_INGEST_PORT`) | सेल्फ-होस्टेड: डिफ़ॉल्ट रूप से क्लस्टर/कंपोज़ नेटवर्क के लिए आंतरिक; यदि आवश्यक हो तो इसे एक्सपोज़ करें |
+
+**प्रमाणीकरण** — दो विकल्प:
+
+- **प्रोजेक्ट-व्यापी**: अपना **Telemetry Ingestion Token** MQTT पासवर्ड के रूप में भेजें (यूज़रनेम को अनदेखा किया जाता है; यदि आपका क्लाइंट केवल यूज़रनेम फ़ील्ड दिखाता है, तो टोकन वहाँ रखें)। उन गेटवे के लिए सही है जो कई डिवाइसों की ओर से प्रकाशित करते हैं।
+- **प्रति-डिवाइस** (सीधे कनेक्ट होने वाले डिवाइसों के लिए अनुशंसित): डैशबोर्ड में फ्लीट के **Device Registry** टैब के अंतर्गत डिवाइस को पंजीकृत करें। पंजीकरण एक प्रति-डिवाइस क्रेडेंशियल जारी करता है — क्रेडेंशियल ID MQTT **यूज़रनेम** है और सीक्रेट **पासवर्ड** है। डिवाइस-प्रमाणित क्लाइंट केवल अपने स्वयं के `oneuptime/<fleet>/<device>/…` टॉपिक्स के अंतर्गत प्रकाशित कर सकते हैं, एक समझौता किए गए डिवाइस को शेष फ्लीट को छुए बिना डैशबोर्ड से रद्द किया जा सकता है (रद्दीकरण लगभग एक मिनट के भीतर प्रभावी होता है, कनेक्टेड सत्रों के लिए भी), और पंजीकृत डिवाइसों को **साइलेंट-डेथ ऑफ़लाइन डिटेक्शन** मिलता है: रिपोर्ट करना बंद करने पर वे गायब होने के बजाय इन्वेंट्री में Offline के रूप में बने रहते हैं, और Device Offline अलर्ट टेम्पलेट उनके लिए तब भी फ़ायर होता है जब वे Last Will के बिना समाप्त हो जाएँ।
+
+अमान्य क्रेडेंशियल्स को CONNECT पर रिटर्न कोड 4 (खराब यूज़रनेम या पासवर्ड) के साथ अस्वीकार कर दिया जाता है, इसलिए एक गलत कॉन्फ़िगर किया गया डिवाइस स्पष्ट रूप से विफल होता है।
+
+**टॉपिक्स** — निश्चित `oneuptime/` उपसर्ग के अंतर्गत प्रकाशित करें। फ्लीट और डिवाइस सेगमेंट में `/`, `+`, या `#` नहीं होने चाहिए, और वे 100 वर्णों तक सीमित हैं:
+
+| टॉपिक                                            | पेलोड                                                                                              |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `oneuptime/<fleet>/<device>/telemetry`           | रीडिंग्स का JSON ऑब्जेक्ट — `{ "metrics": { "iot_temperature_celsius": 21.5 } }`, या एक फ्लैट ऑब्जेक्ट जिसके संख्यात्मक फ़ील्ड मेट्रिक्स हैं |
+| `oneuptime/<fleet>/<device>/metrics/<metricName>`| एक एकल मान — एक सादा संख्या (`23.4`) या `{ "value": 23.4 }`                                        |
+| `oneuptime/<fleet>/<device>/status`              | `"online"` या `"offline"` (साथ ही `1`/`0`, `true`/`false`, `up`/`down`) — `iot_device_up` पर मैप होता है       |
+
+टेलीमेट्री पेलोड `"attributes"` (एक स्ट्रिंग मैप जो प्रत्येक डेटापॉइंट पर स्टैम्प किया जाता है — इसका उपयोग `iot.device.kind`, `iot.device.type`, `iot.device.firmware`, या अपने स्वयं के लेबल के लिए करें) और `"timestamp"` (ISO-8601, या यूनिक्स सेकंड/मिलीसेकंड) भी ले जा सकते हैं। दोनों वैकल्पिक हैं; `timestamp` अनुपस्थित होने पर इन्जेस्ट समय का उपयोग किया जाता है।
+
+**Last Will के साथ ऑफ़लाइन डिटेक्शन** — `oneuptime/<fleet>/<device>/status` पर `offline` पेलोड के साथ एक MQTT Last Will पंजीकृत करें। यदि डिवाइस समाप्त हो जाता है या नेटवर्क से हट जाता है, तो सत्र समाप्त होते ही ब्रोकर उसकी ओर से `iot_device_up = 0` प्रकाशित करता है — जो स्टॉक **Device Offline** अलर्ट टेम्पलेट को ट्रिगर करता है और इन्वेंट्री में डिवाइस को Down में बदल देता है, बिना किसी पोलिंग और बिना किसी छूटे हुए स्क्रेप की प्रतीक्षा किए। कनेक्ट होने के बाद उसी टॉपिक पर `online` प्रकाशित करें ताकि डिवाइस फिर से Up दिखे।
+
+`mosquitto_pub` के साथ उदाहरण (रॉ TCP, सेल्फ-होस्टेड):
+
+```bash
+mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
+  -u oneuptime -P "YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -t "oneuptime/building-a-sensors/sensor-001/telemetry" \
+  -m '{"metrics":{"iot_device_up":1,"iot_battery_percent":87,"iot_temperature_celsius":21.5},"attributes":{"iot.device.type":"temp-sensor","iot.device.firmware":"1.4.2"}}'
+```
+
+WebSocket पर Node.js `mqtt` के साथ उदाहरण (oneuptime.com और किसी भी सेल्फ-होस्टेड इंस्टेंस के विरुद्ध काम करता है):
+
+```javascript
+const mqtt = require("mqtt");
+
+const client = mqtt.connect("wss://oneuptime.com/mqtt", {
+  username: "oneuptime", // ignored — the token below is what authenticates
+  password: "YOUR_TELEMETRY_INGESTION_TOKEN",
+  will: {
+    topic: "oneuptime/building-a-sensors/sensor-001/status",
+    payload: "offline",
+  },
+});
+
+client.on("connect", () => {
+  client.publish("oneuptime/building-a-sensors/sensor-001/status", "online");
+  setInterval(() => {
+    client.publish(
+      "oneuptime/building-a-sensors/sensor-001/telemetry",
+      JSON.stringify({
+        metrics: {
+          iot_device_up: 1,
+          iot_battery_percent: readBattery(),
+          iot_temperature_celsius: readTemperature(),
+        },
+      }),
+    );
+  }, 60 * 1000);
+});
+```
+
+WebSocket पर Python `paho-mqtt` के साथ उदाहरण:
+
+```python
+import json
+import paho.mqtt.client as mqtt
+
+client = mqtt.Client(transport="websockets")
+client.username_pw_set("oneuptime", "YOUR_TELEMETRY_INGESTION_TOKEN")
+client.tls_set()
+client.will_set("oneuptime/building-a-sensors/sensor-001/status", "offline")
+client.ws_set_options(path="/mqtt")
+client.connect("oneuptime.com", 443)
+
+client.publish("oneuptime/building-a-sensors/sensor-001/status", "online")
+client.publish(
+    "oneuptime/building-a-sensors/sensor-001/telemetry",
+    json.dumps({"metrics": {"iot_device_up": 1, "iot_temperature_celsius": 21.5}}),
+)
+```
+
+टिप्पणियाँ:
+
+- यह एंडपॉइंट **केवल-इन्जेस्शन** है: सब्सक्रिप्शन अस्वीकार किए जाते हैं (SUBACK विफलता)। यदि आप चाहते हैं कि ब्रोकर प्राप्ति की पुष्टि करे तो QoS 1 का उपयोग करें। इन्जेस्शन **कम-से-कम-एक-बार** है — खोई हुई पुष्टि के बाद QoS 1/2 पुनःप्रेषण डुप्लिकेट डेटापॉइंट्स उत्पन्न कर सकता है।
+- टॉपिक अनुबंध के बाहर या विकृत पेलोड के साथ प्रकाशन स्वीकार किए जाते हैं और **छोड़ दिए जाते हैं** (MQTT 3.1.1 में प्रति-संदेश त्रुटि उत्तर नहीं होता) — सर्वर कारण के साथ एक चेतावनी लॉग करता है, इसलिए यदि डेटा नहीं आ रहा है तो OneUptime ऐप लॉग जाँचें।
+- WebSocket एंडपॉइंट पर, MQTT कीपअलाइव को **5 मिनट से कम** रखें — OneUptime इनग्रेस 300 सेकंड के बाद निष्क्रिय WebSocket कनेक्शन बंद कर देता है, जो आपके Last Will और एक झूठे Device Offline अलर्ट को फ़ायर कर देगा। क्लाइंट-लाइब्रेरी डिफ़ॉल्ट (`mqtt` और `paho-mqtt` के लिए 60 s) ठीक हैं। रॉ TCP एंडपॉइंट पर ऐसी कोई सीमा नहीं है।
+- पेलोड प्रति प्रकाशन 128 KB और 100 मेट्रिक्स तक सीमित हैं; बड़े आकार के पैकेट कनेक्शन को गिरा देते हैं।
 
 ## मेट्रिक परंपराएँ
 
@@ -123,7 +217,7 @@ OneUptime निम्नलिखित `iot_*` मेट्रिक नाम
 
 1. सत्यापित करें कि `iot.fleet.name` एक **resource** एट्रिब्यूट के रूप में सेट है (डेटापॉइंट लेबल के रूप में नहीं), और `service.name` `iot/<fleet>` है।
 2. पुष्टि करें कि एक्सपोर्टर एंडपॉइंट `https://oneuptime.com/otlp` (या आपका सेल्फ-होस्टेड `…/otlp`) है और `x-oneuptime-token` हेडर एक मान्य टोकन ले जाता है।
-3. यदि कलेक्टर का उपयोग कर रहे हैं, तो सुनिश्चित करें कि `otlphttp` एक्सपोर्टर पर `encoding: json` और `Content-Type: application/json` सेट हैं।
+3. यदि MQTT का उपयोग कर रहे हैं, तो पुष्टि करें कि टॉपिक ठीक `oneuptime/<fleet>/<device>/…` का पालन करता है — टॉपिक का फ्लीट सेगमेंट ही वह चीज़ है जो फ्लीट बनाती है।
 
 ### इन्वेंट्री से डिवाइस गायब
 
@@ -137,7 +231,7 @@ OneUptime निम्नलिखित `iot_*` मेट्रिक नाम
 
 ### मेट्रिक्स चार्ट नहीं हो रहे
 
-1. पुष्टि करें कि आप [मेट्रिक परंपराएँ](#metric-conventions) तालिका से सटीक `iot_*` मेट्रिक नामों का उपयोग कर रहे हैं — अपरिचित नाम सामान्य मेट्रिक्स के रूप में संग्रहीत होते हैं और IoT चार्ट को नहीं भरेंगे।
+1. पुष्टि करें कि आप [मेट्रिक परंपराएँ](#मेट्रिक-परंपराएँ) तालिका से सटीक `iot_*` मेट्रिक नामों का उपयोग कर रहे हैं — अपरिचित नाम सामान्य मेट्रिक्स के रूप में संग्रहीत होते हैं और IoT चार्ट को नहीं भरेंगे।
 2. याद रखें कि `iot_cpu_usage_ratio` एक `0`–`1` अनुपात है; कच्चा अनुपात भेजें और OneUptime इसे प्रतिशत के रूप में रेंडर करता है।
 3. डिवाइस के रिपोर्ट करना शुरू करने के बाद पहले डेटापॉइंट्स के सामने आने के लिए एक मिनट तक की अनुमति दें।
 
@@ -155,9 +249,7 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=https://your-oneuptime-host.example.com/otlp
 exporters:
   otlphttp:
     endpoint: https://your-oneuptime-host.example.com/otlp
-    encoding: json
     headers:
-      "Content-Type": "application/json"
       "x-oneuptime-token": "YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 

@@ -79,7 +79,7 @@ Sjekk at agent-podene kjører:
 kubectl get pods -n oneuptime-agent
 ```
 
-På en **standard**-klynge vil du se en metrics-collector Deployment pluss én log-collector DaemonSet-pod per node:
+På en **standard**-klynge vil du se en cluster-collector Deployment pluss én node-collector DaemonSet-pod per node:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-På **GKE Autopilot** eller **EKS Fargate** vil du se to Deployments i stedet (ingen DaemonSet):
+På **GKE Autopilot** kjører node-collectoren fortsatt — den samler inn kubelet- og cAdvisor-metrikker uten å trenge hostPath — og et ekstra Deployment leser pod-logger via Kubernetes-API-et:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+På **EKS Fargate** vil du se to Deployments og ingen DaemonSet — Fargate gir hver pod sin egen mikro-VM og planlegger aldri DaemonSets, så metrikker på nodenivå er ikke tilgjengelige der:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -219,7 +228,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-> **Dette fjerner også node-metrikkene dine.** Mottakerne kubelet, cAdvisor og hostmetrics bor inne i log-collector-DaemonSet-en, så å slå av pod-logger sletter dem også — sammen med OOM-kill-, CPU-throttling- og PVC-lavdisk-monitorene. Du beholder metrikker på klyngenivå og Kubernetes-hendelser, men ikke de per node eller per container. For å kutte loggvolum og samtidig beholde metrikker, bruk heller [`filters.logs.minSeverity`](#filtrering-etter-loggalvorlighetsgrad) eller [`namespaceFilters`](#namespace-filtrering).
+Metrikkene dine påvirkes ikke: node-collectoren fortsetter å kjøre for kubelet-, cAdvisor- og host-metrikker, den slutter bare å lese pod-logger. Loggbaserte varsler stopper, og ingenting annet.
 
 ### Tving en spesifikk logginnsamlingsmodus
 
@@ -229,7 +238,10 @@ Avanserte brukere kan overstyre forhåndsinnstillingens valg med `logs.mode`:
 - `logs.mode=api` — Kubernetes API log-tailer Deployment (fungerer på enhver klynge)
 - `logs.mode=disabled` — ingen logginnsamling
 
-> `api` og `disabled` fjerner begge log-collector-DaemonSet-en, og med den node-, pod-, container- og host-metrikkene som er beskrevet ovenfor — den samme avveiningen som `logs.enabled=false`. Kun `daemonset`-modus samler dem inn. Det er derfor forhåndsinnstillingene for GKE Autopilot og EKS Fargate, som tvinger `api`-modus, ikke rapporterer kubelet-metrikker.
+> Loggmodusen bestemmer bare hvor **pod-logger** kommer fra. Node-metrikker samles inn uavhengig av den, så `api` og `disabled` beholder kubelet-, cAdvisor- og host-metrikkene dine.
+>
+> Det ene unntaket er plattformen, ikke modusen: **EKS Fargate kan ikke planlegge DaemonSets i det hele tatt**, så det finnes ingen node-collector der, og metrikker per node/pod/container er utilgjengelige. GKE Autopilot kjører node-collectoren fint, men blokkerer `hostPath`, så den samler inn kubelet- og cAdvisor-metrikker uten `hostmetrics`-metrikkene (disk-I/O, inoder, NIC-feil) som må lese vertens `/proc` og `/sys`.
+
 
 Den eksplisitte `logs.mode` vinner alltid over forhåndsinnstillingens standard. Bruk dette hvis du kjenner klyngen din bedre enn forhåndsinnstillingen gjør.
 
@@ -412,9 +424,7 @@ Container-logger er nesten alltid den største andelen av ingest, fordi det er �
     --set logs.enabled=false
   ```
 
-  > **Dette deaktiverer også node-, pod-, container- og host-metrikker.** Mottakerne kubelet, cAdvisor og hostmetrics bor alle i den samme log-collector-DaemonSet-en, så å slå av pod-logger fjerner dem også — sammen med OOM-kill-, CPU-throttling- og PVC-lavdisk-monitorene. Det samme gjelder `logs.mode: api` og `logs.mode: disabled`.
-  >
-  > Hvis du vil ha færre logger, men vil beholde metrikkene dine, bli værende på `logs.mode: daemonset` og bruk heller `namespaceFilters` eller `filters.logs.minSeverity` ovenfor.
+  > Dette stopper bare pod-logger. Metrikker per node, pod og container fortsetter å strømme, og monitorene som er bygget på dem (OOM-kills, CPU-throttling, PVC lav disk) fortsetter å virke — node-collectoren blir værende, den slutter bare å lese `/var/log/pods`. Det samme gjelder `logs.mode: api` og `logs.mode: disabled`.
 
 ### Spak 2 — Trim eBPF-autoinstrumentering
 
@@ -428,7 +438,7 @@ eBPF gir deg sporinger, RED-metrikker, service-kartet og nettverksflytmetrikker 
     --set ebpf.enabled=false
   ```
 
-- **Behold sporingene, dropp de tunge metrikkfamiliene.** [Signalfamilie-tabellen ovenfor](#sl-individuelle-signalfamilier-av-og-p) lister opp hvert `ebpf.features.*`-flagg. Familiene med høyest volum er nettverks- og span-metrikker — å slå dem av lar sporinger, HTTP RED-metrikker og service-kartet være intakte:
+- **Behold sporingene, dropp de tunge metrikkfamiliene.** [Signalfamilie-tabellen ovenfor](#slå-individuelle-signalfamilier-av-og-på) lister opp hvert `ebpf.features.*`-flagg. Familiene med høyest volum er nettverks- og span-metrikker — å slå dem av lar sporinger, HTTP RED-metrikker og service-kartet være intakte:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -448,7 +458,7 @@ eBPF gir deg sporinger, RED-metrikker, service-kartet og nettverksflytmetrikker 
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
-  Se [Slå individuelle signalfamilier av og på](#sl-individuelle-signalfamilier-av-og-p) og `excludeExePaths`-notatet i chart-verdiene for de fullstendige standardverdiene.
+  Se [Slå individuelle signalfamilier av og på](#slå-individuelle-signalfamilier-av-og-på) og `excludeExePaths`-notatet i chart-verdiene for de fullstendige standardverdiene.
 
 ### Spak 3 — Senk skrapeintervallene
 
@@ -530,8 +540,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Behold DaemonSet-en — det er den som samler inn kubelet-, cAdvisor- og
-# host-metrikker i tillegg til logger — men send kun logger som er verdt å varsle på.
+# Behold pod-logger, men send bare de som er verdt å varsle på.
+# (Metrikker avhenger ikke av dette — node-collectoren kjører uansett.)
 logs:
   enabled: true
   mode: daemonset

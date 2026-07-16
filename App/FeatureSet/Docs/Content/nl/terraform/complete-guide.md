@@ -248,6 +248,167 @@ De OneUptime Terraform-provider ondersteunt de volgende resources:
 
 Opmerking: Gegevensbronnen zijn momenteel niet beschikbaar in de provider.
 
+## Voorbeelden
+
+### Volledige monitoringconfiguratie
+
+```hcl
+# Variabelen
+variable "oneuptime_api_key" {
+  description = "OneUptime API-sleutel"
+  type        = string
+  sensitive   = true
+}
+
+variable "project_id" {
+  description = "OneUptime project-ID (maak het project handmatig aan in het dashboard)"
+  type        = string
+}
+
+variable "oneuptime_url" {
+  description = "OneUptime-URL"
+  type        = string
+  default     = "https://oneuptime.com"
+}
+
+# Providerconfiguratie
+terraform {
+  required_providers {
+    oneuptime = {
+      source  = "oneuptime/oneuptime"
+      version = "~> 7.0"
+    }
+  }
+}
+
+provider "oneuptime" {
+  oneuptime_url = var.oneuptime_url
+  api_key       = var.oneuptime_api_key
+}
+
+# Team
+resource "oneuptime_team" "platform" {
+  name        = "Platform Team"
+  description = "Platform engineering team"
+}
+
+# Monitors
+resource "oneuptime_monitor" "api" {
+  name        = "API Health Check"
+  description = "Monitor voor het health-eindpunt van de API"
+  data        = jsonencode({
+    url = "https://api.mycompany.com/health"
+    method = "GET"
+    interval = "1m"
+    timeout = "30s"
+  })
+  }
+}
+
+resource "oneuptime_monitor" "database" {
+  name       = "Database Connection"
+  project_id = oneuptime_project.production.id
+
+  monitor_type = "port"
+  hostname     = "db.mycompany.com"
+  port         = 5432
+  interval     = "2m"
+
+  tags = {
+    service     = "database"
+    environment = "production"
+    criticality = "critical"
+  }
+}
+
+# Piketbeleid
+resource "oneuptime_on_call_policy" "platform_oncall" {
+  name       = "Platform On-Call"
+  project_id = oneuptime_project.production.id
+  team_id    = oneuptime_team.platform.id
+
+  schedules {
+    name      = "Business Hours"
+    timezone  = "America/New_York"
+
+    layers {
+      name = "Primary"
+      users = ["user1@mycompany.com", "user2@mycompany.com"]
+      rotation_type = "weekly"
+      start_time = "09:00"
+      end_time = "17:00"
+      days = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+    }
+  }
+}
+
+# Waarschuwingsbeleid
+resource "oneuptime_alert_policy" "critical_alerts" {
+  name       = "Critical System Alerts"
+  project_id = oneuptime_project.production.id
+
+  conditions {
+    monitor_id = oneuptime_monitor.api.id
+    threshold  = "down"
+  }
+
+  conditions {
+    monitor_id = oneuptime_monitor.database.id
+    threshold  = "down"
+  }
+
+  actions {
+    type = "webhook"
+    url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  }
+
+  actions {
+    type           = "oncall_escalation"
+    oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
+  }
+}
+
+# Statuspagina
+resource "oneuptime_status_page" "public" {
+  name       = "MyCompany Status"
+  project_id = oneuptime_project.production.id
+
+  domain = "status.mycompany.com"
+
+  components {
+    name       = "API"
+    monitor_id = oneuptime_monitor.api.id
+  }
+
+  components {
+    name       = "Database"
+    monitor_id = oneuptime_monitor.database.id
+  }
+}
+```
+
+### Voorbeeld van zelf-gehoste configuratie
+
+```hcl
+# Voor zelf-gehoste OneUptime-instantie versie 7.0.123
+terraform {
+  required_providers {
+    oneuptime = {
+      source  = "oneuptime/oneuptime"
+      version = "= 7.0.123"  # Moet exact overeenkomen met uw OneUptime-versie
+    }
+  }
+  required_version = ">= 1.0"
+}
+
+provider "oneuptime" {
+  oneuptime_url = "https://oneuptime.mycompany.com"  # Uw zelf-gehoste URL
+  api_key       = var.oneuptime_api_key
+}
+
+# Rest van uw configuratie...
+```
+
 ## Best practices
 
 ### 1. Versiebeheer

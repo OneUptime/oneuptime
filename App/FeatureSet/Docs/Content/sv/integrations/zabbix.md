@@ -37,7 +37,7 @@ Gör detta först, eftersom du behöver webhook-URL:en det genererar.
    - **Severity**: välj den OneUptime-incidentallvarlighetsgrad du vill ha (du kan förfina detta senare med fler **Conditions**-grenar som mappar Zabbix-allvarlighetsgrader).
 5. Spara. Lämna **Enabled** _av_ tills vidare — du slår på det efter ett test.
 
-> **Tips:** Att lägga Zabbix `event_id` i beskrivningen (eller en incidentetikett) gör att du kan hitta den här incidenten igen senare om du vill lösa den automatiskt vid återhämtning. Se [Automatisk lösning](#automatisk-losning-valfritt).
+> **Tips:** Att lägga Zabbix `event_id` i beskrivningen (eller en incidentetikett) gör att du kan hitta den här incidenten igen senare om du vill lösa den automatiskt vid återhämtning. Se [Automatisk lösning](#automatisk-lösning-valfritt).
 
 ## Del 2 — Konfigurera Zabbix
 

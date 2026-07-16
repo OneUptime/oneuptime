@@ -1,4 +1,13 @@
-{{- if and .Values.logs.enabled (eq (include "kubernetes-agent.logMode" .) "daemonset") }}
+{{- /*
+  The node collector. Runs when EITHER pod logs are collected here OR node
+  metrics are wanted — the two used to share one logs-only gate, so turning logs
+  off silently deleted every kubelet / cAdvisor / host metric too.
+  Still named `-logs` for continuity: renaming would orphan the existing
+  DaemonSet on upgrade. It has always carried metrics as well as logs.
+*/}}
+{{- $wantLogs := eq (include "kubernetes-agent.daemonSetLogsEnabled" .) "true" }}
+{{- $wantHostMetrics := eq (include "kubernetes-agent.hostMetricsEnabled" .) "true" }}
+{{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -63,10 +72,12 @@ spec:
             - name: config
               mountPath: /etc/otel
               readOnly: true
+            {{- if $wantLogs }}
             - name: varlogpods
               mountPath: /var/log/pods
               readOnly: true
-            {{- if .Values.hostMetrics.enabled }}
+            {{- end }}
+            {{- if $wantHostMetrics }}
             # /host/proc and /host/sys are what the OTel `hostmetrics`
             # receiver reads from. `root_path: /host` tells it to look
             # under this prefix instead of /proc and /sys (which inside
@@ -84,7 +95,7 @@ spec:
               readOnly: true
               mountPropagation: HostToContainer
             {{- end }}
-            {{- if .Values.auditLogs.enabled }}
+            {{- if and .Values.auditLogs.enabled (eq (include "kubernetes-agent.hostPathAvailable" .) "true") }}
             # Read-only mount of the kube audit log directory. Default
             # path matches the kubeadm convention.
             - name: audit-logs
@@ -98,10 +109,12 @@ spec:
         - name: config
           configMap:
             name: {{ include "kubernetes-agent.fullname" . }}-daemonset
+        {{- if $wantLogs }}
         - name: varlogpods
           hostPath:
             path: /var/log/pods
-        {{- if .Values.hostMetrics.enabled }}
+        {{- end }}
+        {{- if $wantHostMetrics }}
         - name: host-proc
           hostPath:
             path: /proc
@@ -112,7 +125,7 @@ spec:
           hostPath:
             path: /
         {{- end }}
-        {{- if .Values.auditLogs.enabled }}
+        {{- if and .Values.auditLogs.enabled (eq (include "kubernetes-agent.hostPathAvailable" .) "true") }}
         - name: audit-logs
           hostPath:
             path: /var/log/kubernetes

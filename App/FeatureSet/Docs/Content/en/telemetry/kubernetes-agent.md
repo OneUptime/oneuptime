@@ -79,7 +79,7 @@ Check that the agent pods are running:
 kubectl get pods -n oneuptime-agent
 ```
 
-On a **standard** cluster you will see a metrics-collector Deployment plus one log-collector DaemonSet pod per node:
+On a **standard** cluster you will see a cluster-collector Deployment plus one node-collector DaemonSet pod per node:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-On **GKE Autopilot** or **EKS Fargate** you will see two Deployments instead (no DaemonSet):
+On **GKE Autopilot** the node collector still runs — it collects kubelet and cAdvisor metrics without needing hostPath — and an extra Deployment tails pod logs through the Kubernetes API:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+On **EKS Fargate** you will see two Deployments and no DaemonSet — Fargate gives each pod its own micro-VM and never schedules DaemonSets, so node-level metrics are not available there:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -219,7 +228,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-> **This also removes your node metrics.** The kubelet, cAdvisor and hostmetrics receivers live inside the log-collector DaemonSet, so turning pod logs off deletes them too — along with the OOM-kill, CPU-throttling and PVC-low-disk monitors. You keep cluster-level metrics and Kubernetes events, but not per-node or per-container ones. To cut log volume while keeping metrics, use [`filters.logs.minSeverity`](#filtering-by-log-severity) or [`namespaceFilters`](#namespace-filtering) instead.
+Your metrics are unaffected: the node collector keeps running for kubelet, cAdvisor and host metrics, it just stops reading pod logs. Log-based alerts stop, and nothing else does.
 
 ### Force a Specific Log Collection Mode
 
@@ -229,7 +238,9 @@ Advanced users can override the preset's choice with `logs.mode`:
 - `logs.mode=api` — Kubernetes API log tailer Deployment (works on any cluster)
 - `logs.mode=disabled` — no log collection
 
-> `api` and `disabled` both remove the log-collector DaemonSet, and with it the node, pod, container and host metrics described above — the same trade-off as `logs.enabled=false`. Only `daemonset` mode collects them. This is why the GKE Autopilot and EKS Fargate presets, which force `api` mode, do not report kubelet metrics.
+> The log mode only decides where **pod logs** come from. Node metrics are collected independently of it, so `api` and `disabled` keep your kubelet, cAdvisor and host metrics.
+>
+> The one exception is the platform, not the mode: **EKS Fargate cannot schedule DaemonSets at all**, so there is no node collector there and node/pod/container metrics are unavailable. GKE Autopilot runs the node collector fine, but blocks `hostPath`, so it collects kubelet and cAdvisor metrics without the `hostmetrics` ones (disk I/O, inodes, NIC errors) that need to read the host's `/proc` and `/sys`.
 
 The explicit `logs.mode` always wins over the preset default. Use this if you know your cluster better than the preset does.
 
@@ -412,9 +423,7 @@ Container logs are almost always the largest slice of ingest, because it is one 
     --set logs.enabled=false
   ```
 
-  > **This also disables node, pod, container and host metrics.** The kubelet, cAdvisor and hostmetrics receivers all live in the same log-collector DaemonSet, so turning pod logs off removes them too — along with the OOM-kill, CPU-throttling and PVC-low-disk monitors. The same applies to `logs.mode: api` and `logs.mode: disabled`.
-  >
-  > If you want fewer logs but want to keep your metrics, stay on `logs.mode: daemonset` and reach for `namespaceFilters` or `filters.logs.minSeverity` above instead.
+  > This only stops pod logs. Node, pod and container metrics keep flowing, and the monitors built on them (OOM kills, CPU throttling, PVC low disk) keep working — the node collector stays, it just stops reading `/var/log/pods`. The same is true of `logs.mode: api` and `logs.mode: disabled`.
 
 ### Lever 2 — Trim eBPF auto-instrumentation
 
@@ -530,8 +539,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Keep the DaemonSet — it is what collects kubelet, cAdvisor and host
-# metrics as well as logs — but only ship logs worth alerting on.
+# Keep pod logs, but only ship the ones worth alerting on. (Metrics do
+# not depend on this — the node collector runs either way.)
 logs:
   enabled: true
   mode: daemonset
@@ -561,7 +570,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Tighten further as needed: raise `minSeverity` to `ERROR`, add `namespaceFilters.applyTo.metrics=true`, or set `ebpf.enabled=false` if you already ship traces from OTel SDKs.
 
-> **Watch what you cut.** Some monitors depend on specific signals: disabling `cadvisor` removes the OOM-kill and CPU-throttling monitors; disabling `kubeletstats.volumeMetrics` removes the PVC low-disk monitor; disabling logs (or switching off the DaemonSet) removes log-based alerts *and* your node metrics. Trim the signals you don't act on, not the ones a monitor is watching.
+> **Watch what you cut.** Some monitors depend on specific signals: disabling `cadvisor` removes the OOM-kill and CPU-throttling monitors; disabling `kubeletstats.volumeMetrics` removes the PVC low-disk monitor; disabling logs removes log-based alerts. Trim the signals you don't act on, not the ones a monitor is watching.
 
 ### Measure the effect
 

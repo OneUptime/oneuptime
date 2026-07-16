@@ -224,7 +224,7 @@ El agente se publica como `oneuptime/docker-agent:release` en Docker Hub. Consul
 
 ### Las métricas aparecen pero la pestaña de Registros está vacía
 
-Es muy probable que tus contenedores no estén usando el controlador de registro `json-file`. Ejecuta los comandos de diagnóstico en la sección [Requisito del controlador de registro](#log-driver-requirement) y cambia los contenedores que necesiten sus registros enviados.
+Es muy probable que tus contenedores no estén usando el controlador de registro `json-file`. Ejecuta los comandos de diagnóstico en la sección [Requisito del controlador de registro](#requisito-del-controlador-de-registro) y cambia los contenedores que necesiten sus registros enviados.
 
 ### El receptor filelog registra `no files match the configured criteria`
 

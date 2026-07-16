@@ -244,6 +244,93 @@ daemonset
 {{- end }}
 
 {{/*
+Platform capabilities, derived from the preset.
+
+hostPath is what separates the presets: GKE Autopilot and EKS Fargate reject it,
+which is why they collect pod logs through the Kubernetes API instead. But only
+SOME of the node collector needs hostPath — filelog needs /var/log/pods and
+hostmetrics needs /proc and /sys, while kubeletstats and the cAdvisor scrape
+just talk to the kubelet over the network. Modelling the capability instead of
+the log mode is what lets those clusters keep their node metrics.
+Usage: {{- if eq (include "kubernetes-agent.hostPathAvailable" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.hostPathAvailable" -}}
+{{- $preset := default "" .Values.preset -}}
+{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}
+false
+{{- else -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether a DaemonSet can run at all. EKS Fargate schedules each pod onto its own
+micro-VM and has no notion of a node you can place one pod per — DaemonSets are
+silently never scheduled there. Everywhere else, including Autopilot, they run.
+*/}}
+{{- define "kubernetes-agent.daemonSetSchedulable" -}}
+{{- if eq (default "" .Values.preset) "eks-fargate" -}}
+false
+{{- else -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
+Does the node collector DaemonSet need to exist?
+
+It carries two independent jobs, and either one is reason enough to run it:
+  - pod logs, when logs are on AND the resolved mode is daemonset, and
+  - node metrics: kubeletstats (no off switch), the cAdvisor scrape, hostmetrics.
+
+These used to share one gate keyed on logs alone, so `logs.enabled=false` — or
+any preset that resolved the log mode to `api` — silently took every node, pod
+and container metric with it, along with the OOM-kill, CPU-throttling and
+PVC-low-disk monitors.
+*/}}
+{{- define "kubernetes-agent.daemonSetLogsEnabled" -}}
+{{- if and .Values.logs.enabled (eq (include "kubernetes-agent.logMode" .) "daemonset") (eq (include "kubernetes-agent.hostPathAvailable" .) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Node metrics are wanted whenever a DaemonSet can run and at least one node-local
+metric source is on. kubeletstats has no enable flag — it is the core node / pod
+/ container metric source — so this is true unless the platform cannot schedule
+a DaemonSet.
+*/}}
+{{- define "kubernetes-agent.daemonSetMetricsEnabled" -}}
+{{- if eq (include "kubernetes-agent.daemonSetSchedulable" .) "true" -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.daemonSetEnabled" -}}
+{{- if and (eq (include "kubernetes-agent.daemonSetSchedulable" .) "true") (or (eq (include "kubernetes-agent.daemonSetLogsEnabled" .) "true") (eq (include "kubernetes-agent.daemonSetMetricsEnabled" .) "true")) -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+hostmetrics reads the host's /proc and /sys through hostPath, so it needs both
+the flag and a platform that allows the mount.
+*/}}
+{{- define "kubernetes-agent.hostMetricsEnabled" -}}
+{{- if and .Values.hostMetrics.enabled (eq (include "kubernetes-agent.hostPathAvailable" .) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
 Telemetry filters — the OTTL conditions behind the `filter/telemetry` processor.
 
 The filter processor DROPS a record when a condition matches, and its

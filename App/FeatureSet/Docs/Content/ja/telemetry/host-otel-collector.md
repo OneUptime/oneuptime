@@ -572,7 +572,7 @@ sc.exe query "otelcol-contrib"
       priority: warning # info and debug are dropped before export
   ```
 
-- **Windows イベントログ** — `Security` チャンネルは群を抜いて最も大量です。実際に監査するイベント ID に `query:` で絞り込むか（上記の [Windows イベントログ](#windows-event-logs) を参照）、不要ならチャンネルごと削除します。
+- **Windows イベントログ** — `Security` チャンネルは群を抜いて最も大量です。実際に監査するイベント ID に `query:` で絞り込むか（上記の [Windows イベントログ](#windows-イベントログ) を参照）、不要ならチャンネルごと削除します。
 
 ### レバー 2 — メトリクスの間隔を長くする
 
@@ -792,7 +792,7 @@ OpenTelemetry Collector は、標準の `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。_Project Settings → Telemetry Ingestion Keys_ から新しいものを生成してください。
 - **`Security` の Windows イベントログでアクセス拒否が返る** — サービスが十分な権限で実行されていません。`LocalSystem`（`sc.exe create` のデフォルト）の下で再作成するか、サービスアカウントに _Manage auditing and security log_（監査とセキュリティログの管理）ユーザー権利を付与してください。
 - **`journald` レシーバーが起動に失敗する** — `journalctl` がコレクターの `PATH` 上にあること、および `/var/log/journal` が存在することを確認してください（存在しない場合は `sudo systemd-tmpfiles --create --prefix /var/log/journal` を実行）。
-- **大量データ / コスト** — [収集するデータ量を削減する](#reducing-the-volume-of-data-collected) を参照してください。レシーバーを絞り込む（特定の Windows チャンネル、systemd ユニット、ログファイル）、メトリクスの `collection_interval` を上げる、プロセスごとのスクレイパーを削除する、またはエクスポート前に低重要度のレコードを破棄する `filter` プロセッサを追加します。
+- **大量データ / コスト** — [収集するデータ量を削減する](#収集するデータ量を削減する) を参照してください。レシーバーを絞り込む（特定の Windows チャンネル、systemd ユニット、ログファイル）、メトリクスの `collection_interval` を上げる、プロセスごとのスクレイパーを削除する、またはエクスポート前に低重要度のレコードを破棄する `filter` プロセッサを追加します。
 
 ## 次のステップ
 

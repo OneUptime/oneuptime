@@ -79,7 +79,7 @@ Verifique se os pods do agente estão em execução:
 kubectl get pods -n oneuptime-agent
 ```
 
-Em um cluster **standard**, você verá um Deployment do coletor de métricas mais um pod do DaemonSet do coletor de logs por nó:
+Em um cluster **standard**, você verá um Deployment do coletor de cluster mais um pod do DaemonSet do coletor de nós por nó:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-No **GKE Autopilot** ou **EKS Fargate**, você verá dois Deployments em vez disso (sem DaemonSet):
+No **GKE Autopilot**, o coletor de nós continua em execução — ele coleta métricas do kubelet e do cAdvisor sem precisar de hostPath — e um Deployment adicional lê os logs de pods pela API do Kubernetes:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+No **EKS Fargate**, você verá dois Deployments e nenhum DaemonSet — o Fargate dá a cada pod sua própria micro-VM e nunca agenda DaemonSets, portanto métricas em nível de nó não estão disponíveis lá:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -219,7 +228,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-> **Isso também remove as suas métricas de nó.** Os receptores kubelet, cAdvisor e hostmetrics vivem dentro do DaemonSet coletor de logs, então desligar os logs de pods também os apaga — junto com os monitores de OOM-kill, de limitação de CPU e de pouco espaço em disco de PVC. Você mantém as métricas em nível de cluster e os eventos do Kubernetes, mas não as métricas por nó ou por contêiner. Para reduzir o volume de logs mantendo as métricas, use o [`filters.logs.minSeverity`](#filtragem-por-severidade-de-log) ou o [`namespaceFilters`](#filtragem-de-namespace) em vez disso.
+Suas métricas não são afetadas: o coletor de nós continua em execução para as métricas do kubelet, do cAdvisor e do host, ele apenas deixa de ler os logs de pods. Os alertas baseados em logs param, e nada mais.
 
 ### Forçar um Modo Específico de Coleta de Logs
 
@@ -228,6 +237,10 @@ Usuários avançados podem sobrescrever a escolha do preset com `logs.mode`:
 - `logs.mode=daemonset` — DaemonSet com hostPath (menor sobrecarga, requer hostPath)
 - `logs.mode=api` — Deployment de coletor de logs via API do Kubernetes (funciona em qualquer cluster)
 - `logs.mode=disabled` — sem coleta de logs
+
+> O modo de logs decide apenas de onde vêm os **logs de pods**. As métricas de nó são coletadas independentemente dele, então `api` e `disabled` mantêm suas métricas do kubelet, do cAdvisor e do host.
+>
+> A única exceção é a plataforma, não o modo: **o EKS Fargate não consegue agendar DaemonSets de forma alguma**, portanto não há coletor de nós ali e as métricas por nó/pod/contêiner ficam indisponíveis. O GKE Autopilot executa o coletor de nós normalmente, mas bloqueia `hostPath`, então coleta métricas do kubelet e do cAdvisor sem as do `hostmetrics` (E/S de disco, inodes, erros de NIC), que precisam ler o `/proc` e o `/sys` do host.
 
 > Tanto o `api` quanto o `disabled` removem o DaemonSet coletor de logs e, com ele, as métricas de nó, de pod, de contêiner e de host descritas acima — o mesmo trade-off do `logs.enabled=false`. Somente o modo `daemonset` as coleta. É por isso que os presets do GKE Autopilot e do EKS Fargate, que forçam o modo `api`, não reportam métricas do kubelet.
 
@@ -412,9 +425,7 @@ Os logs de contêiner quase sempre são a maior fatia da ingestão, porque é um
     --set logs.enabled=false
   ```
 
-  > **Isso também desativa as métricas de nó, pod, contêiner e host.** Os receptores do kubelet, do cAdvisor e do hostmetrics vivem todos no mesmo DaemonSet do coletor de logs, então desativar os logs de pods remove-os também — junto com os monitores de OOM-kill, de throttling de CPU e de pouco espaço em disco de PVC. O mesmo vale para `logs.mode: api` e `logs.mode: disabled`.
-  >
-  > Se você quer menos logs mas quer manter suas métricas, permaneça em `logs.mode: daemonset` e recorra ao `namespaceFilters` ou ao `filters.logs.minSeverity` acima.
+  > Isso interrompe apenas os logs de pods. As métricas de nó, pod e contêiner continuam fluindo, e os monitores construídos sobre elas (OOM kills, throttling de CPU, pouco espaço em PVC) continuam funcionando — o coletor de nós permanece, apenas deixa de ler `/var/log/pods`. O mesmo vale para `logs.mode: api` e `logs.mode: disabled`.
 
 ### Alavanca 2 — Reduza a autoinstrumentação por eBPF
 
@@ -428,7 +439,7 @@ O eBPF fornece traces, métricas RED, o mapa de serviços e métricas de fluxo d
     --set ebpf.enabled=false
   ```
 
-- **Mantenha os traces, elimine as famílias de métricas pesadas.** A [tabela de famílias de sinais acima](#alternar-famlias-individuais-de-sinais) lista cada flag `ebpf.features.*`. As famílias de maior volume são as métricas de rede e de span — desativá-las mantém intactos os traces, as métricas HTTP RED e o mapa de serviços:
+- **Mantenha os traces, elimine as famílias de métricas pesadas.** A [tabela de famílias de sinais acima](#alternar-famílias-individuais-de-sinais) lista cada flag `ebpf.features.*`. As famílias de maior volume são as métricas de rede e de span — desativá-las mantém intactos os traces, as métricas HTTP RED e o mapa de serviços:
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -448,7 +459,7 @@ O eBPF fornece traces, métricas RED, o mapa de serviços e métricas de fluxo d
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
-  Consulte [Alternar famílias individuais de sinais](#alternar-famlias-individuais-de-sinais) e a observação sobre `excludeExePaths` nos values do chart para os padrões completos.
+  Consulte [Alternar famílias individuais de sinais](#alternar-famílias-individuais-de-sinais) e a observação sobre `excludeExePaths` nos values do chart para os padrões completos.
 
 ### Alavanca 3 — Aumente os intervalos de coleta
 
@@ -489,7 +500,7 @@ A cardinalidade (o número de séries temporais distintas) importa tanto quanto 
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
 
-  Consulte [Incluindo ou Excluindo Métricas por Nome](#incluindo-ou-excluindo-mtricas-por-nome) para correspondência exata versus regex e para a forma de allowlist.
+  Consulte [Incluindo ou Excluindo Métricas por Nome](#incluindo-ou-excluindo-métricas-por-nome) para correspondência exata versus regex e para a forma de allowlist.
 
 - **Descarte as métricas de um namespace inteiro.** Se um namespace é ruidoso mas você ainda quer os nós dele monitorados, o `namespaceFilters.applyTo.metrics=true` aplica suas listas de namespace existentes às séries por pod e por contêiner. As séries em nível de nó e de cluster são sempre mantidas:
 
@@ -530,8 +541,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Mantenha o DaemonSet — é ele que coleta as métricas do kubelet, do cAdvisor
-# e do host, além dos logs — mas envie apenas os logs que valem um alerta.
+# Mantenha os logs de pods, mas envie apenas os que valem um alerta.
+# (As métricas não dependem disso — o coletor de nós roda de qualquer forma.)
 logs:
   enabled: true
   mode: daemonset

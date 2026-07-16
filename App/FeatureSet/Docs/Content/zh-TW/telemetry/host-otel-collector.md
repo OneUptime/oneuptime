@@ -572,7 +572,7 @@ sc.exe query "otelcol-contrib"
       priority: warning # info and debug are dropped before export
   ```
 
-- **Windows 事件記錄** — `Security` 頻道是流量遠高於其他頻道的頻道。使用 `query:` 將其縮小至您實際稽核的事件 ID（如上方 [Windows 事件記錄](#windows-event-logs) 所示），或在您不需要時完全捨棄該頻道。
+- **Windows 事件記錄** — `Security` 頻道是流量遠高於其他頻道的頻道。使用 `query:` 將其縮小至您實際稽核的事件 ID（如上方 [Windows 事件記錄](#windows-事件記錄) 所示），或在您不需要時完全捨棄該頻道。
 
 ### 槓桿 2 — 放慢指標間隔
 
@@ -792,7 +792,7 @@ OpenTelemetry Collector 遵循標準的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **exporter 傳回 HTTP 401** — 擷取權杖無效或已撤銷。從 _Project Settings → Telemetry Ingestion Keys_ 產生一個新的。
 - **`Security` Windows 事件記錄傳回 access denied** — 該服務未以足夠的權限執行。在 `LocalSystem` 下重新建立它（`sc.exe create` 的預設值），或授予服務帳戶 _Manage auditing and security log_ 使用者權限。
 - **`journald` receiver 無法啟動** — 確保 `journalctl` 在 collector 的 `PATH` 上，且 `/var/log/journal` 存在（若不存在，請執行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
-- **高流量 / 高成本** — 請參閱 [減少收集的資料量](#reducing-the-volume-of-data-collected)：縮小 receiver 範圍（特定 Windows 頻道、systemd units、日誌檔）、提高指標的 `collection_interval`、捨棄每個行程的 scraper，或新增一個 `filter` processor 以在匯出前捨棄低嚴重性記錄。
+- **高流量 / 高成本** — 請參閱 [減少收集的資料量](#減少收集的資料量)：縮小 receiver 範圍（特定 Windows 頻道、systemd units、日誌檔）、提高指標的 `collection_interval`、捨棄每個行程的 scraper，或新增一個 `filter` processor 以在匯出前捨棄低嚴重性記錄。
 
 ## 後續步驟
 

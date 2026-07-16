@@ -79,7 +79,7 @@ Controlla che i pod dell'agent siano in esecuzione:
 kubectl get pods -n oneuptime-agent
 ```
 
-Su un cluster **standard** vedrai un Deployment metrics-collector più un pod DaemonSet log-collector per nodo:
+Su un cluster **standard** vedrai un Deployment cluster-collector più un pod DaemonSet node-collector per nodo:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-Su **GKE Autopilot** o **EKS Fargate** vedrai invece due Deployment (nessun DaemonSet):
+Su **GKE Autopilot** il node collector viene comunque eseguito — raccoglie le metriche di kubelet e cAdvisor senza aver bisogno di hostPath — e un Deployment aggiuntivo fa il tail dei log dei pod tramite l'API Kubernetes:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+Su **EKS Fargate** vedrai due Deployment e nessun DaemonSet — Fargate assegna a ogni pod la propria micro-VM e non pianifica mai i DaemonSet, quindi le metriche a livello di nodo non sono disponibili lì:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -219,7 +228,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-> **Questo rimuove anche le metriche dei tuoi nodi.** I receiver kubelet, cAdvisor e hostmetrics risiedono all'interno del DaemonSet del collector dei log, quindi disattivare i log dei pod elimina anche loro — insieme ai monitor di OOM-kill, throttling della CPU e spazio su disco insufficiente per i PVC. Mantieni le metriche a livello di cluster e gli eventi Kubernetes, ma non quelle per nodo o per container. Per ridurre il volume dei log mantenendo le metriche, usa invece [`filters.logs.minSeverity`](#filtraggio-per-severit-dei-log) o [`namespaceFilters`](#filtraggio-dei-namespace).
+Le tue metriche non vengono toccate: il node collector continua a funzionare per le metriche di kubelet, cAdvisor e host, si limita a smettere di leggere i log dei pod. Si fermano gli avvisi basati sui log, e nient'altro.
 
 ### Forza una modalità specifica di raccolta dei log
 
@@ -229,7 +238,9 @@ Gli utenti avanzati possono sovrascrivere la scelta del preset con `logs.mode`:
 - `logs.mode=api` — Deployment di tailer dei log tramite API Kubernetes (funziona su qualsiasi cluster)
 - `logs.mode=disabled` — nessuna raccolta dei log
 
-> `api` e `disabled` rimuovono entrambi il DaemonSet del collector dei log e, con esso, le metriche di nodo, pod, container e host descritte sopra — lo stesso compromesso di `logs.enabled=false`. Solo la modalità `daemonset` le raccoglie. Questo è il motivo per cui i preset GKE Autopilot ed EKS Fargate, che forzano la modalità `api`, non riportano le metriche di kubelet.
+> La modalità di log decide soltanto da dove arrivano i **log dei pod**. Le metriche dei nodi vengono raccolte indipendentemente da essa, quindi `api` e `disabled` mantengono le tue metriche di kubelet, cAdvisor e host.
+>
+> L'unica eccezione riguarda la piattaforma, non la modalità: **EKS Fargate non può pianificare affatto i DaemonSet**, quindi lì non c'è alcun node collector e le metriche di nodo, pod e container non sono disponibili. GKE Autopilot esegue il node collector senza problemi, ma blocca `hostPath`, quindi raccoglie le metriche di kubelet e cAdvisor senza quelle di `hostmetrics` (I/O del disco, inode, errori delle NIC) che devono leggere `/proc` e `/sys` dell'host.
 
 Il valore esplicito `logs.mode` prevale sempre sul valore predefinito del preset. Usalo se conosci il tuo cluster meglio del preset.
 
@@ -402,7 +413,7 @@ I log dei container sono quasi sempre la fetta più grande dell'ingestione, perc
     --set filters.logs.minSeverity=WARN
   ```
 
-  Consulta [Filtraggio per severità dei log](#filtraggio-per-severit-dei-log) per sapere come viene determinata la severità e cosa succede ai log che non è possibile classificare.
+  Consulta [Filtraggio per severità dei log](#filtraggio-per-severità-dei-log) per sapere come viene determinata la severità e cosa succede ai log che non è possibile classificare.
 
 - **Non hai affatto bisogno dei log dei pod in OneUptime?** Disattivali:
 
@@ -412,9 +423,7 @@ I log dei container sono quasi sempre la fetta più grande dell'ingestione, perc
     --set logs.enabled=false
   ```
 
-  > **Questo disabilita anche le metriche di nodi, pod, container e host.** I receiver kubelet, cAdvisor e hostmetrics vivono tutti nello stesso DaemonSet log-collector, quindi disattivare i log dei pod rimuove anche loro — insieme ai monitor di OOM-kill, CPU-throttling e spazio su disco basso dei PVC. Lo stesso vale per `logs.mode: api` e `logs.mode: disabled`.
-  >
-  > Se vuoi meno log ma vuoi mantenere le tue metriche, resta su `logs.mode: daemonset` e ricorri invece a `namespaceFilters` o `filters.logs.minSeverity` qui sopra.
+  > Questo ferma soltanto i log dei pod. Le metriche di nodi, pod e container continuano a fluire, e i monitor costruiti su di esse (OOM kill, throttling della CPU, spazio su disco basso dei PVC) continuano a funzionare — il node collector resta, si limita a smettere di leggere `/var/log/pods`. Lo stesso vale per `logs.mode: api` e `logs.mode: disabled`.
 
 ### Leva 2 — Riduci l'auto-strumentazione eBPF
 
@@ -530,8 +539,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Keep the DaemonSet — it is what collects kubelet, cAdvisor and host
-# metrics as well as logs — but only ship logs worth alerting on.
+# Keep pod logs, but only ship the ones worth alerting on. (Metrics do
+# not depend on this — the node collector runs either way.)
 logs:
   enabled: true
   mode: daemonset
@@ -561,7 +570,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Restringi ulteriormente secondo necessità: alza `minSeverity` a `ERROR`, aggiungi `namespaceFilters.applyTo.metrics=true`, oppure imposta `ebpf.enabled=false` se invii già le tracce dagli SDK OTel.
 
-> **Attenzione a cosa tagli.** Alcuni monitor dipendono da segnali specifici: disabilitare `cadvisor` rimuove i monitor di OOM-kill e CPU-throttling; disabilitare `kubeletstats.volumeMetrics` rimuove il monitor di spazio su disco basso dei PVC; disabilitare i log (o disattivare il DaemonSet) rimuove gli avvisi basati sui log *e* le tue metriche dei nodi. Riduci i segnali su cui non intervieni, non quelli che un monitor sta osservando.
+> **Attenzione a cosa tagli.** Alcuni monitor dipendono da segnali specifici: disabilitare `cadvisor` rimuove i monitor di OOM-kill e CPU-throttling; disabilitare `kubeletstats.volumeMetrics` rimuove il monitor di spazio su disco basso dei PVC; disabilitare i log rimuove gli avvisi basati sui log. Riduci i segnali su cui non intervieni, non quelli che un monitor sta osservando.
 
 ### Misura l'effetto
 

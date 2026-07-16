@@ -335,7 +335,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | `filters.metrics.exclude` | `[]` | Metric names to drop, across every receiver. Applied on top of `include`, so exclude wins. |
 | `filters.metrics.include` | `[]` | When non-empty, **only** these metric names are sent. A forgotten name silently removes the monitors built on it — prefer `exclude`. |
 | `filters.metrics.matchType` | `strict` | How `filters.metrics.*` entries match: `strict` (exact name) or `regexp` (RE2, **unanchored**, no lookahead). An invalid pattern makes the collector fail to start — a CrashLoopBackOff that stops logs too, not just metrics. Helm cannot validate it; test before rollout. |
-| `logs.enabled` | `true` | Turn pod log collection on or off. **Also disables kubelet / cAdvisor / host metrics** — they share the log-collector DaemonSet. To cut logs while keeping metrics, use `filters.logs.minSeverity` or `namespaceFilters` instead. |
+| `logs.enabled` | `true` | Turn pod log collection on or off. Metrics are unaffected — the node collector keeps running for kubelet / cAdvisor / host metrics and just stops reading pod logs. |
 | `logs.mode` | `""` *(derived from `preset`)* | Advanced override — `daemonset`, `api`, or `disabled`. Explicit value always wins over the preset. |
 | `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section below. |
 | `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. |

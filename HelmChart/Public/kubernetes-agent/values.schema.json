@@ -434,7 +434,7 @@
         "metricsAllowlist": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Exact __name__ allowlist. Each entry adds one series per container, so keep it tight."
+          "description": "Allowlist of cAdvisor metric names. Entries are joined into a Prometheus keep rule of the form ^(a|b)$, so each one is an RE2 fragment rather than a literal name. Each entry adds one series per container, so keep it tight."
         }
       },
       "additionalProperties": false
@@ -454,10 +454,15 @@
           "description": "URL to scrape when mode == 'external'. Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics"
         },
         "scrapeInterval": { "type": "string" },
+        "collectResources": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Which Kubernetes objects the bundled KSM watches (--resources). A hard ceiling on metricsAllowlist: KSM cannot emit a metric for an object it never watched. Ignored when mode is 'external'. Default: [pods, resourcequotas]"
+        },
         "metricsAllowlist": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Exact __name__ allowlist. KSM exports ~100 metric families by default; only keep the ones that power monitors."
+          "description": "Allowlist of KSM metric names. Each entry is used as a prefix ('.*' is appended), so kube_pod_status also keeps kube_pod_status_phase. In bundled mode an entry only yields series if its object is listed in collectResources."
         },
         "image": {
           "type": "object",

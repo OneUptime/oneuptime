@@ -572,7 +572,7 @@ Les journaux constituent presque toujours la plus grande part. Le collecteur ne 
       priority: warning # info and debug are dropped before export
   ```
 
-- **Journaux d'événements Windows** — le canal `Security` est de loin celui qui génère le plus de volume. Restreignez-le aux identifiants d'événements que vous auditez réellement avec un `query:` (comme indiqué dans [Journaux d'événements Windows](#journaux-dvnements-windows) ci-dessus), ou supprimez complètement le canal si vous n'en avez pas besoin.
+- **Journaux d'événements Windows** — le canal `Security` est de loin celui qui génère le plus de volume. Restreignez-le aux identifiants d'événements que vous auditez réellement avec un `query:` (comme indiqué dans [Journaux d'événements Windows](#journaux-dévénements-windows) ci-dessus), ou supprimez complètement le canal si vous n'en avez pas besoin.
 
 ### Levier 2 — Ralentissez l'intervalle des métriques
 
@@ -792,7 +792,7 @@ Le collecteur OpenTelemetry respecte les variables d'environnement standard `HTT
 - **HTTP 401 de l'exportateur** — le jeton d'ingestion est invalide ou révoqué. Générez-en un nouveau depuis _Project Settings → Telemetry Ingestion Keys_.
 - **Le canal `Security` des journaux d'événements Windows renvoie une erreur d'accès refusé** — le service ne s'exécute pas avec des privilèges suffisants. Recréez-le sous `LocalSystem` (la valeur par défaut avec `sc.exe create`) ou accordez au compte de service le droit utilisateur _Manage auditing and security log_.
 - **Le récepteur `journald` ne démarre pas** — assurez-vous que `journalctl` se trouve dans le `PATH` du collecteur et que `/var/log/journal` existe (exécutez `sudo systemd-tmpfiles --create --prefix /var/log/journal` si ce n'est pas le cas).
-- **Volume / coût élevé** — voir [Réduire le volume de données collectées](#rduire-le-volume-de-donnes-collectes) : restreignez les récepteurs (canaux Windows spécifiques, unités systemd, fichiers journaux), augmentez le `collection_interval` des métriques, supprimez le scraper par processus, ou ajoutez un processeur `filter` pour supprimer les enregistrements de faible gravité avant l'exportation.
+- **Volume / coût élevé** — voir [Réduire le volume de données collectées](#réduire-le-volume-de-données-collectées) : restreignez les récepteurs (canaux Windows spécifiques, unités systemd, fichiers journaux), augmentez le `collection_interval` des métriques, supprimez le scraper par processus, ou ajoutez un processeur `filter` pour supprimer les enregistrements de faible gravité avant l'exportation.
 
 ## Étapes suivantes
 

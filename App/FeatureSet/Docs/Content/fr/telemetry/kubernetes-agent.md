@@ -79,7 +79,7 @@ Vérifiez que les pods de l'agent sont en cours d'exécution :
 kubectl get pods -n oneuptime-agent
 ```
 
-Sur un cluster **standard**, vous verrez un Deployment metrics-collector ainsi qu'un pod DaemonSet log-collector par nœud :
+Sur un cluster **standard**, vous verrez un Deployment cluster-collector ainsi qu'un pod DaemonSet node-collector par nœud :
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-Sur **GKE Autopilot** ou **EKS Fargate**, vous verrez deux Deployments à la place (pas de DaemonSet) :
+Sur **GKE Autopilot**, le collecteur de nœuds fonctionne toujours — il collecte les métriques kubelet et cAdvisor sans avoir besoin de hostPath — et un Deployment supplémentaire lit les journaux de pods via l'API Kubernetes :
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+Sur **EKS Fargate**, vous verrez deux Deployments et aucun DaemonSet — Fargate attribue à chaque pod sa propre micro-VM et ne planifie jamais de DaemonSets, de sorte que les métriques au niveau des nœuds n'y sont pas disponibles :
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -219,7 +228,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-> **Cela supprime également vos métriques de nœuds.** Les récepteurs kubelet, cAdvisor et hostmetrics résident à l'intérieur du DaemonSet collecteur de journaux ; désactiver les journaux de pods les supprime donc aussi — de même que les moniteurs d'OOM kill, de limitation CPU et d'espace disque faible des PVC. Vous conservez les métriques au niveau du cluster et les événements Kubernetes, mais pas celles par nœud ou par conteneur. Pour réduire le volume de journaux tout en conservant les métriques, utilisez plutôt [`filters.logs.minSeverity`](#filtrage-par-gravit-des-journaux) ou [`namespaceFilters`](#filtrage-des-espaces-de-noms).
+Vos métriques ne sont pas affectées : le collecteur de nœuds continue de fonctionner pour les métriques kubelet, cAdvisor et hôtes, il cesse simplement de lire les journaux de pods. Les alertes basées sur les journaux s'arrêtent, et rien d'autre.
 
 ### Forcer un mode de collecte des journaux spécifique
 
@@ -229,7 +238,10 @@ Les utilisateurs avancés peuvent remplacer le choix du préréglage avec `logs.
 - `logs.mode=api` — Déploiement de collecte des journaux via l'API Kubernetes (fonctionne sur n'importe quel cluster)
 - `logs.mode=disabled` — pas de collecte des journaux
 
-> `api` et `disabled` suppriment tous deux le DaemonSet collecteur de journaux, et avec lui les métriques de nœuds, de pods, de conteneurs et d'hôtes décrites ci-dessus — le même compromis qu'avec `logs.enabled=false`. Seul le mode `daemonset` les collecte. C'est la raison pour laquelle les préréglages GKE Autopilot et EKS Fargate, qui forcent le mode `api`, ne remontent pas de métriques kubelet.
+> Le mode de journalisation décide seulement d'où proviennent les **journaux de pods**. Les métriques de nœuds sont collectées indépendamment de lui, donc `api` et `disabled` conservent vos métriques kubelet, cAdvisor et hôtes.
+>
+> La seule exception vient de la plateforme, pas du mode : **EKS Fargate ne peut pas planifier de DaemonSets du tout**, il n'y a donc pas de collecteur de nœuds là-bas et les métriques par nœud/pod/conteneur sont indisponibles. GKE Autopilot exécute très bien le collecteur de nœuds, mais bloque `hostPath` : il collecte donc les métriques kubelet et cAdvisor sans celles de `hostmetrics` (E/S disque, inodes, erreurs de carte réseau) qui doivent lire les `/proc` et `/sys` de l'hôte.
+
 
 Le `logs.mode` explicite l'emporte toujours sur la valeur par défaut du préréglage. Utilisez ceci si vous connaissez votre cluster mieux que le préréglage.
 
@@ -402,7 +414,7 @@ Les journaux de conteneurs constituent presque toujours la plus grande part de l
     --set filters.logs.minSeverity=WARN
   ```
 
-  Consultez [Filtrage par gravité des journaux](#filtrage-par-gravit-des-journaux) pour savoir comment la gravité est déterminée et ce qu'il advient des journaux qu'elle ne parvient pas à classifier.
+  Consultez [Filtrage par gravité des journaux](#filtrage-par-gravité-des-journaux) pour savoir comment la gravité est déterminée et ce qu'il advient des journaux qu'elle ne parvient pas à classifier.
 
 - **Vous n'avez pas du tout besoin des journaux de pods dans OneUptime ?** Désactivez-les :
 
@@ -428,7 +440,7 @@ eBPF vous fournit les traces, les métriques RED, la carte des services et les m
     --set ebpf.enabled=false
   ```
 
-- **Conservez les traces, supprimez les familles de métriques lourdes.** Le [tableau des familles de signaux ci-dessus](#activerdsactiver-des-familles-de-signaux-individuelles) répertorie chaque indicateur `ebpf.features.*`. Les familles au plus gros volume sont les métriques réseau et de spans — les désactiver laisse intactes les traces, les métriques HTTP RED et la carte des services :
+- **Conservez les traces, supprimez les familles de métriques lourdes.** Le [tableau des familles de signaux ci-dessus](#activerdésactiver-des-familles-de-signaux-individuelles) répertorie chaque indicateur `ebpf.features.*`. Les familles au plus gros volume sont les métriques réseau et de spans — les désactiver laisse intactes les traces, les métriques HTTP RED et la carte des services :
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -448,7 +460,7 @@ eBPF vous fournit les traces, les métriques RED, la carte des services et les m
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
-  Consultez [Activer/désactiver des familles de signaux individuelles](#activerdsactiver-des-familles-de-signaux-individuelles) et la note `excludeExePaths` dans les valeurs du chart pour l'ensemble complet des valeurs par défaut.
+  Consultez [Activer/désactiver des familles de signaux individuelles](#activerdésactiver-des-familles-de-signaux-individuelles) et la note `excludeExePaths` dans les valeurs du chart pour l'ensemble complet des valeurs par défaut.
 
 ### Levier 3 — Ralentir les intervalles de scraping
 
@@ -489,7 +501,7 @@ La cardinalité (le nombre de séries temporelles distinctes) compte autant que 
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
 
-  Consultez [Inclure ou exclure des métriques par nom](#inclure-ou-exclure-des-mtriques-par-nom) pour la correspondance exacte ou par regex et pour la forme en liste d'autorisation.
+  Consultez [Inclure ou exclure des métriques par nom](#inclure-ou-exclure-des-métriques-par-nom) pour la correspondance exacte ou par regex et pour la forme en liste d'autorisation.
 
 - **Supprimez les métriques de tout un espace de noms.** Si un espace de noms est bruyant mais que vous voulez tout de même surveiller ses nœuds, `namespaceFilters.applyTo.metrics=true` applique vos listes d'espaces de noms existantes aux séries par pod et par conteneur. Les séries au niveau des nœuds et du cluster sont toujours conservées :
 

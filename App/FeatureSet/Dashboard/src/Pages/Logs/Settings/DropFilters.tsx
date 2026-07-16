@@ -49,25 +49,29 @@ Filter queries determine which logs this drop filter applies to.
 
 | Operator | Example | Description |
 |----------|---------|-------------|
-| \`=\` | \`severityText = 'DEBUG'\` | Exact match |
-| \`!=\` | \`severityText != 'ERROR'\` | Not equal |
+| \`=\` | \`severityText = 'Debug'\` | Exact match |
+| \`!=\` | \`severityText != 'Error'\` | Not equal |
 | \`LIKE\` | \`body LIKE 'healthcheck'\` | Substring match (use \`%\` for SQL-style wildcards) |
-| \`IN\` | \`severityText IN ('DEBUG', 'TRACE')\` | Match any value in list |
-| \`AND\` / \`OR\` | \`severityText = 'DEBUG' AND attributes.source = 'loadbalancer'\` | Combine conditions |
+| \`IN\` | \`severityText IN ('Debug', 'Trace')\` | Match any value in list |
+| \`AND\` / \`OR\` | \`severityText = 'Debug' AND attributes.source = 'loadbalancer'\` | Combine conditions |
 
 **Available fields:** \`severityText\`, \`body\`, \`primaryEntityId\`, \`attributes.<key>\`
+
+**Severity values:** \`Unspecified\`, \`Trace\`, \`Debug\`, \`Information\`, \`Warning\`, \`Error\`, \`Fatal\`
+
+> \`=\`, \`!=\` and \`IN\` are **case-sensitive** — \`'Debug'\` matches, \`'DEBUG'\` never will. Only \`LIKE\` ignores case. Note the level is \`Information\` (not \`INFO\`) and \`Warning\` (not \`WARN\`).
 
 ---
 
 ### Examples
 
 #### Example 1: Drop all debug logs
-- **Filter Query:** \`severityText = 'DEBUG'\`
+- **Filter Query:** \`severityText = 'Debug'\`
 - **Action:** Drop
 - **Result:** All debug-level logs are discarded before storage
 
 #### Example 2: Sample verbose health check logs
-- **Filter Query:** \`body LIKE 'healthcheck' AND severityText = 'INFO'\`
+- **Filter Query:** \`body LIKE 'healthcheck' AND severityText = 'Information'\`
 - **Action:** Sample
 - **Sample Percentage:** 5
 - **Result:** Only 5% of health check info logs are kept — enough to spot trends without the noise

@@ -79,7 +79,7 @@ Kontrollera att agentens poddar körs:
 kubectl get pods -n oneuptime-agent
 ```
 
-På ett **standard**-kluster ser du en metrics-collector Deployment plus en log-collector DaemonSet-pod per nod:
+På ett **standard**-kluster ser du en cluster-collector Deployment plus en node-collector DaemonSet-pod per nod:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-På **GKE Autopilot** eller **EKS Fargate** ser du i stället två Deployments (ingen DaemonSet):
+På **GKE Autopilot** körs nodinsamlaren fortfarande — den samlar in kubelet- och cAdvisor-mått utan att behöva hostPath — och en extra Deployment läser podd-loggar via Kubernetes-API:et:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+På **EKS Fargate** ser du två Deployments och ingen DaemonSet — Fargate ger varje podd en egen mikro-VM och schemalägger aldrig DaemonSets, så mått på nodnivå är inte tillgängliga där:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -219,7 +228,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-> **Detta tar också bort dina nodmått.** Mottagarna kubelet, cAdvisor och hostmetrics bor inuti log-collector-DaemonSet:en, så att stänga av pod-loggar tar bort dem också — tillsammans med monitorerna för OOM-kill, CPU-throttling och lågt PVC-diskutrymme. Du behåller mått på klusternivå och Kubernetes-händelser, men inte de per nod eller per container. För att skära ner loggvolymen men behålla måtten, använd [`filters.logs.minSeverity`](#filtrering-efter-loggallvarlighetsgrad) eller [`namespaceFilters`](#namnrymdsfiltrering) i stället.
+Dina mått påverkas inte: nodinsamlaren fortsätter köra för kubelet-, cAdvisor- och värdmått, den slutar bara läsa podd-loggar. Loggbaserade larm upphör, och inget annat.
 
 ### Tvinga ett specifikt logginsamlingsläge
 
@@ -229,7 +238,10 @@ Avancerade användare kan åsidosätta förinställningens val med `logs.mode`:
 - `logs.mode=api` — Deployment med loggläsare via Kubernetes-API (fungerar på vilket kluster som helst)
 - `logs.mode=disabled` — ingen logginsamling
 
-> `api` och `disabled` tar båda bort log-collector-DaemonSet:en, och med den nod-, pod-, container- och värdmåtten som beskrivs ovan — samma avvägning som `logs.enabled=false`. Bara `daemonset`-läge samlar in dem. Det är därför förinställningarna för GKE Autopilot och EKS Fargate, som tvingar fram `api`-läge, inte rapporterar kubelet-mått.
+> Loggläget avgör bara varifrån **podd-loggar** kommer. Nodmått samlas in oberoende av det, så `api` och `disabled` behåller dina kubelet-, cAdvisor- och värdmått.
+>
+> Det enda undantaget är plattformen, inte läget: **EKS Fargate kan inte schemalägga DaemonSets alls**, så där finns ingen nodinsamlare och mått per nod/podd/container är otillgängliga. GKE Autopilot kör nodinsamlaren utan problem, men blockerar `hostPath`, så den samlar in kubelet- och cAdvisor-mått utan `hostmetrics`-måtten (disk-I/O, inoder, NIC-fel) som behöver läsa värdens `/proc` och `/sys`.
+
 
 Det uttryckliga `logs.mode` vinner alltid över förinställningens standard. Använd detta om du känner ditt kluster bättre än förinställningen gör.
 
@@ -412,9 +424,7 @@ Containerloggar är nästan alltid den största delen av ingesten, eftersom det 
     --set logs.enabled=false
   ```
 
-  > **Detta inaktiverar också nod-, pod-, container- och värdmått.** Mottagarna kubelet, cAdvisor och hostmetrics bor alla i samma log-collector-DaemonSet, så att stänga av pod-loggar tar bort dem också — tillsammans med monitorerna för OOM-kill, CPU-throttling och lågt PVC-diskutrymme. Detsamma gäller `logs.mode: api` och `logs.mode: disabled`.
-  >
-  > Om du vill ha färre loggar men vill behålla dina mått, stanna på `logs.mode: daemonset` och ta till `namespaceFilters` eller `filters.logs.minSeverity` ovan i stället.
+  > Detta stoppar bara podd-loggar. Mått för nod, podd och container fortsätter flöda, och monitorerna som bygger på dem (OOM-kills, CPU-throttling, PVC med lite diskutrymme) fortsätter fungera — nodinsamlaren blir kvar, den slutar bara läsa `/var/log/pods`. Detsamma gäller `logs.mode: api` och `logs.mode: disabled`.
 
 ### Spak 2 — Trimma eBPF-autoinstrumentering
 
@@ -530,8 +540,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Behåll DaemonSet:en — det är den som samlar in kubelet-, cAdvisor- och
-# värdmått såväl som loggar — men leverera bara loggar värda att larma på.
+# Behåll podd-loggar, men leverera bara de som är värda att larma på.
+# (Mått beror inte på detta — nodinsamlaren körs oavsett.)
 logs:
   enabled: true
   mode: daemonset

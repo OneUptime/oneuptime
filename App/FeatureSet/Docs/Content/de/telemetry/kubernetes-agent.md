@@ -79,7 +79,7 @@ Prüfen Sie, ob die Agent-Pods laufen:
 kubectl get pods -n oneuptime-agent
 ```
 
-Auf einem **Standard**-Cluster sehen Sie ein Metrics-Collector-Deployment sowie einen Log-Collector-DaemonSet-Pod pro Node:
+Auf einem **Standard**-Cluster sehen Sie ein Cluster-Collector-Deployment sowie einen Node-Collector-DaemonSet-Pod pro Node:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-Auf **GKE Autopilot** oder **EKS Fargate** sehen Sie stattdessen zwei Deployments (kein DaemonSet):
+Auf **GKE Autopilot** läuft der Node-Collector weiterhin — er erfasst kubelet- und cAdvisor-Metriken, ohne hostPath zu benötigen — und ein zusätzliches Deployment liest Pod-Logs über die Kubernetes-API:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+Auf **EKS Fargate** sehen Sie zwei Deployments und kein DaemonSet — Fargate gibt jedem Pod seine eigene Mikro-VM und plant niemals DaemonSets ein, sodass Node-Level-Metriken dort nicht verfügbar sind:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -219,7 +228,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-> **Damit entfernen Sie auch Ihre Node-Metriken.** Die kubelet-, cAdvisor- und hostmetrics-Receiver leben innerhalb des Log-Collector-DaemonSets, sodass das Abschalten der Pod-Logs sie ebenfalls löscht — zusammen mit den Monitoren für OOM-Kills, CPU-Throttling und knappen PVC-Speicherplatz. Sie behalten Cluster-Level-Metriken und Kubernetes-Events, aber keine Per-Node- oder Per-Container-Metriken. Um das Log-Volumen zu senken und dabei die Metriken zu behalten, verwenden Sie stattdessen [`filters.logs.minSeverity`](#filterung-nach-log-schweregrad) oder [`namespaceFilters`](#namespace-filterung).
+Ihre Metriken sind davon nicht betroffen: Der Node-Collector läuft weiter für kubelet-, cAdvisor- und Host-Metriken, er hört lediglich auf, Pod-Logs zu lesen. Log-basierte Alarme stoppen, sonst nichts.
 
 ### Einen bestimmten Log-Erfassungsmodus erzwingen
 
@@ -229,7 +238,9 @@ Fortgeschrittene Benutzer können die Auswahl des Presets mit `logs.mode` übers
 - `logs.mode=api` — Kubernetes-API-Log-Tailer-Deployment (funktioniert auf jedem Cluster)
 - `logs.mode=disabled` — keine Log-Erfassung
 
-> `api` und `disabled` entfernen beide das Log-Collector-DaemonSet und damit die oben beschriebenen Node-, Pod-, Container- und Host-Metriken — derselbe Kompromiss wie bei `logs.enabled=false`. Nur der `daemonset`-Modus erfasst sie. Aus diesem Grund melden die Presets für GKE Autopilot und EKS Fargate, die den `api`-Modus erzwingen, keine kubelet-Metriken.
+> Der Log-Modus entscheidet nur darüber, woher die **Pod-Logs** kommen. Node-Metriken werden unabhängig davon erfasst, sodass `api` und `disabled` Ihre kubelet-, cAdvisor- und Host-Metriken behalten.
+>
+> Die einzige Ausnahme ist die Plattform, nicht der Modus: **EKS Fargate kann überhaupt keine DaemonSets einplanen**, sodass es dort keinen Node-Collector gibt und Node-, Pod- und Container-Metriken nicht verfügbar sind. GKE Autopilot führt den Node-Collector problemlos aus, blockiert aber `hostPath`, sodass es kubelet- und cAdvisor-Metriken ohne die `hostmetrics`-Metriken (Disk-I/O, Inodes, NIC-Fehler) erfasst, die den Zugriff auf `/proc` und `/sys` des Hosts benötigen.
 
 Das explizite `logs.mode` setzt sich immer gegenüber dem Preset-Standard durch. Verwenden Sie dies, wenn Sie Ihr Cluster besser kennen als das Preset.
 
@@ -489,7 +500,7 @@ Die Kardinalität (die Anzahl der eindeutigen Zeitreihen) ist genauso wichtig wi
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
 
-  Siehe [Metriken nach Namen ein- oder ausschließen](#metriken-nach-namen-ein-oder-ausschlieen) für den Abgleich exakt vs. Regex und die Allowlist-Form.
+  Siehe [Metriken nach Namen ein- oder ausschließen](#metriken-nach-namen-ein-oder-ausschließen) für den Abgleich exakt vs. Regex und die Allowlist-Form.
 
 - **Die Metriken eines ganzen Namespace verwerfen.** Wenn ein Namespace störend ist, Sie dessen Nodes aber weiterhin überwachen möchten, wendet `namespaceFilters.applyTo.metrics=true` Ihre bestehenden Namespace-Listen auf Per-Pod- und Per-Container-Serien an. Node- und Cluster-Level-Serien werden immer behalten:
 

@@ -79,7 +79,7 @@ Controleer of de agent-pods draaien:
 kubectl get pods -n oneuptime-agent
 ```
 
-Op een **standaard**cluster zie je een metrics-collector Deployment plus één log-collector DaemonSet-pod per node:
+Op een **standaard**cluster zie je een cluster-collector Deployment plus één node-collector DaemonSet-pod per node:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -88,7 +88,16 @@ kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
 kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
 ```
 
-Op **GKE Autopilot** of **EKS Fargate** zie je in plaats daarvan twee Deployments (geen DaemonSet):
+Op **GKE Autopilot** draait de node-collector nog steeds — hij verzamelt kubelet- en cAdvisor-metrieken zonder hostPath nodig te hebben — en een extra Deployment leest pod-logs via de Kubernetes API:
+
+```
+NAME                                          READY   STATUS    RESTARTS   AGE
+kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
+```
+
+Op **EKS Fargate** zie je twee Deployments en geen DaemonSet — Fargate geeft elke pod zijn eigen micro-VM en plant nooit DaemonSets in, dus metrieken op nodeniveau zijn daar niet beschikbaar:
 
 ```
 NAME                                          READY   STATUS    RESTARTS   AGE
@@ -163,7 +172,6 @@ Container-runtimes registreren geen severity op de logregel, dus parseert de age
 | `daemonset` | `stderr` → behandeld als ERROR (behouden), `stdout` → behandeld als INFO (weggegooid bij een WARN-drempel) | De container-runtime registreert uit welke stream elke regel afkomstig is. |
 | `api` | Altijd **behouden** | De Kubernetes `pods/log`-API voegt stdout en stderr samen tot één enkele stream zonder markering per regel. In plaats van te gokken behoudt de agent de regel. |
 
-> `api`-modus gooit dus strikt minder weg dan `daemonset`-modus. Dat is bewust: een Python-traceback of `npm ERR!` bevat geen severity-trefwoord, en die stilzwijgend verwijderen is precies de faalwijze waartegen een severity-drempel je hoort te beschermen.
 
 Multi-regel-events worden in beide modi **vóór** het filteren weer samengevoegd, dus een Java-stacktrace wordt beoordeeld op zijn eerste regel en in zijn geheel behouden of weggegooid — je krijgt nooit een kale `ERROR`-regel waarvan de frames zijn afgestript.
 
@@ -219,7 +227,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set logs.enabled=false
 ```
 
-> **Hiermee verwijder je ook je node-metrieken.** De kubelet-, cAdvisor- en hostmetrics-receivers wonen binnen de log-collector-DaemonSet, dus door pod-logs uit te schakelen worden ook zij verwijderd — samen met de OOM-kill-, CPU-throttling- en PVC-lage-schijfruimte-monitors. Je behoudt metrieken op clusterniveau en Kubernetes-events, maar niet die per node of per container. Om het logvolume te verminderen met behoud van je metrieken, gebruik je in plaats daarvan [`filters.logs.minSeverity`](#filteren-op-log-severity) of [`namespaceFilters`](#namespace-filtering).
+Je metrieken blijven onaangetast: de node-collector blijft draaien voor kubelet-, cAdvisor- en hostmetrieken, hij stopt alleen met het lezen van pod-logs. Log-gebaseerde alerts stoppen, en verder niets.
 
 ### Forceer een Specifieke Logverzamelmodus
 
@@ -229,7 +237,10 @@ Gevorderde gebruikers kunnen de keuze van de preset overschrijven met `logs.mode
 - `logs.mode=api` — Kubernetes API log-tailer Deployment (werkt op elk cluster)
 - `logs.mode=disabled` — geen logverzameling
 
-> `api` en `disabled` verwijderen allebei de log-collector-DaemonSet, en daarmee de node-, pod-, container- en host-metrieken die hierboven beschreven zijn — dezelfde afweging als bij `logs.enabled=false`. Alleen `daemonset`-modus verzamelt ze. Dit is de reden waarom de GKE Autopilot- en EKS Fargate-presets, die `api`-modus forceren, geen kubelet-metrieken rapporteren.
+> De logmodus bepaalt alleen waar **pod-logs** vandaan komen. Node-metrieken worden daar los van verzameld, dus `api` en `disabled` behouden je kubelet-, cAdvisor- en hostmetrieken.
+>
+> De enige uitzondering is het platform, niet de modus: **EKS Fargate kan helemaal geen DaemonSets inplannen**, dus daar is geen node-collector en zijn metrieken per node/pod/container niet beschikbaar. GKE Autopilot draait de node-collector prima, maar blokkeert `hostPath`, dus verzamelt het kubelet- en cAdvisor-metrieken zonder de `hostmetrics`-metrieken (disk-I/O, inodes, NIC-fouten) die de `/proc` en `/sys` van de host moeten lezen.
+
 
 De expliciete `logs.mode` wint altijd van de preset-standaard. Gebruik dit als je je cluster beter kent dan de preset.
 
@@ -412,9 +423,7 @@ Container-logs zijn vrijwel altijd het grootste deel van de ingest, omdat het é
     --set logs.enabled=false
   ```
 
-  > **Dit schakelt ook de node-, pod-, container- en host-metrieken uit.** De kubelet-, cAdvisor- en hostmetrics-receivers wonen allemaal in dezelfde log-collector-DaemonSet, dus door pod-logs uit te schakelen worden ook zij verwijderd — samen met de OOM-kill-, CPU-throttling- en PVC-lage-schijfruimte-monitors. Hetzelfde geldt voor `logs.mode: api` en `logs.mode: disabled`.
-  >
-  > Als je minder logs wilt maar je metrieken wilt behouden, blijf dan op `logs.mode: daemonset` en grijp in plaats daarvan naar `namespaceFilters` of `filters.logs.minSeverity` hierboven.
+  > Dit stopt alleen pod-logs. Metrieken per node, pod en container blijven stromen, en de monitors die daarop gebouwd zijn (OOM-kills, CPU-throttling, PVC lage schijfruimte) blijven werken — de node-collector blijft, hij stopt alleen met het lezen van `/var/log/pods`. Hetzelfde geldt voor `logs.mode: api` en `logs.mode: disabled`.
 
 ### Hendel 2 — Snoei de eBPF-auto-instrumentatie
 
@@ -530,8 +539,8 @@ hostMetrics:
 cadvisor:
   scrapeInterval: 60s
 
-# Keep the DaemonSet — it is what collects kubelet, cAdvisor and host
-# metrics as well as logs — but only ship logs worth alerting on.
+# Behoud pod-logs, maar verzend alleen die het alarmeren waard zijn.
+# (Metrieken hangen hier niet van af — de node-collector draait hoe dan ook.)
 logs:
   enabled: true
   mode: daemonset
@@ -561,7 +570,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Scherp verder aan waar nodig: verhoog `minSeverity` naar `ERROR`, voeg `namespaceFilters.applyTo.metrics=true` toe, of zet `ebpf.enabled=false` als je al traces verzendt vanuit OTel-SDK's.
 
-> **Let op wat je wegsnijdt.** Sommige monitors zijn afhankelijk van specifieke signalen: `cadvisor` uitschakelen verwijdert de OOM-kill- en CPU-throttling-monitors; `kubeletstats.volumeMetrics` uitschakelen verwijdert de PVC-lage-schijfruimte-monitor; logs uitschakelen (of de DaemonSet uitzetten) verwijdert log-gebaseerde alerts *en* je node-metrieken. Snoei de signalen waarop je niet reageert, niet die waar een monitor op let.
+> **Let op wat je wegsnijdt.** Sommige monitors zijn afhankelijk van specifieke signalen: `cadvisor` uitschakelen verwijdert de OOM-kill- en CPU-throttling-monitors; `kubeletstats.volumeMetrics` uitschakelen verwijdert de PVC-lage-schijfruimte-monitor; logs uitschakelen verwijdert log-gebaseerde alerts. Snoei de signalen waarop je niet reageert, niet die waar een monitor op let.
 
 ### Meet het effect
 

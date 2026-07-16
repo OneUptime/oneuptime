@@ -400,9 +400,34 @@ kubeStateMetrics:
   # Example: http://kube-state-metrics.kube-system.svc.cluster.local:8080/metrics
   endpoint: ""
   scrapeInterval: 30s
+  # Which Kubernetes objects the bundled KSM watches. This is a hard
+  # ceiling on `metricsAllowlist` below: KSM cannot emit a metric for an
+  # object it never watched, so an allowlist entry outside this list
+  # yields nothing — no error, no series. Broaden the two together.
+  #
+  # Adding a resource costs memory and CPU proportional to how many of
+  # those objects your cluster has, which is why this is narrow by
+  # default rather than KSM's "watch everything".
+  #
+  # Ignored when `mode: external` — there the allowlist alone applies,
+  # since you own that KSM's own flags.
+  #
+  # Example — also chart deployment rollout health:
+  #   --set-json 'kubeStateMetrics.collectResources=["pods","resourcequotas","deployments"]' \
+  #   --set-json 'kubeStateMetrics.metricsAllowlist=["kube_pod_status_phase","kube_deployment_status_replicas_unavailable"]'
+  collectResources:
+    - pods
+    - resourcequotas
   # Allowlist that gates which KSM metrics are forwarded to OneUptime.
   # KSM exports ~100 metric families by default; only keep the ones
-  # that power monitors. Each entry matches by exact `__name__`.
+  # that power monitors.
+  #
+  # Each entry is used as a prefix: `.*` is appended to it, so
+  # `kube_pod_status` also keeps `kube_pod_status_phase`. Anchor by
+  # writing the full name when you want just the one metric.
+  #
+  # In `bundled` mode an entry only produces series if its object is in
+  # `collectResources` above.
   metricsAllowlist:
     - kube_pod_status_phase
     - kube_pod_status_scheduled

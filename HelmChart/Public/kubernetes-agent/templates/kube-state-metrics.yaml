@@ -98,12 +98,17 @@ spec:
           image: "{{ .Values.kubeStateMetrics.image.repository }}:{{ .Values.kubeStateMetrics.image.tag }}"
           imagePullPolicy: {{ .Values.kubeStateMetrics.image.pullPolicy }}
           args:
-            # Scope to the resources our allowlist needs — keeps KSM's
-            # memory/CPU footprint smaller than its default "all
-            # resources" mode. If you broaden `metricsAllowlist` in
-            # values.yaml, broaden this too.
-            - "--resources=pods,resourcequotas"
-            - "--metric-allowlist={{ join "," .Values.kubeStateMetrics.metricsAllowlist }}.*"
+            # Which Kubernetes objects KSM watches at all. Narrower than its
+            # default "every resource" mode, which keeps its memory and CPU
+            # small — but it is also a hard ceiling on `metricsAllowlist`: KSM
+            # cannot emit a metric for an object it never watched, so an
+            # allowlist entry outside this list silently yields no series.
+            # Broaden `collectResources` and `metricsAllowlist` together.
+            - "--resources={{ join "," .Values.kubeStateMetrics.collectResources }}"
+            # Each entry is a regex anchored by KSM itself, so the `.*` suffix
+            # is applied per entry — appending it to the joined string would
+            # wildcard only the last one and make list order load-bearing.
+            - "--metric-allowlist={{ range $i, $m := .Values.kubeStateMetrics.metricsAllowlist }}{{ if $i }},{{ end }}{{ $m }}.*{{ end }}"
             - "--port=8080"
             - "--telemetry-port=8081"
           ports:

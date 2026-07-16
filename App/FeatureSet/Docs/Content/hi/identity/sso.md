@@ -51,7 +51,7 @@ Keycloak एक लोकप्रिय open-source identity और access mana
    - **Name**: एक वर्णनात्मक नाम (जैसे `my-project-oneuptime`)
    - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Issuer**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
-   - **Certificate**: नीचे [चरण 2](#step-2-get-the-keycloak-certificate) देखें
+   - **Certificate**: नीचे [चरण 2](#चरण-2-keycloak-certificate-प्राप्त-करें) देखें
    - **Signature Algorithm**: `RSA-SHA-256`
    - **Digest Algorithm**: `SHA256`
 4. configuration सहेजें
@@ -116,9 +116,9 @@ Microsoft Entra ID, Microsoft की cloud-based identity और access manageme
 2. **Project Settings** > **Authentication** > **SSO** पर जाएं
 3. **Create SSO** पर क्लिक करें और निम्नलिखित भरें:
    - **Name**: एक वर्णनात्मक नाम (जैसे `Azure AD SAML`)
-   - **Sign On URL**: आपको यह Entra ID से [चरण 3](#step-3-copy-entra-id-saml-metadata-to-oneuptime) में मिलेगा
-   - **Issuer**: आपको यह Entra ID से [चरण 3](#step-3-copy-entra-id-saml-metadata-to-oneuptime) में मिलेगा
-   - **Certificate**: आपको यह Entra ID से [चरण 3](#step-3-copy-entra-id-saml-metadata-to-oneuptime) में मिलेगा
+   - **Sign On URL**: आपको यह Entra ID से [चरण 3](#चरण-3-entra-id-में-saml-sso-configure-करें) में मिलेगा
+   - **Issuer**: आपको यह Entra ID से [चरण 3](#चरण-3-entra-id-में-saml-sso-configure-करें) में मिलेगा
+   - **Certificate**: आपको यह Entra ID से [चरण 3](#चरण-3-entra-id-में-saml-sso-configure-करें) में मिलेगा
    - **Signature Algorithm**: `RSA-SHA-256`
    - **Digest Algorithm**: `SHA256`
 4. **View SSO Config** पर क्लिक करें और **Identifier (Entity ID)** और **Reply URL (Assertion Consumer Service URL)** copy करें — आपको Entra ID के लिए इनकी आवश्यकता होगी
@@ -201,9 +201,9 @@ Okta एक व्यापक रूप से उपयोग किया ज
 2. **Project Settings** > **Authentication** > **SSO** पर जाएं
 3. **Create SSO** पर क्लिक करें और निम्नलिखित भरें:
    - **Name**: एक वर्णनात्मक नाम (जैसे `Okta SAML`)
-   - **Sign On URL**: आपको यह Okta से [चरण 3](#step-3-copy-okta-saml-metadata-to-oneuptime) में मिलेगा
-   - **Issuer**: आपको यह Okta से [चरण 3](#step-3-copy-okta-saml-metadata-to-oneuptime) में मिलेगा
-   - **Certificate**: आपको यह Okta से [चरण 3](#step-3-copy-okta-saml-metadata-to-oneuptime) में मिलेगा
+   - **Sign On URL**: आपको यह Okta से [चरण 3](#चरण-3-okta-saml-metadata-oneuptime-में-copy-करें) में मिलेगा
+   - **Issuer**: आपको यह Okta से [चरण 3](#चरण-3-okta-saml-metadata-oneuptime-में-copy-करें) में मिलेगा
+   - **Certificate**: आपको यह Okta से [चरण 3](#चरण-3-okta-saml-metadata-oneuptime-में-copy-करें) में मिलेगा
    - **Signature Algorithm**: `RSA-SHA-256`
    - **Digest Algorithm**: `SHA256`
 4. **View SSO Config** पर क्लिक करें और **Identifier (Entity ID)** और **Reply URL (Assertion Consumer Service URL)** copy करें — आपको Okta के लिए इनकी आवश्यकता होगी
