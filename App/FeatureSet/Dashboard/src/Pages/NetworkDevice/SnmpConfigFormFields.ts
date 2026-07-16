@@ -1,4 +1,3 @@
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -8,11 +7,22 @@ import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol"
 import { SnmpVersionUtil } from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 
 /*
- * SNMP connection + credential form fields, shared by the create form
- * (Devices.tsx) and the edit form (View/Settings.tsx) so both stay in sync.
+ * SNMP connection + credential form fields, shared by every SNMP form so they
+ * cannot drift apart:
+ *   - the NetworkDevice create form (Devices.tsx)
+ *   - the NetworkDevice edit forms (View/Settings.tsx, View/Index.tsx)
+ *   - the NetworkDeviceDiscoveryScan create form (Discovery.tsx)
  *
- * The SNMP Version dropdown stores "V1" / "V2c" / "V3", but a stored device
- * may instead carry the raw enum values ("1" / "2c" / "3") depending on which
+ * The two models store these as identically-named string/number columns, so
+ * the fields are authored once against the SnmpConfigModelFields shape below
+ * and reused for both. Field<SnmpConfigModelFields> is assignable to both
+ * Fields<NetworkDevice> and Fields<NetworkDeviceDiscoveryScan> because those
+ * models are supersets of this shape (the form field selector is a partial
+ * mapped type and the showIf callbacks are contravariant), so no cast is
+ * needed at the call sites.
+ *
+ * The SNMP Version dropdown stores "V1" / "V2c" / "V3", but a stored row may
+ * instead carry the raw enum values ("1" / "2c" / "3") depending on which
  * writer created it, so the reveal check goes through SnmpVersionUtil rather
  * than comparing against a single spelling. The v3 fields reveal themselves
  * via showIf when V3 is selected, and the auth/priv fields reveal further
@@ -20,14 +30,39 @@ import { SnmpVersionUtil } from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
  * for keys they don't have.
  */
 
-const isV3: (item: FormValues<NetworkDevice>) => boolean = (
-  item: FormValues<NetworkDevice>,
+/*
+ * The subset of columns both NetworkDevice and NetworkDeviceDiscoveryScan
+ * share for SNMP config. Types match the model columns (plain string / number,
+ * not the enums — the enums are only used as dropdown option values).
+ */
+export interface SnmpConfigModelFields {
+  snmpVersion?: string | undefined;
+  snmpCommunityString?: string | undefined;
+  snmpV3SecurityLevel?: string | undefined;
+  snmpV3Username?: string | undefined;
+  snmpV3AuthProtocol?: string | undefined;
+  snmpV3AuthKey?: string | undefined;
+  snmpV3PrivProtocol?: string | undefined;
+  snmpV3PrivKey?: string | undefined;
+  snmpPort?: number | undefined;
+}
+
+export interface SnmpConfigFormFieldOptions {
+  /*
+   * The community string caption differs by context: a device polls one host,
+   * a discovery scan tries the community against every host in the subnet.
+   */
+  communityStringDescription?: string | undefined;
+}
+
+const isV3: (item: FormValues<SnmpConfigModelFields>) => boolean = (
+  item: FormValues<SnmpConfigModelFields>,
 ): boolean => {
   return SnmpVersionUtil.isV3(item["snmpVersion"] as string | undefined);
 };
 
-const isV3WithAuth: (item: FormValues<NetworkDevice>) => boolean = (
-  item: FormValues<NetworkDevice>,
+const isV3WithAuth: (item: FormValues<SnmpConfigModelFields>) => boolean = (
+  item: FormValues<SnmpConfigModelFields>,
 ): boolean => {
   return (
     isV3(item) &&
@@ -36,15 +71,17 @@ const isV3WithAuth: (item: FormValues<NetworkDevice>) => boolean = (
   );
 };
 
-const isV3WithPriv: (item: FormValues<NetworkDevice>) => boolean = (
-  item: FormValues<NetworkDevice>,
+const isV3WithPriv: (item: FormValues<SnmpConfigModelFields>) => boolean = (
+  item: FormValues<SnmpConfigModelFields>,
 ): boolean => {
   return (
     isV3(item) && item["snmpV3SecurityLevel"] === SnmpSecurityLevel.AuthPriv
   );
 };
 
-export function getSnmpConfigFormFields(): Fields<NetworkDevice> {
+export function getSnmpConfigFormFields(
+  options?: SnmpConfigFormFieldOptions,
+): Fields<SnmpConfigModelFields> {
   return [
     {
       field: {
@@ -73,8 +110,10 @@ export function getSnmpConfigFormFields(): Fields<NetworkDevice> {
       fieldType: FormFieldSchemaType.EncryptedText,
       required: false,
       placeholder: "public",
-      description: "Required for SNMP V1 and V2c. Not used for V3.",
-      showIf: (item: FormValues<NetworkDevice>): boolean => {
+      description:
+        options?.communityStringDescription ||
+        "Required for SNMP V1 and V2c. Not used for V3.",
+      showIf: (item: FormValues<SnmpConfigModelFields>): boolean => {
         return !isV3(item);
       },
     },

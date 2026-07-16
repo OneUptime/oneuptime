@@ -445,16 +445,19 @@ describe("getSnmpConfigFormFields — switching version inside an open form", ()
  * FormFieldSchemaType.Password (a one-way hash the probe can never read back).
  *
  * Testing the helper therefore proves nothing on its own — the invariant that
- * actually broke is that every NetworkDevice SNMP form ROUTES THROUGH it.
- * These tests read the page sources to pin that, which is the only way to
- * catch a page that quietly stops calling the helper.
+ * actually broke is that every SNMP form ROUTES THROUGH it. These tests read
+ * the page sources to pin that, which is the only way to catch a page that
+ * quietly stops calling the helper.
  *
- * Discovery.tsx is deliberately absent: it builds a form over
- * NetworkDeviceDiscoveryScan, a different model with no v3 columns, so the
- * helper (typed Fields<NetworkDevice>) cannot apply to it.
+ * Discovery.tsx is included even though it builds a form over
+ * NetworkDeviceDiscoveryScan rather than NetworkDevice: the helper is authored
+ * against the SnmpConfigModelFields shape both models satisfy, so it serves
+ * both. It had the same drift — a hand-rolled block offering V3 with no v3
+ * fields behind it.
  */
 const SNMP_FORM_PAGES: Array<string> = [
   "Devices.tsx",
+  "Discovery.tsx",
   "View/Index.tsx",
   "View/Settings.tsx",
 ];

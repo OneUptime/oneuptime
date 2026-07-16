@@ -454,6 +454,7 @@ import { BackfillCodeFixTaskType1784105912819 } from "./1784105912819-BackfillCo
 import { AddAITaskNumberAndRunTranscript1784124919694 } from "./1784124919694-AddAITaskNumberAndRunTranscript";
 import { AllowNullAiAgentOnPullRequest1784135099754 } from "./1784135099754-AllowNullAiAgentOnPullRequest";
 import { AddEnableMcpServerToStatusPage1784137457184 } from "./1784137457184-AddEnableMcpServerToStatusPage";
+import { AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan1784200000000 } from "./1784200000000-AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan";
 
 export default [
   InitialMigration,
@@ -912,4 +913,5 @@ export default [
   AddAITaskNumberAndRunTranscript1784124919694,
   AllowNullAiAgentOnPullRequest1784135099754,
   AddEnableMcpServerToStatusPage1784137457184,
+  AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan1784200000000,
 ];
