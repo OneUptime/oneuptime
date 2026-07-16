@@ -22,6 +22,8 @@ export enum AIChatCitationTargetType {
   AlertView = "AlertView",
   Monitors = "Monitors",
   MonitorView = "MonitorView",
+  ScheduledMaintenanceEvents = "ScheduledMaintenanceEvents",
+  ScheduledMaintenanceView = "ScheduledMaintenanceView",
 }
 
 export interface AIChatCitationTarget {
