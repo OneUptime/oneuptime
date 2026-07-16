@@ -111,7 +111,11 @@ const deriveSeverity: (
     }
   }
   if (stream === "stderr") {
-    return { text: "ERROR", number: severityTextToNumber["ERROR"]!, parsed: false };
+    return {
+      text: "ERROR",
+      number: severityTextToNumber["ERROR"]!,
+      parsed: false,
+    };
   }
   return { text: "INFO", number: severityTextToNumber["INFO"]!, parsed: false };
 };

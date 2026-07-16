@@ -127,13 +127,16 @@ describe("AIRunTranscript.clampPayload", () => {
   test("holds the ceiling when the bulk is in responseToolCalls, not messages", () => {
     const clamped: AIRunEventContentPayload = AIRunTranscript.clampPayload({
       requestMessages: [{ role: "user", content: "hi" }],
-      responseToolCalls: Array.from({ length: 30 }, (_value: unknown, index: number) => {
-        return {
-          id: `call_${index}`,
-          name: "write_file",
-          arguments: { content: "z".repeat(MAX_TOOL_ARGUMENT_CHARS - 200) },
-        };
-      }),
+      responseToolCalls: Array.from(
+        { length: 30 },
+        (_value: unknown, index: number) => {
+          return {
+            id: `call_${index}`,
+            name: "write_file",
+            arguments: { content: "z".repeat(MAX_TOOL_ARGUMENT_CHARS - 200) },
+          };
+        },
+      ),
     });
 
     expect(serializedLength(clamped)).toBeLessThanOrEqual(MAX_PAYLOAD_CHARS);
