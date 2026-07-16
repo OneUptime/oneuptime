@@ -10,7 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import MonitorMetricTypeUtil, {
   MonitorMetricCategory,
 } from "Common/Utils/Monitor/MonitorMetricType";
-import MetricView from "../Metrics/MetricView";
+import EmbeddedMetricCard from "../Metrics/EmbeddedMetricCard";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import MonitorType, {
@@ -30,14 +30,8 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import RangeStartAndEndDateTime, {
-  RangeStartAndEndDateTimeUtil,
-} from "Common/Types/Time/RangeStartAndEndDateTime";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
-import Card from "Common/UI/Components/Card/Card";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -104,70 +98,6 @@ function resolveSeriesTitle(args: GetSeriesResolverArgs): ChartSeries {
 
   return fallback;
 }
-
-interface CategoryMetricsCardProps {
-  category: MonitorMetricCategory;
-  queryConfigs: Array<MetricQueryConfigData>;
-  timeRange: RangeStartAndEndDateTime;
-  onTimeRangeChange: (newRange: RangeStartAndEndDateTime) => void;
-}
-
-const CategoryMetricsCard: FunctionComponent<CategoryMetricsCardProps> = (
-  props: CategoryMetricsCardProps,
-): ReactElement => {
-  const [viewData, setViewData] = useState<MetricViewData>(() => {
-    return {
-      startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate(
-        props.timeRange,
-      ),
-      queryConfigs: props.queryConfigs,
-      formulaConfigs: [],
-    };
-  });
-
-  /*
-   * Sync view data when the shared time range or regenerated query configs
-   * change (e.g. probes finish loading after the initial render).
-   */
-  useEffect(() => {
-    setViewData((prev: MetricViewData) => {
-      const dateRange: InBetween<Date> =
-        RangeStartAndEndDateTimeUtil.getStartAndEndDate(props.timeRange);
-      return {
-        ...prev,
-        startAndEndDate: dateRange,
-        queryConfigs: props.queryConfigs,
-      };
-    });
-  }, [props.timeRange, props.queryConfigs]);
-
-  return (
-    <Card
-      title={props.category.title}
-      description={props.category.description}
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={props.timeRange}
-          onChange={props.onTimeRangeChange}
-        />
-      }
-    >
-      <MetricView
-        data={viewData}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        onChange={(data: MetricViewData) => {
-          setViewData({
-            ...data,
-            queryConfigs: props.queryConfigs,
-            formulaConfigs: [],
-          });
-        }}
-      />
-    </Card>
-  );
-};
 
 const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -323,9 +253,10 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
       {categories.map(
         (category: MonitorMetricCategory, index: number): ReactElement => {
           return (
-            <CategoryMetricsCard
+            <EmbeddedMetricCard
               key={category.title}
-              category={category}
+              title={category.title}
+              description={category.description}
               queryConfigs={categoryQueryConfigs[index] || []}
               timeRange={timeRange}
               onTimeRangeChange={handleTimeRangeChange}

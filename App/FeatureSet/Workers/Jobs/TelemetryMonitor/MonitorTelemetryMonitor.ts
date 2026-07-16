@@ -1213,6 +1213,15 @@ const monitorMetric: MonitorMetricFunction = async (data: {
         groupBy: queryConfig.metricQueryData.groupBy,
         groupByAttributeKeys:
           groupByAttributeKeys.length > 0 ? groupByAttributeKeys : undefined,
+        /*
+         * Alerting must fail loud on a query timeout: the default
+         * 'break' overflow mode returns silently-partial buckets, which
+         * a no-data policy would score as missing data (false "no data"
+         * incident) and threshold checks would score against wrong
+         * numbers. 'throw' fails the queue job and leaves monitor state
+         * unchanged — same abort semantics the uncapped query had.
+         */
+        timeoutOverflowMode: "throw",
         props: {
           isRoot: true,
         },
@@ -1568,6 +1577,8 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
         props: {
           isRoot: true,
         },
@@ -1875,6 +1886,8 @@ const monitorDocker: MonitorDockerFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
         props: {
           isRoot: true,
         },
@@ -2042,6 +2055,8 @@ const monitorHost: MonitorHostFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
         props: {
           isRoot: true,
         },
@@ -2242,6 +2257,8 @@ const monitorPodman: MonitorPodmanFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
         props: {
           isRoot: true,
         },
@@ -2444,6 +2461,8 @@ const monitorProxmox: MonitorProxmoxFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
         props: {
           isRoot: true,
         },
@@ -2726,6 +2745,8 @@ const monitorIoT: MonitorIoTFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
         props: {
           isRoot: true,
         },
@@ -2957,6 +2978,8 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
         props: {
           isRoot: true,
         },
@@ -3237,6 +3260,8 @@ const monitorCeph: MonitorCephFunction = async (data: {
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
         props: {
           isRoot: true,
         },

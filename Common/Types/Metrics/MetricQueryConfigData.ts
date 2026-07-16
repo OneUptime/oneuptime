@@ -13,6 +13,16 @@ export interface ChartSeries {
 }
 
 export default interface MetricQueryConfigData {
+  /*
+   * Stable identity for this query, independent of its position in the
+   * queryConfigs array. Chart layers key per-chart UI state (hidden
+   * series, search, Top-N, sort) on this id so removing/reordering
+   * queries doesn't transfer one chart's state to another. Assigned at
+   * query-creation sites (ObjectID-based); older persisted configs won't
+   * have it, so consumers must tolerate its absence. Intentionally NOT
+   * part of the explorer URL serialization.
+   */
+  id?: string | undefined;
   metricAliasData?: MetricAliasData | undefined;
   metricQueryData: MetricQueryData;
   getSeries?: ((data: AggregatedModel) => ChartSeries) | undefined;
@@ -59,4 +69,15 @@ export default interface MetricQueryConfigData {
    * on agent restart) are clamped to 0.
    */
   transformAsRate?: boolean | undefined;
+  /*
+   * When true, this query is drawn on the PREVIOUS query's chart panel,
+   * sharing its axes, instead of getting a panel of its own. Consecutive
+   * flagged queries chain onto the same panel. Has no effect on the
+   * first query, or when the previous query produced no result (the
+   * query then falls back to its own panel). Both queries are evaluated
+   * over the SAME time window — this is a same-window visual overlay,
+   * not a period-over-period time shift. Plain persisted data like the
+   * fields above (dashboards, saved views, explorer URLs).
+   */
+  overlayWithPreviousQuery?: boolean | undefined;
 }

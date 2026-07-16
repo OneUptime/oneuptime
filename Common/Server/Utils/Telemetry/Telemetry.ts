@@ -26,6 +26,8 @@ export default class TelemetryUtil {
           name: true,
           description: true,
           unit: true,
+          isMonotonic: true,
+          aggregationTemporality: true,
         },
         props: {
           isRoot: true,
@@ -66,6 +68,30 @@ export default class TelemetryUtil {
           metricType.unit = metricTypeInMap.unit || "";
         }
 
+        /*
+         * Counter semantics (isMonotonic / aggregationTemporality) are only
+         * known on OTel metric ingest paths — other callers (monitor
+         * metrics, heartbeat metrics) never set them, so an undefined
+         * incoming value means "unknown", not "clear the stored value".
+         */
+        if (
+          metricTypeInMap.isMonotonic !== undefined &&
+          metricType.isMonotonic !== metricTypeInMap.isMonotonic
+        ) {
+          isSame = false;
+          metricType.isMonotonic = metricTypeInMap.isMonotonic;
+        }
+
+        if (
+          metricTypeInMap.aggregationTemporality !== undefined &&
+          metricType.aggregationTemporality !==
+            metricTypeInMap.aggregationTemporality
+        ) {
+          isSame = false;
+          metricType.aggregationTemporality =
+            metricTypeInMap.aggregationTemporality;
+        }
+
         // check if services are same
 
         for (const serviceId of servicesInMap) {
@@ -92,6 +118,12 @@ export default class TelemetryUtil {
               services: metricType.services || [],
               description: metricTypeInMap.description || "",
               unit: metricTypeInMap.unit || "",
+              ...(metricType.isMonotonic !== undefined
+                ? { isMonotonic: metricType.isMonotonic }
+                : {}),
+              ...(metricType.aggregationTemporality !== undefined
+                ? { aggregationTemporality: metricType.aggregationTemporality }
+                : {}),
             },
             props: {
               isRoot: true,
@@ -104,6 +136,13 @@ export default class TelemetryUtil {
         metricType.name = metricName;
         metricType.description = metricTypeInMap.description || "";
         metricType.unit = metricTypeInMap.unit || "";
+        if (metricTypeInMap.isMonotonic !== undefined) {
+          metricType.isMonotonic = metricTypeInMap.isMonotonic;
+        }
+        if (metricTypeInMap.aggregationTemporality !== undefined) {
+          metricType.aggregationTemporality =
+            metricTypeInMap.aggregationTemporality;
+        }
         metricType.projectId = data.projectId;
         metricType.services = [];
 

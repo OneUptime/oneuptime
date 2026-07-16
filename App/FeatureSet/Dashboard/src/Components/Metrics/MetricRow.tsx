@@ -11,6 +11,8 @@ import OneUptimeDate from "Common/Types/Date";
 import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 import ObjectID from "Common/Types/ObjectID";
 import { getVisibleMetricServices } from "./MetricRowData";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 
 export interface MetricRowProps {
   metric: MetricType;
@@ -140,6 +142,14 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             heightClassName="h-10"
             onHoverPoint={handleHoverPoint}
           />
+          {/* Deep-link affordance — visible on hover/focus */}
+          <span
+            aria-hidden="true"
+            className="hidden items-center gap-0.5 text-xs font-medium text-gray-400 opacity-0 transition-opacity group-hover:text-indigo-600 group-hover:opacity-100 group-focus-visible:opacity-100 sm:flex"
+          >
+            Explore
+            <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+          </span>
         </div>
       </div>
     </button>

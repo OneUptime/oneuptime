@@ -2,9 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Card from "Common/UI/Components/Card/Card";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -29,7 +27,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 
 /*
@@ -78,61 +75,20 @@ function buildQuery(
   };
 }
 
-function buildMetricViewData(
-  queries: Array<MetricQueryConfigData>,
-  startAndEndDate: InBetween<Date>,
-): MetricViewData {
-  return {
-    startAndEndDate,
-    queryConfigs: queries,
-    formulaConfigs: [],
-  };
-}
-
 /*
  * ──────────────────────────────────────────────────────────────────────────────
- * Section component — Card with time picker in rightElement
+ * Section title helper — icon + text card heading
  * ──────────────────────────────────────────────────────────────────────────────
  */
 
-interface SectionProps {
-  title: string;
-  description: string;
-  icon: IconProp;
-  data: MetricViewData;
-  timeRange: RangeStartAndEndDateTime;
-  onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
-}
-
-const ControlPlaneSection: FunctionComponent<SectionProps> = (
-  props: SectionProps,
-): ReactElement => {
+function getSectionTitle(icon: IconProp, title: string): ReactElement {
   return (
-    <Card
-      title={
-        <div className="flex items-center gap-2">
-          <Icon icon={props.icon} className="h-5 w-5 text-gray-500" />
-          <span>{props.title}</span>
-        </div>
-      }
-      description={props.description}
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={props.timeRange}
-          onChange={props.onTimeRangeChange}
-        />
-      }
-    >
-      <MetricView
-        data={props.data}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        onChange={() => {}}
-      />
-    </Card>
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} className="h-5 w-5 text-gray-500" />
+      <span>{title}</span>
+    </div>
   );
-};
+}
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
@@ -770,108 +726,82 @@ const KubernetesClusterControlPlane: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
-  // Build all metric view data sections
-  const etcdData: MetricViewData = buildMetricViewData(
-    getEtcdQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const apiServerData: MetricViewData = buildMetricViewData(
-    getApiServerQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const schedulerData: MetricViewData = buildMetricViewData(
-    getSchedulerQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const controllerData: MetricViewData = buildMetricViewData(
-    getControllerManagerQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const coreDnsData: MetricViewData = buildMetricViewData(
-    getCoreDnsQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const kubeProxyData: MetricViewData = buildMetricViewData(
-    getKubeProxyQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-
   const tabs: Array<Tab> = [
     {
       name: "etcd",
       children: (
-        <ControlPlaneSection
-          title="etcd"
+        <EmbeddedMetricCard
+          title={getSectionTitle(IconProp.Database, "etcd")}
           description="Distributed key-value store backing all cluster state. Monitors database size, disk I/O latency, leader stability, and replication health."
-          icon={IconProp.Database}
-          data={etcdData}
+          queryConfigs={getEtcdQueries(clusterIdentifier)}
           timeRange={timeRange}
           onTimeRangeChange={handleTimeRangeChange}
+          startAndEndDate={startAndEndDate}
         />
       ),
     },
     {
       name: "API Server",
       children: (
-        <ControlPlaneSection
-          title="API Server"
+        <EmbeddedMetricCard
+          title={getSectionTitle(IconProp.Globe, "API Server")}
           description="Central management entity that validates and serves all REST operations. Tracks request throughput, latency, error rates, and connection health."
-          icon={IconProp.Globe}
-          data={apiServerData}
+          queryConfigs={getApiServerQueries(clusterIdentifier)}
           timeRange={timeRange}
           onTimeRangeChange={handleTimeRangeChange}
+          startAndEndDate={startAndEndDate}
         />
       ),
     },
     {
       name: "Scheduler",
       children: (
-        <ControlPlaneSection
-          title="Scheduler"
+        <EmbeddedMetricCard
+          title={getSectionTitle(IconProp.AdjustmentHorizontal, "Scheduler")}
           description="Assigns pods to nodes based on resource requirements, affinity, and constraints. Monitors scheduling throughput, queue pressure, and preemption activity."
-          icon={IconProp.AdjustmentHorizontal}
-          data={schedulerData}
+          queryConfigs={getSchedulerQueries(clusterIdentifier)}
           timeRange={timeRange}
           onTimeRangeChange={handleTimeRangeChange}
+          startAndEndDate={startAndEndDate}
         />
       ),
     },
     {
       name: "Controller Manager",
       children: (
-        <ControlPlaneSection
-          title="Controller Manager"
+        <EmbeddedMetricCard
+          title={getSectionTitle(IconProp.Settings, "Controller Manager")}
           description="Runs core control loops that reconcile cluster state. Tracks work queue depth, processing latency, retries, and throughput across all controllers."
-          icon={IconProp.Settings}
-          data={controllerData}
+          queryConfigs={getControllerManagerQueries(clusterIdentifier)}
           timeRange={timeRange}
           onTimeRangeChange={handleTimeRangeChange}
+          startAndEndDate={startAndEndDate}
         />
       ),
     },
     {
       name: "CoreDNS",
       children: (
-        <ControlPlaneSection
-          title="CoreDNS"
+        <EmbeddedMetricCard
+          title={getSectionTitle(IconProp.Globe, "CoreDNS")}
           description="Cluster DNS server handling all in-cluster name resolution. Monitors query throughput, latency, cache efficiency, forwarding, and errors."
-          icon={IconProp.Globe}
-          data={coreDnsData}
+          queryConfigs={getCoreDnsQueries(clusterIdentifier)}
           timeRange={timeRange}
           onTimeRangeChange={handleTimeRangeChange}
+          startAndEndDate={startAndEndDate}
         />
       ),
     },
     {
       name: "kube-proxy",
       children: (
-        <ControlPlaneSection
-          title="kube-proxy"
+        <EmbeddedMetricCard
+          title={getSectionTitle(IconProp.Signal, "kube-proxy")}
           description="Network proxy on each node maintaining iptables/IPVS rules for Service routing. Monitors rule sync latency, network programming time, and change events."
-          icon={IconProp.Signal}
-          data={kubeProxyData}
+          queryConfigs={getKubeProxyQueries(clusterIdentifier)}
           timeRange={timeRange}
           onTimeRangeChange={handleTimeRangeChange}
+          startAndEndDate={startAndEndDate}
         />
       ),
     },

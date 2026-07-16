@@ -11,6 +11,7 @@ import {
   Label,
   BarChart as RechartsBarChart,
   Legend as RechartsLegend,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -18,6 +19,8 @@ import {
   YAxis,
 } from "recharts";
 import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
+import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
+import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
 import type { AxisDomain } from "recharts/types/util/types";
 
 import {
@@ -31,6 +34,15 @@ import {
 import { cx } from "../Utils/Cx";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
+
+/*
+ * Incident/alert time markers each label at the same "insideTop" band, so
+ * several events in one window pile their labels into an unreadable stack.
+ * A single marker keeps the classic horizontal top label; a handful get
+ * rotated to run along their lines; past this cap inline labels are hidden
+ * entirely (the dashed lines and their click-through remain).
+ */
+const MAX_LABELED_TIME_REFERENCE_LINES: number = 6;
 
 //#region Shape
 
@@ -667,6 +679,8 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   customTooltip?: React.ComponentType<TooltipProps>;
   syncid?: string | undefined;
   referenceLines?: Array<ChartReferenceLineProps> | undefined;
+  formattedTimeReferenceLines?: Array<FormattedTimeReferenceLine> | undefined;
+  formattedReferenceRegions?: Array<FormattedReferenceRegion> | undefined;
 }
 
 const BarChart: React.ForwardRefExoticComponent<
@@ -708,6 +722,8 @@ const BarChart: React.ForwardRefExoticComponent<
       legendPosition = "right",
       tooltipCallback,
       customTooltip,
+      formattedTimeReferenceLines,
+      formattedReferenceRegions,
       ...other
     } = props;
     const CustomTooltip: React.ComponentType<any> | undefined = customTooltip;
@@ -719,6 +735,10 @@ const BarChart: React.ForwardRefExoticComponent<
     );
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
+    const timeReferenceLineCount: number =
+      formattedTimeReferenceLines?.length || 0;
+    const showTimeReferenceLineLabels: boolean =
+      timeReferenceLineCount <= MAX_LABELED_TIME_REFERENCE_LINES;
     const [activeBar, setActiveBar] = React.useState<any | undefined>(
       undefined,
     );
@@ -1070,6 +1090,101 @@ const BarChart: React.ForwardRefExoticComponent<
                 );
               },
             )}
+            {/*
+             * Time annotations need the x-axis to be the category axis,
+             * which is only true in horizontal layout.
+             */}
+            {/* Time-anchored shaded regions (e.g. incident/maintenance windows) */}
+            {layout !== "vertical"
+              ? formattedReferenceRegions?.map(
+                  (region: FormattedReferenceRegion, regionIndex: number) => {
+                    const regionColor: string =
+                      region.original.color || "#6366f1";
+                    return (
+                      <ReferenceArea
+                        key={`ref-region-${regionIndex}`}
+                        x1={region.formattedX1}
+                        x2={region.formattedX2}
+                        fill={regionColor}
+                        fillOpacity={0.12}
+                        stroke={regionColor}
+                        strokeOpacity={0.35}
+                        strokeWidth={1}
+                        {...(region.original.onClick
+                          ? {
+                              style: { cursor: "pointer" as const },
+                              onClick: (): void => {
+                                region.original.onClick?.();
+                              },
+                            }
+                          : {})}
+                      >
+                        {region.original.label && (
+                          <Label
+                            value={region.original.label}
+                            position="insideTop"
+                            fill={regionColor}
+                            fontSize={10}
+                            fontWeight={500}
+                          />
+                        )}
+                      </ReferenceArea>
+                    );
+                  },
+                )
+              : null}
+            {/* Time-anchored vertical event markers (e.g. deploys, incidents) */}
+            {layout !== "vertical"
+              ? formattedTimeReferenceLines?.map(
+                  (
+                    timeRefLine: FormattedTimeReferenceLine,
+                    timeRefIndex: number,
+                  ) => {
+                    const lineColor: string =
+                      timeRefLine.original.color || "#f59e0b";
+                    return (
+                      <ReferenceLine
+                        key={`time-ref-${timeRefIndex}`}
+                        x={timeRefLine.formattedX}
+                        stroke={lineColor}
+                        strokeDasharray={
+                          timeRefLine.original.strokeDasharray || "4 4"
+                        }
+                        strokeWidth={1.5}
+                        {...(timeRefLine.original.onClick
+                          ? {
+                              style: { cursor: "pointer" as const },
+                              onClick: (): void => {
+                                timeRefLine.original.onClick?.();
+                              },
+                            }
+                          : {})}
+                      >
+                        {timeRefLine.original.label &&
+                          showTimeReferenceLineLabels && (
+                            <Label
+                              value={timeRefLine.original.label}
+                              {...(timeReferenceLineCount > 1
+                                ? {
+                                    /*
+                                     * Several markers: run each label down
+                                     * its own line so labels at different x
+                                     * stop sharing one horizontal band.
+                                     */
+                                    position: "insideTopLeft" as const,
+                                    angle: 90,
+                                  }
+                                : { position: "insideTop" as const })}
+                              fill={lineColor}
+                              fontSize={10}
+                              fontWeight={500}
+                            />
+                          )}
+                      </ReferenceLine>
+                    );
+                  },
+                )
+              : null}
           </RechartsBarChart>
         </ResponsiveContainer>
       </div>

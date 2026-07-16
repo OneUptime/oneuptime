@@ -14,7 +14,10 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import { MetricPointType } from "Common/Models/AnalyticsModels/Metric";
+import {
+  AggregationTemporality,
+  MetricPointType,
+} from "Common/Models/AnalyticsModels/Metric";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryUtil, {
@@ -1199,6 +1202,27 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
                     const isMonotonic: boolean | undefined =
                       metricTypeWrapper?.["isMonotonic"] as boolean | undefined;
+
+                    /*
+                     * Denormalize counter semantics onto the MetricType
+                     * catalog entry so the browser (which only reads the
+                     * Postgres catalog) can auto-suggest rate views for
+                     * cumulative monotonic counters.
+                     */
+                    if (metricName && metricNameServiceNameMap[metricName]) {
+                      const mappedTemporality: string | null =
+                        this.mapAggregationTemporality(aggregationTemporality);
+                      if (mappedTemporality) {
+                        metricNameServiceNameMap[
+                          metricName
+                        ]!.aggregationTemporality =
+                          mappedTemporality as AggregationTemporality;
+                      }
+                      if (typeof isMonotonic === "boolean") {
+                        metricNameServiceNameMap[metricName]!.isMonotonic =
+                          isMonotonic;
+                      }
+                    }
 
                     const metricPointType: MetricPointType = metric["sum"]
                       ? MetricPointType.Sum

@@ -454,6 +454,8 @@ import { BackfillCodeFixTaskType1784105912819 } from "./1784105912819-BackfillCo
 import { AddAITaskNumberAndRunTranscript1784124919694 } from "./1784124919694-AddAITaskNumberAndRunTranscript";
 import { AllowNullAiAgentOnPullRequest1784135099754 } from "./1784135099754-AllowNullAiAgentOnPullRequest";
 import { AddEnableMcpServerToStatusPage1784137457184 } from "./1784137457184-AddEnableMcpServerToStatusPage";
+import { AddCounterSemanticsToMetricType1784191414522 } from "./1784191414522-AddCounterSemanticsToMetricType";
+import { AddViewTypeToMetricSavedView1784191414600 } from "./1784191414600-AddViewTypeToMetricSavedView";
 import { AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan1784200000000 } from "./1784200000000-AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan";
 import { AddEnterpriseLicenseNotificationColumns1784218257664 } from "./1784218257664-AddEnterpriseLicenseNotificationColumns";
 
@@ -914,6 +916,8 @@ export default [
   AddAITaskNumberAndRunTranscript1784124919694,
   AllowNullAiAgentOnPullRequest1784135099754,
   AddEnableMcpServerToStatusPage1784137457184,
+  AddCounterSemanticsToMetricType1784191414522,
+  AddViewTypeToMetricSavedView1784191414600,
   AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan1784200000000,
   AddEnterpriseLicenseNotificationColumns1784218257664,
 ];

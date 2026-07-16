@@ -688,6 +688,11 @@ html.dark :is(
   color: #fcd34d;
 }
 
+/* Hint-chip icons (metric viewer) use the lighter amber accent. */
+html.dark .text-amber-500 {
+  color: #fbbf24;
+}
+
 html.dark :is(
     .text-yellow-600,
     .text-yellow-700,
@@ -868,6 +873,11 @@ html.dark :is(
   ) {
   border-color: rgb(129 140 248 / 45%);
   --tw-ring-color: rgb(129 140 248 / 35%);
+}
+
+/* Formula-card variable badges (metric viewer). */
+html.dark .border-violet-200 {
+  border-color: rgb(129 140 248 / 45%);
 }
 
 html.dark :is(

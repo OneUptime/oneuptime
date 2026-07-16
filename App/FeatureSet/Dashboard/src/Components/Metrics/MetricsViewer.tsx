@@ -56,6 +56,8 @@ import TelemetrySavedViewsControl, {
 import useServiceNames from "../Telemetry/useServiceNames";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
+import TelemetrySavedViewType from "Common/Types/Telemetry/TelemetrySavedViewType";
+import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import Search from "Common/Types/BaseDatabase/Search";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -1273,6 +1275,8 @@ const MetricsViewer: FunctionComponent<Props> = (
       /*
        * Carry the current time window so the detail page opens on the same
        * range the user was viewing (it otherwise resets to the last hour).
+       * A preset range also carries its relative token so the explorer
+       * opens rolling (re-anchored to now) instead of pinned.
        */
       const dateRange: InBetween<Date> =
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
@@ -1286,6 +1290,9 @@ const MetricsViewer: FunctionComponent<Props> = (
         OneUptimeDate.toString(dateRange.endValue),
         true,
       );
+      if (timeRange.range !== TimeRange.CUSTOM) {
+        metricUrl.addQueryParam("range", timeRange.range, true);
+      }
 
       Navigation.navigate(metricUrl);
     },
@@ -1357,6 +1364,23 @@ const MetricsViewer: FunctionComponent<Props> = (
             captureCurrentState={captureCurrentState}
             applyState={applySavedViewState}
             onError={setError}
+            /*
+             * List-page views only. viewType is NULL on rows created
+             * before the explorer got its own saved views — those are
+             * list views by definition, hence EqualToOrNull.
+             */
+            additionalQuery={
+              {
+                viewType: new EqualToOrNull<string>(
+                  TelemetrySavedViewType.List,
+                ),
+              } as Query<MetricSavedView>
+            }
+            additionalSaveFields={
+              {
+                viewType: TelemetrySavedViewType.List,
+              } as Partial<MetricSavedView>
+            }
           />
         ) : undefined
       }

@@ -384,6 +384,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   hideQueryElements={true}
                   chartCssClass="rounded-lg border border-gray-200 shadow-sm"
                   hideStartAndEndDate={true}
+                  // Read-only host: onChange is a no-op, so zoom can't apply.
+                  disableChartZoom={true}
                   onChange={(_data: MetricViewData) => {
                     // do nothing!
                   }}
