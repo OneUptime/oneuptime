@@ -5,22 +5,25 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
+import { SnmpVersionUtil } from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 
 /*
  * SNMP connection + credential form fields, shared by the create form
  * (Devices.tsx) and the edit form (View/Settings.tsx) so both stay in sync.
  *
- * The SNMP Version dropdown stores "V1" / "V2c" / "V3" (matching the model
- * default of "V2c"); the hydration util tolerates both these and the raw enum
- * values. The v3 fields reveal themselves via showIf when V3 is selected, and
- * the auth/priv fields reveal further based on the chosen security level, so a
- * noAuthNoPriv user is never asked for keys they don't have.
+ * The SNMP Version dropdown stores "V1" / "V2c" / "V3", but a stored device
+ * may instead carry the raw enum values ("1" / "2c" / "3") depending on which
+ * writer created it, so the reveal check goes through SnmpVersionUtil rather
+ * than comparing against a single spelling. The v3 fields reveal themselves
+ * via showIf when V3 is selected, and the auth/priv fields reveal further
+ * based on the chosen security level, so a noAuthNoPriv user is never asked
+ * for keys they don't have.
  */
 
 const isV3: (item: FormValues<NetworkDevice>) => boolean = (
   item: FormValues<NetworkDevice>,
 ): boolean => {
-  return item["snmpVersion"] === "V3";
+  return SnmpVersionUtil.isV3(item["snmpVersion"] as string | undefined);
 };
 
 const isV3WithAuth: (item: FormValues<NetworkDevice>) => boolean = (

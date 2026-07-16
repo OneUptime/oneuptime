@@ -295,7 +295,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
               snmpCommunityString: true,
             },
             title: "SNMP Community String",
-            fieldType: FormFieldSchemaType.Password,
+            /*
+             * EncryptedText (not Password): Password coerces the value into a
+             * one-way HashedString, so the probe could never read the real
+             * community back and every host in the scan would fail to answer.
+             */
+            fieldType: FormFieldSchemaType.EncryptedText,
             required: false,
             placeholder: "public",
             description:
