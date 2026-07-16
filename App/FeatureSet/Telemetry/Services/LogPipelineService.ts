@@ -10,6 +10,10 @@ import LogPipelineProcessorType, {
   SeverityRemapperConfig,
   CategoryProcessorConfig,
 } from "Common/Types/Log/LogPipelineProcessorType";
+import LogSeverity, {
+  LogSeverityNumber,
+  normalizeLogSeverity,
+} from "Common/Types/Log/LogSeverity";
 import {
   compileFilter,
   CompiledFilter,
@@ -246,10 +250,31 @@ export class LogPipelineService {
 
     for (const mapping of config.mappings || []) {
       if (mapping.matchValue.toLowerCase() === sourceStr) {
+        /*
+         * Normalise rather than trusting the stored config. Pipelines saved
+         * before the severity dropdown was fixed hold "INFO" / "WARNING",
+         * which are not LogSeverity members — writing them verbatim put a
+         * severityText on the row that no filter can ever match, since ingest
+         * only ever produces the seven enum values and `=` is case-sensitive.
+         * Those configs are still live, so the correction has to happen here
+         * rather than only in the UI.
+         */
+        const severity: LogSeverity | null = normalizeLogSeverity(
+          mapping.severityText,
+        );
+
+        if (!severity) {
+          /*
+           * Unrecognised: leave the ingest-derived severity alone rather than
+           * overwrite it with something unmatchable.
+           */
+          return logRow;
+        }
+
         return {
           ...logRow,
-          severityText: mapping.severityText,
-          severityNumber: mapping.severityNumber,
+          severityText: severity,
+          severityNumber: LogSeverityNumber[severity],
         };
       }
     }
