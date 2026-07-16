@@ -5972,5 +5972,9 @@
   "No topology discovered yet": "Ingen topologi har upptäckts ännu",
   "As telemetry carrying multiple entities (e.g. a service running in a k8s pod on a node) is ingested, the inferred relationships — runs-on, member-of, hosted-on, part-of — will appear here as a graph.": "Allt eftersom telemetri med flera entiteter (t.ex. en tjänst som körs i en k8s-podd på en nod) tas in visas de härledda relationerna — runs-on, member-of, hosted-on, part-of — här som en graf.",
   "No entities match your filters": "Inga entiteter matchar dina filter",
-  "Adjust the search text or re-enable entity types to see the graph.": "Justera söktexten eller aktivera entitetstyper igen för att se grafen."
+  "Adjust the search text or re-enable entity types to see the graph.": "Justera söktexten eller aktivera entitetstyper igen för att se grafen.",
+  "MCP Server": "MCP-server",
+  "Enable MCP Server": "Aktivera MCP-server",
+  "Control whether AI agents can read this status page over the OneUptime MCP server": "Styr om AI-agenter kan läsa den här statussidan via OneUptime MCP-servern",
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "När detta är aktiverat kan AI-agenter läsa den här statussidan via den publika OneUptime MCP-servern. Att stänga av det döljer inte statussidans webbplats, dess RSS-flöde eller dess publika JSON-API."
 }

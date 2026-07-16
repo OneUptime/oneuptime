@@ -1,5 +1,6 @@
 import { Renderer, marked } from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import markdownSlugify from "./MarkdownSlugify";
 
 export type MarkdownRenderer = Renderer;
 
@@ -235,15 +236,14 @@ export default class Markdown {
     return renderer;
   }
 
-  private static slugify(text: string): string {
-    return text
-      .toLowerCase()
-      .replace(/<[^>]*>/g, "")
-      .replace(/&[^;]+;/g, "")
-      .replace(/[^\w\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "");
+  /*
+   * Heading text -> the `id` used for in-page anchors. The rules live in
+   * MarkdownSlugify.ts, a dependency-free module, so the docs anchor scripts
+   * (Scripts/Docs/CheckAnchors.ts, FixAnchors.ts) can share them without
+   * pulling in marked or the telemetry stack — see the comment there.
+   */
+  public static slugify(text: string): string {
+    return markdownSlugify(text);
   }
 
   private static getDocsRenderer(): Renderer {

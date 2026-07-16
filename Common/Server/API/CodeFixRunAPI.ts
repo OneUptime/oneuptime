@@ -8,21 +8,27 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Select from "../Types/Database/Select";
 import { JSONObject } from "../../Types/JSON";
+import Permission, { UserPermission } from "../../Types/Permission";
 import AIRunType from "../../Types/AI/AIRunType";
 import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
+import LlmLog from "../../Models/DatabaseModels/LlmLog";
 import Project from "../../Models/DatabaseModels/Project";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectService from "../Services/ProjectService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
+import LlmLogService from "../Services/LlmLogService";
 
 const MAX_EVENTS: number = 500;
 
@@ -56,6 +62,7 @@ const RUN_SELECT: Select<AIRun> = {
   triggeredByTelemetryExceptionId: true,
   totalTokens: true,
   codeFixTaskType: true,
+  taskNumber: true,
   attemptCount: true,
   llmCallCount: true,
   toolCallCount: true,
@@ -66,6 +73,50 @@ const RUN_SELECT: Select<AIRun> = {
    * per-run spend.
    */
 };
+
+/*
+ * The Logs page's event trail.
+ *
+ * toolArguments is deliberately NOT selected, even though this endpoint reads
+ * as root and could. A code-fix write_file call carries the file's full new
+ * content in its arguments, and that column's own read ACL stops at
+ * ProjectMember — narrower than this endpoint's Project-read gate, which also
+ * admits Viewers. Returning it would leak the same customer source code that
+ * contentPayload is stripped below to protect, to an even wider audience. The
+ * page never needed it: Logs.tsx renders tool arguments from
+ * contentPayload.responseToolCalls, the owner/admin-gated copy.
+ */
+const LOG_EVENT_SELECT: Select<AIRunEvent> = {
+  _id: true,
+  sequence: true,
+  eventType: true,
+  toolName: true,
+  resultSummary: true,
+  citationId: true,
+  createdAt: true,
+  contentPayload: true,
+};
+
+/*
+ * The per-LLM-call metering shown beside the transcript. Read under the
+ * CALLER's permissions (not root), so LlmLog's own table ACL decides who sees
+ * it rather than this endpoint's broader Project-read gate.
+ */
+const LLM_LOG_SELECT: Select<LlmLog> = {
+  _id: true,
+  modelName: true,
+  llmProviderName: true,
+  status: true,
+  statusMessage: true,
+  totalTokens: true,
+  completionTokens: true,
+  durationMs: true,
+  requestStartedAt: true,
+  requestCompletedAt: true,
+  createdAt: true,
+};
+
+const MAX_LLM_LOGS: number = 500;
 
 /*
  * Serialize a run with codeFixTaskType normalized: a null column means
@@ -162,6 +213,137 @@ export default class CodeFixRunAPI {
           return;
         }
       },
+    );
+
+    /*
+     * The Logs page: the same run, its FULL event trail, and the per-call LLM
+     * metering — everything recorded about a run, for debugging one that went
+     * wrong.
+     *
+     * Two things are gated more tightly than the trail itself:
+     *
+     * - contentPayload (the verbatim prompts, model replies and tool output)
+     *   is returned only to ProjectOwner/ProjectAdmin. It embeds customer
+     *   source code, which is why the column's own read ACL is empty and why
+     *   LlmLog redacts the same content — this endpoint is the single
+     *   deliberate door to it, and it is not open to every project member.
+     *
+     * - LlmLog rows are read under the CALLER's permissions rather than as
+     *   root, so LlmLog's table ACL — not this endpoint's broader Project-read
+     *   gate — decides who sees the metering.
+     */
+    this.router.post(
+      "/code-fix-run/logs/:runId",
+      UserMiddleware.getUserMiddleware,
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await this.getAccessCheckedProps(req);
+
+          const runIdString: string | undefined = req.params["runId"];
+
+          if (!runIdString) {
+            throw new BadDataException("runId is required.");
+          }
+
+          const runId: ObjectID = new ObjectID(runIdString);
+
+          const run: AIRun | null = await AIRunService.findOneBy({
+            query: {
+              _id: runId.toString(),
+              projectId: props.tenantId!,
+              runType: AIRunType.CodeFix,
+            },
+            select: RUN_SELECT,
+            props: { isRoot: true },
+          });
+
+          if (!run) {
+            throw new BadDataException(
+              "Code fix run not found (or it does not belong to this project).",
+            );
+          }
+
+          const canReadContent: boolean = this.callerCanReadRunContent(props);
+
+          const events: Array<AIRunEvent> = await AIRunEventService.findBy({
+            query: { aiRunId: run.id! },
+            select: LOG_EVENT_SELECT,
+            sort: { sequence: SortOrder.Ascending },
+            limit: MAX_EVENTS,
+            skip: 0,
+            props: { isRoot: true },
+          });
+
+          const eventsJson: Array<JSONObject> = BaseModel.toJSONArray(
+            events,
+            AIRunEvent,
+          );
+
+          if (!canReadContent) {
+            for (const eventJson of eventsJson) {
+              delete eventJson["contentPayload"];
+            }
+          }
+
+          /*
+           * Under the caller's own permissions on purpose — see the note
+           * above. A caller without LlmLog read simply gets no metering rows.
+           */
+          const llmLogs: Array<LlmLog> = await LlmLogService.findBy({
+            query: { aiRunId: runId, projectId: props.tenantId! },
+            select: LLM_LOG_SELECT,
+            sort: { createdAt: SortOrder.Ascending },
+            limit: MAX_LLM_LOGS,
+            skip: 0,
+            props: props,
+          });
+
+          Response.sendJsonObjectResponse(req, res, {
+            run: runToJson(run),
+            events: eventsJson,
+            llmLogs: BaseModel.toJSONArray(llmLogs, LlmLog),
+            canReadContent: canReadContent,
+          });
+          return;
+        } catch (err) {
+          next(err);
+          return;
+        }
+      },
+    );
+  }
+
+  /*
+   * Whether the caller may see a run's verbatim LLM/tool content. Project
+   * owners and admins only: the content embeds customer source code, so the
+   * bar is higher than the Project-read gate that admits them to the page.
+   *
+   * Read through getUserPermissions(Allow) rather than off
+   * userTenantAccessPermission directly, because that array holds GRANTS AND
+   * DENIALS together, discriminated only by isBlockPermission. Mapping it raw
+   * counts a team's explicit "block ProjectAdmin" entry as a grant of
+   * ProjectAdmin — inverting the control, so the admin action that restricts a
+   * team would be what hands it the source code.
+   */
+  private callerCanReadRunContent(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    const permissions: Array<Permission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ).map((userPermission: UserPermission) => {
+        return userPermission.permission;
+      });
+
+    return (
+      permissions.includes(Permission.ProjectOwner) ||
+      permissions.includes(Permission.ProjectAdmin)
     );
   }
 

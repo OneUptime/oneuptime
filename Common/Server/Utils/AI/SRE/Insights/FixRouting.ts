@@ -9,9 +9,8 @@ import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import AIRunService from "../../../../Services/AIRunService";
-import TelemetryExceptionService, {
-  AIFixReadiness,
-} from "../../../../Services/TelemetryExceptionService";
+import TelemetryExceptionService from "../../../../Services/TelemetryExceptionService";
+import { AIFixReadiness } from "../../../../../Types/AI/AIFixReadiness";
 import FixPerformanceTaskTrigger from "../FixPerformanceTaskTrigger";
 import FixRunBudget, { FixRunBudgetDecision } from "../../CodeFix/FixRunBudget";
 import logger from "../../../Logger";

@@ -622,11 +622,41 @@ processors:
     error_mode: ignore
     logs:
       log_record:
-        # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # Släpp allt som är mindre allvarligt än WARN (info, debug, trace).
+        # UNSPECIFIED-skyddet krävs — se varningen nedan.
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-Släpp en specifik brusig metrik som du inte visar i något diagram:
+> **Ta inte bort `UNSPECIFIED`-skyddet.** `SEVERITY_NUMBER_UNSPECIFIED` är `0` och `SEVERITY_NUMBER_WARN` är `13`, så ett naket `severity_number < SEVERITY_NUMBER_WARN` blir `0 < 13` — **sant för varje post vars allvarlighetsgrad aldrig tolkades**. En vanlig `filelog`-mottagare tolkar inte fram någon allvarlighetsgrad ur loggraden: inget av den här sidans `filelog`-exempel sätter `operators:`, så de posterna anländer till filtret med `severity_number: 0`. Utan skyddet raderar det villkoret tyst **100 % av** `/var/log/syslog`, `/var/log/messages` och `/var/log/auth.log` — utan något felmeddelande någonstans. Med skyddet behålls oklassificerade poster och du kommer att se dem anlända i OneUptime med allvarlighetsgraden `Unspecified`, vilket talar om för dig att det du egentligen behöver är en allvarlighetsgradstolk.
+
+För att filtrera filloggar efter allvarlighetsgrad *ordentligt*, tolka först fram en allvarlighetsgrad med en [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md)-operator på mottagaren, så att posterna bär en riktig nivå innan de når filtret:
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # Plocka ut en nivå ur rader som "2026-01-01 ERROR something broke".
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # Rader utan igenkännbar nivå faller igenom otolkade i stället för
+        # att kastas bort, och behålls sedan av skyddet ovan.
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+På systemd-värdar behöver du inget av detta — `journald`s `priority:` (Reglage 1) filtrerar efter nivå i `journalctl` självt, innan någon OTel-post existerar.
+
+Släpp metriker som du inte visar i något diagram — exakt namn, eller ett mönster:
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # Exakt metriknamn.
         - 'name == "system.paging.faults"'
+        # Eller en hel familj. IsMatch är RE2 och OFÖRANKRAD, så förankra
+        # den själv med ^ när du menar "börjar med".
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+Skicka **endast** en fast uppsättning metriker (en tillåtelselista) genom att invertera villkoret — `filter` släpper det som matchar, så `not (...)` släpper allt du inte namngav:
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+Håll det villkoret på **en rad**. En tillåtelselista är en trubbig slägga: allt du glömmer att namnge är borta, tillsammans med de monitorer som byggts på det. Föredra att släppa de få metriker du inte vill ha, eller att helt enkelt utelämna skraparen som producerar dem (Reglage 3) — en metrik som aldrig samlas in kostar ingenting att filtrera.
 
 Lägg sedan till processorn i den relevanta pipelinen — ordningen spelar roll, så placera `filter` före `batch`:
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **Redigerar du konfigurationen som OneUptime genererade åt dig?** Pipelinen ovan matchar de kompletta exemplen på den här sidan. Konfigurationen från instrumentpanelen (Hosts → Documentation) namnger saker annorlunda: dess processorer är `resourcedetection` och `batch` (det finns **ingen** `resource`-processor) och dess exportör är `otlphttp/oneuptime`. Att referera till en processor som inte är definierad stoppar collectorn vid start med `references processor "resource" which is not configured`. Lägg till filtret i det som redan finns i stället för att klistra in det här blocket över det:
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> Behåll `resourcedetection` — OneUptime matchar telemetri mot en värd med hjälp av `host.name` / `host.id` som den sätter. Den genererade konfigurationen är också **enbart metriker**: den har ingen `logs:`-pipeline förrän du lägger till en, så en `filter/drop-low-severity` har inget att filtrera förrän du lägger till en `filelog`- eller `journald`-mottagare vid sidan av den.
+
+> **På macOS, använd tarballen, inte Homebrew.** Homebrew-formeln levererar **core**-collectorn, och `filter` är en processor som bara finns i contrib — collectorn kommer att vägra starta oavsett om din YAML är korrekt eller inte.
 
 ### En slimmad utgångspunkt
 
@@ -730,7 +792,7 @@ OpenTelemetry Collector respekterar standardmiljövariablerna `HTTPS_PROXY` / `H
 - **HTTP 401 från exportören** — inmatningstoken är ogiltig eller återkallad. Generera en ny från _Project Settings → Telemetry Ingestion Keys_.
 - **Windows Event Log `Security` returnerar access denied** — tjänsten körs inte med tillräckliga behörigheter. Återskapa den under `LocalSystem` (standard med `sc.exe create`) eller ge tjänstkontot användarrättigheten _Manage auditing and security log_.
 - **`journald`-mottagaren misslyckas med att starta** — se till att `journalctl` finns i collectorns `PATH` och att `/var/log/journal` existerar (kör `sudo systemd-tmpfiles --create --prefix /var/log/journal` om inte).
-- **Hög volym / kostnad** — se [Minska volymen av insamlad data](#reducing-the-volume-of-data-collected): begränsa mottagarna (specifika Windows-kanaler, specifika systemd-enheter, specifika loggfiler), höj metrikernas `collection_interval`, ta bort skraparen per process eller lägg till en `filter`-processor för att släppa poster med låg allvarlighetsgrad före export.
+- **Hög volym / kostnad** — se [Minska volymen av insamlad data](#minska-volymen-av-insamlad-data): begränsa mottagarna (specifika Windows-kanaler, specifika systemd-enheter, specifika loggfiler), höj metrikernas `collection_interval`, ta bort skraparen per process eller lägg till en `filter`-processor för att släppa poster med låg allvarlighetsgrad före export.
 
 ## Nästa steg
 

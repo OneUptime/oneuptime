@@ -22,6 +22,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
 import React, {
   Fragment,
   FunctionComponent,
@@ -162,6 +163,31 @@ const NetworkDeviceDiscovery: FunctionComponent<
             device.snmpPort = scanToReview.snmpPort;
           }
 
+          // Carry the v3 credentials so a v3 scan imports as a v3 device.
+          if (scanToReview.snmpV3SecurityLevel) {
+            device.snmpV3SecurityLevel = scanToReview.snmpV3SecurityLevel;
+          }
+
+          if (scanToReview.snmpV3Username) {
+            device.snmpV3Username = scanToReview.snmpV3Username;
+          }
+
+          if (scanToReview.snmpV3AuthProtocol) {
+            device.snmpV3AuthProtocol = scanToReview.snmpV3AuthProtocol;
+          }
+
+          if (scanToReview.snmpV3AuthKey) {
+            device.snmpV3AuthKey = scanToReview.snmpV3AuthKey;
+          }
+
+          if (scanToReview.snmpV3PrivProtocol) {
+            device.snmpV3PrivProtocol = scanToReview.snmpV3PrivProtocol;
+          }
+
+          if (scanToReview.snmpV3PrivKey) {
+            device.snmpV3PrivKey = scanToReview.snmpV3PrivKey;
+          }
+
           await ModelAPI.create<NetworkDevice>({
             model: device,
             modelType: NetworkDevice,
@@ -276,40 +302,16 @@ const NetworkDeviceDiscovery: FunctionComponent<
             required: true,
             placeholder: "Probe",
           },
-          {
-            field: {
-              snmpVersion: true,
-            },
-            title: "SNMP Version",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              { label: "V1", value: "V1" },
-              { label: "V2c", value: "V2c" },
-              { label: "V3", value: "V3" },
-            ],
-            required: true,
-            placeholder: "V2c",
-          },
-          {
-            field: {
-              snmpCommunityString: true,
-            },
-            title: "SNMP Community String",
-            fieldType: FormFieldSchemaType.Password,
-            required: false,
-            placeholder: "public",
-            description:
-              "Tried against every host in the subnet. Required for SNMP V1 and V2c.",
-          },
-          {
-            field: {
-              snmpPort: true,
-            },
-            title: "SNMP Port",
-            fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "161",
-          },
+          /*
+           * Shared SNMP fields (version, community, full v3 credential set
+           * with showIf reveal logic) — the same helper the NetworkDevice
+           * forms use, so a v3 subnet scan collects the same credentials a v3
+           * device needs and the two can never drift apart.
+           */
+          ...getSnmpConfigFormFields({
+            communityStringDescription:
+              "Tried against every host in the subnet. Required for SNMP V1 and V2c. Not used for V3.",
+          }),
         ]}
         columns={[
           {
@@ -399,6 +401,13 @@ const NetworkDeviceDiscovery: FunctionComponent<
           snmpVersion: true,
           snmpCommunityString: true,
           snmpPort: true,
+          // v3 credentials, so the import below can copy them onto the device.
+          snmpV3SecurityLevel: true,
+          snmpV3Username: true,
+          snmpV3AuthProtocol: true,
+          snmpV3AuthKey: true,
+          snmpV3PrivProtocol: true,
+          snmpV3PrivKey: true,
           statusMessage: true,
         }}
         actionButtons={[

@@ -66,6 +66,19 @@ export default class AIAgentTaskLog {
     });
   }
 
+  public static async sendTaskNoFixFoundLog(
+    taskId: string,
+    reason: string,
+  ): Promise<boolean> {
+    return this.sendLog({
+      taskId,
+      severity: LogSeverity.Information,
+      message: reason
+        ? `Task execution completed with no fix to propose: ${reason}`
+        : "Task execution completed with no fix to propose",
+    });
+  }
+
   public static async sendTaskErrorLog(
     taskId: string,
     errorMessage: string,

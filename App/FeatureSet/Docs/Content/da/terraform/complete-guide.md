@@ -8,7 +8,7 @@ OneUptime Terraform Provider giver dig mulighed for at administrere OneUptime-re
 - [Providerkonfiguration](#providerkonfiguration)
 - [Hurtig start](#hurtig-start)
 - [Versionskompatibilitet](#versionskompatibilitet)
-- [Tilgængelige ressourcer](#tilgaengelige-ressourcer)
+- [Tilgængelige ressourcer](#tilgængelige-ressourcer)
 - [Eksempler](#eksempler)
 - [Bedste praksis](#bedste-praksis)
 - [Migrationsvejledning](#migrationsvejledning)

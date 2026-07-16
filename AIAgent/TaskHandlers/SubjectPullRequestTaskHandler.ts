@@ -190,13 +190,22 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
         };
       }
 
-      await this.log(context, this.noActionMessage, "error");
-      return this.createFailureResult(
-        errors.length > 0
-          ? `${this.noActionMessage}. Errors: ${errors.join("; ")}`
-          : this.noActionMessage,
-        { isError: true },
-      );
+      /*
+       * No PRs created. Repositories that actually blew up are an error;
+       * a clean run that found nothing worth changing is a negative result,
+       * not a failure. Only the former is an Error.
+       */
+      if (errors.length > 0) {
+        const failureMessage: string = `${this.noActionMessage}. Errors: ${errors.join("; ")}`;
+        await this.log(context, failureMessage, "error");
+        return this.createFailureResult(failureMessage, {
+          isError: true,
+          errors,
+        });
+      }
+
+      await this.log(context, this.noActionMessage, "warning");
+      return this.createNoFixResult(this.noActionMessage);
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);

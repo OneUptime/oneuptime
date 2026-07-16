@@ -22,6 +22,8 @@ export enum AIChatCitationTargetType {
   AlertView = "AlertView",
   Monitors = "Monitors",
   MonitorView = "MonitorView",
+  ScheduledMaintenanceEvents = "ScheduledMaintenanceEvents",
+  ScheduledMaintenanceView = "ScheduledMaintenanceView",
 }
 
 export interface AIChatCitationTarget {
@@ -195,6 +197,48 @@ export interface AIRunEventResultSummary {
   message?: string | undefined;
   // Log severity for ProgressLog events (Info/Warning/Error/…).
   severity?: string | undefined;
+}
+
+/*
+ * The verbatim content behind one run event — the raw material for debugging
+ * a bad run: exactly what was sent to the model, exactly what it said back,
+ * and exactly what a tool returned.
+ *
+ * This is the ONLY place a code-fix run's LLM content is persisted. It lives
+ * on AIRunEvent.contentPayload, whose read ACL is empty precisely because
+ * this content embeds customer source code: LlmLog deliberately redacts the
+ * same content (CodeFixAgentCompletion passes storeContentPreviews: false)
+ * because LlmLog is readable project-wide, and that redaction stays. Reach it
+ * only through GET /code-fix-run/logs, which gates on ProjectOwner or
+ * ProjectAdmin — the same "sensitive content behind a narrow endpoint" shape
+ * AIRun.pausedState and AIRun.taskContext already use.
+ *
+ * Every field is capped at write time (see AIRunTranscript.ts) so one run can
+ * never write an unbounded row.
+ */
+export interface AIRunEventContentPayload {
+  // Messages newly sent to the model on this call — not the whole history.
+  requestMessages?: Array<{
+    role: string;
+    content: string;
+  }>;
+  // The model's verbatim reply.
+  responseContent?: string | undefined;
+  // Tool calls the model asked for, with their full arguments.
+  responseToolCalls?: Array<{
+    id?: string | undefined;
+    name: string;
+    arguments?: JSONObject | undefined;
+  }>;
+  // A tool's verbatim return value (for tool events).
+  toolResult?: string | undefined;
+  modelName?: string | undefined;
+  stopReason?: string | undefined;
+  promptTokens?: number | undefined;
+  completionTokens?: number | undefined;
+  totalTokens?: number | undefined;
+  // Set when any field above was clipped to its cap.
+  isTruncated?: boolean | undefined;
 }
 
 // What was sent to which LLM during a run — the per-run egress manifest.

@@ -1,7 +1,8 @@
-import TelemetryExceptionService, {
+import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
+import {
   AIFixReadiness,
   AIFixReadinessCheck,
-} from "../../../Server/Services/TelemetryExceptionService";
+} from "../../../Types/AI/AIFixReadiness";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -19,7 +20,8 @@ import AIAgent, {
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import AIService from "../../../Server/Services/AIService";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * "Fix with AI Agent" readiness: every prerequisite is checked BEFORE a task
@@ -121,7 +123,24 @@ function getCheck(readiness: AIFixReadiness, id: string): AIFixReadinessCheck {
   return check!;
 }
 
+/*
+ * The llmProvider check also gates on the daily autonomous token budget
+ * (AI_CODE_FIX_FEATURE is autonomous, so executeWithLogging enforces it).
+ * Default it to unset — these suites are about the other fail conditions.
+ */
+function mockBudgetNotExhausted(): void {
+  jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
+    exhausted: false,
+    limitInTokens: null,
+    usedTokensToday: 0,
+  });
+}
+
 describe("TelemetryExceptionService.getAIFixReadiness", () => {
+  beforeEach(() => {
+    mockBudgetNotExhausted();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -237,6 +256,10 @@ describe("TelemetryExceptionService.getAIFixReadiness", () => {
  * and free-global providers consume no balance and must never require one.
  */
 describe("TelemetryExceptionService.getAIFixReadiness — AI balance gate", () => {
+  beforeEach(() => {
+    mockBudgetNotExhausted();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

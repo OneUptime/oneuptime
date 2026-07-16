@@ -13,20 +13,18 @@ import CodeFixTaskType, {
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import AIRunService from "./AIRunService";
 import FixRunBudget from "../Utils/AI/CodeFix/FixRunBudget";
-import AIAgentService from "./AIAgentService";
-import LlmProviderService from "./LlmProviderService";
-import ProjectService from "./ProjectService";
+import CodeFixReadiness from "../Utils/AI/CodeFix/CodeFixReadiness";
 import ServiceService from "./ServiceService";
 import CodeRepositoryService from "./CodeRepositoryService";
 import { RepoResolution } from "../Utils/CodeRepository/StackTraceRepoResolver";
-import AIAgent from "../../Models/DatabaseModels/AIAgent";
-import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
-import Project from "../../Models/DatabaseModels/Project";
+import {
+  AIFixReadiness,
+  AIFixReadinessCheck,
+} from "../../Types/AI/AIFixReadiness";
 import TelemetryService from "../../Models/DatabaseModels/Service";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { IsBillingEnabled } from "../EnvironmentConfig";
 import Query from "../Types/Database/Query";
 import Includes from "../../Types/BaseDatabase/Includes";
 import logger from "../Utils/Logger";
@@ -44,24 +42,6 @@ export interface CreateCodeFixRunForExceptionParams {
   props: DatabaseCommonInteractionProps;
   // Which task recipe to run. Defaults to FixException.
   taskType?: CodeFixTaskType | undefined;
-}
-
-export type AIFixReadinessCheckId =
-  | "llmProvider"
-  | "repositoryResolved"
-  | "agentAvailable";
-
-export interface AIFixReadinessCheck {
-  id: AIFixReadinessCheckId;
-  ok: boolean;
-  title: string;
-  // Shown to the user when ok is false — says exactly what to do next.
-  detail: string;
-}
-
-export interface AIFixReadiness {
-  ready: boolean;
-  checks: Array<AIFixReadinessCheck>;
 }
 
 export interface DashboardServiceSummary {
@@ -124,54 +104,15 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID = telemetryException.projectId;
 
     /*
-     * 1. An LLM provider the agent may use. Agent completions are
-     * server-mediated and metered (B4 Tier 0), so the shared global
-     * provider is a valid fallback on cloud too — a project-owned provider
-     * simply wins when one exists.
+     * 1. An LLM provider the agent may use — the same gate the project-wide
+     * AI Tasks page renders, so the two surfaces can never disagree about
+     * whether this project has a usable provider.
      */
-    const llmProvider: LlmProvider | null =
-      await LlmProviderService.getLlmProviderForMeteredAgentPath(projectId);
-
-    let llmOk: boolean = Boolean(llmProvider);
-    let llmDetail: string = llmOk
-      ? ""
-      : "AI fix tasks need an LLM provider. Add one in Project Settings > AI > LLM Providers. Self-hosted instances can alternatively set the GLOBAL_LLM_PROVIDER_* environment variables to register a global provider for every project.";
-
-    /*
-     * A resolved provider must also be PAYABLE, or the run passes readiness
-     * here and dies at its first completion call instead. Mirrors the
-     * billing gate in AIService.executeWithLogging: only a COSTED global
-     * provider on cloud bills the project's AI balance per call —
-     * project-owned and free-global providers consume no balance and must
-     * not require one.
-     */
-    const billingEnabled: boolean = params.billingEnabled ?? IsBillingEnabled;
-
-    if (
-      llmProvider &&
-      billingEnabled &&
-      (llmProvider.isGlobalLlm || false) &&
-      (llmProvider.costPerMillionTokensInUSDCents || 0) > 0
-    ) {
-      const project: Project | null = await ProjectService.findOneById({
-        id: projectId,
-        select: { aiCurrentBalanceInUSDCents: true },
-        props: { isRoot: true },
+    const llmCheck: AIFixReadinessCheck =
+      await CodeFixReadiness.getLlmProviderCheck({
+        projectId,
+        billingEnabled: params.billingEnabled,
       });
-
-      if (!project || (project.aiCurrentBalanceInUSDCents || 0) <= 0) {
-        llmOk = false;
-        llmDetail =
-          "AI fix tasks would use the OneUptime-hosted LLM provider, which is billed against your AI balance — and the project's balance is empty. Recharge it in Project Settings > AI Credits, or add your own LLM provider in Project Settings > AI > LLM Providers.";
-      }
-    }
-
-    const llmCheck: AIFixReadinessCheck = {
-      id: "llmProvider",
-      ok: llmOk,
-      title: "LLM provider",
-      detail: llmDetail,
-    };
 
     /*
      * 2. A repository must RESOLVE for this exception — computed at runtime
@@ -223,25 +164,11 @@ export class Service extends DatabaseService<Model> {
       };
     }
 
-    // 4. An agent must be alive to pick the task up.
-    const anyAgent: AIAgent | null =
-      await AIAgentService.getAIAgentForProject(projectId);
-    const connectedAgent: AIAgent | null = anyAgent
-      ? AIAgentService.isAgentAlive(anyAgent)
-        ? anyAgent
-        : null
-      : null;
-
-    const agentCheck: AIFixReadinessCheck = {
-      id: "agentAvailable",
-      ok: Boolean(connectedAgent),
-      title: "AI agent online",
-      detail: connectedAgent
-        ? ""
-        : anyAgent
-          ? `The AI agent "${anyAgent.name || "agent"}" has not reported in — check that its container is running.`
-          : "No AI agent is available for this project. Self-hosted: create an agent under Settings > AI > AI Agents and run its container. Cloud: the shared fleet appears here automatically once enabled.",
-    };
+    // 3. An agent must be alive to pick the task up.
+    const agentCheck: AIFixReadinessCheck =
+      await CodeFixReadiness.getAgentCheck({
+        projectId,
+      });
 
     const checks: Array<AIFixReadinessCheck> = [
       llmCheck,
@@ -387,8 +314,10 @@ export class Service extends DatabaseService<Model> {
           taskType === CodeFixTaskType.FixException
             ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
             : taskType,
+        // Every terminal status — see AIRunStatusHelper.isTerminalStatus.
         status: QueryHelper.notIn([
           AIRunStatus.Completed,
+          AIRunStatus.NoFixFound,
           AIRunStatus.Error,
           AIRunStatus.Cancelled,
           AIRunStatus.Stale,

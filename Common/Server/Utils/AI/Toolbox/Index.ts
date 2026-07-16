@@ -16,12 +16,23 @@ import {
 import { QueryIncidentsTool, SearchIncidentsTool } from "./IncidentTools";
 import { QueryAlertsTool } from "./AlertTools";
 import { QueryMonitorsTool } from "./MonitorTools";
+import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
 import { RecentChangesTool } from "./RecentChangesTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
 import { LookupContextTool } from "./ContextTools";
+import {
+  FindCodeForExceptionTool,
+  ListCodeRepositoriesTool,
+  ReadCodeFileTool,
+  SearchCodeTool,
+} from "./CodeTools";
+import {
+  CommitCodeToBranchTool,
+  OpenCodePullRequestTool,
+} from "./CodeWriteTools";
 import {
   AcknowledgeIncidentTool,
   CreateIncidentTool,
@@ -63,6 +74,7 @@ export default class AIToolbox {
     SearchIncidentsTool,
     QueryAlertsTool,
     QueryMonitorsTool,
+    QueryScheduledMaintenanceTool,
     TopExceptionsTool,
     SearchLogsTool,
     LogHistogramTool,
@@ -71,6 +83,14 @@ export default class AIToolbox {
     QueryTracesTool,
     GetTraceTool,
     RecentChangesTool,
+    /*
+     * Source code (read-only). Closes the loop from a telemetry signal to the
+     * code that produced it — see CodeTools for the narrower trust posture.
+     */
+    ListCodeRepositoriesTool,
+    FindCodeForExceptionTool,
+    SearchCodeTool,
+    ReadCodeFileTool,
     // Write tools (mutations). Gated by conversation permission mode.
     CreateIncidentTool,
     AcknowledgeIncidentTool,
@@ -82,6 +102,13 @@ export default class AIToolbox {
     RunRunbookTool,
     PostIncidentStatusUpdateTool,
     ChangeIncidentSeverityTool,
+    /*
+     * Code writes (mutations). These never touch the default or a protected
+     * branch — every chat-authored commit lands somewhere a human must still
+     * merge from. See CodeWriteTools for why that invariant is load-bearing.
+     */
+    OpenCodePullRequestTool,
+    CommitCodeToBranchTool,
   ];
 
   public static getTools(): Array<ObservabilityTool> {

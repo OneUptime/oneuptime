@@ -21,7 +21,10 @@ import { JSONObject } from "../../Types/JSON";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
-import { AIRunEventResultSummary } from "../../Types/AI/AIChatTypes";
+import {
+  AIRunEventContentPayload,
+  AIRunEventResultSummary,
+} from "../../Types/AI/AIChatTypes";
 
 /*
  * One event in an AI run: an LLM call, a tool call with its validated
@@ -363,6 +366,36 @@ export default class AIRunEvent extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public citationId?: string = undefined;
+
+  /*
+   * The verbatim LLM/tool content behind this event (see
+   * AIRunEventContentPayload). Server-only — the read ACL is empty, like
+   * AIRun.pausedState and AIRun.taskContext, and for the same reason: a
+   * code-fix run's prompts embed customer source code, whose reach is
+   * narrower than this table's project-member read. LlmLog redacts the same
+   * content for exactly this reason and continues to.
+   *
+   * Reachable only through GET /code-fix-run/logs, which gates on
+   * ProjectOwner/ProjectAdmin. Never widen this ACL — doing so would publish
+   * customer source code to every project member through the CRUD API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Content Payload",
+    description:
+      "Internal: the verbatim LLM prompt/response and tool output behind this event.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public contentPayload?: AIRunEventContentPayload = undefined;
 
   @ColumnAccessControl({
     create: [],

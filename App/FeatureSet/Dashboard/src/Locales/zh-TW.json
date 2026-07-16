@@ -5972,5 +5972,9 @@
   "No topology discovered yet": "尚未發現拓撲",
   "As telemetry carrying multiple entities (e.g. a service running in a k8s pod on a node) is ingested, the inferred relationships — runs-on, member-of, hosted-on, part-of — will appear here as a graph.": "當擷取包含多個實體的遙測資料（例如在節點上的 k8s Pod 中執行的服務）時，推斷出的關係 — runs-on、member-of、hosted-on、part-of — 將以圖的形式顯示在此處。",
   "No entities match your filters": "沒有符合您篩選器的實體",
-  "Adjust the search text or re-enable entity types to see the graph.": "調整搜尋文字或重新啟用實體類型以查看圖。"
+  "Adjust the search text or re-enable entity types to see the graph.": "調整搜尋文字或重新啟用實體類型以查看圖。",
+  "MCP Server": "MCP 伺服器",
+  "Enable MCP Server": "啟用 MCP 伺服器",
+  "Control whether AI agents can read this status page over the OneUptime MCP server": "控制 AI 代理是否可以透過 OneUptime MCP 伺服器讀取此狀態頁面",
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "啟用後，AI 代理可以透過公用 OneUptime MCP 伺服器讀取此狀態頁面。關閉此選項不會隱藏狀態頁面網站、其 RSS 摘要或其公用 JSON API。"
 }

@@ -116,9 +116,9 @@ Microsoft Entra ID er Microsofts skybaserede identitets- og adgangsstyringstjene
 2. Naviger til **Projektindstillinger** > **Autentificering** > **SSO**
 3. Klik på **Opret SSO** og udfyld følgende:
    - **Navn**: Et beskrivende navn (f.eks. `Azure AD SAML`)
-   - **Sign On URL**: Du henter dette fra Entra ID i [Trin 3](#trin-3-kopier-entra-id-saml-metadata-til-oneuptime)
-   - **Udsteder**: Du henter dette fra Entra ID i [Trin 3](#trin-3-kopier-entra-id-saml-metadata-til-oneuptime)
-   - **Certifikat**: Du henter dette fra Entra ID i [Trin 3](#trin-3-kopier-entra-id-saml-metadata-til-oneuptime)
+   - **Sign On URL**: Du henter dette fra Entra ID i [Trin 3](#trin-3-konfigurer-saml-sso-i-entra-id)
+   - **Udsteder**: Du henter dette fra Entra ID i [Trin 3](#trin-3-konfigurer-saml-sso-i-entra-id)
+   - **Certifikat**: Du henter dette fra Entra ID i [Trin 3](#trin-3-konfigurer-saml-sso-i-entra-id)
    - **Signaturalgoritme**: `RSA-SHA-256`
    - **Digest-algoritme**: `SHA256`
 4. Klik på **Vis SSO-konfiguration** og kopiér **Identifikator (Entity ID)** og **Svar-URL (Assertion Consumer Service URL)** – du skal bruge disse til Entra ID
@@ -201,9 +201,9 @@ Okta er en bredt anvendt identitetsplatform, der leverer robuste SAML SSO-kapaci
 2. Naviger til **Projektindstillinger** > **Autentificering** > **SSO**
 3. Klik på **Opret SSO** og udfyld følgende:
    - **Navn**: Et beskrivende navn (f.eks. `Okta SAML`)
-   - **Sign On URL**: Du henter dette fra Okta i [Trin 3](#trin-3-kopier-okta-saml-metadata-til-oneuptime)
-   - **Udsteder**: Du henter dette fra Okta i [Trin 3](#trin-3-kopier-okta-saml-metadata-til-oneuptime)
-   - **Certifikat**: Du henter dette fra Okta i [Trin 3](#trin-3-kopier-okta-saml-metadata-til-oneuptime)
+   - **Sign On URL**: Du henter dette fra Okta i [Trin 3](#trin-3-kopiér-okta-saml-metadata-til-oneuptime)
+   - **Udsteder**: Du henter dette fra Okta i [Trin 3](#trin-3-kopiér-okta-saml-metadata-til-oneuptime)
+   - **Certifikat**: Du henter dette fra Okta i [Trin 3](#trin-3-kopiér-okta-saml-metadata-til-oneuptime)
    - **Signaturalgoritme**: `RSA-SHA-256`
    - **Digest-algoritme**: `SHA256`
 4. Klik på **Vis SSO-konfiguration** og kopiér **Identifikator (Entity ID)** og **Svar-URL (Assertion Consumer Service URL)** – du skal bruge disse til Okta

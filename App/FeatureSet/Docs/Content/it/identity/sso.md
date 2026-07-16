@@ -116,9 +116,9 @@ Microsoft Entra ID è il servizio di gestione delle identità e degli accessi cl
 2. Naviga su **Impostazioni Progetto** > **Autenticazione** > **SSO**
 3. Clicca su **Crea SSO** e compila quanto segue:
    - **Nome**: Un nome descrittivo (es. `Azure AD SAML`)
-   - **Sign On URL**: Lo otterrai da Entra ID nel [Passo 3](#passo-3-copia-i-metadati-saml-di-entra-id-in-oneuptime)
-   - **Issuer**: Lo otterrai da Entra ID nel [Passo 3](#passo-3-copia-i-metadati-saml-di-entra-id-in-oneuptime)
-   - **Certificato**: Lo otterrai da Entra ID nel [Passo 3](#passo-3-copia-i-metadati-saml-di-entra-id-in-oneuptime)
+   - **Sign On URL**: Lo otterrai da Entra ID nel [Passo 3](#passo-3-configura-sso-saml-in-entra-id)
+   - **Issuer**: Lo otterrai da Entra ID nel [Passo 3](#passo-3-configura-sso-saml-in-entra-id)
+   - **Certificato**: Lo otterrai da Entra ID nel [Passo 3](#passo-3-configura-sso-saml-in-entra-id)
    - **Algoritmo di Firma**: `RSA-SHA-256`
    - **Algoritmo Digest**: `SHA256`
 4. Clicca su **Visualizza Config SSO** e copia l'**Identifier (Entity ID)** e il **Reply URL (Assertion Consumer Service URL)** — ne avrai bisogno per Entra ID

@@ -4,7 +4,9 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import MonitorType from "../../../Types/Monitor/MonitorType";
-import SnmpVersion from "../../../Types/Monitor/SnmpMonitor/SnmpVersion";
+import SnmpVersion, {
+  SnmpVersionUtil,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "../../../Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
@@ -162,16 +164,7 @@ export default class NetworkDeviceHydrationUtil {
 
   // Tolerates both enum values ("2c") and enum keys ("V2c") in stored config.
   private static parseSnmpVersion(value: string | undefined): SnmpVersion {
-    switch ((value || "").toLowerCase()) {
-      case "1":
-      case "v1":
-        return SnmpVersion.V1;
-      case "3":
-      case "v3":
-        return SnmpVersion.V3;
-      default:
-        return SnmpVersion.V2c;
-    }
+    return SnmpVersionUtil.parse(value);
   }
 
   /*

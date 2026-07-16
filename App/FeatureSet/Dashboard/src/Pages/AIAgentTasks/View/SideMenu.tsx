@@ -13,10 +13,8 @@ export interface ComponentProps {
 }
 
 /*
- * No Logs item: runs record typed AIRunEvents, rendered in the Overview's
- * activity feed (the legacy AIAgentTaskLog table is gone).
- * No Delete item either: runs are system-managed audit records (the AIRun
- * model permits no user deletes).
+ * No Delete item: runs are system-managed audit records (the AIRun model
+ * permits no user deletes).
  */
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -33,6 +31,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Info}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.AI_AGENT_TASK_VIEW_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
         <SideMenuItem
           link={{

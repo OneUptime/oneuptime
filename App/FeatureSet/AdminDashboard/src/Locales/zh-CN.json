@@ -63,6 +63,8 @@
   },
   "userProfile": {
     "exitAdmin": "退出管理员",
+    "darkTheme": "深色主题",
+    "lightTheme": "浅色主题",
     "logOut": "注销"
   },
   "footer": {

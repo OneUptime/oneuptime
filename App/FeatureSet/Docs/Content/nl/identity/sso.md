@@ -116,9 +116,9 @@ Microsoft Entra ID is de cloudgebaseerde identiteits- en toegangsbeheerservice v
 2. Navigeer naar **Projectinstellingen** > **Authenticatie** > **SSO**
 3. Klik op **SSO aanmaken** en vul het volgende in:
    - **Naam**: Een beschrijvende naam (bijv. `Azure AD SAML`)
-   - **Sign On URL**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-entra-id-saml-metagegevens-kopiëren-naar-oneuptime)
-   - **Issuer**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-entra-id-saml-metagegevens-kopiëren-naar-oneuptime)
-   - **Certificaat**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-entra-id-saml-metagegevens-kopiëren-naar-oneuptime)
+   - **Sign On URL**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
+   - **Issuer**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
+   - **Certificaat**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
    - **Handtekeningalgoritme**: `RSA-SHA-256`
    - **Digestalgoritme**: `SHA256`
 4. Klik op **SSO-configuratie bekijken** en kopieer de **Identifier (Entiteit-ID)** en **Reply URL (Assertion Consumer Service URL)** — u heeft deze nodig voor Entra ID

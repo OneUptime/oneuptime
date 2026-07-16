@@ -1,6 +1,6 @@
 {
   "name": "mobileapp",
-  "version": "11.5.8",
+  "version": "11.5.9",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
@@ -30,7 +30,7 @@
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-query-persist-client": "^5.90.22",
     "axios": "^1.13.5",
-    "expo": "~54.0.33",
+    "expo": "~54.0.36",
     "expo-constants": "~18.0.0",
     "expo-device": "~8.0.10",
     "expo-font": "~14.0.11",

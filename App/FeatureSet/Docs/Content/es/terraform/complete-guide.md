@@ -4,14 +4,14 @@ El Proveedor Terraform de OneUptime te permite gestionar recursos de OneUptime u
 
 ## Tabla de contenidos
 
-- [Instalación](#installation)
-- [Configuración del proveedor](#provider-configuration)
-- [Inicio rápido](#quick-start)
-- [Compatibilidad de versiones](#version-compatibility)
-- [Recursos disponibles](#available-resources)
-- [Ejemplos](#examples)
-- [Buenas prácticas](#best-practices)
-- [Guía de migración](#migration-guide)
+- [Instalación](#instalación)
+- [Configuración del proveedor](#configuración-del-proveedor)
+- [Inicio rápido](#inicio-rápido)
+- [Compatibilidad de versiones](#compatibilidad-de-versiones)
+- [Recursos disponibles](#recursos-disponibles)
+- [Ejemplos](#ejemplos)
+- [Buenas prácticas](#buenas-prácticas)
+- [Guía de migración](#guía-de-migración)
 
 ## Instalación
 
@@ -302,6 +302,87 @@ resource "oneuptime_monitor" "api" {
     interval = "1m"
     timeout = "30s"
   })
+  }
+}
+
+resource "oneuptime_monitor" "database" {
+  name       = "Conexión de base de datos"
+  project_id = oneuptime_project.production.id
+
+  monitor_type = "port"
+  hostname     = "db.mycompany.com"
+  port         = 5432
+  interval     = "2m"
+
+  tags = {
+    service     = "database"
+    environment = "production"
+    criticality = "critical"
+  }
+}
+
+# Política de guardia
+resource "oneuptime_on_call_policy" "platform_oncall" {
+  name       = "Guardia de plataforma"
+  project_id = oneuptime_project.production.id
+  team_id    = oneuptime_team.platform.id
+
+  schedules {
+    name      = "Horario laboral"
+    timezone  = "America/New_York"
+
+    layers {
+      name = "Principal"
+      users = ["user1@mycompany.com", "user2@mycompany.com"]
+      rotation_type = "weekly"
+      start_time = "09:00"
+      end_time = "17:00"
+      days = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+    }
+  }
+}
+
+# Política de alertas
+resource "oneuptime_alert_policy" "critical_alerts" {
+  name       = "Alertas críticas del sistema"
+  project_id = oneuptime_project.production.id
+
+  conditions {
+    monitor_id = oneuptime_monitor.api.id
+    threshold  = "down"
+  }
+
+  conditions {
+    monitor_id = oneuptime_monitor.database.id
+    threshold  = "down"
+  }
+
+  actions {
+    type = "webhook"
+    url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  }
+
+  actions {
+    type           = "oncall_escalation"
+    oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
+  }
+}
+
+# Página de estado
+resource "oneuptime_status_page" "public" {
+  name       = "Estado de MyCompany"
+  project_id = oneuptime_project.production.id
+
+  domain = "status.mycompany.com"
+
+  components {
+    name       = "API"
+    monitor_id = oneuptime_monitor.api.id
+  }
+
+  components {
+    name       = "Base de datos"
+    monitor_id = oneuptime_monitor.database.id
   }
 }
 ```

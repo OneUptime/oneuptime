@@ -6,12 +6,19 @@ import {
   TranslateFn,
 } from "./I18n";
 import { ExpressRequest } from "Common/Server/Utils/Express";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 export interface ReferenceRenderContext {
   lang: string;
   t: TranslateFn;
   supportedLanguages: typeof SUPPORTED_DOCS_LANGUAGES;
   currentPath: string;
+  /*
+   * Master admin APIs only exist for operators who run their own instance, so
+   * the page and its nav links are hidden on the billing-enabled (SaaS) build —
+   * the same rule Resources.ts applies to master-admin model docs.
+   */
+  showMasterAdminApis: boolean;
 }
 
 /*
@@ -30,5 +37,6 @@ export function buildRenderContext(
     t: makeT(lang),
     supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
     currentPath: req.originalUrl,
+    showMasterAdminApis: !IsBillingEnabled,
   };
 }

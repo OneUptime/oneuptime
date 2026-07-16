@@ -19,6 +19,16 @@ interface LogEntry {
   severity: LogSeverity;
   message: string;
   timestamp: Date;
+  /*
+   * Optional verbatim tool detail. The message is the one-line narration
+   * ("read src/Index.ts"); this is the full arguments and output behind it,
+   * which the server stores on the run's transcript (AIRunEvent.contentPayload)
+   * for the Logs page. Server-side ACLs decide who may read it back — see
+   * AIRunEventContentPayload.
+   */
+  toolName?: string | undefined;
+  toolArguments?: JSONObject | undefined;
+  toolResult?: string | undefined;
 }
 
 export default class TaskLogger {
@@ -76,11 +86,26 @@ export default class TaskLogger {
     return `[${timestampStr}] [${severityStr}] ${contextStr}${message}`;
   }
 
-  private addToBuffer(severity: LogSeverity, message: string): void {
+  private addToBuffer(
+    severity: LogSeverity,
+    message: string,
+    toolDetail?: {
+      toolName: string;
+      toolArguments?: JSONObject | undefined;
+      toolResult?: string | undefined;
+    },
+  ): void {
     const entry: LogEntry = {
       severity,
       message,
       timestamp: OneUptimeDate.getCurrentDate(),
+      ...(toolDetail
+        ? {
+            toolName: toolDetail.toolName,
+            toolArguments: toolDetail.toolArguments,
+            toolResult: toolDetail.toolResult,
+          }
+        : {}),
     };
 
     this.logBuffer.push(entry);
@@ -98,18 +123,22 @@ export default class TaskLogger {
     }
   }
 
-  private async sendLogToServer(
-    severity: LogSeverity,
-    message: string,
-  ): Promise<boolean> {
+  private async sendLogToServer(entry: LogEntry): Promise<boolean> {
     try {
       const result: HTTPResponse<JSONObject> = await API.post({
         url: this.getCreateLogUrl(),
         data: {
           ...AIAgentAPIRequest.getDefaultRequestBody(),
           taskId: this.taskId,
-          severity: severity,
-          message: message,
+          severity: entry.severity,
+          message: entry.message,
+          ...(entry.toolName ? { toolName: entry.toolName } : {}),
+          ...(entry.toolArguments
+            ? { toolArguments: entry.toolArguments }
+            : {}),
+          ...(entry.toolResult !== undefined
+            ? { toolResult: entry.toolResult }
+            : {}),
         },
       });
 
@@ -149,6 +178,25 @@ export default class TaskLogger {
     this.addToBuffer(LogSeverity.Trace, message);
   }
 
+  /*
+   * Narrate one tool call AND ship the verbatim detail behind it: the
+   * arguments as executed and the full output the model saw. The one-line
+   * message is what the activity feed renders; the detail is what the Logs
+   * page shows when you need to know why the model did what it did next.
+   */
+  public async toolCall(data: {
+    toolName: string;
+    message: string;
+    toolArguments?: JSONObject | undefined;
+    toolResult?: string | undefined;
+  }): Promise<void> {
+    this.addToBuffer(LogSeverity.Information, data.message, {
+      toolName: data.toolName,
+      toolArguments: data.toolArguments,
+      toolResult: data.toolResult,
+    });
+  }
+
   // Log output from external processes (e.g. the code agent's tool runs)
   public async logProcessOutput(
     processName: string,
@@ -185,12 +233,14 @@ export default class TaskLogger {
 
     // Send each log entry separately to preserve individual log lines
     for (const entry of entries) {
-      const formattedMessage: string = this.formatMessage(
-        entry.severity,
-        entry.message,
-        entry.timestamp,
-      );
-      await this.sendLogToServer(entry.severity, formattedMessage);
+      await this.sendLogToServer({
+        ...entry,
+        message: this.formatMessage(
+          entry.severity,
+          entry.message,
+          entry.timestamp,
+        ),
+      });
     }
   }
 

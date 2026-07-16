@@ -20,10 +20,26 @@ export interface ComponentProps {
 
 function providerLabel(provider: ChatProvider): string {
   /*
-   * Lead with the provider's friendly name; the concrete model is shown as a
+   * Lead with the provider's friendly name; its description is shown as a
    * secondary detail so the provider stays the prominent identity.
    */
   return provider.name || provider.modelName || "Provider";
+}
+
+/*
+ * Descriptions are free text and are often just a restatement of the name.
+ * Suppress those so the label does not read "OneUptime AI OneUptime AI".
+ */
+function providerDescription(provider: ChatProvider): string | null {
+  if (!provider.description) {
+    return null;
+  }
+
+  if (provider.description.trim() === providerLabel(provider).trim()) {
+    return null;
+  }
+
+  return provider.description;
 }
 
 /*
@@ -74,6 +90,10 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
     ? providerLabel(selected)
     : "Default provider";
 
+  const triggerDescription: string | null = selected
+    ? providerDescription(selected)
+    : null;
+
   return (
     <div className="relative" ref={containerRef}>
       <button
@@ -95,9 +115,9 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
         />
         <span className="truncate">
           <span className="font-semibold text-gray-800">{triggerLabel}</span>
-          {selected?.modelName && selected.modelName !== selected.name ? (
+          {triggerDescription ? (
             <span className="ml-1 font-normal text-gray-400">
-              {selected.modelName}
+              {triggerDescription}
             </span>
           ) : null}
         </span>
@@ -124,6 +144,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
             {props.providers.map((provider: ChatProvider) => {
               const isSelected: boolean =
                 provider.id === props.selectedProviderId;
+              const description: string | null = providerDescription(provider);
               return (
                 <button
                   key={provider.id}
@@ -163,11 +184,11 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
                         </span>
                       )}
                     </div>
-                    <div className="mt-0.5 truncate text-[11px] text-gray-400">
-                      {[provider.modelName, provider.llmType]
-                        .filter(Boolean)
-                        .join(" · ") || "Model"}
-                    </div>
+                    {description ? (
+                      <div className="mt-0.5 truncate text-[11px] text-gray-400">
+                        {description}
+                      </div>
+                    ) : null}
                   </div>
                 </button>
               );

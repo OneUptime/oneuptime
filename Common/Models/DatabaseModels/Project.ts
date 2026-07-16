@@ -832,6 +832,31 @@ export default class Project extends TenantModel {
   })
   public incidentEpisodeCounter?: number = undefined;
 
+  /*
+   * Numbers AI code-fix tasks only. Chat and investigation runs share the
+   * AIRun table but are not tasks, so they never draw from this counter —
+   * see AIRunService.onBeforeCreate.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    isDefaultValueColumn: true,
+    required: true,
+    hideColumnInDocumentation: true,
+    computed: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 0,
+  })
+  public aiRunCounter?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

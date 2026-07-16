@@ -117,6 +117,32 @@ const timeAgo: (value: unknown) => string = (value: unknown): string => {
   return `${formatDuration((Date.now() - time) / 1000)} ago`;
 };
 
+/*
+ * A table's share of the whole database, for the largest-tables list. Returns an
+ * empty string when the database size is missing or zero, so callers can render
+ * nothing rather than a misleading 0%.
+ */
+const formatShareOfDatabase: (
+  sizeInBytes: unknown,
+  databaseSizeInBytes: number,
+) => string = (sizeInBytes: unknown, databaseSizeInBytes: number): string => {
+  if (databaseSizeInBytes <= 0 || !isNum(sizeInBytes)) {
+    return "";
+  }
+
+  const percent: number = (toNum(sizeInBytes) / databaseSizeInBytes) * 100;
+
+  if (percent <= 0) {
+    return "";
+  }
+
+  if (percent < 0.1) {
+    return "<0.1% of database";
+  }
+
+  return `${percent.toFixed(1)}% of database`;
+};
+
 const PostgresCluster: FunctionComponent = (): ReactElement => {
   const [data, setData] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
@@ -548,34 +574,139 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     );
   };
 
-  return (
-    <Card
-      title="PostgreSQL cluster"
-      description="Replication lag, slots, connection saturation, locks and transaction-ID wraparound — the signals behind a failed failover or a stalled primary."
-      buttons={[
-        {
-          title: "Refresh",
-          icon: IconProp.Refresh,
-          buttonStyle: ButtonStyleType.NORMAL,
-          isLoading: isRefreshing,
-          onClick: () => {
-            setIsRefreshing(true);
-            loadClusterHealth().catch(() => {
-              // handled via setError
-            });
-          },
-        },
-      ]}
-    >
-      <div>
-        {error ? (
-          <Alert type={AlertType.DANGER} title={error} className="mb-4" />
-        ) : (
-          <></>
-        )}
-        {renderContent()}
+  /*
+   * Largest tables by total relation size. Mirrors renderContent()'s early
+   * returns so this card never shows a broken table while the first load is in
+   * flight or when Postgres is unreachable.
+   */
+  const renderLargestTables: () => ReactElement = (): ReactElement => {
+    if (isInitialLoading && !data) {
+      return <ComponentLoader />;
+    }
+
+    const connected: boolean = Boolean(data?.["connected"]);
+    if (!connected) {
+      return (
+        <div className="text-sm text-gray-500">
+          PostgreSQL is not reachable from this instance.
+        </div>
+      );
+    }
+
+    const tablesBySize: JSONArray = asArray(data?.["topTablesBySize"]);
+
+    if (tablesBySize.length === 0) {
+      return (
+        <div className="text-sm text-gray-500">
+          No table sizes were reported.
+        </div>
+      );
+    }
+
+    const databaseSizeInBytes: number = toNum(data?.["databaseSizeInBytes"]);
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="pb-2 pr-4">Table</th>
+              <th className="pb-2 px-4 text-right">Total</th>
+              <th className="pb-2 px-4 text-right">Heap</th>
+              <th className="pb-2 px-4 text-right">Indexes</th>
+              <th className="pb-2 px-4 text-right">Toast</th>
+              <th className="pb-2 px-4 text-right">Live rows</th>
+              <th className="pb-2 pl-4 text-right">Dead rows</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {tablesBySize
+              .slice(0, MAX_ROWS_TO_SHOW)
+              .map((value: unknown, index: number): ReactElement => {
+                const table: JSONObject = asObject(value);
+                const share: string = formatShareOfDatabase(
+                  table["totalSizeInBytes"],
+                  databaseSizeInBytes,
+                );
+
+                return (
+                  <tr key={`postgres-table-by-size-${index}`}>
+                    <td className="py-2 pr-4">
+                      <div className="text-sm text-gray-900 font-mono whitespace-nowrap">
+                        {String(table["name"] || "—")}
+                      </div>
+                      {share ? (
+                        <div className="text-xs text-gray-500 whitespace-nowrap">
+                          {share}
+                        </div>
+                      ) : (
+                        <></>
+                      )}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-900 tabular-nums whitespace-nowrap">
+                      {bytesToReadable(table["totalSizeInBytes"])}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
+                      {bytesToReadable(table["tableSizeInBytes"])}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
+                      {bytesToReadable(table["indexSizeInBytes"])}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
+                      {bytesToReadable(table["toastSizeInBytes"])}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
+                      {formatNumber(table["liveTuples"])}
+                    </td>
+                    <td className="py-2 pl-4 text-sm text-right text-gray-700 tabular-nums">
+                      {formatNumber(table["deadTuples"])}
+                    </td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
       </div>
-    </Card>
+    );
+  };
+
+  return (
+    <>
+      <Card
+        title="PostgreSQL cluster"
+        description="Replication lag, slots, connection saturation, locks and transaction-ID wraparound — the signals behind a failed failover or a stalled primary."
+        buttons={[
+          {
+            title: "Refresh",
+            icon: IconProp.Refresh,
+            buttonStyle: ButtonStyleType.NORMAL,
+            isLoading: isRefreshing,
+            onClick: () => {
+              setIsRefreshing(true);
+              loadClusterHealth().catch(() => {
+                // handled via setError
+              });
+            },
+          },
+        ]}
+      >
+        <div>
+          {error ? (
+            <Alert type={AlertType.DANGER} title={error} className="mb-4" />
+          ) : (
+            <></>
+          )}
+          {renderContent()}
+        </div>
+      </Card>
+
+      <Card
+        title="Largest tables"
+        description="Total splits into heap, indexes and toast, so the biggest table is not always the biggest win — an index-heavy, toast-heavy or dead-tuple-heavy table each want a different fix."
+      >
+        {renderLargestTables()}
+      </Card>
+    </>
   );
 };
 

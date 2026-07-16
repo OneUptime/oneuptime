@@ -1,4 +1,5 @@
 import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
+import AIService from "../../../Server/Services/AIService";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ServiceService from "../../../Server/Services/ServiceService";
@@ -79,6 +80,17 @@ function mockReadinessOk(): void {
     name: "agent",
     connectionStatus: AIAgentConnectionStatus.Connected,
   } as unknown as AIAgent);
+  /*
+   * The llmProvider check also gates on the daily autonomous token budget
+   * (AI_CODE_FIX_FEATURE is autonomous, so executeWithLogging enforces it).
+   * Default it to unset — this suite is about the duplicate guard, and the
+   * budget has its own suite (AIServiceDailyBudget.test.ts).
+   */
+  jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockResolvedValue({
+    exhausted: false,
+    limitInTokens: null,
+    usedTokensToday: 0,
+  });
 }
 
 describe("TelemetryExceptionService.createCodeFixRunForException", () => {

@@ -14,7 +14,12 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import {
+  ErrorFunction,
+  PromiseVoidFunction,
+  VoidFunction,
+} from "Common/Types/FunctionTypes";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -28,107 +33,32 @@ import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
+import Route from "Common/Types/API/Route";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import FilterChipDropdown, {
+  FilterChipDropdownOption,
+} from "../../../Components/ResourceOwners/FilterChipDropdown";
+import {
+  WINDOWS_SERVICE_METRIC_NAME,
+  SERVICE_NAME_ATTR,
+  SERVICE_STARTUP_MODE_ATTR,
+  ServiceStatusMeta,
+  statusMeta,
+  startupModeLabel,
+  encodeServiceNameForUrl,
+} from "../Utils/WindowsServices";
 
 interface ServiceRow {
   key: string;
   name: string;
   statusCode: number | null;
+  statusLabel: string;
   startupMode: string | null;
+  startupLabel: string;
 }
-
-/*
- * The OTel `windowsservicereceiver` emits one `windows.service.status`
- * gauge per Windows service, with the service identity attached to the
- * *datapoint* (not the resource). OneUptime's metric ingest prefixes only
- * resource attributes with `resource.`, so the host identity lands as
- * `resource.host.name` (matching the Processes page) while the datapoint
- * attributes `name` and `startup_mode` are stored unprefixed.
- */
-const METRIC_NAME: string = "windows.service.status";
-const SERVICE_NAME_ATTR: string = "name";
-const SERVICE_STARTUP_MODE_ATTR: string = "startup_mode";
-
-/*
- * The receiver records the raw Win32 Service Control Manager state
- * (SERVICE_STATUS.dwCurrentState, 1–7) as the gauge value. Map it to the
- * labels Windows' own Services console uses.
- */
-const statusMeta: (code: number | null) => {
-  label: string;
-  dot: string;
-  pill: string;
-} = (code: number | null): { label: string; dot: string; pill: string } => {
-  switch (code) {
-    case 4: // SERVICE_RUNNING
-      return {
-        label: "Running",
-        dot: "bg-green-500",
-        pill: "bg-green-50 text-green-700 ring-green-600/20",
-      };
-    case 1: // SERVICE_STOPPED
-      return {
-        label: "Stopped",
-        dot: "bg-gray-400",
-        pill: "bg-gray-50 text-gray-600 ring-gray-500/20",
-      };
-    case 7: // SERVICE_PAUSED
-      return {
-        label: "Paused",
-        dot: "bg-amber-500",
-        pill: "bg-amber-50 text-amber-700 ring-amber-600/20",
-      };
-    case 2: // SERVICE_START_PENDING
-      return {
-        label: "Start pending",
-        dot: "bg-blue-500",
-        pill: "bg-blue-50 text-blue-700 ring-blue-600/20",
-      };
-    case 3: // SERVICE_STOP_PENDING
-      return {
-        label: "Stop pending",
-        dot: "bg-blue-500",
-        pill: "bg-blue-50 text-blue-700 ring-blue-600/20",
-      };
-    case 5: // SERVICE_CONTINUE_PENDING
-      return {
-        label: "Continue pending",
-        dot: "bg-blue-500",
-        pill: "bg-blue-50 text-blue-700 ring-blue-600/20",
-      };
-    case 6: // SERVICE_PAUSE_PENDING
-      return {
-        label: "Pause pending",
-        dot: "bg-blue-500",
-        pill: "bg-blue-50 text-blue-700 ring-blue-600/20",
-      };
-    default:
-      return {
-        label: code === null ? "Unknown" : `Status ${code}`,
-        dot: "bg-gray-300",
-        pill: "bg-gray-50 text-gray-500 ring-gray-500/20",
-      };
-  }
-};
-
-// The receiver emits the SCM startup mode; surface the Services-console wording.
-const startupModeLabel: (mode: string | null) => string = (
-  mode: string | null,
-): string => {
-  switch (mode) {
-    case "auto_start":
-      return "Automatic";
-    case "demand_start":
-      return "Manual";
-    case "disabled":
-      return "Disabled";
-    case "boot_start":
-      return "Boot";
-    case "system_start":
-      return "System";
-    default:
-      return mode || "—";
-  }
-};
 
 /*
  * Like processes, service status is a point-in-time sample re-emitted on
@@ -137,6 +67,8 @@ const startupModeLabel: (mode: string | null) => string = (
  * from services that were removed a while ago. Refresh re-queries.
  */
 const SERVICE_LOOKBACK_MINUTES: number = 15;
+
+const PAGE_SIZE: number = 25;
 
 const HostServices: FunctionComponent<
   PageComponentProps
@@ -149,6 +81,13 @@ const HostServices: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [latestSampleAt, setLatestSampleAt] = useState<Date | null>(null);
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
+
+  const [searchText, setSearchText] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<Array<string>>([]);
+  const [startupFilter, setStartupFilter] = useState<Array<string>>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [sortBy, setSortBy] = useState<keyof ServiceRow | null>("name");
+  const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -184,7 +123,7 @@ const HostServices: FunctionComponent<
         modelType: Metric,
         query: {
           projectId: projectId,
-          name: METRIC_NAME,
+          name: WINDOWS_SERVICE_METRIC_NAME,
           time: new InBetween<Date>(startDate, endDate),
           attributes: {
             "resource.host.name": item.hostIdentifier,
@@ -235,25 +174,20 @@ const HostServices: FunctionComponent<
 
         const statusCode: number | null =
           m.value === undefined || m.value === null ? null : Number(m.value);
+        const startupMode: string | null =
+          (attrs[SERVICE_STARTUP_MODE_ATTR] as string | undefined) || null;
 
         byKey.set(name, {
           key: name,
           name,
           statusCode,
-          startupMode:
-            (attrs[SERVICE_STARTUP_MODE_ATTR] as string | undefined) || null,
+          statusLabel: statusMeta(statusCode).label,
+          startupMode,
+          startupLabel: startupModeLabel(startupMode),
         });
       }
 
-      const sorted: Array<ServiceRow> = Array.from(byKey.values()).sort(
-        (a: ServiceRow, b: ServiceRow) => {
-          return a.name.localeCompare(b.name, undefined, {
-            sensitivity: "base",
-          });
-        },
-      );
-
-      setRows(sorted);
+      setRows(Array.from(byKey.values()));
       setLatestSampleAt(newestSample);
       setRefreshedAt(OneUptimeDate.getCurrentDate());
     } catch (err) {
@@ -268,18 +202,173 @@ const HostServices: FunctionComponent<
     });
   }, []);
 
+  const serviceViewRouteFor: (row: ServiceRow) => Route | null = (
+    row: ServiceRow,
+  ): Route | null => {
+    /*
+     * Browsers resolve "." and ".." path segments (even percent-encoded)
+     * before the router sees them, so a service with one of those names
+     * would silently navigate to the wrong page. Leave such rows unlinked.
+     */
+    if (row.name === "." || row.name === "..") {
+      return null;
+    }
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.HOST_VIEW_SERVICE_VIEW] as Route,
+      {
+        modelId: modelId,
+        subModelId: encodeServiceNameForUrl(row.name),
+      },
+    );
+  };
+
+  // Facet options are built from the data so they always reflect this host.
+  const statusOptions: Array<FilterChipDropdownOption> = useMemo(() => {
+    const counts: Map<string, { count: number; hex: string }> = new Map();
+    for (const row of rows) {
+      const existing: { count: number; hex: string } | undefined = counts.get(
+        row.statusLabel,
+      );
+      if (existing) {
+        existing.count++;
+      } else {
+        counts.set(row.statusLabel, {
+          count: 1,
+          hex: statusMeta(row.statusCode).hex,
+        });
+      }
+    }
+    return Array.from(counts.entries())
+      .sort(
+        (
+          a: [string, { count: number; hex: string }],
+          b: [string, { count: number; hex: string }],
+        ) => {
+          return a[0].localeCompare(b[0]);
+        },
+      )
+      .map(([label, info]: [string, { count: number; hex: string }]) => {
+        return {
+          value: label,
+          label: label,
+          sublabel: `${info.count} service${info.count === 1 ? "" : "s"}`,
+          color: info.hex,
+        };
+      });
+  }, [rows]);
+
+  const startupOptions: Array<FilterChipDropdownOption> = useMemo(() => {
+    const counts: Map<string, number> = new Map();
+    for (const row of rows) {
+      counts.set(row.startupLabel, (counts.get(row.startupLabel) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a: [string, number], b: [string, number]) => {
+        return a[0].localeCompare(b[0]);
+      })
+      .map(([label, count]: [string, number]) => {
+        return {
+          value: label,
+          label: label,
+          sublabel: `${count} service${count === 1 ? "" : "s"}`,
+        };
+      });
+  }, [rows]);
+
+  // Search + facet filters + sort, all client-side over the snapshot.
+  const processedData: Array<ServiceRow> = useMemo(() => {
+    let data: Array<ServiceRow> = [...rows];
+
+    const search: string = searchText.trim().toLowerCase();
+    if (search) {
+      data = data.filter((row: ServiceRow) => {
+        return row.name.toLowerCase().includes(search);
+      });
+    }
+
+    if (statusFilter.length > 0) {
+      data = data.filter((row: ServiceRow) => {
+        return statusFilter.includes(row.statusLabel);
+      });
+    }
+
+    if (startupFilter.length > 0) {
+      data = data.filter((row: ServiceRow) => {
+        return startupFilter.includes(row.startupLabel);
+      });
+    }
+
+    const sortKey: keyof ServiceRow = sortBy || "name";
+    data.sort((a: ServiceRow, b: ServiceRow) => {
+      const aVal: string =
+        sortKey === "statusCode"
+          ? a.statusLabel
+          : sortKey === "startupMode"
+            ? a.startupLabel
+            : a.name;
+      const bVal: string =
+        sortKey === "statusCode"
+          ? b.statusLabel
+          : sortKey === "startupMode"
+            ? b.startupLabel
+            : b.name;
+      const cmp: number = aVal.localeCompare(bVal, undefined, {
+        sensitivity: "base",
+      });
+      // Tie-break on name so ordering is stable within a status/startup group.
+      const withTieBreak: number =
+        cmp !== 0
+          ? cmp
+          : a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      return sortOrder === SortOrder.Descending ? -withTieBreak : withTieBreak;
+    });
+
+    return data;
+  }, [rows, searchText, statusFilter, startupFilter, sortBy, sortOrder]);
+
+  /*
+   * A refresh can shrink the data set (services age out of the 15-minute
+   * window), so clamp instead of trusting currentPage — otherwise the
+   * user is stranded on a page past the end, staring at an empty table.
+   */
+  const totalPages: number = Math.max(
+    1,
+    Math.ceil(processedData.length / PAGE_SIZE),
+  );
+  const effectivePage: number = Math.min(currentPage, totalPages);
+
+  const paginatedData: Array<ServiceRow> = useMemo(() => {
+    const start: number = (effectivePage - 1) * PAGE_SIZE;
+    return processedData.slice(start, start + PAGE_SIZE);
+  }, [processedData, effectivePage]);
+
+  const hasActiveFilters: boolean =
+    searchText.trim() !== "" ||
+    statusFilter.length > 0 ||
+    startupFilter.length > 0;
+
   const tableColumns: Array<Column<ServiceRow>> = useMemo(() => {
     return [
       {
         title: "Service",
         type: FieldType.Element,
         key: "name",
-        disableSort: true,
         getElement: (row: ServiceRow): ReactElement => {
+          const route: Route | null = serviceViewRouteFor(row);
+          if (!route) {
+            return (
+              <span className="text-sm font-medium text-gray-900 truncate">
+                {row.name}
+              </span>
+            );
+          }
           return (
-            <span className="text-sm font-medium text-gray-900 truncate">
+            <Link
+              to={route}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-900 truncate"
+            >
               {row.name}
-            </span>
+            </Link>
           );
         },
       },
@@ -287,13 +376,10 @@ const HostServices: FunctionComponent<
         title: "Startup",
         type: FieldType.Element,
         key: "startupMode",
-        disableSort: true,
         hideOnMobile: true,
         getElement: (row: ServiceRow): ReactElement => {
           return (
-            <span className="text-sm text-gray-600">
-              {startupModeLabel(row.startupMode)}
-            </span>
+            <span className="text-sm text-gray-600">{row.startupLabel}</span>
           );
         },
       },
@@ -301,11 +387,8 @@ const HostServices: FunctionComponent<
         title: "Status",
         type: FieldType.Element,
         key: "statusCode",
-        disableSort: true,
         getElement: (row: ServiceRow): ReactElement => {
-          const meta: { label: string; dot: string; pill: string } = statusMeta(
-            row.statusCode,
-          );
+          const meta: ServiceStatusMeta = statusMeta(row.statusCode);
           return (
             <span
               className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${meta.pill}`}
@@ -316,8 +399,39 @@ const HostServices: FunctionComponent<
           );
         },
       },
+      {
+        title: "",
+        type: FieldType.Actions,
+        key: null,
+        disableSort: true,
+      },
     ];
-  }, []);
+  }, [modelId]);
+
+  const actionButtons: Array<ActionButtonSchema<ServiceRow>> = [
+    {
+      title: "View",
+      buttonStyleType: ButtonStyleType.NORMAL,
+      isVisible: (row: ServiceRow): boolean => {
+        return serviceViewRouteFor(row) !== null;
+      },
+      onClick: (
+        row: ServiceRow,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): void => {
+        try {
+          const route: Route | null = serviceViewRouteFor(row);
+          if (route) {
+            Navigation.navigate(route);
+          }
+          onCompleteAction();
+        } catch (err) {
+          onError(err as Error);
+        }
+      },
+    },
+  ];
 
   const cardButtons: Array<CardButtonSchema> = [
     {
@@ -333,7 +447,7 @@ const HostServices: FunctionComponent<
 
   const description: ReactElement = (() => {
     const parts: Array<string> = [
-      `Windows services on this host (last ${SERVICE_LOOKBACK_MINUTES} minutes), sorted by name.`,
+      `Windows services on this host (last ${SERVICE_LOOKBACK_MINUTES} minutes).`,
     ];
     if (latestSampleAt) {
       parts.push(`Latest sample ${OneUptimeDate.fromNow(latestSampleAt)}.`);
@@ -343,6 +457,87 @@ const HostServices: FunctionComponent<
     }
     return <span>{parts.join(" ")}</span>;
   })();
+
+  const clearFilters: VoidFunction = (): void => {
+    setSearchText("");
+    setStatusFilter([]);
+    setStartupFilter([]);
+    setCurrentPage(1);
+  };
+
+  const toMultiSelectValue: (
+    value: string | Array<string> | null,
+  ) => Array<string> = (
+    value: string | Array<string> | null,
+  ): Array<string> => {
+    if (value === null) {
+      return [];
+    }
+    return Array.isArray(value) ? value : [value];
+  };
+
+  const filterBar: ReactElement = (
+    <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
+      <div className="relative w-full sm:w-64">
+        <Icon
+          icon={IconProp.Search}
+          className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+        />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            setSearchText(e.target.value);
+            setCurrentPage(1);
+          }}
+          placeholder="Search services..."
+          className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-7 pr-2 text-sm placeholder-gray-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+        />
+      </div>
+      <span
+        aria-hidden="true"
+        className="hidden h-5 w-px bg-gray-200 sm:inline-block"
+      />
+      <FilterChipDropdown
+        label="Status"
+        emptyIcon={IconProp.Bolt}
+        options={statusOptions}
+        isMultiSelect={true}
+        value={statusFilter}
+        supportedOperators={["is"]}
+        onChange={(value: string | Array<string> | null) => {
+          setStatusFilter(toMultiSelectValue(value));
+          setCurrentPage(1);
+        }}
+      />
+      <FilterChipDropdown
+        label="Startup"
+        emptyIcon={IconProp.Cog}
+        options={startupOptions}
+        isMultiSelect={true}
+        value={startupFilter}
+        supportedOperators={["is"]}
+        onChange={(value: string | Array<string> | null) => {
+          setStartupFilter(toMultiSelectValue(value));
+          setCurrentPage(1);
+        }}
+      />
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+        >
+          Clear filters
+        </button>
+      )}
+      <span className="ml-auto text-xs text-gray-500">
+        {hasActiveFilters
+          ? `${processedData.length} of ${rows.length} services`
+          : `${rows.length} service${rows.length === 1 ? "" : "s"}`}
+      </span>
+    </div>
+  );
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -356,7 +551,15 @@ const HostServices: FunctionComponent<
     return <ErrorMessage message="Host not found." />;
   }
 
-  const noItemsMessage: string = `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Service status comes from the "windows_service" receiver (alpha, Windows-only), which is bundled in the upstream otelcol-contrib build from v0.155.0. Make sure the host runs otelcol-contrib v0.155.0+ with windows_service added to the metrics pipeline — see the Documentation tab for setup steps.`;
+  /*
+   * Blame the filters only when there is data they filtered out — when
+   * the fetch itself came back empty, the collector guidance is the
+   * actionable message no matter what filters are set.
+   */
+  const noItemsMessage: string =
+    rows.length === 0
+      ? `No Windows service metrics in the last ${SERVICE_LOOKBACK_MINUTES} minutes. Service status comes from the "windows_service" receiver (alpha, Windows-only), which is bundled in the upstream otelcol-contrib build from v0.155.0. Make sure the host runs otelcol-contrib v0.155.0+ with windows_service added to the metrics pipeline — see the Documentation tab for setup steps.`
+      : "No services match the current filters.";
 
   return (
     <Card
@@ -364,23 +567,36 @@ const HostServices: FunctionComponent<
       description={description}
       buttons={cardButtons}
     >
-      <Table<ServiceRow>
-        id="host-services-table"
-        columns={tableColumns}
-        data={rows}
-        singularLabel="Service"
-        pluralLabel="Services"
-        isLoading={false}
-        error=""
-        currentPageNumber={1}
-        totalItemsCount={rows.length}
-        itemsOnPage={rows.length}
-        onNavigateToPage={() => {}}
-        sortOrder={SortOrder.Ascending}
-        sortBy={null}
-        onSortChanged={() => {}}
-        noItemsMessage={noItemsMessage}
-      />
+      <div>
+        {(rows.length > 0 || hasActiveFilters) && filterBar}
+        <Table<ServiceRow>
+          id="host-services-table"
+          columns={tableColumns}
+          actionButtons={actionButtons}
+          data={paginatedData}
+          singularLabel="Service"
+          pluralLabel="Services"
+          isLoading={false}
+          error=""
+          currentPageNumber={effectivePage}
+          totalItemsCount={processedData.length}
+          itemsOnPage={PAGE_SIZE}
+          onNavigateToPage={(page: number) => {
+            setCurrentPage(page);
+          }}
+          sortOrder={sortOrder}
+          sortBy={sortBy}
+          onSortChanged={(
+            newSortBy: keyof ServiceRow | null,
+            newSortOrder: SortOrder,
+          ) => {
+            setSortBy(newSortBy);
+            setSortOrder(newSortOrder);
+            setCurrentPage(1);
+          }}
+          noItemsMessage={noItemsMessage}
+        />
+      </div>
     </Card>
   );
 };

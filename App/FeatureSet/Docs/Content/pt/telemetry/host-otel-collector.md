@@ -623,10 +623,40 @@ processors:
     logs:
       log_record:
         # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # The UNSPECIFIED guard is required — see the warning below.
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-Descarte uma métrica ruidosa específica que você não plota:
+> **Não remova a proteção `UNSPECIFIED`.** `SEVERITY_NUMBER_UNSPECIFIED` é `0` e `SEVERITY_NUMBER_WARN` é `13`, então um `severity_number < SEVERITY_NUMBER_WARN` sozinho é `0 < 13` — **verdadeiro para todo registro cuja severidade nunca foi parseada**. Um receiver `filelog` simples não faz o parse da severidade a partir da linha de log: nada nos exemplos de `filelog` desta página define `operators:`, então esses registros chegam ao filtro com `severity_number: 0`. Sem a proteção, essa condição apaga silenciosamente **100% de** `/var/log/syslog`, `/var/log/messages` e `/var/log/auth.log` — sem nenhum erro em lugar algum. Com a proteção, os registros não classificados são mantidos e você os verá chegar no OneUptime com a severidade `Unspecified`, o que lhe diz que um severity parser é o que você realmente precisa.
+
+Para filtrar logs de arquivo por severidade *da maneira correta*, faça primeiro o parse de uma severidade com um operador [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) no receiver, para que os registros carreguem um nível de verdade antes de chegarem ao filtro:
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # Pull a level out of lines like "2026-01-01 ERROR something broke".
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # Lines with no recognisable level fall through unparsed rather
+        # than being discarded, and are then kept by the guard above.
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+Em hosts com systemd você não precisa de nada disso — o `priority:` do `journald` (Alavanca 1) filtra por nível no próprio `journalctl`, antes que exista um registro OTel.
+
+Descarte métricas que você não plota — por nome exato ou por padrão:
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # Exact metric name.
         - 'name == "system.paging.faults"'
+        # Or a whole family. IsMatch is RE2 and UNANCHORED, so anchor it
+        # yourself with ^ when you mean "starts with".
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+Envie **apenas** um conjunto fixo de métricas (uma allowlist) invertendo a condição — o `filter` descarta o que corresponde, então `not (...)` descarta tudo o que você não nomeou:
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+Mantenha essa condição em **uma única linha**. Uma allowlist é um martelo pesado: tudo o que você esquecer de nomear desaparece, junto com os monitores construídos sobre isso. Prefira descartar as poucas métricas que você não quer, ou simplesmente omitir o scraper que as produz (Alavanca 3) — uma métrica nunca coletada não custa nada para filtrar.
 
 Então adicione o processador ao pipeline relevante — a ordem importa, então coloque `filter` antes de `batch`:
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **Está editando a configuração que o OneUptime gerou para você?** O pipeline acima corresponde aos exemplos completos desta página. A configuração vinda do dashboard (Hosts → Documentation) nomeia as coisas de forma diferente: seus processadores são `resourcedetection` e `batch` (**não** há processador `resource`) e seu exportador é `otlphttp/oneuptime`. Referenciar um processador que não está definido faz o coletor parar na inicialização com `references processor "resource" which is not configured`. Adicione o filtro ao que já está lá, em vez de colar este bloco por cima:
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> Mantenha o `resourcedetection` — o OneUptime associa a telemetria a um host usando o `host.name` / `host.id` que ele define. Essa configuração gerada também é **somente de métricas**: ela não tem um pipeline `logs:` até que você adicione um, então um `filter/drop-low-severity` não tem nada para filtrar até que você adicione um receiver `filelog` ou `journald` junto com ele.
+
+> **No macOS, use o tarball, não o Homebrew.** A fórmula do Homebrew entrega o coletor **core**, e o `filter` é um processador exclusivo do contrib — o coletor vai se recusar a iniciar, independentemente de o seu YAML estar correto.
 
 ### Um ponto de partida enxuto
 
@@ -730,7 +792,7 @@ O OpenTelemetry Collector respeita as variáveis de ambiente padrão `HTTPS_PROX
 - **HTTP 401 do exporter** — o token de ingestão é inválido ou foi revogado. Gere um novo em _Project Settings → Telemetry Ingestion Keys_.
 - **O canal `Security` do Windows Event Log retorna acesso negado** — o serviço não está rodando com privilégios suficientes. Recrie-o sob `LocalSystem` (o padrão com `sc.exe create`) ou conceda à conta de serviço o direito de usuário _Manage auditing and security log_.
 - **O receiver `journald` falha ao iniciar** — certifique-se de que `journalctl` esteja no `PATH` do coletor e de que `/var/log/journal` exista (execute `sudo systemd-tmpfiles --create --prefix /var/log/journal` se não existir).
-- **Volume / custo alto** — veja [Reduzindo o volume de dados coletados](#reducing-the-volume-of-data-collected): restrinja os receivers (canais específicos do Windows, units do systemd, arquivos de log), aumente o `collection_interval` das métricas, remova o scraper por processo ou adicione um processador `filter` para descartar registros de baixa severidade antes da exportação.
+- **Volume / custo alto** — veja [Reduzindo o volume de dados coletados](#reduzindo-o-volume-de-dados-coletados): restrinja os receivers (canais específicos do Windows, units do systemd, arquivos de log), aumente o `collection_interval` das métricas, remova o scraper por processo ou adicione um processador `filter` para descartar registros de baixa severidade antes da exportação.
 
 ## Próximos passos
 

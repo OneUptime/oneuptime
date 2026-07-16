@@ -572,7 +572,7 @@ sc.exe query "otelcol-contrib"
       priority: warning # info and debug are dropped before export
   ```
 
-- **Windows イベントログ** — `Security` チャンネルは群を抜いて最も大量です。実際に監査するイベント ID に `query:` で絞り込むか（上記の [Windows イベントログ](#windows-event-logs) を参照）、不要ならチャンネルごと削除します。
+- **Windows イベントログ** — `Security` チャンネルは群を抜いて最も大量です。実際に監査するイベント ID に `query:` で絞り込むか（上記の [Windows イベントログ](#windows-イベントログ) を参照）、不要ならチャンネルごと削除します。
 
 ### レバー 2 — メトリクスの間隔を長くする
 
@@ -622,11 +622,41 @@ processors:
     error_mode: ignore
     logs:
       log_record:
-        # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # WARN より重要度の低いもの（info、debug、trace）をすべて破棄します。
+        # UNSPECIFIED のガードは必須です — 下記の警告を参照してください。
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-チャート化しない特定のノイズの多いメトリクスを破棄する。
+> **`UNSPECIFIED` のガードを外さないでください。** `SEVERITY_NUMBER_UNSPECIFIED` は `0`、`SEVERITY_NUMBER_WARN` は `13` なので、ガードなしの `severity_number < SEVERITY_NUMBER_WARN` は `0 < 13` となり — **重要度が一度も解析されなかったすべてのレコードに対して真** になります。素の `filelog` レシーバーはログ行から重要度を解析しません。このページの `filelog` の例はいずれも `operators:` を設定していないため、それらのレコードは `severity_number: 0` のままフィルターに到達します。ガードがないと、この条件は `/var/log/syslog`、`/var/log/messages`、`/var/log/auth.log` の **100% を** 黙って削除します — どこにもエラーは出ません。ガードがあれば、分類されていないレコードは保持され、OneUptime に重要度 `Unspecified` として到着するのが見えるので、本当に必要なのは severity パーサーだということが分かります。
+
+ファイルログを重要度で*適切に*フィルターするには、まずレシーバー側で [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) オペレーターを使って重要度を解析し、レコードがフィルターに到達する前に実際のレベルを持つようにします。
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # "2026-01-01 ERROR something broke" のような行からレベルを抽出します。
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # 認識できるレベルがない行は、破棄されるのではなく未解析のまま
+        # 通過し、その後は上記のガードによって保持されます。
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+systemd のホストでは、これらは一切必要ありません — `journald` の `priority:`（レバー 1）が、OTel のレコードが存在するより前に、`journalctl` 自体の中でレベルによるフィルタリングを行います。
+
+チャート化しないメトリクスを破棄する — 正確な名前、またはパターンで。
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # 正確なメトリクス名。
         - 'name == "system.paging.faults"'
+        # またはファミリー全体。IsMatch は RE2 であり、アンカーされないため、
+        # 「〜で始まる」を意図する場合は自分で ^ を付けてアンカーします。
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+条件を反転させることで、決まったセットのメトリクス **のみ** を送信できます（許可リスト） — `filter` は一致したものを破棄するため、`not (...)` は名前を挙げなかったものすべてを破棄します。
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+この条件は **1 行に** 収めてください。許可リストは大雑把な手段です。名前を挙げ忘れたものは、その上に構築されたモニターもろとも失われます。不要な少数のメトリクスを破棄するか、あるいはそれらを生成するスクレイパーを単に外す（レバー 3）ほうを優先してください — そもそも収集されないメトリクスは、フィルターのコストがゼロです。
 
 その後、該当するパイプラインにプロセッサを追加します — 順序が重要なので、`filter` を `batch` の前に置きます。
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **OneUptime が生成した設定を編集していますか?** 上記のパイプラインは、このページの完全な例と対応しています。ダッシュボード（Hosts → Documentation）から取得できる設定は、名前の付け方が異なります。プロセッサは `resourcedetection` と `batch` であり（`resource` プロセッサは **ありません**）、エクスポーターは `otlphttp/oneuptime` です。定義されていないプロセッサを参照すると、コレクターは起動時に `references processor "resource" which is not configured` で停止します。このブロックを上書きで貼り付けるのではなく、すでにあるものにフィルターを追加してください。
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> `resourcedetection` は残してください — OneUptime は、それが設定する `host.name` / `host.id` を使ってテレメトリをホストに対応付けます。その生成された設定はまた **メトリクス専用** です。自分で追加するまで `logs:` パイプラインを持たないため、`filelog` または `journald` レシーバーを併せて追加するまで、`filter/drop-low-severity` にはフィルターする対象がありません。
+
+> **macOS では、Homebrew ではなくアーカイブ（tarball）を使用してください。** Homebrew の formula は **core** コレクターを同梱していますが、`filter` は contrib 専用のプロセッサです — YAML が正しいかどうかに関わらず、コレクターは起動を拒否します。
 
 ### 無駄のない開始点
 
@@ -730,7 +792,7 @@ OpenTelemetry Collector は、標準の `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。_Project Settings → Telemetry Ingestion Keys_ から新しいものを生成してください。
 - **`Security` の Windows イベントログでアクセス拒否が返る** — サービスが十分な権限で実行されていません。`LocalSystem`（`sc.exe create` のデフォルト）の下で再作成するか、サービスアカウントに _Manage auditing and security log_（監査とセキュリティログの管理）ユーザー権利を付与してください。
 - **`journald` レシーバーが起動に失敗する** — `journalctl` がコレクターの `PATH` 上にあること、および `/var/log/journal` が存在することを確認してください（存在しない場合は `sudo systemd-tmpfiles --create --prefix /var/log/journal` を実行）。
-- **大量データ / コスト** — [収集するデータ量を削減する](#reducing-the-volume-of-data-collected) を参照してください。レシーバーを絞り込む（特定の Windows チャンネル、systemd ユニット、ログファイル）、メトリクスの `collection_interval` を上げる、プロセスごとのスクレイパーを削除する、またはエクスポート前に低重要度のレコードを破棄する `filter` プロセッサを追加します。
+- **大量データ / コスト** — [収集するデータ量を削減する](#収集するデータ量を削減する) を参照してください。レシーバーを絞り込む（特定の Windows チャンネル、systemd ユニット、ログファイル）、メトリクスの `collection_interval` を上げる、プロセスごとのスクレイパーを削除する、またはエクスポート前に低重要度のレコードを破棄する `filter` プロセッサを追加します。
 
 ## 次のステップ
 

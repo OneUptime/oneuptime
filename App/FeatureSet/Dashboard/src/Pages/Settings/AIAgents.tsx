@@ -78,22 +78,29 @@ const SettingsAIAgents: FunctionComponent<
   return (
     <Fragment>
       <>
+        {/*
+         * Agent completions are server-mediated, so a project LLM provider is
+         * optional — the shared global provider is a valid fallback for
+         * self-hosted agents too (LlmProviderService
+         * .getLlmProviderForMeteredAgentPath). The AI Tasks page renders the
+         * live per-gate state; this is only the signpost.
+         */}
         <Alert
           type={AlertType.INFO}
           strongTitle="Prerequisites"
           className="mb-5"
           title={
             <span>
-              To open fix pull requests, the agent needs a{" "}
+              To open fix pull requests, an agent needs a{" "}
               <Link to={codeRepositoriesRoute} className="underline">
                 connected GitHub repository
               </Link>{" "}
-              and a project{" "}
+              and an available{" "}
               <Link to={llmProvidersRoute} className="underline">
                 LLM provider
               </Link>
-              . Self-hosted agents always require a project LLM provider to run
-              tasks.
+              . Add a project provider to use your own API key — otherwise tasks
+              run on the shared provider, when your instance has one.
             </span>
           }
         />

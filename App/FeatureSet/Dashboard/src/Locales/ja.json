@@ -5972,5 +5972,9 @@
   "No topology discovered yet": "トポロジーはまだ検出されていません",
   "As telemetry carrying multiple entities (e.g. a service running in a k8s pod on a node) is ingested, the inferred relationships — runs-on, member-of, hosted-on, part-of — will appear here as a graph.": "複数のエンティティを含むテレメトリ（例：ノード上の k8s ポッドで実行されているサービス）が取り込まれると、推測された関係（runs-on、member-of、hosted-on、part-of）がここにグラフとして表示されます。",
   "No entities match your filters": "フィルターに一致するエンティティがありません",
-  "Adjust the search text or re-enable entity types to see the graph.": "検索テキストを調整するか、エンティティの種類を再度有効にしてグラフを表示してください。"
+  "Adjust the search text or re-enable entity types to see the graph.": "検索テキストを調整するか、エンティティの種類を再度有効にしてグラフを表示してください。",
+  "MCP Server": "MCP サーバー",
+  "Enable MCP Server": "MCP サーバーを有効化",
+  "Control whether AI agents can read this status page over the OneUptime MCP server": "AI エージェントが OneUptime MCP サーバー経由でこのステータスページを読み取れるかどうかを制御します",
+  "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.": "有効にすると、AI エージェントは公開 OneUptime MCP サーバー経由でこのステータスページを読み取れます。無効にしても、ステータスページのウェブサイト、RSS フィード、公開 JSON API は非表示になりません。"
 }

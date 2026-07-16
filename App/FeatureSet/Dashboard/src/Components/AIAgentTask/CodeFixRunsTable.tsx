@@ -85,6 +85,13 @@ const CodeFixRunsTable: FunctionComponent = (): ReactElement => {
       filters={[
         {
           field: {
+            taskNumber: true,
+          },
+          title: "Task Number",
+          type: FieldType.Number,
+        },
+        {
+          field: {
             codeFixTaskType: true,
           },
           title: "Task",
@@ -108,6 +115,28 @@ const CodeFixRunsTable: FunctionComponent = (): ReactElement => {
         },
       ]}
       columns={[
+        {
+          field: {
+            taskNumber: true,
+          },
+          title: "Task #",
+          type: FieldType.Text,
+          getElement: (item: AIRun): ReactElement => {
+            /*
+             * Null only on runs whose counter allocation failed — the
+             * backfill numbered every task that predates the column.
+             */
+            if (!item.taskNumber) {
+              return <span className="text-gray-400">-</span>;
+            }
+
+            return (
+              <span className="font-medium text-gray-900">
+                #{item.taskNumber}
+              </span>
+            );
+          },
+        },
         {
           field: {
             codeFixTaskType: true,

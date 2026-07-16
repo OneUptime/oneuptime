@@ -622,11 +622,41 @@ processors:
     error_mode: ignore
     logs:
       log_record:
-        # Drop anything less severe than WARN (info, debug, trace).
-        - "severity_number < SEVERITY_NUMBER_WARN"
+        # Descarta todo lo menos grave que WARN (info, debug, trace).
+        # La guarda UNSPECIFIED es obligatoria — consulta la advertencia de abajo.
+        - "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_WARN"
 ```
 
-Descarta una métrica ruidosa concreta que no representas en gráficos:
+> **No elimines la guarda `UNSPECIFIED`.** `SEVERITY_NUMBER_UNSPECIFIED` es `0` y `SEVERITY_NUMBER_WARN` es `13`, así que un `severity_number < SEVERITY_NUMBER_WARN` a secas es `0 < 13` — **cierto para todos los registros cuya gravedad nunca se analizó**. Un receptor `filelog` simple no analiza la gravedad de la línea de log: ninguno de los ejemplos de `filelog` de esta página establece `operators:`, por lo que esos registros llegan al filtro con `severity_number: 0`. Sin la guarda, esa condición elimina silenciosamente **el 100 % de** `/var/log/syslog`, `/var/log/messages` y `/var/log/auth.log` — sin ningún error por ninguna parte. Con la guarda, los registros sin clasificar se conservan y los verás llegar a OneUptime con la gravedad `Unspecified`, lo que te indica que lo que realmente necesitas es un analizador de gravedad.
+
+Para filtrar los logs de archivos por gravedad *correctamente*, analiza primero una gravedad con un operador [`severity_parser`](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/stanza/docs/operators/severity_parser.md) en el receptor, de modo que los registros lleven un nivel real antes de llegar al filtro:
+
+```yaml
+receivers:
+  filelog/app:
+    include:
+      - /var/log/myapp/*.log
+    start_at: end
+    operators:
+      # Extrae un nivel de líneas como "2026-01-01 ERROR something broke".
+      - type: regex_parser
+        regex: '(?i)(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL)'
+        parse_from: body
+        # Las líneas sin un nivel reconocible pasan sin analizar en lugar de
+        # descartarse, y luego las conserva la guarda de arriba.
+        on_error: send
+      - type: severity_parser
+        parse_from: attributes.level
+        preset: default
+        mapping:
+          warn: warning
+          error: err
+          fatal: panic
+```
+
+En hosts con systemd no necesitas nada de esto — el `priority:` de `journald` (Palanca 1) filtra por nivel en el propio `journalctl`, antes de que exista un registro de OTel.
+
+Descarta las métricas que no representas en gráficos — por nombre exacto, o por patrón:
 
 ```yaml
 processors:
@@ -634,8 +664,25 @@ processors:
     error_mode: ignore
     metrics:
       metric:
+        # Nombre exacto de la métrica.
         - 'name == "system.paging.faults"'
+        # O toda una familia. IsMatch es RE2 y NO está anclado, así que áncralo
+        # tú mismo con ^ cuando quieras decir "empieza por".
+        - 'IsMatch(name, "^system\\.paging\\.")'
 ```
+
+Envía **solo** un conjunto fijo de métricas (una lista de permitidos) invirtiendo la condición — `filter` descarta lo que coincide, así que `not (...)` descarta todo lo que no hayas nombrado:
+
+```yaml
+processors:
+  filter/allowlist:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "system.cpu.utilization" or name == "system.memory.utilization" or name == "system.filesystem.utilization")'
+```
+
+Mantén esa condición en **una sola línea**. Una lista de permitidos es un martillo pesado: todo lo que olvides nombrar desaparece, junto con los monitores construidos sobre ello. Prefiere descartar las pocas métricas que no quieres, o simplemente omitir el scraper que las produce (Palanca 3) — una métrica que nunca se recopila no cuesta nada filtrar.
 
 Luego añade el procesador a la canalización correspondiente — el orden importa, así que pon `filter` antes de `batch`:
 
@@ -651,6 +698,21 @@ service:
       processors: [filter/drop-metrics, resource, batch]
       exporters: [otlphttp]
 ```
+
+> **¿Estás editando la configuración que OneUptime generó para ti?** La canalización de arriba coincide con los ejemplos completos de esta página. La configuración del panel (Hosts → Documentation) nombra las cosas de otra manera: sus procesadores son `resourcedetection` y `batch` (**no** hay procesador `resource`) y su exportador es `otlphttp/oneuptime`. Referenciar un procesador que no está definido detiene el recolector al arrancar con `references processor "resource" which is not configured`. Añade el filtro a lo que ya está ahí en lugar de pegar este bloque encima:
+>
+> ```yaml
+> service:
+>   pipelines:
+>     metrics:
+>       receivers: [hostmetrics]
+>       processors: [filter/drop-metrics, resourcedetection, batch]
+>       exporters: [otlphttp/oneuptime]
+> ```
+>
+> Conserva `resourcedetection` — OneUptime asocia la telemetría a un host usando el `host.name` / `host.id` que este establece. Esa configuración generada es además **solo de métricas**: no tiene ninguna canalización `logs:` hasta que añadas una, así que un `filter/drop-low-severity` no tiene nada que filtrar hasta que añadas junto a él un receptor `filelog` o `journald`.
+
+> **En macOS, usa el tarball, no Homebrew.** La fórmula de Homebrew incluye el recolector **core**, y `filter` es un procesador exclusivo de contrib — el recolector se negará a arrancar independientemente de si tu YAML es correcto.
 
 ### Un punto de partida ligero
 
@@ -730,7 +792,7 @@ El OpenTelemetry Collector respeta las variables de entorno estándar `HTTPS_PRO
 - **HTTP 401 desde el exportador** — el token de ingestión es inválido o ha sido revocado. Genera uno nuevo desde _Project Settings → Telemetry Ingestion Keys_.
 - **El canal `Security` de Windows Event Log devuelve acceso denegado** — el servicio no se ejecuta con privilegios suficientes. Recréalo bajo `LocalSystem` (el valor predeterminado con `sc.exe create`) o concede a la cuenta del servicio el derecho de usuario _Manage auditing and security log_.
 - **El receptor `journald` no arranca** — asegúrate de que `journalctl` esté en el `PATH` del recolector y de que exista `/var/log/journal` (ejecuta `sudo systemd-tmpfiles --create --prefix /var/log/journal` si no es así).
-- **Alto volumen / coste** — consulta [Reducir el volumen de datos recopilados](#reducing-the-volume-of-data-collected): acota los receptores (canales específicos de Windows, unidades de systemd, archivos de log), sube el `collection_interval` de las métricas, elimina el scraper por proceso o añade un procesador `filter` para descartar registros de baja gravedad antes de exportar.
+- **Alto volumen / coste** — consulta [Reducir el volumen de datos recopilados](#reducir-el-volumen-de-datos-recopilados): acota los receptores (canales específicos de Windows, unidades de systemd, archivos de log), sube el `collection_interval` de las métricas, elimina el scraper por proceso o añade un procesador `filter` para descartar registros de baja gravedad antes de exportar.
 
 ## Próximos pasos
 

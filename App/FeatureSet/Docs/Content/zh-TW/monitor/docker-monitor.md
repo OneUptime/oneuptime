@@ -224,7 +224,7 @@ docker run ... <image>
 
 ### 指標有顯示，但 Logs 分頁是空的
 
-您的容器幾乎可以確定並未使用 `json-file` 日誌驅動程式。請執行上文 [日誌驅動程式需求](#log-driver-requirement) 一節中的診斷指令，並切換任何需要傳送其日誌的容器。
+您的容器幾乎可以確定並未使用 `json-file` 日誌驅動程式。請執行上文 [日誌驅動程式需求](#日誌驅動程式需求) 一節中的診斷指令，並切換任何需要傳送其日誌的容器。
 
 ### filelog 接收器記錄 `no files match the configured criteria`
 

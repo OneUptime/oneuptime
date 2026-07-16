@@ -45,14 +45,18 @@ Filter queries let you target specific logs. If left empty, the pipeline matches
 
 | Operator | Example | Description |
 |----------|---------|-------------|
-| \`=\` | \`severityText = 'ERROR'\` | Exact match |
-| \`!=\` | \`severityText != 'DEBUG'\` | Not equal |
+| \`=\` | \`severityText = 'Error'\` | Exact match |
+| \`!=\` | \`severityText != 'Debug'\` | Not equal |
 | \`LIKE\` | \`body LIKE 'timeout'\` | Substring match (use \`%\` for SQL-style wildcards) |
-| \`IN\` | \`severityText IN ('ERROR', 'WARN')\` | Match any value in list |
-| \`AND\` | \`severityText = 'ERROR' AND attributes.service = 'api'\` | Both conditions must match |
-| \`OR\` | \`severityText = 'ERROR' OR severityText = 'WARN'\` | Either condition matches |
+| \`IN\` | \`severityText IN ('Error', 'Warning')\` | Match any value in list |
+| \`AND\` | \`severityText = 'Error' AND attributes.service = 'api'\` | Both conditions must match |
+| \`OR\` | \`severityText = 'Error' OR severityText = 'Warning'\` | Either condition matches |
 
 **Available fields:** \`severityText\`, \`body\`, \`primaryEntityId\`, \`attributes.<key>\`
+
+**Severity values:** \`Unspecified\`, \`Trace\`, \`Debug\`, \`Information\`, \`Warning\`, \`Error\`, \`Fatal\`
+
+> \`=\`, \`!=\` and \`IN\` are **case-sensitive** — \`'Error'\` matches, \`'ERROR'\` never will. Only \`LIKE\` ignores case. Note the level is \`Information\` (not \`INFO\`) and \`Warning\` (not \`WARN\`).
 
 ---
 
@@ -71,7 +75,7 @@ Renames or copies a log attribute from one key to another. Useful for normalizin
 #### Category Processor
 Adds a category label to logs based on filter conditions. Useful for tagging logs with business-level categories.
 
-**Example:** Tag logs matching \`severityText = 'ERROR'\` with category "Error"
+**Example:** Tag logs matching \`severityText = 'Error'\` with category "Error"
 
 ---
 
@@ -90,7 +94,7 @@ Adds a category label to logs based on filter conditions. Useful for tagging log
    - Target: \`attributes.source_address\`
 
 #### Example 3: Categorize error logs
-1. Create a pipeline with filter: \`severityText IN ('ERROR', 'FATAL')\`
+1. Create a pipeline with filter: \`severityText IN ('Error', 'Fatal')\`
 2. Add a **Category Processor**:
    - Target Key: \`error_category\`
    - Categories: "Database Error" for \`body LIKE 'connection'\`, "Timeout" for \`body LIKE 'timeout'\`

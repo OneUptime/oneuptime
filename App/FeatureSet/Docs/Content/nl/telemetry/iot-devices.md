@@ -45,7 +45,7 @@ export OTEL_RESOURCE_ATTRIBUTES=iot.fleet.name=building-a-sensors,device.id=sens
 | `OTEL_EXPORTER_OTLP_HEADERS`  | Ja      | `x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN`                                                    |
 | `OTEL_RESOURCE_ATTRIBUTES`    | Ja      | Door komma's gescheiden resourceattributen. Moet `iot.fleet.name`, `device.id` en `service.name=iot/<fleet>` bevatten |
 
-Verstuur je metingen als metrics met de `iot_*`-namen hieronder (zie [Metric-conventies](#metric-conventions)). Binnen ongeveer een minuut verschijnt het apparaat in het gedeelte **IoT** van het OneUptime-dashboard.
+Verstuur je metingen als metrics met de `iot_*`-namen hieronder (zie [Metric-conventies](#metric-conventies)). Binnen ongeveer een minuut verschijnt het apparaat in het gedeelte **IoT** van het OneUptime-dashboard.
 
 ## Metrics verzenden via een OpenTelemetry Collector
 
@@ -94,6 +94,103 @@ service:
 - Houd `device.id` (en optioneel `iot.device.kind` / `iot.device.type` / `iot.device.firmware`) op elk datapunt zodat OneUptime het afzonderlijke apparaat binnen de vloot kan herleiden.
 - **`otlphttp`** verstuurt naar OneUptime via HTTPS met het ingestietoken eraan gekoppeld. Let op: `encoding: json` en de `Content-Type: application/json`-header zijn vereist.
 
+## Metrics verzenden via MQTT
+
+OneUptime wordt geleverd met een ingebouwd MQTT-endpoint, zodat apparaten die al MQTT spreken hun metingen rechtstreeks kunnen pushen — er is geen OpenTelemetry SDK, collector of bridge vereist. Alles wat via MQTT wordt gepubliceerd, komt in dezelfde pijplijn terecht als OTLP: vloten worden automatisch aangemaakt, de apparaatinventaris wordt bijgewerkt en elke IoT-monitor en elk waarschuwingssjabloon werkt ongewijzigd.
+
+**Endpoints**
+
+| Transport             | Adres                                  | Opmerkingen                                                                               |
+| --------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------- |
+| MQTT over WebSocket   | `wss://<your-host>/mqtt`               | Werkt op elke deployment — loopt via de normale HTTPS-poort door de OneUptime-ingress     |
+| MQTT over TCP         | `<app-host>:1883` (`MQTT_INGEST_PORT`) | Self-hosted: standaard alleen intern binnen het cluster-/compose-netwerk; stel deze bloot als je hem nodig hebt |
+
+**Authenticatie** — twee opties:
+
+- **Projectbreed**: verstuur je **Telemetry Ingestion Token** als het MQTT-wachtwoord (de gebruikersnaam wordt genegeerd; als je client alleen een gebruikersnaamveld biedt, zet het token dan daarin). Geschikt voor gateways die namens veel apparaten publiceren.
+- **Per apparaat** (aanbevolen voor apparaten die rechtstreeks verbinden): registreer het apparaat onder het tabblad **Device Registry** van de vloot in het dashboard. Registratie geeft een credential per apparaat uit — de credential-id is de MQTT-**gebruikersnaam** en het geheim is het **wachtwoord**. Clients die per apparaat zijn geauthenticeerd, kunnen alleen publiceren onder hun eigen `oneuptime/<fleet>/<device>/…`-topics, een enkel gecompromitteerd apparaat kan vanuit het dashboard worden ingetrokken zonder de rest van de vloot aan te raken (intrekking wordt binnen ongeveer een minuut van kracht, zelfs voor verbonden sessies), en geregistreerde apparaten krijgen **offlinedetectie bij stille uitval**: ze blijven als Offline in de inventaris staan in plaats van te verdwijnen wanneer ze stoppen met rapporteren, en het waarschuwingssjabloon Device Offline wordt voor hen geactiveerd, zelfs als ze uitvallen zonder Last Will.
+
+Ongeldige credentials worden bij CONNECT geweigerd met retourcode 4 (bad username or password), zodat een verkeerd geconfigureerd apparaat luid en duidelijk faalt.
+
+**Topics** — publiceer onder het vaste `oneuptime/`-voorvoegsel. Vloot- en apparaatsegmenten mogen geen `/`, `+` of `#` bevatten en zijn beperkt tot 100 tekens:
+
+| Topic                                            | Payload                                                                                              |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `oneuptime/<fleet>/<device>/telemetry`           | JSON-object met metingen — `{ "metrics": { "iot_temperature_celsius": 21.5 } }`, of een plat object waarvan de numerieke velden de metrics zijn |
+| `oneuptime/<fleet>/<device>/metrics/<metricName>`| Eén enkele waarde — een kaal getal (`23.4`) of `{ "value": 23.4 }`                                    |
+| `oneuptime/<fleet>/<device>/status`              | `"online"` of `"offline"` (ook `1`/`0`, `true`/`false`, `up`/`down`) — wordt toegewezen aan `iot_device_up` |
+
+Telemetry-payloads mogen ook `"attributes"` bevatten (een string-map die op elk datapunt wordt gestempeld — gebruik deze voor `iot.device.kind`, `iot.device.type`, `iot.device.firmware` of je eigen labels) en `"timestamp"` (ISO-8601, of unix-seconden/-milliseconden). Beide zijn optioneel; als `timestamp` ontbreekt, wordt het ingestietijdstip gebruikt.
+
+**Offlinedetectie met Last Will** — registreer een MQTT Last Will op `oneuptime/<fleet>/<device>/status` met payload `offline`. Als het apparaat uitvalt of van het netwerk verdwijnt, publiceert de broker namens het apparaat `iot_device_up = 0` op het moment dat de sessie eindigt — waarmee het standaard waarschuwingssjabloon **Device Offline** wordt geactiveerd en het apparaat in de inventaris op Down wordt gezet, zonder polling en zonder te wachten op een gemiste scrape. Publiceer `online` op hetzelfde topic na het verbinden zodat het apparaat weer als Up wordt weergegeven.
+
+Voorbeeld met `mosquitto_pub` (ruwe TCP, self-hosted):
+
+```bash
+mosquitto_pub -h YOUR-ONEUPTIME-APP-HOST -p 1883 \
+  -u oneuptime -P "YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -t "oneuptime/building-a-sensors/sensor-001/telemetry" \
+  -m '{"metrics":{"iot_device_up":1,"iot_battery_percent":87,"iot_temperature_celsius":21.5},"attributes":{"iot.device.type":"temp-sensor","iot.device.firmware":"1.4.2"}}'
+```
+
+Voorbeeld met Node.js `mqtt` via WebSocket (werkt tegen oneuptime.com en elke self-hosted instantie):
+
+```javascript
+const mqtt = require("mqtt");
+
+const client = mqtt.connect("wss://oneuptime.com/mqtt", {
+  username: "oneuptime", // genegeerd — het token hieronder is wat authenticeert
+  password: "YOUR_TELEMETRY_INGESTION_TOKEN",
+  will: {
+    topic: "oneuptime/building-a-sensors/sensor-001/status",
+    payload: "offline",
+  },
+});
+
+client.on("connect", () => {
+  client.publish("oneuptime/building-a-sensors/sensor-001/status", "online");
+  setInterval(() => {
+    client.publish(
+      "oneuptime/building-a-sensors/sensor-001/telemetry",
+      JSON.stringify({
+        metrics: {
+          iot_device_up: 1,
+          iot_battery_percent: readBattery(),
+          iot_temperature_celsius: readTemperature(),
+        },
+      }),
+    );
+  }, 60 * 1000);
+});
+```
+
+Voorbeeld met Python `paho-mqtt` via WebSocket:
+
+```python
+import json
+import paho.mqtt.client as mqtt
+
+client = mqtt.Client(transport="websockets")
+client.username_pw_set("oneuptime", "YOUR_TELEMETRY_INGESTION_TOKEN")
+client.tls_set()
+client.will_set("oneuptime/building-a-sensors/sensor-001/status", "offline")
+client.ws_set_options(path="/mqtt")
+client.connect("oneuptime.com", 443)
+
+client.publish("oneuptime/building-a-sensors/sensor-001/status", "online")
+client.publish(
+    "oneuptime/building-a-sensors/sensor-001/telemetry",
+    json.dumps({"metrics": {"iot_device_up": 1, "iot_temperature_celsius": 21.5}}),
+)
+```
+
+Opmerkingen:
+
+- Het endpoint is **alleen voor ingestie**: abonnementen worden geweigerd (SUBACK-fout). Gebruik QoS 1 als je wilt dat de broker de ontvangst bevestigt. Ingestie is **at-least-once** — een QoS 1/2-hertransmissie na een verloren bevestiging kan dubbele datapunten opleveren.
+- Publicaties buiten het topiccontract of met misvormde payloads worden geaccepteerd en **verworpen** (MQTT 3.1.1 heeft geen foutantwoord per bericht) — de server logt een waarschuwing met de reden, dus controleer de OneUptime-app-logs als er geen data binnenkomt.
+- Houd op het WebSocket-endpoint de MQTT-keepalive **onder 5 minuten** — de OneUptime-ingress sluit inactieve WebSocket-verbindingen na 300 seconden, wat je Last Will en een valse Device Offline-waarschuwing zou activeren. De standaardwaarden van clientbibliotheken (60 s voor `mqtt` en `paho-mqtt`) zijn prima. Het ruwe TCP-endpoint kent zo'n bovengrens niet.
+- Payloads zijn begrensd op 128 KB en 100 metrics per publicatie; te grote pakketten verbreken de verbinding.
+
 ## Metric-conventies
 
 OneUptime herkent de volgende `iot_*`-metricnamen. Elk datapunt moet het `device.id`-label dragen zodat de meting aan het juiste apparaat wordt toegeschreven. Je hoeft alleen de metrics te versturen die zinvol zijn voor je apparaat — ontbrekende metrics worden eenvoudigweg niet in grafieken weergegeven.
@@ -137,7 +234,7 @@ Het ingestietoken is ongeldig, ingetrokken of ontbreekt. Genereer een nieuw toke
 
 ### Metrics worden niet in grafieken weergegeven
 
-1. Bevestig dat je exact de `iot_*`-metricnamen uit de tabel [Metric-conventies](#metric-conventions) gebruikt — niet-herkende namen worden opgeslagen als generieke metrics en vullen geen IoT-grafieken.
+1. Bevestig dat je exact de `iot_*`-metricnamen uit de tabel [Metric-conventies](#metric-conventies) gebruikt — niet-herkende namen worden opgeslagen als generieke metrics en vullen geen IoT-grafieken.
 2. Onthoud dat `iot_cpu_usage_ratio` een `0`–`1`-verhouding is; verstuur de ruwe verhouding en OneUptime geeft deze weer als een percentage.
 3. Houd er rekening mee dat het tot een minuut kan duren voordat de eerste datapunten verschijnen nadat een apparaat begint met rapporteren.
 
