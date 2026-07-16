@@ -776,118 +776,141 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
         {/* Query configs */}
         {!props.hideQueryElements && (
-          <div className="space-y-3">
-            {props.data.queryConfigs.map(
-              (queryConfig: MetricQueryConfigData, index: number) => {
-                return (
-                  <MetricQueryConfig
-                    key={index}
-                    onChange={(data: MetricQueryConfigData) => {
-                      const newGraphConfigs: Array<MetricQueryConfigData> = [
-                        ...props.data.queryConfigs,
-                      ];
-                      newGraphConfigs[index] = data;
-                      if (props.onChange) {
-                        props.onChange({
-                          ...props.data,
-                          queryConfigs: newGraphConfigs,
-                        });
+          <div>
+            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+              Queries
+            </div>
+            <div className="space-y-3">
+              {props.data.queryConfigs.map(
+                (queryConfig: MetricQueryConfigData, index: number) => {
+                  /*
+                   * A query arriving with filters or group-bys (deep link,
+                   * saved view) opens with its "Filters & grouping" section
+                   * expanded so the active filters are visible.
+                   */
+                  const configuredAttributes: Record<string, unknown> =
+                    ((
+                      queryConfig.metricQueryData?.filterData as
+                        | Record<string, unknown>
+                        | undefined
+                    )?.["attributes"] as Record<string, unknown> | undefined) ||
+                    {};
+                  const defaultShowAdvancedFilters: boolean =
+                    Object.keys(configuredAttributes).length > 0 ||
+                    (queryConfig.metricQueryData?.groupByAttributeKeys || [])
+                      .length > 0;
+
+                  return (
+                    <MetricQueryConfig
+                      key={index}
+                      defaultShowAdvancedFilters={defaultShowAdvancedFilters}
+                      onChange={(data: MetricQueryConfigData) => {
+                        const newGraphConfigs: Array<MetricQueryConfigData> = [
+                          ...props.data.queryConfigs,
+                        ];
+                        newGraphConfigs[index] = data;
+                        if (props.onChange) {
+                          props.onChange({
+                            ...props.data,
+                            queryConfigs: newGraphConfigs,
+                          });
+                        }
+                      }}
+                      data={queryConfig}
+                      hideCard={props.hideCardInQueryElements}
+                      canOverlayWithPreviousQuery={index > 0}
+                      telemetryAttributes={
+                        telemetryAttributesByMetric[
+                          queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                            ""
+                        ] || []
                       }
-                    }}
-                    data={queryConfig}
-                    hideCard={props.hideCardInQueryElements}
-                    canOverlayWithPreviousQuery={index > 0}
-                    telemetryAttributes={
-                      telemetryAttributesByMetric[
-                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
-                          ""
-                      ] || []
-                    }
-                    metricTypes={metricTypes}
-                    onAdvancedFiltersToggle={(show: boolean) => {
-                      handleAdvancedFiltersToggle(
-                        show,
-                        queryConfig.metricQueryData?.filterData?.metricName?.toString(),
-                      );
-                    }}
-                    attributesLoading={loadingMetricAttributes.has(
-                      queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
-                        "",
-                    )}
-                    attributesError={telemetryAttributesError}
-                    telemetryAttributeValueSuggestions={
-                      attributeValueSuggestions[
-                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
-                          ""
-                      ] || {}
-                    }
-                    loadingAttributeValueKeys={Array.from(
-                      loadingAttributeValues[
-                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
-                          ""
-                      ] || [],
-                    )}
-                    onAttributeKeySelected={(attributeKey: string) => {
-                      const metricName: string =
-                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
-                        "";
-                      if (metricName && attributeKey) {
-                        void loadAttributeValues(metricName, attributeKey);
-                      }
-                    }}
-                    onAttributeValueSearch={(
-                      attributeKey: string,
-                      searchText: string,
-                    ) => {
-                      const metricName: string =
-                        queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
-                        "";
-                      if (metricName && attributeKey) {
-                        searchAttributeValues(
-                          metricName,
-                          attributeKey,
-                          searchText,
+                      metricTypes={metricTypes}
+                      onAdvancedFiltersToggle={(show: boolean) => {
+                        handleAdvancedFiltersToggle(
+                          show,
+                          queryConfig.metricQueryData?.filterData?.metricName?.toString(),
                         );
-                      }
-                    }}
-                    onMetricNameChanged={(metricName: string) => {
-                      void loadTelemetryAttributesForMetric(metricName);
-                    }}
-                    onAttributesRetry={() => {
-                      const metricName: string =
+                      }}
+                      attributesLoading={loadingMetricAttributes.has(
                         queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
-                        "";
-                      if (metricName) {
-                        setLoadedMetricAttributes((prev: Set<string>) => {
-                          const next: Set<string> = new Set(prev);
-                          next.delete(metricName);
-                          return next;
-                        });
+                          "",
+                      )}
+                      attributesError={telemetryAttributesError}
+                      telemetryAttributeValueSuggestions={
+                        attributeValueSuggestions[
+                          queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                            ""
+                        ] || {}
+                      }
+                      loadingAttributeValueKeys={Array.from(
+                        loadingAttributeValues[
+                          queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                            ""
+                        ] || [],
+                      )}
+                      onAttributeKeySelected={(attributeKey: string) => {
+                        const metricName: string =
+                          queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                          "";
+                        if (metricName && attributeKey) {
+                          void loadAttributeValues(metricName, attributeKey);
+                        }
+                      }}
+                      onAttributeValueSearch={(
+                        attributeKey: string,
+                        searchText: string,
+                      ) => {
+                        const metricName: string =
+                          queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                          "";
+                        if (metricName && attributeKey) {
+                          searchAttributeValues(
+                            metricName,
+                            attributeKey,
+                            searchText,
+                          );
+                        }
+                      }}
+                      onMetricNameChanged={(metricName: string) => {
                         void loadTelemetryAttributesForMetric(metricName);
-                      }
-                    }}
-                    onRemove={() => {
-                      if (props.data.queryConfigs.length === 1) {
-                        setShowCannotRemoveOneRemainingQueryError(true);
-                        return;
-                      }
+                      }}
+                      onAttributesRetry={() => {
+                        const metricName: string =
+                          queryConfig.metricQueryData?.filterData?.metricName?.toString() ||
+                          "";
+                        if (metricName) {
+                          setLoadedMetricAttributes((prev: Set<string>) => {
+                            const next: Set<string> = new Set(prev);
+                            next.delete(metricName);
+                            return next;
+                          });
+                          void loadTelemetryAttributesForMetric(metricName);
+                        }
+                      }}
+                      onRemove={() => {
+                        if (props.data.queryConfigs.length === 1) {
+                          setShowCannotRemoveOneRemainingQueryError(true);
+                          return;
+                        }
 
-                      const newGraphConfigs: Array<MetricQueryConfigData> = [
-                        ...props.data.queryConfigs,
-                      ];
-                      newGraphConfigs.splice(index, 1);
+                        const newGraphConfigs: Array<MetricQueryConfigData> = [
+                          ...props.data.queryConfigs,
+                        ];
+                        newGraphConfigs.splice(index, 1);
 
-                      if (props.onChange) {
-                        props.onChange({
-                          ...props.data,
-                          queryConfigs: newGraphConfigs,
-                        });
-                      }
-                    }}
-                  />
-                );
-              },
-            )}
+                        if (props.onChange) {
+                          props.onChange({
+                            ...props.data,
+                            queryConfigs: newGraphConfigs,
+                          });
+                        }
+                      }}
+                    />
+                  );
+                },
+              )}
+            </div>
           </div>
         )}
 
@@ -1073,11 +1096,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
 
         {!metricResultsError && !hasAnySelectedMetric && (
           <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
-            <Icon
-              icon={IconProp.ChartBar}
-              className="mx-auto h-8 w-8 text-gray-300"
-            />
-            <p className="mt-3 text-sm font-medium text-gray-700">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+              <Icon
+                icon={IconProp.ChartBar}
+                className="h-6 w-6 text-gray-400"
+              />
+            </div>
+            <p className="mt-4 text-sm font-medium text-gray-900">
               Select a metric to get started
             </p>
             <p className="mt-1 text-xs text-gray-500">
@@ -1085,60 +1110,88 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 ? "No metric is configured for this view."
                 : "Pick a metric in the query editor above and its chart will appear here."}
             </p>
+            {!props.hideQueryElements && (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  title="Add metric query"
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  buttonSize={ButtonSize.Small}
+                  icon={IconProp.Add}
+                  onClick={() => {
+                    if (props.onChange) {
+                      props.onChange({
+                        ...props.data,
+                        queryConfigs: [
+                          ...props.data.queryConfigs,
+                          getEmptyQueryConfigData(),
+                        ],
+                      });
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
 
         {!metricResultsError &&
           hasAnySelectedMetric &&
           (!isMetricResultsLoading || hasFetchedResultsOnce) && (
-            <div className="relative">
-              {/*
-               * Subtle refetch indicator — the charts stay mounted (see
-               * hasFetchedResultsOnce) so series-control state survives.
-               */}
-              {isMetricResultsLoading && (
-                <div className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm">
-                  <Icon
-                    icon={IconProp.Refresh}
-                    className="h-3 w-3 animate-spin text-gray-400"
-                  />
-                  Refreshing
+            <div>
+              {!props.hideQueryElements && (
+                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Charts
                 </div>
               )}
-              <div
-                className={`${
-                  props.hideCardInCharts
-                    ? "pt-4 mt-2 border-t border-gray-200 flex flex-col flex-1 w-full"
-                    : "grid grid-cols-1 gap-4"
-                }${isMetricResultsLoading ? " opacity-75 transition-opacity" : ""}`}
-                style={{
-                  /*
-                   * Give each metric result ~20rem of height (matching the
-                   * chart's previous fixed h-80 / 320px height).
-                   */
-                  minHeight: metricResults.length * 20 + "rem",
-                }}
-              >
-                <MetricCharts
-                  hideCard={props.hideCardInCharts}
-                  metricResults={metricResults}
-                  metricTypes={metricTypes}
-                  metricViewData={effectiveData}
-                  chartCssClass={props.chartCssClass}
-                  onQueryConfigsChange={(
-                    queryConfigs: Array<MetricQueryConfigData>,
-                  ) => {
-                    if (props.onChange) {
-                      props.onChange({
-                        ...props.data,
-                        queryConfigs: queryConfigs,
-                      });
-                    }
+              <div className="relative">
+                {/*
+                 * Subtle refetch indicator — the charts stay mounted (see
+                 * hasFetchedResultsOnce) so series-control state survives.
+                 */}
+                {isMetricResultsLoading && (
+                  <div className="pointer-events-none absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm">
+                    <Icon
+                      icon={IconProp.Refresh}
+                      className="h-3 w-3 animate-spin text-gray-400"
+                    />
+                    Refreshing
+                  </div>
+                )}
+                <div
+                  className={`${
+                    props.hideCardInCharts
+                      ? "pt-4 mt-2 border-t border-gray-200 flex flex-col flex-1 w-full"
+                      : "grid grid-cols-1 gap-4"
+                  }${isMetricResultsLoading ? " opacity-75 transition-opacity" : ""}`}
+                  style={{
+                    /*
+                     * Give each metric result ~20rem of height (matching the
+                     * chart's previous fixed h-80 / 320px height).
+                     */
+                    minHeight: metricResults.length * 20 + "rem",
                   }}
-                  onTimeRangeSelect={handleChartTimeRangeSelect}
-                  timeReferenceLines={props.timeReferenceLines}
-                  referenceRegions={props.referenceRegions}
-                />
+                >
+                  <MetricCharts
+                    hideCard={props.hideCardInCharts}
+                    metricResults={metricResults}
+                    metricTypes={metricTypes}
+                    metricViewData={effectiveData}
+                    chartCssClass={props.chartCssClass}
+                    onQueryConfigsChange={(
+                      queryConfigs: Array<MetricQueryConfigData>,
+                    ) => {
+                      if (props.onChange) {
+                        props.onChange({
+                          ...props.data,
+                          queryConfigs: queryConfigs,
+                        });
+                      }
+                    }}
+                    onTimeRangeSelect={handleChartTimeRangeSelect}
+                    timeReferenceLines={props.timeReferenceLines}
+                    referenceRegions={props.referenceRegions}
+                  />
+                </div>
               </div>
             </div>
           )}

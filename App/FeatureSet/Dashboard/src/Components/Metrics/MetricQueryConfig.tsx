@@ -9,7 +9,9 @@ import MetricQuery from "./MetricQuery";
 import SeriesColorSelector from "./SeriesColorSelector";
 import SeriesGroupColorSelector from "./SeriesGroupColorSelector";
 import Card from "Common/UI/Components/Card/Card";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricQueryConfigData, {
+  MetricChartType,
+} from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -17,6 +19,10 @@ import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import Dictionary from "Common/Types/Dictionary";
 import {
   DictionaryEntryValue,
@@ -58,6 +64,35 @@ export interface ComponentProps {
    * Display Settings is only rendered when true.
    */
   canOverlayWithPreviousQuery?: boolean | undefined;
+  // Initial state of the "Filters & grouping" section (see MetricQuery).
+  defaultShowAdvancedFilters?: boolean | undefined;
+}
+
+// Options for the Display Settings "Chart type" select.
+const CHART_TYPE_OPTIONS: Array<DropdownOption> = [
+  { value: MetricChartType.LINE, label: "Line" },
+  { value: MetricChartType.AREA, label: "Area" },
+  { value: MetricChartType.BAR, label: "Bar" },
+];
+
+const SIX_DIGIT_HEX_REGEX: RegExp = /^#[0-9a-fA-F]{6}$/;
+
+/*
+ * Tint styles for the variable badge from the query's lead series color.
+ * A 6-digit hex gets an alpha-suffixed wash; anything else (or no color)
+ * returns undefined so the badge falls back to the indigo utility tint.
+ */
+function getBadgeTintStyle(
+  color: string | undefined,
+): React.CSSProperties | undefined {
+  if (!color || !SIX_DIGIT_HEX_REGEX.test(color)) {
+    return undefined;
+  }
+  return {
+    backgroundColor: `${color}1f`,
+    borderColor: `${color}55`,
+    color: color,
+  };
 }
 
 const MetricGraphConfig: FunctionComponent<ComponentProps> = (
@@ -244,12 +279,23 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
   };
 
   const getHeader: () => ReactElement = (): ReactElement => {
+    const badgeTintStyle: React.CSSProperties | undefined = getBadgeTintStyle(
+      props.data?.color,
+    );
+
     return (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          {/* Variable badge */}
+          {/* Variable badge, tinted with the query's lead series color */}
           {props.data?.metricAliasData?.metricVariable && (
-            <div className="bg-indigo-500 h-8 w-8 min-w-8 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-sm">
+            <div
+              className={`flex h-6 w-6 min-w-6 items-center justify-center rounded-md border text-xs font-bold ${
+                badgeTintStyle
+                  ? ""
+                  : "border-indigo-200 bg-indigo-50 text-indigo-700"
+              }`}
+              style={badgeTintStyle}
+            >
               {props.data.metricAliasData.metricVariable}
             </div>
           )}
@@ -262,14 +308,18 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                 {aggregationType}
               </span>
-              {activeAttributeCount > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                  <Icon
-                    icon={IconProp.Filter}
-                    className="h-3 w-3 text-indigo-500"
-                  />
+              {/* Quiet metadata chips — summary while the body is collapsed */}
+              {!isExpanded && activeAttributeCount > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
+                  <Icon icon={IconProp.Filter} className="h-3 w-3" />
                   {activeAttributeCount}{" "}
                   {activeAttributeCount === 1 ? "filter" : "filters"}
+                </span>
+              )}
+              {!isExpanded && groupByKeys.length > 0 && (
+                <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
+                  {groupByKeys.length}{" "}
+                  {groupByKeys.length === 1 ? "group-by" : "group-bys"}
                 </span>
               )}
             </div>
@@ -286,7 +336,9 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
         <div className="flex items-center gap-1 ml-3">
           <button
             type="button"
-            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            aria-label={isExpanded ? "Collapse query" : "Expand query"}
+            aria-expanded={isExpanded}
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             onClick={() => {
               setIsExpanded(!isExpanded);
             }}
@@ -300,7 +352,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
           {props.onRemove && (
             <button
               type="button"
-              className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+              aria-label="Remove query"
+              className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               onClick={() => {
                 props.onBlur?.();
                 props.onFocus?.();
@@ -352,7 +405,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   {!option.hidesValueInput && <span>{valueSegment}</span>}
                   <button
                     type="button"
-                    className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600"
+                    aria-label={`Remove filter ${chipText}`}
+                    className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                     onClick={() => {
                       handleRemoveAttribute(key);
                     }}
@@ -367,7 +421,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
           {activeAttributeCount > 1 && (
             <button
               type="button"
-              className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              className="rounded px-1.5 py-0.5 text-[11px] font-medium text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               onClick={handleClearAllAttributes}
             >
               Clear all
@@ -382,9 +436,6 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
       <div>
         {/* Header with summary */}
         {getHeader()}
-
-        {/* Attribute filter chips - always visible */}
-        {!isExpanded && getAttributeChips()}
 
         {/* Expandable content */}
         {isExpanded && (
@@ -447,6 +498,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                     });
                   }
                 }}
+                defaultShowAdvancedFilters={props.defaultShowAdvancedFilters}
                 telemetryAttributes={props.telemetryAttributes}
                 telemetryAttributeValueSuggestions={
                   props.telemetryAttributeValueSuggestions
@@ -484,6 +536,7 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                 <span>Display Settings</span>
                 {(props.data?.metricAliasData?.title ||
                   props.data?.color ||
+                  props.data?.chartType ||
                   hasActiveGroupColorPins ||
                   props.data?.transformAsRate ||
                   props.data?.overlayWithPreviousQuery ||
@@ -494,23 +547,60 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
               </button>
 
               {showDisplaySettings && (
-                <div className="mt-3 space-y-4">
-                  <MetricAlias
-                    data={props.data?.metricAliasData || defaultAliasData}
-                    onDataChanged={(data: MetricAliasData) => {
-                      props.onBlur?.();
-                      props.onFocus?.();
-                      if (props.onChange) {
-                        props.onChange({
-                          ...props.data,
-                          metricAliasData: data,
-                        });
+                <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <MetricAlias
+                      data={props.data?.metricAliasData || defaultAliasData}
+                      onDataChanged={(data: MetricAliasData) => {
+                        props.onBlur?.();
+                        props.onFocus?.();
+                        if (props.onChange) {
+                          props.onChange({
+                            ...props.data,
+                            metricAliasData: data,
+                          });
+                        }
+                      }}
+                      isFormula={false}
+                      hideVariableBadge={true}
+                      unitFamilyBasedOn={selectedMetricNativeUnit}
+                    />
+                  </div>
+
+                  {/* Chart type (Area is the render default when unset) */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Chart type
+                    </label>
+                    <Dropdown
+                      options={CHART_TYPE_OPTIONS}
+                      value={
+                        CHART_TYPE_OPTIONS.find((option: DropdownOption) => {
+                          return (
+                            option.value ===
+                            (props.data?.chartType || MetricChartType.AREA)
+                          );
+                        }) || undefined
                       }
-                    }}
-                    isFormula={false}
-                    hideVariableBadge={true}
-                    unitFamilyBasedOn={selectedMetricNativeUnit}
-                  />
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        props.onBlur?.();
+                        props.onFocus?.();
+                        if (props.onChange) {
+                          const chartType: MetricChartType | undefined =
+                            value === MetricChartType.LINE ||
+                            value === MetricChartType.BAR
+                              ? (value as MetricChartType)
+                              : undefined;
+                          props.onChange({
+                            ...props.data,
+                            chartType: chartType,
+                          });
+                        }
+                      }}
+                    />
+                  </div>
 
                   {/* Series color */}
                   <SeriesColorSelector
@@ -539,27 +629,29 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
 
                   {/* Per-group color pins (only for group-by queries) */}
                   {groupByKeys.length > 0 && (
-                    <SeriesGroupColorSelector
-                      groupByKeys={groupByKeys}
-                      valueSuggestions={
-                        props.telemetryAttributeValueSuggestions || {}
-                      }
-                      loadingKeys={props.loadingAttributeValueKeys || []}
-                      value={props.data?.colorsByGroup || {}}
-                      onChange={(colorsByGroup: Record<string, string>) => {
-                        props.onBlur?.();
-                        props.onFocus?.();
-                        if (props.onChange) {
-                          props.onChange({
-                            ...props.data,
-                            colorsByGroup:
-                              Object.keys(colorsByGroup).length > 0
-                                ? colorsByGroup
-                                : undefined,
-                          });
+                    <div className="sm:col-span-2">
+                      <SeriesGroupColorSelector
+                        groupByKeys={groupByKeys}
+                        valueSuggestions={
+                          props.telemetryAttributeValueSuggestions || {}
                         }
-                      }}
-                    />
+                        loadingKeys={props.loadingAttributeValueKeys || []}
+                        value={props.data?.colorsByGroup || {}}
+                        onChange={(colorsByGroup: Record<string, string>) => {
+                          props.onBlur?.();
+                          props.onFocus?.();
+                          if (props.onChange) {
+                            props.onChange({
+                              ...props.data,
+                              colorsByGroup:
+                                Object.keys(colorsByGroup).length > 0
+                                  ? colorsByGroup
+                                  : undefined,
+                            });
+                          }
+                        }}
+                      />
+                    </div>
                   )}
 
                   {/* Per-second rate transform (for cumulative counters) */}
@@ -601,51 +693,47 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                   )}
 
                   {/* Thresholds */}
-                  <div className="flex space-x-3">
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-gray-500 mb-1">
-                        Warning Threshold
-                      </label>
-                      <Input
-                        value={props.data?.warningThreshold?.toString() || ""}
-                        type={InputType.NUMBER}
-                        onChange={(value: string) => {
-                          props.onBlur?.();
-                          props.onFocus?.();
-                          if (props.onChange) {
-                            props.onChange({
-                              ...props.data,
-                              warningThreshold: value
-                                ? Number(value)
-                                : undefined,
-                            });
-                          }
-                        }}
-                        placeholder="e.g. 80"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-gray-500 mb-1">
-                        Critical Threshold
-                      </label>
-                      <Input
-                        value={props.data?.criticalThreshold?.toString() || ""}
-                        type={InputType.NUMBER}
-                        onChange={(value: string) => {
-                          props.onBlur?.();
-                          props.onFocus?.();
-                          if (props.onChange) {
-                            props.onChange({
-                              ...props.data,
-                              criticalThreshold: value
-                                ? Number(value)
-                                : undefined,
-                            });
-                          }
-                        }}
-                        placeholder="e.g. 95"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Warning Threshold
+                    </label>
+                    <Input
+                      value={props.data?.warningThreshold?.toString() || ""}
+                      type={InputType.NUMBER}
+                      onChange={(value: string) => {
+                        props.onBlur?.();
+                        props.onFocus?.();
+                        if (props.onChange) {
+                          props.onChange({
+                            ...props.data,
+                            warningThreshold: value ? Number(value) : undefined,
+                          });
+                        }
+                      }}
+                      placeholder="e.g. 80"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Critical Threshold
+                    </label>
+                    <Input
+                      value={props.data?.criticalThreshold?.toString() || ""}
+                      type={InputType.NUMBER}
+                      onChange={(value: string) => {
+                        props.onBlur?.();
+                        props.onFocus?.();
+                        if (props.onChange) {
+                          props.onChange({
+                            ...props.data,
+                            criticalThreshold: value
+                              ? Number(value)
+                              : undefined,
+                          });
+                        }
+                      }}
+                      placeholder="e.g. 95"
+                    />
                   </div>
                 </div>
               )}

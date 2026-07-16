@@ -93,7 +93,7 @@ function getTimeRangeKey(timeRange: RangeStartAndEndDateTime): string {
 }
 
 const headerIconButtonClassName: string =
-  "flex items-center justify-center rounded-lg p-1.5 transition-colors cursor-pointer border bg-gray-50 border-gray-200/60 hover:bg-gray-100";
+  "flex items-center justify-center rounded-lg p-1.5 transition-colors cursor-pointer border bg-gray-50 border-gray-200/60 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
 
 const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -200,7 +200,7 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
           className={headerIconButtonClassName}
           onClick={handleRefresh}
         >
-          <Icon icon={IconProp.Refresh} className="w-3.5 h-3.5 text-gray-500" />
+          <Icon icon={IconProp.Refresh} className="h-4 w-4 text-gray-500" />
         </button>
       </Tooltip>
       {hasExplorerTarget && (
@@ -213,7 +213,7 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
           >
             <Icon
               icon={IconProp.ExternalLink}
-              className="w-3.5 h-3.5 text-gray-500"
+              className="h-4 w-4 text-gray-500"
             />
           </button>
         </Tooltip>
@@ -248,9 +248,19 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * Long titles truncate instead of pushing the action row onto the next
+   * line — Card gives the title column min-w-0, so a block/truncate
+   * wrapper is all that's needed.
+   */
+  const truncatedTitle: ReactElement | undefined =
+    props.title !== undefined ? (
+      <span className="block truncate">{props.title}</span>
+    ) : undefined;
+
   return (
     <Card
-      {...(props.title !== undefined ? { title: props.title } : {})}
+      {...(truncatedTitle !== undefined ? { title: truncatedTitle } : {})}
       {...(props.description !== undefined
         ? { description: props.description }
         : {})}

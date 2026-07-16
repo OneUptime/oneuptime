@@ -55,6 +55,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
+import HintChip from "./HintChip";
 import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
@@ -733,10 +736,15 @@ function renderSeriesControls(input: {
    */
   resolveColor: SeriesColorResolver;
   /*
-   * Rendered at the top of the panel — used for the mixed-display-unit
-   * warning on overlay panels.
+   * Rendered in the panel's reserved meta slot — used for the
+   * mixed-display-unit warning on overlay panels.
    */
   warningElement?: ReactElement | undefined;
+  /*
+   * Human-readable display unit shown as the panel's unit badge. Empty
+   * string hides the badge (dimensionless metrics).
+   */
+  unitLabel: string;
   /*
    * Formats a series value (peak/avg/latest) for display next to its name,
    * using the same unit/precision as the chart's y-axis.
@@ -760,6 +768,7 @@ function renderSeriesControls(input: {
     serverTruncatedWithoutTopK,
     resolveColor,
     warningElement,
+    unitLabel,
     valueFormatter,
   } = input;
 
@@ -829,11 +838,28 @@ function renderSeriesControls(input: {
     serverTotalGroups !== undefined && serverTotalGroups > totalSeries;
 
   const hasStatus: boolean =
-    hiddenFromTopN > 0 ||
-    controls.hiddenSeries.size > 0 ||
-    Boolean(serverTruncatedWithoutTopK);
+    hiddenFromTopN > 0 || controls.hiddenSeries.size > 0;
 
   const visibleCount: number = displayableSeries.length;
+
+  /*
+   * Every visible series was hidden via the legend (not by a search
+   * filter, which has its own "no match" message) — the chart body above
+   * is empty, so say why.
+   */
+  const allSeriesHidden: boolean =
+    visibleCount === 0 &&
+    totalSeries > 0 &&
+    controls.hiddenSeries.size > 0 &&
+    searchQuery === "";
+
+  // Single-series charts keep the meta strip + legend chip but skip the
+  // search/sort toolbar — there is nothing to filter or rank.
+  const showToolbar: boolean =
+    totalSeries > 1 ||
+    needsTopN ||
+    isShowAllActive ||
+    controls.hiddenSeries.size > 0;
 
   /*
    * Label the show-all toggle with the true group count when the server
@@ -859,114 +885,18 @@ function renderSeriesControls(input: {
 
   return (
     <div className="space-y-2">
-      {warningElement || null}
+      {/*
+       * Reserved meta slot — unit badge, series count, and every
+       * truncation/mismatch banner live here so they always appear in
+       * the same place instead of floating between controls.
+       */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px]">
-          <svg
-            aria-hidden="true"
-            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M9 3.5a5.5 5.5 0 1 0 3.352 9.858l3.645 3.645a.75.75 0 1 0 1.06-1.06l-3.644-3.645A5.5 5.5 0 0 0 9 3.5ZM5 9a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
-            />
-          </svg>
-          <input
-            type="text"
-            value={controls.searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
-              updateControls(chartId, { searchQuery: e.target.value });
-            }}
-            placeholder={`Filter ${totalSeries} series`}
-            className="w-full rounded-md border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-          />
-        </div>
-        <div className="flex items-center gap-1.5">
-          <label htmlFor={`series-sort-${chartId}`} className="sr-only">
-            Sort series by
-          </label>
-          <select
-            id={`series-sort-${chartId}`}
-            value={sortBy}
-            title="Sort the node list by"
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
-              updateControls(chartId, {
-                sortBy: e.target.value as SeriesSortBy,
-              });
-            }}
-            className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-          >
-            {SERIES_SORT_OPTIONS.map((option: SeriesSortOption) => {
-              return (
-                <option key={option.key} value={option.key}>
-                  {`Sort: ${option.label}`}
-                </option>
-              );
-            })}
-          </select>
-          {onTopNChange &&
-          (needsTopN ||
-            isShowAllActive ||
-            effectiveTopN !== DEFAULT_TOP_N_SERIES) ? (
-            <>
-              <label htmlFor={`series-top-n-${chartId}`} className="sr-only">
-                Number of series to show
-              </label>
-              <select
-                id={`series-top-n-${chartId}`}
-                value={topNSelectValue}
-                title="How many series to fetch and plot"
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
-                  if (e.target.value === "all") {
-                    return;
-                  }
-                  onTopNChange(Number(e.target.value));
-                }}
-                className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-              >
-                {topNChoices.map((choice: number) => {
-                  return (
-                    <option key={choice} value={String(choice)}>
-                      {`Top ${choice}`}
-                    </option>
-                  );
-                })}
-                {topNSelectValue === "all" ? (
-                  <option value="all">All series</option>
-                ) : null}
-              </select>
-            </>
-          ) : null}
-          {needsTopN || isShowAllActive ? (
-            <button
-              type="button"
-              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-              onClick={(): void => {
-                onToggleShowAll();
-              }}
-            >
-              {isShowAllActive
-                ? `Top ${revertTopNLabel}`
-                : `Show all ${showAllCount}`}
-            </button>
-          ) : null}
-          {controls.hiddenSeries.size > 0 ? (
-            <button
-              type="button"
-              className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-              onClick={(): void => {
-                updateControls(chartId, {
-                  hiddenSeries: new Set<string>(),
-                });
-              }}
-            >
-              Show {controls.hiddenSeries.size} hidden
-            </button>
-          ) : null}
-        </div>
+        {unitLabel ? (
+          <span className="text-xs text-gray-500">{unitLabel}</span>
+        ) : null}
+        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
+          {totalSeries} series
+        </span>
         {serverHasMoreSeries ? (
           <span className="text-xs text-gray-500">
             Showing top{" "}
@@ -977,7 +907,149 @@ function renderSeriesControls(input: {
             series
           </span>
         ) : null}
+        {serverTruncatedWithoutTopK ? (
+          <HintChip variant="amber">
+            Results truncated by server row limit — data may be incomplete.
+          </HintChip>
+        ) : null}
+        {warningElement || null}
       </div>
+
+      {allSeriesHidden ? (
+        <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center">
+          <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+            <Icon icon={IconProp.EyeSlash} className="h-4 w-4 text-gray-400" />
+          </div>
+          <p className="mt-2 text-sm font-medium text-gray-900">
+            All series hidden
+          </p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Every series on this chart is hidden — click a series below to show
+            it again.
+          </p>
+          <button
+            type="button"
+            className="mt-3 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            onClick={(): void => {
+              updateControls(chartId, { hiddenSeries: new Set<string>() });
+            }}
+          >
+            Show all series
+          </button>
+        </div>
+      ) : null}
+
+      {showToolbar ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[220px]">
+            <svg
+              aria-hidden="true"
+              className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M9 3.5a5.5 5.5 0 1 0 3.352 9.858l3.645 3.645a.75.75 0 1 0 1.06-1.06l-3.644-3.645A5.5 5.5 0 0 0 9 3.5ZM5 9a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+              />
+            </svg>
+            <input
+              type="text"
+              value={controls.searchQuery}
+              aria-label="Filter series by name"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
+                updateControls(chartId, { searchQuery: e.target.value });
+              }}
+              placeholder={`Filter ${totalSeries} series`}
+              className="w-full rounded-md border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-700 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <label htmlFor={`series-sort-${chartId}`} className="sr-only">
+              Sort series by
+            </label>
+            <select
+              id={`series-sort-${chartId}`}
+              value={sortBy}
+              title="Sort the node list by"
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
+                updateControls(chartId, {
+                  sortBy: e.target.value as SeriesSortBy,
+                });
+              }}
+              className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            >
+              {SERIES_SORT_OPTIONS.map((option: SeriesSortOption) => {
+                return (
+                  <option key={option.key} value={option.key}>
+                    {`Sort: ${option.label}`}
+                  </option>
+                );
+              })}
+            </select>
+            {onTopNChange &&
+            (needsTopN ||
+              isShowAllActive ||
+              effectiveTopN !== DEFAULT_TOP_N_SERIES) ? (
+              <>
+                <label htmlFor={`series-top-n-${chartId}`} className="sr-only">
+                  Number of series to show
+                </label>
+                <select
+                  id={`series-top-n-${chartId}`}
+                  value={topNSelectValue}
+                  title="How many series to fetch and plot"
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>): void => {
+                    if (e.target.value === "all") {
+                      return;
+                    }
+                    onTopNChange(Number(e.target.value));
+                  }}
+                  className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                >
+                  {topNChoices.map((choice: number) => {
+                    return (
+                      <option key={choice} value={String(choice)}>
+                        {`Top ${choice}`}
+                      </option>
+                    );
+                  })}
+                  {topNSelectValue === "all" ? (
+                    <option value="all">All series</option>
+                  ) : null}
+                </select>
+              </>
+            ) : null}
+            {needsTopN || isShowAllActive ? (
+              <button
+                type="button"
+                className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                onClick={(): void => {
+                  onToggleShowAll();
+                }}
+              >
+                {isShowAllActive
+                  ? `Top ${revertTopNLabel}`
+                  : `Show all ${showAllCount}`}
+              </button>
+            ) : null}
+            {controls.hiddenSeries.size > 0 ? (
+              <button
+                type="button"
+                className="rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                onClick={(): void => {
+                  updateControls(chartId, {
+                    hiddenSeries: new Set<string>(),
+                  });
+                }}
+              >
+                Show {controls.hiddenSeries.size} hidden
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {hasStatus ? (
         <div className="text-xs text-gray-500">
@@ -992,12 +1064,6 @@ function renderSeriesControls(input: {
             <span className="text-gray-400">
               {" "}
               · {controls.hiddenSeries.size} hidden
-            </span>
-          ) : null}
-          {serverTruncatedWithoutTopK ? (
-            <span className="text-amber-600">
-              {" "}
-              · results truncated by server row limit — data may be incomplete
             </span>
           ) : null}
         </div>
@@ -1033,7 +1099,7 @@ function renderSeriesControls(input: {
                 onClick={(): void => {
                   toggleSeries(series.seriesName);
                 }}
-                className={`group inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition ${
+                className={`group inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
                   isHidden
                     ? "border-gray-100 bg-white text-gray-400 hover:border-gray-200 hover:text-gray-500"
                     : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900"
@@ -1330,6 +1396,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       displayableSeries: Array<SeriesPoint>,
     ) => SeriesColorResolver;
     hasColorCustomization: boolean;
+    unitLabel: string;
     valueFormatter: (value: number) => string;
     onShowAllToggled?: ((nextShowAll: boolean) => void) | undefined;
     onTopNChange?: ((topN: number) => void) | undefined;
@@ -1348,6 +1415,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       displayableSeries: Array<SeriesPoint>,
     ) => SeriesColorResolver;
     hasColorCustomization: boolean;
+    unitLabel: string;
     valueFormatter: (value: number) => string;
     onShowAllToggled?: ((nextShowAll: boolean) => void) | undefined;
     onTopNChange?: ((topN: number) => void) | undefined;
@@ -1419,9 +1487,14 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       input.onShowAllToggled?.(nextShowAll);
     };
 
-    // Build the controls panel — only when series cardinality warrants it.
+    /*
+     * The controls panel doubles as the chart's reserved meta slot (unit
+     * badge, series count, truncation banners) and its legend, so it
+     * renders whenever the chart has series at all — single-series charts
+     * just skip the search/sort toolbar inside it.
+     */
     const showControls: boolean =
-      totalSeries > 1 ||
+      totalSeries > 0 ||
       serverHasMoreSeries ||
       Boolean(input.serverTruncatedWithoutTopK) ||
       Boolean(input.warningElement);
@@ -1444,6 +1517,7 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           serverTruncatedWithoutTopK: input.serverTruncatedWithoutTopK,
           resolveColor,
           warningElement: input.warningElement,
+          unitLabel: input.unitLabel,
           valueFormatter: input.valueFormatter,
         })
       : undefined;
@@ -1603,10 +1677,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       );
       const unitMismatchWarning: ReactElement | undefined =
         distinctUnits.length > 1 ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <HintChip variant="amber">
             Overlaid queries use different units ({distinctUnits.join(", ")}) —
             they share one axis, so values may not be directly comparable.
-          </div>
+          </HintChip>
         ) : undefined;
 
       /*
@@ -1811,6 +1885,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         effectiveTopN,
         makeResolveColor,
         hasColorCustomization,
+        unitLabel: unit
+          ? ValueFormatter.getReadableUnit(unit, formatterOptions)
+          : "",
         valueFormatter: seriesValueFormatter,
         onShowAllToggled: (nextShowAll: boolean): void => {
           /*
@@ -1895,7 +1972,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
       const chart: Chart = {
         id: chartId,
         type: chartType,
-        title: firstQuery.metricAliasData?.title || queryMetricName || "",
+        title:
+          firstQuery.metricAliasData?.title ||
+          firstQuery.metricAliasData?.legend ||
+          queryMetricName ||
+          "",
         description: firstQuery.metricAliasData?.description || "",
         metricInfo,
         exemplarPoints: chartExemplars.length > 0 ? chartExemplars : undefined,
@@ -2143,6 +2224,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               };
             },
             hasColorCustomization: Boolean(formulaConfig.color),
+            unitLabel: formulaUnit
+              ? ValueFormatter.getReadableUnit(formulaUnit)
+              : "",
             valueFormatter: (value: number): string => {
               return ValueFormatter.formatValue(value, formulaUnit);
             },

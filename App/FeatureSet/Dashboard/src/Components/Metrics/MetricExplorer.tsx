@@ -45,12 +45,10 @@ import Query from "Common/Types/BaseDatabase/Query";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import HintChip from "./HintChip";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -72,6 +70,14 @@ const EVENT_OVERLAY_FETCH_LIMIT: number = 50;
 // Muted severity-ish marker colors (fallbacks when severity has no color).
 const INCIDENT_MARKER_COLOR: string = "#f87171"; // red-400
 const ALERT_MARKER_COLOR: string = "#fbbf24"; // amber-400
+
+// One toolbar-button idiom for the explorer's investigation row.
+const TOOLBAR_BUTTON_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+const TOOLBAR_BUTTON_IDLE_CLASS_NAME: string =
+  "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50";
+const TOOLBAR_BUTTON_ACTIVE_CLASS_NAME: string =
+  "border-indigo-300 bg-indigo-50 text-indigo-700";
 
 // One incident/alert mapped onto a chart time marker.
 interface EventMarker {
@@ -638,8 +644,14 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="mb-4 space-y-3">
+        {/* Row 1 — view identity & actions */}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {headerError ? (
+            <HintChip variant="red" className="mr-auto">
+              {headerError}
+            </HintChip>
+          ) : null}
           <TelemetrySavedViewsControl<MetricSavedView>
             modelType={MetricSavedView}
             savedViewNoun="Metric Explorer"
@@ -659,53 +671,6 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               } as Partial<MetricSavedView>
             }
           />
-          {headerError ? (
-            <span className="text-xs text-red-500">{headerError}</span>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleShowEvents}
-            title={
-              showEvents
-                ? "Hide incident and alert markers on the charts"
-                : "Show incident and alert markers on the charts"
-            }
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
-              showEvents
-                ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-            }`}
-          >
-            <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5" />
-            <span>
-              Show events
-              {showEvents && eventMarkers.length > 0
-                ? ` (${eventMarkers.length})`
-                : ""}
-            </span>
-          </button>
-          <Button
-            title="View Logs"
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            icon={IconProp.Logs}
-            tooltip="Open the logs explorer scoped to this time window"
-            onClick={() => {
-              navigateToSignalWithCurrentWindow(PageMap.LOGS);
-            }}
-          />
-          <Button
-            title="View Traces"
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            icon={IconProp.Layers}
-            tooltip="Open the traces explorer scoped to this time window"
-            onClick={() => {
-              navigateToSignalWithCurrentWindow(PageMap.TRACES);
-            }}
-          />
           <CopyTextButton
             textToBeCopied={ExplorerLink.buildExplorerUrl(
               metricViewData,
@@ -715,19 +680,6 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
             size="sm"
             variant="ghost"
             title="Copy a shareable link to this view"
-          />
-          <AutoRefreshControl
-            autoRefreshInterval={autoRefreshInterval}
-            onAutoRefreshIntervalChange={setAutoRefreshInterval}
-            onManualRefresh={handleRefresh}
-            isRefreshing={isFetchingResults}
-            lastRefreshedAt={lastRefreshedAt}
-            timeRangePicker={
-              <TelemetryTimeRangePicker
-                value={timeRangePickerValue}
-                onChange={handleTimeRangePicked}
-              />
-            }
           />
           <MoreMenu text="Actions">
             <MoreMenuItem
@@ -745,6 +697,80 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               }}
             />
           </MoreMenu>
+        </div>
+
+        {/* Row 2 — investigation toolbar: time window · signal pivots · overlays */}
+        <div className="flex flex-wrap items-center gap-y-2">
+          <AutoRefreshControl
+            autoRefreshInterval={autoRefreshInterval}
+            onAutoRefreshIntervalChange={setAutoRefreshInterval}
+            onManualRefresh={handleRefresh}
+            isRefreshing={isFetchingResults}
+            lastRefreshedAt={lastRefreshedAt}
+            timeRangePicker={
+              <TelemetryTimeRangePicker
+                value={timeRangePickerValue}
+                onChange={handleTimeRangePicked}
+              />
+            }
+          />
+          <div className="ml-3 flex items-center gap-2 border-l border-gray-200 pl-3">
+            <Tooltip text="Open the logs explorer scoped to this time window">
+              <button
+                type="button"
+                aria-label="View logs for this time window"
+                className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                onClick={() => {
+                  navigateToSignalWithCurrentWindow(PageMap.LOGS);
+                }}
+              >
+                <Icon icon={IconProp.Logs} className="h-4 w-4" />
+                <span>View Logs</span>
+              </button>
+            </Tooltip>
+            <Tooltip text="Open the traces explorer scoped to this time window">
+              <button
+                type="button"
+                aria-label="View traces for this time window"
+                className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                onClick={() => {
+                  navigateToSignalWithCurrentWindow(PageMap.TRACES);
+                }}
+              >
+                <Icon icon={IconProp.Layers} className="h-4 w-4" />
+                <span>View Traces</span>
+              </button>
+            </Tooltip>
+          </div>
+          <div className="ml-3 flex items-center border-l border-gray-200 pl-3">
+            <Tooltip
+              text={
+                showEvents
+                  ? "Hide incident and alert markers on the charts"
+                  : "Show incident and alert markers on the charts"
+              }
+            >
+              <button
+                type="button"
+                aria-label="Toggle incident and alert markers"
+                aria-pressed={showEvents}
+                onClick={toggleShowEvents}
+                className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
+                  showEvents
+                    ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
+                    : TOOLBAR_BUTTON_IDLE_CLASS_NAME
+                }`}
+              >
+                <Icon icon={IconProp.Bolt} className="h-4 w-4" />
+                <span>Show events</span>
+                {showEvents && eventMarkers.length > 0 ? (
+                  <span className="rounded-full bg-gray-100 px-1.5 text-xs text-gray-600">
+                    {eventMarkers.length}
+                  </span>
+                ) : null}
+              </button>
+            </Tooltip>
+          </div>
         </div>
       </div>
 
