@@ -14,6 +14,7 @@ import ColumnBillingAccessControl from "../../Types/Database/AccessControl/Colum
 import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
+import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -51,6 +52,7 @@ import { DEFAULT_STATUS_PAGE_LANGUAGE } from "../../Types/StatusPage/StatusPageL
 @EnableMCP()
 @AccessControlColumn("labels")
 @TenantColumn("projectId")
+@AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
