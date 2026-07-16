@@ -22,20 +22,20 @@ export default class ProjectMiddleware {
   @CaptureSpan()
   public static getProjectId(req: ExpressRequest): ObjectID | null {
     let projectId: ObjectID | null = null;
-    if (req.params && req.params["projectId"]) {
-      projectId = new ObjectID(req.params["projectId"]);
-    } else if (req.params && req.params["tenantid"]) {
-      projectId = new ObjectID(req.params["tenantid"]);
-    } else if (req.query && req.query["tenantid"]) {
-      projectId = new ObjectID(req.query["tenantid"] as string);
-    } else if (req.headers && req.headers["tenantid"]) {
-      // Header keys are automatically transformed to lowercase
-      projectId = new ObjectID(req.headers["tenantid"] as string);
-    } else if (req.headers && req.headers["projectid"]) {
-      // Header keys are automatically transformed to lowercase
-      projectId = new ObjectID(req.headers["projectid"] as string);
-    } else if (req.body && req.body.projectId) {
-      projectId = new ObjectID(req.body.projectId as string);
+
+    const rawId: string | undefined | Array<string> =
+      (req.params && req.params["projectId"]) ||
+      (req.params && req.params["tenantid"]) ||
+      (req.query && req.query["tenantid"]) ||
+      (req.headers && req.headers["tenantid"]) ||
+      (req.headers && req.headers["projectid"]) ||
+      (req.body && req.body.projectId);
+
+    if (rawId) {
+      const idStr: string = Array.isArray(rawId) ? rawId[0] : rawId.toString();
+      if (ObjectID.isValidUUID(idStr)) {
+        projectId = new ObjectID(idStr);
+      }
     }
 
     return projectId;
