@@ -6,6 +6,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import UserType from "../../Types/UserType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
+import ObjectID from "../../Types/ObjectID";
 
 export default class CommonAPI {
   @CaptureSpan()
@@ -52,7 +53,11 @@ export default class CommonAPI {
       props.isMultiTenantRequest = true;
     }
 
-    if (IsBillingEnabled && props.tenantId) {
+    if (
+      IsBillingEnabled &&
+      props.tenantId &&
+      ObjectID.isValidUUID(props.tenantId.toString())
+    ) {
       const plan: {
         plan: PlanType | null;
         isSubscriptionUnpaid: boolean;
