@@ -17,7 +17,8 @@
   --ou-text-muted: #6b7280;
   --ou-text-subtle: #9ca3af;
   --ou-chart-grid: #f1f5f9;
-  --ou-chart-tick: #94a3b8;
+  /* Axis ticks are 10px, so they need >= 4.5:1 against the light surface. */
+  --ou-chart-tick: #6b7280;
   --ou-chart-series-neutral: #64748b;
   --ou-chart-cursor: #d1d5db;
   --ou-chart-track: #eef2f7;
@@ -577,6 +578,7 @@ html.dark :is(.bg-rose-50, .bg-rose-100, [class~="bg-rose-50/60"]) {
 }
 
 html.dark :is(
+    .text-red-500,
     .text-red-600,
     .text-red-700,
     .text-red-800,
@@ -652,6 +654,7 @@ html.dark :is(
 }
 
 html.dark :is(
+    .text-blue-500,
     .text-blue-600,
     .text-blue-700,
     .text-blue-800,
@@ -661,6 +664,7 @@ html.dark :is(
 }
 
 html.dark :is(
+    .text-indigo-500,
     .text-indigo-600,
     .text-indigo-700,
     .text-indigo-800,
@@ -671,6 +675,7 @@ html.dark :is(
 }
 
 html.dark :is(
+    .text-violet-500,
     .text-violet-600,
     .text-violet-700,
     .text-violet-800,
@@ -697,6 +702,7 @@ html.dark :is(.text-pink-600, .text-pink-700) {
 }
 
 html.dark :is(
+    .text-rose-500,
     .text-rose-600,
     .text-rose-700,
     .text-rose-800,

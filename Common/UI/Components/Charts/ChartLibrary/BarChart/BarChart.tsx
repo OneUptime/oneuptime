@@ -836,6 +836,7 @@ const BarChart: React.ForwardRefExoticComponent<
                   layout !== "vertical" ? "translate(0, 6)" : undefined,
                 fontSize: 10,
                 fontWeight: 500,
+                fill: "var(--ou-chart-tick)",
               }}
               fill=""
               stroke=""
@@ -904,6 +905,7 @@ const BarChart: React.ForwardRefExoticComponent<
                     : "translate(0, 0)",
                 fontSize: 10,
                 fontWeight: 500,
+                fill: "var(--ou-chart-tick)",
               }}
               {...(layout !== "vertical"
                 ? {
