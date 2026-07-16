@@ -572,7 +572,11 @@ export default class API {
       }
     }
 
-    throw new APIException(`Request failed to ${url}. ${errorMessage}`, error);
+    return new HTTPErrorResponse(
+      0,
+      { error: `Request failed to ${url}. ${errorMessage}` },
+      {},
+    );
   }
 
   public static getFriendlyErrorMessage(error: AxiosError | Error): string {
