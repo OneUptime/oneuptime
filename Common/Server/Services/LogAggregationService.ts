@@ -828,7 +828,11 @@ export class LogAggregationService {
 
     if (request.attributes && Object.keys(request.attributes).length > 0) {
       for (const [attrKey, attrValue] of Object.entries(request.attributes)) {
-        LogAggregationService.validateFacetKey(attrKey);
+        try {
+          LogAggregationService.validateFacetKey(attrKey);
+        } catch {
+          continue;
+        }
 
         /*
          * Match attribute keys case-insensitively — keys in the data come
