@@ -17,10 +17,14 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async getOwnerTeamIdsForDevice(
     networkDeviceId: ObjectID,
+    projectId?: ObjectID | undefined,
   ): Promise<Array<ObjectID>> {
     const ownerTeams: Array<Model> = await this.findBy({
       query: {
         networkDeviceId: networkDeviceId,
+        // Scope to the project when known so a monitor step referencing a
+        // device from another project can never fan out its owners.
+        ...(projectId ? { projectId: projectId } : {}),
       },
       select: {
         _id: true,

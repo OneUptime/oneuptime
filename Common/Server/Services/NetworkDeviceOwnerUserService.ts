@@ -25,10 +25,14 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async getOwnerUserIdsForDevice(
     networkDeviceId: ObjectID,
+    projectId?: ObjectID | undefined,
   ): Promise<Array<ObjectID>> {
     const ownerUsers: Array<Model> = await this.findBy({
       query: {
         networkDeviceId: networkDeviceId,
+        // Scope to the project when known so a monitor step referencing a
+        // device from another project can never fan out its owners.
+        ...(projectId ? { projectId: projectId } : {}),
       },
       select: {
         _id: true,
@@ -91,12 +95,17 @@ export class Service extends DatabaseService<Model> {
     }
 
     const networkDeviceId: ObjectID = new ObjectID(networkDeviceIdAsString);
+    const projectId: ObjectID | undefined = data.monitor.projectId;
 
     return {
-      ownerUserIds: await this.getOwnerUserIdsForDevice(networkDeviceId),
+      ownerUserIds: await this.getOwnerUserIdsForDevice(
+        networkDeviceId,
+        projectId,
+      ),
       ownerTeamIds:
         await NetworkDeviceOwnerTeamService.getOwnerTeamIdsForDevice(
           networkDeviceId,
+          projectId,
         ),
     };
   }
