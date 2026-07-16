@@ -462,46 +462,6 @@ const StatusPageDelete: FunctionComponent<
           modelId: modelId,
         }}
       />
-
-      <CardModelDetail<StatusPage>
-        name="Status Page > Settings"
-        cardProps={{
-          title: "MCP Server",
-          description:
-            "Control whether AI agents can read this status page over the OneUptime MCP server",
-        }}
-        editButtonText="Edit Settings"
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              enableMcpServer: true,
-            },
-            title: "Enable MCP Server",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            description:
-              "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: StatusPage,
-          id: "model-detail-status-page-mcp-server",
-          fields: [
-            {
-              field: {
-                enableMcpServer: true,
-              },
-              fieldType: FieldType.Boolean,
-              title: "Enable MCP Server",
-              description:
-                "When enabled, AI agents can read this status page over the public OneUptime MCP server. Turning this off does not hide the status page website, its RSS feed, or its public JSON API.",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
     </Fragment>
   );
 };

@@ -24,6 +24,8 @@ const CONTENT_DIR: string = path.resolve(
   "../../App/FeatureSet/Docs/Content",
 );
 
+const FENCE_LINE: RegExp = /^\s*```/;
+
 type Broken = {
   file: string;
   line: number;
@@ -60,7 +62,7 @@ const checkFile: (file: string) => Array<Broken> = (
 
   let inFence: boolean = false;
   lines.forEach((line: string, index: number): void => {
-    if (/^\s*```/.test(line)) {
+    if (FENCE_LINE.test(line)) {
       inFence = !inFence;
       return;
     }

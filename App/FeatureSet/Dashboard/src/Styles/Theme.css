@@ -285,14 +285,48 @@ html.dark :is(.placeholder-gray-400, .placeholder-gray-500)::placeholder {
   color: var(--ou-text-subtle);
 }
 
-/* Neutral borders, dividers, rings and SVG utility colors. */
-html.dark :is(.border-gray-50, .border-gray-100, .border-slate-200),
+/*
+ * Neutral borders, dividers, rings and SVG utility colors.
+ *
+ * Tailwind emits one class token per variant, and a class selector matches
+ * only the exact token: `.border-gray-200` never matches `sm:border-gray-200`,
+ * so an uncovered variant keeps its literal light Tailwind color and paints
+ * near-white on a dark surface. Two kinds of variant, handled differently:
+ *
+ *   Responsive (sm:/md:/lg:/xl:) -- the same static color at a different
+ *   breakpoint. Listed alongside the bare token, one color per step below.
+ *
+ *   State (hover:/group-hover:/focus-within:) -- a DIFFERENT color, and only
+ *   while the state holds. These need their own state-qualified rules; folding
+ *   them in here would paint the state color permanently. For the same reason
+ *   never widen these to [class*="border-gray-200"] -- that substring also
+ *   matches `hover:border-gray-200`, which would give a permanent border to
+ *   every `border-transparent hover:border-gray-200` element.
+ *
+ * When adding a variant to a component, add its token to the matching step.
+ */
+html.dark :is(
+    .border-gray-50,
+    .border-gray-100,
+    .border-slate-200,
+    [class~="sm:border-gray-100"],
+    [class~="md:border-gray-100"],
+    [class~="lg:border-gray-100"],
+    [class~="xl:border-gray-100"]
+  ),
 html.dark [class~="border-gray-100/80"],
 html.dark [class~="!border-gray-100"] {
   border-color: var(--ou-border-subtle) !important;
 }
 
-html.dark :is(.border-gray-200, .border-slate-300),
+html.dark :is(
+    .border-gray-200,
+    .border-slate-300,
+    [class~="sm:border-gray-200"],
+    [class~="md:border-gray-200"],
+    [class~="lg:border-gray-200"],
+    [class~="xl:border-gray-200"]
+  ),
 html.dark :is(
     [class~="border-gray-200/60"],
     [class~="border-gray-200/70"],
@@ -301,7 +335,13 @@ html.dark :is(
   border-color: var(--ou-border-default);
 }
 
-html.dark .border-gray-300,
+html.dark :is(
+    .border-gray-300,
+    [class~="sm:border-gray-300"],
+    [class~="md:border-gray-300"],
+    [class~="lg:border-gray-300"],
+    [class~="xl:border-gray-300"]
+  ),
 html.dark [class~="!border-gray-300"] {
   border-color: var(--ou-border-strong) !important;
 }
@@ -316,16 +356,48 @@ html.dark [class~="focus-within:border-gray-300"]:focus-within {
   border-color: #64748b !important;
 }
 
-html.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
-html.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
-html.dark [class~="divide-gray-100/80"] > :not([hidden]) ~ :not([hidden]),
-html.dark [class~="lg:divide-gray-100"] > :not([hidden]) ~ :not([hidden]) {
+/*
+ * A group-hover border rides alongside a hover background change, so it stays
+ * subtle -- the background is what carries the hover affordance.
+ */
+html.dark .group:hover [class~="group-hover:border-gray-200"] {
   border-color: var(--ou-border-subtle);
 }
 
-html.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
-html.dark .divide-gray-300 > :not([hidden]) ~ :not([hidden]) {
+/* Divider scale: bare + responsive variants share one color per step. */
+html.dark :is(
+    .divide-gray-50,
+    .divide-gray-100,
+    [class~="divide-gray-100/80"],
+    [class~="sm:divide-gray-100"],
+    [class~="md:divide-gray-100"],
+    [class~="lg:divide-gray-100"],
+    [class~="xl:divide-gray-100"]
+  ) > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--ou-border-subtle);
+}
+
+html.dark :is(
+    .divide-gray-200,
+    .divide-gray-300,
+    [class~="sm:divide-gray-200"],
+    [class~="md:divide-gray-200"],
+    [class~="lg:divide-gray-200"],
+    [class~="xl:divide-gray-200"]
+  ) > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--ou-border-default);
+}
+
+/*
+ * Exception, and the only one in the scale: the TopSection rule spans the full
+ * header width, so it reads subtle in dark even though gray-200 dividers map to
+ * --ou-border-default above. Light mode keeps gray-200, where a subtler step
+ * would all but vanish against the white header -- which is why this is a theme
+ * exception and not a different token on the component.
+ * Must stay after the scale: equal specificity, so source order decides.
+ */
+html.dark [class~="lg:divide-gray-200"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--ou-border-subtle);
 }
 
 html.dark :is(
