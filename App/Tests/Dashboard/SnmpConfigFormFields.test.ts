@@ -481,8 +481,9 @@ function readNetworkDevicePage(relativePath: string): string {
 
 describe("NetworkDevice SNMP forms route through getSnmpConfigFormFields", () => {
   test.each(SNMP_FORM_PAGES)("%s spreads the shared fields", (page: string) => {
+    // Matches both the bare call and the options form the scan page uses.
     expect(readNetworkDevicePage(page)).toContain(
-      "...getSnmpConfigFormFields(),",
+      "...getSnmpConfigFormFields(",
     );
   });
 

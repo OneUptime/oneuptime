@@ -480,8 +480,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "SNMP v3 Authentication Protocol",
-    description:
-      "SNMP v3 authentication protocol: MD5, SHA, SHA256, or SHA512",
+    description: "SNMP v3 authentication protocol: MD5, SHA, SHA256, or SHA512",
     example: "SHA",
   })
   @Column({
@@ -584,7 +583,8 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "SNMP v3 Privacy Key",
-    description: "SNMP v3 privacy (encryption) passphrase tried against every host",
+    description:
+      "SNMP v3 privacy (encryption) passphrase tried against every host",
   })
   @Column({
     nullable: true,
