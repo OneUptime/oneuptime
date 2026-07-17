@@ -278,6 +278,15 @@ export default class NetworkFlow extends AnalyticsBaseModel {
        */
       shardingKey: "cityHash64(projectId, networkDeviceId, flowStartAt)",
       tableSettings: "non_replicated_deduplication_window = 10000",
+      /*
+       * Flows are the highest-volume rows in the product (a single busy
+       * router can export thousands per second), so the table must never
+       * grow unboundedly. Fixed-window TTL for now; per-project retention
+       * (a retentionDate column computed at ingest, like Log/Metric) is
+       * the phase-2 follow-up. Keyed on server-assigned ingestedAt so a
+       * device with a wrong clock cannot make rows expire early.
+       */
+      ttlExpression: "ingestedAt + INTERVAL 30 DAY DELETE",
       defaultSortColumn: "flowStartAt",
     });
   }

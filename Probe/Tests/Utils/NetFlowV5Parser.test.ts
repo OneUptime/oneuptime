@@ -342,6 +342,110 @@ describe("NetFlowV5Parser", () => {
     expect(NetFlowV5Parser.parse(datagram)).toBeNull();
   });
 
+  test("decodes a flow stamped just before a sysUptime wrap as its real age", () => {
+    /*
+     * The device's 32-bit ms uptime counter wrapped between the flow being
+     * stamped and the export being sent: the record's timestamps sit just
+     * below 2^32 while the header's sysUptime has restarted near zero. The
+     * flow's true age is small — the delta must be interpreted mod 2^32,
+     * not taken at face value.
+     */
+    const buffer: Buffer = Buffer.alloc(
+      HEADER_LENGTH_BYTES + RECORD_LENGTH_BYTES,
+    );
+
+    buffer.writeUInt16BE(5, 0); // version
+    buffer.writeUInt16BE(1, 2); // count
+    buffer.writeUInt32BE(5000, 4); // sysUptime: 5s after the wrap
+    buffer.writeUInt32BE(UNIX_SECS, 8);
+    buffer.writeUInt32BE(0, 12); // unixNsecs
+
+    writeRecord(buffer, 0, {
+      srcAddr: [10, 0, 0, 1],
+      dstAddr: [10, 0, 0, 2],
+      dPkts: 1,
+      dOctets: 60,
+      first: 0xffffffff - 59999, // 60s + 5s before the export
+      last: 0xffffffff - 9999, // 10s + 5s before the export
+      srcPort: 1,
+      dstPort: 2,
+      prot: 6,
+    });
+
+    const parsed: ParsedNetFlowV5Datagram | null =
+      NetFlowV5Parser.parse(buffer);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.records[0]!.flowStartAt.getTime()).toBe(
+      UNIX_SECS * 1000 - 65000,
+    );
+    expect(parsed!.records[0]!.flowEndAt.getTime()).toBe(
+      UNIX_SECS * 1000 - 15000,
+    );
+  });
+
+  test("clamps a small positive uptime delta to the export time instead of backdating it a wrap period", () => {
+    /*
+     * Some exporters stamp `last` a beat AFTER the header's sysUptime (the
+     * flow cache's timer runs ahead of the export path's). That small
+     * positive delta is exporter jitter, not a 49.7-day counter wrap — the
+     * flow must come out at (or clamped to) the export time, not ~49.7
+     * days in the past.
+     */
+    const datagram: Buffer = buildDatagram([
+      {
+        srcAddr: [10, 0, 0, 1],
+        dstAddr: [10, 0, 0, 2],
+        dPkts: 1,
+        dOctets: 60,
+        first: SYS_UPTIME_MS - 1000,
+        last: SYS_UPTIME_MS + 50, // 50ms ahead of the header's sysUptime
+        srcPort: 1,
+        dstPort: 2,
+        prot: 6,
+      },
+    ]);
+
+    const parsed: ParsedNetFlowV5Datagram | null =
+      NetFlowV5Parser.parse(datagram);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.records[0]!.flowStartAt.getTime()).toBe(
+      UNIX_SECS * 1000 - 1000,
+    );
+    /*
+     * +50ms lands within the export's nanosecond residual (+500ms), so it
+     * survives as-is; the point is it is NOT ~49.7 days in the past.
+     */
+    expect(parsed!.records[0]!.flowEndAt.getTime()).toBe(UNIX_SECS * 1000 + 50);
+  });
+
+  test("unpacks the sampling mode and interval from the packed header field", () => {
+    const datagram: Buffer = buildDatagram([
+      {
+        srcAddr: [10, 0, 0, 1],
+        dstAddr: [10, 0, 0, 2],
+        dPkts: 1,
+        dOctets: 60,
+        first: SYS_UPTIME_MS - 1000,
+        last: SYS_UPTIME_MS - 500,
+        srcPort: 1,
+        dstPort: 2,
+        prot: 6,
+      },
+    ]);
+
+    // Deterministic (mode 1) 1-in-100 sampling: 0b01 << 14 | 100.
+    datagram.writeUInt16BE((1 << 14) | 100, 22);
+
+    const parsed: ParsedNetFlowV5Datagram | null =
+      NetFlowV5Parser.parse(datagram);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed!.header.samplingMode).toBe(1);
+    expect(parsed!.header.samplingInterval).toBe(100);
+  });
+
   test("returns null for a count outside the 1-30 bound", () => {
     const zeroCount: Buffer = Buffer.alloc(HEADER_LENGTH_BYTES);
     writeHeader(zeroCount, { count: 0 });

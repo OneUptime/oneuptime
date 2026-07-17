@@ -620,7 +620,9 @@ export default class SnmpMonitor {
        */
       let cdpNeighbors: Array<CdpNeighbor> | undefined = undefined;
       const isLikelyCisco: boolean = Boolean(
-        systemInfo?.sysObjectId?.replace(/^\./, "").startsWith("1.3.6.1.4.1.9."),
+        systemInfo?.sysObjectId
+          ?.replace(/^\./, "")
+          .startsWith("1.3.6.1.4.1.9."),
       );
       if (isLikelyCisco || !lldpNeighbors || lldpNeighbors.length === 0) {
         try {
@@ -632,7 +634,13 @@ export default class SnmpMonitor {
         }
       }
 
-      return { interfaces, systemInfo, entityInfo, lldpNeighbors, cdpNeighbors };
+      return {
+        interfaces,
+        systemInfo,
+        entityInfo,
+        lldpNeighbors,
+        cdpNeighbors,
+      };
     } finally {
       session.close();
     }
@@ -709,9 +717,17 @@ export default class SnmpMonitor {
     return hasAnyField ? entityInfo : undefined;
   }
 
+  /*
+   * Returns an EMPTY array (not undefined) when the walk succeeds but the
+   * cache has no rows: the inventory writer treats undefined as "walk did
+   * not run, keep the stored snapshot", so returning undefined here would
+   * fossilize stale CDP neighbors as ghost topology edges after a link is
+   * unplugged or CDP is disabled. A failed walk still surfaces as the
+   * caller's catch → undefined → snapshot kept.
+   */
   private static async walkCdpNeighbors(
     session: snmp.Session,
-  ): Promise<Array<CdpNeighbor> | undefined> {
+  ): Promise<Array<CdpNeighbor>> {
     const table: SnmpTableRows = await SnmpMonitor.getTableColumns(
       session,
       CDP_CACHE_TABLE_OID,
@@ -743,7 +759,7 @@ export default class SnmpMonitor {
       });
     }
 
-    return neighbors.length > 0 ? neighbors : undefined;
+    return neighbors;
   }
 
   private static async walkLldpNeighbors(

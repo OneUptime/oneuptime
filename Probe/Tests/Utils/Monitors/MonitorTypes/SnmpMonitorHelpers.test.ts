@@ -48,9 +48,7 @@ type SnmpMonitorHelpers = {
   isPrintableBuffer: (value: Buffer) => boolean;
   toMetricNumber: (value: unknown) => number | undefined;
   walkEntityInfo: (session: unknown) => Promise<SnmpEntityInfo | undefined>;
-  walkCdpNeighbors: (
-    session: unknown,
-  ) => Promise<Array<CdpNeighbor> | undefined>;
+  walkCdpNeighbors: (session: unknown) => Promise<Array<CdpNeighbor>>;
   readSystemInfo: (session: unknown) => Promise<SnmpSystemInfo>;
 };
 
@@ -180,7 +178,9 @@ describe("SnmpMonitor.parseVarbindValue", () => {
   test("a Counter64 buffer above the 64-bit range degrades to an empty string, not garbage", () => {
     const value: number | string = Internal.parseVarbindValue({
       type: snmp.ObjectType.Counter64,
-      value: Buffer.from([0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
+      value: Buffer.from([
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+      ]),
     });
 
     expect(value).toBe("");
@@ -353,9 +353,9 @@ describe("SnmpMonitor.toMetricNumber", () => {
   });
 
   test("an 8-byte buffer decodes big-endian (Counter64 wire form)", () => {
-    expect(Internal.toMetricNumber(counter64Buffer(BigInt("10000000000")))).toBe(
-      10000000000,
-    );
+    expect(
+      Internal.toMetricNumber(counter64Buffer(BigInt("10000000000"))),
+    ).toBe(10000000000);
 
     // Big-endian, not little-endian: 0x0000000000000100 is 256, not 2^56.
     const buffer: Buffer = Buffer.alloc(8);
@@ -402,9 +402,12 @@ describe("SnmpMonitor.toMetricNumber", () => {
     ["NaN", NaN],
     ["Infinity", Infinity],
     ["-Infinity", -Infinity],
-  ])("non-finite number %s yields undefined", (_label: string, value: number) => {
-    expect(Internal.toMetricNumber(value)).toBeUndefined();
-  });
+  ])(
+    "non-finite number %s yields undefined",
+    (_label: string, value: number) => {
+      expect(Internal.toMetricNumber(value)).toBeUndefined();
+    },
+  );
 
   test.each([
     ["a numeric string", "42"],
@@ -522,7 +525,9 @@ describe("SnmpMonitor.walkEntityInfo — chassis selection", () => {
   });
 
   test("an empty table produces undefined", async () => {
-    expect(await Internal.walkEntityInfo(createTableSession({}))).toBeUndefined();
+    expect(
+      await Internal.walkEntityInfo(createTableSession({})),
+    ).toBeUndefined();
   });
 
   test("all identity fields map from their ENTITY-MIB columns and are trimmed", async () => {
@@ -591,7 +596,7 @@ describe("SnmpMonitor.walkCdpNeighbors", () => {
       },
     });
 
-    const neighbors: Array<CdpNeighbor> | undefined =
+    const neighbors: Array<CdpNeighbor> =
       await Internal.walkCdpNeighbors(session);
 
     expect(neighbors).toEqual([
@@ -617,7 +622,7 @@ describe("SnmpMonitor.walkCdpNeighbors", () => {
       },
     });
 
-    const neighbors: Array<CdpNeighbor> | undefined =
+    const neighbors: Array<CdpNeighbor> =
       await Internal.walkCdpNeighbors(session);
 
     expect(neighbors).toEqual([
@@ -630,10 +635,14 @@ describe("SnmpMonitor.walkCdpNeighbors", () => {
     ]);
   });
 
-  test("an empty CDP cache produces undefined, not an empty array", async () => {
-    expect(
-      await Internal.walkCdpNeighbors(createTableSession({})),
-    ).toBeUndefined();
+  test("an empty CDP cache produces an empty array so stale neighbors are cleared", async () => {
+    /*
+     * Must be [] (a successful walk that found nothing), not undefined
+     * (walk not attempted): the inventory writer only overwrites the stored
+     * CDP snapshot when the value is defined, so returning undefined here
+     * would fossilize stale neighbors as ghost topology edges forever.
+     */
+    expect(await Internal.walkCdpNeighbors(createTableSession({}))).toEqual([]);
   });
 });
 

@@ -274,7 +274,14 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           };
           setIsDragging(true);
           suppressClick.current = false;
-          event.currentTarget.setPointerCapture?.(event.pointerId);
+          /*
+           * Capture is NOT taken here: pointer capture retargets the
+           * eventual click to the SVG (Chromium/Safari retarget to the
+           * capture element, Firefox to the common ancestor), which would
+           * stop node/edge onClick from ever firing. It is taken in
+           * onPointerMove once the pointer has actually moved — the same
+           * threshold that suppresses the click.
+           */
         }}
         onPointerMove={(event: React.PointerEvent<SVGSVGElement>) => {
           const drag: {
@@ -299,7 +306,16 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           drag.x = event.clientX;
           drag.y = event.clientY;
           if (drag.moved > 5) {
+            /*
+             * A real pan is in progress: the click is suppressed anyway, so
+             * capturing now (and not on pointerdown) keeps the drag tracking
+             * outside the SVG without eating stationary clicks on nodes and
+             * edges (capture retargets the click to the capturing element).
+             */
             suppressClick.current = true;
+            if (!event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+              event.currentTarget.setPointerCapture?.(event.pointerId);
+            }
           }
           setView((current: ViewTransform): ViewTransform => {
             return { ...current, tx: current.tx + dx, ty: current.ty + dy };

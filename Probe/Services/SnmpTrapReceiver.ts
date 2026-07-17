@@ -31,6 +31,13 @@ const V1_GENERIC_TRAP_OIDS: Record<number, string> = {
 
 const SNMP_TRAP_OID_VARBIND: string = "1.3.6.1.6.3.1.1.4.1.0";
 
+/*
+ * Bound each trap forward so a hung ingest cannot leave POSTs pending
+ * indefinitely under a trap storm (same bound the NetFlow/syslog forwards
+ * use).
+ */
+const FORWARD_REQUEST_TIMEOUT_MS: number = 30000;
+
 export default class SnmpTrapReceiver {
   private static forwardedThisMinute: number = 0;
   private static minuteWindowStartedAt: number = 0;
@@ -137,9 +144,9 @@ export default class SnmpTrapReceiver {
      * mutates in place, so calling it on the shared global would permanently
      * append "/probe/snmp-trap" to the base URL used by every probe request.
      */
-    const ingestUrl: URL = URL.fromString(
-      PROBE_INGEST_URL.toString(),
-    ).addRoute("/probe/snmp-trap");
+    const ingestUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+      "/probe/snmp-trap",
+    );
 
     await API.fetch<JSONObject>({
       method: HTTPMethod.POST,
@@ -150,6 +157,7 @@ export default class SnmpTrapReceiver {
       },
       options: {
         ...ProxyConfig.getRequestProxyAgents(ingestUrl),
+        timeout: FORWARD_REQUEST_TIMEOUT_MS,
       },
     });
   }

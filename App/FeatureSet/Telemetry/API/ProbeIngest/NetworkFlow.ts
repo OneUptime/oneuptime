@@ -6,7 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import NetworkFlowRecord from "Common/Types/NetFlow/NetworkFlowRecord";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
+import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import NetworkFlowService from "Common/Server/Services/NetworkFlowService";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import Express, {
@@ -76,18 +76,22 @@ router.post(
 );
 
 /*
- * Correlates each flow to a NetworkDevice by the EXPORTER's IP (the
- * router/switch that sent the NetFlow datagram — devices are matched by
- * probeId + hostname, the same match the syslog and SNMP trap paths use)
- * and writes the flow into the ClickHouse NetworkFlow table. Flows whose
- * exporter matches no device polled by this probe are dropped — without a
- * device there is no project to attribute the flow to.
+ * Correlates each flow to the NetworkDevices matching the EXPORTER's IP
+ * (the router/switch that sent the NetFlow datagram — devices are matched
+ * by probeId + hostname, the same match the syslog and SNMP trap paths
+ * use) and writes the flow into the ClickHouse NetworkFlow table. On a
+ * GLOBAL probe the same hostname can be registered by devices in several
+ * projects, so the flow fans out to EVERY match (one row per device) —
+ * the policy the trap path established — instead of landing in whichever
+ * single project the database returns first. Flows whose exporter matches
+ * no device polled by this probe are dropped — without a device there is
+ * no project to attribute the flow to.
  */
 async function processFlowRecords(
   probeId: ObjectID,
   rawRecords: Array<JSONObject>,
 ): Promise<void> {
-  const deviceCache: Dictionary<NetworkDevice | null> = {};
+  const deviceCache: Dictionary<Array<NetworkDevice>> = {};
 
   const rows: Array<JSONObject> = [];
   let unmatched: number = 0;
@@ -108,38 +112,45 @@ async function processFlowRecords(
       const deviceCacheKey: string = flowRecord.exporterIpAddress;
 
       if (!(deviceCacheKey in deviceCache)) {
-        deviceCache[deviceCacheKey] = await findDeviceForExporter(
-          probeId,
-          flowRecord.exporterIpAddress,
-        );
+        deviceCache[deviceCacheKey] =
+          await NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
+            probeId: probeId,
+            sourceIpAddress: flowRecord.exporterIpAddress,
+          });
       }
 
-      const device: NetworkDevice | null = deviceCache[deviceCacheKey] || null;
+      const devices: Array<NetworkDevice> = deviceCache[deviceCacheKey] || [];
 
-      if (!device || !device.id || !device.projectId) {
+      if (devices.length === 0) {
         unmatched++;
         continue;
       }
 
-      rows.push({
-        _id: ObjectID.generateTimeOrdered().toString(),
-        createdAt: OneUptimeDate.toClickhouseDateTime(ingestedAt),
-        projectId: device.projectId.toString(),
-        networkDeviceId: device.id.toString(),
-        exporterIp: flowRecord.exporterIpAddress,
-        srcIp: flowRecord.sourceIpAddress,
-        dstIp: flowRecord.destinationIpAddress,
-        srcPort: flowRecord.sourcePort,
-        dstPort: flowRecord.destinationPort,
-        protocol: flowRecord.protocolNumber,
-        octets: flowRecord.octets,
-        packets: flowRecord.packets,
-        flowStartAt: OneUptimeDate.toClickhouseDateTime64(
-          flowRecord.flowStartAt,
-        ),
-        flowEndAt: OneUptimeDate.toClickhouseDateTime64(flowRecord.flowEndAt),
-        ingestedAt: OneUptimeDate.toClickhouseDateTime64(ingestedAt),
-      } satisfies JSONObject);
+      for (const device of devices) {
+        if (!device.id || !device.projectId) {
+          continue;
+        }
+
+        rows.push({
+          _id: ObjectID.generateTimeOrdered().toString(),
+          createdAt: OneUptimeDate.toClickhouseDateTime(ingestedAt),
+          projectId: device.projectId.toString(),
+          networkDeviceId: device.id.toString(),
+          exporterIp: flowRecord.exporterIpAddress,
+          srcIp: flowRecord.sourceIpAddress,
+          dstIp: flowRecord.destinationIpAddress,
+          srcPort: flowRecord.sourcePort,
+          dstPort: flowRecord.destinationPort,
+          protocol: flowRecord.protocolNumber,
+          octets: flowRecord.octets,
+          packets: flowRecord.packets,
+          flowStartAt: OneUptimeDate.toClickhouseDateTime64(
+            flowRecord.flowStartAt,
+          ),
+          flowEndAt: OneUptimeDate.toClickhouseDateTime64(flowRecord.flowEndAt),
+          ingestedAt: OneUptimeDate.toClickhouseDateTime64(ingestedAt),
+        } satisfies JSONObject);
+      }
     } catch (processingError) {
       logger.error("Probe network flow ingest: error processing record:");
       logger.error(processingError);
@@ -153,30 +164,6 @@ async function processFlowRecords(
   logger.debug(
     `Probe network flow ingest: wrote ${rows.length} flow(s) for probe ${probeId.toString()} (${unmatched} flow(s) from unmatched exporters dropped, ${malformed} malformed).`,
   );
-}
-
-/*
- * Correlates a NetFlow exporter IP to a NetworkDevice: devices polled by
- * the probe that received the datagram whose hostname equals the
- * exporter's address — the same match the syslog path uses.
- */
-async function findDeviceForExporter(
-  probeId: ObjectID,
-  exporterIpAddress: string,
-): Promise<NetworkDevice | null> {
-  return NetworkDeviceService.findOneBy({
-    query: {
-      probeId: probeId,
-      hostname: exporterIpAddress,
-    },
-    select: {
-      _id: true,
-      projectId: true,
-    },
-    props: {
-      isRoot: true,
-    },
-  });
 }
 
 /*
@@ -220,7 +207,10 @@ function deserializeFlowRecord(raw: JSONObject): NetworkFlowRecord | null {
   }
 
   const fallbackDate: Date = OneUptimeDate.getCurrentDate();
-  const flowStartAt: Date = parseDateOrDefault(raw["flowStartAt"], fallbackDate);
+  const flowStartAt: Date = parseDateOrDefault(
+    raw["flowStartAt"],
+    fallbackDate,
+  );
   const flowEndAt: Date = parseDateOrDefault(raw["flowEndAt"], flowStartAt);
 
   const inputInterfaceIndex: number | null = readNonNegativeInteger(

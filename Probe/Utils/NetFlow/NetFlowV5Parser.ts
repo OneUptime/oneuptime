@@ -34,6 +34,9 @@ export interface NetFlowV5Header {
   flowSequence: number;
   engineType: number;
   engineId: number;
+  // 0 = not sampled, 1 = deterministic 1-in-N, 2 = random 1-in-N.
+  samplingMode: number;
+  // The N in 1-in-N packet sampling; 0 when sampling is off.
   samplingInterval: number;
 }
 
@@ -92,6 +95,13 @@ export default class NetFlowV5Parser {
       return null;
     }
 
+    /*
+     * Bytes 22-23 pack two fields: the top 2 bits are the sampling mode,
+     * the low 14 bits the sampling interval. Reading them as one uint16
+     * would report e.g. deterministic 1-in-100 sampling as 16484.
+     */
+    const samplingField: number = datagram.readUInt16BE(22);
+
     const header: NetFlowV5Header = {
       version: version,
       count: count,
@@ -101,7 +111,8 @@ export default class NetFlowV5Parser {
       flowSequence: datagram.readUInt32BE(16),
       engineType: datagram.readUInt8(20),
       engineId: datagram.readUInt8(21),
-      samplingInterval: datagram.readUInt16BE(22),
+      samplingMode: (samplingField >> 14) & 0x3,
+      samplingInterval: samplingField & 0x3fff,
     };
 
     const records: Array<NetFlowV5Record> = [];
@@ -171,23 +182,28 @@ export default class NetFlowV5Parser {
    * Converts a record's sysUptime timestamp (ms since device boot) to wall
    * clock: unixSecs * 1000 + (recordUptime - exportUptime).
    *
-   * Two glitches are corrected. (1) sysUptime wrap: a flow always precedes
-   * its export, so a positive (recordUptime - sysUptime) means sysUptime
-   * wrapped past the record's timer — add back one wrap period so the delta
-   * is the real (negative) age. (2) Any remaining out-of-range result (before
-   * the epoch, or after the export was sent — a device clock glitch) is
-   * clamped to the export time rather than producing a garbage date decades
-   * off.
+   * The delta between the two uint32 timers is interpreted as a SIGNED
+   * 32-bit value (centred on zero) so both real-world glitches decode
+   * correctly: a flow stamped just before a sysUptime wrap comes out as the
+   * small negative age it really is, while the small POSITIVE deltas some
+   * exporters emit (the flow cache's timer running a beat ahead of the
+   * export path's) stay small instead of being mistaken for a wrap and
+   * backdating the flow ~49.7 days. Any remaining out-of-range result
+   * (before the epoch, or after the export was sent) is clamped to the
+   * export time rather than producing a garbage date decades off.
    */
   private static uptimeToDate(
     recordUptimeMs: number,
     header: NetFlowV5Header,
     exportTimeMs: number,
   ): Date {
-    let uptimeDeltaMs: number = recordUptimeMs - header.sysUptime;
+    let uptimeDeltaMs: number =
+      (recordUptimeMs - header.sysUptime) % NetFlowV5Parser.SYS_UPTIME_WRAP_MS;
 
-    if (uptimeDeltaMs > 0) {
+    if (uptimeDeltaMs >= NetFlowV5Parser.SYS_UPTIME_WRAP_MS / 2) {
       uptimeDeltaMs -= NetFlowV5Parser.SYS_UPTIME_WRAP_MS;
+    } else if (uptimeDeltaMs < -NetFlowV5Parser.SYS_UPTIME_WRAP_MS / 2) {
+      uptimeDeltaMs += NetFlowV5Parser.SYS_UPTIME_WRAP_MS;
     }
 
     const wallClockMs: number = header.unixSecs * 1000 + uptimeDeltaMs;

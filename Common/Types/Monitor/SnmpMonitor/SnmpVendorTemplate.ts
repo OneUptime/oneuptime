@@ -48,7 +48,7 @@ const MIKROTIK: SnmpVendorTemplate = {
   id: "mikrotik-routeros",
   label: "MikroTik RouterOS",
   description:
-    "CPU load, CPU temperature, and voltage from the MikroTik health MIB, plus standard Host Resources CPU.",
+    "CPU load, board temperature, and voltage from the MikroTik health MIB, plus standard Host Resources CPU.",
   oids: [
     {
       oid: "1.3.6.1.2.1.25.3.3.1.2.1",
@@ -56,9 +56,10 @@ const MIKROTIK: SnmpVendorTemplate = {
       description: "hrProcessorLoad — first processor.",
     },
     {
+      // .10.0 is mtxrHlTemperature (board temp); processor temp is .11.0.
       oid: "1.3.6.1.4.1.14988.1.1.3.10.0",
-      name: "CPU Temperature (C)",
-      description: "mtxrHlProcessorTemperature.",
+      name: "Temperature (C)",
+      description: "mtxrHlTemperature — system/board temperature.",
     },
     {
       oid: "1.3.6.1.4.1.14988.1.1.3.8.0",

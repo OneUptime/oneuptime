@@ -143,9 +143,29 @@ router.post(
         );
       }
 
+      const probeId: ObjectID | undefined =
+        (req as ProbeExpressRequest).probe?.id || undefined;
+
+      if (!probeId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
+
+      /*
+       * Scope the lookup to the authenticated probe (same scoping as the
+       * list endpoint above): the middleware only proves the caller is SOME
+       * valid probe, so without this any probe that learned a foreign scanId
+       * could overwrite another project's scan results.
+       */
       const scan: NetworkDeviceDiscoveryScan | null =
-        await NetworkDeviceDiscoveryScanService.findOneById({
-          id: new ObjectID(scanId),
+        await NetworkDeviceDiscoveryScanService.findOneBy({
+          query: {
+            _id: new ObjectID(scanId),
+            probeId: probeId,
+          },
           select: {
             _id: true,
             projectId: true,

@@ -3,6 +3,7 @@ import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInvent
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkInterfaceService from "../../../../Server/Services/NetworkInterfaceService";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "../../../../Models/DatabaseModels/NetworkInterface";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
@@ -32,12 +33,23 @@ const CISCO_SYS_OBJECT_ID: string = "1.3.6.1.4.1.9.1.1208";
 
 type DeviceUpdatePayload = Record<string, unknown>;
 
+let deviceFindSpy: jest.SpyInstance;
 let deviceUpdateSpy: jest.SpyInstance;
 let interfaceFindSpy: jest.SpyInstance;
 let interfaceUpdateSpy: jest.SpyInstance;
 let interfaceCreateSpy: jest.SpyInstance;
 
 function mockServices(existingInterfaces: Array<NetworkInterface> = []): void {
+  /*
+   * The project-membership guard resolves the device (scoped to the
+   * monitor's project) before any write; return a matching device so the
+   * write path runs. The cross-project-refusal case overrides this to null.
+   */
+  const ownedDevice: NetworkDevice = new NetworkDevice();
+  ownedDevice.id = new ObjectID(DEVICE_ID);
+  deviceFindSpy = jest
+    .spyOn(NetworkDeviceService, "findOneBy")
+    .mockResolvedValue(ownedDevice);
   deviceUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
     .mockResolvedValue(undefined);
@@ -221,12 +233,60 @@ describe("NetworkInventoryUtil.updateFromWalk — system group enrichment", () =
     expect(update).not.toHaveProperty("sysContact");
   });
 
-  test("lastSeenAt is always stamped with the walk time", async () => {
+  test("lastSeenAt is stamped with the walk time on a reachable poll", async () => {
     mockServices();
 
     await runWalk();
 
     expect(deviceUpdatePayload()["lastSeenAt"]).toEqual(NOW);
+  });
+});
+
+describe("NetworkInventoryUtil.updateFromWalk — project-membership guard", () => {
+  test("refuses to write when the step's device is not in the monitor's project", async () => {
+    mockServices();
+    // The scoped lookup finds no device → the id belongs to another project.
+    deviceFindSpy.mockResolvedValue(null);
+
+    await runWalk({
+      systemInfo: { sysName: "victim-device" },
+      interfaces: [walkedInterface()],
+    });
+
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(interfaceCreateSpy).not.toHaveBeenCalled();
+    expect(interfaceUpdateSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("NetworkInventoryUtil.updateFromWalk — reachability gating", () => {
+  test("an unreachable poll with no walk data writes nothing (no phantom lastSeenAt)", async () => {
+    mockServices();
+
+    const { monitor, stepId } = buildMonitor();
+    const response: ProbeMonitorResponse = {
+      projectId: ObjectID.generate(),
+      monitorStepId: stepId,
+      monitorId: ObjectID.generate(),
+      probeId: ObjectID.generate(),
+      failureCause: "Device did not respond",
+      monitoredAt: NOW,
+      isOnline: false,
+      snmpResponse: {
+        isOnline: false,
+        responseTimeInMs: 0,
+        failureCause: "Device did not respond",
+        oidResponses: [],
+      },
+    } as ProbeMonitorResponse;
+
+    await NetworkInventoryUtil.updateFromWalk({
+      monitor: monitor,
+      dataToProcess: response,
+    });
+
+    // lastSeenAt drives the up/down pill; a failed poll must not bump it.
+    expect(deviceUpdateSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -558,9 +618,7 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
     expect(created.name).toBe("GigabitEthernet0/1");
     expect(created.isMonitored).toBe(true);
     expect(created.networkDeviceId?.toString()).toBe(DEVICE_ID);
-    expect(created.projectId?.toString()).toBe(
-      monitor.projectId?.toString(),
-    );
+    expect(created.projectId?.toString()).toBe(monitor.projectId?.toString());
   });
 
   test("the create path leaves macAddress and interfaceType unset when the walk has none", async () => {

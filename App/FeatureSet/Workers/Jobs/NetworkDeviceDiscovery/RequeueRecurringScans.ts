@@ -26,10 +26,65 @@ import logger from "Common/Server/Utils/Logger";
  * and the ingest endpoint overwrites them the moment new results arrive.
  * Clearing them here would only destroy the last good inventory.
  */
+/*
+ * A subnet sweep is bounded work: 4096 hosts / 32 workers with 1s ping +
+ * 2s SNMP timeouts finishes in minutes. A scan still In Progress after
+ * this long means the probe that claimed it died mid-scan (crash,
+ * redeploy, decommission) and will never report back.
+ */
+const STALE_IN_PROGRESS_HOURS: number = 2;
+
 RunCron(
   "NetworkDeviceDiscovery:RequeueRecurringScans",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * Rescue scans stranded In Progress by a dead probe. Without this a
+     * recurring scan whose probe died mid-sweep would never be re-queued
+     * (nextScanAt is only stamped when a result arrives) and a one-shot
+     * scan would sit In Progress in the UI forever. Marking the scan
+     * Failed with nextScanAt set lets the requeue below pick a recurring
+     * one up on the next tick, exactly as if the probe had reported the
+     * failure itself.
+     */
+    const staleScans: Array<NetworkDeviceDiscoveryScan> =
+      await NetworkDeviceDiscoveryScanService.findAllBy({
+        query: {
+          status: "In Progress",
+          startedAt: QueryHelper.lessThan(
+            OneUptimeDate.getSomeHoursAgo(STALE_IN_PROGRESS_HOURS),
+          ),
+        },
+        select: {
+          _id: true,
+          cidr: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const scan of staleScans) {
+      logger.warn(
+        `Discovery scan ${scan.id?.toString()} (${scan.cidr}) has been In Progress for over ${STALE_IN_PROGRESS_HOURS} hour(s); marking it Failed (probe likely went offline mid-scan).`,
+      );
+
+      await NetworkDeviceDiscoveryScanService.updateOneById({
+        id: scan.id!,
+        // Cast: same DeepPartial-recursion workaround as below.
+        data: {
+          status: "Failed",
+          statusMessage: `The probe did not report a result within ${STALE_IN_PROGRESS_HOURS} hours. It may have gone offline mid-scan.`,
+          completedAt: OneUptimeDate.getCurrentDate(),
+          // Recurring scans become due immediately; ignored for one-shots.
+          nextScanAt: OneUptimeDate.getCurrentDate(),
+        } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
     const dueScans: Array<NetworkDeviceDiscoveryScan> =
       await NetworkDeviceDiscoveryScanService.findAllBy({
         query: {

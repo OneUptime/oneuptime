@@ -11,6 +11,7 @@ import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import SyslogMessage from "Common/Types/Syslog/SyslogMessage";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -164,16 +165,21 @@ router.post(
 );
 
 /*
- * Correlates each message to a NetworkDevice and writes it into the
- * telemetry Logs pipeline. Messages whose source IP matches no device
+ * Correlates each message to the NetworkDevices matching its source IP and
+ * writes it into the telemetry Logs pipeline. On a GLOBAL probe the same
+ * hostname can be registered by devices in several projects, so a message
+ * fans out to EVERY match (one log row per device, in that device's
+ * project with that project's pipelines and retention) — the policy the
+ * trap path established — instead of landing in whichever single project
+ * the database returns first. Messages whose source IP matches no device
  * polled by this probe are dropped — without a device there is no project
- * to attribute the log to (same policy as the SNMP trap path).
+ * to attribute the log to.
  */
 async function processSyslogMessages(
   probeId: ObjectID,
   rawMessages: Array<JSONObject>,
 ): Promise<void> {
-  const deviceCache: Dictionary<NetworkDevice | null> = {};
+  const deviceCache: Dictionary<Array<NetworkDevice>> = {};
   const serviceCache: Dictionary<TelemetryServiceMetadata> = {};
   const processingContextCache: Dictionary<LogProcessingContext> = {};
 
@@ -194,33 +200,18 @@ async function processSyslogMessages(
       const deviceCacheKey: string = syslogMessage.sourceIpAddress;
 
       if (!(deviceCacheKey in deviceCache)) {
-        deviceCache[deviceCacheKey] = await findDeviceForSource(
+        deviceCache[deviceCacheKey] = await findDevicesForSource(
           probeId,
           syslogMessage.sourceIpAddress,
         );
       }
 
-      const device: NetworkDevice | null = deviceCache[deviceCacheKey] || null;
+      const devices: Array<NetworkDevice> = deviceCache[deviceCacheKey] || [];
 
-      if (!device || !device.id || !device.projectId) {
+      if (devices.length === 0) {
         unmatched++;
         continue;
       }
-
-      const projectId: ObjectID = device.projectId;
-      const serviceName: string = device.name?.trim() || DEFAULT_SERVICE_NAME;
-      const serviceCacheKey: string = `${projectId.toString()}:${serviceName}`;
-
-      if (!serviceCache[serviceCacheKey]) {
-        serviceCache[serviceCacheKey] =
-          await OTelIngestService.telemetryServiceFromName({
-            serviceName: serviceName,
-            projectId: projectId,
-          });
-      }
-
-      const serviceMetadata: TelemetryServiceMetadata =
-        serviceCache[serviceCacheKey]!;
 
       const severityInfo: { number: number; text: LogSeverity } = mapSeverity(
         syslogMessage.severity,
@@ -228,84 +219,105 @@ async function processSyslogMessages(
 
       const ingestionDate: Date = OneUptimeDate.getCurrentDate();
 
-      const attributes: Dictionary<AttributeType | Array<AttributeType>> =
-        buildAttributes({
-          syslogMessage: syslogMessage,
-          device: device,
-          probeId: probeId,
-          serviceMetadata: serviceMetadata,
-          serviceName: serviceName,
+      for (const device of devices) {
+        if (!device.id || !device.projectId) {
+          continue;
+        }
+
+        const projectId: ObjectID = device.projectId;
+        const serviceName: string = device.name?.trim() || DEFAULT_SERVICE_NAME;
+        const serviceCacheKey: string = `${projectId.toString()}:${serviceName}`;
+
+        if (!serviceCache[serviceCacheKey]) {
+          serviceCache[serviceCacheKey] =
+            await OTelIngestService.telemetryServiceFromName({
+              serviceName: serviceName,
+              projectId: projectId,
+            });
+        }
+
+        const serviceMetadata: TelemetryServiceMetadata =
+          serviceCache[serviceCacheKey]!;
+
+        const attributes: Dictionary<AttributeType | Array<AttributeType>> =
+          buildAttributes({
+            syslogMessage: syslogMessage,
+            device: device,
+            probeId: probeId,
+            serviceMetadata: serviceMetadata,
+            serviceName: serviceName,
+          });
+
+        const retentionDays: number = resolveTelemetryRetentionInDays({
+          pillar: "logs",
+          bucketKey: severityInfo.text,
+          serviceConfig: serviceMetadata.serviceRetentionConfig,
+          serviceRetentionInDays: serviceMetadata.serviceRetentionInDays,
+          projectConfig: serviceMetadata.projectRetentionConfig,
+          projectRetentionInDays: serviceMetadata.projectRetentionInDays,
         });
 
-      const retentionDays: number = resolveTelemetryRetentionInDays({
-        pillar: "logs",
-        bucketKey: severityInfo.text,
-        serviceConfig: serviceMetadata.serviceRetentionConfig,
-        serviceRetentionInDays: serviceMetadata.serviceRetentionInDays,
-        projectConfig: serviceMetadata.projectRetentionConfig,
-        projectRetentionInDays: serviceMetadata.projectRetentionInDays,
-      });
-
-      const retentionDate: Date = OneUptimeDate.addRemoveDays(
-        ingestionDate,
-        retentionDays,
-      );
-
-      let logRow: JSONObject = {
-        _id: ObjectID.generateTimeOrdered().toString(),
-        createdAt: OneUptimeDate.toClickhouseDateTime(ingestionDate),
-        projectId: projectId.toString(),
-        primaryEntityId: serviceMetadata.primaryEntityId.toString(),
-        primaryEntityType: serviceMetadata.primaryEntityType,
-        entityKeys: serviceMetadata.entityKeys || [],
-        ...getScalarEntityKeyColumns(serviceMetadata),
-        time: OneUptimeDate.toClickhouseDateTime64(syslogMessage.timestamp),
-        timeUnixNano: Math.trunc(
-          OneUptimeDate.toUnixNano(syslogMessage.timestamp),
-        ).toString(),
-        severityNumber: severityInfo.number,
-        severityText: severityInfo.text,
-        attributes: attributes,
-        attributeKeys: TelemetryUtil.getAttributeKeys(attributes),
-        traceId: "",
-        spanId: "",
-        body: syslogMessage.message,
-        retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
-      } satisfies JSONObject;
-
-      /*
-       * Same log-processing stage as the OTLP / HTTP-syslog paths, in the
-       * same order: drop filter (skip the row entirely), then sensitive
-       * data scrubbing, then pipeline processors.
-       */
-      const processingContext: LogProcessingContext =
-        await getLogProcessingContext(projectId, processingContextCache);
-
-      if (
-        processingContext.dropFilters.length > 0 &&
-        LogDropFilterService.shouldDropLog(
-          logRow,
-          processingContext.dropFilters,
-        )
-      ) {
-        continue;
-      }
-
-      if (processingContext.scrubRules.length > 0) {
-        logRow = LogScrubRuleService.scrubLog(
-          logRow,
-          processingContext.scrubRules,
+        const retentionDate: Date = OneUptimeDate.addRemoveDays(
+          ingestionDate,
+          retentionDays,
         );
-      }
 
-      if (processingContext.pipelines.length > 0) {
-        logRow = LogPipelineService.processLog(
-          logRow,
-          processingContext.pipelines,
-        );
-      }
+        let logRow: JSONObject = {
+          _id: ObjectID.generateTimeOrdered().toString(),
+          createdAt: OneUptimeDate.toClickhouseDateTime(ingestionDate),
+          projectId: projectId.toString(),
+          primaryEntityId: serviceMetadata.primaryEntityId.toString(),
+          primaryEntityType: serviceMetadata.primaryEntityType,
+          entityKeys: serviceMetadata.entityKeys || [],
+          ...getScalarEntityKeyColumns(serviceMetadata),
+          time: OneUptimeDate.toClickhouseDateTime64(syslogMessage.timestamp),
+          timeUnixNano: Math.trunc(
+            OneUptimeDate.toUnixNano(syslogMessage.timestamp),
+          ).toString(),
+          severityNumber: severityInfo.number,
+          severityText: severityInfo.text,
+          attributes: attributes,
+          attributeKeys: TelemetryUtil.getAttributeKeys(attributes),
+          traceId: "",
+          spanId: "",
+          body: syslogMessage.message,
+          retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
+        } satisfies JSONObject;
 
-      dbLogs.push(logRow);
+        /*
+         * Same log-processing stage as the OTLP / HTTP-syslog paths, in the
+         * same order: drop filter (skip the row entirely), then sensitive
+         * data scrubbing, then pipeline processors.
+         */
+        const processingContext: LogProcessingContext =
+          await getLogProcessingContext(projectId, processingContextCache);
+
+        if (
+          processingContext.dropFilters.length > 0 &&
+          LogDropFilterService.shouldDropLog(
+            logRow,
+            processingContext.dropFilters,
+          )
+        ) {
+          continue;
+        }
+
+        if (processingContext.scrubRules.length > 0) {
+          logRow = LogScrubRuleService.scrubLog(
+            logRow,
+            processingContext.scrubRules,
+          );
+        }
+
+        if (processingContext.pipelines.length > 0) {
+          logRow = LogPipelineService.processLog(
+            logRow,
+            processingContext.pipelines,
+          );
+        }
+
+        dbLogs.push(logRow);
+      }
     } catch (processingError) {
       logger.error("Probe syslog ingest: error processing message:");
       logger.error(processingError);
@@ -322,18 +334,18 @@ async function processSyslogMessages(
 }
 
 /*
- * Correlates a syslog source IP to a NetworkDevice: devices polled by the
+ * Correlates a syslog source IP to NetworkDevices: devices polled by the
  * probe that received the message whose hostname equals the datagram's
  * source address — the same match the SNMP trap path uses
  * (NetworkDeviceHydrationUtil.findDevicesByProbeAndSource). Replicated here
  * rather than reused because this path also needs the device name for log
- * attribution and only one device per source is required.
+ * attribution.
  */
-async function findDeviceForSource(
+async function findDevicesForSource(
   probeId: ObjectID,
   sourceIpAddress: string,
-): Promise<NetworkDevice | null> {
-  return NetworkDeviceService.findOneBy({
+): Promise<Array<NetworkDevice>> {
+  return NetworkDeviceService.findBy({
     query: {
       probeId: probeId,
       hostname: sourceIpAddress,
@@ -343,6 +355,8 @@ async function findDeviceForSource(
       projectId: true,
       name: true,
     },
+    limit: LIMIT_MAX,
+    skip: 0,
     props: {
       isRoot: true,
     },
