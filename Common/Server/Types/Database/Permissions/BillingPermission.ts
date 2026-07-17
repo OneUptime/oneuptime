@@ -58,7 +58,7 @@ export default class BillingPermissions {
         ) {
           throw new PaymentRequiredException(
             "Please upgrade your plan to " +
-              model.createBillingPlan +
+              model.updateBillingPlan +
               " to access this feature",
           );
         }
@@ -74,7 +74,7 @@ export default class BillingPermissions {
         ) {
           throw new PaymentRequiredException(
             "Please upgrade your plan to " +
-              model.createBillingPlan +
+              model.deleteBillingPlan +
               " to access this feature",
           );
         }
@@ -90,7 +90,7 @@ export default class BillingPermissions {
         ) {
           throw new PaymentRequiredException(
             "Please upgrade your plan to " +
-              model.createBillingPlan +
+              model.readBillingPlan +
               " to access this feature",
           );
         }
