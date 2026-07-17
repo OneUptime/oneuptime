@@ -11,6 +11,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import PositiveNumber from "../../Types/PositiveNumber";
 
 export class Service extends DatabaseService<IncidentState> {
   public constructor() {
@@ -21,12 +22,21 @@ export class Service extends DatabaseService<IncidentState> {
   protected override async onBeforeCreate(
     createBy: CreateBy<IncidentState>,
   ): Promise<OnCreate<IncidentState>> {
-    if (!createBy.data.order) {
-      throw new BadDataException("Incident State order is required");
-    }
-
     if (!createBy.data.projectId) {
       throw new BadDataException("Incident State projectId is required");
+    }
+
+    if (!createBy.data.order) {
+      const count: PositiveNumber = await this.countBy({
+        query: {
+          projectId: createBy.data.projectId,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      createBy.data.order = count.toNumber() + 1;
     }
 
     await this.rearrangeOrder(
