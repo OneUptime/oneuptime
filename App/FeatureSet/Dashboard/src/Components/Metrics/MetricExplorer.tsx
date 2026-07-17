@@ -660,132 +660,132 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
   return (
     <div>
-      <div className="mb-4 space-y-3">
-        {/* Row 1 — view identity & actions */}
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {headerError ? (
-            <HintChip variant="red" className="mr-auto">
-              {headerError}
-            </HintChip>
-          ) : null}
-          <TelemetrySavedViewsControl<MetricSavedView>
-            modelType={MetricSavedView}
-            savedViewNoun="Metric Explorer"
-            explorerLabel="metric explorer"
-            hasInitialUrlState={hasInitialUrlState}
-            captureCurrentState={captureCurrentState}
-            applyState={applySavedViewState}
-            onError={setHeaderError}
-            additionalQuery={
-              {
-                viewType: TelemetrySavedViewType.Explorer,
-              } as Query<MetricSavedView>
-            }
-            additionalSaveFields={
-              {
-                viewType: TelemetrySavedViewType.Explorer,
-              } as Partial<MetricSavedView>
-            }
-          />
-          <CopyTextButton
-            textToBeCopied={ExplorerLink.buildExplorerUrl(
-              metricViewData,
-            ).toString()}
-            label="Copy Link"
-            copiedLabel="Link Copied!"
-            size="sm"
-            variant="ghost"
-            title="Copy a shareable link to this view"
-          />
-          <MoreMenu text="Actions">
-            <MoreMenuItem
-              key="create-monitor-from-view"
-              icon={IconProp.Activity}
-              text="Create monitor from this view"
-              onClick={navigateToCreateMonitor}
-            />
-            <MoreMenuItem
-              key="add-to-dashboard"
-              icon={IconProp.ChartBarSquare}
-              text="Add to dashboard"
-              onClick={() => {
-                setShowAddToDashboardModal(true);
-              }}
-            />
-          </MoreMenu>
-        </div>
+      <div className="mb-4 space-y-2">
+        {headerError ? <HintChip variant="red">{headerError}</HintChip> : null}
 
-        {/* Row 2 — investigation toolbar: time window · signal pivots · overlays */}
-        <div className="flex flex-wrap items-center gap-y-2">
-          <AutoRefreshControl
-            autoRefreshInterval={autoRefreshInterval}
-            onAutoRefreshIntervalChange={setAutoRefreshInterval}
-            onManualRefresh={handleRefresh}
-            isRefreshing={isFetchingResults}
-            lastRefreshedAt={lastRefreshedAt}
-            timeRangePicker={
-              <TelemetryTimeRangePicker
-                value={timeRangePickerValue}
-                onChange={handleTimeRangePicked}
-              />
-            }
-          />
-          <div className="ml-3 flex items-center gap-2 border-l border-gray-200 pl-3">
-            <Tooltip text="Open the logs explorer scoped to this time window">
-              <button
-                type="button"
-                aria-label="View logs for this time window"
-                className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
-                onClick={() => {
-                  navigateToSignalWithCurrentWindow(PageMap.LOGS);
-                }}
-              >
-                <Icon icon={IconProp.Logs} className="h-4 w-4" />
-                <span>View Logs</span>
-              </button>
-            </Tooltip>
-            <Tooltip text="Open the traces explorer scoped to this time window">
-              <button
-                type="button"
-                aria-label="View traces for this time window"
-                className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
-                onClick={() => {
-                  navigateToSignalWithCurrentWindow(PageMap.TRACES);
-                }}
-              >
-                <Icon icon={IconProp.Layers} className="h-4 w-4" />
-                <span>View Traces</span>
-              </button>
-            </Tooltip>
-          </div>
-          <div className="ml-3 flex items-center border-l border-gray-200 pl-3">
-            <Tooltip
-              text={
-                showEvents
-                  ? "Hide incident and alert markers on the charts"
-                  : "Show incident and alert markers on the charts"
+        {/*
+         * One toolbar row: time window · refresh cadence · signal pivots ·
+         * overlays on the left; view identity & share actions on the right.
+         * Wraps into stacked clusters on narrow screens.
+         */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex flex-wrap items-center gap-y-2">
+            <AutoRefreshControl
+              autoRefreshInterval={autoRefreshInterval}
+              onAutoRefreshIntervalChange={setAutoRefreshInterval}
+              onManualRefresh={handleRefresh}
+              isRefreshing={isFetchingResults}
+              lastRefreshedAt={lastRefreshedAt}
+              timeRangePicker={
+                <TelemetryTimeRangePicker
+                  value={timeRangePickerValue}
+                  onChange={handleTimeRangePicked}
+                />
               }
-            >
-              <button
-                type="button"
-                aria-label="Toggle incident and alert markers"
-                aria-pressed={showEvents}
-                onClick={toggleShowEvents}
-                className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
+            />
+            <div className="ml-3 flex items-center gap-2 border-l border-gray-200 pl-3">
+              <Tooltip text="Open the logs explorer scoped to this time window">
+                <button
+                  type="button"
+                  aria-label="View logs for this time window"
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                  onClick={() => {
+                    navigateToSignalWithCurrentWindow(PageMap.LOGS);
+                  }}
+                >
+                  <Icon icon={IconProp.Logs} className="h-3.5 w-3.5" />
+                  <span>Logs</span>
+                </button>
+              </Tooltip>
+              <Tooltip text="Open the traces explorer scoped to this time window">
+                <button
+                  type="button"
+                  aria-label="View traces for this time window"
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                  onClick={() => {
+                    navigateToSignalWithCurrentWindow(PageMap.TRACES);
+                  }}
+                >
+                  <Icon icon={IconProp.Layers} className="h-3.5 w-3.5" />
+                  <span>Traces</span>
+                </button>
+              </Tooltip>
+              <Tooltip
+                text={
                   showEvents
-                    ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
-                    : TOOLBAR_BUTTON_IDLE_CLASS_NAME
-                }`}
+                    ? "Hide incident and alert markers on the charts"
+                    : "Show incident and alert markers on the charts"
+                }
               >
-                <Icon icon={IconProp.Bolt} className="h-4 w-4" />
-                <span>Show events</span>
-                {showEvents && eventMarkers.length > 0 ? (
-                  <span className="rounded-full bg-gray-100 px-1.5 text-xs text-gray-600">
-                    {eventMarkers.length}
-                  </span>
-                ) : null}
-              </button>
-            </Tooltip>
+                <button
+                  type="button"
+                  aria-label="Toggle incident and alert markers"
+                  aria-pressed={showEvents}
+                  onClick={toggleShowEvents}
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
+                    showEvents
+                      ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
+                      : TOOLBAR_BUTTON_IDLE_CLASS_NAME
+                  }`}
+                >
+                  <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5" />
+                  <span>Events</span>
+                  {showEvents && eventMarkers.length > 0 ? (
+                    <span className="rounded-full bg-indigo-100 px-1.5 text-[11px] font-semibold text-indigo-700">
+                      {eventMarkers.length}
+                    </span>
+                  ) : null}
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <TelemetrySavedViewsControl<MetricSavedView>
+              modelType={MetricSavedView}
+              savedViewNoun="Metric Explorer"
+              explorerLabel="metric explorer"
+              hasInitialUrlState={hasInitialUrlState}
+              captureCurrentState={captureCurrentState}
+              applyState={applySavedViewState}
+              onError={setHeaderError}
+              additionalQuery={
+                {
+                  viewType: TelemetrySavedViewType.Explorer,
+                } as Query<MetricSavedView>
+              }
+              additionalSaveFields={
+                {
+                  viewType: TelemetrySavedViewType.Explorer,
+                } as Partial<MetricSavedView>
+              }
+            />
+            <CopyTextButton
+              textToBeCopied={ExplorerLink.buildExplorerUrl(
+                metricViewData,
+              ).toString()}
+              label="Copy Link"
+              copiedLabel="Link Copied!"
+              size="sm"
+              variant="ghost"
+              title="Copy a shareable link to this view"
+            />
+            <MoreMenu text="Actions">
+              <MoreMenuItem
+                key="create-monitor-from-view"
+                icon={IconProp.Activity}
+                text="Create monitor from this view"
+                onClick={navigateToCreateMonitor}
+              />
+              <MoreMenuItem
+                key="add-to-dashboard"
+                icon={IconProp.ChartBarSquare}
+                text="Add to dashboard"
+                onClick={() => {
+                  setShowAddToDashboardModal(true);
+                }}
+              />
+            </MoreMenu>
           </div>
         </div>
       </div>

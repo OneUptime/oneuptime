@@ -796,7 +796,7 @@ const MetricView: FunctionComponent<ComponentProps> = (
           <Card>
             <div className="-mt-5">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                   Time Range
                 </span>
               </div>
@@ -819,8 +819,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
         {/* Query configs */}
         {!props.hideQueryElements && (
           <div>
-            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-              Queries
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+              <span>Queries</span>
+              {props.data.queryConfigs.length > 1 && (
+                <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
+                  {props.data.queryConfigs.length}
+                </span>
+              )}
             </div>
             <div className="space-y-3">
               {props.data.queryConfigs.map(
@@ -1090,12 +1095,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
             )}
 
             {/* Add metric / Add formula buttons */}
-            <div className="flex items-center gap-2 pt-2">
-              <Button
-                title="Add Metric"
-                buttonSize={ButtonSize.Small}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                icon={IconProp.Add}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                 onClick={() => {
                   if (props.onChange) {
                     props.onChange({
@@ -1107,12 +1110,13 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     });
                   }
                 }}
-              />
-              <Button
-                title="Add Formula"
-                buttonSize={ButtonSize.Small}
-                buttonStyle={ButtonStyleType.OUTLINE}
-                icon={IconProp.Calculator}
+              >
+                <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
+                <span>Add Metric</span>
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                 onClick={() => {
                   if (props.onChange) {
                     props.onChange({
@@ -1124,7 +1128,10 @@ const MetricView: FunctionComponent<ComponentProps> = (
                     });
                   }
                 }}
-              />
+              >
+                <Icon icon={IconProp.Calculator} className="h-3.5 w-3.5" />
+                <span>Add Formula</span>
+              </button>
             </div>
           </div>
         )}
@@ -1198,8 +1205,32 @@ const MetricView: FunctionComponent<ComponentProps> = (
           (!isMetricResultsLoading || hasFetchedResultsOnce) && (
             <div>
               {!props.hideQueryElements && (
-                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Charts
+                <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  <span>Charts</span>
+                  {/*
+                   * Panel count, not result count: a query flagged
+                   * overlayWithPreviousQuery draws on the previous query's
+                   * chart panel, so it must not count as its own card.
+                   */}
+                  {(() => {
+                    const chartPanelCount: number =
+                      props.data.queryConfigs.filter(
+                        (
+                          queryConfig: MetricQueryConfigData,
+                          index: number,
+                        ): boolean => {
+                          return !(
+                            index > 0 &&
+                            queryConfig.overlayWithPreviousQuery === true
+                          );
+                        },
+                      ).length + props.data.formulaConfigs.length;
+                    return chartPanelCount > 1 ? (
+                      <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
+                        {chartPanelCount}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
               )}
               {/*

@@ -931,11 +931,11 @@ function renderSeriesControls(input: {
        */}
       <div className="flex flex-wrap items-center gap-2">
         {unitLabel ? (
-          <span className="text-xs text-gray-500">{unitLabel}</span>
+          <span className="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
+            {unitLabel}
+          </span>
         ) : null}
-        <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
-          {totalSeries} series
-        </span>
+        <span className="text-xs text-gray-500">{totalSeries} series</span>
         {serverHasMoreSeries ? (
           <span className="text-xs text-gray-500">
             Showing top{" "}
