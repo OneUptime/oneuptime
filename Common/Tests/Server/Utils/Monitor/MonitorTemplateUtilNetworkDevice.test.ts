@@ -155,7 +155,11 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — interface walk variabl
       buildResponse({
         snmp: {
           interfaces: [
-            iface({ interfaceIndex: 4, name: "Gi0/4", isOperationallyUp: false }),
+            iface({
+              interfaceIndex: 4,
+              name: "Gi0/4",
+              isOperationallyUp: false,
+            }),
           ],
         },
       }),
@@ -197,7 +201,10 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — interface walk variabl
     const map: JSONObject = buildMap(
       buildResponse({
         snmp: {
-          interfaces: [iface({ interfaceIndex: 1 }), iface({ interfaceIndex: 2 })],
+          interfaces: [
+            iface({ interfaceIndex: 1 }),
+            iface({ interfaceIndex: 2 }),
+          ],
         },
       }),
     );
@@ -216,7 +223,9 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — interface walk variabl
   });
 
   test("an empty interface walk exposes no interface variables either", () => {
-    const map: JSONObject = buildMap(buildResponse({ snmp: { interfaces: [] } }));
+    const map: JSONObject = buildMap(
+      buildResponse({ snmp: { interfaces: [] } }),
+    );
 
     expect(map).not.toHaveProperty("interfacesTotal");
     expect(map).not.toHaveProperty("downInterfaces");

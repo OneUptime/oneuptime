@@ -8,13 +8,17 @@
  * partial parse — a truncated UDP datagram cannot be trusted.
  */
 
-// Header: version, count, sysUptime, unixSecs, unixNsecs, flowSequence,
-// engineType, engineId, samplingInterval.
+/*
+ * Header: version, count, sysUptime, unixSecs, unixNsecs, flowSequence,
+ * engineType, engineId, samplingInterval.
+ */
 const HEADER_LENGTH_BYTES: number = 24;
 
-// Record: srcAddr, dstAddr, nextHop, inputIf, outputIf, dPkts, dOctets,
-// first, last, srcPort, dstPort, pad, tcpFlags, prot, tos, srcAs, dstAs,
-// srcMask, dstMask, pad.
+/*
+ * Record: srcAddr, dstAddr, nextHop, inputIf, outputIf, dPkts, dOctets,
+ * first, last, srcPort, dstPort, pad, tcpFlags, prot, tos, srcAs, dstAs,
+ * srcMask, dstMask, pad.
+ */
 const RECORD_LENGTH_BYTES: number = 48;
 
 const NETFLOW_VERSION: number = 5;

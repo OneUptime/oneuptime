@@ -41,9 +41,9 @@ describe("SnmpVendorTemplateUtil.getEnterpriseNumber", () => {
   });
 
   test("parses a bare enterprise arc with no product suffix", () => {
-    expect(SnmpVendorTemplateUtil.getEnterpriseNumber("1.3.6.1.4.1.41112")).toBe(
-      41112,
-    );
+    expect(
+      SnmpVendorTemplateUtil.getEnterpriseNumber("1.3.6.1.4.1.41112"),
+    ).toBe(41112);
   });
 
   test("returns undefined for a mib-2 OID outside the enterprises arc", () => {
@@ -182,9 +182,7 @@ describe("SnmpVendorTemplateUtil.mergeOids", () => {
       "cisco-ios",
     );
 
-    expect(merged).toEqual(
-      SnmpVendorTemplateUtil.getById("cisco-ios")!.oids,
-    );
+    expect(merged).toEqual(SnmpVendorTemplateUtil.getById("cisco-ios")!.oids);
   });
 
   test("applying the same template twice never duplicates rows", () => {

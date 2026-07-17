@@ -74,15 +74,13 @@ describe("DeviceStatusUtil.getStatus", () => {
     });
 
     test("null lastSeenAt (raw API payloads) is Pending", () => {
-      expect(
-        DeviceStatusUtil.getStatus(null as unknown as undefined),
-      ).toBe(NetworkDeviceStatus.Pending);
+      expect(DeviceStatusUtil.getStatus(null as unknown as undefined)).toBe(
+        NetworkDeviceStatus.Pending,
+      );
     });
 
     test("empty-string lastSeenAt is Pending", () => {
-      expect(DeviceStatusUtil.getStatus("")).toBe(
-        NetworkDeviceStatus.Pending,
-      );
+      expect(DeviceStatusUtil.getStatus("")).toBe(NetworkDeviceStatus.Pending);
     });
   });
 
@@ -101,9 +99,7 @@ describe("DeviceStatusUtil.getStatus", () => {
 
     test("seen one millisecond inside the window is Up", () => {
       expect(
-        DeviceStatusUtil.getStatus(
-          minutesAgo(DEVICE_FRESH_WINDOW_MINUTES, -1),
-        ),
+        DeviceStatusUtil.getStatus(minutesAgo(DEVICE_FRESH_WINDOW_MINUTES, -1)),
       ).toBe(NetworkDeviceStatus.Up);
     });
 
@@ -114,9 +110,9 @@ describe("DeviceStatusUtil.getStatus", () => {
     });
 
     test("accepts an ISO string the API serializes", () => {
-      expect(
-        DeviceStatusUtil.getStatus("2026-07-16T11:55:00.000Z"),
-      ).toBe(NetworkDeviceStatus.Up);
+      expect(DeviceStatusUtil.getStatus("2026-07-16T11:55:00.000Z")).toBe(
+        NetworkDeviceStatus.Up,
+      );
     });
   });
 
@@ -136,9 +132,7 @@ describe("DeviceStatusUtil.getStatus", () => {
 
     test("seen one millisecond past the window is Down", () => {
       expect(
-        DeviceStatusUtil.getStatus(
-          minutesAgo(DEVICE_FRESH_WINDOW_MINUTES, 1),
-        ),
+        DeviceStatusUtil.getStatus(minutesAgo(DEVICE_FRESH_WINDOW_MINUTES, 1)),
       ).toBe(NetworkDeviceStatus.Down);
     });
   });
@@ -151,9 +145,9 @@ describe("DeviceStatusUtil.getStatus", () => {
     });
 
     test("seen hours ago via an ISO string is Down", () => {
-      expect(
-        DeviceStatusUtil.getStatus("2026-07-16T08:00:00.000Z"),
-      ).toBe(NetworkDeviceStatus.Down);
+      expect(DeviceStatusUtil.getStatus("2026-07-16T08:00:00.000Z")).toBe(
+        NetworkDeviceStatus.Down,
+      );
     });
 
     test("seen days ago is Down", () => {

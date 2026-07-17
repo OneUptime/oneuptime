@@ -118,8 +118,8 @@ const MonitorDocumentation: FunctionComponent<
           description={
             <span>
               Learn how to register devices, run subnet discovery, enable
-              interface monitoring and SNMP traps, and use template variables
-              in the{" "}
+              interface monitoring and SNMP traps, and use template variables in
+              the{" "}
               <Link
                 openInNewTab={true}
                 to={new URL(HTTP_PROTOCOL, HOST).addRoute(

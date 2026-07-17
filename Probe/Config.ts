@@ -192,8 +192,10 @@ export const PROBE_NETFLOW_RECEIVER_PORT: number =
     min: 1,
   });
 
-// Safety valve: max NetFlow DATAGRAMS accepted per minute before dropping
-// (per probe). One datagram carries up to 30 flow records.
+/*
+ * Safety valve: max NetFlow DATAGRAMS accepted per minute before dropping
+ * (per probe). One datagram carries up to 30 flow records.
+ */
 export const PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE: number =
   NumberUtil.parseNumberWithDefault({
     value: process.env["PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE"],

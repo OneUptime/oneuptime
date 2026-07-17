@@ -67,6 +67,17 @@ namespaceFilters:
   # Namespaces to exclude (applied on top of include)
   exclude:
     - kube-system
+  # Namespaces whose POD LOGS are excluded while everything else (eBPF
+  # traces, eBPF metrics, pod/container metrics) keeps flowing. Use when
+  # an app team ships its own logs directly to OneUptime (e.g. via a
+  # logging SDK) and agent-tailed stdout would duplicate every line —
+  # but they still want traces and the service map.
+  #
+  # Unlike `exclude`, this list is NOT passed to the eBPF DaemonSet and
+  # is ignored by `applyTo`. In DaemonSet log mode entries support the
+  # same glob form as `exclude` (e.g. "team-*"); the API log-tailer
+  # matches names exactly.
+  excludeLogsOnly: []
   # Which additional signals the lists above apply to.
   applyTo:
     # Filter metrics by namespace. Covers per-pod / per-container series

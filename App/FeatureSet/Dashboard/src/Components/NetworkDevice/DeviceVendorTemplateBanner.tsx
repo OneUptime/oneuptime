@@ -26,9 +26,7 @@ export interface ComponentProps {
 const DeviceVendorTemplateBanner: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [sysObjectId, setSysObjectId] = useState<string | undefined>(
-    undefined,
-  );
+  const [sysObjectId, setSysObjectId] = useState<string | undefined>(undefined);
   const [isDismissed, setIsDismissed] = useState<boolean>(false);
 
   useEffect(() => {
