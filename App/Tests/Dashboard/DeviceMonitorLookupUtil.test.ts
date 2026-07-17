@@ -22,10 +22,8 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-/* eslint-disable import/first -- imports must come after jest.mock above */
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DeviceMonitorLookupUtil from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorLookupUtil";
-/* eslint-enable import/first */
 
 const getListMock: jest.Mock = ModelAPI.getList as unknown as jest.Mock;
 

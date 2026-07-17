@@ -52,51 +52,52 @@ const DeviceSummaryCards: FunctionComponent = (): ReactElement => {
         DEVICE_FRESH_WINDOW_MINUTES,
       );
 
-      const [devicesUp, devicesDown, devicesPending, devicesWithDownInterfaces]: [
-        number,
-        number,
-        number,
-        ListResult<NetworkDevice>,
-      ] = await Promise.all([
-        ModelAPI.count<NetworkDevice>({
-          modelType: NetworkDevice,
-          query: {
-            projectId: projectId,
-            isArchived: false,
-            lastSeenAt: new GreaterThanOrEqual(freshCutoff),
-          },
-        }),
-        ModelAPI.count<NetworkDevice>({
-          modelType: NetworkDevice,
-          query: {
-            projectId: projectId,
-            isArchived: false,
-            lastSeenAt: new LessThan(freshCutoff),
-          },
-        }),
-        ModelAPI.count<NetworkDevice>({
-          modelType: NetworkDevice,
-          query: {
-            projectId: projectId,
-            isArchived: false,
-            lastSeenAt: new IsNull(),
-          },
-        }),
-        ModelAPI.getList<NetworkDevice>({
-          modelType: NetworkDevice,
-          query: {
-            projectId: projectId,
-            isArchived: false,
-            interfacesDown: new GreaterThan(0),
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            interfacesDown: true,
-          },
-          sort: {},
-        }),
-      ]);
+      const [
+        devicesUp,
+        devicesDown,
+        devicesPending,
+        devicesWithDownInterfaces,
+      ]: [number, number, number, ListResult<NetworkDevice>] =
+        await Promise.all([
+          ModelAPI.count<NetworkDevice>({
+            modelType: NetworkDevice,
+            query: {
+              projectId: projectId,
+              isArchived: false,
+              lastSeenAt: new GreaterThanOrEqual(freshCutoff),
+            },
+          }),
+          ModelAPI.count<NetworkDevice>({
+            modelType: NetworkDevice,
+            query: {
+              projectId: projectId,
+              isArchived: false,
+              lastSeenAt: new LessThan(freshCutoff),
+            },
+          }),
+          ModelAPI.count<NetworkDevice>({
+            modelType: NetworkDevice,
+            query: {
+              projectId: projectId,
+              isArchived: false,
+              lastSeenAt: new IsNull(),
+            },
+          }),
+          ModelAPI.getList<NetworkDevice>({
+            modelType: NetworkDevice,
+            query: {
+              projectId: projectId,
+              isArchived: false,
+              interfacesDown: new GreaterThan(0),
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: {
+              interfacesDown: true,
+            },
+            sort: {},
+          }),
+        ]);
 
       const interfacesDown: number = devicesWithDownInterfaces.data.reduce(
         (total: number, device: NetworkDevice) => {

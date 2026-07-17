@@ -382,12 +382,16 @@ describe("SnmpMonitor.toMetricNumber", () => {
   });
 
   test("a 9-byte buffer with a leading zero pad decodes to its 64-bit value", () => {
-    // 0x00 pad + eight 0xFF bytes = 2^64 - 1, the max Counter64.
+    /*
+     * 0x00 pad + eight 0xFF bytes = 2^64 - 1, the max Counter64. IEEE-754 doubles
+     * cannot represent 2^64 - 1, so the decoded value rounds up to exactly 2^64;
+     * assert that rather than a literal JavaScript cannot express.
+     */
     expect(
       Internal.toMetricNumber(
         Buffer.from([0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
       ),
-    ).toBe(18446744073709551615);
+    ).toBe(2 ** 64);
   });
 
   test("empty and beyond-64-bit buffers yield undefined", () => {

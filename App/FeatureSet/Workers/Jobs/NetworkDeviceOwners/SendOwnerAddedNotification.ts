@@ -57,9 +57,7 @@ RunCron(
       }
 
       for (const user of users) {
-        (deviceOwnersMap[networkDeviceId.toString()] as Array<User>).push(
-          user,
-        );
+        (deviceOwnersMap[networkDeviceId.toString()] as Array<User>).push(user);
       }
 
       // mark this as notified.

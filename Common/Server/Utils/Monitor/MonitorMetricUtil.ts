@@ -990,8 +990,10 @@ export default class MonitorMetricUtil {
 
     if (snmpOidResponses && snmpOidResponses.length > 0) {
       // Same unbounded-write cap rationale as the interface block above.
-      const oidResponsesToEmit: Array<SnmpOidResponse> =
-        snmpOidResponses.slice(0, 50);
+      const oidResponsesToEmit: Array<SnmpOidResponse> = snmpOidResponses.slice(
+        0,
+        50,
+      );
 
       if (oidResponsesToEmit.length < snmpOidResponses.length) {
         logger.warn(
@@ -1001,8 +1003,7 @@ export default class MonitorMetricUtil {
 
       for (const oidResponse of oidResponsesToEmit) {
         const numericValue: number | undefined =
-          typeof oidResponse.value === "number" &&
-          isFinite(oidResponse.value)
+          typeof oidResponse.value === "number" && isFinite(oidResponse.value)
             ? oidResponse.value
             : undefined;
 

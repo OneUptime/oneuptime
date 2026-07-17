@@ -188,9 +188,8 @@ export default class SyslogReceiver {
       return null;
     }
 
-    const priorityMatch: RegExpMatchArray | null = trimmed.match(
-      /^<(\d{1,3})>/,
-    );
+    const priorityMatch: RegExpMatchArray | null =
+      trimmed.match(/^<(\d{1,3})>/);
 
     if (!priorityMatch) {
       return null;
