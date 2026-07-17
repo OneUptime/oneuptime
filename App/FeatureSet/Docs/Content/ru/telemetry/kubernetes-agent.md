@@ -189,7 +189,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 **Отправлять только фиксированный набор** (список разрешённых — всё остальное отбрасывается):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Сопоставление по шаблону** вместо точного имени:

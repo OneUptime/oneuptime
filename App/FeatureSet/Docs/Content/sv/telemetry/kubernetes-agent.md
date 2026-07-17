@@ -189,7 +189,7 @@ Flerradiga händelser slås ihop **innan** filtrering i båda lägena, så en Ja
 **Skicka bara en fast uppsättning** (en tillåtelselista — allt annat släpps):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Matcha efter mönster** i stället för exakt namn:

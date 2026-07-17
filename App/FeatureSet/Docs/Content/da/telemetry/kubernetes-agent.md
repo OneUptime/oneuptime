@@ -189,7 +189,7 @@ Flerlinje-events samles **før** filtrering i begge tilstande, så en Java-stack
 **Send kun et fast sæt** (en allowlist — alt andet droppes):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Match efter mønster** i stedet for præcist navn:

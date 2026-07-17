@@ -189,7 +189,7 @@ Gli eventi multi-riga vengono ricomposti **prima** del filtraggio in entrambe le
 **Invia solo un insieme fisso** (una allowlist — tutto il resto viene eliminato):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Corrispondenza per pattern** invece che per nome esatto:

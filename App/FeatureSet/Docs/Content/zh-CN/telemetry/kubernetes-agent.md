@@ -189,7 +189,7 @@ Kubernetes **事件**无法在代理侧按命名空间过滤。它们来自 `k8s
 **只发送一组固定的指标**（一个允许列表——其他所有内容都会被丢弃）：
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **按模式匹配**，而不是按精确名称：

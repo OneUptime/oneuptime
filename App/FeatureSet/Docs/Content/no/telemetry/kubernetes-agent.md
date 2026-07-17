@@ -189,7 +189,7 @@ Flerlinjede hendelser settes sammen igjen **før** filtrering i begge modusene, 
 **Send kun et fast sett** (en tillatelsesliste — alt annet droppes):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Match etter mønster** i stedet for etter eksakt navn:

@@ -189,7 +189,7 @@ Multi-regel-events worden in beide modi **vóór** het filteren weer samengevoeg
 **Verzend alleen een vaste set** (een allowlist — al het andere wordt weggegooid):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Match op patroon** in plaats van op exacte naam:

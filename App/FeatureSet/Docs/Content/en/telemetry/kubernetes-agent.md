@@ -189,7 +189,7 @@ Multi-line events are recombined **before** filtering in both modes, so a Java s
 **Send only a fixed set** (an allowlist — everything else is dropped):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Match by pattern** instead of exact name:

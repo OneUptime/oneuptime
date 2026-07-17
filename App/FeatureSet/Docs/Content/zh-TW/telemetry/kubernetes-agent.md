@@ -189,7 +189,7 @@ Kubernetes **事件**無法在 agent 端依 namespace 篩選。它們來自 `k8s
 **只傳送固定的一組指標**（允許清單——其他全部都會被捨棄）：
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **依模式比對**，而非精確名稱：

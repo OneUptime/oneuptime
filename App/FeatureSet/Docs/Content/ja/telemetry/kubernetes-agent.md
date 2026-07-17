@@ -189,7 +189,7 @@ Kubernetes の **イベント** は、エージェント側で名前空間によ
 **決まったセットのみを送信する** (許可リスト — それ以外はすべて破棄されます):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **正確な名前ではなくパターンで照合する**:

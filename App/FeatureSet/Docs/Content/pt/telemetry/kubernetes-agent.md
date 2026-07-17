@@ -189,7 +189,7 @@ O `filters.metrics` controla quais métricas saem do cluster, em todos os recept
 **Envie apenas um conjunto fixo** (uma allowlist — todo o resto é descartado):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Corresponda por padrão** em vez de por nome exato:

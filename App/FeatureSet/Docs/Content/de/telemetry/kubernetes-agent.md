@@ -189,7 +189,7 @@ Mehrzeilige Events werden in beiden Modi **vor** der Filterung wieder zusammenge
 **Nur einen festen Satz senden** (eine Allowlist — alles andere wird verworfen):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Nach Muster abgleichen** statt nach exaktem Namen:

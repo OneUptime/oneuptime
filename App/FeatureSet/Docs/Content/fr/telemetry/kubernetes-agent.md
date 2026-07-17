@@ -189,7 +189,7 @@ Les événements multilignes sont recombinés **avant** le filtrage dans les deu
 **N'envoyer qu'un ensemble fixe** (une liste d'autorisation — tout le reste est supprimé) :
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **Établir une correspondance par motif** plutôt que par nom exact :
