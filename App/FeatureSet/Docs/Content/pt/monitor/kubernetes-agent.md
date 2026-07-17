@@ -80,7 +80,7 @@ Um DaemonSet executa um pod do OpenTelemetry Collector por cada nó. Lê os fich
 Um Deployment de réplica única (a imagem `oneuptime/kubernetes-log-tailer`) utiliza a API do Kubernetes para fazer streaming dos logs dos contentores — o mesmo endpoint que o `kubectl logs -f` utiliza. Sem hostPath, sem acesso ao host, sem DaemonSet.
 
 - **Vantagens:** funciona no GKE Autopilot, EKS Fargate e qualquer cluster que bloqueie hostPath ou imponha o Pod Security Standard `restricted`.
-- **Desvantagens:** cada stream de contentor é uma ligação de longa duração ao `kube-apiserver`. Na prática, uma réplica gere alguns milhares de contentores confortavelmente. Para clusters muito grandes, distribua por namespace usando `logs.api.replicas` em conjunto com `namespaceFilters.include` em cada réplica.
+$1 Cada fluxo de contêiner é uma conexão de longa duração com kube-apiserver. Uma réplica normalmente processa alguns milhares de contêineres. Em clusters muito grandes, divida releases separadas com regras include de escopo podLogs em namespaceFilters.rules.
 
 ### Qual deve utilizar?
 
@@ -208,8 +208,7 @@ O chart também consegue recolher:
 | `oneuptime.url`                           | _(obrigatório)_                   | URL da sua instância OneUptime.                                                                                                                                                                                 |
 | `oneuptime.apiKey`                        | _(obrigatório)_                   | Chave de API do projeto (Settings → API Keys).                                                                                                                                                                  |
 | `clusterName`                             | _(obrigatório)_                   | Nome único para este cluster. Carimbado como `k8s.cluster.name` em cada registo.                                                                                                                                |
-| `namespaceFilters.include`                | `[]`                              | Se definido, apenas estes namespaces são monitorizados.                                                                                                                                                         |
-| `namespaceFilters.exclude`                | `["kube-system"]`                 | Namespaces a ignorar.                                                                                                                                                                                           |
+| `namespaceFilters.rules`                  | Excluir kube-system de podLogs e ebpfDiscovery | Regras include/exclude por escopo para podLogs, ebpfDiscovery, metrics e traces. Os padrões aceitam * e exclude sempre prevalece. |
 | `logs.enabled`                            | `true`                            | Liga ou desliga a recolha de logs.                                                                                                                                                                              |
 | `logs.mode`                               | (derivado de `preset`)            | `daemonset`, `api` ou `disabled`. Sobrepõe-se ao preset.                                                                                                                                                        |
 | `logs.api.replicas`                       | `1`                               | Número de réplicas do Deployment log-tailer (apenas no modo API).                                                                                                                                               |
@@ -304,7 +303,7 @@ Escale horizontalmente fazendo sharding por namespaces. Faça uma instalação p
 ```bash
 helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
-  --set namespaceFilters.include={app-a,app-b} \
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...
 ```
 

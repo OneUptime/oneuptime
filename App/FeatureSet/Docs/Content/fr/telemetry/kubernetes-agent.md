@@ -111,7 +111,16 @@ Une fois que l'agent se connecte, votre cluster apparaîtra automatiquement dans
 
 ### Filtrage des espaces de noms
 
-`namespaceFilters` limite les **journaux de pods** (à la fois le DaemonSet hostPath et le collecteur de journaux via l'API) et les **traces eBPF** aux espaces de noms de votre choix. Par défaut, `kube-system` est exclu. Pour restreindre ces signaux à des espaces de noms spécifiques :
+`namespaceFilters.rules` applique des motifs d'espaces de noms indépendamment à quatre portées:
+
+- `podLogs`: filtre stdout/stderr des pods au niveau du récepteur filelog hostPath ou du collecteur de journaux via l'API ; les événements Kubernetes et les journaux d'audit ne sont pas affectés.
+- `ebpfDiscovery`: filtre la découverte de processus OBI et donc à la fois les traces et les métriques eBPF.
+- `metrics`: filtre les séries de métriques associées à un espace de noms après l'enrichissement des métadonnées ; les séries de nœud ou de cluster sans espace de noms sont conservées.
+- `traces`: filtre les spans eBPF et les spans OTLP envoyés par les applications après l'enrichissement des métadonnées.
+
+Les motifs correspondent au nom complet de l'espace de noms et acceptent * comme caractère générique, par exemple team-*. Dès qu'une portée comporte une règle include, seuls les espaces de noms correspondants sont conservés pour cette portée. Les règles exclude l'emportent toujours. La règle par défaut exclut kube-system uniquement de podLogs et ebpfDiscovery.
+
+Pour limiter les journaux de pods et la découverte eBPF à certains espaces de noms :
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -120,36 +129,28 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
-  --set "namespaceFilters.include={default,production,staging}"
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production","staging"],"scopes":["podLogs","ebpfDiscovery"]}]'
 ```
 
-Pour ignorer un seul espace de noms bruyant tout en conservant tous les autres, utilisez plutôt `exclude`. `exclude` l'emporte toujours sur `include`, et la valeur par défaut livrée est `[kube-system]` — indiquez-le donc de nouveau si vous voulez qu'il reste exclu :
+Pour arrêter les journaux d'un espace de noms bruyant tout en conservant ses traces eBPF, sa carte de services et ses métriques, limitez l'exclusion à podLogs :
 
 ```bash
-  --set "namespaceFilters.exclude={kube-system,noisy-namespace}"
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system"],"scopes":["podLogs","ebpfDiscovery"]},{"action":"exclude","namespaces":["noisy-*"],"scopes":["podLogs"]}]'
 ```
 
-Pour les **journaux de pods et les traces eBPF, cela ne coûte rien** : l'espace de noms fait partie du chemin des journaux de pods et de la découverte de processus d'OBI, de sorte qu'un espace de noms filtré n'est jamais lu au départ — pas de CPU, pas de trafic sortant.
+Les règles podLogs et ebpfDiscovery filtrent à la source : les fichiers de journaux exclus ne sont jamais ouverts et les workloads exclus ne sont jamais instrumentés. Les règles metrics et traces s'exécutent plus tard dans le collector, après l'ajout des métadonnées d'espace de noms.
 
-#### Appliquer les filtres d'espaces de noms aux métriques et aux traces
+#### Filtrer les métriques et les traces par espace de noms
 
-Par défaut, les listes ci-dessus ne couvrent que les journaux de pods et les traces eBPF. `applyTo` les étend à d'autres signaux :
+Ajoutez directement ces portées à la règle lorsque vous souhaitez également filtrer les métriques ou les spans associés à un espace de noms :
 
 ```bash
-  --set namespaceFilters.applyTo.metrics=true \
-  --set namespaceFilters.applyTo.traces=true
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system","noisy-*"],"scopes":["podLogs","ebpfDiscovery","metrics","traces"]}]'
 ```
 
-| Paramètre         | Ce que cela couvre                                                                                                |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `applyTo.metrics` | Métriques par pod / par conteneur provenant de kubeletstats, cAdvisor et kube-state-metrics                        |
-| `applyTo.traces`  | Spans que vos applications envoient au point de terminaison OTLP de l'agent (les spans eBPF sont déjà délimités)   |
+> **Les métriques au niveau des nœuds et du cluster sont toujours conservées. Un espace de noms appartient à un pod, pas à un nœud ; les séries sans espace de noms ne correspondent donc pas à la règle et ne sont pas supprimées.**
 
-Les deux sont **désactivés par défaut**, à dessein. `exclude: [kube-system]` est livré comme valeur par défaut ; les activer automatiquement supprimerait donc silencieusement les métriques de kube-system de chaque installation existante lors d'une mise à niveau.
-
-> **Les métriques au niveau des nœuds et du cluster sont toujours conservées.** Un espace de noms est une propriété d'un pod, pas d'un nœud ; ainsi, des séries comme le CPU d'un nœud, la mémoire d'un nœud et l'utilisation du système de fichiers n'ont rien sur quoi établir une correspondance et ne sont jamais supprimées. `applyTo.metrics` réduit la cardinalité par pod sans jamais vous rendre aveugle à la défaillance d'un nœud.
-
-Les **événements** Kubernetes ne sont pas filtrables par espace de noms au niveau de l'agent. Ils arrivent depuis le récepteur `k8sobjects` sans attribut `k8s.namespace.name` — l'espace de noms se trouve à l'intérieur du corps de l'événement — il n'y a donc rien sur quoi un filtre puisse établir une correspondance. Supprimez-les plutôt côté serveur (voir ci-dessous).
+Les événements Kubernetes ne peuvent pas être filtrés par espace de noms dans l'agent. Ils arrivent du récepteur k8sobjects sans l'attribut k8s.namespace.name ; l'espace de noms se trouve dans le corps de l'événement. Filtrez-les plutôt côté serveur.
 
 ### Filtrage par gravité des journaux
 
@@ -418,13 +419,13 @@ L'astuce consiste à **cesser de collecter ce que vous ne consulterez pas**, plu
 | **Journaux de pods**                  | Chaque ligne de chaque conteneur, à l'échelle du cluster             | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
 | **Traces eBPF et métriques de spans** | Une trace par requête de chaque processus instrumenté                | `sampling.traces.percentage`, `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths` |
 | **Points de données de métriques**    | Fréquence de scraping × nombre de pods/conteneurs                    | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
-| **Cardinalité des métriques**         | Nombre de séries distinctes (par conteneur, par PVC, …)              | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
+| **Cardinalité des métriques**         | Nombre de séries distinctes (par conteneur, par PVC, …)              | `filters.metrics.exclude`, `namespaceFilters.rules` (`metrics`), `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Extras opt-in**                     | Profilage, journaux d'audit, plan de contrôle, métriques inter-zones | Laissez-les désactivés (ils le sont déjà par défaut)                                         |
 
 Il existe trois façons de réduire le volume, et il vaut la peine de savoir laquelle vous utilisez :
 
 - **Au niveau du récepteur** — les données ne sont jamais collectées. `namespaceFilters` sur les journaux de pods, `cadvisor.metricsAllowlist`, un `collectionInterval` plus long. Cela ne coûte rien à l'exécution et économise à la fois le CPU, le trafic sortant et l'ingestion. Préférez toujours ces options lorsqu'elles couvrent votre cas.
-- **Au niveau du processeur de filtrage** — les données sont collectées, puis supprimées avant l'export. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Un peu plus de CPU pour le collecteur, mais cela fonctionne à travers les récepteurs et permet d'exprimer des choses qu'un récepteur ne peut pas.
+- **Au niveau du processeur de filtrage** — les données sont collectées, puis supprimées avant l'export. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.rules` (`metrics`/`traces`). Un peu plus de CPU pour le collecteur, mais cela fonctionne à travers les récepteurs et permet d'exprimer des choses qu'un récepteur ne peut pas.
 - **Au niveau de l'échantillonneur** — les données sont collectées, puis une fraction représentative est conservée. `sampling.traces.percentage`. C'est l'exception : les deux options ci-dessus suppriment toute une *catégorie* de télémétrie, de sorte que ce qu'elles suppriment disparaît de chaque trace. L'échantillonnage conserve chaque catégorie et allège la population, de sorte que ce qui survit reste complet et représentatif.
 
 Les trois sont **irréversibles** : ce que vous supprimez ici n'atteint jamais OneUptime, et les trois peuvent rendre un moniteur muet. Les deux premières font taire un moniteur en supprimant le signal qu'il surveille. L'échantillonnage est plus restreint : les métriques RED d'eBPF sont calculées avant que l'échantillonneur ne s'exécute, les moniteurs basés sur les métriques restent donc exacts — mais les moniteurs qui comptent des *spans* (Traces sur `Span Count`, Exceptions sur `Exception Count`) en voient proportionnellement moins et nécessitent un réajustement de leurs seuils selon le même facteur. Si vous préférez décider plus tard, OneUptime peut à la place supprimer les données côté serveur (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — cela coûte toujours du trafic sortant, mais c'est un réglage que vous pouvez modifier sans redéploiement.
@@ -433,15 +434,15 @@ Les trois sont **irréversibles** : ce que vous supprimez ici n'atteint jamais O
 
 Les journaux de conteneurs constituent presque toujours la plus grande part de l'ingestion, car il s'agit d'un enregistrement par ligne de journal de chaque conteneur du cluster.
 
-- **Vous ne voulez les journaux que de certains espaces de noms ?** `namespaceFilters` limite les journaux de pods dans les deux modes de journalisation (ainsi que les traces eBPF qui les accompagnent). La correspondance s'effectue sur le chemin des journaux de pods, de sorte que les espaces de noms filtrés ne sont même jamais lus — c'est le levier le moins coûteux de ce document :
+- **Vous ne voulez que les journaux de certains espaces de noms ? Utilisez une règle include avec la portée podLogs. La correspondance se fait à la source des journaux : les espaces filtrés ne sont jamais lus et la télémétrie eBPF reste indépendante.**
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set "namespaceFilters.include={default,production}"
+    --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
-  (`kube-system` est déjà exclu par défaut.) Pour conserver tous les espaces de noms sauf un, utilisez `--set "namespaceFilters.exclude={kube-system,noisy-namespace}"`.
+  Pour conserver tous les espaces de noms sauf une famille bruyante, utilisez une règle exclude avec namespaces: [noisy-*] et scopes: [podLogs].
 
 - **Vous ne vous souciez que des avertissements et des erreurs ?** `filters.logs.minSeverity` supprime le reste au niveau de l'agent. Sur un cluster bavard, c'est souvent la plus importante réduction disponible, car INFO et DEBUG constituent l'essentiel de la sortie de la plupart des applications :
 
@@ -538,12 +539,12 @@ La cardinalité (le nombre de séries temporelles distinctes) compte autant que 
 
   Consultez [Inclure ou exclure des métriques par nom](#inclure-ou-exclure-des-métriques-par-nom) pour la correspondance exacte ou par regex et pour la forme en liste d'autorisation.
 
-- **Supprimez les métriques de tout un espace de noms.** Si un espace de noms est bruyant mais que vous voulez tout de même surveiller ses nœuds, `namespaceFilters.applyTo.metrics=true` applique vos listes d'espaces de noms existantes aux séries par pod et par conteneur. Les séries au niveau des nœuds et du cluster sont toujours conservées :
+- **Vous voulez supprimer les métriques de tout un espace de noms ? Ajoutez une règle exclude avec la portée metrics. Les séries par pod et par conteneur sont filtrées, tandis que les séries de nœud et de cluster sans espace de noms sont conservées.**
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set namespaceFilters.applyTo.metrics=true
+    --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
 ### Levier 5 — Laissez désactivées les fonctionnalités opt-in lourdes
@@ -611,9 +612,13 @@ filters:
     minSeverity: WARN # drop INFO / DEBUG / TRACE at the agent
 
 namespaceFilters:
-  exclude:
-    - kube-system
-    - noisy-namespace
+  rules:
+    - action: exclude
+      namespaces: [kube-system]
+      scopes: [podLogs, ebpfDiscovery]
+    - action: exclude
+      namespaces: [noisy-*]
+      scopes: [podLogs]
 
 ebpf:
   enabled: true
@@ -629,7 +634,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
   -f lean-values.yaml
 ```
 
-Resserrez davantage selon vos besoins : portez `minSeverity` à `ERROR`, ajoutez `namespaceFilters.applyTo.metrics=true`, ou définissez `ebpf.enabled=false` si vous envoyez déjà des traces depuis les SDK OTel.
+Resserrez davantage si nécessaire : portez minSeverity à ERROR, ajoutez metrics aux portées d'une règle d'espace de noms ou définissez ebpf.enabled=false si vous envoyez déjà des traces depuis les SDK OTel.
 
 > **Faites attention à ce que vous supprimez.** Certains moniteurs dépendent de signaux spécifiques : désactiver `cadvisor` supprime les moniteurs d'OOM-kill et de throttling CPU ; désactiver `kubeletstats.volumeMetrics` supprime le moniteur de disque faible des PVC ; désactiver les journaux supprime les alertes basées sur les journaux ; et `sampling.traces.percentage` ne supprime aucun moniteur mais réduit proportionnellement ceux qui sont basés sur les spans (Traces sur `Span Count`, Exceptions sur `Exception Count`), réajustez donc leurs seuils en conséquence. Réduisez les signaux sur lesquels vous n'agissez pas, pas ceux qu'un moniteur surveille.
 
@@ -689,7 +694,7 @@ La raison la plus courante — en particulier après une réinstallation — est
 1. Confirmez que le pod de collecte des journaux est Ready : `kubectl get pods -n oneuptime-agent -l component=log-collector`
 2. Vérifiez son `/healthz` — il signale le nombre de flux actifs et la dernière erreur d'export
 3. Vérifiez les journaux : `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
-4. Pour de très grands clusters, un seul réplica peut constituer un goulot d'étranglement — répartissez par espace de noms à l'aide de `namespaceFilters.include` sur des versions distinctes
+4. Pour les très grands clusters, un seul réplica peut être un goulot d'étranglement ; répartissez des releases distinctes avec des règles include de portée podLogs dans namespaceFilters.rules.
 
 ### Aucune métrique n'apparaît
 

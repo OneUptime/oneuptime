@@ -111,7 +111,16 @@ Når agenten har forbundet, vil din cluster automatisk fremstå i **Kubernetes**
 
 ### Namespace-filtrering
 
-`namespaceFilters` afgrænser **pod-logs** (både hostPath DaemonSet'en og API-log-tailer'en) og **eBPF-sporinger** til de namespaces, du vælger. `kube-system` er ekskluderet som standard. For at begrænse disse signaler til specifikke namespaces:
+`namespaceFilters.rules` anvender namespace-mønstre uafhængigt på fire scopes:
+
+- `podLogs`: filtrerer podders stdout/stderr ved hostPath-filelog-modtageren eller API-logtaileren; Kubernetes-hændelser og revisionslogfiler påvirkes ikke.
+- `ebpfDiscovery`: filtrerer OBI-processøgning og dermed både eBPF-traces og eBPF-metrics.
+- `metrics`: filtrerer namespace-specifikke metrikser efter metadata-berigelse; node- og klyngeserier uden namespace bevares.
+- `traces`: filtrerer både eBPF-spans og OTLP-spans sendt af programmer efter metadata-berigelse.
+
+Namespace-mønstre matcher hele navnet og understøtter * som wildcard, for eksempel team-*. Hvis et scope har en include-regel, beholdes kun matchende namespaces i det scope. Exclude-regler vinder altid. Standardreglen udelukker kun kube-system fra podLogs og ebpfDiscovery.
+
+Sådan begrænser du pod-logs og eBPF-opdagelse til bestemte namespaces:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -120,36 +129,28 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
-  --set "namespaceFilters.include={default,production,staging}"
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production","staging"],"scopes":["podLogs","ebpfDiscovery"]}]'
 ```
 
-For at ignorere ét støjende namespace, men beholde alle andre, skal du bruge `exclude` i stedet. `exclude` vinder altid over `include`, og den medfølgende standard er `[kube-system]` — så list det igen, hvis du stadig ønsker det ekskluderet:
+Hvis du vil stoppe logs fra et støjende namespace, men beholde dets eBPF-traces, servicekort og metrikser, skal udelukkelsen kun gælde for podLogs:
 
 ```bash
-  --set "namespaceFilters.exclude={kube-system,noisy-namespace}"
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system"],"scopes":["podLogs","ebpfDiscovery"]},{"action":"exclude","namespaces":["noisy-*"],"scopes":["podLogs"]}]'
 ```
 
-For **pod-logs og eBPF-sporinger koster dette ingenting**: namespacet er en del af pod-log-stien og af OBI's procesopdagelse, så et filtreret namespace bliver aldrig læst i første omgang — ingen CPU, ingen egress.
+Regler for podLogs og ebpfDiscovery filtrerer ved kilden: udelukkede logfiler åbnes aldrig, og udelukkede workloads instrumenteres aldrig. Regler for metrics og traces kører senere i collectoren, efter at namespace-metadata er tilføjet.
 
-#### Anvendelse af namespace-filtre på metrikker og sporinger
+#### Filtrering af metrikser og traces efter namespace
 
-Som standard dækker listerne ovenfor kun pod-logs og eBPF-sporinger. `applyTo` udvider dem til andre signaler:
+Føj disse scopes direkte til reglen, hvis du også vil filtrere namespace-specifikke metrikser eller spans:
 
 ```bash
-  --set namespaceFilters.applyTo.metrics=true \
-  --set namespaceFilters.applyTo.traces=true
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system","noisy-*"],"scopes":["podLogs","ebpfDiscovery","metrics","traces"]}]'
 ```
 
-| Indstilling | Hvad den dækker |
-| ----------- | --------------- |
-| `applyTo.metrics` | Metrikker pr. pod / pr. container fra kubeletstats, cAdvisor og kube-state-metrics |
-| `applyTo.traces` | Spans, som dine applikationer sender til agentens OTLP-endpoint (eBPF-spans er allerede afgrænset) |
+> **Metrikser på node- og klyngeniveau bevares altid. Et namespace tilhører en pod, ikke en node, så serier uden namespace matcher ikke reglen og slettes ikke.**
 
-Begge er **slået fra som standard** med vilje. `exclude: [kube-system]` leveres som standard, så hvis de blev slået til automatisk, ville det lydløst slette kube-system-metrikker fra hver eksisterende installation ved opgradering.
-
-> **Metrikker på node- og cluster-niveau beholdes altid.** Et namespace er en egenskab ved en pod, ikke ved en node, så serier som node-CPU, node-hukommelse og filsystemforbrug har intet at matche på og droppes aldrig. `applyTo.metrics` beskærer kardinaliteten pr. pod uden nogensinde at gøre dig blind for, at en node bliver dårlig.
-
-Kubernetes-**events** kan ikke namespace-filtreres ved agenten. De ankommer fra `k8sobjects`-receiveren uden en `k8s.namespace.name`-attribut — namespacet ligger inde i event-body'en — så der er intet, et filter kan matche på. Drop dem server-side i stedet (se nedenfor).
+Kubernetes-hændelser kan ikke filtreres efter namespace i agenten. De kommer fra k8sobjects-modtageren uden attributten k8s.namespace.name; namespace ligger i hændelsens body. Filtrer dem i stedet på serversiden.
 
 ### Filtrering efter log-alvorlighed
 
@@ -417,13 +418,13 @@ Tricket er at **holde op med at indsamle det, du ikke vil kigge på**, i stedet 
 | **Pod-logs**                        | Hver linje fra hver container, cluster-bredt                 | `namespaceFilters`, `filters.logs.minSeverity`, `logs.enabled`, `logs.mode`                  |
 | **eBPF-sporinger & span-metrikker** | Én sporing pr. request fra hver instrumenteret proces        | `sampling.traces.percentage`, `ebpf.enabled`, `ebpf.features.*`, `ebpf.autoTargetExe`, `ebpf.excludeExePaths` |
 | **Metrik-datapunkter**              | Scrape-frekvens × antal pods/containere                      | `collectionInterval`, `hostMetrics.collectionInterval`, `cadvisor.scrapeInterval`            |
-| **Metrik-kardinalitet**             | Antal distinkte serier (pr. container, pr. PVC, …)           | `filters.metrics.exclude`, `namespaceFilters.applyTo.metrics`, `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
+| **Metrik-kardinalitet**             | Antal distinkte serier (pr. container, pr. PVC, …)           | `filters.metrics.exclude`, `namespaceFilters.rules` (`metrics`), `cadvisor.metricsAllowlist`, `kubeletstats.volumeMetrics` |
 | **Opt-in-ekstrafunktioner**         | Profilering, audit-logs, control plane, inter-zone-metrikker | Lad dem være slået fra (det er de allerede som standard)                                     |
 
 Tre måder at skære volumen ned på, og det er værd at vide, hvilken af dem du bruger:
 
 - **Ved receiveren** — dataene indsamles aldrig. `namespaceFilters` på pod-logs, `cadvisor.metricsAllowlist`, et længere `collectionInterval`. Koster ingenting at køre og sparer CPU, egress og ingest på én gang. Foretræk altid disse, hvor de dækker dit tilfælde.
-- **Ved filter-processoren** — dataene indsamles og droppes derefter før eksport. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.applyTo.*`. Lidt mere collector-CPU, men det virker på tværs af receivere og kan udtrykke ting, en receiver ikke kan.
+- **Ved filter-processoren** — dataene indsamles og droppes derefter før eksport. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.rules` (`metrics`/`traces`). Lidt mere collector-CPU, men det virker på tværs af receivere og kan udtrykke ting, en receiver ikke kan.
 - **Ved sampleren** — dataene indsamles, og derefter beholdes en repræsentativ brøkdel. `sampling.traces.percentage`. Den afvigende: de to ovenfor fjerner en hel *kategori* af telemetri, så det, de dropper, er væk fra hver eneste sporing. Sampling beholder hver kategori og tynder populationen ud, så det, der overlever, stadig er komplet og repræsentativt.
 
 Alle tre er **uoprettelige**: det, du dropper her, når aldrig OneUptime, og alle tre kan få en monitor til at forstumme. De to første forstummer en monitor ved at fjerne det signal, den holder øje med. Sampling er snævrere: eBPF RED-metrikkerne beregnes, før sampleren kører, så metrik-baserede monitorer forbliver nøjagtige — men monitorer, der tæller *spans* (Traces på `Span Count`, Exceptions på `Exception Count`), ser forholdsmæssigt færre og har brug for at få deres tærskler genjusteret med den samme faktor. Hvis du hellere vil beslutte det senere, kan OneUptime droppe data server-side i stedet (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — det koster stadig egress, men det er en indstilling, du kan ændre uden en redeploy.
@@ -432,15 +433,15 @@ Alle tre er **uoprettelige**: det, du dropper her, når aldrig OneUptime, og all
 
 Container-logs er næsten altid den største andel af ingest, fordi det er én post pr. loglinje fra hver container i clusteren.
 
-- **Vil du kun have logs fra bestemte namespaces?** `namespaceFilters` afgrænser pod-logs i begge log-tilstande (og eBPF-sporinger sammen med dem). Matchningen sker på pod-log-stien, så filtrerede namespaces bliver aldrig engang læst — dette er det billigste håndtag i dette dokument:
+- **Vil du kun have logs fra bestemte namespaces? Brug en include-regel med scopet podLogs. Matchning sker ved logkilden, så filtrerede namespaces aldrig læses, mens eBPF-telemetri forbliver uafhængig.**
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set "namespaceFilters.include={default,production}"
+    --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
-  (`kube-system` er allerede ekskluderet som standard.) For at beholde alle namespaces på nær ét skal du bruge `--set "namespaceFilters.exclude={kube-system,noisy-namespace}"`.
+  Hvis alle namespaces undtagen en støjende gruppe skal bevares, skal du bruge en exclude-regel med namespaces: [noisy-*] og scopes: [podLogs].
 
 - **Bekymrer du dig kun om advarsler og fejl?** `filters.logs.minSeverity` dropper resten ved agenten. På en snakkesalig cluster er dette ofte den enkeltstørste reduktion, der er tilgængelig, fordi INFO og DEBUG udgør hovedparten af de fleste applikationers output:
 
@@ -537,12 +538,12 @@ Kardinalitet (antallet af distinkte tidsserier) betyder lige så meget som frekv
 
   Se [Inkludering eller ekskludering af metrikker efter navn](#inkludering-eller-ekskludering-af-metrikker-efter-navn) for præcis-vs-regex-matchning og allowlist-formen.
 
-- **Drop et helt namespaces metrikker.** Hvis et namespace er støjende, men du stadig vil have dets noder overvåget, anvender `namespaceFilters.applyTo.metrics=true` dine eksisterende namespace-lister på serier pr. pod og pr. container. Serier på node- og cluster-niveau beholdes altid:
+- **Vil du fjerne metrikser for et helt namespace? Tilføj en exclude-regel med scopet metrics. Serier pr. pod og container filtreres, mens node- og klyngeserier uden namespace altid bevares.**
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set namespaceFilters.applyTo.metrics=true
+    --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
 ### Håndtag 5 — Lad de tunge opt-in-funktioner være slået fra
@@ -610,9 +611,13 @@ filters:
     minSeverity: WARN # drop INFO / DEBUG / TRACE at the agent
 
 namespaceFilters:
-  exclude:
-    - kube-system
-    - noisy-namespace
+  rules:
+    - action: exclude
+      namespaces: [kube-system]
+      scopes: [podLogs, ebpfDiscovery]
+    - action: exclude
+      namespaces: [noisy-*]
+      scopes: [podLogs]
 
 ebpf:
   enabled: true
@@ -628,7 +633,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
   -f lean-values.yaml
 ```
 
-Stram yderligere efter behov: hæv `minSeverity` til `ERROR`, tilføj `namespaceFilters.applyTo.metrics=true`, eller sæt `ebpf.enabled=false`, hvis du allerede leverer sporinger fra OTel-SDK'er.
+Stram yderligere efter behov: hæv minSeverity til ERROR, føj metrics til en namespace-regels scopes, eller sæt ebpf.enabled=false, hvis du allerede sender traces fra OTel-SDK'er.
 
 > **Pas på, hvad du skærer væk.** Nogle monitorer afhænger af bestemte signaler: at deaktivere `cadvisor` fjerner OOM-kill- og CPU-throttling-monitorerne; at deaktivere `kubeletstats.volumeMetrics` fjerner PVC-lav-disk-monitoren; at deaktivere logs fjerner log-baserede advarsler; og `sampling.traces.percentage` fjerner ikke en monitor, men skalerer de span-baserede ned (Traces på `Span Count`, Exceptions på `Exception Count`), så genjustér deres tærskler tilsvarende. Beskær de signaler, du ikke handler på, ikke dem, en monitor holder øje med.
 
@@ -688,7 +693,7 @@ Den mest almindelige grund — især efter en geninstallation — er en **forker
 1. Bekræft, at log tailer-podden er Ready: `kubectl get pods -n oneuptime-agent -l component=log-collector`
 2. Kontrollér dens `/healthz` — den rapporterer antal aktive streams og den seneste eksportfejl
 3. Kontrollér logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
-4. For meget store clusters kan en enkelt replica være en flaskehals — shard pr. namespace ved at bruge `namespaceFilters.include` på separate releases
+4. For meget store klynger kan én replika være en flaskehals — opdel separate releases med podLogs-scopede include-regler i namespaceFilters.rules.
 
 ### Ingen metrikker vises
 
