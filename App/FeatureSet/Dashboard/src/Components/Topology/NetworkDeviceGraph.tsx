@@ -3,7 +3,20 @@ import NetworkTopology, {
   NetworkTopologyNode,
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
-import { TopologyPoint, clamp, computeTopologyLayout } from "./TopologyLayout";
+import {
+  TopologyPoint,
+  clamp,
+  computeTopologyLayout,
+} from "../NetworkDevice/TopologyLayout";
+import {
+  LINK_STATE_COLORS,
+  NetworkLinkState,
+  describeEndpoint,
+  edgeKeyForEdge,
+  edgeStrokeWidthForEdge,
+  linkStateForEdge,
+  nodeMatchesSearch,
+} from "./NetworkTopologyMeta";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -13,17 +26,25 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * Live network topology graph: devices as nodes, LLDP/CDP links as edges.
+ * Edge color tracks link state (red = an end is operationally down, amber =
+ * saturated, neutral otherwise) and stroke width tracks utilization. Node
+ * and edge clicks open detail panels in the parent; search dims
+ * non-matching nodes. Pan/zoom state lives here, so a background refresh
+ * that swaps the topology prop preserves the viewport (the layout is
+ * deterministic — unchanged graphs keep their coordinates).
+ */
+
 export interface ComponentProps {
   topology: NetworkTopology;
-  /**
-   * Called when a managed device node is clicked (unmanaged LLDP-only
-   * neighbors have no device row to open). Omitting it keeps nodes inert.
-   */
-  onManagedNodeClick?: ((node: NetworkTopologyNode) => void) | undefined;
+  /** Nodes not matching this render dimmed. Empty string shows everything. */
+  searchText?: string | undefined;
+  onNodeClick?: ((node: NetworkTopologyNode) => void) | undefined;
+  onEdgeClick?: ((edge: NetworkTopologyEdge) => void) | undefined;
   /**
    * Rendered under the empty-state text (e.g. a setup link). Injected by
-   * the caller so this component stays free of router imports — its pure
-   * layout export is unit-tested in a plain node environment.
+   * the caller so this component stays free of router imports.
    */
   emptyStateFooter?: ReactElement | undefined;
 }
@@ -61,15 +82,29 @@ interface ViewTransform {
 
 const IDENTITY_VIEW: ViewTransform = { scale: 1, tx: 0, ty: 0 };
 
-const TopologyGraph: FunctionComponent<ComponentProps> = (
+const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const nodes: Array<NetworkTopologyNode> = props.topology?.nodes || [];
   const edges: Array<NetworkTopologyEdge> = props.topology?.edges || [];
+  const searchText: string = props.searchText || "";
 
   const layout: Map<string, TopologyPoint> = useMemo(() => {
     return computeTopologyLayout(nodes, edges, VIEW_WIDTH, VIEW_HEIGHT);
   }, [props.topology]);
+
+  const dimmedNodeIds: Set<string> = useMemo(() => {
+    const dimmed: Set<string> = new Set<string>();
+    if (!searchText.trim()) {
+      return dimmed;
+    }
+    for (const node of nodes) {
+      if (!nodeMatchesSearch(node, searchText)) {
+        dimmed.add(node.id);
+      }
+    }
+    return dimmed;
+  }, [nodes, searchText]);
 
   /*
    * Pan/zoom: a transform on a <g> wrapper inside the fixed viewBox.
@@ -152,8 +187,8 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
             No network topology discovered yet.
           </div>
           <p className="mt-1 text-sm text-gray-500">
-            Add network devices and enable interface monitoring — LLDP neighbors
-            appear here as devices report them.
+            Add network devices and enable interface monitoring — LLDP and CDP
+            neighbors appear here as devices report them.
           </p>
           {props.emptyStateFooter ? (
             <p className="mt-3">{props.emptyStateFooter}</p>
@@ -239,7 +274,14 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
           };
           setIsDragging(true);
           suppressClick.current = false;
-          event.currentTarget.setPointerCapture?.(event.pointerId);
+          /*
+           * Capture is NOT taken here: pointer capture retargets the
+           * eventual click to the SVG (Chromium/Safari retarget to the
+           * capture element, Firefox to the common ancestor), which would
+           * stop node/edge onClick from ever firing. It is taken in
+           * onPointerMove once the pointer has actually moved — the same
+           * threshold that suppresses the click.
+           */
         }}
         onPointerMove={(event: React.PointerEvent<SVGSVGElement>) => {
           const drag: {
@@ -264,7 +306,16 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
           drag.x = event.clientX;
           drag.y = event.clientY;
           if (drag.moved > 5) {
+            /*
+             * A real pan is in progress: the click is suppressed anyway, so
+             * capturing now (and not on pointerdown) keeps the drag tracking
+             * outside the SVG without eating stationary clicks on nodes and
+             * edges (capture retargets the click to the capturing element).
+             */
             suppressClick.current = true;
+            if (!event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+              event.currentTarget.setPointerCapture?.(event.pointerId);
+            }
           }
           setView((current: ViewTransform): ViewTransform => {
             return { ...current, tx: current.tx + dx, ty: current.ty + dy };
@@ -283,37 +334,63 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
         <g transform={`translate(${view.tx} ${view.ty}) scale(${view.scale})`}>
           {/* Edges drawn first so nodes render on top. */}
           <g>
-            {edges.map(
-              (
-                edge: NetworkTopologyEdge,
-                index: number,
-              ): ReactElement | null => {
-                const from: TopologyPoint | undefined = layout.get(
-                  edge.fromNodeId,
-                );
-                const to: TopologyPoint | undefined = layout.get(edge.toNodeId);
-                if (!from || !to) {
-                  return null;
-                }
-                const edgeTitle: string =
-                  edge.fromPort || edge.toPort
-                    ? `${edge.fromPort || "?"} ↔ ${edge.toPort || "?"}`
-                    : "";
-                return (
+            {edges.map((edge: NetworkTopologyEdge): ReactElement | null => {
+              const from: TopologyPoint | undefined = layout.get(
+                edge.fromNodeId,
+              );
+              const to: TopologyPoint | undefined = layout.get(edge.toNodeId);
+              if (!from || !to) {
+                return null;
+              }
+              const state: NetworkLinkState = linkStateForEdge(edge);
+              const color: string = LINK_STATE_COLORS[state];
+              const width: number = edgeStrokeWidthForEdge(edge);
+              const edgeTitle: string = `${describeEndpoint(
+                edge.fromInterface,
+                edge.fromPort,
+              )} ↔ ${describeEndpoint(edge.toInterface, edge.toPort)}${
+                edge.protocols && edge.protocols.length > 0
+                  ? ` (${edge.protocols.join(" + ").toUpperCase()})`
+                  : ""
+              }`;
+              const isClickable: boolean = Boolean(props.onEdgeClick);
+              return (
+                <g
+                  key={`edge-${edgeKeyForEdge(edge)}`}
+                  style={isClickable ? { cursor: "pointer" } : undefined}
+                  onClick={
+                    isClickable
+                      ? () => {
+                          if (suppressClick.current) {
+                            return;
+                          }
+                          props.onEdgeClick!(edge);
+                        }
+                      : undefined
+                  }
+                >
+                  <title>{edgeTitle}</title>
+                  {/* Wide invisible line so thin edges stay clickable. */}
                   <line
-                    key={`edge-${index}`}
                     x1={from.x}
                     y1={from.y}
                     x2={to.x}
                     y2={to.y}
-                    stroke="#cbd5e1"
-                    strokeWidth={1.5}
-                  >
-                    {edgeTitle ? <title>{edgeTitle}</title> : null}
-                  </line>
-                );
-              },
-            )}
+                    stroke="transparent"
+                    strokeWidth={12}
+                  />
+                  <line
+                    x1={from.x}
+                    y1={from.y}
+                    x2={to.x}
+                    y2={to.y}
+                    stroke={color}
+                    strokeWidth={width}
+                    strokeDasharray={state === "down" ? "6 4" : undefined}
+                  />
+                </g>
+              );
+            })}
           </g>
 
           {/* Nodes. */}
@@ -324,6 +401,7 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
                 return null;
               }
               const colors: StatusColors = getStatusColors(node.status);
+              const isDimmed: boolean = dimmedNodeIds.has(node.id);
 
               const hasInterfaceCounts: boolean =
                 node.interfacesUp !== undefined ||
@@ -333,25 +411,29 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
                     node.interfacesDown ?? 0
                   } down`
                 : "";
+              const vendorSummary: string = [node.vendor, node.deviceModel]
+                .filter(Boolean)
+                .join(" ");
               const tooltip: string = `${node.name} (${node.status}${
                 node.isManaged ? "" : ", unmanaged"
-              })${interfacesSummary ? ` — ${interfacesSummary}` : ""}`;
+              })${vendorSummary ? ` — ${vendorSummary}` : ""}${
+                interfacesSummary ? ` — ${interfacesSummary}` : ""
+              }`;
 
-              const isClickable: boolean = Boolean(
-                node.isManaged && props.onManagedNodeClick,
-              );
+              const isClickable: boolean = Boolean(props.onNodeClick);
 
               return (
                 <g
                   key={`node-${node.id}`}
                   style={isClickable ? { cursor: "pointer" } : undefined}
+                  opacity={isDimmed ? 0.25 : 1}
                   onClick={
                     isClickable
                       ? () => {
                           if (suppressClick.current) {
                             return;
                           }
-                          props.onManagedNodeClick!(node);
+                          props.onNodeClick!(node);
                         }
                       : undefined
                   }
@@ -361,10 +443,14 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
                     cx={point.x}
                     cy={point.y}
                     r={NODE_RADIUS}
-                    fill={node.isManaged ? colors.fill : "#ffffff"}
+                    fill={
+                      node.isManaged
+                        ? colors.fill
+                        : "var(--ou-surface-primary, #ffffff)"
+                    }
                     fillOpacity={node.isManaged ? 0.85 : 1}
                     stroke={colors.stroke}
-                    strokeWidth={node.isManaged ? 2 : 2}
+                    strokeWidth={2}
                     strokeDasharray={node.isManaged ? undefined : "4 3"}
                   />
                   {hasInterfaceCounts ? (
@@ -374,7 +460,11 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
                       textAnchor="middle"
                       fontSize={9}
                       fontWeight={600}
-                      fill={node.isManaged ? "#ffffff" : "#374151"}
+                      fill={
+                        node.isManaged
+                          ? "#ffffff"
+                          : "var(--ou-text-secondary, #374151)"
+                      }
                     >
                       {`${node.interfacesUp ?? 0}/${node.interfacesDown ?? 0}`}
                     </text>
@@ -384,7 +474,7 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
                     y={point.y + NODE_RADIUS + 14}
                     textAnchor="middle"
                     fontSize={12}
-                    fill="#374151"
+                    fill="var(--ou-text-secondary, #374151)"
                   >
                     {node.name}
                   </text>
@@ -398,4 +488,4 @@ const TopologyGraph: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default TopologyGraph;
+export default NetworkDeviceGraph;

@@ -8,6 +8,8 @@ import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
 import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
 import ProbeIngestDiscoveryScanAPI from "./API/ProbeIngest/DiscoveryScan";
 import ProbeIngestAPI from "./API/ProbeIngest/Probe";
+import ProbeIngestSyslogAPI from "./API/ProbeIngest/Syslog";
+import ProbeIngestNetworkFlowAPI from "./API/ProbeIngest/NetworkFlow";
 import IncomingEmailAPI from "./API/ProbeIngest/IncomingEmail";
 // ServerMonitorIngest routes
 import ServerMonitorAPI from "./API/ServerMonitorIngest/ServerMonitor";
@@ -59,6 +61,8 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestMonitorAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestDiscoveryScanAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestSyslogAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkFlowAPI);
       app.use(["/probe-ingest", "/"], IncomingEmailAPI);
 
       // ServerMonitorIngest routes under ["/server-monitor-ingest", "/"]

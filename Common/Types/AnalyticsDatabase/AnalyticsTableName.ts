@@ -4,6 +4,7 @@ enum AnalyticsTableName {
   ExceptionInstance = "ExceptionItemV3",
   Span = "SpanItemV3",
   MonitorLog = "MonitorLogV3",
+  NetworkFlow = "NetworkFlowV1",
   Profile = "ProfileItemV3",
   ProfileSample = "ProfileSampleItemV3",
   AuditLog = "AuditLogV2",

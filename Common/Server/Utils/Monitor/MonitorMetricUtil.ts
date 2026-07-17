@@ -18,6 +18,7 @@ import HttpPhaseTimings from "../../../Types/Monitor/HttpPhaseTimings";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import { SnmpOidResponse } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
@@ -973,6 +974,61 @@ export default class MonitorMetricUtil {
             metricNameServiceNameMap: metricNameServiceNameMap,
           });
         }
+      }
+    }
+
+    /*
+     * Polled OID values (vendor-template CPU/memory/temperature and custom
+     * OIDs). Without this the values users poll every check can gate
+     * criteria but can never be charted or evaluated over time. One series
+     * per OID, keyed by the oid/oidName attributes; non-numeric values
+     * (strings, OIDs, MACs) are skipped — they carry no chartable signal.
+     */
+    const snmpOidResponses: Array<SnmpOidResponse> | undefined = (
+      data.dataToProcess as ProbeMonitorResponse
+    ).snmpResponse?.oidResponses;
+
+    if (snmpOidResponses && snmpOidResponses.length > 0) {
+      // Same unbounded-write cap rationale as the interface block above.
+      const oidResponsesToEmit: Array<SnmpOidResponse> =
+        snmpOidResponses.slice(0, 50);
+
+      if (oidResponsesToEmit.length < snmpOidResponses.length) {
+        logger.warn(
+          `Monitor ${data.monitorId.toString()}: emitting metrics for first ${oidResponsesToEmit.length} of ${snmpOidResponses.length} SNMP OID responses`,
+        );
+      }
+
+      for (const oidResponse of oidResponsesToEmit) {
+        const numericValue: number | undefined =
+          typeof oidResponse.value === "number" &&
+          isFinite(oidResponse.value)
+            ? oidResponse.value
+            : undefined;
+
+        if (numericValue === undefined) {
+          continue;
+        }
+
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.SnmpOidValue,
+          value: numericValue,
+          description: "Value of a polled SNMP OID",
+          unit: "",
+          extraAttributes: {
+            probeId: (
+              data.dataToProcess as ProbeMonitorResponse
+            ).probeId.toString(),
+            oid: oidResponse.oid,
+            oidName: oidResponse.name || oidResponse.oid,
+          },
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
       }
     }
 

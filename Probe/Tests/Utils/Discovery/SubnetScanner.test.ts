@@ -9,7 +9,14 @@ import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 
 describe("SubnetScanner.countHosts", () => {
   it("counts a /24 as 254 usable hosts (excludes network + broadcast)", () => {
@@ -99,6 +106,15 @@ describe("SubnetScanner SNMP config handed to the SNMP layer", () => {
     return captured;
   }
 
+  beforeEach(() => {
+    /*
+     * The ICMP pre-sweep now gates every SNMP probe. Mark every host as
+     * ping-alive so these tests keep exercising the SNMP config handoff
+     * (and never shell out to the real ping binary).
+     */
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -170,5 +186,97 @@ describe("SubnetScanner SNMP config handed to the SNMP layer", () => {
 
     expect(captured[0]!.snmpV3Auth).toBeUndefined();
     expect(captured[0]!.communityString).toBe("private");
+  });
+});
+
+/*
+ * The ICMP pre-sweep exists to skip SNMP's 2-second timeout on dead hosts,
+ * but it must never turn into a discovery filter when pinging itself is
+ * broken: a rejection from the ping layer (privileges, missing binary) has
+ * to fall back to SNMP-probing every host, exactly as before the pre-sweep.
+ */
+describe("SubnetScanner ICMP pre-sweep", () => {
+  // A /31 sweeps exactly two hosts: 10.0.0.0 and 10.0.0.1.
+  const TINY_CIDR: string = "10.0.0.0/31";
+
+  function mockSnmpAnsweringEverywhere(): Array<string> {
+    const probed: Array<string> = [];
+
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(async (config: MonitorStepSnmpMonitor) => {
+        probed.push(config.hostname || "");
+        return { sysName: "device-" + config.hostname };
+      });
+
+    return probed;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("skips SNMP for hosts that do not answer ping and reports the ping count", async () => {
+    const probed: Array<string> = mockSnmpAnsweringEverywhere();
+
+    jest
+      .spyOn(SubnetScanner, "isHostAliveByPing")
+      .mockImplementation(async (host: string) => {
+        return host === "10.0.0.1";
+      });
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    // Only the ping-alive host reaches the SNMP layer.
+    expect(probed).toEqual(["10.0.0.1"]);
+    // The skipped host still counts as scanned — the sweep covered it.
+    expect(result.scannedHostCount).toBe(2);
+    expect(result.respondedToPingCount).toBe(1);
+    expect(
+      result.discoveredHosts.map((discovered: { ipAddress: string }) => {
+        return discovered.ipAddress;
+      }),
+    ).toEqual(["10.0.0.1"]);
+  });
+
+  it("SNMP-probes every host when pinging itself is broken (best-effort fallback)", async () => {
+    const probed: Array<string> = mockSnmpAnsweringEverywhere();
+
+    jest
+      .spyOn(SubnetScanner, "isHostAliveByPing")
+      .mockRejectedValue(new Error("ICMP sockets require elevated privileges"));
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    // No host was dropped: the pre-sweep failure degraded to a plain SNMP sweep.
+    expect([...probed].sort()).toEqual(["10.0.0.0", "10.0.0.1"]);
+    expect(result.scannedHostCount).toBe(2);
+    // A count from a sweep that never ran would be a lie.
+    expect(result.respondedToPingCount).toBeUndefined();
+  });
+
+  it("does not report a partial ping count when the pre-sweep dies mid-scan", async () => {
+    const probed: Array<string> = mockSnmpAnsweringEverywhere();
+
+    jest
+      .spyOn(SubnetScanner, "isHostAliveByPing")
+      .mockImplementation(async (host: string) => {
+        if (host === "10.0.0.0") {
+          return true;
+        }
+        throw new Error("ping binary vanished mid-scan");
+      });
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    // The host whose ping errored falls through to SNMP, not into a skip.
+    expect(probed).toContain("10.0.0.1");
+    expect(probed).toContain("10.0.0.0");
+    // Some hosts were ping-gated and some were not: the count covers an
+    // unknown subset, so it must not be reported at all.
+    expect(result.respondedToPingCount).toBeUndefined();
   });
 });

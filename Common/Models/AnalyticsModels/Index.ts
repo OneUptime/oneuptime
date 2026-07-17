@@ -10,6 +10,7 @@ import MetricBaselineHourly from "./MetricBaselineHourly";
 import Span from "./Span";
 import ExceptionInstance from "./ExceptionInstance";
 import MonitorLog from "./MonitorLog";
+import NetworkFlow from "./NetworkFlow";
 import Profile from "./Profile";
 import ProfileSample from "./ProfileSample";
 import AuditLog from "./AuditLog";
@@ -40,6 +41,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   MetricBaselineHourly,
   ExceptionInstance,
   MonitorLog,
+  NetworkFlow,
   Profile,
   ProfileSample,
   AuditLog,

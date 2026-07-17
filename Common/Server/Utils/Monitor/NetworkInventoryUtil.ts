@@ -1,4 +1,5 @@
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "../../../Models/DatabaseModels/NetworkInterface";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
 import NetworkInterfaceService from "../../Services/NetworkInterfaceService";
@@ -6,6 +7,10 @@ import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import LldpNeighbor from "../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
+import CdpNeighbor from "../../../Types/Monitor/SnmpMonitor/CdpNeighbor";
+import SnmpSystemInfo from "../../../Types/Monitor/SnmpMonitor/SnmpSystemInfo";
+import SnmpEntityInfo from "../../../Types/Monitor/SnmpMonitor/SnmpEntityInfo";
+import SnmpVendorTemplateUtil from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
@@ -41,21 +46,63 @@ export default class NetworkInventoryUtil {
     }
 
     const deviceId: ObjectID = new ObjectID(deviceIdAsString);
+
+    /*
+     * The device id is read from the monitor's step JSON, which a user can
+     * set to any UUID through the Monitor API (the dashboard dropdown is
+     * scoped, but the API is not). Confirm the device actually belongs to
+     * this monitor's project before writing anything with isRoot — without
+     * this guard a crafted step could point at another project's device and
+     * overwrite its inventory (or spawn interfaces under it).
+     */
+    const ownedDevice: NetworkDevice | null =
+      await NetworkDeviceService.findOneBy({
+        query: {
+          _id: deviceId,
+          projectId: data.monitor.projectId,
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!ownedDevice) {
+      return;
+    }
+
     const walkedInterfaces: Array<SnmpInterface> =
       data.dataToProcess.snmpResponse?.interfaces || [];
-    const systemInfo:
-      | { sysDescr?: string | undefined; sysName?: string | undefined }
-      | undefined = data.dataToProcess.snmpResponse?.systemInfo;
+    const systemInfo: SnmpSystemInfo | undefined =
+      data.dataToProcess.snmpResponse?.systemInfo;
+    const entityInfo: SnmpEntityInfo | undefined =
+      data.dataToProcess.snmpResponse?.entityInfo;
     const lldpNeighbors: Array<LldpNeighbor> | undefined =
       data.dataToProcess.snmpResponse?.lldpNeighbors;
+    const cdpNeighbors: Array<CdpNeighbor> | undefined =
+      data.dataToProcess.snmpResponse?.cdpNeighbors;
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
+    /*
+     * lastSeenAt is "last time the device actually answered", not "last time
+     * we tried": the device list's status pill and the topology map both
+     * derive up/down from its freshness, so bumping it on a failed poll
+     * would paint an unreachable device green. A poll where the probe could
+     * not reach the device reports isOnline === false; treat anything else
+     * (reachable, or a monitor type that reports no reachability) as seen.
+     */
+    const isDeviceReachable: boolean = data.dataToProcess.isOnline !== false;
+
     try {
       // --- Device enrichment + cached counts ---
-      const deviceUpdate: Record<string, unknown> = {
-        lastSeenAt: now,
-      };
+      const deviceUpdate: Record<string, unknown> = {};
+
+      if (isDeviceReachable) {
+        deviceUpdate["lastSeenAt"] = now;
+      }
 
       if (systemInfo?.sysDescr) {
         deviceUpdate["sysDescr"] = systemInfo.sysDescr.substring(0, 500);
@@ -63,14 +110,65 @@ export default class NetworkInventoryUtil {
       if (systemInfo?.sysName) {
         deviceUpdate["sysName"] = systemInfo.sysName.substring(0, 100);
       }
+      if (systemInfo?.sysObjectId) {
+        deviceUpdate["sysObjectId"] = systemInfo.sysObjectId.substring(0, 100);
+      }
+      if (systemInfo?.sysLocation) {
+        deviceUpdate["sysLocation"] = systemInfo.sysLocation.substring(0, 100);
+      }
+      if (systemInfo?.sysContact) {
+        deviceUpdate["sysContact"] = systemInfo.sysContact.substring(0, 100);
+      }
+      if (systemInfo?.sysUpTimeSeconds !== undefined) {
+        deviceUpdate["lastRebootedAt"] = new Date(
+          now.getTime() - systemInfo.sysUpTimeSeconds * 1000,
+        );
+      }
+
+      /*
+       * Vendor: ENTITY-MIB manufacturer when the device implements it,
+       * otherwise fingerprinted from the sysObjectID enterprise arc.
+       */
+      const vendor: string | undefined =
+        entityInfo?.manufacturer ||
+        SnmpVendorTemplateUtil.getVendorNameBySysObjectId(
+          systemInfo?.sysObjectId,
+        );
+      if (vendor) {
+        deviceUpdate["vendor"] = vendor.substring(0, 100);
+      }
+      if (entityInfo?.model) {
+        deviceUpdate["deviceModel"] = entityInfo.model.substring(0, 100);
+      }
+      if (entityInfo?.serialNumber) {
+        deviceUpdate["serialNumber"] = entityInfo.serialNumber.substring(
+          0,
+          100,
+        );
+      }
+      if (entityInfo?.firmwareVersion) {
+        deviceUpdate["firmwareVersion"] = entityInfo.firmwareVersion.substring(
+          0,
+          100,
+        );
+      }
+      if (entityInfo?.softwareVersion) {
+        deviceUpdate["softwareVersion"] = entityInfo.softwareVersion.substring(
+          0,
+          100,
+        );
+      }
 
       /*
        * Store the LLDP snapshot (capped) whenever the walk ran, even if it
        * found nothing — clearing stale neighbors is as important as adding
-       * new ones for keeping the topology accurate.
+       * new ones for keeping the topology accurate. Same for CDP.
        */
       if (lldpNeighbors !== undefined) {
         deviceUpdate["lldpNeighbors"] = lldpNeighbors.slice(0, 256);
+      }
+      if (cdpNeighbors !== undefined) {
+        deviceUpdate["cdpNeighbors"] = cdpNeighbors.slice(0, 256);
       }
 
       if (walkedInterfaces.length > 0) {
@@ -87,13 +185,16 @@ export default class NetworkInventoryUtil {
         ).length;
       }
 
-      await NetworkDeviceService.updateOneById({
-        id: deviceId,
-        data: deviceUpdate as any,
-        props: {
-          isRoot: true,
-        },
-      });
+      // An unreachable poll with no walk data leaves nothing worth writing.
+      if (Object.keys(deviceUpdate).length > 0) {
+        await NetworkDeviceService.updateOneById({
+          id: deviceId,
+          data: deviceUpdate as any,
+          props: {
+            isRoot: true,
+          },
+        });
+      }
 
       if (walkedInterfaces.length === 0) {
         return;
@@ -138,6 +239,10 @@ export default class NetworkInventoryUtil {
         const interfaceData: Record<string, unknown> = {
           name: (walked.name || "").substring(0, 100),
           alias: walked.alias ? walked.alias.substring(0, 100) : null,
+          macAddress: walked.macAddress
+            ? walked.macAddress.substring(0, 100)
+            : null,
+          interfaceType: walked.interfaceType ?? null,
           isOperationallyUp: walked.isOperationallyUp,
           isAdministrativelyUp: walked.isAdministrativelyUp,
           speedInMbps:
@@ -173,6 +278,12 @@ export default class NetworkInventoryUtil {
           newInterface.name = (walked.name || "").substring(0, 100);
           if (walked.alias) {
             newInterface.alias = walked.alias.substring(0, 100);
+          }
+          if (walked.macAddress) {
+            newInterface.macAddress = walked.macAddress.substring(0, 100);
+          }
+          if (walked.interfaceType !== undefined) {
+            newInterface.interfaceType = walked.interfaceType;
           }
           newInterface.isMonitored = true;
           newInterface.isOperationallyUp = walked.isOperationallyUp;
