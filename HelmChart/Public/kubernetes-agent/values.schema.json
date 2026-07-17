@@ -61,6 +61,11 @@
           "items": { "type": "string" },
           "description": "Namespaces to exclude from monitoring"
         },
+        "excludeLogsOnly": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Namespaces whose pod logs are excluded while eBPF traces and all metrics keep flowing. Not passed to the eBPF DaemonSet and ignored by applyTo."
+        },
         "applyTo": {
           "type": "object",
           "description": "Which additional signals the include/exclude lists apply to. Pod logs and eBPF traces are always filtered at the source.",
