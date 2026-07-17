@@ -97,9 +97,9 @@ describe("linkStateForEdge — classification edge cases", () => {
   });
 
   test("just below the threshold is healthy, not saturated", () => {
-    expect(
-      linkStateForEdge(edgeWith({ utilizationPercent: 79.9 })),
-    ).toBe("healthy");
+    expect(linkStateForEdge(edgeWith({ utilizationPercent: 79.9 }))).toBe(
+      "healthy",
+    );
   });
 
   test("an idle link at 0% utilization is healthy", () => {
@@ -109,9 +109,9 @@ describe("linkStateForEdge — classification edge cases", () => {
   });
 
   test("rate-only data (no utilization, no oper status) still reads healthy", () => {
-    expect(
-      linkStateForEdge(edgeWith({ inRateMbps: 0, outRateMbps: 0 })),
-    ).toBe("healthy");
+    expect(linkStateForEdge(edgeWith({ inRateMbps: 0, outRateMbps: 0 }))).toBe(
+      "healthy",
+    );
   });
 
   test("endpoint objects with every field undefined stay unknown", () => {
@@ -175,9 +175,9 @@ describe("edgeKeyForEdge", () => {
   });
 
   test("distinct pairs get distinct keys", () => {
-    expect(
-      edgeKeyForEdge({ fromNodeId: "a", toNodeId: "b" }),
-    ).not.toBe(edgeKeyForEdge({ fromNodeId: "a", toNodeId: "c" }));
+    expect(edgeKeyForEdge({ fromNodeId: "a", toNodeId: "b" })).not.toBe(
+      edgeKeyForEdge({ fromNodeId: "a", toNodeId: "c" }),
+    );
   });
 });
 
@@ -266,9 +266,9 @@ describe("describeEndpoint", () => {
   });
 
   test("prefers the real interface name over the port label", () => {
-    expect(
-      describeEndpoint({ interfaceName: "xe-0/0/7" }, "stale-label"),
-    ).toBe("xe-0/0/7");
+    expect(describeEndpoint({ interfaceName: "xe-0/0/7" }, "stale-label")).toBe(
+      "xe-0/0/7",
+    );
   });
 
   test("renders the full tooltip line for a down, busy interface", () => {
@@ -306,10 +306,7 @@ describe("describeEndpoint", () => {
 
   test("shows a dash for the missing direction when only one rate is known", () => {
     expect(
-      describeEndpoint(
-        { interfaceName: "Gi0/1", inRateMbps: 5 },
-        undefined,
-      ),
+      describeEndpoint({ interfaceName: "Gi0/1", inRateMbps: 5 }, undefined),
     ).toBe("Gi0/1 · ↓5.0 Mbps ↑—");
   });
 });

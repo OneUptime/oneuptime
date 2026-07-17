@@ -275,8 +275,10 @@ describe("SubnetScanner ICMP pre-sweep", () => {
     // The host whose ping errored falls through to SNMP, not into a skip.
     expect(probed).toContain("10.0.0.1");
     expect(probed).toContain("10.0.0.0");
-    // Some hosts were ping-gated and some were not: the count covers an
-    // unknown subset, so it must not be reported at all.
+    /*
+     * Some hosts were ping-gated and some were not: the count covers an
+     * unknown subset, so it must not be reported at all.
+     */
     expect(result.respondedToPingCount).toBeUndefined();
   });
 });

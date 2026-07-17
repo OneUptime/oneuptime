@@ -87,9 +87,7 @@ describe("SyslogReceiver.parseMessage", () => {
       expect(result!.hostname).toBe("mymachine.example.com");
       expect(result!.appName).toBe("evntslog");
       expect(result!.message).toBe("An application event log entry");
-      expect(result!.timestamp.toISOString()).toBe(
-        "2026-02-05T22:14:15.003Z",
-      );
+      expect(result!.timestamp.toISOString()).toBe("2026-02-05T22:14:15.003Z");
     });
 
     it("should handle nil header values and fall back to receive time", () => {
@@ -130,7 +128,9 @@ describe("SyslogReceiver.parseMessage", () => {
     });
 
     it("should return null for an empty message", () => {
-      expect(SyslogReceiver.parseMessage("", SOURCE_IP, RECEIVED_AT)).toBeNull();
+      expect(
+        SyslogReceiver.parseMessage("", SOURCE_IP, RECEIVED_AT),
+      ).toBeNull();
       expect(
         SyslogReceiver.parseMessage("   ", SOURCE_IP, RECEIVED_AT),
       ).toBeNull();

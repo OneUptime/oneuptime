@@ -119,9 +119,7 @@ export default class NetworkTopologyUtil {
     const edgeByKey: Map<string, NetworkTopologyEdge> = new Map();
 
     for (const device of devices) {
-      for (const claim of NetworkTopologyUtil.neighborClaimsForDevice(
-        device,
-      )) {
+      for (const claim of NetworkTopologyUtil.neighborClaimsForDevice(device)) {
         if (!claim.matchKey) {
           continue;
         }
