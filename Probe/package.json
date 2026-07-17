@@ -47,5 +47,8 @@
     "jest": "^28.1.0",
     "nodemon": "^3.1.14",
     "ts-jest": "^28.0.2"
+  },
+  "optionalDependencies": {
+    "msnodesqlv8": "^5.2.2"
   }
 }

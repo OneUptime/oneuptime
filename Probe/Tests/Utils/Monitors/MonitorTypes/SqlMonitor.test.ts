@@ -3,6 +3,8 @@ process.env["ONEUPTIME_URL"] = "https://oneuptime.com";
 process.env["PROBE_KEY"] = "test-probe-key";
 
 import SqlMonitor, {
+  buildSqlServerIntegratedConnectionString,
+  SQL_SERVER_ODBC_DRIVER,
   SqlQueryValidator,
 } from "../../../../Utils/Monitors/MonitorTypes/SqlMonitor";
 import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
@@ -275,6 +277,7 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
         databaseName: "orders",
         username: "readonly",
         password: "",
+        useWindowsIntegratedAuthentication: false,
         useSsl: false,
         rejectUnauthorizedSsl: true,
         query: "DELETE FROM orders",
@@ -300,6 +303,7 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
         databaseName: "orders",
         username: "readonly",
         password: "",
+        useWindowsIntegratedAuthentication: false,
         useSsl: false,
         rejectUnauthorizedSsl: true,
         query: "SELECT 1",
@@ -329,6 +333,7 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
           databaseName: "orders",
           username: "readonly",
           password: "",
+          useWindowsIntegratedAuthentication: false,
           useSsl: false,
           rejectUnauthorizedSsl: true,
           query: "DELETE FROM orders",
@@ -343,5 +348,64 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
       expect(response!.isOnline).toBe(false);
       expect(response!.queryError).toBeTruthy();
     }
+  });
+
+  it("rejects integrated authentication for non-SQL Server engines", async () => {
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
+      {
+        databaseType: "PostgreSQL" as any,
+        host: "db.internal",
+        port: 5432,
+        databaseName: "orders",
+        username: "",
+        password: "",
+        useWindowsIntegratedAuthentication: true,
+        useSsl: false,
+        rejectUnauthorizedSsl: true,
+        query: "SELECT 1",
+        connectionTimeoutInMs: 10000,
+        statementTimeoutInMs: 15000,
+        maxRows: 100,
+      },
+      { isOnlineCheckRequest: true },
+    );
+
+    expect(response).not.toBeNull();
+    expect(response!.isOnline).toBe(false);
+    expect(response!.failureCause).toContain("only supported");
+  });
+});
+
+describe("buildSqlServerIntegratedConnectionString", () => {
+  it("uses a trusted connection without SQL login credentials", () => {
+    const connectionString: string = buildSqlServerIntegratedConnectionString({
+      host: "sql.internal",
+      port: 1433,
+      databaseName: "orders",
+      useSsl: true,
+      rejectUnauthorizedSsl: true,
+    });
+
+    expect(connectionString).toContain(`Driver={${SQL_SERVER_ODBC_DRIVER}}`);
+    expect(connectionString).toContain("Server={sql.internal,1433}");
+    expect(connectionString).toContain("Database={orders}");
+    expect(connectionString).toContain("Trusted_Connection=yes");
+    expect(connectionString).toContain("Encrypt=yes");
+    expect(connectionString).toContain("TrustServerCertificate=no");
+    expect(connectionString).not.toMatch(/(?:Uid|Pwd|Password)=/i);
+  });
+
+  it("escapes ODBC values and supports trusted self-signed certificates", () => {
+    const connectionString: string = buildSqlServerIntegratedConnectionString({
+      host: "sql;primary}",
+      port: 1433,
+      databaseName: "orders;archive}",
+      useSsl: true,
+      rejectUnauthorizedSsl: false,
+    });
+
+    expect(connectionString).toContain("Server={sql;primary}},1433}");
+    expect(connectionString).toContain("Database={orders;archive}}}");
+    expect(connectionString).toContain("TrustServerCertificate=yes");
   });
 });

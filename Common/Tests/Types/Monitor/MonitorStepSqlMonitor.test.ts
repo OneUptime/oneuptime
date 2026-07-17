@@ -20,6 +20,7 @@ describe("MonitorStepSqlMonitorUtil", () => {
       expect(def.databaseType).toBe(SqlDatabaseType.PostgreSQL);
       expect(def.port).toBe(5432);
       expect(def.useSsl).toBe(false);
+      expect(def.useWindowsIntegratedAuthentication).toBe(false);
       expect(def.rejectUnauthorizedSsl).toBe(true);
       expect(def.statementTimeoutInMs).toBe(
         DEFAULT_SQL_STATEMENT_TIMEOUT_IN_MS,
@@ -68,6 +69,7 @@ describe("MonitorStepSqlMonitorUtil", () => {
         databaseName: "orders",
         username: "readonly",
         password: "{{monitorSecrets.dbPass}}",
+        useWindowsIntegratedAuthentication: true,
         useSsl: true,
         rejectUnauthorizedSsl: false,
         query: "SELECT COUNT(*) FROM orders",
@@ -82,6 +84,7 @@ describe("MonitorStepSqlMonitorUtil", () => {
       expect(parsed.host).toBe("db.internal");
       expect(parsed.port).toBe(5433);
       expect(parsed.password).toBe("{{monitorSecrets.dbPass}}");
+      expect(parsed.useWindowsIntegratedAuthentication).toBe(true);
       expect(parsed.useSsl).toBe(true);
       expect(parsed.rejectUnauthorizedSsl).toBe(false);
       // clamped
@@ -105,6 +108,7 @@ describe("MonitorStepSqlMonitorUtil", () => {
       });
       expect(parsed.rejectUnauthorizedSsl).toBe(true);
       expect(parsed.useSsl).toBe(false);
+      expect(parsed.useWindowsIntegratedAuthentication).toBe(false);
     });
   });
 });
