@@ -319,11 +319,18 @@ export default class MonitorResourceUtil {
           }
 
           if (!isSnmpTrapEvent) {
-            await MonitorProbeService.updateOneBy({
-              query: {
-                monitorId: monitor.id!,
-                probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
-              },
+            /*
+             * Heartbeat write: single-statement UPDATE, no hooks and no
+             * `version` bump. This deliberately drops the per-update workflow
+             * trigger and audit-log entry that MonitorProbe's @EnableWorkflow /
+             * @EnableAuditLog fire on every changed update. Also skips the
+             * pre-SELECT that would reload the large lastMonitoringLog jsonb
+             * row — that SELECT-then-SAVE pattern is what caused the
+             * "Query read timeout" when lastMonitoringLog grew large over time.
+             * See ServiceService.updateLastSeen for the same pattern.
+             */
+            await MonitorProbeService.updateColumnsByIdWithoutHooks({
+              id: monitorProbe.id!,
               data: {
                 lastMonitoringLog: {
                   ...(monitorProbe.lastMonitoringLog || {}),
@@ -335,11 +342,9 @@ export default class MonitorResourceUtil {
                   },
                 } as any,
               },
-              props: {
-                isRoot: true,
-              },
             });
           }
+
         }
       }
 
