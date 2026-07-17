@@ -623,7 +623,12 @@ export class Service extends DatabaseService<Model> {
           "Invalid incident state provided. The state does not exist or does not belong to this project.",
         );
       }
-    } else if (createBy.data.createdIncidentTemplateId) {
+    } else if (
+      createBy.data.createdIncidentTemplateId &&
+      ObjectID.isValidUUID(
+        createBy.data.createdIncidentTemplateId.toString(),
+      )
+    ) {
       /*
        * Created from a template — pull every field we may want to
        * inherit and apply each one only if the caller didn't already
