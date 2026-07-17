@@ -61,7 +61,7 @@ spec:
             - name: NAMESPACE_INCLUDE
               value: {{ join "," .Values.namespaceFilters.include | quote }}
             - name: NAMESPACE_EXCLUDE
-              value: {{ join "," .Values.namespaceFilters.exclude | quote }}
+              value: {{ join "," (concat (.Values.namespaceFilters.exclude | default list) (.Values.namespaceFilters.excludeLogsOnly | default list)) | quote }}
             # This mode posts OTLP straight to OneUptime, so it never passes
             # through the collector's filter/telemetry processor. The tailer
             # applies the same threshold itself — see KubernetesLogTailer/Config.ts.

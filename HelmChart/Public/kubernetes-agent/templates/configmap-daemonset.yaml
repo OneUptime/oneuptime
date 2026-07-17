@@ -176,6 +176,13 @@ data:
           {{- range .Values.namespaceFilters.exclude | compact }}
           - /var/log/pods/{{ . }}_*/*/*.log
           {{- end }}
+          {{- /* Log-only excludes: skip these namespaces' pod logs while
+               leaving eBPF traces/metrics untouched — this list is
+               deliberately NOT wired into daemonset-ebpf.yaml or the
+               applyTo filter processors. */}}
+          {{- range .Values.namespaceFilters.excludeLogsOnly | default list | compact }}
+          - /var/log/pods/{{ . }}_*/*/*.log
+          {{- end }}
         start_at: end
         include_file_path: true
         include_file_name: false
