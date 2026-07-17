@@ -50,5 +50,8 @@
   },
   "optionalDependencies": {
     "msnodesqlv8": "^5.2.2"
+  },
+  "allowScripts": {
+    "msnodesqlv8@5.2.2": true
   }
 }

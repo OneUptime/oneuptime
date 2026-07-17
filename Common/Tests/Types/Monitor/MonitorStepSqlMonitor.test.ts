@@ -12,6 +12,33 @@ import MonitorStepSqlMonitor, {
 } from "../../../Types/Monitor/MonitorStepSqlMonitor";
 import SqlDatabaseType from "../../../Types/Monitor/SqlDatabaseType";
 import { JSONObject } from "../../../Types/JSON";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import ObjectID from "../../../Types/ObjectID";
+
+const getSqlMonitorStep: (
+  overrides?: Partial<MonitorStepSqlMonitor>,
+) => MonitorStep = (
+  overrides: Partial<MonitorStepSqlMonitor> = {},
+): MonitorStep => {
+  const id: ObjectID = ObjectID.generate();
+  const monitorStep: MonitorStep = MonitorStep.getDefaultMonitorStep({
+    monitorName: "SQL monitor",
+    monitorType: MonitorType.SQLQuery,
+    onlineMonitorStatusId: id,
+    offlineMonitorStatusId: id,
+    defaultIncidentSeverityId: id,
+    defaultAlertSeverityId: id,
+  });
+
+  return monitorStep.setSqlMonitor({
+    ...MonitorStepSqlMonitorUtil.getDefault(),
+    host: "sql.internal",
+    databaseName: "orders",
+    query: "SELECT 1",
+    ...overrides,
+  });
+};
 
 describe("MonitorStepSqlMonitorUtil", () => {
   describe("getDefault", () => {
@@ -63,7 +90,7 @@ describe("MonitorStepSqlMonitorUtil", () => {
   describe("fromJSON/toJSON round-trip", () => {
     test("preserves values and clamps out-of-range inputs", () => {
       const json: JSONObject = {
-        databaseType: SqlDatabaseType.PostgreSQL,
+        databaseType: SqlDatabaseType.MicrosoftSqlServer,
         host: "db.internal",
         port: 5433,
         databaseName: "orders",
@@ -109,6 +136,57 @@ describe("MonitorStepSqlMonitorUtil", () => {
       expect(parsed.rejectUnauthorizedSsl).toBe(true);
       expect(parsed.useSsl).toBe(false);
       expect(parsed.useWindowsIntegratedAuthentication).toBe(false);
+    });
+
+    test("serializes an explicit false value for older SQL monitor configurations", () => {
+      const json: JSONObject = MonitorStepSqlMonitorUtil.toJSON(
+        MonitorStepSqlMonitorUtil.getDefault(),
+      );
+
+      expect(json["useWindowsIntegratedAuthentication"]).toBe(false);
+    });
+  });
+
+  describe("MonitorStep validation", () => {
+    test("accepts integrated authentication for Microsoft SQL Server", () => {
+      const monitorStep: MonitorStep = getSqlMonitorStep({
+        databaseType: SqlDatabaseType.MicrosoftSqlServer,
+        port: 1433,
+        username: "",
+        password: "",
+        useWindowsIntegratedAuthentication: true,
+      });
+
+      expect(
+        MonitorStep.getValidationError(monitorStep, MonitorType.SQLQuery),
+      ).toBeNull();
+    });
+
+    test.each([SqlDatabaseType.PostgreSQL, SqlDatabaseType.MySQL])(
+      "rejects integrated authentication for %s",
+      (databaseType: SqlDatabaseType) => {
+        const monitorStep: MonitorStep = getSqlMonitorStep({
+          databaseType,
+          useWindowsIntegratedAuthentication: true,
+        });
+
+        expect(
+          MonitorStep.getValidationError(monitorStep, MonitorType.SQLQuery),
+        ).toBe(
+          "Windows Integrated Authentication is only supported for Microsoft SQL Server",
+        );
+      },
+    );
+
+    test("preserves validation compatibility for SQL-login monitors", () => {
+      const monitorStep: MonitorStep = getSqlMonitorStep({
+        databaseType: SqlDatabaseType.PostgreSQL,
+        useWindowsIntegratedAuthentication: false,
+      });
+
+      expect(
+        MonitorStep.getValidationError(monitorStep, MonitorType.SQLQuery),
+      ).toBeNull();
     });
   });
 });
