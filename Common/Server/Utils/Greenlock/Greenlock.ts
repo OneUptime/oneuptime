@@ -203,7 +203,7 @@ export default class GreenlockUtil {
           `Cname is not valid for domain: ${domain}`,
           orderLogAttributes,
         );
-        throw new BadDataException("Cname is not valid for domain " + domain);
+        return;
       }
 
       logger.debug(`Cname is valid for domain: ${domain}`, orderLogAttributes);
