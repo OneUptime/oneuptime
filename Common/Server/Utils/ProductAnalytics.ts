@@ -43,7 +43,7 @@ export default class ProductAnalytics {
         return;
       }
 
-      API.post({
+      API.post<JSONObject>({
         url: URL.fromString(AnalyticsHost.toString()).addRoute("/capture/"),
         data: {
           api_key: AnalyticsKey,

@@ -27,7 +27,7 @@ import OneUptimeDate from "../../Types/Date";
 import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import HashedString from "../../Types/HashedString";
-import { JSONValue } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
 import EmailVerificationToken from "../../Models/DatabaseModels/EmailVerificationToken";
@@ -133,14 +133,25 @@ export class Service extends DatabaseService<Model> {
      * (set during signup). Unlike the varchar(500) utm columns they have no
      * DB-level size bound, so whitelist keys and cap value lengths here.
      */
-    createBy.data.clickIds = Attribution.sanitizeClickIds(
-      createBy.data.clickIds as JSONValue,
-    );
+    const sanitizedClickIds: JSONObject | undefined =
+      Attribution.sanitizeClickIds(createBy.data.clickIds as JSONValue);
 
-    createBy.data.firstTouchAttribution =
+    if (sanitizedClickIds) {
+      createBy.data.clickIds = sanitizedClickIds;
+    } else {
+      delete createBy.data.clickIds;
+    }
+
+    const sanitizedFirstTouchAttribution: JSONObject | undefined =
       Attribution.sanitizeFirstTouchAttribution(
         createBy.data.firstTouchAttribution as JSONValue,
       );
+
+    if (sanitizedFirstTouchAttribution) {
+      createBy.data.firstTouchAttribution = sanitizedFirstTouchAttribution;
+    } else {
+      delete createBy.data.firstTouchAttribution;
+    }
 
     return { createBy, carryForward: null };
   }
