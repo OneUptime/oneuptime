@@ -23,17 +23,12 @@ export default class Domain extends DomainCommon {
                 domainLogAttributes,
               );
 
-              // Handle specific DNS error types with user-friendly messages
+              // No CNAME records is a valid DNS response, not an error
               if (
                 err.message.includes("ENODATA") ||
                 err.message.includes("queryCname ENODATA")
               ) {
-                reject(
-                  new BadDataException(
-                    `No CNAME records found for domain "${data.domain}". Please ensure you have added the CNAME record and wait for DNS propagation (up to 72 hours).`,
-                  ),
-                );
-                return;
+                return resolve([]);
               }
 
               if (
