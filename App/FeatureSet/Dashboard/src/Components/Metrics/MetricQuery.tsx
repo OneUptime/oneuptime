@@ -1,9 +1,6 @@
-import FiltersForm from "Common/UI/Components/Filters/FiltersForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import JSONFilter from "Common/UI/Components/Filters/JSONFilter";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IconProp from "Common/Types/Icon/IconProp";
 import Dropdown, {
   DropdownOption,
@@ -18,7 +15,6 @@ import React, {
 } from "react";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import Query from "Common/Types/BaseDatabase/Query";
 import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
 import MetricQueryData from "Common/Types/Metrics/MetricQueryData";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -146,6 +142,53 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
     });
   };
 
+  /*
+   * Direct write onto filterData (the shape FiltersForm used to manage):
+   * set or delete a single key, preserving everything else (attributes,
+   * groupByAttribute, ...) so query state never gets dropped on the floor.
+   */
+  const updateFilterDataKey: (
+    key: string,
+    value: string | undefined,
+  ) => void = (key: string, value: string | undefined): void => {
+    const newFilterData: Record<string, unknown> = {
+      ...(props.data.filterData as Record<string, unknown>),
+    };
+    if (value) {
+      newFilterData[key] = value;
+    } else {
+      delete newFilterData[key];
+    }
+    props.onDataChanged({
+      ...props.data,
+      filterData: newFilterData as MetricQueryData["filterData"],
+    });
+  };
+
+  const metricNameOptions: Array<DropdownOption> =
+    DropdownUtil.getDropdownOptionsFromArray(
+      props.metricTypes.map((metricType: MetricType) => {
+        return metricType.name || "";
+      }),
+    );
+
+  const selectedMetricNameOption: DropdownOption | undefined =
+    metricNameOptions.find((option: DropdownOption) => {
+      return option.value === selectedMetricName;
+    });
+
+  const aggregationOptions: Array<DropdownOption> =
+    DropdownUtil.getDropdownOptionsFromEnum(MetricsAggregationType);
+
+  const selectedAggregationType: string =
+    props.data.filterData?.aggegationType?.toString() ||
+    MetricsAggregationType.Avg;
+
+  const selectedAggregationOption: DropdownOption | undefined =
+    aggregationOptions.find((option: DropdownOption) => {
+      return option.value === selectedAggregationType;
+    });
+
   const groupByOptions: Array<DropdownOption> = (
     props.telemetryAttributes || []
   ).map((attr: string) => {
@@ -161,64 +204,61 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
     },
   );
 
+  const activeFilterCount: number = Object.keys(
+    ((props.data.filterData as Record<string, unknown> | undefined)?.[
+      "attributes"
+    ] as Record<string, unknown> | undefined) || {},
+  ).length;
+
   return (
     <Fragment>
-      <div>
-        <FiltersForm<MetricsQuery>
-          showFilter={true}
-          id="metrics-filter"
-          filterData={props.data.filterData}
-          onFilterChanged={(filterData: Query<MetricsQuery>) => {
-            props.onDataChanged({
-              ...props.data,
-              filterData,
-            });
-          }}
-          showAdvancedFilters={showAdvancedFilters}
-          hideAdvancedFilterToggle={true}
-          isFilterLoading={false}
-          filterError={showAdvancedFilters ? props.attributesError : undefined}
-          onFilterRefreshClick={
-            showAdvancedFilters ? props.onAttributesRetry : undefined
-          }
-          filters={[
-            {
-              key: "metricName",
-              title: "Metric Name",
-              type: FieldType.Dropdown,
-              filterDropdownOptions: DropdownUtil.getDropdownOptionsFromArray(
-                props.metricTypes.map((metricType: MetricType) => {
-                  return metricType.name || "";
-                }),
-              ),
-            },
-            {
-              key: "aggegationType",
-              type: FieldType.Dropdown,
-              title: "Aggregation Type",
-              filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-                MetricsAggregationType,
-              ),
-            },
-            {
-              key: "attributes",
-              type: FieldType.JSON,
-              title: "Filter by Attributes",
-              jsonKeys: props.telemetryAttributes,
-              jsonValueSuggestions: props.telemetryAttributeValueSuggestions,
-              onJsonKeySelected: props.onAttributeKeySelected,
-              onJsonValueSearch: props.onAttributeValueSearch,
-              isLoadingJsonKeys: props.isAttributesLoading,
-              loadingJsonValueKeys: props.loadingAttributeValueKeys,
-              jsonEnableOperators: true,
-              isAdvancedFilter: true,
-            },
-          ]}
-        />
+      {/*
+       * Inline query builder: metric picker + aggregation on one row,
+       * replacing the old label-column FiltersForm rows.
+       */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-[240px] flex-1">
+          <label className="mb-1 block text-xs font-medium text-gray-500">
+            Metric
+          </label>
+          <Dropdown
+            options={metricNameOptions}
+            value={selectedMetricNameOption}
+            placeholder="Search and select a metric..."
+            ariaLabel="Metric name"
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              updateFilterDataKey(
+                "metricName",
+                value ? value.toString() : undefined,
+              );
+            }}
+          />
+        </div>
+        <div className="w-full sm:w-44">
+          <label className="mb-1 block text-xs font-medium text-gray-500">
+            Aggregate by
+          </label>
+          <Dropdown
+            options={aggregationOptions}
+            value={selectedAggregationOption}
+            placeholder="Aggregation"
+            ariaLabel="Aggregation type"
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              /*
+               * A cleared aggregation falls back to Avg — every query
+               * needs one, and Avg is the creation-site default.
+               */
+              updateFilterDataKey(
+                "aggegationType",
+                value ? value.toString() : MetricsAggregationType.Avg,
+              );
+            }}
+          />
+        </div>
       </div>
 
       {showRateHint ? (
-        <div className="mt-2">
+        <div className="mt-3">
           <HintChip variant="amber" icon={IconProp.Bolt}>
             <button
               type="button"
@@ -245,52 +285,111 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
         </div>
       ) : null}
 
-      {showAdvancedFilters ? (
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700">
-            Group By
-          </label>
-          <p className="mt-1 text-xs text-gray-500">
-            Split this query into one series per unique value (e.g. one line per
-            host). Leave empty to aggregate everything into a single series.
-          </p>
-          <div className="mt-2">
-            <Dropdown
-              options={groupByOptions}
-              isMultiSelect={true}
-              value={selectedGroupByOptions}
-              placeholder="Select attributes to group by"
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ): void => {
-                const keys: Array<string> = Array.isArray(value)
-                  ? value.map((v: DropdownValue) => {
-                      return String(v);
-                    })
-                  : value
-                    ? [String(value)]
-                    : [];
+      {/* Filters & grouping toggle */}
+      <div className="mt-3">
+        <button
+          type="button"
+          aria-expanded={showAdvancedFilters}
+          className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 -ml-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          onClick={toggleAdvancedFilters}
+        >
+          <Icon
+            icon={
+              showAdvancedFilters ? IconProp.ChevronUp : IconProp.ChevronDown
+            }
+            className="h-3 w-3"
+          />
+          <span>Filters &amp; grouping</span>
+          {!showAdvancedFilters &&
+          (activeFilterCount > 0 || selectedGroupByKeys.length > 0) ? (
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
+          ) : null}
+        </button>
+      </div>
 
-                props.onDataChanged({
-                  ...props.data,
-                  groupByAttributeKeys: keys.length > 0 ? keys : undefined,
-                });
-              }}
-            />
+      {showAdvancedFilters ? (
+        <div className="mt-2 space-y-4 border-l-2 border-gray-100 pl-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Filter by attributes
+            </label>
+            <p className="mt-1 text-xs text-gray-500">
+              Only chart series whose attributes match these conditions.
+            </p>
+            {props.attributesError ? (
+              <div className="py-2">
+                <ErrorMessage
+                  message={props.attributesError}
+                  onRefreshClick={props.onAttributesRetry}
+                />
+              </div>
+            ) : (
+              <div className="mt-2">
+                <JSONFilter<MetricsQuery>
+                  filter={{
+                    key: "attributes",
+                    type: FieldType.JSON,
+                    title: "Attribute Filter",
+                  }}
+                  filterData={props.data.filterData}
+                  onFilterChanged={(
+                    filterData: MetricQueryData["filterData"],
+                  ) => {
+                    props.onDataChanged({
+                      ...props.data,
+                      filterData,
+                    });
+                  }}
+                  jsonKeys={props.telemetryAttributes}
+                  jsonValueSuggestions={
+                    props.telemetryAttributeValueSuggestions
+                  }
+                  onJsonKeySelected={props.onAttributeKeySelected}
+                  onJsonValueSearch={props.onAttributeValueSearch}
+                  isLoadingJsonKeys={props.isAttributesLoading}
+                  loadingJsonValueKeys={props.loadingAttributeValueKeys}
+                  enableOperators={true}
+                />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Group by
+            </label>
+            <p className="mt-1 text-xs text-gray-500">
+              Split this query into one series per unique value (e.g. one line
+              per host). Leave empty to aggregate everything into a single
+              series.
+            </p>
+            <div className="mt-2">
+              <Dropdown
+                options={groupByOptions}
+                isMultiSelect={true}
+                value={selectedGroupByOptions}
+                placeholder="Select attributes to group by"
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ): void => {
+                  const keys: Array<string> = Array.isArray(value)
+                    ? value.map((v: DropdownValue) => {
+                        return String(v);
+                      })
+                    : value
+                      ? [String(value)]
+                      : [];
+
+                  props.onDataChanged({
+                    ...props.data,
+                    groupByAttributeKeys: keys.length > 0 ? keys : undefined,
+                  });
+                }}
+              />
+            </div>
           </div>
         </div>
       ) : null}
-
-      <div className="mt-3">
-        <Button
-          className="-ml-3"
-          buttonSize={ButtonSize.Small}
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-          icon={showAdvancedFilters ? IconProp.ChevronUp : IconProp.ChevronDown}
-          title="Filters & grouping"
-          onClick={toggleAdvancedFilters}
-        />
-      </div>
     </Fragment>
   );
 };

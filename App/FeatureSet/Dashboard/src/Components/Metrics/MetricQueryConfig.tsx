@@ -527,7 +527,8 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
             <div className="border-t border-gray-200 pt-3">
               <button
                 type="button"
-                className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wide hover:text-gray-700 transition-colors w-full"
+                aria-expanded={showDisplaySettings}
+                className="flex w-full items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-600"
                 onClick={() => {
                   setShowDisplaySettings(!showDisplaySettings);
                 }}
