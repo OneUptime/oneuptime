@@ -1819,7 +1819,9 @@ export default class StatusPageAPI extends BaseAPI<
             activeEpisodes = await IncidentEpisodeService.findBy({
               query: {
                 _id: QueryHelper.any(
-                  Array.from(episodeIdsFromMembers).map((id: string) => {
+                  Array.from(episodeIdsFromMembers).filter((id: string) => {
+          return ObjectID.isValidUUID(id);
+        }).map((id: string) => {
                     return new ObjectID(id);
                   }),
                 ),
@@ -4512,7 +4514,9 @@ export default class StatusPageAPI extends BaseAPI<
 
     let episodeQuery: Query<IncidentEpisode> = {
       _id: QueryHelper.any(
-        Array.from(episodeIdsFromMembers).map((id: string) => {
+        Array.from(episodeIdsFromMembers).filter((id: string) => {
+          return ObjectID.isValidUUID(id);
+        }).map((id: string) => {
           return new ObjectID(id);
         }),
       ),
@@ -4633,7 +4637,9 @@ export default class StatusPageAPI extends BaseAPI<
         await IncidentEpisodeService.findBy({
           query: {
             _id: QueryHelper.any(
-              Array.from(episodeIdsFromMembers).map((id: string) => {
+              Array.from(episodeIdsFromMembers).filter((id: string) => {
+                return ObjectID.isValidUUID(id);
+              }).map((id: string) => {
                 return new ObjectID(id);
               }),
             ),
