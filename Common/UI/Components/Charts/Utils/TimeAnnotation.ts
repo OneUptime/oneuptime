@@ -45,8 +45,10 @@ export default class TimeAnnotationUtil {
     return lastInterval.getTime() + bucketWidthInMs;
   }
 
-  // Largest interval index whose bucket start is <= date, or null when
-  // the date falls before the first bucket.
+  /*
+   * Largest interval index whose bucket start is <= date, or null when
+   * the date falls before the first bucket.
+   */
   private static getBucketIndexForDate(
     intervals: Array<Date>,
     date: Date,

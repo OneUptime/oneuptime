@@ -26,6 +26,8 @@
     "adminDashboard": "Tableau de bord admin",
     "users": "Utilisateurs",
     "user": "Utilisateur",
+    "enterpriseLicenses": "Licences Enterprise",
+    "enterpriseLicense": "Licence",
     "projects": "Projets",
     "project": "Projet",
     "projectUsers": "Utilisateurs",
@@ -115,6 +117,26 @@
       "cardTitle": "Utilisateurs",
       "cardDescription": "Voici la liste des utilisateurs dans OneUptime.",
       "noItems": "Aucun utilisateur trouvé."
+    },
+    "enterpriseLicenses": {
+      "title": "Licences Enterprise",
+      "cardTitle": "Licences Enterprise",
+      "cardDescription": "Licences délivrées aux clients Enterprise auto-hébergés, avec l'utilisation des sièges et l'expiration en un coup d'œil.",
+      "noItems": "Aucune licence Enterprise n'a encore été délivrée.",
+      "settingsCardTitle": "Paramètres de notification des licences",
+      "settingsCardDescription": "Qui est mis en copie des e-mails de licence, et combien de temps à l'avance les rappels d'expiration sont envoyés. Les rappels sont envoyés quotidiennement par e-mail aux administrateurs principaux du client tant qu'une licence dépasse sa limite d'utilisateurs ou approche de son expiration.",
+      "settingsEditButton": "Modifier les paramètres"
+    },
+    "enterpriseLicenseView": {
+      "title": "Licence Enterprise",
+      "cardTitle": "Détails de la licence",
+      "cardDescription": "Licence délivrée à ce client.",
+      "editButton": "Modifier la licence",
+      "usageCardTitle": "Utilisation des sièges",
+      "usageCardDescription": "Utilisateurs uniques sur l'ensemble des instances auto-hébergées du client, tels que signalés quotidiennement par leurs installations.",
+      "instancesCardTitle": "Instances",
+      "instancesCardDescription": "Instances auto-hébergées (préproduction, production, etc.) qui remontent des données pour cette licence, et les administrateurs principaux que nous pouvons contacter pour chacune.",
+      "noInstances": "Aucune instance n'a encore remonté de données pour cette licence."
     },
     "userView": {
       "title": "Utilisateur",

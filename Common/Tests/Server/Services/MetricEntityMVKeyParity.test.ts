@@ -29,8 +29,10 @@ import { describe, expect, test } from "@jest/globals";
 describe("entity-MV routing keys — parity with ingest-stamped scalar entity keys", () => {
   const projectId: string = "proj-123";
 
-  // A resource carrying all four routable identities at once, with
-  // casing/whitespace drift to exercise canonicalization.
+  /*
+   * A resource carrying all four routable identities at once, with
+   * casing/whitespace drift to exercise canonicalization.
+   */
   const attributes: Record<string, string> = {
     "host.name": "Web-Server-01 ",
     "k8s.cluster.name": "Prod-EU-1",
@@ -127,9 +129,11 @@ describe("entity-MV routing keys — parity with ingest-stamped scalar entity ke
 
     // Ingest folds the namespace in ...
     expect(stampedKey).toBe(keyForService(projectId, "checkout", "prod"));
-    // ... so the bare-name derivation finds NOTHING for these rows. This
-    // is why MetricService resolves service key SETS from the registry
-    // and falls back to raw on a miss, instead of computing one key.
+    /*
+     * ... so the bare-name derivation finds NOTHING for these rows. This
+     * is why MetricService resolves service key SETS from the registry
+     * and falls back to raw on a miss, instead of computing one key.
+     */
     expect(stampedKey).not.toBe(keyForService(projectId, "checkout"));
   });
 

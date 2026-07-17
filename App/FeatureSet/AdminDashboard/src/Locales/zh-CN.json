@@ -26,6 +26,8 @@
     "adminDashboard": "管理员仪表板",
     "users": "用户",
     "user": "用户",
+    "enterpriseLicenses": "企业版许可证",
+    "enterpriseLicense": "许可证",
     "projects": "项目",
     "project": "项目",
     "projectUsers": "用户",
@@ -115,6 +117,26 @@
       "cardTitle": "用户",
       "cardDescription": "这是 OneUptime 中的用户列表。",
       "noItems": "未找到用户。"
+    },
+    "enterpriseLicenses": {
+      "title": "企业版许可证",
+      "cardTitle": "企业版许可证",
+      "cardDescription": "颁发给自托管企业客户的许可证，可一目了然地查看席位使用情况和到期时间。",
+      "noItems": "尚未颁发任何企业版许可证。",
+      "settingsCardTitle": "许可证通知设置",
+      "settingsCardDescription": "设置哪些人会收到许可证邮件抄送，以及提前多久发送到期提醒。当许可证超出用户数量上限或即将到期时，系统会每天向该客户的主管理员发送提醒邮件。",
+      "settingsEditButton": "编辑设置"
+    },
+    "enterpriseLicenseView": {
+      "title": "企业版许可证",
+      "cardTitle": "许可证详情",
+      "cardDescription": "颁发给此客户的许可证。",
+      "editButton": "编辑许可证",
+      "usageCardTitle": "席位使用情况",
+      "usageCardDescription": "该客户所有自托管实例中的去重用户数，由其安装环境每天上报。",
+      "instancesCardTitle": "实例",
+      "instancesCardDescription": "针对此许可证上报数据的自托管实例（预发布、生产等），以及我们可以在每个实例上联系的主管理员。",
+      "noInstances": "尚无实例针对此许可证上报数据。"
     },
     "userView": {
       "title": "用户",

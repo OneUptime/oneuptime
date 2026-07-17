@@ -26,6 +26,8 @@
     "adminDashboard": "管理者ダッシュボード",
     "users": "ユーザー",
     "user": "ユーザー",
+    "enterpriseLicenses": "エンタープライズライセンス",
+    "enterpriseLicense": "ライセンス",
     "projects": "プロジェクト",
     "project": "プロジェクト",
     "projectUsers": "ユーザー",
@@ -115,6 +117,26 @@
       "cardTitle": "ユーザー",
       "cardDescription": "OneUptime内のユーザー一覧です。",
       "noItems": "ユーザーが見つかりません。"
+    },
+    "enterpriseLicenses": {
+      "title": "エンタープライズライセンス",
+      "cardTitle": "エンタープライズライセンス",
+      "cardDescription": "セルフホスト型のエンタープライズのお客様に発行されたライセンス。シート使用状況と有効期限をひと目で確認できます。",
+      "noItems": "エンタープライズライセンスはまだ発行されていません。",
+      "settingsCardTitle": "ライセンス通知設定",
+      "settingsCardDescription": "ライセンス関連メールの送信先と、有効期限リマインダーを何日前から送るかを設定します。ライセンスがユーザー数の上限を超えている間、または有効期限が近い間、リマインダーはお客様のマスター管理者に毎日メールで送信されます。",
+      "settingsEditButton": "設定を編集"
+    },
+    "enterpriseLicenseView": {
+      "title": "エンタープライズライセンス",
+      "cardTitle": "ライセンスの詳細",
+      "cardDescription": "このお客様に発行されたライセンスです。",
+      "editButton": "ライセンスを編集",
+      "usageCardTitle": "シート使用状況",
+      "usageCardDescription": "お客様のすべてのセルフホスト型インスタンスにおけるユニークユーザー数です。各インストールから毎日報告されます。",
+      "instancesCardTitle": "インスタンス",
+      "instancesCardDescription": "このライセンスに対して報告しているセルフホスト型インスタンス（ステージング、本番など）と、各インスタンスで連絡可能なマスター管理者です。",
+      "noInstances": "このライセンスに対して報告したインスタンスはまだありません。"
     },
     "userView": {
       "title": "ユーザー",

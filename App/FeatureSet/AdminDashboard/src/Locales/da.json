@@ -26,6 +26,8 @@
     "adminDashboard": "Admin-dashboard",
     "users": "Brugere",
     "user": "Bruger",
+    "enterpriseLicenses": "Enterprise-licenser",
+    "enterpriseLicense": "Licens",
     "projects": "Projekter",
     "project": "Projekt",
     "projectUsers": "Brugere",
@@ -115,6 +117,26 @@
       "cardTitle": "Brugere",
       "cardDescription": "Her er en liste over brugere i OneUptime.",
       "noItems": "Ingen brugere fundet."
+    },
+    "enterpriseLicenses": {
+      "title": "Enterprise-licenser",
+      "cardTitle": "Enterprise-licenser",
+      "cardDescription": "Licenser udstedt til selv-hostede Enterprise-kunder med pladsforbrug og udløb på ét sted.",
+      "noItems": "Der er endnu ikke udstedt nogen Enterprise-licenser.",
+      "settingsCardTitle": "Indstillinger for licensnotifikationer",
+      "settingsCardDescription": "Hvem der får kopi af licens-e-mails, og hvor lang tid i forvejen påmindelser om udløb sendes. Påmindelser sendes dagligt på e-mail til kundens hovedadministratorer, så længe en licens overskrider sin brugergrænse eller er tæt på at udløbe.",
+      "settingsEditButton": "Rediger indstillinger"
+    },
+    "enterpriseLicenseView": {
+      "title": "Enterprise-licens",
+      "cardTitle": "Licensoplysninger",
+      "cardDescription": "Licens udstedt til denne kunde.",
+      "editButton": "Rediger licens",
+      "usageCardTitle": "Pladsforbrug",
+      "usageCardDescription": "Unikke brugere på tværs af alle kundens selv-hostede instanser, som deres installationer rapporterer dagligt.",
+      "instancesCardTitle": "Instanser",
+      "instancesCardDescription": "Selv-hostede instanser (staging, produktion osv.), der rapporterer på denne licens, og de hovedadministratorer, vi kan kontakte på hver enkelt.",
+      "noInstances": "Ingen instanser har endnu rapporteret på denne licens."
     },
     "userView": {
       "title": "Bruger",
