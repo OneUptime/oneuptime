@@ -41,4 +41,49 @@ describe("CronTab", () => {
       CronTab.getNextExecutionTime(crontab);
     }).toThrowError(`Invalid cron expression: ${crontab}`);
   });
+
+  it("should handle human-readable interval '1 minute'", () => {
+    const crontab: string = "1 minute";
+
+    const nextExecutionTime: Date = CronTab.getNextExecutionTime(crontab);
+
+    const now: Date = new Date();
+    const toleranceInMilliseconds: number = 60000;
+    const differenceInMilliseconds: number =
+      nextExecutionTime.getTime() - now.getTime();
+    expect(differenceInMilliseconds).toBeLessThan(toleranceInMilliseconds);
+    expect(differenceInMilliseconds).toBeGreaterThan(0);
+  });
+
+  it("should handle human-readable interval '5 minutes'", () => {
+    const crontab: string = "5 minutes";
+
+    const nextExecutionTime: Date = CronTab.getNextExecutionTime(crontab);
+
+    const now: Date = new Date();
+    const expectedNextExecutionTime: Date = new Date(
+      now.getTime() + 5 * 60 * 1000,
+    );
+
+    const toleranceInMilliseconds: number = 5000;
+    const differenceInMilliseconds: number =
+      nextExecutionTime.getTime() - expectedNextExecutionTime.getTime();
+    expect(differenceInMilliseconds).toBeLessThan(toleranceInMilliseconds);
+  });
+
+  it("should handle human-readable interval '1 hour'", () => {
+    const crontab: string = "1 hour";
+
+    const nextExecutionTime: Date = CronTab.getNextExecutionTime(crontab);
+
+    const now: Date = new Date();
+    const expectedNextExecutionTime: Date = new Date(
+      now.getTime() + 60 * 60 * 1000,
+    );
+
+    const toleranceInMilliseconds: number = 60000;
+    const differenceInMilliseconds: number =
+      nextExecutionTime.getTime() - expectedNextExecutionTime.getTime();
+    expect(differenceInMilliseconds).toBeLessThan(toleranceInMilliseconds);
+  });
 });
