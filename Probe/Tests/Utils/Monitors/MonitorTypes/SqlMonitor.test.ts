@@ -493,9 +493,7 @@ describe("buildMicrosoftSqlServerPoolConfig", () => {
     );
     expect(poolConfig.connectionString).toContain("Trusted_Connection=yes");
     expect(poolConfig.connectionString).not.toContain("must-not-leak-user");
-    expect(poolConfig.connectionString).not.toContain(
-      "must-not-leak-password",
-    );
+    expect(poolConfig.connectionString).not.toContain("must-not-leak-password");
   });
 
   it("keeps pool sizing, timeout, and application metadata identical for both authentication modes", () => {
@@ -516,9 +514,7 @@ describe("buildMicrosoftSqlServerPoolConfig", () => {
         min: 0,
         idleTimeoutMillis: 30000,
       });
-      expect(poolConfig.options?.appName).toBe(
-        "OneUptimeProbe-SQLMonitor",
-      );
+      expect(poolConfig.options?.appName).toBe("OneUptimeProbe-SQLMonitor");
     }
   });
 });
