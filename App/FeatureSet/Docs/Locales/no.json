@@ -97,7 +97,7 @@
     "Incoming Email Monitor": "Innkommende e-post-overvåking",
     "External Status Page Monitor": "Ekstern statusside-overvåking",
     "Server / VM Monitor": "Server- / VM-overvåking",
-    "SNMP Monitor": "SNMP-overvåking",
+    "Network Device Monitor": "Nettverksenhets-overvåking",
     "Kubernetes Monitor": "Kubernetes-overvåking",
     "Kubernetes Agent (Helm install)": "Kubernetes-agent (Helm-installasjon)",
     "Docker Monitor": "Docker-overvåking",

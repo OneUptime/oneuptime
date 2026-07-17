@@ -36,6 +36,9 @@ import ServiceService from "../../Services/ServiceService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
+import NetworkDeviceOwnerUserService, {
+  NetworkDeviceOwners,
+} from "../../Services/NetworkDeviceOwnerUserService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -358,6 +361,15 @@ export default class MonitorIncident {
         ? input.matchesPerSeries
         : [undefined];
 
+    /*
+     * Owners of the network device this monitor watches (if any), resolved
+     * lazily on first incident creation and reused for the rest of the
+     * evaluation — the device is configured per monitor step, so it is
+     * constant across the criteria/series loops below. Merged into every
+     * created incident's owners alongside the criteria-configured ones.
+     */
+    let networkDeviceOwners: NetworkDeviceOwners | null = null;
+
     for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
       []) {
       for (const seriesMatch of seriesToProcess) {
@@ -654,16 +666,38 @@ export default class MonitorIncident {
           },
         });
 
-        // Add owner teams and users after incident creation
-        if (
-          criteriaIncident.ownerTeamIds?.length ||
-          criteriaIncident.ownerUserIds?.length
-        ) {
+        /*
+         * Add owner teams and users after incident creation. Owners
+         * configured on the criteria template are merged (deduped) with the
+         * owners of the network device this monitor watches, so device
+         * ownership flows into the incidents its monitor raises.
+         */
+        if (networkDeviceOwners === null) {
+          networkDeviceOwners =
+            await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
+              monitor: input.monitor,
+              monitorStepId: (
+                input.dataToProcess as ProbeMonitorResponse
+              ).monitorStepId?.toString(),
+            });
+        }
+
+        const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
+          criteriaIncident.ownerUserIds || [],
+          networkDeviceOwners.ownerUserIds,
+        );
+
+        const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
+          criteriaIncident.ownerTeamIds || [],
+          networkDeviceOwners.ownerTeamIds,
+        );
+
+        if (ownerTeamIds.length || ownerUserIds.length) {
           await IncidentService.addOwners(
             input.monitor.projectId!,
             createdIncident.id!,
-            criteriaIncident.ownerUserIds || [],
-            criteriaIncident.ownerTeamIds || [],
+            ownerUserIds,
+            ownerTeamIds,
             true, // notify owners
             {
               isRoot: true,
@@ -726,6 +760,36 @@ export default class MonitorIncident {
         });
       }
     }
+  }
+
+  /*
+   * Merges two owner id lists, deduping by string value. Criteria-authored
+   * ids can arrive as plain strings from stored JSON, so normalise through
+   * toString() for both the comparison and the returned ObjectIDs.
+   */
+  private static mergeOwnerIds(
+    primary: Array<ObjectID>,
+    additional: Array<ObjectID>,
+  ): Array<ObjectID> {
+    const seenIds: Set<string> = new Set<string>();
+    const mergedIds: Array<ObjectID> = [];
+
+    for (const ownerId of [...primary, ...additional]) {
+      if (!ownerId) {
+        continue;
+      }
+
+      const ownerIdAsString: string = ownerId.toString();
+
+      if (!ownerIdAsString || seenIds.has(ownerIdAsString)) {
+        continue;
+      }
+
+      seenIds.add(ownerIdAsString);
+      mergedIds.push(new ObjectID(ownerIdAsString));
+    }
+
+    return mergedIds;
   }
 
   /*

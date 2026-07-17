@@ -1,6 +1,8 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import { SavedViewOption } from "../types";
 import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
+import Icon from "../../Icon/Icon";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 export interface SavedViewsDropdownProps {
   savedViews: Array<SavedViewOption>;
@@ -10,10 +12,13 @@ export interface SavedViewsDropdownProps {
   onEdit?: ((viewId: string) => void) | undefined;
   onDelete?: ((viewId: string) => void) | undefined;
   onUpdateCurrent?: (() => void) | undefined;
+  triggerClassName?: string | undefined;
+  showTriggerIcon?: boolean | undefined;
+  dropdownAlignment?: "left" | "right" | undefined;
 }
 
 const triggerButtonClassName: string =
-  "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50";
+  "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
 
 const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   props: SavedViewsDropdownProps,
@@ -31,23 +36,47 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
     <div className="relative" ref={ref}>
       <button
         type="button"
-        className={triggerButtonClassName}
+        className={`${triggerButtonClassName} ${props.triggerClassName || ""}`}
         onClick={() => {
           setIsComponentVisible(!isComponentVisible);
         }}
         aria-haspopup="dialog"
         aria-expanded={isComponentVisible}
       >
+        {props.showTriggerIcon ? (
+          <Icon
+            icon={IconProp.Bookmark}
+            className="h-3.5 w-3.5 text-gray-500"
+          />
+        ) : null}
         <span className="max-w-40 truncate">
           {selectedView?.name || "Saved Views"}
         </span>
-        <span className="text-xs text-gray-400">
+        <span
+          className={`text-xs text-gray-400 ${
+            props.showTriggerIcon
+              ? "rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold"
+              : ""
+          }`}
+        >
           {props.savedViews.length.toLocaleString()}
         </span>
+        {props.showTriggerIcon ? (
+          <Icon
+            icon={IconProp.ChevronDown}
+            className={`h-3 w-3 text-gray-400 transition-transform ${
+              isComponentVisible ? "rotate-180" : ""
+            }`}
+          />
+        ) : null}
       </button>
 
       {isComponentVisible && (
-        <div className="absolute left-0 z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl">
+        <div
+          className={`absolute z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl ${
+            props.dropdownAlignment === "right" ? "right-0" : "left-0"
+          }`}
+        >
           {/* View list */}
           <div className="max-h-72 overflow-y-auto py-1">
             {props.savedViews.length === 0 && (

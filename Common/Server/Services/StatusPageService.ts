@@ -7,6 +7,7 @@ import CookieUtil from "../Utils/Cookie";
 import { ExpressRequest } from "../Utils/Express";
 import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ProductAnalytics from "../Utils/ProductAnalytics";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -314,6 +315,15 @@ export class Service extends DatabaseService<StatusPage> {
     onCreate: OnCreate<StatusPage>,
     createdItem: StatusPage,
   ): Promise<StatusPage> {
+    // Activation event for marketing funnels.
+    ProductAnalytics.captureForUser({
+      userId: onCreate.createBy.props.userId || createdItem.createdByUserId,
+      event: "server/status_page_created",
+      properties: {
+        project_id: createdItem.projectId?.toString() || "",
+      },
+    });
+
     // Execute owner assignment asynchronously
     if (
       createdItem.projectId &&

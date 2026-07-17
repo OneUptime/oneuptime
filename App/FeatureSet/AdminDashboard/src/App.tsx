@@ -31,6 +31,8 @@ import SettingsLlmProviders from "./Pages/Settings/LlmProviders/Index";
 import SendEmail from "./Pages/SendEmail/Index";
 import MoreEmail from "./Pages/More/Email";
 import Users from "./Pages/Users/Index";
+import EnterpriseLicenses from "./Pages/EnterpriseLicenses/Index";
+import EnterpriseLicenseView from "./Pages/EnterpriseLicenses/View/Index";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
 import URL from "Common/Types/API/URL";
@@ -145,6 +147,16 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.USERS]?.toString() || ""}
           element={<Users />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.ENTERPRISE_LICENSES]?.toString() || ""}
+          element={<EnterpriseLicenses />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.ENTERPRISE_LICENSE_VIEW]?.toString() || ""}
+          element={<EnterpriseLicenseView />}
         />
 
         <PageRoute

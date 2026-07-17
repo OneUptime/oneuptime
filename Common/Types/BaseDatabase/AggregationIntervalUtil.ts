@@ -36,9 +36,23 @@ export class AggregationIntervalUtil {
 
     const diff: number = endDate.getTime() - startDate.getTime();
 
+    /*
+     * ~180-point budget per chart: each tier keeps the rendered point
+     * count in the tens-to-hundreds instead of collapsing a 4h window
+     * to ~4 hourly points or exploding a 12h window into 720 minutes.
+     */
     if (diff <= 1000 * 60 * 60 * 3) {
       // if less than 3 hours, then get minute precision
       return AggregationInterval.Minute;
+    } else if (diff <= 1000 * 60 * 60 * 12) {
+      // 12 hours
+      return AggregationInterval.FiveMinutes;
+    } else if (diff <= 1000 * 60 * 60 * 24) {
+      // 24 hours
+      return AggregationInterval.FifteenMinutes;
+    } else if (diff <= 1000 * 60 * 60 * 24 * 3) {
+      // 3 days
+      return AggregationInterval.ThirtyMinutes;
     } else if (diff <= 1000 * 60 * 60 * 24 * 7) {
       // 7 days
       return AggregationInterval.Hour;
@@ -69,6 +83,12 @@ export class AggregationIntervalUtil {
     switch (interval) {
       case AggregationInterval.Minute:
         return 1000 * 60;
+      case AggregationInterval.FiveMinutes:
+        return 1000 * 60 * 5;
+      case AggregationInterval.FifteenMinutes:
+        return 1000 * 60 * 15;
+      case AggregationInterval.ThirtyMinutes:
+        return 1000 * 60 * 30;
       case AggregationInterval.Hour:
         return 1000 * 60 * 60;
       case AggregationInterval.Day:
@@ -102,11 +122,13 @@ export class AggregationIntervalUtil {
    * (the first bucket is partial and its timestamp falls before the axis
    * origin).
    *
-   * Only Minute/Hour/Day are aligned: for those the fixed-ms epoch grid is
-   * an EXACT match for ClickHouse's UTC bucketing (epoch-day == UTC
-   * midnight), and these are the windows where the leading gap is actually
-   * visible. Week/Month/Year snap to calendar boundaries (Monday / 1st /
-   * Jan-1) server-side, which a fixed-ms grid can't reproduce, so those (and
+   * Only the sub-day intervals (Minute through Hour, plus Day) are aligned:
+   * for those the fixed-ms epoch grid is an EXACT match for ClickHouse's
+   * UTC bucketing (5/15/30-minute `toStartOfInterval` grids are counted in
+   * whole intervals since the epoch, and epoch-day == UTC midnight), and
+   * these are the windows where the leading gap is actually visible.
+   * Week/Month/Year snap to calendar boundaries (Monday / 1st / Jan-1)
+   * server-side, which a fixed-ms grid can't reproduce, so those (and
    * `Total`) are returned UNCHANGED rather than risk shifting the gap for
    * long windows — their pre-existing behavior is preserved.
    */
@@ -117,6 +139,9 @@ export class AggregationIntervalUtil {
     const ms: number = OneUptimeDate.fromString(date).getTime();
     const alignableIntervals: Array<AggregationInterval> = [
       AggregationInterval.Minute,
+      AggregationInterval.FiveMinutes,
+      AggregationInterval.FifteenMinutes,
+      AggregationInterval.ThirtyMinutes,
       AggregationInterval.Hour,
       AggregationInterval.Day,
     ];

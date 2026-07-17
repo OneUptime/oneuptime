@@ -1,3 +1,5 @@
+import { JSONObject } from "../JSON";
+
 /*
  * Serializable view state for the Metrics and Traces explorers. Stored in the
  * `query` JSONB column of MetricSavedView / TraceSavedView. This is the same
@@ -25,4 +27,11 @@ export default interface TelemetrySavedViewState {
   pageSize?: number | undefined;
   // Traces explorer: root-spans-only toggle (defaults to true when absent).
   rootOnly?: boolean | undefined;
+  /*
+   * Metrics explorer: the full chart-builder state — MetricsViewConfig-
+   * shaped { queryConfigs, formulaConfigs } plus a time-range token.
+   * Kept loosely typed like the rest of this state: the explorer owns
+   * serialization and must deserialize defensively.
+   */
+  explorerConfig?: JSONObject | undefined;
 }

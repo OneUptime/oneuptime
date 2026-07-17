@@ -96,8 +96,13 @@ const ModelPage: <TBaseModel extends BaseModel>(
     } catch (err) {
       setLabels([]);
       setError(API.getFriendlyMessage(err));
+    } finally {
+      /*
+       * Must run even on the early "item not found" return above —
+       * otherwise the page shows its loader forever instead of the error.
+       */
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const [title, setTitle] = useState<string | undefined>(props.title);

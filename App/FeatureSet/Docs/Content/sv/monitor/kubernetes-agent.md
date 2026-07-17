@@ -80,7 +80,7 @@ En DaemonSet kör en OpenTelemetry Collector-pod per nod. Den läser loggfiler u
 En Deployment med en enda replika (avbildningen `oneuptime/kubernetes-log-tailer`) använder Kubernetes API för att strömma containerloggar — samma endpoint som `kubectl logs -f` använder. Ingen hostPath, ingen värdåtkomst, ingen DaemonSet.
 
 - **Fördelar:** fungerar på GKE Autopilot, EKS Fargate och alla kluster som blockerar hostPath eller framtvingar `restricted` Pod Security Standard.
-- **Nackdelar:** varje containerström är en långlivad anslutning till `kube-apiserver`. I praktiken hanterar en replika ett par tusen containrar bekvämt. För mycket stora kluster, sharda per namespace med `logs.api.replicas` plus `namespaceFilters.include` på varje replika.
+$1 Varje containerström är en långvarig anslutning till kube-apiserver. En replika hanterar normalt några tusen containrar. För mycket stora kluster bör du dela upp separata releaser med podLogs-scopade include-regler i namespaceFilters.rules.
 
 ### Vilken bör du använda?
 
@@ -208,8 +208,7 @@ Diagrammet kan också samla in:
 | `oneuptime.url`                           | _(krävs)_                        | URL till din OneUptime-instans.                                                                                                                                                          |
 | `oneuptime.apiKey`                        | _(krävs)_                        | Projekt-API-nyckel (Settings → API Keys).                                                                                                                                                |
 | `clusterName`                             | _(krävs)_                        | Unikt namn för detta kluster. Stämplas som `k8s.cluster.name` på varje post.                                                                                                             |
-| `namespaceFilters.include`                | `[]`                             | Om angivet övervakas endast dessa namespaces.                                                                                                                                            |
-| `namespaceFilters.exclude`                | `["kube-system"]`                | Namespaces att hoppa över.                                                                                                                                                               |
+| `namespaceFilters.rules`                  | Uteslut kube-system från podLogs och ebpfDiscovery | Scopade include/exclude-regler för podLogs, ebpfDiscovery, metrics och traces. Namespace-mönster stöder * och exclude vinner alltid. |
 | `logs.enabled`                            | `true`                           | Aktivera eller inaktivera logginsamling.                                                                                                                                                 |
 | `logs.mode`                               | (härlett från `preset`)          | `daemonset`, `api` eller `disabled`. Åsidosätter förinställningen.                                                                                                                       |
 | `logs.api.replicas`                       | `1`                              | Antal repliker av log-tailer-Deployment (endast i API-läge).                                                                                                                             |
@@ -304,7 +303,7 @@ Skala horisontellt genom att sharda namespaces. Installera en gång per namespac
 ```bash
 helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
-  --set namespaceFilters.include={app-a,app-b} \
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...
 ```
 

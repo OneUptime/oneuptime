@@ -26,6 +26,8 @@
     "adminDashboard": "Panel de administración",
     "users": "Usuarios",
     "user": "Usuario",
+    "enterpriseLicenses": "Licencias Enterprise",
+    "enterpriseLicense": "Licencia",
     "projects": "Proyectos",
     "project": "Proyecto",
     "projectUsers": "Usuarios",
@@ -63,6 +65,8 @@
   },
   "userProfile": {
     "exitAdmin": "Salir del admin",
+    "darkTheme": "Tema oscuro",
+    "lightTheme": "Tema claro",
     "logOut": "Cerrar sesión"
   },
   "footer": {
@@ -113,6 +117,26 @@
       "cardTitle": "Usuarios",
       "cardDescription": "Aquí hay una lista de usuarios en OneUptime.",
       "noItems": "No se encontraron usuarios."
+    },
+    "enterpriseLicenses": {
+      "title": "Licencias Enterprise",
+      "cardTitle": "Licencias Enterprise",
+      "cardDescription": "Licencias emitidas a clientes Enterprise autoalojados, con el uso de puestos y la caducidad de un vistazo.",
+      "noItems": "Aún no se ha emitido ninguna licencia Enterprise.",
+      "settingsCardTitle": "Ajustes de notificaciones de licencia",
+      "settingsCardDescription": "Quién recibe copia de los correos de licencia y con cuánta antelación se envían los recordatorios de caducidad. Los recordatorios se envían por correo a diario a los administradores maestros del cliente mientras una licencia supere su límite de usuarios o esté próxima a caducar.",
+      "settingsEditButton": "Editar ajustes"
+    },
+    "enterpriseLicenseView": {
+      "title": "Licencia Enterprise",
+      "cardTitle": "Detalles de la licencia",
+      "cardDescription": "Licencia emitida a este cliente.",
+      "editButton": "Editar licencia",
+      "usageCardTitle": "Uso de puestos",
+      "usageCardDescription": "Usuarios únicos en todas las instancias autoalojadas del cliente, según lo informado a diario por sus instalaciones.",
+      "instancesCardTitle": "Instancias",
+      "instancesCardDescription": "Instancias autoalojadas (staging, producción, etc.) que informan sobre esta licencia, y los administradores maestros con los que podemos contactar en cada una.",
+      "noInstances": "Todavía ninguna instancia ha informado sobre esta licencia."
     },
     "userView": {
       "title": "Usuario",

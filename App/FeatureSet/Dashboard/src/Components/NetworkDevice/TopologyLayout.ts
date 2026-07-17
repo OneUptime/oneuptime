@@ -6,7 +6,7 @@ import {
 /*
  * Pure, react-free force-directed layout for the network topology graph.
  *
- * Kept out of TopologyGraph.tsx so it can be imported (and unit-tested) in
+ * Kept out of the graph component so it can be imported (and unit-tested) in
  * a plain Node/TypeScript environment — the App project does not have
  * `react` on its resolution path, so importing this logic from the .tsx
  * component would drag `react` into the App compile/test context and fail

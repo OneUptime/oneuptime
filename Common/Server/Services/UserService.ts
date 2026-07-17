@@ -4,8 +4,10 @@ import {
   NotificationSlackWebhookOnCreateUser,
 } from "../EnvironmentConfig";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import Attribution from "../Utils/Attribution";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
@@ -25,12 +27,14 @@ import OneUptimeDate from "../../Types/Date";
 import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import HashedString from "../../Types/HashedString";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
 import EmailVerificationToken from "../../Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/User";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
+import ProductAnalytics from "../Utils/ProductAnalytics";
 import UserTotpAuth from "../../Models/DatabaseModels/UserTotpAuth";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserWebAuthn from "../../Models/DatabaseModels/UserWebAuthn";
@@ -121,6 +125,38 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    /*
+     * clickIds / firstTouchAttribution are publicly creatable jsonb columns
+     * (set during signup). Unlike the varchar(500) utm columns they have no
+     * DB-level size bound, so whitelist keys and cap value lengths here.
+     */
+    const sanitizedClickIds: JSONObject | undefined =
+      Attribution.sanitizeClickIds(createBy.data.clickIds as JSONValue);
+
+    if (sanitizedClickIds) {
+      createBy.data.clickIds = sanitizedClickIds;
+    } else {
+      delete createBy.data.clickIds;
+    }
+
+    const sanitizedFirstTouchAttribution: JSONObject | undefined =
+      Attribution.sanitizeFirstTouchAttribution(
+        createBy.data.firstTouchAttribution as JSONValue,
+      );
+
+    if (sanitizedFirstTouchAttribution) {
+      createBy.data.firstTouchAttribution = sanitizedFirstTouchAttribution;
+    } else {
+      delete createBy.data.firstTouchAttribution;
+    }
+
+    return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
@@ -138,6 +174,29 @@ export class Service extends DatabaseService<Model> {
         logger.error(err, {
           userId: createdItem.id?.toString(),
         } as LogAttributes);
+      });
+    }
+
+    /*
+     * Server-side signup event (ad blockers eat the client-side one). Also
+     * fires for users created via team invites — has_password separates
+     * direct signups (true) from invited users (false).
+     */
+    if (createdItem.email) {
+      ProductAnalytics.capture({
+        event: "server/user_created",
+        distinctId: createdItem.email.toString(),
+        properties: {
+          has_password: Boolean(createdItem.password),
+          utm_source: createdItem.utmSource || "",
+          utm_medium: createdItem.utmMedium || "",
+          utm_campaign: createdItem.utmCampaign || "",
+          utm_term: createdItem.utmTerm || "",
+          utm_content: createdItem.utmContent || "",
+          utm_url: createdItem.utmUrl || "",
+          click_ids: createdItem.clickIds || {},
+          first_touch: createdItem.firstTouchAttribution || {},
+        },
       });
     }
 

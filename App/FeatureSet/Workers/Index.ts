@@ -72,6 +72,13 @@ import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
 import "./Jobs/MonitorOwners/SendOwnerAddedNotification";
 import "./Jobs/MonitorOwners/SendStatusChangeNotification";
+
+// Network Device Owners
+import "./Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
+
+// Network Device Discovery
+import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
+
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
@@ -205,6 +212,7 @@ import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 
 // Enterprise License usage reporting (self-hosted only).
 import "./Jobs/EnterpriseLicense/ReportUserCount";
+import "./Jobs/EnterpriseLicense/SendLicenseNotificationEmails";
 
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";

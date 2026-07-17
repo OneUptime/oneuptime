@@ -2,9 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
-import Card from "Common/UI/Components/Card/Card";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -27,7 +25,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 
 /*
@@ -79,59 +76,14 @@ function buildQuery(
   };
 }
 
-function buildMetricViewData(
-  queries: Array<MetricQueryConfigData>,
-  startAndEndDate: InBetween<Date>,
-): MetricViewData {
-  return {
-    startAndEndDate,
-    queryConfigs: queries,
-    formulaConfigs: [],
-  };
-}
-
-interface SectionProps {
-  title: string;
-  description: string;
-  icon: IconProp;
-  data?: MetricViewData | undefined;
-  children?: ReactElement | undefined;
-  timeRange: RangeStartAndEndDateTime;
-  onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
-}
-
-const InsightsSection: FunctionComponent<SectionProps> = (
-  props: SectionProps,
-): ReactElement => {
+function getSectionTitle(icon: IconProp, title: string): ReactElement {
   return (
-    <Card
-      title={
-        <div className="flex items-center gap-2">
-          <Icon icon={props.icon} className="h-5 w-5 text-gray-500" />
-          <span>{props.title}</span>
-        </div>
-      }
-      description={props.description}
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={props.timeRange}
-          onChange={props.onTimeRangeChange}
-        />
-      }
-    >
-      {props.children ??
-        (props.data ? (
-          <MetricView
-            data={props.data}
-            hideQueryElements={true}
-            hideStartAndEndDate={true}
-            hideCardInCharts={true}
-            onChange={() => {}}
-          />
-        ) : undefined)}
-    </Card>
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} className="h-5 w-5 text-gray-500" />
+      <span>{title}</span>
+    </div>
   );
-};
+}
 
 function getCapacityQueries(cluster: string): Array<MetricQueryConfigData> {
   return [
@@ -315,36 +267,23 @@ const CephClusterInsights: FunctionComponent<
 
   const clusterName: string = cluster.name;
 
-  const capacityData: MetricViewData = buildMetricViewData(
-    getCapacityQueries(clusterName),
-    startAndEndDate,
-  );
-  const latencyData: MetricViewData = buildMetricViewData(
-    getLatencyQueries(clusterName),
-    startAndEndDate,
-  );
-  const dataHealthData: MetricViewData = buildMetricViewData(
-    getDataHealthQueries(clusterName),
-    startAndEndDate,
-  );
-
   return (
     <Fragment>
-      <InsightsSection
-        title="Capacity"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.ChartBar, "Capacity")}
         description="Cluster-wide capacity usage and per-pool stored bytes."
-        icon={IconProp.ChartBar}
-        data={capacityData}
+        queryConfigs={getCapacityQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
 
-      <InsightsSection
-        title="Client I/O"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Signal, "Client I/O")}
         description="Per-second client IOPS and throughput summed across all pools."
-        icon={IconProp.Signal}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       >
         <div className="space-y-6">
           <div>
@@ -383,24 +322,24 @@ const CephClusterInsights: FunctionComponent<
             />
           </div>
         </div>
-      </InsightsSection>
+      </EmbeddedMetricCard>
 
-      <InsightsSection
-        title="Latency"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Clock, "Latency")}
         description="Apply and commit latency broken down per OSD."
-        icon={IconProp.Clock}
-        data={latencyData}
+        queryConfigs={getLatencyQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
 
-      <InsightsSection
-        title="Data Health"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.ShieldCheck, "Data Health")}
         description="Degraded / misplaced objects and problem placement groups."
-        icon={IconProp.ShieldCheck}
-        data={dataHealthData}
+        queryConfigs={getDataHealthQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
     </Fragment>
   );

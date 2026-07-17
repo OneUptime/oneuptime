@@ -1,4 +1,4 @@
-import Markdown from "Common/Server/Types/Markdown";
+import slugify from "../../Common/Server/Types/MarkdownSlugify";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -99,14 +99,14 @@ for (const loc of fs.readdirSync(CONTENT_DIR).filter((d: string) => {
     const rel: string = path.relative(path.join(CONTENT_DIR, loc), file);
     const mineH: Array<string> = headingsOf(file);
     const mine: Array<string> = mineH.map((h: string) => {
-      return Markdown.slugify(h);
+      return slugify(h);
     });
     const mineOld: Array<string> = mineH.map(legacySlug);
 
     const enFile: string = path.join(CONTENT_DIR, "en", rel);
     const enH: Array<string> = fs.existsSync(enFile) ? headingsOf(enFile) : [];
     const enNew: Array<string> = enH.map((h: string) => {
-      return Markdown.slugify(h);
+      return slugify(h);
     });
     const enOld: Array<string> = enH.map(legacySlug);
     const src: string = fs.readFileSync(file, "utf8");

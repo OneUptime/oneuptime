@@ -8,6 +8,7 @@ import AggregateBy, {
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
+import AggregationInterval from "../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import InBetween from "../../Types/BaseDatabase/InBetween";
@@ -340,20 +341,23 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     }
     const databaseName: string = this.database.getDatasourceOptions().database!;
 
-    const aggregationInterval: string = AggregateUtil.getAggregationInterval({
-      startDate: aggregateBy.startTimestamp,
-      endDate: aggregateBy.endTimestamp,
-    }).toLowerCase();
+    const aggregationInterval: AggregationInterval =
+      AggregateUtil.getAggregationInterval({
+        startDate: aggregateBy.startTimestamp,
+        endDate: aggregateBy.endTimestamp,
+      });
 
     /*
-     * Bucket expression derived from the projection key: for the minute
-     * interval date_trunc is a no-op, for coarser intervals truncating
-     * the minute equals truncating the raw timestamp. Aliased to the
-     * timestamp column name so the generic result parsing applies.
+     * Bucket expression derived from the projection key via the shared
+     * interval-expression map (the sub-hour tiers are not valid
+     * date_trunc units): bucketing the minute-truncated timestamp
+     * equals bucketing the raw timestamp for every interval >= 1
+     * minute. Aliased to the timestamp column name so the generic
+     * result parsing applies.
      */
     const statement: Statement = new Statement();
     statement.append(
-      `SELECT ${aggregateExpression} as durationUnixNano, date_trunc('${aggregationInterval}', toStartOfMinute(startTime)) as startTime`,
+      `SELECT ${aggregateExpression} as durationUnixNano, ${AggregateUtil.buildBucketTimestampExpression(aggregationInterval, "toStartOfMinute(startTime)")} as startTime`,
     );
     statement.append(
       SQL` FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{

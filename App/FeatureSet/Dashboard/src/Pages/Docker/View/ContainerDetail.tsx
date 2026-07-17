@@ -7,7 +7,6 @@ import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, {
   FunctionComponent,
   ReactElement,
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -30,15 +29,9 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
-import RangeStartAndEndDateTime, {
-  RangeStartAndEndDateTimeUtil,
-} from "Common/Types/Time/RangeStartAndEndDateTime";
-import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 
 const CONTAINER_ID_ATTR: string = "resource.container.id";
 const CONTAINER_IMAGE_ATTR: string = "resource.container.image.name";
@@ -54,19 +47,6 @@ const DockerHostContainerDetail: FunctionComponent<
   const [containerImage, setContainerImage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-
-  // Metrics time range + view state (same pattern as KubernetesMetricsTab)
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
-    range: TimeRange.PAST_ONE_HOUR,
-  });
-
-  const [metricViewData, setMetricViewData] = useState<MetricViewData>({
-    startAndEndDate: RangeStartAndEndDateTimeUtil.getStartAndEndDate({
-      range: TimeRange.PAST_ONE_HOUR,
-    }),
-    queryConfigs: [],
-    formulaConfigs: [],
-  });
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -149,20 +129,6 @@ const DockerHostContainerDetail: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, [containerName]);
-
-  const handleTimeRangeChange: (
-    newTimeRange: RangeStartAndEndDateTime,
-  ) => void = useCallback((newTimeRange: RangeStartAndEndDateTime): void => {
-    setTimeRange(newTimeRange);
-    const dateRange: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(newTimeRange);
-    setMetricViewData((prev: MetricViewData) => {
-      return {
-        ...prev,
-        startAndEndDate: dateRange,
-      };
-    });
-  }, []);
 
   const logQuery: Query<Log> = useMemo(() => {
     const attributeFilters: Record<string, string> = {
@@ -264,35 +230,11 @@ const DockerHostContainerDetail: FunctionComponent<
     {
       name: "Metrics",
       children: (
-        <Card
+        <EmbeddedMetricCard
           title={`Container Metrics: ${containerName}`}
           description="CPU and memory usage for this container."
-        >
-          <div>
-            <div className="flex items-center justify-end mb-4">
-              <RangeStartAndEndDateView
-                dashboardStartAndEndDate={timeRange}
-                onChange={handleTimeRangeChange}
-              />
-            </div>
-            <MetricView
-              data={{
-                ...metricViewData,
-                queryConfigs: metricQueryConfigs,
-              }}
-              hideQueryElements={true}
-              hideStartAndEndDate={true}
-              hideCardInCharts={true}
-              onChange={(data: MetricViewData) => {
-                setMetricViewData({
-                  ...data,
-                  queryConfigs: metricQueryConfigs,
-                  formulaConfigs: [],
-                });
-              }}
-            />
-          </div>
-        </Card>
+          queryConfigs={metricQueryConfigs}
+        />
       ),
     },
     {

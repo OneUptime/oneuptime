@@ -888,3 +888,24 @@ export default class TelemetryEntity {
     return out;
   }
 }
+
+/**
+ * `container.id` is the container identity (mirrors the container
+ * resolver above — id-only). Read-side helper in the mold of
+ * `EntityKey.keyForHost` & co.; it lives here rather than in the
+ * isomorphic EntityKey module because its only consumer today is the
+ * server-side container metric-rollup read path
+ * (`MetricService.tryBuildEntityAggregateMVStatement` against
+ * `MetricItemAggMV1mByContainer`), so there is no reason to widen the
+ * browser bundle. Pass the raw `container.id` attribute value.
+ */
+export function keyForContainer(
+  projectId: string,
+  containerId: string,
+): string {
+  return computeEntityKeyShared({
+    projectId,
+    entityType: EntityType.Container,
+    identifyingAttributes: { "container.id": containerId },
+  });
+}

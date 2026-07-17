@@ -24,6 +24,14 @@ import logger from "Common/Server/Utils/Logger";
 const router: ExpressRouter = Express.getRouter();
 
 /*
+ * Floor for recurring rescans. A subnet sweep is heavy (up to 4096 hosts,
+ * one probe at a time), so anything tighter than this would keep the probe
+ * permanently busy. Lower stored intervals are clamped, not rejected — the
+ * scan still recurs, just no faster than this.
+ */
+const MINIMUM_RESCAN_INTERVAL_IN_MINUTES: number = 15;
+
+/*
  * Hands the requesting probe its pending subnet-discovery scans and marks
  * them In Progress so they aren't claimed twice. The probe executes each
  * scan locally (it's inside the target network) and reports back below.
@@ -135,12 +143,35 @@ router.post(
         );
       }
 
+      const probeId: ObjectID | undefined =
+        (req as ProbeExpressRequest).probe?.id || undefined;
+
+      if (!probeId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Probe not found"),
+        );
+      }
+
+      /*
+       * Scope the lookup to the authenticated probe (same scoping as the
+       * list endpoint above): the middleware only proves the caller is SOME
+       * valid probe, so without this any probe that learned a foreign scanId
+       * could overwrite another project's scan results.
+       */
       const scan: NetworkDeviceDiscoveryScan | null =
-        await NetworkDeviceDiscoveryScanService.findOneById({
-          id: new ObjectID(scanId),
+        await NetworkDeviceDiscoveryScanService.findOneBy({
+          query: {
+            _id: new ObjectID(scanId),
+            probeId: probeId,
+          },
           select: {
             _id: true,
             projectId: true,
+            // Needed to schedule the next run of a recurring scan below.
+            isRecurring: true,
+            rescanIntervalInMinutes: true,
           },
           props: {
             isRoot: true,
@@ -201,6 +232,35 @@ router.post(
       }
       completed.respondedHostCount = discoveredDevices.length;
       completed.completedAt = OneUptimeDate.getCurrentDate();
+
+      /*
+       * Recurring scan: schedule the next run whether this one completed or
+       * failed — a transient sweep failure should not end the recurrence.
+       * The worker job (Workers/Jobs/NetworkDeviceDiscovery/
+       * RequeueRecurringScans.ts) resets the scan to Pending once nextScanAt
+       * is due.
+       */
+      if (
+        scan.isRecurring &&
+        scan.rescanIntervalInMinutes &&
+        scan.rescanIntervalInMinutes > 0
+      ) {
+        let intervalInMinutes: number = scan.rescanIntervalInMinutes;
+
+        if (intervalInMinutes < MINIMUM_RESCAN_INTERVAL_IN_MINUTES) {
+          intervalInMinutes = MINIMUM_RESCAN_INTERVAL_IN_MINUTES;
+          logger.warn(
+            `Discovery scan ${scanId} rescan interval of ${scan.rescanIntervalInMinutes} minute(s) is below the ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES}-minute minimum. Clamping.`,
+          );
+          // Surface the clamp where the user will actually see it.
+          completed.statusMessage =
+            (completed.statusMessage ? completed.statusMessage + " " : "") +
+            `Rescan interval is below the ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES}-minute minimum; rescanning every ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES} minutes instead.`;
+        }
+
+        completed.nextScanAt =
+          OneUptimeDate.getSomeMinutesAfter(intervalInMinutes);
+      }
 
       await NetworkDeviceDiscoveryScanService.updateOneById({
         id: scan.id!,

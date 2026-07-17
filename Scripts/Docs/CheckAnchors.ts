@@ -7,15 +7,22 @@
  * the page still renders, the link just goes nowhere. This walks every markdown
  * file under Docs/Content and fails if any anchor has no matching heading.
  *
- * It imports the real Markdown.slugify rather than reimplementing it. A second
- * copy of those rules would drift from the renderer and then cheerfully pass a
- * link the renderer serves as a 404 — which is exactly how the last round of
+ * It imports the real slugify rather than reimplementing it. A second copy of
+ * those rules would drift from the renderer and then cheerfully pass a link
+ * the renderer serves as a 404 — which is exactly how the last round of
  * broken anchors survived.
+ *
+ * The import is a relative path into a dependency-free module, NOT the bare
+ * specifier "Common/Server/Types/Markdown". The bare form only resolves after
+ * `npm install` inside Scripts/ (Common is a file: dep there), and the CI
+ * js-lint job installs at the repo root alone — so it broke in CI while
+ * working on every dev machine. The slugify module imports nothing, so this
+ * runs anywhere plain ts-node does.
  *
  * To run:
  *   npm run docs:check-anchors
  */
-import Markdown from "Common/Server/Types/Markdown";
+import slugify from "../../Common/Server/Types/MarkdownSlugify";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -72,7 +79,7 @@ const checkFile: (file: string) => Array<Broken> = (
 
     const heading: RegExpMatchArray | null = line.match(/^#{1,6}\s+(.*)$/);
     if (heading && heading[1]) {
-      headingSlugs.add(Markdown.slugify(heading[1].trim()));
+      headingSlugs.add(slugify(heading[1].trim()));
     }
 
     for (const match of line.matchAll(/\]\(#([^)]*)\)/g)) {
@@ -108,7 +115,7 @@ for (const b of broken) {
 }
 // eslint-disable-next-line no-console
 console.error(
-  "\nAnchor ids come from the heading text via Markdown.slugify (Common/Server/Types/Markdown.ts).\n" +
+  "\nAnchor ids come from the heading text via slugify (Common/Server/Types/MarkdownSlugify.ts).\n" +
     "Translated headings produce translated ids, so a translated page cannot keep the English anchor.\n" +
     "Do not hand-write a slug — read the heading and let slugify compute it.",
 );

@@ -26,6 +26,8 @@
     "adminDashboard": "Admin-dashbord",
     "users": "Brukere",
     "user": "Bruker",
+    "enterpriseLicenses": "Enterprise-lisenser",
+    "enterpriseLicense": "Lisens",
     "projects": "Prosjekter",
     "project": "Prosjekt",
     "projectUsers": "Brukere",
@@ -63,6 +65,8 @@
   },
   "userProfile": {
     "exitAdmin": "Avslutt admin",
+    "darkTheme": "Mørkt tema",
+    "lightTheme": "Lyst tema",
     "logOut": "Logg ut"
   },
   "footer": {
@@ -113,6 +117,26 @@
       "cardTitle": "Brukere",
       "cardDescription": "Her er en liste over brukere i OneUptime.",
       "noItems": "Ingen brukere funnet."
+    },
+    "enterpriseLicenses": {
+      "title": "Enterprise-lisenser",
+      "cardTitle": "Enterprise-lisenser",
+      "cardDescription": "Lisenser utstedt til selv-hostede Enterprise-kunder, med plassbruk og utløp på ett sted.",
+      "noItems": "Det er ennå ikke utstedt noen Enterprise-lisenser.",
+      "settingsCardTitle": "Innstillinger for lisensvarsler",
+      "settingsCardDescription": "Hvem som får kopi av lisens-e-poster, og hvor lang tid i forveien påminnelser om utløp sendes. Påminnelser sendes daglig på e-post til kundens hovedadministratorer så lenge en lisens overskrider brukergrensen eller nærmer seg utløp.",
+      "settingsEditButton": "Rediger innstillinger"
+    },
+    "enterpriseLicenseView": {
+      "title": "Enterprise-lisens",
+      "cardTitle": "Lisensdetaljer",
+      "cardDescription": "Lisens utstedt til denne kunden.",
+      "editButton": "Rediger lisens",
+      "usageCardTitle": "Plassbruk",
+      "usageCardDescription": "Unike brukere på tvers av alle kundens selv-hostede instanser, slik installasjonene deres rapporterer daglig.",
+      "instancesCardTitle": "Instanser",
+      "instancesCardDescription": "Selv-hostede instanser (staging, produksjon osv.) som rapporterer på denne lisensen, og hovedadministratorene vi kan kontakte på hver enkelt.",
+      "noInstances": "Ingen instanser har ennå rapportert på denne lisensen."
     },
     "userView": {
       "title": "Bruker",

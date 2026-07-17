@@ -2,8 +2,11 @@ import PageComponentProps from "../../PageComponentProps";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
+  getHumanVerdictElement,
   getInsightTypeElement,
+  getInsightTypeIcon,
   getSeverityElement,
+  getSeverityTileClasses,
   getStatusElement,
 } from "../Insights";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
@@ -19,6 +22,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -30,23 +34,22 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import Navigation from "Common/UI/Utils/Navigation";
+import Link from "Common/UI/Components/Link/Link";
 import React, {
   FunctionComponent,
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
+import { useParams } from "react-router-dom";
 
 const POLL_INTERVAL_MS: number = 5000;
 // The server caps the triage event trail at 500 — show all of it.
@@ -64,7 +67,18 @@ type InsightAction = "confirm" | "dismiss" | "resolve";
 const AIInsightViewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  /*
+   * The id must come from useParams (a stable string), NOT from
+   * Navigation.getLastParamAsObjectID(): that helper mints a fresh ObjectID
+   * object on every render, and using it as a useCallback dependency made
+   * every render rebuild the fetchers, which re-ran the fetch effect, whose
+   * setState re-rendered — an unbounded refetch loop that kept the page
+   * spinning forever.
+   */
+  const { id } = useParams();
+  const modelId: ObjectID = useMemo(() => {
+    return new ObjectID(id || "");
+  }, [id]);
 
   const [insight, setInsight] = useState<AIInsight | null>(null);
   const [insightError, setInsightError] = useState<string | null>(null);
@@ -91,8 +105,6 @@ const AIInsightViewPage: FunctionComponent<
    */
   const isSavingActionRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
-  // Flipping this makes the CardModelDetail refetch after an action lands.
-  const [detailRefresher, setDetailRefresher] = useState<boolean>(false);
 
   const fetchInsight: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -101,8 +113,16 @@ const AIInsightViewPage: FunctionComponent<
           modelType: AIInsight,
           id: modelId,
           select: {
+            title: true,
+            insightType: true,
+            severity: true,
             status: true,
             humanVerdict: true,
+            serviceName: true,
+            metricName: true,
+            firstSeenAt: true,
+            lastSeenAt: true,
+            occurrenceCount: true,
             detailMarkdown: true,
             triageSummaryMarkdown: true,
             fixAiRunId: true,
@@ -268,11 +288,6 @@ const AIInsightViewPage: FunctionComponent<
         if (response instanceof HTTPErrorResponse) {
           throw response;
         }
-
-        // Make the detail card pick up the new status/verdict.
-        setDetailRefresher((value: boolean) => {
-          return !value;
-        });
       } catch (err) {
         // Roll back the optimistic update.
         setStatus(previousStatus);
@@ -339,92 +354,174 @@ const AIInsightViewPage: FunctionComponent<
     isTriageFailed = false;
   }
 
+  interface OverviewMetaItem {
+    label: string;
+    icon: IconProp;
+    value: string;
+    title?: string | undefined;
+  }
+
+  const metaItems: Array<OverviewMetaItem> = [];
+
+  if (insight.serviceName) {
+    metaItems.push({
+      label: "Service",
+      icon: IconProp.Cube,
+      value: insight.serviceName,
+    });
+  }
+
+  if (insight.metricName) {
+    metaItems.push({
+      label: "Metric",
+      icon: IconProp.ChartBar,
+      value: insight.metricName,
+    });
+  }
+
+  if (insight.firstSeenAt) {
+    metaItems.push({
+      label: "First Seen",
+      icon: IconProp.Clock,
+      value: OneUptimeDate.fromNow(insight.firstSeenAt),
+      title: OneUptimeDate.getDateAsLocalFormattedString(insight.firstSeenAt),
+    });
+  }
+
+  if (insight.lastSeenAt) {
+    metaItems.push({
+      label: "Last Seen",
+      icon: IconProp.Clock,
+      value: OneUptimeDate.fromNow(insight.lastSeenAt),
+      title: OneUptimeDate.getDateAsLocalFormattedString(insight.lastSeenAt),
+    });
+  }
+
+  metaItems.push({
+    label: "Detections",
+    icon: IconProp.Refresh,
+    value:
+      insight.occurrenceCount === 1
+        ? "Once"
+        : `${insight.occurrenceCount || 0} times`,
+  });
+
   return (
     <div className="space-y-4">
-      <CardModelDetail<AIInsight>
-        name="Insight Details"
-        cardProps={{
-          title: "Insight Details",
-          description:
-            "What OneUptime AI's deterministic sensors found, and where this insight stands.",
-        }}
-        refresher={detailRefresher}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
-          modelType: AIInsight,
-          id: "model-detail-ai-insight",
-          fields: [
-            {
-              field: {
-                insightType: true,
-              },
-              title: "Type",
-              fieldType: FieldType.Element,
-              getElement: (item: AIInsight): ReactElement => {
-                return getInsightTypeElement(item.insightType);
-              },
-            },
-            {
-              field: {
-                severity: true,
-              },
-              title: "Severity",
-              fieldType: FieldType.Element,
-              getElement: (item: AIInsight): ReactElement => {
-                return getSeverityElement(item.severity);
-              },
-            },
-            {
-              field: {
-                status: true,
-              },
-              title: "Status",
-              fieldType: FieldType.Element,
-              getElement: (item: AIInsight): ReactElement => {
-                return getStatusElement(item.status);
-              },
-            },
-            {
-              field: {
-                humanVerdict: true,
-              },
-              title: "Human Verdict",
-              fieldType: FieldType.Text,
-              placeholder: "None yet",
-            },
-            {
-              field: {
-                serviceName: true,
-              },
-              title: "Service",
-              fieldType: FieldType.Text,
-              placeholder: "-",
-            },
-            {
-              field: {
-                firstSeenAt: true,
-              },
-              title: "First Seen",
-              fieldType: FieldType.DateTime,
-            },
-            {
-              field: {
-                lastSeenAt: true,
-              },
-              title: "Last Seen",
-              fieldType: FieldType.DateTime,
-            },
-            {
-              field: {
-                occurrenceCount: true,
-              },
-              title: "Occurrences",
-              fieldType: FieldType.Number,
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
+      {/* Overview: what was found, where it stands, and the one-click actions. */}
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="px-5 py-6 md:px-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div
+                className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg ${getSeverityTileClasses(
+                  insight.severity,
+                )}`}
+              >
+                <Icon
+                  icon={getInsightTypeIcon(insight.insightType)}
+                  className="h-6 w-6"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {getInsightTypeElement(insight.insightType)}
+                  {getSeverityElement(insight.severity)}
+                  {getStatusElement(status || undefined)}
+                  {getHumanVerdictElement(humanVerdict)}
+                </div>
+                <h2 className="mt-2 text-base font-semibold leading-6 text-gray-900">
+                  {insight.title}
+                </h2>
+              </div>
+            </div>
+
+            {!isTerminal ? (
+              <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+                <Button
+                  title="Confirm"
+                  icon={IconProp.Check}
+                  buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  disabled={isSavingAction || isConfirmed}
+                  onClick={() => {
+                    performAction("confirm").catch(() => {
+                      // handled inside performAction
+                    });
+                  }}
+                />
+                <Button
+                  title="Dismiss"
+                  icon={IconProp.Close}
+                  buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  disabled={isSavingAction}
+                  onClick={() => {
+                    performAction("dismiss").catch(() => {
+                      // handled inside performAction
+                    });
+                  }}
+                />
+                <Button
+                  title="Resolve"
+                  icon={IconProp.CheckCircle}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  disabled={isSavingAction}
+                  onClick={() => {
+                    performAction("resolve").catch(() => {
+                      // handled inside performAction
+                    });
+                  }}
+                />
+              </div>
+            ) : (
+              <></>
+            )}
+          </div>
+
+          {actionError ? (
+            <div className="mt-4">
+              <Alert
+                type={AlertType.DANGER}
+                strongTitle="Could not save your action"
+                title={actionError}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+
+          <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-gray-100 pt-5 sm:grid-cols-3 lg:grid-cols-5">
+            {metaItems.map((item: OverviewMetaItem, index: number) => {
+              return (
+                <div key={index} className="min-w-0">
+                  <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-gray-400">
+                    <Icon icon={item.icon} className="h-3.5 w-3.5" />
+                    {item.label}
+                  </dt>
+                  <dd
+                    className="mt-1 truncate text-sm text-gray-900"
+                    title={item.title || item.value}
+                  >
+                    {item.value}
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+
+          {!isTerminal ? (
+            <p className="mt-4 text-xs text-gray-400">
+              Confirm or dismiss to record whether this insight was worth
+              surfacing — verdicts measure each detector&apos;s precision.
+              Resolve it once it has been handled.
+            </p>
+          ) : (
+            <></>
+          )}
+        </div>
+      </div>
 
       <Card
         title="Evidence"
@@ -513,93 +610,24 @@ const AIInsightViewPage: FunctionComponent<
           title="Fix Task"
           description="OneUptime AI queued an agent task for this insight. Fix pull requests are always drafts and always human-reviewed."
         >
+          {/*
+           * A real anchor (not a Button) so cmd/ctrl-click, middle-click
+           * and "open in new tab" work — Link always sets href.
+           */}
           <Link
-            className="text-sm underline"
             to={RouteUtil.populateRouteParams(
               RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
               { modelId: insight.fixAiRunId },
             )}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"
           >
-            View the fix task and pull request
+            <span>View the fix task and pull request</span>
+            <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
           </Link>
         </Card>
       ) : (
         <></>
       )}
-
-      <Card
-        title="Act on This Insight"
-        description="Confirm or dismiss to record whether this insight was worth surfacing — verdicts measure each detector's precision. Resolve it once it has been handled."
-      >
-        <div className="space-y-3">
-          {actionError ? (
-            <Alert
-              type={AlertType.DANGER}
-              strongTitle="Could not save your action"
-              title={actionError}
-            />
-          ) : (
-            <></>
-          )}
-
-          {isConfirmed ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-              <Icon icon={IconProp.Check} className="h-3 w-3" />
-              <span>Confirmed by a human</span>
-            </span>
-          ) : (
-            <></>
-          )}
-
-          {humanVerdict === AIInsightHumanVerdict.Dismissed ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-              <Icon icon={IconProp.Close} className="h-3 w-3" />
-              <span>Dismissed by a human</span>
-            </span>
-          ) : (
-            <></>
-          )}
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              title="Confirm"
-              icon={IconProp.Check}
-              buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
-              buttonSize={ButtonSize.Small}
-              disabled={isSavingAction || isTerminal || isConfirmed}
-              onClick={() => {
-                performAction("confirm").catch(() => {
-                  // handled inside performAction
-                });
-              }}
-            />
-            <Button
-              title="Dismiss"
-              icon={IconProp.Close}
-              buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-              buttonSize={ButtonSize.Small}
-              disabled={isSavingAction || isTerminal}
-              onClick={() => {
-                performAction("dismiss").catch(() => {
-                  // handled inside performAction
-                });
-              }}
-            />
-            <Button
-              title="Resolve"
-              icon={IconProp.CheckCircle}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              buttonSize={ButtonSize.Small}
-              disabled={isSavingAction || isTerminal}
-              onClick={() => {
-                performAction("resolve").catch(() => {
-                  // handled inside performAction
-                });
-              }}
-            />
-          </div>
-        </div>
-      </Card>
     </div>
   );
 };

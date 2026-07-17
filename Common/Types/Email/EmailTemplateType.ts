@@ -86,6 +86,9 @@ enum EmailTemplateType {
   Invoice = "Invoice.hbs",
 
   ClickhouseCapacityWarning = "ClickhouseCapacityWarning.hbs",
+
+  EnterpriseLicenseUserLimitBreach = "EnterpriseLicenseUserLimitBreach.hbs",
+  EnterpriseLicenseExpiryReminder = "EnterpriseLicenseExpiryReminder.hbs",
 }
 
 export default EmailTemplateType;

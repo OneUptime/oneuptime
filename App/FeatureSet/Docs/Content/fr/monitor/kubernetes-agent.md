@@ -80,7 +80,7 @@ Un DaemonSet exécute un pod OpenTelemetry Collector par nœud. Il lit les fichi
 Un Deployment à réplique unique (l'image `oneuptime/kubernetes-log-tailer`) utilise l'API Kubernetes pour diffuser les logs des conteneurs — le même endpoint que `kubectl logs -f` utilise. Pas de hostPath, pas d'accès à l'hôte, pas de DaemonSet.
 
 - **Avantages :** fonctionne sur GKE Autopilot, EKS Fargate et tout cluster qui bloque hostPath ou applique le Pod Security Standard `restricted`.
-- **Inconvénients :** chaque flux de conteneur est une connexion de longue durée à `kube-apiserver`. En pratique, une seule réplique gère confortablement quelques milliers de conteneurs. Pour les très grands clusters, partitionnez par namespace en utilisant `logs.api.replicas` plus `namespaceFilters.include` sur chaque réplique.
+$1 Chaque flux de conteneur est une connexion de longue durée à kube-apiserver. Une réplique gère confortablement quelques milliers de conteneurs. Pour les très grands clusters, répartissez des releases distinctes avec des règles include de portée podLogs dans namespaceFilters.rules.
 
 ### Lequel devez-vous utiliser ?
 
@@ -208,8 +208,7 @@ Le chart peut également collecter :
 | `oneuptime.url`                           | _(requis)_                       | URL de votre instance OneUptime.                                                                                                                                                                                              |
 | `oneuptime.apiKey`                        | _(requis)_                       | Clé API du projet (Settings → API Keys).                                                                                                                                                                                      |
 | `clusterName`                             | _(requis)_                       | Nom unique pour ce cluster. Estampillé comme `k8s.cluster.name` sur chaque enregistrement.                                                                                                                                    |
-| `namespaceFilters.include`                | `[]`                             | Si défini, seuls ces namespaces sont surveillés.                                                                                                                                                                              |
-| `namespaceFilters.exclude`                | `["kube-system"]`                | Namespaces à ignorer.                                                                                                                                                                                                         |
+| `namespaceFilters.rules`                  | Exclure kube-system de podLogs et ebpfDiscovery | Règles include/exclude par portée pour podLogs, ebpfDiscovery, metrics et traces. Les motifs acceptent * et exclude l'emporte toujours. |
 | `logs.enabled`                            | `true`                           | Activer ou désactiver la collecte de logs.                                                                                                                                                                                    |
 | `logs.mode`                               | (dérivé de `preset`)             | `daemonset`, `api` ou `disabled`. Remplace le preset.                                                                                                                                                                         |
 | `logs.api.replicas`                       | `1`                              | Nombre de répliques du Deployment de lecture de logs (mode API uniquement).                                                                                                                                                   |
@@ -304,7 +303,7 @@ Mettez à l'échelle horizontalement en partitionnant les namespaces. Déployez 
 ```bash
 helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
-  --set namespaceFilters.include={app-a,app-b} \
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...
 ```
 

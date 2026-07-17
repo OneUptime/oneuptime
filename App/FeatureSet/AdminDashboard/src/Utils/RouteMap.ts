@@ -39,6 +39,11 @@ const RouteMap: Dictionary<Route> = {
     `/admin/projects/${RouteParams.ModelID}/teams/${RouteParams.SubModelID}`,
   ),
 
+  [PageMap.ENTERPRISE_LICENSES]: new Route(`/admin/enterprise-licenses`),
+  [PageMap.ENTERPRISE_LICENSE_VIEW]: new Route(
+    `/admin/enterprise-licenses/${RouteParams.ModelID}`,
+  ),
+
   [PageMap.USERS]: new Route(`/admin/users`),
   [PageMap.USER_VIEW]: new Route(`/admin/users/${RouteParams.ModelID}`),
   [PageMap.USER_SETTINGS]: new Route(

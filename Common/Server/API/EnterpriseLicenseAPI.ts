@@ -32,6 +32,7 @@ export interface LicenseInstanceUpsert {
   // Usage fields are only set on report-user-count, not on validate.
   userCount?: number | undefined;
   userEmailHashes?: Array<string> | undefined;
+  masterAdminEmails?: Array<string> | undefined;
   lastReportedAt?: Date | undefined;
 }
 
@@ -215,6 +216,10 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             EnterpriseLicenseUsageUtil.sanitizeUserEmailHashes(
               req.body["userEmailHashes"],
             );
+          const masterAdminEmails: Array<string> =
+            EnterpriseLicenseUsageUtil.sanitizeMasterAdminEmails(
+              req.body["masterAdminEmails"],
+            );
 
           if (instanceId) {
             /*
@@ -227,6 +232,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
               host: instanceHost || undefined,
               userCount: userCount,
               userEmailHashes: userEmailHashes,
+              masterAdminEmails: masterAdminEmails,
               lastReportedAt: reportedAt,
             });
           }
@@ -372,6 +378,10 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
       newInstance.userEmailHashes = data.userEmailHashes;
     }
 
+    if (data.masterAdminEmails !== undefined) {
+      newInstance.masterAdminEmails = data.masterAdminEmails;
+    }
+
     if (data.lastReportedAt !== undefined) {
       newInstance.lastReportedAt = data.lastReportedAt;
     }
@@ -430,6 +440,10 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 
     if (data.userEmailHashes !== undefined) {
       updateData.userEmailHashes = data.userEmailHashes;
+    }
+
+    if (data.masterAdminEmails !== undefined) {
+      updateData.masterAdminEmails = data.masterAdminEmails;
     }
 
     if (data.lastReportedAt !== undefined) {

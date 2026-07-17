@@ -66,6 +66,10 @@ import TelegramLogAPI from "./TelegramLogAPI";
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import EnterpriseLicenseAPI from "Common/Server/API/EnterpriseLicenseAPI";
+import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
+import EnterpriseLicenseInstanceService, {
+  Service as EnterpriseLicenseInstanceServiceType,
+} from "Common/Server/Services/EnterpriseLicenseInstanceService";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
 import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
@@ -100,6 +104,7 @@ import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
+import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
@@ -3858,6 +3863,20 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new EnterpriseLicenseAPI().getRouter(),
     );
+    /*
+     * Read/list for the admin dashboard Enterprise Licenses page
+     * (empty table ACLs — master admin only).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        EnterpriseLicenseInstance,
+        EnterpriseLicenseInstanceServiceType
+      >(
+        EnterpriseLicenseInstance,
+        EnterpriseLicenseInstanceService,
+      ).getRouter(),
+    );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new OpenSourceDeploymentAPI().getRouter(),
@@ -4265,6 +4284,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkDeviceTopologyAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkDeviceFlowAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

@@ -1,0 +1,24 @@
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=emailTitle }}
+
+{{> InfoBlock info=expiryStatusMessage}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Company:" text=companyName }}
+{{> DetailBoxField title="License Key:" text=licenseKey }}
+{{> DetailBoxField title="Expires On:" text=expiresAt }}
+{{> DetailBoxField title="Status:" text=expiryStatus }}
+{{> DetailBoxEnd this }}
+
+{{> InfoBlock info="When the license expires, your self-hosted OneUptime instances will no longer be able to validate it and enterprise features will stop working."}}
+
+{{> InfoBlock info="To renew your license, reply to this email or write to sales@oneuptime.com and we will be happy to help."}}
+
+{{> InfoBlock info="You are receiving this email because you are a master admin of a OneUptime instance using this license."}}
+
+{{> Footer this }}
+
+{{> End this}}

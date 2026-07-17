@@ -102,6 +102,23 @@ const formatDuration: (value: unknown) => string = (value: unknown): string => {
   return `${Math.round(seconds / 86400)}d`;
 };
 
+// Format a millisecond count (pg_stat_statements timings) into a compact human string.
+const formatMilliseconds: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const milliseconds: number = Number(value);
+
+  if (value === null || value === undefined || isNaN(milliseconds)) {
+    return "—";
+  }
+
+  if (milliseconds < 1000) {
+    return `${Math.round(milliseconds)}ms`;
+  }
+
+  return formatDuration(milliseconds / 1000);
+};
+
 // Relative "x ago" from an ISO timestamp, for last-autovacuum hints.
 const timeAgo: (value: unknown) => string = (value: unknown): string => {
   if (!value) {
@@ -145,9 +162,11 @@ const formatShareOfDatabase: (
 
 const PostgresCluster: FunctionComponent = (): ReactElement => {
   const [data, setData] = useState<JSONObject | null>(null);
+  const [activity, setActivity] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [activityError, setActivityError] = useState<string>("");
 
   const loadClusterHealth: () => Promise<void> = async (): Promise<void> => {
     setError("");
@@ -167,6 +186,34 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
       setData(response.data);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
+    }
+  };
+
+  const loadActivity: () => Promise<void> = async (): Promise<void> => {
+    setActivityError("");
+
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            "/admin/health/postgres-activity",
+          ),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      setActivity(response.data);
+    } catch (err) {
+      setActivityError(API.getFriendlyMessage(err));
+    }
+  };
+
+  // Both cards refresh together so the topology and the live activity agree.
+  const loadAll: () => Promise<void> = async (): Promise<void> => {
+    try {
+      await Promise.all([loadClusterHealth(), loadActivity()]);
     } finally {
       setIsInitialLoading(false);
       setIsRefreshing(false);
@@ -174,15 +221,27 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
   };
 
   useEffect(() => {
-    loadClusterHealth().catch(() => {
-      // handled via setError
+    loadAll().catch(() => {
+      // handled via setError / setActivityError
     });
   }, []);
 
-  // A small labelled stat cell.
-  const renderStat: (label: string, value: string) => ReactElement = (
+  const refresh: () => void = (): void => {
+    setIsRefreshing(true);
+    loadAll().catch(() => {
+      // handled via setError / setActivityError
+    });
+  };
+
+  // A small labelled stat cell, with an optional context line under the value.
+  const renderStat: (
     label: string,
     value: string,
+    hint?: string,
+  ) => ReactElement = (
+    label: string,
+    value: string,
+    hint?: string,
   ): ReactElement => {
     return (
       <div className="rounded-lg border border-gray-200 p-3">
@@ -190,6 +249,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
         <div className="text-base font-semibold text-gray-900 mt-1">
           {value}
         </div>
+        {hint ? (
+          <div className="text-xs text-gray-400 mt-0.5">{hint}</div>
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
@@ -395,6 +459,14 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
       ? toNum(database["cacheHitRatio"])
       : null;
 
+    /*
+     * Counters in pg_stat_database accumulate since the last stats reset, so
+     * big numbers (commits, deadlocks) only mean something next to their age.
+     */
+    const statsResetHint: string | undefined = database["statsReset"]
+      ? `since stats reset ${timeAgo(database["statsReset"])}`
+      : undefined;
+
     // Overall verdict — red for a hard problem, yellow for a soft one.
     let statusText: string = "Healthy";
     let statusColor: Color = Green;
@@ -465,6 +537,23 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             "Database size",
             bytesToReadable(data?.["databaseSizeInBytes"]),
           )}
+          {renderStat(
+            "Commits",
+            formatNumber(database["xactCommit"]),
+            statsResetHint,
+          )}
+          {renderStat(
+            "Rollbacks",
+            formatNumber(database["xactRollback"]),
+            statsResetHint,
+          )}
+          {renderStat(
+            "Temp files",
+            formatNumber(database["tempFiles"]),
+            isNum(database["tempBytes"])
+              ? `${bytesToReadable(database["tempBytes"])} written`
+              : undefined,
+          )}
         </div>
 
         {/* Streaming replication — the primary's view of every standby. */}
@@ -532,7 +621,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             "Longest transaction",
             formatDuration(connections["longestTransactionSeconds"]),
           )}
-          {renderStat("Deadlocks", formatNumber(database["deadlocks"]))}
+          {renderStat(
+            "Deadlocks",
+            formatNumber(database["deadlocks"]),
+            statsResetHint,
+          )}
           {renderStat(
             "Wraparound headroom",
             wrapHeadroom !== null ? `${wrapHeadroom.toFixed(0)}%` : "—",
@@ -670,6 +763,349 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     );
   };
 
+  /*
+   * Live activity — blocked sessions, running queries (longest first) and
+   * vacuum progress. Mirrors renderContent()'s early returns so the card never
+   * shows a broken table while the first load is in flight or when Postgres is
+   * unreachable.
+   */
+  const renderActivity: () => ReactElement = (): ReactElement => {
+    if (isInitialLoading && !activity) {
+      return <ComponentLoader />;
+    }
+
+    /*
+     * No payload at all means the /postgres-activity request itself failed
+     * (the alert above this content carries the actual error) — distinct from
+     * a payload that reports Postgres as unreachable.
+     */
+    if (!activity) {
+      return (
+        <div className="text-sm text-gray-500">
+          Live activity could not be loaded.
+        </div>
+      );
+    }
+
+    const connected: boolean = Boolean(activity["connected"]);
+    if (!connected) {
+      return (
+        <div className="text-sm text-gray-500">
+          PostgreSQL is not reachable from this instance.
+        </div>
+      );
+    }
+
+    const activeQueries: JSONArray = asArray(activity?.["activeQueries"]);
+    const blockedSessions: JSONArray = asArray(activity?.["blockedSessions"]);
+    const vacuumProgress: JSONArray = asArray(activity?.["vacuumProgress"]);
+
+    return (
+      <div className="space-y-6">
+        {/* Blocked sessions first — when any exist, they are the story. */}
+        <div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">
+            Blocked sessions
+          </div>
+          {blockedSessions.length === 0 ? (
+            <div className="text-xs text-gray-500">
+              No sessions are blocked on locks.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {blockedSessions
+                .slice(0, MAX_ROWS_TO_SHOW)
+                .map((value: unknown, index: number): ReactElement => {
+                  const pair: JSONObject = asObject(value);
+                  return (
+                    <div
+                      key={index}
+                      className="rounded-md border border-red-200 bg-red-50 px-3 py-2 space-y-1"
+                    >
+                      <div className="text-xs font-medium text-red-800">
+                        PID {formatNumber(pair["blockedPid"])}
+                        {pair["blockedUser"]
+                          ? ` (${String(pair["blockedUser"])})`
+                          : ""}{" "}
+                        · waiting {formatDuration(pair["blockedForSeconds"])}
+                      </div>
+                      <div
+                        className="text-xs font-mono text-gray-900 truncate"
+                        title={String(pair["blockedQuery"] ?? "")}
+                      >
+                        {String(pair["blockedQuery"] ?? "—")}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        blocked by PID {formatNumber(pair["blockingPid"])}
+                        {pair["blockingUser"]
+                          ? ` (${String(pair["blockingUser"])})`
+                          : ""}
+                        {pair["blockingState"]
+                          ? ` · ${String(pair["blockingState"])}`
+                          : ""}
+                      </div>
+                      <div
+                        className="text-xs font-mono text-gray-700 truncate"
+                        title={String(pair["blockingQuery"] ?? "")}
+                      >
+                        {String(pair["blockingQuery"] ?? "—")}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+
+        {/* Running queries, longest first — idle-in-transaction included. */}
+        <div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">
+            Running queries
+          </div>
+          {activeQueries.length === 0 ? (
+            <div className="text-xs text-gray-500">
+              Nothing is running right now. (This page&apos;s own health probe
+              is excluded.)
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="pb-2 pr-4">PID</th>
+                    <th className="pb-2 px-4">State</th>
+                    <th className="pb-2 px-4 text-right">Running</th>
+                    <th className="pb-2 px-4 text-right">In txn</th>
+                    <th className="pb-2 pl-4">Query</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {activeQueries.map(
+                    (value: unknown, index: number): ReactElement => {
+                      const session: JSONObject = asObject(value);
+                      const sessionMeta: string = [
+                        session["username"] ? String(session["username"]) : "",
+                        session["applicationName"]
+                          ? String(session["applicationName"])
+                          : "",
+                        session["clientAddr"]
+                          ? String(session["clientAddr"])
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ");
+
+                      return (
+                        <tr key={`postgres-active-query-${index}`}>
+                          <td className="py-2 pr-4 text-sm text-gray-900 tabular-nums">
+                            {formatNumber(session["pid"])}
+                          </td>
+                          <td className="py-2 px-4">
+                            <div className="text-sm text-gray-900 whitespace-nowrap">
+                              {String(session["state"] ?? "—")}
+                            </div>
+                            {session["waitEventType"] ? (
+                              <div className="text-xs text-gray-500 whitespace-nowrap">
+                                waits on {String(session["waitEventType"])}
+                                {session["waitEvent"]
+                                  ? `: ${String(session["waitEvent"])}`
+                                  : ""}
+                              </div>
+                            ) : (
+                              <></>
+                            )}
+                          </td>
+                          <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
+                            {formatDuration(session["queryAgeSeconds"])}
+                          </td>
+                          <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
+                            {isNum(session["transactionAgeSeconds"])
+                              ? formatDuration(session["transactionAgeSeconds"])
+                              : "—"}
+                          </td>
+                          <td className="py-2 pl-4">
+                            <div
+                              className="text-xs font-mono text-gray-900 truncate max-w-lg"
+                              title={String(session["query"] ?? "")}
+                            >
+                              {String(session["query"] ?? "—")}
+                            </div>
+                            {sessionMeta ? (
+                              <div className="text-xs text-gray-500 truncate max-w-lg">
+                                {sessionMeta}
+                              </div>
+                            ) : (
+                              <></>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Vacuum progress — pairs with the autovacuum hotspots list above. */}
+        <div>
+          <div className="text-sm font-semibold text-gray-900 mb-2">
+            Vacuum progress
+          </div>
+          {vacuumProgress.length === 0 ? (
+            <div className="text-xs text-gray-500">
+              No vacuum is running right now.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {vacuumProgress.map(
+                (value: unknown, index: number): ReactElement => {
+                  const vacuum: JSONObject = asObject(value);
+                  const percent: number | null = isNum(vacuum["percentScanned"])
+                    ? toNum(vacuum["percentScanned"])
+                    : null;
+                  const label: string = `${
+                    vacuum["tableName"]
+                      ? String(vacuum["tableName"])
+                      : `PID ${formatNumber(vacuum["pid"])}`
+                  } · ${String(vacuum["phase"] ?? "—")}`;
+
+                  return percent !== null ? (
+                    <ResourceUsageBar
+                      key={index}
+                      label={label}
+                      value={percent}
+                      valueLabel={`${percent.toFixed(0)}%`}
+                      secondaryLabel={`${formatNumber(
+                        vacuum["heapBlocksScanned"],
+                      )} / ${formatNumber(vacuum["heapBlocksTotal"])} blocks`}
+                    />
+                  ) : (
+                    <div key={index} className="text-xs text-gray-700">
+                      {label}
+                    </div>
+                  );
+                },
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  /*
+   * Cumulative statement statistics from pg_stat_statements — or setup
+   * instructions when the extension is not available on this instance.
+   */
+  const renderTopStatements: () => ReactElement = (): ReactElement => {
+    if (isInitialLoading && !activity) {
+      return <ComponentLoader />;
+    }
+
+    // Same failed-request vs unreachable-database distinction as renderActivity().
+    if (!activity) {
+      return (
+        <div className="text-sm text-gray-500">
+          Statement statistics could not be loaded.
+        </div>
+      );
+    }
+
+    const connected: boolean = Boolean(activity["connected"]);
+    if (!connected) {
+      return (
+        <div className="text-sm text-gray-500">
+          PostgreSQL is not reachable from this instance.
+        </div>
+      );
+    }
+
+    if (!activity?.["statementsAvailable"]) {
+      return (
+        <div className="text-sm text-gray-500">
+          The <span className="font-mono">pg_stat_statements</span> extension is
+          not available on this instance. Add{" "}
+          <span className="font-mono">pg_stat_statements</span> to{" "}
+          <span className="font-mono">shared_preload_libraries</span>, restart
+          PostgreSQL, then run{" "}
+          <span className="font-mono">
+            CREATE EXTENSION pg_stat_statements;
+          </span>{" "}
+          to unlock cumulative query statistics.
+        </div>
+      );
+    }
+
+    const topStatements: JSONArray = asArray(activity?.["topStatements"]);
+
+    if (topStatements.length === 0) {
+      return (
+        <div className="text-sm text-gray-500">
+          No statements have been recorded yet.
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="pb-2 pr-4">Query</th>
+              <th className="pb-2 px-4 text-right">Calls</th>
+              <th className="pb-2 px-4 text-right">Total</th>
+              <th className="pb-2 px-4 text-right">Mean</th>
+              <th className="pb-2 px-4 text-right">Max</th>
+              <th className="pb-2 px-4 text-right">Rows</th>
+              <th className="pb-2 pl-4 text-right">Cache hit</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {topStatements.map(
+              (value: unknown, index: number): ReactElement => {
+                const statement: JSONObject = asObject(value);
+                return (
+                  <tr key={`postgres-top-statement-${index}`}>
+                    <td className="py-2 pr-4">
+                      <div
+                        className="text-xs font-mono text-gray-900 truncate max-w-lg"
+                        title={String(statement["query"] ?? "")}
+                      >
+                        {String(statement["query"] ?? "—")}
+                      </div>
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
+                      {formatNumber(statement["calls"])}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-900 tabular-nums whitespace-nowrap">
+                      {formatMilliseconds(statement["totalMilliseconds"])}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
+                      {formatMilliseconds(statement["meanMilliseconds"])}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
+                      {formatMilliseconds(statement["maxMilliseconds"])}
+                    </td>
+                    <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
+                      {formatNumber(statement["rows"])}
+                    </td>
+                    <td className="py-2 pl-4 text-sm text-right text-gray-700 tabular-nums">
+                      {isNum(statement["cacheHitRatio"])
+                        ? `${toNum(statement["cacheHitRatio"]).toFixed(1)}%`
+                        : "—"}
+                    </td>
+                  </tr>
+                );
+              },
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   return (
     <>
       <Card
@@ -681,12 +1117,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             icon: IconProp.Refresh,
             buttonStyle: ButtonStyleType.NORMAL,
             isLoading: isRefreshing,
-            onClick: () => {
-              setIsRefreshing(true);
-              loadClusterHealth().catch(() => {
-                // handled via setError
-              });
-            },
+            onClick: refresh,
           },
         ]}
       >
@@ -697,6 +1128,51 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             <></>
           )}
           {renderContent()}
+        </div>
+      </Card>
+
+      <Card
+        title="Live activity"
+        description="What Postgres is executing right now — blocked sessions, longest-running queries and vacuum progress. Statement text is shown to master admins here and is never part of the support bundle."
+        buttons={[
+          {
+            title: "Refresh",
+            icon: IconProp.Refresh,
+            buttonStyle: ButtonStyleType.NORMAL,
+            isLoading: isRefreshing,
+            onClick: refresh,
+          },
+        ]}
+      >
+        <div>
+          {activityError ? (
+            <Alert
+              type={AlertType.DANGER}
+              title={activityError}
+              className="mb-4"
+            />
+          ) : (
+            <></>
+          )}
+          {renderActivity()}
+        </div>
+      </Card>
+
+      <Card
+        title="Slow statements"
+        description="The statements that cost the most total execution time since stats were reset (pg_stat_statements). Queries are normalized — literals are replaced with $n placeholders — so no row data appears here."
+      >
+        <div>
+          {activityError ? (
+            <Alert
+              type={AlertType.DANGER}
+              title={activityError}
+              className="mb-4"
+            />
+          ) : (
+            <></>
+          )}
+          {renderTopStatements()}
         </div>
       </Card>
 

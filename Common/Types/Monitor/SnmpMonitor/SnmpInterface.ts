@@ -15,6 +15,14 @@ export default interface SnmpInterface {
   alias?: string | undefined;
   isOperationallyUp: boolean;
   isAdministrativelyUp: boolean;
+  /*
+   * ifPhysAddress formatted as lowercase colon-separated hex
+   * ("aa:bb:cc:dd:ee:ff"); undefined for interfaces with no MAC (loopbacks,
+   * tunnels) or when the device returns an empty octet string.
+   */
+  macAddress?: string | undefined;
+  // IANAifType number (ifType column) — 6 = ethernetCsmacd, 24 = loopback...
+  interfaceType?: number | undefined;
   speedInBitsPerSecond?: number | undefined;
   inOctets?: number | undefined;
   outOctets?: number | undefined;

@@ -170,4 +170,22 @@ export default class EnterpriseLicenseInstance extends BaseModel {
     type: ColumnType.Date,
   })
   public lastReportedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Master Admin Emails",
+    description:
+      "Emails of the master admins of this instance. Used to contact the customer about license expiry and seat-limit breaches.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public masterAdminEmails?: Array<string> = undefined;
 }

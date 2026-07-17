@@ -2,9 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
-import Card from "Common/UI/Components/Card/Card";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -29,7 +27,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 
 /*
@@ -90,59 +87,14 @@ function buildQuery(
   };
 }
 
-function buildMetricViewData(
-  queries: Array<MetricQueryConfigData>,
-  startAndEndDate: InBetween<Date>,
-): MetricViewData {
-  return {
-    startAndEndDate,
-    queryConfigs: queries,
-    formulaConfigs: [],
-  };
-}
-
-interface SectionProps {
-  title: string;
-  description: string;
-  icon: IconProp;
-  data?: MetricViewData | undefined;
-  children?: ReactElement | undefined;
-  timeRange: RangeStartAndEndDateTime;
-  onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
-}
-
-const InsightsSection: FunctionComponent<SectionProps> = (
-  props: SectionProps,
-): ReactElement => {
+function getSectionTitle(icon: IconProp, title: string): ReactElement {
   return (
-    <Card
-      title={
-        <div className="flex items-center gap-2">
-          <Icon icon={props.icon} className="h-5 w-5 text-gray-500" />
-          <span>{props.title}</span>
-        </div>
-      }
-      description={props.description}
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={props.timeRange}
-          onChange={props.onTimeRangeChange}
-        />
-      }
-    >
-      {props.children ??
-        (props.data ? (
-          <MetricView
-            data={props.data}
-            hideQueryElements={true}
-            hideStartAndEndDate={true}
-            hideCardInCharts={true}
-            onChange={() => {}}
-          />
-        ) : undefined)}
-    </Card>
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} className="h-5 w-5 text-gray-500" />
+      <span>{title}</span>
+    </div>
   );
-};
+}
 
 const ratioToPercent: (value: number) => number = (value: number): number => {
   return value * 100;
@@ -338,91 +290,69 @@ const ProxmoxClusterInsights: FunctionComponent<
 
   const clusterName: string = cluster.name;
 
-  const computeData: MetricViewData = buildMetricViewData(
-    getComputeQueries(clusterName),
-    startAndEndDate,
-  );
-  const guestData: MetricViewData = buildMetricViewData(
-    getGuestQueries(clusterName),
-    startAndEndDate,
-  );
-  const storageData: MetricViewData = buildMetricViewData(
-    getStorageQueries(clusterName),
-    startAndEndDate,
-  );
-  const replicationData: MetricViewData = buildMetricViewData(
-    getReplicationQueries(clusterName),
-    startAndEndDate,
-  );
-
   return (
     <Fragment>
-      <InsightsSection
-        title="Compute"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.CPUChip, "Compute")}
         description="CPU and memory usage across all nodes in the cluster."
-        icon={IconProp.CPUChip}
-        data={computeData}
+        queryConfigs={getComputeQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
 
-      <InsightsSection
-        title="Guests"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Cube, "Guests")}
         description="CPU and memory usage across all VMs and containers."
-        icon={IconProp.Cube}
-        data={guestData}
+        queryConfigs={getGuestQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
 
-      <InsightsSection
-        title="Storage"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Database, "Storage")}
         description="Storage volume usage plus per-second disk read/write throughput across the cluster."
-        icon={IconProp.Database}
+        queryConfigs={getStorageQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
-      >
-        <div className="space-y-6">
-          <MetricView
-            data={storageData}
-            hideQueryElements={true}
-            hideStartAndEndDate={true}
-            hideCardInCharts={true}
-            onChange={() => {}}
-          />
-          <div>
-            <div className="mb-2 text-sm font-medium text-gray-700">
-              Disk Throughput
+        startAndEndDate={startAndEndDate}
+        renderExtraCharts={(dateRange: InBetween<Date>) => {
+          return (
+            <div>
+              <div className="mb-2 text-sm font-medium text-gray-700">
+                Disk Throughput
+              </div>
+              <ProxmoxRateChart
+                clusterName={clusterName}
+                series={[
+                  { metricName: "pve_disk_read_bytes", label: "Read" },
+                  { metricName: "pve_disk_write_bytes", label: "Write" },
+                ]}
+                startDate={dateRange.startValue}
+                endDate={dateRange.endValue}
+                syncId={`proxmox-insights-${modelId.toString()}`}
+              />
             </div>
-            <ProxmoxRateChart
-              clusterName={clusterName}
-              series={[
-                { metricName: "pve_disk_read_bytes", label: "Read" },
-                { metricName: "pve_disk_write_bytes", label: "Write" },
-              ]}
-              startDate={startAndEndDate.startValue}
-              endDate={startAndEndDate.endValue}
-              syncId={`proxmox-insights-${modelId.toString()}`}
-            />
-          </div>
-        </div>
-      </InsightsSection>
-
-      <InsightsSection
-        title="Replication"
-        description="Storage replication job duration and failed sync counts (pvesr). Charts are empty when this cluster has no replication jobs configured."
-        icon={IconProp.ArrowPath}
-        data={replicationData}
-        timeRange={timeRange}
-        onTimeRangeChange={handleTimeRangeChange}
+          );
+        }}
       />
 
-      <InsightsSection
-        title="Network"
-        description="Per-second inbound and outbound network throughput summed across all guests."
-        icon={IconProp.Signal}
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.ArrowPath, "Replication")}
+        description="Storage replication job duration and failed sync counts (pvesr). Charts are empty when this cluster has no replication jobs configured."
+        queryConfigs={getReplicationQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
+      />
+
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Signal, "Network")}
+        description="Per-second inbound and outbound network throughput summed across all guests."
+        timeRange={timeRange}
+        onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       >
         <ProxmoxRateChart
           clusterName={clusterName}
@@ -434,7 +364,7 @@ const ProxmoxClusterInsights: FunctionComponent<
           endDate={startAndEndDate.endValue}
           syncId={`proxmox-insights-${modelId.toString()}`}
         />
-      </InsightsSection>
+      </EmbeddedMetricCard>
     </Fragment>
   );
 };

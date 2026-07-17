@@ -338,8 +338,8 @@ conditions are OR'ed together. Every helper below is written from that
 angle: an allowlist is expressed as `not (<matches>)`, a denylist as
 `<matches>` directly. Because they OR, listing an include condition and
 an exclude condition together yields "drop unless included, and also drop
-if excluded" — i.e. exclude wins, which is the same precedence
-`namespaceFilters` already documents.
+if excluded" — i.e. exclude wins, which is the precedence documented by
+`namespaceFilters.rules`.
 
 Every namespace condition is guarded with `!= nil`. Node- and
 cluster-level series carry no namespace at all, and in OTTL
@@ -373,14 +373,40 @@ Args: dict "names" (list) "matchType" ("strict" | "regexp")
 {{- end -}}
 
 {{/*
-OTTL disjunction over namespaces at a given path.
-Args: dict "namespaces" (list) "path" (OTTL path expression)
+Collect and de-duplicate namespace patterns for one action/scope pair.
+Args: dict "root" $ "action" ("include" | "exclude")
+           "scope" ("podLogs" | "ebpfDiscovery" | "metrics" | "traces")
 */}}
-{{- define "kubernetes-agent.nsDisjunction" -}}
+{{- define "kubernetes-agent.namespaceRulePatterns" -}}
+{{- $root := .root -}}
+{{- $action := .action -}}
+{{- $scope := .scope -}}
+{{- $patterns := list -}}
+{{- range (($root.Values.namespaceFilters).rules) | default list -}}
+{{- if and (eq (.action | default "") $action) (has $scope (.scopes | default list)) -}}
+{{- $patterns = concat $patterns (.namespaces | default list | compact) -}}
+{{- end -}}
+{{- end -}}
+{{- toJson (uniq $patterns) -}}
+{{- end -}}
+
+{{/*
+OTTL disjunction over namespace patterns at a given path. Namespace patterns
+match the full value and use `*` as their only wildcard. Splitting on `*`,
+quoting each literal segment, then joining with `.*` gives the collector the
+same semantics as filelog, OBI discovery and the API log tailer.
+Args: dict "patterns" (list) "path" (OTTL path expression)
+*/}}
+{{- define "kubernetes-agent.namespacePatternDisjunction" -}}
 {{- $path := .path -}}
 {{- $parts := list -}}
-{{- range .namespaces -}}
-{{- $parts = append $parts (printf "%s == %q" $path .) -}}
+{{- range .patterns -}}
+{{- $segments := list -}}
+{{- range (splitList "*" .) -}}
+{{- $segments = append $segments (regexQuoteMeta .) -}}
+{{- end -}}
+{{- $pattern := printf "^(?:%s)$" (join ".*" $segments) -}}
+{{- $parts = append $parts (printf "IsMatch(%s, %q)" $path $pattern) -}}
 {{- end -}}
 {{- join " or " $parts -}}
 {{- end -}}
@@ -406,10 +432,11 @@ k8s_cluster).
 */}}
 {{- define "kubernetes-agent.filterMetricConditions" -}}
 {{- $fm := (.Values.filters).metrics | default dict -}}
-{{- $ns := .Values.namespaceFilters | default dict -}}
 {{- $mt := $fm.matchType | default "strict" -}}
 {{- $inc := $fm.include | default list | compact -}}
 {{- $exc := $fm.exclude | default list | compact -}}
+{{- $nsInc := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "metrics") | fromJsonArray -}}
+{{- $nsExc := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "metrics") | fromJsonArray -}}
 {{- $conds := list -}}
 {{- if $inc -}}
 {{- $conds = append $conds (printf "not (%s)" (include "kubernetes-agent.metricNameDisjunction" (dict "names" $inc "matchType" $mt))) -}}
@@ -417,16 +444,12 @@ k8s_cluster).
 {{- if $exc -}}
 {{- $conds = append $conds (include "kubernetes-agent.metricNameDisjunction" (dict "names" $exc "matchType" $mt)) -}}
 {{- end -}}
-{{- if (($ns.applyTo).metrics) -}}
 {{- $p := "resource.attributes[\"k8s.namespace.name\"]" -}}
-{{- $nsExc := $ns.exclude | default list | compact -}}
-{{- $nsInc := $ns.include | default list | compact -}}
 {{- if $nsExc -}}
-{{- $conds = append $conds (printf "%s != nil and (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsExc "path" $p))) -}}
+{{- $conds = append $conds (printf "%s != nil and (%s)" $p (include "kubernetes-agent.namespacePatternDisjunction" (dict "patterns" $nsExc "path" $p))) -}}
 {{- end -}}
 {{- if $nsInc -}}
-{{- $conds = append $conds (printf "%s != nil and not (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsInc "path" $p))) -}}
-{{- end -}}
+{{- $conds = append $conds (printf "%s != nil and not (%s)" $p (include "kubernetes-agent.namespacePatternDisjunction" (dict "patterns" $nsInc "path" $p))) -}}
 {{- end -}}
 {{- toJson $conds -}}
 {{- end -}}
@@ -439,40 +462,34 @@ label, so the metric-context conditions above never see them — this is
 why namespace filtering needs both contexts to actually cover the cluster.
 */}}
 {{- define "kubernetes-agent.filterDatapointConditions" -}}
-{{- $ns := .Values.namespaceFilters | default dict -}}
+{{- $nsInc := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "metrics") | fromJsonArray -}}
+{{- $nsExc := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "metrics") | fromJsonArray -}}
 {{- $conds := list -}}
-{{- if (($ns.applyTo).metrics) -}}
 {{- $p := "attributes[\"namespace\"]" -}}
-{{- $nsExc := $ns.exclude | default list | compact -}}
-{{- $nsInc := $ns.include | default list | compact -}}
 {{- if $nsExc -}}
-{{- $conds = append $conds (printf "%s != nil and (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsExc "path" $p))) -}}
+{{- $conds = append $conds (printf "%s != nil and (%s)" $p (include "kubernetes-agent.namespacePatternDisjunction" (dict "patterns" $nsExc "path" $p))) -}}
 {{- end -}}
 {{- if $nsInc -}}
-{{- $conds = append $conds (printf "%s != nil and not (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsInc "path" $p))) -}}
-{{- end -}}
+{{- $conds = append $conds (printf "%s != nil and not (%s)" $p (include "kubernetes-agent.namespacePatternDisjunction" (dict "patterns" $nsInc "path" $p))) -}}
 {{- end -}}
 {{- toJson $conds -}}
 {{- end -}}
 
 {{/*
-Span-context conditions: namespace only. eBPF spans are already scoped at
-OBI discovery, so this exists for spans pushed to the agent's own OTLP
-endpoint by your applications.
+Span-context namespace conditions. These run after metadata enrichment and can
+filter both eBPF and application-pushed OTLP spans independently of whether OBI
+still instruments the namespace.
 */}}
 {{- define "kubernetes-agent.filterSpanConditions" -}}
-{{- $ns := .Values.namespaceFilters | default dict -}}
+{{- $nsInc := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "traces") | fromJsonArray -}}
+{{- $nsExc := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "traces") | fromJsonArray -}}
 {{- $conds := list -}}
-{{- if (($ns.applyTo).traces) -}}
 {{- $p := "resource.attributes[\"k8s.namespace.name\"]" -}}
-{{- $nsExc := $ns.exclude | default list | compact -}}
-{{- $nsInc := $ns.include | default list | compact -}}
 {{- if $nsExc -}}
-{{- $conds = append $conds (printf "%s != nil and (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsExc "path" $p))) -}}
+{{- $conds = append $conds (printf "%s != nil and (%s)" $p (include "kubernetes-agent.namespacePatternDisjunction" (dict "patterns" $nsExc "path" $p))) -}}
 {{- end -}}
 {{- if $nsInc -}}
-{{- $conds = append $conds (printf "%s != nil and not (%s)" $p (include "kubernetes-agent.nsDisjunction" (dict "namespaces" $nsInc "path" $p))) -}}
-{{- end -}}
+{{- $conds = append $conds (printf "%s != nil and not (%s)" $p (include "kubernetes-agent.namespacePatternDisjunction" (dict "patterns" $nsInc "path" $p))) -}}
 {{- end -}}
 {{- toJson $conds -}}
 {{- end -}}

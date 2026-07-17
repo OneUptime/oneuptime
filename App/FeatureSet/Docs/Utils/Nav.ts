@@ -257,8 +257,8 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/server-monitor",
       },
       {
-        title: "SNMP Monitor",
-        url: "/docs/monitor/snmp-monitor",
+        title: "Network Device Monitor",
+        url: "/docs/monitor/network-device-monitor",
       },
       {
         title: "Kubernetes Monitor",

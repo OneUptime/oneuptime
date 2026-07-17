@@ -97,7 +97,7 @@
     "Incoming Email Monitor": "傳入郵件監控",
     "External Status Page Monitor": "外部狀態頁監控",
     "Server / VM Monitor": "伺服器 / 虛擬機器監控",
-    "SNMP Monitor": "SNMP 監控",
+    "Network Device Monitor": "網路設備監控",
     "Kubernetes Monitor": "Kubernetes 監控",
     "Kubernetes Agent (Helm install)": "Kubernetes 代理程式(Helm 安裝)",
     "Docker Monitor": "Docker 監控",

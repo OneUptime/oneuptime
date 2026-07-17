@@ -74,6 +74,48 @@ const getUserEmailHashes: GetUserEmailHashesFunction = async (): Promise<
   return Array.from(emailHashes);
 };
 
+type GetMasterAdminEmailsFunction = () => Promise<Array<string>>;
+
+/*
+ * Master admin emails are sent (raw, not hashed) so OneUptime can contact
+ * the customer about license expiry and seat-limit breaches. Only master
+ * admins are reported — regular users stay anonymous (hashes only).
+ */
+const getMasterAdminEmails: GetMasterAdminEmailsFunction = async (): Promise<
+  Array<string>
+> => {
+  const emails: Set<string> = new Set<string>();
+
+  const masterAdmins: Array<User> = await UserService.findBy({
+    query: {
+      isMasterAdmin: true,
+    },
+    select: {
+      email: true,
+    },
+    sort: {
+      createdAt: SortOrder.Ascending,
+    },
+    skip: 0,
+    limit: LIMIT_MAX,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  for (const user of masterAdmins) {
+    const email: string = user.email?.toString().trim().toLowerCase() || "";
+
+    if (!email) {
+      continue;
+    }
+
+    emails.add(email);
+  }
+
+  return Array.from(emails);
+};
+
 RunCron(
   "EnterpriseLicense:ReportUserCount",
   {
@@ -132,6 +174,7 @@ RunCron(
     }
 
     const userEmailHashes: Array<string> = await getUserEmailHashes();
+    const masterAdminEmails: Array<string> = await getMasterAdminEmails();
 
     const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post<JSONObject>({
@@ -142,6 +185,7 @@ RunCron(
           instanceId: instanceId.toString(),
           host: Host,
           userEmailHashes: userEmailHashes,
+          masterAdminEmails: masterAdminEmails,
         },
       });
 

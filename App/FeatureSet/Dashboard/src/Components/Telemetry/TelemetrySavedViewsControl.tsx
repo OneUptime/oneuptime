@@ -116,6 +116,24 @@ export interface ComponentProps<T extends TelemetrySavedViewModel> {
   applyState: (state: TelemetrySavedViewState) => void;
   // Surface non-critical errors to the host viewer (optional).
   onError?: ((error: string) => void) | undefined;
+  /*
+   * Extra query conditions merged into the saved-views fetch, so two
+   * controls sharing one table can each list only their own views —
+   * e.g. { viewType: new EqualToOrNull(TelemetrySavedViewType.List) }
+   * for the list page (NULL rows predate the column and mean "list"),
+   * or { viewType: TelemetrySavedViewType.Explorer } for the explorer.
+   * When absent, every saved view of the project is listed, as before.
+   */
+  additionalQuery?: Query<T> | undefined;
+  /*
+   * Extra model fields stamped onto records this control creates or
+   * updates (e.g. { viewType: TelemetrySavedViewType.Explorer }).
+   * When absent, records are saved exactly as before.
+   */
+  additionalSaveFields?: Partial<T> | undefined;
+  triggerClassName?: string | undefined;
+  showTriggerIcon?: boolean | undefined;
+  dropdownAlignment?: "left" | "right" | undefined;
 }
 
 function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
@@ -142,6 +160,25 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
     ((error: string) => void) | undefined
   > = useRef<((error: string) => void) | undefined>(props.onError);
   onErrorRef.current = props.onError;
+
+  /*
+   * Latest additionalQuery/additionalSaveFields without re-creating the
+   * callbacks below on every render — hosts typically pass fresh object
+   * literals. Semantic changes to the query are detected through the
+   * serialized key (query operator classes like EqualToOrNull implement
+   * toJSON, so JSON.stringify canonicalizes them).
+   */
+  const additionalQueryRef: React.MutableRefObject<Query<T> | undefined> =
+    useRef<Query<T> | undefined>(props.additionalQuery);
+  additionalQueryRef.current = props.additionalQuery;
+  const additionalQueryKey: string = JSON.stringify(
+    props.additionalQuery || null,
+  );
+
+  const additionalSaveFieldsRef: React.MutableRefObject<
+    Partial<T> | undefined
+  > = useRef<Partial<T> | undefined>(props.additionalSaveFields);
+  additionalSaveFieldsRef.current = props.additionalSaveFields;
 
   const reportError: (error: string) => void = useCallback(
     (error: string): void => {
@@ -170,7 +207,10 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
       try {
         const result: ModelListResult<T> = await ModelAPI.getList<T>({
           modelType: modelType,
-          query: { projectId: projectId } as Query<T>,
+          query: {
+            ...(additionalQueryRef.current || {}),
+            projectId: projectId,
+          } as Query<T>,
           limit: SAVED_VIEWS_LIMIT,
           skip: 0,
           select: {
@@ -188,7 +228,8 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
         setIsLoading(false);
         setHasFetchedOnce(true);
       }
-    }, [modelType, reportError]);
+      // additionalQueryKey stands in for additionalQueryRef's semantic value.
+    }, [modelType, reportError, additionalQueryKey]);
 
   useEffect(() => {
     void fetchSavedViews();
@@ -284,6 +325,10 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
           modelType: modelType,
           id: selectedView.id,
           data: JSONFunctions.serialize({
+            ...((additionalSaveFieldsRef.current || {}) as unknown as Record<
+              string,
+              unknown
+            >),
             query: captureCurrentState(),
           } as unknown as JSONObject),
         });
@@ -338,6 +383,9 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
           submitButtonText="Save View"
           onBeforeCreate={async (item: T) => {
             item.query = captureCurrentState();
+            if (additionalSaveFieldsRef.current) {
+              Object.assign(item, additionalSaveFieldsRef.current);
+            }
             return item;
           }}
           onSuccess={async (item: T) => {
@@ -440,6 +488,9 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
           setViewToDelete(findById(viewId));
         }}
         onUpdateCurrent={selectedView ? handleUpdateCurrent : undefined}
+        triggerClassName={props.triggerClassName}
+        showTriggerIcon={props.showTriggerIcon}
+        dropdownAlignment={props.dropdownAlignment}
       />
     </>
   );

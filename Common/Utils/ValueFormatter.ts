@@ -292,7 +292,28 @@ function formatNumber(value: number): string {
     return (Math.round(value * 10) / 10).toString();
   }
 
-  return (Math.round(value * 100) / 100).toString();
+  if (absValue >= 1) {
+    return (Math.round(value * 100) / 100).toString();
+  }
+
+  /*
+   * Below 1, fixed two-decimal rounding collapses distinct values onto the
+   * same label (0.004 and 0.006 both become "0.01"), which renders chart
+   * axes with runs of duplicate ticks. Two significant digits keeps
+   * neighbouring ticks distinct at any magnitude.
+   */
+  const rounded: number = parseFloat(value.toPrecision(2));
+  const asString: string = rounded.toString();
+  if (!asString.includes("e") && !asString.includes("E")) {
+    return asString;
+  }
+
+  /*
+   * Number.prototype.toString switches to exponential notation below 1e-6
+   * ("1.2e-7"), which is unreadable on an axis label — expand it back to
+   * plain decimals and trim the trailing zeros toFixed pads with.
+   */
+  return rounded.toFixed(20).replace(/0+$/, "").replace(/\.$/, "");
 }
 
 /*

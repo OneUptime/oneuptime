@@ -27,6 +27,84 @@ export interface PivotResult {
   seriesKeys: Array<string>;
 }
 
+/*
+ * Default series palette. Order matters — series are colored by index, so a
+ * stable order keeps colors from shuffling between refreshes.
+ */
+export const TRACE_CHART_PALETTE: Array<string> = [
+  "#6366f1",
+  "#ec4899",
+  "#10b981",
+  "#f59e0b",
+  "#06b6d4",
+  "#8b5cf6",
+  "#f43f5e",
+  "#14b8a6",
+  "#64748b",
+  "#84cc16",
+];
+
+export interface TraceSeriesColorOptions {
+  // The widget's lead color override (arguments.color), if any.
+  color?: string | undefined;
+  // Per-series pins keyed by "key=value" segment (arguments.colorsByGroup).
+  colorsByGroup?: Record<string, string> | undefined;
+  // The split dimension the pins are keyed under (arguments.groupByAttribute).
+  groupByAttribute?: string | undefined;
+}
+
+/*
+ * Resolve the color for one series, mirroring the metric Chart widget: a
+ * per-series pin wins first, then the effective palette by series position —
+ * the lead `color` heads the palette, so a single-series chart with only a
+ * lead color renders exactly that color.
+ */
+export function resolveTraceSeriesColor(
+  seriesKey: string,
+  index: number,
+  options: TraceSeriesColorOptions,
+): string {
+  const groupBy: string | undefined = options.groupByAttribute?.trim();
+  if (groupBy && options.colorsByGroup) {
+    const pinned: string | undefined =
+      options.colorsByGroup[`${groupBy}=${seriesKey}`];
+    if (pinned) {
+      return pinned;
+    }
+  }
+  const palette: Array<string> = options.color
+    ? [options.color, ...TRACE_CHART_PALETTE]
+    : TRACE_CHART_PALETTE;
+  return palette[index % palette.length]!;
+}
+
+/*
+ * "#rgb"/"#rrggbb" → "rgba(r,g,b,alpha)", for the soft area fill under a
+ * single duration series. Falls back to the default indigo on malformed input
+ * so a hand-edited widget can't break rendering.
+ */
+const SHORT_HEX_PATTERN: RegExp = /^[0-9a-fA-F]{3}$/;
+const FULL_HEX_PATTERN: RegExp = /^[0-9a-fA-F]{6}$/;
+
+export function hexToRgba(hex: string, alpha: number): string {
+  let normalized: string = hex.trim().replace(/^#/, "");
+  if (SHORT_HEX_PATTERN.test(normalized)) {
+    normalized = normalized
+      .split("")
+      .map((char: string): string => {
+        return char + char;
+      })
+      .join("");
+  }
+  if (!FULL_HEX_PATTERN.test(normalized)) {
+    return `rgba(99,102,241,${alpha})`;
+  }
+  const r: number = parseInt(normalized.substring(0, 2), 16);
+  const g: number = parseInt(normalized.substring(2, 4), 16);
+  const b: number = parseInt(normalized.substring(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 // Count-style metrics render as bars; everything else is a duration (ms).
 export function isDurationMetric(metric: string): boolean {
   return metric !== "count" && metric !== "errorCount";

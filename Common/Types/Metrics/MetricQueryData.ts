@@ -17,4 +17,12 @@ export default interface MetricQueryData {
    * whatever) incident creation from a single metric monitor.
    */
   groupByAttributeKeys?: Array<string> | undefined;
+  /**
+   * How many series (groups) to plot for a grouped query. Passed to the
+   * server as `AggregateBy.topK.count` so only the top-N groups (ranked
+   * by max over the window) are fetched, and used as the client-side
+   * display cap. Unset = the default cap (10). Plain persisted data —
+   * saved views and dashboards carry it like any other query field.
+   */
+  topN?: number | undefined;
 }

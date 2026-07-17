@@ -26,6 +26,8 @@
     "adminDashboard": "Administratörspanel",
     "users": "Användare",
     "user": "Användare",
+    "enterpriseLicenses": "Enterprise-licenser",
+    "enterpriseLicense": "Licens",
     "projects": "Projekt",
     "project": "Projekt",
     "projectUsers": "Användare",
@@ -63,6 +65,8 @@
   },
   "userProfile": {
     "exitAdmin": "Lämna admin",
+    "darkTheme": "Mörkt tema",
+    "lightTheme": "Ljust tema",
     "logOut": "Logga ut"
   },
   "footer": {
@@ -113,6 +117,26 @@
       "cardTitle": "Användare",
       "cardDescription": "Här är en lista över användare i OneUptime.",
       "noItems": "Inga användare hittades."
+    },
+    "enterpriseLicenses": {
+      "title": "Enterprise-licenser",
+      "cardTitle": "Enterprise-licenser",
+      "cardDescription": "Licenser som utfärdats till självhostade Enterprise-kunder, med platsanvändning och utgång på ett ställe.",
+      "noItems": "Inga Enterprise-licenser har utfärdats ännu.",
+      "settingsCardTitle": "Inställningar för licensaviseringar",
+      "settingsCardDescription": "Vem som får kopia av licens-e-post och hur lång tid i förväg påminnelser om utgång skickas. Påminnelser skickas dagligen via e-post till kundens huvudadministratörer så länge en licens överskrider sin användargräns eller närmar sig utgång.",
+      "settingsEditButton": "Redigera inställningar"
+    },
+    "enterpriseLicenseView": {
+      "title": "Enterprise-licens",
+      "cardTitle": "Licensinformation",
+      "cardDescription": "Licens som utfärdats till den här kunden.",
+      "editButton": "Redigera licens",
+      "usageCardTitle": "Platsanvändning",
+      "usageCardDescription": "Unika användare i alla kundens självhostade instanser, enligt vad deras installationer rapporterar dagligen.",
+      "instancesCardTitle": "Instanser",
+      "instancesCardDescription": "Självhostade instanser (staging, produktion osv.) som rapporterar mot den här licensen, och de huvudadministratörer vi kan kontakta på var och en.",
+      "noInstances": "Inga instanser har rapporterat mot den här licensen ännu."
     },
     "userView": {
       "title": "Användare",

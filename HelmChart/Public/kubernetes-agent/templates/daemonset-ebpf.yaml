@@ -115,13 +115,15 @@ spec:
             # do NOT override it here.
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "k8s.cluster.name={{ .Values.clusterName }}"
-            {{- if .Values.namespaceFilters.include }}
+            {{- $ebpfInclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "ebpfDiscovery") | fromJsonArray }}
+            {{- $ebpfExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "ebpfDiscovery") | fromJsonArray }}
+            {{- if $ebpfInclude }}
             - name: OTEL_EBPF_DISCOVERY_NAMESPACE
-              value: {{ join "," .Values.namespaceFilters.include | quote }}
+              value: {{ join "," $ebpfInclude | quote }}
             {{- end }}
-            {{- if .Values.namespaceFilters.exclude }}
+            {{- if $ebpfExclude }}
             - name: OTEL_EBPF_DISCOVERY_EXCLUDE_NAMESPACE
-              value: {{ join "," .Values.namespaceFilters.exclude | quote }}
+              value: {{ join "," $ebpfExclude | quote }}
             {{- end }}
           resources:
             {{- toYaml .Values.ebpf.resources | nindent 12 }}

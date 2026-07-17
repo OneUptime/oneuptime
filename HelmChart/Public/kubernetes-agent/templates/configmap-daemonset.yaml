@@ -153,18 +153,17 @@ data:
       # Collect pod logs from /var/log/pods.
       #
       # The namespace is encoded in the pod-log directory name
-      # (/var/log/pods/<namespace>_<pod>_<uid>/...), so namespaceFilters
-      # is applied here as include/exclude path globs — filtered
-      # namespaces are never even opened, so they cost nothing. This
-      # mirrors the API log-tailer (deployment-logs-api.yaml) and the
-      # eBPF DaemonSet (daemonset-ebpf.yaml), which honor the same
-      # filters, so pod logs are scoped identically no matter which log
-      # mode the preset picks. Exclude always wins over include.
+      # (/var/log/pods/<namespace>_<pod>_<uid>/...), so podLogs-scoped
+      # namespace rules are applied here as include/exclude path globs.
+      # Filtered namespaces are never opened, and the same resolved lists
+      # are passed to the API log-tailer when that mode is selected.
+      # Exclude always wins over include.
+      {{- $podLogInclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "podLogs") | fromJsonArray }}
+      {{- $podLogExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "podLogs") | fromJsonArray }}
       filelog:
         include:
-          {{- $include := .Values.namespaceFilters.include | compact }}
-          {{- if $include }}
-          {{- range $include }}
+          {{- if $podLogInclude }}
+          {{- range $podLogInclude }}
           - /var/log/pods/{{ . }}_*/*/*.log
           {{- end }}
           {{- else }}
@@ -173,7 +172,7 @@ data:
         exclude:
           # Always exclude the agent's own logs to avoid a feedback loop.
           - /var/log/pods/{{ .Release.Namespace }}_{{ include "kubernetes-agent.fullname" . }}*/**/*.log
-          {{- range .Values.namespaceFilters.exclude | compact }}
+          {{- range $podLogExclude }}
           - /var/log/pods/{{ . }}_*/*/*.log
           {{- end }}
         start_at: end

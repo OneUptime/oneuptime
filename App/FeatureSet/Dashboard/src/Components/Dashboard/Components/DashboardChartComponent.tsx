@@ -24,6 +24,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import ExplorerLink from "../../Metrics/Utils/ExplorerLink";
+import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
@@ -72,6 +74,25 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       ? formulaConfigsArg
       : [];
   }, [formulaConfigsArg]);
+
+  /*
+   * Namespace for transient Top-N overrides. This widget renders
+   * MetricCharts WITHOUT onQueryConfigsChange (read-only), so its Top-N /
+   * "Show all" controls write into MetricUtil's module-global override
+   * registry. Widget query configs are typically id-less with the default
+   * variable "a", whose fallback key collides across every widget —
+   * scoping by componentId keeps one widget's choice from leaking into
+   * the fetches of every other chart widget. Passed to BOTH MetricCharts
+   * (writes) and fetchResults (reads) so the keys stay paired.
+   */
+  const topNOverrideScope: string = props.componentId.toString();
+
+  // Drop this widget's transient overrides when it unmounts.
+  useEffect(() => {
+    return () => {
+      MetricUtil.clearQueryTopNOverridesForScope(topNOverrideScope);
+    };
+  }, [topNOverrideScope]);
 
   /*
    * refreshTick is a dep so each auto-refresh re-resolves the relative
@@ -134,6 +155,13 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     try {
       const results: Array<AggregatedResult> = await MetricUtil.fetchResults({
         metricViewData: data,
+        /*
+         * The chart widget renders MetricCharts' Top-N controls and the
+         * truncation banner, so it opts in to the default server-side
+         * Top-N cap for grouped queries.
+         */
+        defaultTopN: true,
+        topNOverrideScope,
       });
 
       setMetricResults(results);
@@ -143,7 +171,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  }, []);
+  }, [topNOverrideScope]);
 
   /*
    * Fetch when the bound time range, the query config shape, or the
@@ -200,6 +228,26 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     };
   }, [queryConfigs, formulaConfigs, startAndEndDate, getMetricChartType]);
 
+  /*
+   * "Open in Explorer" deep link for this widget's queries. Suppressed on
+   * the unauthenticated public dashboard (no project session, so the
+   * explorer route would just bounce to login) and in edit mode (a
+   * navigation mid-edit would drop unsaved dashboard changes).
+   */
+  const showOpenInExplorer: boolean =
+    !isPublicDashboard() && !props.isEditMode && queryConfigs.length > 0;
+
+  const handleOpenInExplorer: (
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => void = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>): void => {
+      // Don't let the click also select/drag the widget underneath.
+      event.stopPropagation();
+      ExplorerLink.openInExplorer(chartMetricViewData);
+    },
+    [chartMetricViewData],
+  );
+
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading for chart - only on initial load
     return (
@@ -245,17 +293,37 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       }}
     >
       {(props.component.arguments.chartTitle ||
-        props.component.arguments.chartDescription) && (
-        <div className="px-2 pt-2 pb-1 flex-shrink-0">
-          {props.component.arguments.chartTitle && (
-            <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
-              {props.component.arguments.chartTitle}
-            </h3>
-          )}
-          {props.component.arguments.chartDescription && (
-            <p className="mt-0.5 text-xs text-gray-400">
-              {props.component.arguments.chartDescription}
-            </p>
+        props.component.arguments.chartDescription ||
+        showOpenInExplorer) && (
+        <div className="px-2 pt-2 pb-1 flex-shrink-0 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            {props.component.arguments.chartTitle && (
+              <h3 className="text-sm font-semibold text-gray-700 tracking-tight">
+                {props.component.arguments.chartTitle}
+              </h3>
+            )}
+            {props.component.arguments.chartDescription && (
+              <p className="mt-0.5 text-xs text-gray-400">
+                {props.component.arguments.chartDescription}
+              </p>
+            )}
+          </div>
+          {/*
+           * Icon-only control: text-gray-500 idle (>= 3:1 contrast on the
+           * white widget surface per WCAG 1.4.11 — gray-300/400 fail),
+           * aria-label for the accessible name, and the focus-visible
+           * ring shared by the branch's other icon-only buttons.
+           */}
+          {showOpenInExplorer && (
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-full w-5 h-5 flex-shrink-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              title="Open in Metric Explorer"
+              aria-label="Open in Metric Explorer"
+              onClick={handleOpenInExplorer}
+            >
+              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+            </button>
           )}
         </div>
       )}
@@ -265,6 +333,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           metricTypes={props.metricTypes}
           metricViewData={chartMetricViewData}
           hideCard={true}
+          topNOverrideScope={topNOverrideScope}
         />
       </div>
     </div>

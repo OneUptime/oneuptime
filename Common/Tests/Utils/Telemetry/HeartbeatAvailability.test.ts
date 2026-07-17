@@ -234,13 +234,61 @@ describe("HeartbeatAvailabilityUtil.buildAvailabilitySeries", () => {
     expect(downPoints(result).length).toBeGreaterThanOrEqual(2);
   });
 
-  test("hour buckets are used for windows over 3 hours", () => {
+  test("5-minute buckets are used for windows over 3 hours", () => {
+    const windowEnd: Date = NOW;
+    const windowStart: Date = new Date(NOW.getTime() - 6 * 60 * MINUTE);
+    const bucketMs: number = 5 * MINUTE;
+    const base: number =
+      Math.floor(windowStart.getTime() / bucketMs) * bucketMs;
+    const rows: Array<AggregatedModel> = Array.from(
+      { length: 74 },
+      (_: unknown, i: number): AggregatedModel => {
+        return row(new Date(base + i * bucketMs));
+      },
+    );
+    const result: HeartbeatAvailabilityResult = build(
+      rows,
+      windowStart,
+      windowEnd,
+      NOW,
+    );
+    expect(result.uptimePercent).toBe(100);
+    // ~72 five-minute buckets, not ~360 minute buckets.
+    expect(result.points.length).toBeLessThanOrEqual(74);
+    expect(result.points.length).toBeGreaterThan(60);
+  });
+
+  test("15-minute buckets are used for a 24-hour window", () => {
     const windowEnd: Date = NOW;
     const windowStart: Date = new Date(NOW.getTime() - 24 * 60 * MINUTE);
+    const bucketMs: number = 15 * MINUTE;
+    const base: number =
+      Math.floor(windowStart.getTime() / bucketMs) * bucketMs;
+    const rows: Array<AggregatedModel> = Array.from(
+      { length: 98 },
+      (_: unknown, i: number): AggregatedModel => {
+        return row(new Date(base + i * bucketMs));
+      },
+    );
+    const result: HeartbeatAvailabilityResult = build(
+      rows,
+      windowStart,
+      windowEnd,
+      NOW,
+    );
+    expect(result.uptimePercent).toBe(100);
+    // ~96 fifteen-minute buckets, not ~1440 minute buckets.
+    expect(result.points.length).toBeLessThanOrEqual(98);
+    expect(result.points.length).toBeGreaterThan(90);
+  });
+
+  test("hour buckets are used for windows over 3 days", () => {
+    const windowEnd: Date = NOW;
+    const windowStart: Date = new Date(NOW.getTime() - 5 * 24 * 60 * MINUTE);
     const hourMs: number = 60 * MINUTE;
     const base: number = Math.floor(windowStart.getTime() / hourMs) * hourMs;
     const rows: Array<AggregatedModel> = Array.from(
-      { length: 25 },
+      { length: 122 },
       (_: unknown, i: number): AggregatedModel => {
         return row(new Date(base + i * hourMs));
       },
@@ -252,8 +300,8 @@ describe("HeartbeatAvailabilityUtil.buildAvailabilitySeries", () => {
       NOW,
     );
     expect(result.uptimePercent).toBe(100);
-    // ~24 hour buckets, not ~1440 minute buckets.
-    expect(result.points.length).toBeLessThanOrEqual(26);
+    // ~120 hour buckets, not ~7200 minute buckets.
+    expect(result.points.length).toBeLessThanOrEqual(122);
   });
 
   test("returns null uptime when nothing is evaluable", () => {

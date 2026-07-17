@@ -1440,8 +1440,8 @@ async function getPostgresDiagnostics(): Promise<JSONObject> {
          count(*) FILTER (WHERE state = 'idle in transaction') AS idle_in_transaction,
          count(*) FILTER (WHERE wait_event_type = 'Lock') AS waiting_on_lock,
          COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - xact_start))), 0) AS longest_transaction_seconds,
-         COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - query_start)) FILTER (WHERE state = 'active')), 0) AS longest_active_query_seconds,
-         COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - state_change)) FILTER (WHERE state = 'idle in transaction')), 0) AS longest_idle_in_transaction_seconds
+         COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - query_start) FILTER (WHERE state = 'active'))), 0) AS longest_active_query_seconds,
+         COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - state_change) FILTER (WHERE state = 'idle in transaction'))), 0) AS longest_idle_in_transaction_seconds
        FROM pg_stat_activity
        WHERE datname = current_database()`,
     );
@@ -1700,8 +1700,8 @@ async function getPostgresClusterHealth(): Promise<JSONObject> {
            count(*) FILTER (WHERE wait_event_type = 'Lock') AS waiting_on_lock,
            count(*) FILTER (WHERE cardinality(pg_blocking_pids(pid)) > 0) AS blocked,
            COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - xact_start))), 0) AS longest_transaction_seconds,
-           COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - query_start)) FILTER (WHERE state = 'active')), 0) AS longest_active_query_seconds,
-           COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - state_change)) FILTER (WHERE state = 'idle in transaction')), 0) AS longest_idle_in_transaction_seconds
+           COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - query_start) FILTER (WHERE state = 'active'))), 0) AS longest_active_query_seconds,
+           COALESCE(ROUND(EXTRACT(EPOCH FROM max(now() - state_change) FILTER (WHERE state = 'idle in transaction'))), 0) AS longest_idle_in_transaction_seconds
          FROM pg_stat_activity`,
       );
 
@@ -1915,6 +1915,265 @@ async function getPostgresClusterHealth(): Promise<JSONObject> {
     }
   } catch (err) {
     logger.error("AdminHealth: failed to read Postgres cluster health");
+    logger.error(err);
+  }
+
+  return result;
+}
+
+// How much statement text the activity probe returns per query, in characters.
+const ACTIVITY_QUERY_TEXT_LENGTH: number = 500;
+
+/*
+ * Live Postgres activity for interactive debugging: the queries running right
+ * now (longest-running first), lock blocking pairs (who is stuck behind whom),
+ * cumulative statement statistics (pg_stat_statements, when installed) and
+ * autovacuum progress. Unlike getPostgresClusterHealth() above, this DOES
+ * return statement text: pg_stat_activity queries verbatim (truncated) and
+ * pg_stat_statements queries normalized by Postgres (constants become $n
+ * placeholders). Statement text is what an operator needs to debug a slow or
+ * stuck instance, and the master-admin audience already holds query-console
+ * access — but it can embed customer data in literals, which is why this probe
+ * is deliberately NOT included in the downloadable support bundle, which is
+ * meant to stay shareable.
+ */
+async function getPostgresActivity(): Promise<JSONObject> {
+  const result: JSONObject = {
+    connected: false,
+    activeQueries: [],
+    blockedSessions: [],
+    statementsAvailable: false,
+    topStatements: [],
+    vacuumProgress: [],
+  };
+
+  try {
+    const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
+      PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      return result;
+    }
+
+    result["connected"] = true;
+
+    /*
+     * 1. Running queries, longest-running first. Excludes idle sessions and
+     * this probe's own backend; includes idle-in-transaction sessions because
+     * their last statement is the one holding the transaction (and its locks)
+     * open.
+     */
+    try {
+      const activityRows: Array<{
+        pid: string;
+        username: string | null;
+        application_name: string | null;
+        client_addr: string | null;
+        state: string | null;
+        wait_event_type: string | null;
+        wait_event: string | null;
+        query_age_seconds: string | null;
+        transaction_age_seconds: string | null;
+        query: string | null;
+      }> = await dataSource.query(
+        `SELECT
+           a.pid,
+           a.usename AS username,
+           a.application_name,
+           host(a.client_addr) AS client_addr,
+           a.state,
+           a.wait_event_type,
+           a.wait_event,
+           ROUND(EXTRACT(EPOCH FROM (now() - a.query_start))) AS query_age_seconds,
+           ROUND(EXTRACT(EPOCH FROM (now() - a.xact_start))) AS transaction_age_seconds,
+           LEFT(a.query, ${ACTIVITY_QUERY_TEXT_LENGTH}) AS query
+         FROM pg_stat_activity a
+         WHERE a.backend_type = 'client backend'
+           AND a.state IS NOT NULL
+           AND a.state <> 'idle'
+           AND a.pid <> pg_backend_pid()
+         ORDER BY a.query_start ASC NULLS LAST
+         LIMIT 20`,
+      );
+
+      result["activeQueries"] = activityRows.map(
+        (row: (typeof activityRows)[number]): JSONObject => {
+          return {
+            pid: toNumberOrNull(row.pid),
+            username: row.username ? String(row.username) : null,
+            applicationName: row.application_name
+              ? String(row.application_name)
+              : null,
+            clientAddr: row.client_addr ? String(row.client_addr) : null,
+            state: row.state ? String(row.state) : null,
+            waitEventType: row.wait_event_type
+              ? String(row.wait_event_type)
+              : null,
+            waitEvent: row.wait_event ? String(row.wait_event) : null,
+            queryAgeSeconds: toNumberOrNull(row.query_age_seconds),
+            transactionAgeSeconds: toNumberOrNull(row.transaction_age_seconds),
+            query: row.query ? String(row.query) : null,
+          };
+        },
+      );
+    } catch (err) {
+      logger.debug("AdminHealth: postgres active-query probe failed");
+      logger.debug(err);
+    }
+
+    /*
+     * 2. Lock blocking pairs — each blocked session joined to every session
+     * blocking it, so a lock convoy reads as "PID a waits on PID b" with both
+     * statements visible. unnest(pg_blocking_pids()) produces no rows for
+     * unblocked sessions, so this is empty on a healthy instance.
+     */
+    try {
+      const blockedRows: Array<{
+        blocked_pid: string;
+        blocked_user: string | null;
+        blocked_for_seconds: string | null;
+        blocked_query: string | null;
+        blocking_pid: string;
+        blocking_user: string | null;
+        blocking_state: string | null;
+        blocking_query: string | null;
+      }> = await dataSource.query(
+        `SELECT
+           blocked.pid AS blocked_pid,
+           blocked.usename AS blocked_user,
+           ROUND(EXTRACT(EPOCH FROM (now() - blocked.query_start))) AS blocked_for_seconds,
+           LEFT(blocked.query, ${ACTIVITY_QUERY_TEXT_LENGTH}) AS blocked_query,
+           blocker.pid AS blocking_pid,
+           blocker.usename AS blocking_user,
+           blocker.state AS blocking_state,
+           LEFT(blocker.query, ${ACTIVITY_QUERY_TEXT_LENGTH}) AS blocking_query
+         FROM pg_stat_activity blocked
+         JOIN LATERAL unnest(pg_blocking_pids(blocked.pid)) AS b(pid) ON true
+         JOIN pg_stat_activity blocker ON blocker.pid = b.pid
+         ORDER BY blocked_for_seconds DESC NULLS LAST
+         LIMIT 10`,
+      );
+
+      result["blockedSessions"] = blockedRows.map(
+        (row: (typeof blockedRows)[number]): JSONObject => {
+          return {
+            blockedPid: toNumberOrNull(row.blocked_pid),
+            blockedUser: row.blocked_user ? String(row.blocked_user) : null,
+            blockedForSeconds: toNumberOrNull(row.blocked_for_seconds),
+            blockedQuery: row.blocked_query ? String(row.blocked_query) : null,
+            blockingPid: toNumberOrNull(row.blocking_pid),
+            blockingUser: row.blocking_user ? String(row.blocking_user) : null,
+            blockingState: row.blocking_state
+              ? String(row.blocking_state)
+              : null,
+            blockingQuery: row.blocking_query
+              ? String(row.blocking_query)
+              : null,
+          };
+        },
+      );
+    } catch (err) {
+      logger.debug("AdminHealth: postgres blocking probe failed");
+      logger.debug(err);
+    }
+
+    /*
+     * 3. Cumulative statement statistics. pg_stat_statements needs both
+     * CREATE EXTENSION and shared_preload_libraries, and querying the view is
+     * the only check that covers both — so probe by querying and treat any
+     * failure as "not installed" (the dashboard then shows setup instructions
+     * instead of an error).
+     */
+    try {
+      const statementRows: Array<{
+        query: string | null;
+        calls: string;
+        total_ms: string | null;
+        mean_ms: string | null;
+        max_ms: string | null;
+        rows: string;
+        cache_hit_ratio: string | null;
+      }> = await dataSource.query(
+        `SELECT
+           LEFT(s.query, ${ACTIVITY_QUERY_TEXT_LENGTH}) AS query,
+           s.calls,
+           ROUND(s.total_exec_time::numeric) AS total_ms,
+           ROUND(s.mean_exec_time::numeric, 2) AS mean_ms,
+           ROUND(s.max_exec_time::numeric) AS max_ms,
+           s.rows,
+           CASE WHEN (s.shared_blks_hit + s.shared_blks_read) > 0
+                THEN ROUND(s.shared_blks_hit::numeric / (s.shared_blks_hit + s.shared_blks_read) * 100, 1)
+                ELSE NULL END AS cache_hit_ratio
+         FROM pg_stat_statements s
+         JOIN pg_database d ON d.oid = s.dbid
+         WHERE d.datname = current_database()
+         ORDER BY s.total_exec_time DESC
+         LIMIT 10`,
+      );
+
+      result["statementsAvailable"] = true;
+      result["topStatements"] = statementRows.map(
+        (row: (typeof statementRows)[number]): JSONObject => {
+          return {
+            query: row.query ? String(row.query) : null,
+            calls: toNumberOrNull(row.calls),
+            totalMilliseconds: toNumberOrNull(row.total_ms),
+            meanMilliseconds: toNumberOrNull(row.mean_ms),
+            maxMilliseconds: toNumberOrNull(row.max_ms),
+            rows: toNumberOrNull(row.rows),
+            cacheHitRatio: toNumberOrNull(row.cache_hit_ratio),
+          };
+        },
+      );
+    } catch (err) {
+      logger.debug(
+        "AdminHealth: pg_stat_statements unavailable (extension not installed?)",
+      );
+      logger.debug(err);
+    }
+
+    // 4. Vacuum / autovacuum progress — pairs with the dead-tuple hotspots list.
+    try {
+      const vacuumRows: Array<{
+        pid: string;
+        table_name: string | null;
+        phase: string | null;
+        heap_blks_total: string | null;
+        heap_blks_scanned: string | null;
+        percent_scanned: string | null;
+      }> = await dataSource.query(
+        `SELECT
+           p.pid,
+           c.relname AS table_name,
+           p.phase,
+           p.heap_blks_total,
+           p.heap_blks_scanned,
+           CASE WHEN p.heap_blks_total > 0
+                THEN ROUND(p.heap_blks_scanned::numeric / p.heap_blks_total * 100, 1)
+                ELSE NULL END AS percent_scanned
+         FROM pg_stat_progress_vacuum p
+         LEFT JOIN pg_class c ON c.oid = p.relid
+         WHERE p.datname = current_database()`,
+      );
+
+      result["vacuumProgress"] = vacuumRows.map(
+        (row: (typeof vacuumRows)[number]): JSONObject => {
+          return {
+            pid: toNumberOrNull(row.pid),
+            tableName: row.table_name ? String(row.table_name) : null,
+            phase: row.phase ? String(row.phase) : null,
+            heapBlocksTotal: toNumberOrNull(row.heap_blks_total),
+            heapBlocksScanned: toNumberOrNull(row.heap_blks_scanned),
+            percentScanned: toNumberOrNull(row.percent_scanned),
+          };
+        },
+      );
+    } catch (err) {
+      logger.debug("AdminHealth: pg_stat_progress_vacuum probe failed");
+      logger.debug(err);
+    }
+  } catch (err) {
+    logger.error("AdminHealth: failed to read Postgres activity");
     logger.error(err);
   }
 
@@ -3408,6 +3667,39 @@ router.get(
       }
 
       const data: JSONObject = await getPostgresClusterHealth();
+      return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Live Postgres activity for the dashboard: running queries, lock blocking
+ * pairs, pg_stat_statements and vacuum progress. This is the only health GET
+ * endpoint that returns statement text (see getPostgresActivity), so — like
+ * the query console routes below — it stays on the JWT-only middleware (no
+ * static master API key) and is intentionally excluded from both the
+ * downloadable support bundle and the master-admin API docs.
+ */
+router.get(
+  "/postgres-activity",
+  MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "The OneUptime Health dashboard is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      const data: JSONObject = await getPostgresActivity();
       return Response.sendJsonObjectResponse(req, res, data);
     } catch (err) {
       return next(err);

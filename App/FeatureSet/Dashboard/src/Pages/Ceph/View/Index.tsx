@@ -37,15 +37,13 @@ import StackedProgressBar, {
   StackedProgressBarSegment,
 } from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
 import CephRateChart from "../../../Components/Ceph/CephRateChart";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import CephResourceUtils from "../Utils/CephResourceUtils";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -1222,73 +1220,56 @@ const CephClusterOverview: FunctionComponent<
       },
     };
 
-    const gaugeViewData: MetricViewData = {
-      startAndEndDate: chartDateRange,
-      queryConfigs: [capacityQuery, latencyQuery, commitLatencyQuery],
-      formulaConfigs: [],
-    };
-
     return (
       <div className="mb-6">
-        <Card
+        <EmbeddedMetricCard
           title="Golden Signals"
           description="Capacity, client I/O, and OSD latency for this cluster."
-          rightElement={
-            <RangeStartAndEndDateView
-              dashboardStartAndEndDate={chartTimeRange}
-              onChange={handleChartTimeRangeChange}
-            />
-          }
+          queryConfigs={[capacityQuery, latencyQuery, commitLatencyQuery]}
+          timeRange={chartTimeRange}
+          onTimeRangeChange={handleChartTimeRangeChange}
+          startAndEndDate={chartDateRange}
         >
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div>
-                <div className="mb-2 text-sm font-medium text-gray-700">
-                  Client IOPS
-                </div>
-                <CephRateChart
-                  clusterName={clusterName}
-                  series={[
-                    { metricName: "ceph_pool_rd", label: "Read" },
-                    { metricName: "ceph_pool_wr", label: "Write" },
-                  ]}
-                  seriesKeyAttributes={["pool_id"]}
-                  startDate={chartDateRange.startValue}
-                  endDate={chartDateRange.endValue}
-                  heightInPx={220}
-                  syncId={`ceph-overview-${clusterName}`}
-                  emptyMessage="No client I/O reported in the selected time range."
-                />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div>
+              <div className="mb-2 text-sm font-medium text-gray-700">
+                Client IOPS
               </div>
-              <div>
-                <div className="mb-2 text-sm font-medium text-gray-700">
-                  Client Throughput
-                </div>
-                <CephRateChart
-                  clusterName={clusterName}
-                  series={[
-                    { metricName: "ceph_pool_rd_bytes", label: "Read" },
-                    { metricName: "ceph_pool_wr_bytes", label: "Write" },
-                  ]}
-                  seriesKeyAttributes={["pool_id"]}
-                  startDate={chartDateRange.startValue}
-                  endDate={chartDateRange.endValue}
-                  yAxisUnit="By/s"
-                  heightInPx={220}
-                  syncId={`ceph-overview-${clusterName}`}
-                  emptyMessage="No throughput reported in the selected time range."
-                />
-              </div>
+              <CephRateChart
+                clusterName={clusterName}
+                series={[
+                  { metricName: "ceph_pool_rd", label: "Read" },
+                  { metricName: "ceph_pool_wr", label: "Write" },
+                ]}
+                seriesKeyAttributes={["pool_id"]}
+                startDate={chartDateRange.startValue}
+                endDate={chartDateRange.endValue}
+                heightInPx={220}
+                syncId={`ceph-overview-${clusterName}`}
+                emptyMessage="No client I/O reported in the selected time range."
+              />
             </div>
-            <MetricView
-              data={gaugeViewData}
-              hideQueryElements={true}
-              hideStartAndEndDate={true}
-              hideCardInCharts={true}
-              onChange={() => {}}
-            />
+            <div>
+              <div className="mb-2 text-sm font-medium text-gray-700">
+                Client Throughput
+              </div>
+              <CephRateChart
+                clusterName={clusterName}
+                series={[
+                  { metricName: "ceph_pool_rd_bytes", label: "Read" },
+                  { metricName: "ceph_pool_wr_bytes", label: "Write" },
+                ]}
+                seriesKeyAttributes={["pool_id"]}
+                startDate={chartDateRange.startValue}
+                endDate={chartDateRange.endValue}
+                yAxisUnit="By/s"
+                heightInPx={220}
+                syncId={`ceph-overview-${clusterName}`}
+                emptyMessage="No throughput reported in the selected time range."
+              />
+            </div>
           </div>
-        </Card>
+        </EmbeddedMetricCard>
       </div>
     );
   };

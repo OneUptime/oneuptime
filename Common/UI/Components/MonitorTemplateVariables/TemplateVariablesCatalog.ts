@@ -369,6 +369,73 @@ export default class TemplateVariablesCatalog {
               description:
                 "Array of {oid, name, value, type}. Each named OID is also exposed directly — e.g. a `.sysUpTime` OID resolves as `{{sysUpTime}}`.",
             },
+            {
+              key: "sysName",
+              description: "Device name from the SNMP system group.",
+              example: "core-switch-01",
+            },
+            {
+              key: "sysDescr",
+              description: "Device description from the SNMP system group.",
+              example: "Cisco IOS Software, C2960X ...",
+            },
+            {
+              key: "sysObjectId",
+              description:
+                "Vendor's registered enterprise OID — the device fingerprint.",
+              example: "1.3.6.1.4.1.9.1.716",
+            },
+            {
+              key: "sysLocation",
+              description: "Device location from the SNMP system group.",
+              example: "DC1 Rack 42",
+            },
+            {
+              key: "downInterfaces",
+              description:
+                "Array of {name, alias, interfaceIndex} for interfaces that are administratively up but operationally down. Requires interface monitoring. Use `{{downInterfaces.0.name}}` or a `{{#each downInterfaces}}` loop.",
+              example: '[{"name":"Gi0/1","alias":"uplink","interfaceIndex":1}]',
+            },
+            {
+              key: "interfacesTotal",
+              description:
+                "Total number of interfaces walked. Requires interface monitoring.",
+              example: "48",
+            },
+            {
+              key: "interfacesUp",
+              description:
+                "Number of interfaces that are administratively and operationally up.",
+              example: "46",
+            },
+            {
+              key: "interfacesDown",
+              description:
+                "Number of interfaces that are administratively up but operationally down.",
+              example: "2",
+            },
+            {
+              key: "interfaceWalkFailure",
+              description:
+                "Error message when the interface walk failed, empty otherwise.",
+            },
+            {
+              key: "trapOid",
+              description:
+                "Trap OID — only set when this check was triggered by an SNMP trap.",
+              example: "1.3.6.1.6.3.1.1.5.3",
+            },
+            {
+              key: "trapSourceIp",
+              description:
+                "Source IP address the trap was received from — only set on trap-triggered checks.",
+              example: "10.0.0.1",
+            },
+            {
+              key: "trapVarbinds",
+              description:
+                "Array of {oid, value} varbinds carried by the trap — only set on trap-triggered checks.",
+            },
           ],
         };
 

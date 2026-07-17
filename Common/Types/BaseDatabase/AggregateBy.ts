@@ -10,8 +10,9 @@ export default interface AggregateBy<TBaseModel extends GenericObject> {
   aggregationType: AggregationType;
   /**
    * Optional explicit time-bucket size. When omitted (the default), the
-   * bucket size is derived from the query window (≤3h → minute, ≤7d →
-   * hour, ≤6w → day, …) — see AggregationIntervalUtil. Set this to pin a
+   * bucket size is derived from the query window (≤3h → minute, ≤12h →
+   * 5 minutes, ≤24h → 15 minutes, ≤3d → 30 minutes, ≤7d → hour, ≤6w →
+   * day, …) — see AggregationIntervalUtil. Set this to pin a
    * granularity independent of the window (e.g. `Day` buckets over a
    * one-week window), or to `Total` to aggregate the whole window into a
    * single value per group (no time bucketing). Invalid values are
@@ -38,4 +39,32 @@ export default interface AggregateBy<TBaseModel extends GenericObject> {
    * `attributes` object containing exactly these keys.
    */
   groupByAttributeKeys?: Array<string> | undefined;
+  /**
+   * Server-side Top-K group selection for grouped aggregations. When
+   * set (and the aggregation is grouped via `groupBy` /
+   * `groupByAttributeKeys`), the server ranks groups by `rankBy`
+   * (max or avg of the aggregated column) over the WHOLE query window,
+   * keeps only the top `count` groups, and reports the total number of
+   * matching groups via `AggregatedResult.totalGroups` — so a chart can
+   * plot the top 10 series without fetching every bucket of every
+   * group. Ignored for ungrouped aggregations. Plain JSON so it
+   * round-trips the API's serialize/deserialize unchanged.
+   */
+  topK?:
+    | {
+        count: number;
+        rankBy: "max" | "avg";
+      }
+    | undefined;
+  /**
+   * What ClickHouse does when the aggregate's execution-time cap fires.
+   * 'break' (the default when omitted) returns the partial buckets
+   * computed so far — acceptable for chart rendering. Callers that
+   * ALERT on the result (the metric-monitor worker) must pass 'throw'
+   * so a timed-out evaluation fails loudly instead of silently scoring
+   * partial data as if it were complete. The server allow-lists the
+   * value before it reaches SQL: anything other than the exact string
+   * "throw" is treated as 'break'.
+   */
+  timeoutOverflowMode?: "break" | "throw" | undefined;
 }

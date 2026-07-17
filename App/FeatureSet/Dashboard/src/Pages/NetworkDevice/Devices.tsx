@@ -5,6 +5,7 @@ import ProbeUtil from "../../Utils/Probe";
 import Route from "Common/Types/API/Route";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import Label from "Common/Models/DatabaseModels/Label";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import React, {
   Fragment,
@@ -25,6 +26,17 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
+import { Gray500, Green, Red500 } from "Common/Types/BrandColors";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import ProbeElement from "Common/UI/Components/Probe/Probe";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import ProjectUtil from "Common/UI/Utils/Project";
+import DeviceSummaryCards from "../../Components/NetworkDevice/DeviceSummaryCards";
+import DeviceStatusUtil, {
+  DEVICE_FRESH_WINDOW_MINUTES,
+  NetworkDeviceStatus,
+} from "../../Components/NetworkDevice/DeviceStatusUtil";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
 
 const NetworkDevices: FunctionComponent<
@@ -68,6 +80,7 @@ const NetworkDevices: FunctionComponent<
 
   return (
     <Fragment>
+      <DeviceSummaryCards />
       <ModelTable<NetworkDevice>
         modelType={NetworkDevice}
         id="network-devices-table"
@@ -83,7 +96,71 @@ const NetworkDevices: FunctionComponent<
         name="Network Devices"
         isViewable={true}
         searchableFields={["name", "description"]}
-        filters={[]}
+        filters={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              vendor: true,
+            },
+            title: "Vendor",
+            type: FieldType.Text,
+          },
+          {
+            field: {
+              probe: {
+                name: true,
+              },
+            },
+            title: "Probe",
+            type: FieldType.Entity,
+            filterEntityType: Probe,
+            fetchFilterDropdownOptions: async (): Promise<
+              Array<DropdownOption>
+            > => {
+              return probes.map((probe: Probe) => {
+                return {
+                  label: probe.name || "",
+                  value: probe._id?.toString() || "",
+                };
+              });
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            filterEntityType: Label,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
+              lastSeenAt: true,
+            },
+            title: "Last Seen At",
+            type: FieldType.Date,
+          },
+        ]}
         cardProps={{
           title: "Network Devices",
           description:
@@ -144,6 +221,49 @@ const NetworkDevices: FunctionComponent<
         columns={[
           {
             field: {
+              _id: true,
+            },
+            title: "Status",
+            type: FieldType.Element,
+            getElement: (item: NetworkDevice): ReactElement => {
+              const status: NetworkDeviceStatus = DeviceStatusUtil.getStatus(
+                item.lastSeenAt,
+              );
+
+              if (status === NetworkDeviceStatus.Up) {
+                return (
+                  <Pill
+                    text="Up"
+                    color={Green}
+                    size={PillSize.Small}
+                    tooltip={`Polled successfully within the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+                  />
+                );
+              }
+
+              if (status === NetworkDeviceStatus.Down) {
+                return (
+                  <Pill
+                    text="Down"
+                    color={Red500}
+                    size={PillSize.Small}
+                    tooltip={`No successful SNMP poll in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`}
+                  />
+                );
+              }
+
+              return (
+                <Pill
+                  text="Pending"
+                  color={Gray500}
+                  size={PillSize.Small}
+                  tooltip="This device has not been polled successfully yet."
+                />
+              );
+            },
+          },
+          {
+            field: {
               name: true,
             },
             title: "Name",
@@ -156,12 +276,17 @@ const NetworkDevices: FunctionComponent<
                 },
               );
               return (
-                <AppLink
-                  to={route}
-                  className="text-sm font-medium text-gray-900 hover:underline"
-                >
-                  {(item.name as string) || "—"}
-                </AppLink>
+                <div>
+                  <AppLink
+                    to={route}
+                    className="text-sm font-medium text-gray-900 hover:underline"
+                  >
+                    {(item.name as string) || "—"}
+                  </AppLink>
+                  {item.sysName && (
+                    <div className="text-xs text-gray-500">{item.sysName}</div>
+                  )}
+                </div>
               );
             },
           },
@@ -171,6 +296,47 @@ const NetworkDevices: FunctionComponent<
             },
             title: "Hostname",
             type: FieldType.Text,
+            hideOnMobile: true,
+          },
+          {
+            field: {
+              vendor: true,
+            },
+            title: "Vendor / Model",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: NetworkDevice): ReactElement => {
+              if (!item.vendor && !item.deviceModel) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+
+              return (
+                <div>
+                  <div className="text-sm text-gray-900">
+                    {item.vendor || "—"}
+                  </div>
+                  {item.deviceModel && (
+                    <div className="text-xs text-gray-500">
+                      {item.deviceModel}
+                    </div>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
+              probe: {
+                name: true,
+                iconFileId: true,
+              },
+            },
+            title: "Probe",
+            type: FieldType.Entity,
+            hideOnMobile: true,
+            getElement: (item: NetworkDevice): ReactElement => {
+              return <ProbeElement probe={item["probe"]} />;
+            },
           },
           {
             field: {
@@ -197,7 +363,23 @@ const NetworkDevices: FunctionComponent<
               lastSeenAt: true,
             },
             title: "Last Seen",
-            type: FieldType.DateTime,
+            type: FieldType.Element,
+            getElement: (item: NetworkDevice): ReactElement => {
+              if (!item.lastSeenAt) {
+                return <span className="text-sm text-gray-400">Never</span>;
+              }
+
+              const lastSeen: Date = OneUptimeDate.fromString(item.lastSeenAt);
+
+              return (
+                <span
+                  className="text-sm text-gray-600"
+                  title={OneUptimeDate.getDateAsLocalFormattedString(lastSeen)}
+                >
+                  {OneUptimeDate.fromNow(lastSeen)}
+                </span>
+              );
+            },
           },
           {
             field: {
@@ -216,6 +398,9 @@ const NetworkDevices: FunctionComponent<
         ]}
         selectMoreFields={{
           interfacesDown: true,
+          sysName: true,
+          deviceModel: true,
+          lastSeenAt: true,
         }}
         onViewPage={(item: NetworkDevice): Promise<Route> => {
           return Promise.resolve(

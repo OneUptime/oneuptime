@@ -24,6 +24,9 @@ import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
 import HostService from "../../Services/HostService";
+import NetworkDeviceOwnerUserService, {
+  NetworkDeviceOwners,
+} from "../../Services/NetworkDeviceOwnerUserService";
 import ServiceService from "../../Services/ServiceService";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -299,6 +302,15 @@ export default class MonitorAlert {
       input.matchesPerSeries !== undefined
         ? input.matchesPerSeries
         : [undefined];
+
+    /*
+     * Owners of the network device this monitor watches (if any), resolved
+     * lazily on first alert creation and reused for the rest of the
+     * evaluation — the device is configured per monitor step, so it is
+     * constant across the criteria/series loops below. Merged into every
+     * created alert's owners alongside the criteria-configured ones.
+     */
+    let networkDeviceOwners: NetworkDeviceOwners | null = null;
 
     for (const criteriaAlert of input.criteriaInstance.data?.alerts || []) {
       for (const seriesMatch of seriesToProcess) {
@@ -627,16 +639,38 @@ export default class MonitorAlert {
           },
         });
 
-        // Add owner teams and users after alert creation
-        if (
-          criteriaAlert.ownerTeamIds?.length ||
-          criteriaAlert.ownerUserIds?.length
-        ) {
+        /*
+         * Add owner teams and users after alert creation. Owners configured
+         * on the criteria template are merged (deduped) with the owners of
+         * the network device this monitor watches, so device ownership flows
+         * into the alerts its monitor raises.
+         */
+        if (networkDeviceOwners === null) {
+          networkDeviceOwners =
+            await NetworkDeviceOwnerUserService.getDeviceOwnersForMonitor({
+              monitor: input.monitor,
+              monitorStepId: (
+                input.dataToProcess as ProbeMonitorResponse
+              ).monitorStepId?.toString(),
+            });
+        }
+
+        const ownerUserIds: Array<ObjectID> = this.mergeOwnerIds(
+          criteriaAlert.ownerUserIds || [],
+          networkDeviceOwners.ownerUserIds,
+        );
+
+        const ownerTeamIds: Array<ObjectID> = this.mergeOwnerIds(
+          criteriaAlert.ownerTeamIds || [],
+          networkDeviceOwners.ownerTeamIds,
+        );
+
+        if (ownerTeamIds.length || ownerUserIds.length) {
           await AlertService.addOwners(
             input.monitor.projectId!,
             createdAlert.id!,
-            criteriaAlert.ownerUserIds || [],
-            criteriaAlert.ownerTeamIds || [],
+            ownerUserIds,
+            ownerTeamIds,
             true, // notify owners
             {
               isRoot: true,
@@ -656,6 +690,36 @@ export default class MonitorAlert {
         });
       }
     }
+  }
+
+  /*
+   * Merges two owner id lists, deduping by string value. Criteria-authored
+   * ids can arrive as plain strings from stored JSON, so normalise through
+   * toString() for both the comparison and the returned ObjectIDs.
+   */
+  private static mergeOwnerIds(
+    primary: Array<ObjectID>,
+    additional: Array<ObjectID>,
+  ): Array<ObjectID> {
+    const seenIds: Set<string> = new Set<string>();
+    const mergedIds: Array<ObjectID> = [];
+
+    for (const ownerId of [...primary, ...additional]) {
+      if (!ownerId) {
+        continue;
+      }
+
+      const ownerIdAsString: string = ownerId.toString();
+
+      if (!ownerIdAsString || seenIds.has(ownerIdAsString)) {
+        continue;
+      }
+
+      seenIds.add(ownerIdAsString);
+      mergedIds.push(new ObjectID(ownerIdAsString));
+    }
+
+    return mergedIds;
   }
 
   private static async resolveOpenAlert(input: {

@@ -41,26 +41,15 @@ import {
   formatCount,
   formatDurationMs,
   formatTickTime,
+  hexToRgba,
   isDurationMetric,
   pivotTimeseries,
+  resolveTraceSeriesColor,
 } from "./TraceChartData";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardTraceChartComponent;
 }
-
-const CHART_COLORS: Array<string> = [
-  "#6366f1",
-  "#ec4899",
-  "#10b981",
-  "#f59e0b",
-  "#06b6d4",
-  "#8b5cf6",
-  "#f43f5e",
-  "#14b8a6",
-  "#64748b",
-  "#84cc16",
-];
 
 const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -162,6 +151,17 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
     return pivotTimeseries(rows, metric);
   }, [rows, metric]);
 
+  const colorForSeries: (seriesKey: string, index: number) => string = (
+    seriesKey: string,
+    index: number,
+  ): string => {
+    return resolveTraceSeriesColor(seriesKey, index, {
+      color: props.component.arguments.color,
+      colorsByGroup: props.component.arguments.colorsByGroup,
+      groupByAttribute,
+    });
+  };
+
   const valueFormatter: (value: number) => string = isDuration
     ? formatDurationMs
     : formatCount;
@@ -216,6 +216,10 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
 
     if (isDuration) {
       if (seriesKeys.length === 1) {
+        const singleSeriesColor: string = colorForSeries(
+          seriesKeys[0] || "value",
+          0,
+        );
         return (
           <AreaChart
             data={pivotedData}
@@ -224,9 +228,9 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
             {sharedAxes}
             <Area
               dataKey={seriesKeys[0] || "value"}
-              stroke={CHART_COLORS[0]!}
+              stroke={singleSeriesColor}
               strokeWidth={2}
-              fill="rgba(99,102,241,0.08)"
+              fill={hexToRgba(singleSeriesColor, 0.08)}
               dot={false}
               connectNulls={true}
               isAnimationActive={false}
@@ -245,7 +249,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
               <Line
                 key={key}
                 dataKey={key}
-                stroke={CHART_COLORS[index % CHART_COLORS.length]!}
+                stroke={colorForSeries(key, index)}
                 strokeWidth={1.75}
                 dot={false}
                 connectNulls={true}
@@ -271,7 +275,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
               key={key}
               dataKey={key}
               stackId="group"
-              fill={CHART_COLORS[index % CHART_COLORS.length]!}
+              fill={colorForSeries(key, index)}
               isAnimationActive={false}
               maxBarSize={28}
             />
@@ -296,7 +300,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
                 <span
                   className="inline-block h-2 w-2 rounded-[2px]"
                   style={{
-                    backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
+                    backgroundColor: colorForSeries(key, index),
                   }}
                 />
                 <span className="max-w-[180px] truncate text-[10px] text-gray-500">

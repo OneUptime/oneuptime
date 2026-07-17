@@ -14,6 +14,33 @@ export interface EnterpriseLicenseInstanceUsage {
 
 export default class EnterpriseLicenseUsageUtil {
   /*
+   * How many days before a license expires that expiry reminder emails
+   * start going out, unless overridden in GlobalConfig
+   * (enterpriseLicenseExpiryReminderDays).
+   */
+  public static readonly defaultExpiryReminderDays: number = 45;
+
+  /*
+   * Expired licenses keep getting a daily "expired" email for this many
+   * days after expiry, then go quiet — an abandoned license should not be
+   * emailed forever.
+   */
+  public static readonly expiredNotificationCutoffDays: number = 30;
+
+  /*
+   * License keys are shown/emailed masked — enough to identify the key
+   * without exposing it in full.
+   */
+  public static maskLicenseKey(licenseKey: string): string {
+    if (licenseKey.length <= 8) {
+      return "••••••••";
+    }
+
+    return `${licenseKey.substring(0, 4)}••••${licenseKey.substring(
+      licenseKey.length - 4,
+    )}`;
+  }
+  /*
    * Instances that stopped reporting (for example a decommissioned staging
    * environment) stop counting towards the seat total after this many days,
    * but are still listed so the customer can see them.
@@ -24,6 +51,53 @@ export default class EnterpriseLicenseUsageUtil {
   private static readonly emailHashRegex: RegExp = /^[a-f0-9]{64}$/;
 
   public static readonly maxEmailHashesPerInstance: number = 200_000;
+
+  /*
+   * Master admin emails are used to contact the customer about license
+   * issues — a handful per instance is plenty, and the cap keeps a
+   * misbehaving client from storing an unbounded list.
+   */
+  public static readonly maxMasterAdminEmailsPerInstance: number = 50;
+
+  // Deliberately loose: rejects garbage, accepts anything email-shaped.
+  private static readonly emailRegex: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  /*
+   * Normalizes a client-provided list of master admin emails: keeps only
+   * email-shaped strings, lowercases them, removes duplicates and caps the
+   * list size. Returns an empty array for anything that is not an array.
+   */
+  public static sanitizeMasterAdminEmails(value: unknown): Array<string> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const emails: Set<string> = new Set<string>();
+
+    for (const item of value) {
+      if (emails.size >= this.maxMasterAdminEmailsPerInstance) {
+        break;
+      }
+
+      if (typeof item !== "string") {
+        continue;
+      }
+
+      const normalized: string = item.trim().toLowerCase();
+
+      if (
+        !normalized ||
+        normalized.length > 320 ||
+        !this.emailRegex.test(normalized)
+      ) {
+        continue;
+      }
+
+      emails.add(normalized);
+    }
+
+    return Array.from(emails);
+  }
 
   /*
    * Normalizes a client-provided list of email hashes: keeps only valid

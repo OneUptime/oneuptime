@@ -13,6 +13,8 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import OneUptimeDate from "Common/Types/Date";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -312,6 +314,38 @@ const NetworkDeviceDiscovery: FunctionComponent<
             communityStringDescription:
               "Tried against every host in the subnet. Required for SNMP V1 and V2c. Not used for V3.",
           }),
+          {
+            field: {
+              isRecurring: true,
+            },
+            title: "Repeat this scan",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Re-run this scan automatically to keep discovery continuous. Newly found devices still wait for your review before import.",
+          },
+          /*
+           * Only meaningful together with the toggle above, so it reveals
+           * itself the same way the v3 credential fields do in
+           * SnmpConfigFormFields.ts: showIf on the controlling value.
+           */
+          {
+            field: {
+              rescanIntervalInMinutes: true,
+            },
+            title: "Rescan Interval (Minutes)",
+            fieldType: FormFieldSchemaType.Number,
+            required: true,
+            placeholder: "60",
+            description:
+              "How often to re-run this scan, in minutes. Minimum 15 minutes.",
+            validation: {
+              minValue: 15,
+            },
+            showIf: (item: FormValues<NetworkDeviceDiscoveryScan>): boolean => {
+              return Boolean(item.isRecurring);
+            },
+          },
         ]}
         columns={[
           {
@@ -387,6 +421,44 @@ const NetworkDeviceDiscovery: FunctionComponent<
           },
           {
             field: {
+              isRecurring: true,
+            },
+            title: "Recurrence",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: NetworkDeviceDiscoveryScan): ReactElement => {
+              if (!item.isRecurring) {
+                return <span className="text-sm text-gray-400">One-time</span>;
+              }
+
+              const nextScanAt: Date | null = item.nextScanAt
+                ? OneUptimeDate.fromString(item.nextScanAt)
+                : null;
+
+              return (
+                <div>
+                  <div className="text-sm text-gray-900">
+                    {item.rescanIntervalInMinutes
+                      ? `Every ${item.rescanIntervalInMinutes} min`
+                      : "Recurring"}
+                  </div>
+                  {nextScanAt && (
+                    <div
+                      className="text-xs text-gray-500"
+                      title={OneUptimeDate.getDateAsLocalFormattedString(
+                        nextScanAt,
+                      )}
+                    >
+                      {/* fromNow renders e.g. "in 12 minutes". */}
+                      {`Next scan ${OneUptimeDate.fromNow(nextScanAt)}`}
+                    </div>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
               createdAt: true,
             },
             title: "Started",
@@ -397,6 +469,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
         selectMoreFields={{
           scannedHostCount: true,
           discoveredDevices: true,
+          // Recurrence details rendered inside the "Recurrence" column.
+          rescanIntervalInMinutes: true,
+          nextScanAt: true,
           probeId: true,
           snmpVersion: true,
           snmpCommunityString: true,

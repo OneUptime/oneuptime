@@ -40,6 +40,10 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
   const [metricViewData, setMetricViewData] = useState<MetricViewData | null>(
     null,
   );
+  // Anchor for the "incident declared" marker on the chart.
+  const [incidentDeclaredAt, setIncidentDeclaredAt] = useState<Date | null>(
+    null,
+  );
 
   useEffect(() => {
     const load: () => Promise<void> = async (): Promise<void> => {
@@ -119,6 +123,8 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
           OneUptimeDate.addRemoveMinutes(anchor, 15),
         );
 
+        setIncidentDeclaredAt(incident.createdAt ? anchor : null);
+
         setMetricViewData({
           startAndEndDate,
           queryConfigs,
@@ -174,6 +180,17 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
         hideStartAndEndDate={true}
         hideCardInCharts={true}
         chartCssClass="rounded-lg border border-gray-200 shadow-sm"
+        timeReferenceLines={
+          incidentDeclaredAt
+            ? [
+                {
+                  date: incidentDeclaredAt,
+                  label: "Incident declared",
+                  color: "#f87171", // muted red — matches explorer markers
+                },
+              ]
+            : undefined
+        }
         onChange={(data: MetricViewData) => {
           setMetricViewData(data);
         }}

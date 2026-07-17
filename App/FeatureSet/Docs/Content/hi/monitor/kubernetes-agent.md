@@ -80,7 +80,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 एकल-रेप्लिका Deployment (`oneuptime/kubernetes-log-tailer` इमेज) कंटेनर लॉग्स को स्ट्रीम करने के लिए Kubernetes API का उपयोग करता है — वही एंडपॉइंट जो `kubectl logs -f` उपयोग करता है। कोई hostPath नहीं, कोई होस्ट एक्सेस नहीं, कोई DaemonSet नहीं।
 
 - **फ़ायदे:** GKE Autopilot, EKS Fargate, और किसी भी क्लस्टर पर काम करता है जो hostPath को ब्लॉक करता है या `restricted` Pod Security Standard को लागू करता है।
-- **नुकसान:** प्रत्येक कंटेनर स्ट्रीम `kube-apiserver` से एक दीर्घ-कालिक कनेक्शन है। व्यवहार में एक रेप्लिका कुछ हज़ार कंटेनरों को आराम से संभाल लेती है। बहुत बड़े क्लस्टरों के लिए, `logs.api.replicas` के साथ-साथ प्रत्येक रेप्लिका पर `namespaceFilters.include` का उपयोग करके नेमस्पेस के अनुसार शार्ड करें।
+$1 हर कंटेनर स्ट्रीम kube-apiserver से लंबे समय तक चलने वाला कनेक्शन है। एक रेप्लिका सामान्यतः कुछ हज़ार कंटेनर संभालती है। बहुत बड़े क्लस्टर के लिए namespaceFilters.rules में podLogs स्कोप वाले include नियमों के साथ अलग-अलग रिलीज़ शार्ड करें।
 
 ### आपको कौन सा उपयोग करना चाहिए?
 
@@ -208,8 +208,7 @@ Chart निम्नलिखित भी एकत्र कर सकता 
 | `oneuptime.url`                           | _(आवश्यक)_                                  | आपके OneUptime इंस्टैंस का URL।                                                                                                                                                      |
 | `oneuptime.apiKey`                        | _(आवश्यक)_                                  | प्रोजेक्ट API key (Settings → API Keys)।                                                                                                                                             |
 | `clusterName`                             | _(आवश्यक)_                                  | इस क्लस्टर के लिए अद्वितीय नाम। प्रत्येक रिकॉर्ड पर `k8s.cluster.name` के रूप में स्टैम्प किया जाता है।                                                                              |
-| `namespaceFilters.include`                | `[]`                                        | यदि सेट है, तो केवल इन नेमस्पेस की निगरानी की जाती है।                                                                                                                               |
-| `namespaceFilters.exclude`                | `["kube-system"]`                           | छोड़ने के लिए नेमस्पेस।                                                                                                                                                              |
+| `namespaceFilters.rules`                  | kube-system को podLogs और ebpfDiscovery से बाहर करें | podLogs, ebpfDiscovery, metrics और traces के लिए स्कोप किए गए include/exclude नियम। पैटर्न * का समर्थन करते हैं और exclude हमेशा प्राथमिकता लेता है। |
 | `logs.enabled`                            | `true`                                      | लॉग संग्रहण को चालू या बंद करें।                                                                                                                                                     |
 | `logs.mode`                               | (`preset` से व्युत्पन्न)                    | `daemonset`, `api`, या `disabled`। प्रीसेट को ओवरराइड करता है।                                                                                                                       |
 | `logs.api.replicas`                       | `1`                                         | log-tailer Deployment रेप्लिका की संख्या (केवल API मोड में)।                                                                                                                         |
@@ -304,7 +303,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 ```bash
 helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
-  --set namespaceFilters.include={app-a,app-b} \
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...
 ```
 

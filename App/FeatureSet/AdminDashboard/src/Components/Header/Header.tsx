@@ -1,5 +1,6 @@
 import Help from "./Help";
 import Logo from "./Logo";
+import ThemeToggle from "./ThemeToggle";
 import UserProfile from "./UserProfile";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Header from "Common/UI/Components/Header/Header";
@@ -28,6 +29,7 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
                         />{' '} */}
           </>
         }
+        mobileRightComponents={<ThemeToggle />}
         rightComponents={
           <>
             <EditionLabel className="mr-3 hidden md:inline-flex" />

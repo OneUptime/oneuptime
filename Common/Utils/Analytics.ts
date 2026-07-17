@@ -33,14 +33,16 @@ export default class Analytics {
   }
 
   public capture(eventName: string, data?: JSONObject): void {
-    if (!this.isInitialized) {
-      return;
+    // PostHog tracking
+    if (this.isInitialized) {
+      posthog.capture(eventName, data);
     }
 
-    // PostHog tracking
-    posthog.capture(eventName, data);
-
-    // GA4 tracking via dataLayer (for Google Analytics conversion tracking)
+    /*
+     * GA4 tracking via dataLayer (for Google Analytics / Google Ads conversion
+     * tracking). This must not depend on PostHog being configured — GTM is
+     * loaded independently of ANALYTICS_KEY / ANALYTICS_HOST.
+     */
     if (typeof window !== "undefined" && (window as any).dataLayer) {
       (window as any).dataLayer.push({
         event: eventName,

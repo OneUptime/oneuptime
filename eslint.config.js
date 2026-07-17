@@ -38,6 +38,7 @@ export default tseslint.config(
       "**/Certs/",
       "**/Backups/",
       "**/.git/",
+      "**/.claude/worktrees/", // Full repo copies; linting them re-lints every file once per worktree.
       "**/.vscode/",
       "**/.eslintcache",
       "**/views/",

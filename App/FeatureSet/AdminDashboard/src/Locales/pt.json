@@ -26,6 +26,8 @@
     "adminDashboard": "Painel do administrador",
     "users": "Usuários",
     "user": "Usuário",
+    "enterpriseLicenses": "Licenças Enterprise",
+    "enterpriseLicense": "Licença",
     "projects": "Projetos",
     "project": "Projeto",
     "projectUsers": "Usuários",
@@ -63,6 +65,8 @@
   },
   "userProfile": {
     "exitAdmin": "Sair do admin",
+    "darkTheme": "Tema escuro",
+    "lightTheme": "Tema claro",
     "logOut": "Sair"
   },
   "footer": {
@@ -113,6 +117,26 @@
       "cardTitle": "Usuários",
       "cardDescription": "Aqui está uma lista de usuários no OneUptime.",
       "noItems": "Nenhum usuário encontrado."
+    },
+    "enterpriseLicenses": {
+      "title": "Licenças Enterprise",
+      "cardTitle": "Licenças Enterprise",
+      "cardDescription": "Licenças emitidas para clientes Enterprise auto-hospedados, com o uso de assentos e a expiração em um relance.",
+      "noItems": "Nenhuma licença Enterprise foi emitida ainda.",
+      "settingsCardTitle": "Configurações de notificação de licença",
+      "settingsCardDescription": "Quem recebe cópia dos e-mails de licença e com quanta antecedência os lembretes de expiração são enviados. Os lembretes são enviados diariamente por e-mail aos administradores principais do cliente enquanto uma licença estiver acima do limite de usuários ou perto de expirar.",
+      "settingsEditButton": "Editar configurações"
+    },
+    "enterpriseLicenseView": {
+      "title": "Licença Enterprise",
+      "cardTitle": "Detalhes da licença",
+      "cardDescription": "Licença emitida para este cliente.",
+      "editButton": "Editar licença",
+      "usageCardTitle": "Uso de assentos",
+      "usageCardDescription": "Usuários únicos em todas as instâncias auto-hospedadas do cliente, conforme informado diariamente pelas instalações deles.",
+      "instancesCardTitle": "Instâncias",
+      "instancesCardDescription": "Instâncias auto-hospedadas (staging, produção, etc.) que reportam para esta licença, e os administradores principais que podemos contatar em cada uma.",
+      "noInstances": "Nenhuma instância reportou para esta licença ainda."
     },
     "userView": {
       "title": "Usuário",

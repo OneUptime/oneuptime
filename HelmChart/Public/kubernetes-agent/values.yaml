@@ -48,40 +48,46 @@ oneuptime:
 # Required: Unique name for this cluster (used as k8s.cluster.name attribute)
 clusterName: ""
 
-# Namespace filters — limit which namespaces are observed.
+# Namespace filters — scoped rules for deciding which namespaces are observed.
 #
-# These always apply to **pod logs** (both the hostPath DaemonSet and the
-# API log-tailer) and to **eBPF traces**, where they are enforced at the
-# source: filtered namespaces are never read, so they cost no CPU and no
-# egress. Exclude always wins over include.
+# Each rule has an action (`include` or `exclude`), one or more namespace
+# patterns, and the scopes it applies to. Patterns are full-name matches with
+# `*` as the only wildcard: `team-*` matches `team-a` but not `my-team-a`.
+# If a scope has any include rules, only matching namespaces are kept. Exclude
+# rules are applied afterward and always win.
 #
-# `applyTo` extends the same lists to metrics and to OTLP traces, where
-# they are enforced by a `filter` processor in the collector instead (see
-# the `filters` block below). Both are OFF by default: metrics are the
-# signal most monitors are built on, and `exclude: [kube-system]` ships as
-# a default — so turning these on automatically would silently delete
-# kube-system metrics from every existing install on upgrade.
+# Scopes map to where filtering can happen efficiently:
+#
+#   podLogs       — pod stdout/stderr only, at the filelog/API source. This does
+#                   not affect Kubernetes events or audit logs.
+#   ebpfDiscovery — OBI process discovery, before instrumentation. Excluding a
+#                   namespace here stops both its eBPF traces and eBPF metrics.
+#   metrics       — collector-side filter after Kubernetes metadata enrichment.
+#                   Node/cluster metrics without a namespace are always kept.
+#   traces        — collector-side filter after Kubernetes metadata enrichment.
+#                   Applies to both eBPF and application-pushed OTLP spans.
+#
+# The default preserves the low-cost system-namespace behavior: kube-system
+# pod logs are not opened and its workloads are not auto-instrumented, while
+# ordinary pod/container metrics remain available.
 namespaceFilters:
-  # If set, only these namespaces are observed (empty = all namespaces)
-  include: []
-  # Namespaces to exclude (applied on top of include)
-  exclude:
-    - kube-system
-  # Which additional signals the lists above apply to.
-  applyTo:
-    # Filter metrics by namespace. Covers per-pod / per-container series
-    # from kubeletstats, cAdvisor and kube-state-metrics.
-    #
-    # Node- and cluster-level series (hostmetrics, kubelet node metrics)
-    # carry no namespace at all and are ALWAYS kept — a namespace is a
-    # property of a pod, not of a node, so there is nothing to match on.
-    # That means this trims pod-level cardinality but never blinds you to
-    # a node going bad.
-    metrics: false
-    # Filter spans by namespace. Only affects spans your applications push
-    # to the agent's own OTLP endpoint — eBPF spans are already scoped at
-    # OBI's process discovery by the lists above, before a span exists.
-    traces: false
+  rules:
+    - action: exclude
+      namespaces:
+        - kube-system
+      scopes:
+        - podLogs
+        - ebpfDiscovery
+
+  # Example: stop duplicate pod logs from teams that ship logs directly while
+  # retaining their eBPF traces, service-map metrics and pod metrics.
+  # rules:
+  #   - action: exclude
+  #     namespaces: [kube-system]
+  #     scopes: [podLogs, ebpfDiscovery]
+  #   - action: exclude
+  #     namespaces: [team-a, "team-b-*"]
+  #     scopes: [podLogs]
 
 # Telemetry filters — drop records at the agent, before export.
 #

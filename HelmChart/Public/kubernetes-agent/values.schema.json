@@ -49,34 +49,48 @@
     },
     "namespaceFilters": {
       "type": "object",
-      "description": "Namespace filters to limit which namespaces are monitored",
+      "description": "Scoped namespace rules. Patterns match the full namespace name and support * as a wildcard. Include rules form a per-scope allowlist; exclude rules always win.",
       "properties": {
-        "include": {
+        "rules": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "If set, only these namespaces are monitored (empty = all namespaces)"
-        },
-        "exclude": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Namespaces to exclude from monitoring"
-        },
-        "applyTo": {
-          "type": "object",
-          "description": "Which additional signals the include/exclude lists apply to. Pod logs and eBPF traces are always filtered at the source.",
-          "properties": {
-            "metrics": {
-              "type": "boolean",
-              "description": "Also filter metrics by namespace. Covers per-pod and per-container series; node- and cluster-level series carry no namespace and are always kept. Default: false"
+          "description": "Namespace filtering rules evaluated independently for each scope.",
+          "items": {
+            "type": "object",
+            "required": ["action", "namespaces", "scopes"],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": ["include", "exclude"],
+                "description": "Include creates an allowlist for the selected scopes; exclude drops matching namespaces and always wins."
+              },
+              "namespaces": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 63,
+                  "pattern": "^[a-z0-9*]([-a-z0-9*]*[a-z0-9*])?$"
+                },
+                "description": "Full namespace names or patterns using * as a wildcard."
+              },
+              "scopes": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "enum": ["podLogs", "ebpfDiscovery", "metrics", "traces"]
+                },
+                "description": "Where this rule applies. podLogs and ebpfDiscovery filter at source; metrics and traces filter after metadata enrichment."
+              }
             },
-            "traces": {
-              "type": "boolean",
-              "description": "Also filter spans pushed to the agent's OTLP endpoint. eBPF spans are already scoped at OBI discovery. Default: false"
-            }
+            "additionalProperties": false
           },
-          "additionalProperties": false
+          "default": []
         }
       },
+      "required": ["rules"],
       "additionalProperties": false
     },
     "filters": {
