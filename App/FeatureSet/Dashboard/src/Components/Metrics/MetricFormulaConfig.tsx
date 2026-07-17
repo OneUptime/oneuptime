@@ -4,10 +4,6 @@ import MetricFormula from "./MetricFormula";
 import SeriesColorSelector from "./SeriesColorSelector";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Card from "Common/UI/Components/Card/Card";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricAliasData from "Common/Types/Metrics/MetricAliasData";
 import MetricFormulaData from "Common/Types/Metrics/MetricFormulaData";
@@ -45,16 +41,50 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
   const [showDisplaySettings, setShowDisplaySettings] =
     useState<boolean>(false);
 
+  const formulaExpression: string =
+    props.data.metricFormulaData?.metricFormula || "";
+  const formulaTitle: string =
+    props.data.metricAliasData?.title ||
+    props.data.metricAliasData?.legend ||
+    formulaExpression ||
+    "New formula";
+
   const content: ReactElement = (
     <div>
-      <MetricAlias
-        data={props.data.metricAliasData}
-        onDataChanged={(data: MetricAliasData) => {
-          props.onDataChanged({ ...props.data, metricAliasData: data });
-        }}
-        isFormula={true}
-        unitFamilyBasedOn={props.unitFamilyBasedOn}
-      />
+      {/* Header — matches the query-card look (badge, title line, actions) */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {props.data.metricAliasData?.metricVariable && (
+            <div className="flex h-6 w-6 min-w-6 items-center justify-center rounded-md border border-violet-200 bg-violet-50 text-xs font-bold text-violet-700">
+              {props.data.metricAliasData.metricVariable}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-gray-900 truncate">
+                {formulaTitle}
+              </span>
+              <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                Formula
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 ml-3">
+          <button
+            type="button"
+            aria-label="Remove formula"
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            onClick={() => {
+              return props.onRemove();
+            }}
+            title="Remove formula"
+          >
+            <Icon icon={IconProp.Trash} className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
       {props.data.metricFormulaData && (
         <MetricFormula
           data={props.data.metricFormulaData}
@@ -79,8 +109,9 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
             }
             className="h-3 w-3"
           />
-          <span>Thresholds</span>
-          {(props.data?.color ||
+          <span>Display Settings</span>
+          {(props.data?.metricAliasData?.title ||
+            props.data?.color ||
             props.data?.warningThreshold !== undefined ||
             props.data?.criticalThreshold !== undefined) && (
             <span className="inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
@@ -88,7 +119,18 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
         </button>
 
         {showDisplaySettings && (
-          <div className="mt-3 space-y-4">
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <MetricAlias
+                data={props.data.metricAliasData}
+                onDataChanged={(data: MetricAliasData) => {
+                  props.onDataChanged({ ...props.data, metricAliasData: data });
+                }}
+                isFormula={true}
+                hideVariableBadge={true}
+                unitFamilyBasedOn={props.unitFamilyBasedOn}
+              />
+            </div>
             <SeriesColorSelector
               value={props.data?.color}
               onChange={(color: string | undefined) => {
@@ -98,53 +140,40 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
                 });
               }}
             />
-            <div className="flex space-x-3">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-500 mb-1">
-                  Warning Threshold
-                </label>
-                <Input
-                  value={props.data?.warningThreshold?.toString() || ""}
-                  type={InputType.NUMBER}
-                  onChange={(value: string) => {
-                    props.onDataChanged({
-                      ...props.data,
-                      warningThreshold: value ? Number(value) : undefined,
-                    });
-                  }}
-                  placeholder="e.g. 80"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-500 mb-1">
-                  Critical Threshold
-                </label>
-                <Input
-                  value={props.data?.criticalThreshold?.toString() || ""}
-                  type={InputType.NUMBER}
-                  onChange={(value: string) => {
-                    props.onDataChanged({
-                      ...props.data,
-                      criticalThreshold: value ? Number(value) : undefined,
-                    });
-                  }}
-                  placeholder="e.g. 95"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Warning Threshold
+              </label>
+              <Input
+                value={props.data?.warningThreshold?.toString() || ""}
+                type={InputType.NUMBER}
+                onChange={(value: string) => {
+                  props.onDataChanged({
+                    ...props.data,
+                    warningThreshold: value ? Number(value) : undefined,
+                  });
+                }}
+                placeholder="e.g. 80"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Critical Threshold
+              </label>
+              <Input
+                value={props.data?.criticalThreshold?.toString() || ""}
+                type={InputType.NUMBER}
+                onChange={(value: string) => {
+                  props.onDataChanged({
+                    ...props.data,
+                    criticalThreshold: value ? Number(value) : undefined,
+                  });
+                }}
+                placeholder="e.g. 95"
+              />
             </div>
           </div>
         )}
-      </div>
-
-      <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end">
-        <Button
-          title={"Remove"}
-          onClick={() => {
-            return props.onRemove();
-          }}
-          buttonSize={ButtonSize.Small}
-          buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-        />
       </div>
     </div>
   );

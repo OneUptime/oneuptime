@@ -26,6 +26,8 @@
     "adminDashboard": "Admin-Dashboard",
     "users": "Benutzer",
     "user": "Benutzer",
+    "enterpriseLicenses": "Enterprise-Lizenzen",
+    "enterpriseLicense": "Lizenz",
     "projects": "Projekte",
     "project": "Projekt",
     "projectUsers": "Benutzer",
@@ -63,6 +65,8 @@
   },
   "userProfile": {
     "exitAdmin": "Admin verlassen",
+    "darkTheme": "Dunkles Design",
+    "lightTheme": "Helles Design",
     "logOut": "Abmelden"
   },
   "footer": {
@@ -113,6 +117,26 @@
       "cardTitle": "Benutzer",
       "cardDescription": "Hier ist eine Liste der Benutzer in OneUptime.",
       "noItems": "Keine Benutzer gefunden."
+    },
+    "enterpriseLicenses": {
+      "title": "Enterprise-Lizenzen",
+      "cardTitle": "Enterprise-Lizenzen",
+      "cardDescription": "Lizenzen, die an selbst gehostete Enterprise-Kunden ausgestellt wurden – mit Sitzplatznutzung und Ablaufdatum auf einen Blick.",
+      "noItems": "Es wurden noch keine Enterprise-Lizenzen ausgestellt.",
+      "settingsCardTitle": "Einstellungen für Lizenzbenachrichtigungen",
+      "settingsCardDescription": "Wer bei Lizenz-E-Mails in Kopie gesetzt wird und wie lange im Voraus Erinnerungen zum Ablauf verschickt werden. Erinnerungen werden täglich per E-Mail an die Master-Admins des Kunden gesendet, solange eine Lizenz ihr Benutzerlimit überschreitet oder kurz vor dem Ablauf steht.",
+      "settingsEditButton": "Einstellungen bearbeiten"
+    },
+    "enterpriseLicenseView": {
+      "title": "Enterprise-Lizenz",
+      "cardTitle": "Lizenzdetails",
+      "cardDescription": "Lizenz, die an diesen Kunden ausgestellt wurde.",
+      "editButton": "Lizenz bearbeiten",
+      "usageCardTitle": "Sitzplatznutzung",
+      "usageCardDescription": "Eindeutige Benutzer über alle selbst gehosteten Instanzen des Kunden hinweg, wie täglich von deren Installationen gemeldet.",
+      "instancesCardTitle": "Instanzen",
+      "instancesCardDescription": "Selbst gehostete Instanzen (Staging, Produktion usw.), die für diese Lizenz Daten melden, und die Master-Admins, die wir für jede Instanz kontaktieren können.",
+      "noInstances": "Für diese Lizenz haben noch keine Instanzen Daten gemeldet."
     },
     "userView": {
       "title": "Benutzer",

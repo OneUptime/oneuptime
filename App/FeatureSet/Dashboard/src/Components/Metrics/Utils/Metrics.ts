@@ -30,6 +30,7 @@ import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConv
 import Dictionary from "Common/Types/Dictionary";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import {
   DictionaryEntryValue,
   DictionaryFilterOperator,
@@ -69,6 +70,37 @@ import {
  */
 const AGGREGATE_RESULT_TTL_MS: number = 8_000;
 
+/*
+ * Default cap on series per grouped query — sent to the server as
+ * `topK.count` so only the top-N groups are fetched, and used by the
+ * chart layer as the display cap. OPT-IN: fetchResults applies it only
+ * when the caller passes `defaultTopN: true` — chart surfaces that render
+ * the Top-N controls and truncation banner (MetricView, dashboard chart
+ * widgets) opt in, while consumers with no truncation UI (e.g. the
+ * dashboard table widget) keep fetching every group. A query can still
+ * set its own cap via `metricQueryData.topN` (persisted) or, for chart
+ * surfaces that cannot write the query config, via the transient
+ * per-query override below.
+ */
+export const DEFAULT_TOP_N_SERIES: number = 10;
+
+/*
+ * `topN` value meaning "fetch every group" — large enough to never
+ * truncate real-world cardinality while still bounding the ranking
+ * subquery on the server.
+ */
+export const SHOW_ALL_SERIES_TOP_N: number = 10_000;
+
+/*
+ * Transient per-query Top-N overrides, keyed by the query's stable key
+ * (see MetricUtil.getQueryConfigTopNKey). Used by chart surfaces that
+ * have no way to write `metricQueryData.topN` back into the view config
+ * (e.g. read-only dashboard widgets): the override is picked up by the
+ * NEXT fetchResults call for that query. Module-local and intentionally
+ * not persisted.
+ */
+const topNOverrideByQueryKey: Map<string, number> = new Map();
+
 interface AggregateCacheEntry {
   result: AggregatedResult;
   expiresAt: number;
@@ -102,8 +134,17 @@ function buildAggregateCacheKey(aggregateBy: AggregateBy<Metric>): string {
 
 function dedupedAggregate(
   aggregateBy: AggregateBy<Metric>,
+  /*
+   * Optional cache-bypass token folded into the cache/dedup key. A manual
+   * "Refresh" on a pinned absolute window re-issues a byte-identical
+   * request, which would otherwise be served from the short result cache —
+   * bumping the token makes the key miss so the fetch goes to the wire.
+   */
+  cacheBustToken?: string | undefined,
 ): Promise<AggregatedResult> {
-  const cacheKey: string = buildAggregateCacheKey(aggregateBy);
+  const cacheKey: string = cacheBustToken
+    ? `${buildAggregateCacheKey(aggregateBy)}::bust=${cacheBustToken}`
+    : buildAggregateCacheKey(aggregateBy);
 
   const cached: AggregateCacheEntry | undefined =
     aggregateResultCache.get(cacheKey);
@@ -291,8 +332,38 @@ export default class MetricUtil {
      * coarser tier. Omitted → server derives it from the window as before.
      */
     aggregationInterval?: AggregationInterval | undefined;
+    /*
+     * Optional cache-bypass nonce. When set, it is folded into the
+     * aggregate request cache/dedup key (never sent to the server), so
+     * bumping it forces a fresh network fetch even when the request is
+     * byte-identical to a cached one — e.g. a manual refresh of a pinned
+     * absolute window whose fetch snapshot cannot otherwise change.
+     */
+    refreshNonce?: number | string | undefined;
+    /*
+     * Opt in to the DEFAULT_TOP_N_SERIES server-side cap for grouped
+     * queries. Only chart surfaces that render the Top-N controls and
+     * the "Showing top k of N" truncation banner (MetricView, the
+     * dashboard chart widget) should pass true — otherwise a grouped
+     * query silently loses groups with no indicator. Absent, grouped
+     * queries fetch every group unless the query config itself sets
+     * `metricQueryData.topN` (or a transient override is registered).
+     */
+    defaultTopN?: boolean | undefined;
+    /*
+     * Namespace for reading transient Top-N overrides — must match the
+     * `topNOverrideScope` the host passes to MetricCharts, so overrides
+     * written by one widget instance are never picked up by another
+     * id-less query that shares the same fallback key (e.g. `var-a`).
+     */
+    topNOverrideScope?: string | undefined;
   }): Promise<Array<AggregatedResult>> {
     const metricViewData: MetricViewData = data.metricViewData;
+
+    const cacheBustToken: string | undefined =
+      data.refreshNonce !== undefined && data.refreshNonce !== null
+        ? String(data.refreshNonce)
+        : undefined;
 
     /*
      * Fire all aggregate queries in parallel. Kubernetes overview pages
@@ -306,78 +377,115 @@ export default class MetricUtil {
      * widgets pointed at the same metric collapse to one round trip.
      */
     const rawResults: Array<AggregatedResult> = await Promise.all(
-      metricViewData.queryConfigs.map((queryConfig: MetricQueryConfigData) => {
-        /*
-         * Per-series viewing: when the user has selected attribute
-         * keys to group by (e.g. host.name), pass them through as
-         * `groupByAttributeKeys` so the server groups on the
-         * individual map entries (`attributes['host.name']`) and
-         * returns one pooled series per unique key-value combination.
-         * The chart layer splits those rows into one line per label
-         * combination via `getSeries` (injected in MetricView before
-         * render).
-         *
-         * Grouping by the whole `attributes` Map column (the previous
-         * approach, still baked into older stored dashboard configs)
-         * fragments the result into one series per unique attribute
-         * combination — for percentiles of histogram metrics that
-         * collapses every sub-series onto a near-constant bucket
-         * midpoint and renders as flat straight lines — so any legacy
-         * `attributes` entry in groupBy is stripped when key-scoped
-         * grouping is active.
-         */
-        const groupByAttributeKeys: Array<string> =
-          queryConfig.metricQueryData.groupByAttributeKeys || [];
-        const hasGroupByAttributes: boolean = groupByAttributeKeys.length > 0;
+      metricViewData.queryConfigs.map(
+        (queryConfig: MetricQueryConfigData, queryIndex: number) => {
+          /*
+           * Per-series viewing: when the user has selected attribute
+           * keys to group by (e.g. host.name), pass them through as
+           * `groupByAttributeKeys` so the server groups on the
+           * individual map entries (`attributes['host.name']`) and
+           * returns one pooled series per unique key-value combination.
+           * The chart layer splits those rows into one line per label
+           * combination via `getSeries` (injected in MetricView before
+           * render).
+           *
+           * Grouping by the whole `attributes` Map column (the previous
+           * approach, still baked into older stored dashboard configs)
+           * fragments the result into one series per unique attribute
+           * combination — for percentiles of histogram metrics that
+           * collapses every sub-series onto a near-constant bucket
+           * midpoint and renders as flat straight lines — so any legacy
+           * `attributes` entry in groupBy is stripped when key-scoped
+           * grouping is active.
+           */
+          const groupByAttributeKeys: Array<string> =
+            queryConfig.metricQueryData.groupByAttributeKeys || [];
+          const hasGroupByAttributes: boolean = groupByAttributeKeys.length > 0;
 
-        let aggregationGroupBy: typeof queryConfig.metricQueryData.groupBy =
-          queryConfig.metricQueryData.groupBy;
+          let aggregationGroupBy: typeof queryConfig.metricQueryData.groupBy =
+            queryConfig.metricQueryData.groupBy;
 
-        if (hasGroupByAttributes && aggregationGroupBy) {
-          const strippedGroupBy: Record<string, unknown> = {
-            ...(aggregationGroupBy as Record<string, unknown>),
-          };
-          delete strippedGroupBy["attributes"];
-          aggregationGroupBy =
-            Object.keys(strippedGroupBy).length > 0
-              ? (strippedGroupBy as typeof queryConfig.metricQueryData.groupBy)
-              : undefined;
-        }
+          if (hasGroupByAttributes && aggregationGroupBy) {
+            const strippedGroupBy: Record<string, unknown> = {
+              ...(aggregationGroupBy as Record<string, unknown>),
+            };
+            delete strippedGroupBy["attributes"];
+            aggregationGroupBy =
+              Object.keys(strippedGroupBy).length > 0
+                ? (strippedGroupBy as typeof queryConfig.metricQueryData.groupBy)
+                : undefined;
+          }
 
-        return dedupedAggregate({
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-            time: metricViewData.startAndEndDate!,
-            name: queryConfig.metricQueryData.filterData.metricName!,
-            attributes: sanitizeAttributeFilters(
-              queryConfig.metricQueryData.filterData.attributes as
-                | Dictionary<DictionaryEntryValue>
-                | undefined,
-            ) as any,
-          },
-          aggregationType:
-            (queryConfig.metricQueryData.filterData
-              .aggegationType as MetricsAggregationType) ||
-            MetricsAggregationType.Avg,
-          aggregateColumnName: "value",
-          aggregationTimestampColumnName: "time",
-          ...(data.aggregationInterval
-            ? { aggregationInterval: data.aggregationInterval }
-            : {}),
-          startTimestamp:
-            (metricViewData.startAndEndDate?.startValue as Date) ||
-            OneUptimeDate.getCurrentDate(),
-          endTimestamp:
-            (metricViewData.startAndEndDate?.endValue as Date) ||
-            OneUptimeDate.getCurrentDate(),
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          groupBy: aggregationGroupBy,
-          groupByAttributeKeys: hasGroupByAttributes
-            ? groupByAttributeKeys
-            : undefined,
-        } as AggregateBy<Metric>);
-      }),
+          /*
+           * Server-side Top-K for grouped queries: only the top-N groups
+           * (ranked by max over the window) are fetched, instead of every
+           * bucket of every group. The effective N comes from a transient
+           * per-query override (set by chart controls that can't write the
+           * view config) falling back to the persisted `topN` and then —
+           * only for callers that opted in via `defaultTopN` — the default
+           * cap; other callers get every group (undefined → no topK).
+           * Ungrouped queries return a single series and skip topK
+           * entirely. topK is part of the AggregateBy payload, so the
+           * request cache/dedup key (buildAggregateCacheKey stringifies the
+           * whole AggregateBy) busts automatically when it changes.
+           */
+          const queryTopN: number | undefined =
+            topNOverrideByQueryKey.get(
+              MetricUtil.getQueryConfigTopNKey(
+                queryConfig,
+                queryIndex,
+                data.topNOverrideScope,
+              ),
+            ) ??
+            queryConfig.metricQueryData.topN ??
+            (data.defaultTopN ? DEFAULT_TOP_N_SERIES : undefined);
+
+          return dedupedAggregate(
+            {
+              query: {
+                projectId: ProjectUtil.getCurrentProjectId()!,
+                time: metricViewData.startAndEndDate!,
+                name: queryConfig.metricQueryData.filterData.metricName!,
+                attributes: sanitizeAttributeFilters(
+                  queryConfig.metricQueryData.filterData.attributes as
+                    | Dictionary<DictionaryEntryValue>
+                    | undefined,
+                ) as any,
+              },
+              aggregationType:
+                (queryConfig.metricQueryData.filterData
+                  .aggegationType as MetricsAggregationType) ||
+                MetricsAggregationType.Avg,
+              aggregateColumnName: "value",
+              aggregationTimestampColumnName: "time",
+              ...(data.aggregationInterval
+                ? { aggregationInterval: data.aggregationInterval }
+                : {}),
+              startTimestamp:
+                (metricViewData.startAndEndDate?.startValue as Date) ||
+                OneUptimeDate.getCurrentDate(),
+              endTimestamp:
+                (metricViewData.startAndEndDate?.endValue as Date) ||
+                OneUptimeDate.getCurrentDate(),
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              groupBy: aggregationGroupBy,
+              groupByAttributeKeys: hasGroupByAttributes
+                ? groupByAttributeKeys
+                : undefined,
+              ...(hasGroupByAttributes && queryTopN !== undefined
+                ? {
+                    topK: {
+                      count: queryTopN,
+                      rankBy: "max" as const,
+                    },
+                  }
+                : {}),
+            } as AggregateBy<Metric>,
+            cacheBustToken,
+          );
+        },
+      ),
     );
 
     /*
@@ -461,12 +569,21 @@ export default class MetricUtil {
             results,
           });
         results.push(formulaResult);
-      } catch {
+      } catch (err: unknown) {
         /*
-         * Invalid formula — surface an empty series so the chart shows
-         * "No data" rather than breaking the whole fetch.
+         * Structurally invalid formula (bad syntax/arity, unknown
+         * variable, disjoint groups — MetricFormulaEvaluator throws
+         * BadDataException). Surface the message on the result so the
+         * chart slot renders the actual error instead of a silent
+         * "No data", without breaking the whole fetch.
          */
-        results.push({ data: [] });
+        results.push({
+          data: [],
+          errorMessage:
+            err instanceof Error && err.message
+              ? err.message
+              : "Invalid formula.",
+        });
       }
     }
 
@@ -539,12 +656,98 @@ export default class MetricUtil {
   }
 
   /**
+   * Stable key identifying a query for the transient Top-N override
+   * registry. Prefers the query's persistent `id`, then its metric
+   * variable (unique within a view and stable across removal/reorder),
+   * then falls back to the array position. The optional `scope`
+   * namespaces the key to one host instance (e.g. a dashboard widget's
+   * componentId) — id-less configs fall back to variable/position keys
+   * that COLLIDE across widgets (every default widget query is "var-a"),
+   * so an unscoped override written by one widget would leak into every
+   * other. Must stay consistent between the chart layer (which writes
+   * overrides) and fetchResults (which reads them).
+   */
+  public static getQueryConfigTopNKey(
+    queryConfig: MetricQueryConfigData,
+    queryIndex: number,
+    scope?: string | undefined,
+  ): string {
+    const scopePrefix: string = scope ? `${scope}:` : "";
+    if (queryConfig.id) {
+      return `${scopePrefix}id-${queryConfig.id}`;
+    }
+    const metricVariable: string | undefined =
+      queryConfig.metricAliasData?.metricVariable;
+    if (metricVariable) {
+      return `${scopePrefix}var-${metricVariable}`;
+    }
+    return `${scopePrefix}index-${queryIndex}`;
+  }
+
+  /**
+   * Set (or clear, with `undefined`) a transient Top-N override for a
+   * query. Applied by the NEXT fetchResults call for that query — used
+   * by chart surfaces that cannot write `metricQueryData.topN` back
+   * into the view config.
+   */
+  public static setQueryTopNOverride(
+    queryKey: string,
+    topN: number | undefined,
+  ): void {
+    if (topN === undefined) {
+      topNOverrideByQueryKey.delete(queryKey);
+      return;
+    }
+    topNOverrideByQueryKey.set(queryKey, topN);
+  }
+
+  /**
+   * Drop every transient Top-N override registered under a host scope.
+   * Called on host unmount so a widget's "Show all" / Top-N choices
+   * don't outlive it (the registry is module-global and would otherwise
+   * keep applying them for the whole SPA session).
+   */
+  public static clearQueryTopNOverridesForScope(scope: string): void {
+    const prefix: string = `${scope}:`;
+    for (const key of Array.from(topNOverrideByQueryKey.keys())) {
+      if (key.startsWith(prefix)) {
+        topNOverrideByQueryKey.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Stable serialization of a query's sanitized attribute filters, for
+   * composite cache/state keys (exemplars are fetched per metric name +
+   * filter set). Top-level keys are sorted so two logically-equal filter
+   * dictionaries always produce the same key; operator wrappers
+   * (NotEqual, Includes, …) serialize via their toJSON.
+   */
+  public static serializeAttributeFiltersForKey(
+    attributes: Dictionary<DictionaryEntryValue> | undefined,
+  ): string {
+    if (!attributes) {
+      return "";
+    }
+    const sortedKeys: Array<string> = Object.keys(attributes).sort();
+    return JSON.stringify(
+      sortedKeys.map((key: string) => {
+        return [key, attributes[key]];
+      }),
+    );
+  }
+
+  /**
    * Fetch exemplar data points for a metric - these are raw metric rows
-   * that have an associated traceId from OTLP exemplars.
+   * that have an associated traceId from OTLP exemplars. Scoped to the
+   * calling query's (sanitized) attribute filters and time window so the
+   * dots on a filtered chart come from the rows that chart is actually
+   * plotting.
    */
   public static async fetchExemplars(data: {
     metricName: string;
     startAndEndDate: InBetween<Date>;
+    attributes?: Dictionary<DictionaryEntryValue> | undefined;
   }): Promise<Array<ExemplarPoint>> {
     if (getPublicDashboardContext()) {
       /*
@@ -555,6 +758,9 @@ export default class MetricUtil {
       return [];
     }
 
+    const sanitizedAttributes: Dictionary<DictionaryEntryValue> | undefined =
+      sanitizeAttributeFilters(data.attributes);
+
     try {
       const result: ListResult<Metric> = await AnalyticsModelAPI.getList({
         modelType: Metric,
@@ -562,6 +768,17 @@ export default class MetricUtil {
           projectId: ProjectUtil.getCurrentProjectId()!,
           name: data.metricName,
           time: data.startAndEndDate,
+          /*
+           * Only rows that actually carry an exemplar. NotEqual('')
+           * excludes both NULL and '' under ClickHouse comparison
+           * semantics and survives the client→server JSON revival —
+           * unlike NotNull, which the analytics statement generator has
+           * no scalar branch for.
+           */
+          traceId: new NotEqual<string>(""),
+          ...(sanitizedAttributes
+            ? { attributes: sanitizedAttributes as any }
+            : {}),
         } as any,
         select: {
           time: true,
@@ -637,6 +854,13 @@ export default class MetricUtil {
       select: {
         name: true,
         unit: true,
+        /*
+         * Counter semantics (denormalized at ingest) — lets the query
+         * editor suggest the per-second rate transform for cumulative
+         * monotonic counters.
+         */
+        isMonotonic: true,
+        aggregationTemporality: true,
       },
       query: {
         projectId: ProjectUtil.getCurrentProjectId()!,

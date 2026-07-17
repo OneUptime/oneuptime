@@ -21,6 +21,16 @@ enum AnalyticsTableName {
    * hostEntityKey instead of the raw host.name spelling.
    */
   MetricItemAggMV1mByHostV2 = "MetricItemAggMV1mByHostV2",
+  /*
+   * Entity-keyed siblings of MetricItemAggMV1mByHostV2 — same layout,
+   * keyed by the other ingest-stamped scalar entity-key columns
+   * (serviceEntityKey / k8sClusterEntityKey / containerEntityKey) so
+   * entity-scoped chart queries can be served from a pre-aggregated
+   * rollup instead of scanning MetricItemV3.
+   */
+  MetricItemAggMV1mByService = "MetricItemAggMV1mByService",
+  MetricItemAggMV1mByK8sCluster = "MetricItemAggMV1mByK8sCluster",
+  MetricItemAggMV1mByContainer = "MetricItemAggMV1mByContainer",
   MetricBaselineHourly = "MetricBaselineHourly",
   MutableMetric = "MutableMetricItem",
 }

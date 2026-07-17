@@ -2,14 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="theme-color" content="#f9fafb" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta charSet='utf-8' />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="theme-color" content="#000000">
     <meta name="slack-app-id" content="ACVBMTPJQ">
     <meta name="description" content="OneUptime - the complete open-source observability platform.">
+
+    <!-- Apply the opt-in preference before CSS/React to avoid a theme flash. -->
+    <script>
+      (function () {
+        var theme = "light";
+        try {
+          if (window.localStorage.getItem("oneuptime-dashboard-theme") === "dark") {
+            theme = "dark";
+          }
+        } catch (_error) {
+          // Storage can be blocked; light is the intentional safe default.
+        }
+
+        var root = document.documentElement;
+        root.classList.toggle("dark", theme === "dark");
+        root.dataset.theme = theme;
+        root.style.colorScheme = theme;
+
+        var themeColor = document.querySelector('meta[name="theme-color"]:not([media])');
+        if (themeColor) {
+          themeColor.setAttribute("content", theme === "dark" ? "#0f172a" : "#f9fafb");
+        }
+      })();
+    </script>
 
     <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %> 
     <!-- Google Tag Manager -->
@@ -31,7 +52,6 @@
     <link rel="mask-icon" href="/admin/assets/img/favicons/safari-pinned-tab.svg" color="#5bbad5">
     <meta name="msapplication-TileColor" content="#121212">
     <meta name="msapplication-TileImage" content="/admin/assets/img/favicons/mstile-144x144.png">
-    <meta name="theme-color" content="#121212">
     <link rel="preload" href="/admin/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
     <style>
       @font-face {
@@ -74,6 +94,16 @@
       }
       </style>
     <link rel="preload" href="/admin/assets/js/tailwind-3.4.5.js" as="script">
+
+    <!-- Critical CSS to prevent a light flash before Tailwind and the theme sheet load -->
+    <style>
+      .h-full { height: 100%; }
+      html, body, .bg-gray-50 { background-color: #f9fafb; }
+      html.dark, html.dark body.bg-gray-50 { background-color: #0f172a; }
+      html.dark { color: #f8fafc; }
+      #root { min-height: 100vh; }
+    </style>
+
     <script src="/admin/assets/js/tailwind-3.4.5.js"></script>
     
     <script src="/admin/env.js"></script>
@@ -95,6 +125,7 @@
     <script type="module" src="/admin/dist/Index.js"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend:
           {

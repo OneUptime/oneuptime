@@ -66,6 +66,10 @@ import TelegramLogAPI from "./TelegramLogAPI";
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import EnterpriseLicenseAPI from "Common/Server/API/EnterpriseLicenseAPI";
+import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
+import EnterpriseLicenseInstanceService, {
+  Service as EnterpriseLicenseInstanceServiceType,
+} from "Common/Server/Services/EnterpriseLicenseInstanceService";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
 import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
@@ -3858,6 +3862,20 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new EnterpriseLicenseAPI().getRouter(),
+    );
+    /*
+     * Read/list for the admin dashboard Enterprise Licenses page
+     * (empty table ACLs — master admin only).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        EnterpriseLicenseInstance,
+        EnterpriseLicenseInstanceServiceType
+      >(
+        EnterpriseLicenseInstance,
+        EnterpriseLicenseInstanceService,
+      ).getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

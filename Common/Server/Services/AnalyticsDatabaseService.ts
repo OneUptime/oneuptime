@@ -29,7 +29,10 @@ import Select from "../Types/AnalyticsDatabase/Select";
 import UpdateBy from "../Types/AnalyticsDatabase/UpdateBy";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "../Utils/AnalyticsDatabase/StatementGenerator";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  TimeoutOverflowMode,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import {
   getStorageTableName,
   onClusterClause,
@@ -892,8 +895,47 @@ export default class AnalyticsDatabaseService<
         aggregatedItems.push(aggregatedModel);
       }
 
+      /*
+       * Top-K statements (see MetricService) carry the pre-trim group
+       * count as a constant `__total_groups` column on every row; lift
+       * it off the first row into result metadata. The per-row copy
+       * loop above only projects timestamp/value/group-by columns, so
+       * the helper column never reaches the rows themselves.
+       */
+      let totalGroups: number | undefined = undefined;
+      const firstItem: JSONObject | undefined = items[0];
+      if (firstItem && firstItem["__total_groups"] !== undefined) {
+        const parsedTotalGroups: number = Number(firstItem["__total_groups"]);
+        if (Number.isFinite(parsedTotalGroups)) {
+          totalGroups = parsedTotalGroups;
+        }
+      }
+
+      /*
+       * Truncation detection. Row-count == LIMIT is a heuristic (an
+       * exactly-full window reads as truncated), but a false positive
+       * only over-warns; the silent-data-loss case it exists to catch
+       * (groups × buckets > limit dropping the oldest buckets) is
+       * always flagged. Top-K truncation is exact: the ranking phase
+       * counted every matching group.
+       */
+      const appliedLimit: number = Number(aggregateBy.limit);
+      let truncated: boolean =
+        Number.isFinite(appliedLimit) &&
+        appliedLimit > 0 &&
+        items.length >= appliedLimit;
+      if (
+        aggregateBy.topK &&
+        totalGroups !== undefined &&
+        totalGroups > aggregateBy.topK.count
+      ) {
+        truncated = true;
+      }
+
       return {
         data: aggregatedItems,
+        ...(totalGroups !== undefined ? { totalGroups } : {}),
+        truncated,
       };
     } catch (error) {
       await this.onFindError(error as Exception);
@@ -1194,6 +1236,24 @@ export default class AnalyticsDatabaseService<
     return statement;
   }
 
+  /**
+   * The timeout_overflow_mode an aggregate statement should carry.
+   * Callers that render charts keep the 'break' default (partial
+   * buckets are acceptable there); callers that ALERT on the result —
+   * the metric-monitor worker — pass 'throw' so a timed-out evaluation
+   * fails loudly instead of silently scoring partial data.
+   *
+   * Allow-listed, never passed through: aggregateBy is deserialized
+   * wholesale from API clients and this setting is emitted into SQL as
+   * a trusted literal (see QuerySettingsHelper), so anything other than
+   * the exact string "throw" degrades to the 'break' default.
+   */
+  protected getTimeoutOverflowMode(
+    aggregateBy: AggregateBy<TBaseModel>,
+  ): TimeoutOverflowMode {
+    return aggregateBy.timeoutOverflowMode === "throw" ? "throw" : "break";
+  }
+
   public toAggregateStatement(aggregateBy: AggregateBy<TBaseModel>): {
     statement: Statement;
     columns: Array<string>;
@@ -1306,6 +1366,13 @@ export default class AnalyticsDatabaseService<
     /*
      * Aggregation read-path settings.
      *
+     * - max_execution_time=45: cap aggregate runtime below the
+     *   ClickHouse client's 58s request_timeout, same as the count/find
+     *   statements — a wide-window aggregate over a large table would
+     *   otherwise run until the HTTP client disconnects. The overflow
+     *   mode defaults to 'break' (partial buckets are acceptable for
+     *   chart rendering) but alerting callers opt into 'throw' via
+     *   aggregateBy.timeoutOverflowMode — see getTimeoutOverflowMode.
      * - optimize_aggregation_in_order: when GROUP BY is a prefix of the
      *   sort key (we always group by a time bucket and the time column
      *   is at the tail of every analytics primary key), ClickHouse can
@@ -1322,6 +1389,8 @@ export default class AnalyticsDatabaseService<
      */
     statement.append(
       getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        timeoutOverflowMode: this.getTimeoutOverflowMode(aggregateBy),
         additionalSettings: {
           optimize_aggregation_in_order: 1,
           optimize_move_to_prewhere: 1,

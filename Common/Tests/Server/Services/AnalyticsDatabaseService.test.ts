@@ -364,12 +364,31 @@ describe("AnalyticsDatabaseService", () => {
       const query: string = service.toAggregateStatement(makeBaseAggregateBy())
         .statement.query;
 
-      // 1-day window derives an Hour bucket, grouped by the time column.
+      /*
+       * 1-day window derives a FifteenMinutes bucket (see
+       * AggregationIntervalUtil), which compiles through the shared
+       * expression map — NOT via lowercasing the enum into date_trunc.
+       */
+      expect(query).toContain(
+        "toStartOfInterval(column_ObjectID, INTERVAL 15 MINUTE) as column_ObjectID",
+      );
+      expect(query).not.toContain("date_trunc('fifteenminutes'");
+      expect(query).toContain("GROUP BY column_ObjectID");
+      expect(query).not.toContain("min(column_ObjectID)");
+    });
+
+    test("derives an Hour bucket for a 5-day window", () => {
+      const query: string = service.toAggregateStatement(
+        makeBaseAggregateBy({
+          startTimestamp: new Date("2024-01-01"),
+          endTimestamp: new Date("2024-01-06"),
+        }),
+      ).statement.query;
+
       expect(query).toContain(
         "date_trunc('hour', toStartOfInterval(column_ObjectID, INTERVAL 1 hour))",
       );
       expect(query).toContain("GROUP BY column_ObjectID");
-      expect(query).not.toContain("min(column_ObjectID)");
     });
 
     test("Total with no group-by drops the time bucket and guards empty windows", () => {

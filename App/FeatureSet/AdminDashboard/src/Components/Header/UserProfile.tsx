@@ -8,6 +8,7 @@ import IconDropdownMenu from "Common/UI/Components/Header/IconDropdown/IconDropd
 import { DASHBOARD_URL } from "Common/UI/Config";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import Navigation from "Common/UI/Utils/Navigation";
+import ThemeUtil, { Theme, useTheme } from "Common/UI/Utils/Theme";
 import User from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,6 +16,7 @@ import { useTranslation } from "react-i18next";
 const DashboardUserProfile: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
+  const theme: Theme = useTheme();
 
   return (
     <>
@@ -39,6 +41,19 @@ const DashboardUserProfile: FunctionComponent = (): ReactElement => {
           ) : (
             <></>
           )}
+
+          <IconDropdownItem
+            title={
+              theme === Theme.Dark
+                ? t("userProfile.lightTheme", "Light theme")
+                : t("userProfile.darkTheme", "Dark theme")
+            }
+            onClick={() => {
+              ThemeUtil.toggleTheme();
+              setIsDropdownVisible(false);
+            }}
+            icon={theme === Theme.Dark ? IconProp.Sun : IconProp.Moon}
+          />
 
           <IconDropdownItem
             title={t("userProfile.logOut")}

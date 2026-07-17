@@ -2,9 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Card from "Common/UI/Components/Card/Card";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -29,7 +27,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 
 /*
@@ -78,61 +75,20 @@ function buildQuery(
   };
 }
 
-function buildMetricViewData(
-  queries: Array<MetricQueryConfigData>,
-  startAndEndDate: InBetween<Date>,
-): MetricViewData {
-  return {
-    startAndEndDate,
-    queryConfigs: queries,
-    formulaConfigs: [],
-  };
-}
-
 /*
  * ──────────────────────────────────────────────────────────────────────────────
- * Section component
+ * Section title helper — icon + text card heading
  * ──────────────────────────────────────────────────────────────────────────────
  */
 
-interface SectionProps {
-  title: string;
-  description: string;
-  icon: IconProp;
-  data: MetricViewData;
-  timeRange: RangeStartAndEndDateTime;
-  onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
-}
-
-const MeshSection: FunctionComponent<SectionProps> = (
-  props: SectionProps,
-): ReactElement => {
+function getSectionTitle(icon: IconProp, title: string): ReactElement {
   return (
-    <Card
-      title={
-        <div className="flex items-center gap-2">
-          <Icon icon={props.icon} className="h-5 w-5 text-gray-500" />
-          <span>{props.title}</span>
-        </div>
-      }
-      description={props.description}
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={props.timeRange}
-          onChange={props.onTimeRangeChange}
-        />
-      }
-    >
-      <MetricView
-        data={props.data}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        onChange={() => {}}
-      />
-    </Card>
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} className="h-5 w-5 text-gray-500" />
+      <span>{title}</span>
+    </div>
   );
-};
+}
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
@@ -896,68 +852,37 @@ const KubernetesClusterServiceMesh: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
-  // Build all metric view data
-  const istioTrafficData: MetricViewData = buildMetricViewData(
-    getIstioTrafficQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const istioPilotData: MetricViewData = buildMetricViewData(
-    getIstioPilotQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const envoyData: MetricViewData = buildMetricViewData(
-    getEnvoyQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const linkerdTrafficData: MetricViewData = buildMetricViewData(
-    getLinkerdTrafficQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const linkerdControlPlaneData: MetricViewData = buildMetricViewData(
-    getLinkerdControlPlaneQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const ciliumDataPlaneData: MetricViewData = buildMetricViewData(
-    getCiliumDataPlaneQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const ciliumControlPlaneData: MetricViewData = buildMetricViewData(
-    getCiliumControlPlaneQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-  const ciliumHubbleData: MetricViewData = buildMetricViewData(
-    getCiliumHubbleQueries(clusterIdentifier),
-    startAndEndDate,
-  );
-
   const tabs: Array<Tab> = [
     {
       name: "Cilium",
       children: (
         <Fragment>
-          <MeshSection
-            title="Data Plane — eBPF"
+          <EmbeddedMetricCard
+            title={getSectionTitle(
+              IconProp.ArrowCircleRight,
+              "Data Plane — eBPF",
+            )}
             description="Packet forwarding, drops, and policy enforcement at the eBPF datapath layer. Covers throughput, endpoint management, and BPF program regeneration."
-            icon={IconProp.ArrowCircleRight}
-            data={ciliumDataPlaneData}
+            queryConfigs={getCiliumDataPlaneQueries(clusterIdentifier)}
             timeRange={timeRange}
             onTimeRangeChange={handleTimeRangeChange}
+            startAndEndDate={startAndEndDate}
           />
-          <MeshSection
-            title="Control Plane — Agent"
+          <EmbeddedMetricCard
+            title={getSectionTitle(IconProp.Settings, "Control Plane — Agent")}
             description="Cilium agent managing security identities, network policies, BPF maps, and IPAM. Monitors policy health, identity allocation, and agent errors."
-            icon={IconProp.Settings}
-            data={ciliumControlPlaneData}
+            queryConfigs={getCiliumControlPlaneQueries(clusterIdentifier)}
             timeRange={timeRange}
             onTimeRangeChange={handleTimeRangeChange}
+            startAndEndDate={startAndEndDate}
           />
-          <MeshSection
-            title="Hubble — Observability"
+          <EmbeddedMetricCard
+            title={getSectionTitle(IconProp.Eye, "Hubble — Observability")}
             description="Hubble network flow observability layer. Tracks flow processing throughput, DNS visibility, TCP connection flags, and dropped flows."
-            icon={IconProp.Eye}
-            data={ciliumHubbleData}
+            queryConfigs={getCiliumHubbleQueries(clusterIdentifier)}
             timeRange={timeRange}
             onTimeRangeChange={handleTimeRangeChange}
+            startAndEndDate={startAndEndDate}
           />
         </Fragment>
       ),
@@ -966,29 +891,35 @@ const KubernetesClusterServiceMesh: FunctionComponent<
       name: "Istio",
       children: (
         <Fragment>
-          <MeshSection
-            title="Data Plane — Traffic"
+          <EmbeddedMetricCard
+            title={getSectionTitle(
+              IconProp.ArrowCircleRight,
+              "Data Plane — Traffic",
+            )}
             description="HTTP and TCP traffic flowing through Envoy sidecar proxies. Covers request throughput, latency, payload sizes, and connection lifecycle."
-            icon={IconProp.ArrowCircleRight}
-            data={istioTrafficData}
+            queryConfigs={getIstioTrafficQueries(clusterIdentifier)}
             timeRange={timeRange}
             onTimeRangeChange={handleTimeRangeChange}
+            startAndEndDate={startAndEndDate}
           />
-          <MeshSection
-            title="Control Plane — Pilot (istiod)"
+          <EmbeddedMetricCard
+            title={getSectionTitle(
+              IconProp.Settings,
+              "Control Plane — Pilot (istiod)",
+            )}
             description="Istio Pilot manages xDS configuration distribution to all Envoy proxies. Monitors push throughput, errors, convergence time, and listener conflicts."
-            icon={IconProp.Settings}
-            data={istioPilotData}
+            queryConfigs={getIstioPilotQueries(clusterIdentifier)}
             timeRange={timeRange}
             onTimeRangeChange={handleTimeRangeChange}
+            startAndEndDate={startAndEndDate}
           />
-          <MeshSection
-            title="Envoy Proxy"
+          <EmbeddedMetricCard
+            title={getSectionTitle(IconProp.Globe, "Envoy Proxy")}
             description="Low-level Envoy sidecar proxy metrics. Tracks upstream connection pools, request timeouts, retries, and connection failures."
-            icon={IconProp.Globe}
-            data={envoyData}
+            queryConfigs={getEnvoyQueries(clusterIdentifier)}
             timeRange={timeRange}
             onTimeRangeChange={handleTimeRangeChange}
+            startAndEndDate={startAndEndDate}
           />
         </Fragment>
       ),
@@ -997,21 +928,24 @@ const KubernetesClusterServiceMesh: FunctionComponent<
       name: "Linkerd",
       children: (
         <Fragment>
-          <MeshSection
-            title="Data Plane — Traffic"
+          <EmbeddedMetricCard
+            title={getSectionTitle(
+              IconProp.ArrowCircleRight,
+              "Data Plane — Traffic",
+            )}
             description="Request throughput, response latency, and TCP connection metrics from Linkerd proxy sidecars."
-            icon={IconProp.ArrowCircleRight}
-            data={linkerdTrafficData}
+            queryConfigs={getLinkerdTrafficQueries(clusterIdentifier)}
             timeRange={timeRange}
             onTimeRangeChange={handleTimeRangeChange}
+            startAndEndDate={startAndEndDate}
           />
-          <MeshSection
-            title="Control Plane"
+          <EmbeddedMetricCard
+            title={getSectionTitle(IconProp.Settings, "Control Plane")}
             description="Linkerd control plane components: identity (mTLS certificate issuance), destination (service discovery), and proxy injector (sidecar injection)."
-            icon={IconProp.Settings}
-            data={linkerdControlPlaneData}
+            queryConfigs={getLinkerdControlPlaneQueries(clusterIdentifier)}
             timeRange={timeRange}
             onTimeRangeChange={handleTimeRangeChange}
+            startAndEndDate={startAndEndDate}
           />
         </Fragment>
       ),

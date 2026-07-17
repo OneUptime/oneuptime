@@ -6,6 +6,7 @@ enum XAxisPrecision {
   EVERY_MINUTE = "minute",
   EVERY_FIVE_MINUTES = "fiveMinutes",
   EVERY_TEN_MINUTES = "tenMinutes",
+  EVERY_FIFTEEN_MINUTES = "fifteenMinutes",
   EVERY_THIRTY_MINUTES = "thirtyMinutes",
   EVERY_HOUR = "hour",
   EVERY_TWO_HOURS = "twoHours",

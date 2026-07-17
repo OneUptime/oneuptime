@@ -38,6 +38,13 @@ export interface Chart {
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
   /**
+   * Optional "Open in Explorer" action rendered as an icon button in the
+   * chart header next to the info icon. Kept as a plain callback so this
+   * shared component stays free of any app's routing — callers build the
+   * explorer URL and navigate themselves.
+   */
+  onOpenInExplorer?: (() => void) | undefined;
+  /**
    * Optional control panel rendered directly below the chart body. Used by
    * per-series-grouped metric charts to surface a search box, a sort
    * control, per-series toggles, and a "show all" escape hatch so the chart
@@ -109,6 +116,27 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     }
   };
 
+  type GetDragToZoomHintFunction = (chart: Chart) => ReactElement;
+
+  // Same subtle hint the log/telemetry histograms show for drag-to-zoom.
+  const getDragToZoomHint: GetDragToZoomHintFunction = (
+    chart: Chart,
+  ): ReactElement => {
+    const supportsTimeRangeSelect: boolean =
+      (chart.type === ChartType.LINE || chart.type === ChartType.AREA) &&
+      Boolean(
+        (chart.props as LineChartProps | AreaChartProps).onTimeRangeSelect,
+      );
+
+    if (!supportsTimeRangeSelect) {
+      return <></>;
+    }
+
+    return (
+      <span className="ml-auto text-[10px] text-gray-300">Drag to zoom</span>
+    );
+  };
+
   type GetInfoIconFunction = (chart: Chart) => ReactElement;
 
   const getInfoIcon: GetInfoIconFunction = (chart: Chart): ReactElement => {
@@ -127,6 +155,33 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       >
         <Icon
           icon={IconProp.InformationCircle}
+          size={SizeProp.Smaller}
+          className="h-3.5 w-3.5"
+        />
+      </button>
+    );
+  };
+
+  type GetExplorerIconFunction = (chart: Chart) => ReactElement;
+
+  const getExplorerIcon: GetExplorerIconFunction = (
+    chart: Chart,
+  ): ReactElement => {
+    if (!chart.onOpenInExplorer) {
+      return <></>;
+    }
+
+    return (
+      <button
+        type="button"
+        className="ml-1.5 inline-flex items-center justify-center rounded-full w-5 h-5 text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
+        title="Open in Metric Explorer"
+        onClick={() => {
+          chart.onOpenInExplorer?.();
+        }}
+      >
+        <Icon
+          icon={IconProp.ExternalLink}
           size={SizeProp.Smaller}
           className="h-3.5 w-3.5"
         />
@@ -254,6 +309,8 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                         {chart.title}
                       </h3>
                       {getInfoIcon(chart)}
+                      {getExplorerIcon(chart)}
+                      {getDragToZoomHint(chart)}
                     </div>
                     {chart.description && (
                       <p className="mt-1 text-xs text-gray-500 hidden md:block">
@@ -299,6 +356,8 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   {chart.title}
                 </h2>
                 {getInfoIcon(chart)}
+                {getExplorerIcon(chart)}
+                {getDragToZoomHint(chart)}
               </div>
               {chart.description && (
                 <p

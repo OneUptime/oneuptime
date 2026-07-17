@@ -47,6 +47,10 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import { CheckOn, CriteriaFilter } from "../../../Types/Monitor/CriteriaFilter";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
+import Dictionary from "../../../Types/Dictionary";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import MetricExplorerUrl from "../../../Utils/Metrics/MetricExplorerUrl";
 import Typeof from "../../../Types/Typeof";
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import URL from "../../../Types/API/URL";
@@ -1330,23 +1334,23 @@ ${contextBlock}
     }
 
     /*
-     * Metric explorer expects a JSON-encoded `metricQueries` param plus
-     * optional start/end times. The shape is documented by
-     * MetricExplorer.getMetricQueriesFromQuery(): it reads metricName,
-     * attributes, and aggregationType (correctly spelled, unlike the
-     * internal persisted field).
+     * The explorer URL schema (metricQueries/startTime/endTime params)
+     * is owned by MetricExplorerUrl — the same module the explorer uses
+     * for its own URL round-trip — so this deep link can never drift
+     * from what the explorer parses.
      */
-    const aggregationType: string | undefined =
-      input.ctx.aggregationType || undefined;
-
-    const query: {
-      metricName: string;
-      attributes: JSONObject;
-      aggregationType?: string;
-    } = {
-      metricName: input.ctx.metricName,
-      attributes: input.ctx.filterAttributes || {},
-      ...(aggregationType ? { aggregationType } : {}),
+    const queryConfig: MetricQueryConfigData = {
+      metricQueryData: {
+        filterData: {
+          metricName: input.ctx.metricName,
+          attributes: MetricExplorerUrl.sanitizeAttributes(
+            input.ctx.filterAttributes,
+          ),
+          ...(input.ctx.aggregationType
+            ? { aggegationType: input.ctx.aggregationType }
+            : {}),
+        },
+      },
     };
 
     // Time window: breach moment +- 15 minutes (or fall back to last hour).
@@ -1359,10 +1363,18 @@ ${contextBlock}
       ? OneUptimeDate.addRemoveMinutes(breachTime, 15)
       : now;
 
+    const urlParams: Dictionary<string> =
+      MetricExplorerUrl.buildQueryParamsFromMetricViewData({
+        queryConfigs: [queryConfig],
+        formulaConfigs: [],
+        startAndEndDate: new InBetween(startTime, endTime),
+      });
+
     const params: URLSearchParams = new URLSearchParams();
-    params.set("metricQueries", JSON.stringify([query]));
-    params.set("startTime", OneUptimeDate.toString(startTime));
-    params.set("endTime", OneUptimeDate.toString(endTime));
+
+    for (const paramName in urlParams) {
+      params.set(paramName, urlParams[paramName] as string);
+    }
 
     /*
      * The route that actually reads these URL params is the metric

@@ -2,9 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
-import Card from "Common/UI/Components/Card/Card";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -27,7 +25,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 
 /*
@@ -86,55 +83,14 @@ function buildQuery(
   };
 }
 
-function buildMetricViewData(
-  queries: Array<MetricQueryConfigData>,
-  startAndEndDate: InBetween<Date>,
-): MetricViewData {
-  return {
-    startAndEndDate,
-    queryConfigs: queries,
-    formulaConfigs: [],
-  };
-}
-
-interface SectionProps {
-  title: string;
-  description: string;
-  icon: IconProp;
-  data: MetricViewData;
-  timeRange: RangeStartAndEndDateTime;
-  onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
-}
-
-const InsightsSection: FunctionComponent<SectionProps> = (
-  props: SectionProps,
-): ReactElement => {
+function getSectionTitle(icon: IconProp, title: string): ReactElement {
   return (
-    <Card
-      title={
-        <div className="flex items-center gap-2">
-          <Icon icon={props.icon} className="h-5 w-5 text-gray-500" />
-          <span>{props.title}</span>
-        </div>
-      }
-      description={props.description}
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={props.timeRange}
-          onChange={props.onTimeRangeChange}
-        />
-      }
-    >
-      <MetricView
-        data={props.data}
-        hideQueryElements={true}
-        hideStartAndEndDate={true}
-        hideCardInCharts={true}
-        onChange={() => {}}
-      />
-    </Card>
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} className="h-5 w-5 text-gray-500" />
+      <span>{title}</span>
+    </div>
   );
-};
+}
 
 /*
  * Cluster-wide CPU and memory pressure. Avg aggregation grouped by the
@@ -318,59 +274,42 @@ const DockerSwarmClusterInsights: FunctionComponent<
 
   const clusterName: string = cluster.name;
 
-  const computeData: MetricViewData = buildMetricViewData(
-    getComputeQueries(clusterName),
-    startAndEndDate,
-  );
-  const memoryData: MetricViewData = buildMetricViewData(
-    getMemoryQueries(clusterName),
-    startAndEndDate,
-  );
-  const topTaskData: MetricViewData = buildMetricViewData(
-    getTopTaskQueries(clusterName),
-    startAndEndDate,
-  );
-  const processData: MetricViewData = buildMetricViewData(
-    getProcessQueries(clusterName),
-    startAndEndDate,
-  );
-
   return (
     <Fragment>
-      <InsightsSection
-        title="Compute"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.CPUChip, "Compute")}
         description="CPU and memory utilization across every task running in the cluster."
-        icon={IconProp.CPUChip}
-        data={computeData}
+        queryConfigs={getComputeQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
 
-      <InsightsSection
-        title="Memory"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Database, "Memory")}
         description="Absolute memory bytes used per task across the cluster."
-        icon={IconProp.Database}
-        data={memoryData}
+        queryConfigs={getMemoryQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
 
-      <InsightsSection
-        title="Top Tasks"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Cube, "Top Tasks")}
         description="Peak CPU and memory per task so the busiest workloads stand out."
-        icon={IconProp.Cube}
-        data={topTaskData}
+        queryConfigs={getTopTaskQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
 
-      <InsightsSection
-        title="Processes"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.List, "Processes")}
         description="Process (PID) count per task — a runaway count is an early signal of a fork bomb or leaking worker pool."
-        icon={IconProp.List}
-        data={processData}
+        queryConfigs={getProcessQueries(clusterName)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
     </Fragment>
   );

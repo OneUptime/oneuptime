@@ -1,6 +1,6 @@
 import App from "./App";
 import "./Utils/i18n";
-import "./Styles/Theme.css";
+import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil from "Common/UI/Utils/Theme";

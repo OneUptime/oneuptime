@@ -26,6 +26,8 @@
     "adminDashboard": "Admin Dashboard",
     "users": "Users",
     "user": "User",
+    "enterpriseLicenses": "Enterprise Licenses",
+    "enterpriseLicense": "License",
     "projects": "Projects",
     "project": "Project",
     "projectUsers": "Users",
@@ -63,6 +65,8 @@
   },
   "userProfile": {
     "exitAdmin": "Exit Admin",
+    "darkTheme": "Dark theme",
+    "lightTheme": "Light theme",
     "logOut": "Log out"
   },
   "footer": {
@@ -113,6 +117,26 @@
       "cardTitle": "Users",
       "cardDescription": "Here is a list of users in OneUptime.",
       "noItems": "No users found."
+    },
+    "enterpriseLicenses": {
+      "title": "Enterprise Licenses",
+      "cardTitle": "Enterprise Licenses",
+      "cardDescription": "Licenses issued to self-hosted enterprise customers, with seat usage and expiry at a glance.",
+      "noItems": "No enterprise licenses have been issued yet.",
+      "settingsCardTitle": "License Notification Settings",
+      "settingsCardDescription": "Who gets copied on license emails, and how far in advance expiry reminders go out. Reminders are emailed daily to the customer's master admins while a license is over its user limit or close to expiry.",
+      "settingsEditButton": "Edit Settings"
+    },
+    "enterpriseLicenseView": {
+      "title": "Enterprise License",
+      "cardTitle": "License Details",
+      "cardDescription": "License issued to this customer.",
+      "editButton": "Edit License",
+      "usageCardTitle": "Seat Usage",
+      "usageCardDescription": "Unique users across all of the customer's self-hosted instances, as reported daily by their installations.",
+      "instancesCardTitle": "Instances",
+      "instancesCardDescription": "Self-hosted instances (staging, production, etc.) reporting against this license, and the master admins we can contact on each.",
+      "noInstances": "No instances have reported against this license yet."
     },
     "userView": {
       "title": "User",
