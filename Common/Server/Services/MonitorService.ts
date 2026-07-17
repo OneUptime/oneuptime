@@ -68,6 +68,7 @@ import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Green500 } from "../../Types/BrandColors";
 import LabelService from "./LabelService";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ProductAnalytics from "../Utils/ProductAnalytics";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import Project from "../../Models/DatabaseModels/Project";
@@ -636,6 +637,19 @@ export class Service extends DatabaseService<Model> {
     if (!createdItem.currentMonitorStatusId) {
       throw new BadDataException("currentMonitorStatusId is required");
     }
+
+    /*
+     * Activation event for marketing funnels. Only fires for human-created
+     * monitors (captureForUser skips when there is no user).
+     */
+    ProductAnalytics.captureForUser({
+      userId: onCreate.createBy.props.userId || createdItem.createdByUserId,
+      event: "server/monitor_created",
+      properties: {
+        project_id: createdItem.projectId.toString(),
+        monitor_type: createdItem.monitorType?.toString() || "",
+      },
+    });
 
     const monitor: Model | null = await this.findOneById({
       id: createdItem.id,

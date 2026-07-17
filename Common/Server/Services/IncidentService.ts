@@ -56,6 +56,7 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ProductAnalytics from "../Utils/ProductAnalytics";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
@@ -906,6 +907,18 @@ export class Service extends DatabaseService<Model> {
     if (!createdItem.id) {
       throw new BadDataException("id is required");
     }
+
+    /*
+     * Activation event for marketing funnels. Only fires for human-declared
+     * incidents (captureForUser skips when there is no user).
+     */
+    ProductAnalytics.captureForUser({
+      userId: onCreate.createBy.props.userId || createdItem.createdByUserId,
+      event: "server/incident_created",
+      properties: {
+        project_id: createdItem.projectId.toString(),
+      },
+    });
 
     // Get incident data for feed creation
     const incident: Model | null = await this.findOneById({

@@ -9,6 +9,7 @@ import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Errors from "../Utils/Errors";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ProductAnalytics from "../Utils/ProductAnalytics";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
@@ -295,6 +296,16 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(
       onCreate.createBy.data.projectId!,
     );
+
+    // Activation event for marketing funnels, attributed to the inviter.
+    ProductAnalytics.captureForUser({
+      userId: onCreate.createBy.props.userId,
+      event: "server/team_member_invited",
+      properties: {
+        project_id: onCreate.createBy.data.projectId?.toString() || "",
+        has_accepted_invitation: Boolean(createdItem.hasAcceptedInvitation),
+      },
+    });
 
     return createdItem;
   }
