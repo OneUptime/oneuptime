@@ -24,6 +24,10 @@ export async function processIncomingRequestFromQueue(
     throw new BadDataException("Invalid Secret Key");
   }
 
+  if (!ObjectID.isValidUUID(monitorSecretKeyAsString)) {
+    throw new BadDataException("Invalid Secret Key");
+  }
+
   const isGetRequest: boolean = jobData.requestMethod === "GET";
   const isPostRequest: boolean = jobData.requestMethod === "POST";
 
