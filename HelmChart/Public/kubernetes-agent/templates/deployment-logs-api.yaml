@@ -58,10 +58,12 @@ spec:
                 {{- range $key, $value := .Values.oneuptime.labels -}}
                   {{- $pairs = append $pairs (printf "%s=%s" $key (toString $value)) -}}
                 {{- end }} {{ join "," $pairs | quote }}
+            {{- $podLogInclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "podLogs") | fromJsonArray }}
+            {{- $podLogExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "podLogs") | fromJsonArray }}
             - name: NAMESPACE_INCLUDE
-              value: {{ join "," .Values.namespaceFilters.include | quote }}
+              value: {{ join "," $podLogInclude | quote }}
             - name: NAMESPACE_EXCLUDE
-              value: {{ join "," (concat (.Values.namespaceFilters.exclude | default list) (.Values.namespaceFilters.excludeLogsOnly | default list)) | quote }}
+              value: {{ join "," $podLogExclude | quote }}
             # This mode posts OTLP straight to OneUptime, so it never passes
             # through the collector's filter/telemetry processor. The tailer
             # applies the same threshold itself — see KubernetesLogTailer/Config.ts.

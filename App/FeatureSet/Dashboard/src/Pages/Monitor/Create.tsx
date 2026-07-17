@@ -316,9 +316,18 @@ const MonitorCreate: FunctionComponent<
       monitorStep.data.monitorCriteria = monitorCriteria;
     }
 
+    const firstQuery: SerializedMetricQuery = serializedQueries[0]!;
+    const metricDisplayName: string =
+      firstQuery.alias?.title?.trim() ||
+      firstQuery.metricName.trim() ||
+      "Metric";
+
     setInitialValues({
+      name: `${metricDisplayName} Monitor`,
+      description: `Created from the Metric Explorer view for ${metricDisplayName}.`,
       monitorType: MonitorType.Metrics,
       monitorSteps: monitorSteps.toJSON(),
+      monitoringInterval: "*/5 * * * *",
     });
   };
 

@@ -41,8 +41,8 @@ All configuration is via environment variables:
 | `ONEUPTIME_URL`          | yes      | —                                     | Base URL of your OneUptime instance (e.g. `https://oneuptime.example.com`).                                      |
 | `ONEUPTIME_API_KEY`      | yes      | —                                     | Project API key.                                                                                                 |
 | `CLUSTER_NAME`           | yes      | —                                     | Stamped as `k8s.cluster.name` on every log record.                                                               |
-| `NAMESPACE_INCLUDE`      | no       | (empty)                               | Comma-separated allowlist. If set, only these namespaces are tailed.                                             |
-| `NAMESPACE_EXCLUDE`      | no       | `kube-system`                         | Comma-separated denylist.                                                                                        |
+| `NAMESPACE_INCLUDE`      | no       | (empty)                               | Comma-separated namespace-pattern allowlist. `*` is a wildcard; if set, only matching namespaces are tailed.     |
+| `NAMESPACE_EXCLUDE`      | no       | `kube-system`                         | Comma-separated namespace-pattern denylist. `*` is a wildcard and exclude always wins.                           |
 | `AGENT_NAMESPACE`        | no       | (empty)                               | Scope the self-exclusion label selector to this namespace.                                                       |
 | `AGENT_LABEL_SELECTOR`   | no       | `app.kubernetes.io/part-of=oneuptime` | Pods matching this selector are skipped to prevent feedback loops.                                               |
 | `BATCH_MAX_RECORDS`      | no       | `500`                                 | Flush the batch after this many records.                                                                         |

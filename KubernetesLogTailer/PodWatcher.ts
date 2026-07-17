@@ -6,6 +6,7 @@ import {
   NAMESPACE_INCLUDE,
 } from "./Config";
 import Logger from "./Logger";
+import NamespaceFilter from "./NamespaceFilter";
 import OTLPBatcher from "./OTLPBatcher";
 import { LogStream, PodContext, StreamKey, makeStreamKey } from "./LogStream";
 
@@ -14,20 +15,10 @@ type PodState = {
   streams: Map<string, LogStream>;
 };
 
-const includeSet: Set<string> = new Set(NAMESPACE_INCLUDE);
-const excludeSet: Set<string> = new Set(NAMESPACE_EXCLUDE);
-
-const isNamespaceAllowed: (namespace: string) => boolean = (
-  namespace: string,
-): boolean => {
-  if (includeSet.size > 0 && !includeSet.has(namespace)) {
-    return false;
-  }
-  if (excludeSet.has(namespace)) {
-    return false;
-  }
-  return true;
-};
+const namespaceFilter: NamespaceFilter = new NamespaceFilter(
+  NAMESPACE_INCLUDE,
+  NAMESPACE_EXCLUDE,
+);
 
 const matchesAgentSelector: (pod: k8s.V1Pod) => boolean = (
   pod: k8s.V1Pod,
@@ -179,8 +170,8 @@ export class PodWatcher {
 
     await this.informer.start();
     Logger.info("pod watcher started", {
-      namespaceInclude: Array.from(includeSet),
-      namespaceExclude: Array.from(excludeSet),
+      namespaceInclude: NAMESPACE_INCLUDE,
+      namespaceExclude: NAMESPACE_EXCLUDE,
     });
   }
 
@@ -215,7 +206,7 @@ export class PodWatcher {
     if (!namespace || !podName || !podUID) {
       return;
     }
-    if (!isNamespaceAllowed(namespace)) {
+    if (!namespaceFilter.isAllowed(namespace)) {
       return;
     }
     if (matchesAgentSelector(pod)) {

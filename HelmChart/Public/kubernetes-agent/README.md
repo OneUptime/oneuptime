@@ -327,11 +327,10 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | Key | Default | Description |
 | --- | --- | --- |
 | `preset` | `""` *(→ `standard`)* | `standard`, `gke-autopilot`, or `eks-fargate`. See table above. |
-| `namespaceFilters.include` | `[]` | If set, only these namespaces are observed. Empty means all. Always applies to pod logs (both modes) and eBPF traces, enforced at the source. |
-| `namespaceFilters.exclude` | `["kube-system"]` | Namespaces to skip (applied on top of include; exclude wins). |
-| `namespaceFilters.excludeLogsOnly` | `[]` | Namespaces whose **pod logs** are skipped while eBPF traces and all metrics keep flowing. For teams that ship their own logs (e.g. via a logging SDK straight to OneUptime) but still want traces and the service map. Not passed to the eBPF DaemonSet; ignored by `applyTo`. |
-| `namespaceFilters.applyTo.metrics` | `false` | Also apply the lists above to metrics. Covers per-pod / per-container series; node- and cluster-level series have no namespace and are always kept. Off by default so an upgrade doesn't silently drop `kube-system` metrics. |
-| `namespaceFilters.applyTo.traces` | `false` | Also apply the lists above to spans pushed to the agent's OTLP endpoint. eBPF spans are already scoped at OBI discovery. |
+| `namespaceFilters.rules` | Exclude `kube-system` from `podLogs` and `ebpfDiscovery` | Scoped namespace rules. Patterns match the full namespace name and support `*`; any include rule creates an allowlist for its scope, and exclude rules always win. |
+| `namespaceFilters.rules[].action` | — | `include` or `exclude`. |
+| `namespaceFilters.rules[].namespaces` | — | Namespace names or patterns such as `team-*`. |
+| `namespaceFilters.rules[].scopes` | — | One or more of `podLogs`, `ebpfDiscovery`, `metrics`, or `traces`. `podLogs` and `ebpfDiscovery` filter at source; the other scopes filter after metadata enrichment. |
 | `filters.logs.minSeverity` | `""` | Drop **pod log** records below this severity: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. Empty keeps everything. Applies in both log modes. Does **not** filter Kubernetes events or resource specs — they carry no severity, so a threshold would delete the whole feed. In `api` mode, lines with no recognisable level are kept (the Kubernetes API cannot tell stdout from stderr). |
 | `filters.metrics.exclude` | `[]` | Metric names to drop, across every receiver. Applied on top of `include`, so exclude wins. |
 | `filters.metrics.include` | `[]` | When non-empty, **only** these metric names are sent. A forgotten name silently removes the monitors built on it — prefer `exclude`. |
@@ -352,6 +351,20 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs. |
 | `cadvisor.enabled` | `true` | Scrape this node's kubelet `/metrics/cadvisor` endpoint for CFS throttling and OOM kill counters that `kubeletstats` doesn't translate. An allowlist drops everything except 3 metrics at the receiver. |
 | `kubeStateMetrics.enabled` | `false` | Pull cluster-state metrics (pod phases, scheduling status, container waiting reasons, resource quotas) from kube-state-metrics. `mode: bundled` (default) deploys a small KSM Deployment for you; `mode: external` scrapes an existing KSM via `endpoint`. |
+
+To stop duplicate pod logs from application teams that ship logs directly,
+while retaining their traces, service map, and metrics:
+
+```yaml
+namespaceFilters:
+  rules:
+    - action: exclude
+      namespaces: [kube-system]
+      scopes: [podLogs, ebpfDiscovery]
+    - action: exclude
+      namespaces: [team-a, "team-b-*"]
+      scopes: [podLogs]
+```
 
 ### Continuous profiling (`profiling.*`) — off by default
 

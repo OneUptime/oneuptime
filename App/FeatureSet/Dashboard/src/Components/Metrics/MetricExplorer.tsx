@@ -89,11 +89,13 @@ function truncateEventMarkerTitle(title: string): string {
 
 // One toolbar-button idiom for the explorer's investigation row.
 const TOOLBAR_BUTTON_CLASS_NAME: string =
-  "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+  "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
 const TOOLBAR_BUTTON_IDLE_CLASS_NAME: string =
-  "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50";
+  "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
 const TOOLBAR_BUTTON_ACTIVE_CLASS_NAME: string =
-  "border-indigo-300 bg-indigo-50 text-indigo-700";
+  "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200";
+const TOOLBAR_ACTION_BUTTON_CLASS_NAME: string =
+  "inline-flex h-8 cursor-pointer select-none items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
 
 // One incident/alert mapped onto a chart time marker.
 interface EventMarker {
@@ -660,7 +662,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
   return (
     <div>
-      <div className="mb-4 space-y-2">
+      <div className="mb-5 space-y-2">
         {headerError ? <HintChip variant="red">{headerError}</HintChip> : null}
 
         {/*
@@ -668,8 +670,8 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
          * overlays on the left; view identity & share actions on the right.
          * Wraps into stacked clusters on narrow screens.
          */}
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="flex flex-wrap items-center gap-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 shadow-sm">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
             <AutoRefreshControl
               autoRefreshInterval={autoRefreshInterval}
               onAutoRefreshIntervalChange={setAutoRefreshInterval}
@@ -683,7 +685,10 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                 />
               }
             />
-            <div className="ml-3 flex items-center gap-2 border-l border-gray-200 pl-3">
+            <div
+              className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
+              aria-label="Related telemetry signals"
+            >
               <Tooltip text="Open the logs explorer scoped to this time window">
                 <button
                   type="button"
@@ -740,7 +745,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-2 xl:w-auto xl:justify-start xl:border-t-0 xl:pt-0">
             <TelemetrySavedViewsControl<MetricSavedView>
               modelType={MetricSavedView}
               savedViewNoun="Metric Explorer"
@@ -759,6 +764,9 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
                   viewType: TelemetrySavedViewType.Explorer,
                 } as Partial<MetricSavedView>
               }
+              triggerClassName="h-8 border-gray-200 px-2.5 text-gray-600"
+              showTriggerIcon={true}
+              dropdownAlignment="right"
             />
             <CopyTextButton
               textToBeCopied={ExplorerLink.buildExplorerUrl(
@@ -769,17 +777,34 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               size="sm"
               variant="ghost"
               title="Copy a shareable link to this view"
+              className="h-8 border-gray-200 bg-white px-2.5 font-medium text-gray-600 shadow-sm hover:border-gray-300 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             />
-            <MoreMenu text="Actions">
+            <MoreMenu
+              text="Actions"
+              triggerClassName={TOOLBAR_ACTION_BUTTON_CLASS_NAME}
+              elementToBeShownInsteadOfButton={
+                <>
+                  <Icon
+                    icon={IconProp.More}
+                    className="h-4 w-4 text-gray-500"
+                  />
+                  <span>Actions</span>
+                  <Icon
+                    icon={IconProp.ChevronDown}
+                    className="h-3 w-3 text-gray-400"
+                  />
+                </>
+              }
+            >
               <MoreMenuItem
                 key="create-monitor-from-view"
-                icon={IconProp.Activity}
+                icon={IconProp.Heartbeat}
                 text="Create monitor from this view"
                 onClick={navigateToCreateMonitor}
               />
               <MoreMenuItem
                 key="add-to-dashboard"
-                icon={IconProp.ChartBarSquare}
+                icon={IconProp.ChartPie}
                 text="Add to dashboard"
                 onClick={() => {
                   setShowAddToDashboardModal(true);

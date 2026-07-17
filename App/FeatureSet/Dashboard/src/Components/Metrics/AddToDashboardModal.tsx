@@ -99,18 +99,27 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
   const addChartToDashboard: (dashboard: Dashboard) => Promise<void> = async (
     dashboard: Dashboard,
   ): Promise<void> => {
-    if (!dashboard.id) {
-      return;
-    }
-
     setIsAdding(true);
     setError("");
 
     try {
+      /*
+       * ModelList keeps selected records as plain object copies. That strips
+       * BaseModel's prototype getter for `id`, while retaining the underlying
+       * `_id` value. Resolve both shapes so submitting the dashboard picker
+       * cannot silently return without adding the chart.
+       */
+      const dashboardId: ObjectID | null =
+        dashboard.id || (dashboard._id ? new ObjectID(dashboard._id) : null);
+
+      if (!dashboardId) {
+        throw new Error("The selected dashboard does not have a valid ID.");
+      }
+
       const fullDashboard: Dashboard | null = await ModelAPI.getItem<Dashboard>(
         {
           modelType: Dashboard,
-          id: dashboard.id,
+          id: dashboardId,
           select: {
             name: true,
             dashboardViewConfig: true,
@@ -170,7 +179,7 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
 
       await ModelAPI.updateById({
         modelType: Dashboard,
-        id: dashboard.id,
+        id: dashboardId,
         data: {
           dashboardViewConfig: JSONFunctions.serializeValue(
             updatedViewConfig as unknown as JSONObject,

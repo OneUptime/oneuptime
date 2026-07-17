@@ -131,6 +131,9 @@ export interface ComponentProps<T extends TelemetrySavedViewModel> {
    * When absent, records are saved exactly as before.
    */
   additionalSaveFields?: Partial<T> | undefined;
+  triggerClassName?: string | undefined;
+  showTriggerIcon?: boolean | undefined;
+  dropdownAlignment?: "left" | "right" | undefined;
 }
 
 function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
@@ -485,6 +488,9 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
           setViewToDelete(findById(viewId));
         }}
         onUpdateCurrent={selectedView ? handleUpdateCurrent : undefined}
+        triggerClassName={props.triggerClassName}
+        showTriggerIcon={props.showTriggerIcon}
+        dropdownAlignment={props.dropdownAlignment}
       />
     </>
   );
