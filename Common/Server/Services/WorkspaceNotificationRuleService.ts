@@ -1911,7 +1911,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       if (workspaceRules.shouldPostToExistingChannel) {
         const existingChannelNames: Array<string> =
-          workspaceRules.existingChannelNames.split(",");
+          workspaceRules.existingChannelNames.split(",").map((name) => name.trim());
 
         logger.debug("Existing channel names from rule:", {} as LogAttributes);
         logger.debug(existingChannelNames, {} as LogAttributes);
