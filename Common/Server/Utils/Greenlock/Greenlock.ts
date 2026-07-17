@@ -10,7 +10,6 @@ import logger, { LogAttributes } from "../Logger";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import ServerException from "../../../Types/Exception/ServerException";
 import Text from "../../../Types/Text";
@@ -203,7 +202,7 @@ export default class GreenlockUtil {
           `Cname is not valid for domain: ${domain}`,
           orderLogAttributes,
         );
-        throw new BadDataException("Cname is not valid for domain " + domain);
+        return;
       }
 
       logger.debug(`Cname is valid for domain: ${domain}`, orderLogAttributes);
