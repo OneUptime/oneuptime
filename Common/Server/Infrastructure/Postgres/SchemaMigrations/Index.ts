@@ -927,5 +927,5 @@ export default [
   AddEnterpriseLicenseNotificationColumns1784218257664,
   AddAttributionColumnsToUserAndProject1784293516000,
   AddMarketingConversionTable1784298000000,
-  MigrationName1784401962564
+  MigrationName1784401962564,
 ];
