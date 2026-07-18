@@ -19,6 +19,8 @@ import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpEntityInfo from "Common/Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
+// Repairs net-snmp's DES privacy on OpenSSL 3 — must load with net-snmp.
+import "../../Snmp/SnmpDesPrivacyCompat";
 import snmp from "net-snmp";
 
 /*
