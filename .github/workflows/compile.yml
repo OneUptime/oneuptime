@@ -198,13 +198,33 @@ jobs:
         with:
           node-version: 26
       - run: cd Common && npm install
-      
+
       - name: Compile Status Page
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
           command: cd App/FeatureSet/StatusPage && npm install && npm run compile && npm run dep-check
+
+  # The only feature set this workflow used to skip, which is how it sat with a
+  # broken compile unnoticed.
+  compile-public-dashboard:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+      - run: cd Common && npm install
+
+      - name: Compile Public Dashboard
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: cd App/FeatureSet/PublicDashboard && npm install && npm run compile && npm run dep-check
 
   compile-test-server:
     runs-on: ubuntu-latest

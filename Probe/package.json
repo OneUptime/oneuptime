@@ -46,7 +46,8 @@
     "@types/whois-json": "^2.0.4",
     "jest": "^28.1.0",
     "nodemon": "^3.1.14",
-    "ts-jest": "^28.0.2"
+    "ts-jest": "^28.0.2",
+    "typescript": "^5.9.3"
   },
   "optionalDependencies": {
     "msnodesqlv8": "^5.2.2"
