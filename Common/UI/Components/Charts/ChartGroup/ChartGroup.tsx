@@ -38,6 +38,13 @@ export interface Chart {
   exemplarPoints?: Array<ExemplarPoint> | undefined;
   onExemplarClick?: ((exemplar: ExemplarPoint) => void) | undefined;
   /**
+   * Optional "Open in Explorer" action rendered as an icon button in the
+   * chart header next to the info icon. Kept as a plain callback so this
+   * shared component stays free of any app's routing — callers build the
+   * explorer URL and navigate themselves.
+   */
+  onOpenInExplorer?: (() => void) | undefined;
+  /**
    * Optional control panel rendered directly below the chart body. Used by
    * per-series-grouped metric charts to surface a search box, a sort
    * control, per-series toggles, and a "show all" escape hatch so the chart
@@ -109,6 +116,29 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     }
   };
 
+  type GetDragToZoomHintFunction = (chart: Chart) => ReactElement;
+
+  // Same subtle hint the log/telemetry histograms show for drag-to-zoom.
+  const getDragToZoomHint: GetDragToZoomHintFunction = (
+    chart: Chart,
+  ): ReactElement => {
+    const supportsTimeRangeSelect: boolean =
+      (chart.type === ChartType.LINE || chart.type === ChartType.AREA) &&
+      Boolean(
+        (chart.props as LineChartProps | AreaChartProps).onTimeRangeSelect,
+      );
+
+    if (!supportsTimeRangeSelect) {
+      return <></>;
+    }
+
+    return (
+      <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] text-gray-400">
+        Drag to zoom
+      </span>
+    );
+  };
+
   type GetInfoIconFunction = (chart: Chart) => ReactElement;
 
   const getInfoIcon: GetInfoIconFunction = (chart: Chart): ReactElement => {
@@ -119,7 +149,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     return (
       <button
         type="button"
-        className="ml-1.5 inline-flex items-center justify-center rounded-full w-5 h-5 text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
+        className="ml-1.5 inline-flex items-center justify-center rounded-full w-5 h-5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-150"
         title="View metric details"
         onClick={() => {
           setMetricInfoModalChart(chart.metricInfo || null);
@@ -127,6 +157,33 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
       >
         <Icon
           icon={IconProp.InformationCircle}
+          size={SizeProp.Smaller}
+          className="h-3.5 w-3.5"
+        />
+      </button>
+    );
+  };
+
+  type GetExplorerIconFunction = (chart: Chart) => ReactElement;
+
+  const getExplorerIcon: GetExplorerIconFunction = (
+    chart: Chart,
+  ): ReactElement => {
+    if (!chart.onOpenInExplorer) {
+      return <></>;
+    }
+
+    return (
+      <button
+        type="button"
+        className="ml-1.5 inline-flex items-center justify-center rounded-full w-5 h-5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-150"
+        title="Open in Metric Explorer"
+        onClick={() => {
+          chart.onOpenInExplorer?.();
+        }}
+      >
+        <Icon
+          icon={IconProp.ExternalLink}
           size={SizeProp.Smaller}
           className="h-3.5 w-3.5"
         />
@@ -250,10 +307,15 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 <div className="px-5 pt-4 pb-4 flex flex-col flex-1">
                   <div className="mb-3 pb-3 border-b border-gray-100">
                     <div className="flex items-center">
-                      <h3 className="text-sm font-semibold text-gray-800 tracking-tight">
+                      <h3
+                        className="min-w-0 truncate text-sm font-semibold text-gray-800 tracking-tight"
+                        title={chart.title}
+                      >
                         {chart.title}
                       </h3>
                       {getInfoIcon(chart)}
+                      {getExplorerIcon(chart)}
+                      {getDragToZoomHint(chart)}
                     </div>
                     {chart.description && (
                       <p className="mt-1 text-xs text-gray-500 hidden md:block">
@@ -263,7 +325,7 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   </div>
                   {getChartContent(chart, index)}
                   {chart.seriesControls ? (
-                    <div className="mb-3">{chart.seriesControls}</div>
+                    <div className="mt-3">{chart.seriesControls}</div>
                   ) : null}
                 </div>
               </div>
@@ -281,37 +343,46 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
   return (
     <>
       {renderMetricInfoModal()}
-      <div
-        className={`grid grid-cols-1 ${gridCols} gap-4 space-y-4 lg:space-y-0`}
-      >
+      <div className={`grid grid-cols-1 ${gridCols} gap-4`}>
         {props.charts.map((chart: Chart, index: number) => {
           return (
             <div
               key={index}
-              className={`p-5 rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col gap-3 ${props.chartCssClass || ""}`}
+              className={`flex flex-col rounded-lg border border-gray-200 bg-white shadow-sm ${props.chartCssClass || ""}`}
             >
-              <div className="flex items-center">
-                <h2
-                  data-testid="card-details-heading"
-                  id="card-details-heading"
-                  className="text-base font-semibold leading-6 text-gray-900"
-                >
-                  {chart.title}
-                </h2>
-                {getInfoIcon(chart)}
+              {/* Header strip — title, meta icons, hover-revealed zoom hint */}
+              <div className="border-b border-gray-100 px-4 py-2.5">
+                <div className="flex items-center">
+                  <h2
+                    data-testid="card-details-heading"
+                    id="card-details-heading"
+                    className="min-w-0 truncate text-sm font-semibold leading-6 text-gray-900"
+                    title={chart.title}
+                  >
+                    {chart.title}
+                  </h2>
+                  {getInfoIcon(chart)}
+                  {getExplorerIcon(chart)}
+                  {getDragToZoomHint(chart)}
+                </div>
+                {chart.description && (
+                  <p
+                    data-testid="card-description"
+                    className="mt-0.5 w-full truncate text-xs text-gray-500 hidden md:block"
+                    title={chart.description}
+                  >
+                    {chart.description}
+                  </p>
+                )}
               </div>
-              {chart.description && (
-                <p
-                  data-testid="card-description"
-                  className="mt-0.5 text-sm text-gray-500 w-full hidden md:block"
-                >
-                  {chart.description}
-                </p>
-              )}
-              <div className="flex-1 flex flex-col min-h-80">
+              <div className="flex-1 flex flex-col min-h-80 px-4 pt-3 pb-2">
                 {getChartContent(chart, index)}
               </div>
-              {chart.seriesControls ? chart.seriesControls : null}
+              {chart.seriesControls ? (
+                <div className="border-t border-gray-100 px-4 py-3">
+                  {chart.seriesControls}
+                </div>
+              ) : null}
             </div>
           );
         })}

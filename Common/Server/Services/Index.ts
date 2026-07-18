@@ -70,6 +70,9 @@ import MailService from "./MailService";
 import MetricService from "./MetricService";
 import MetricItemAggMV1mService from "./MetricItemAggMV1mService";
 import MetricItemAggMV1mByHostV2Service from "./MetricItemAggMV1mByHostV2Service";
+import MetricItemAggMV1mByServiceService from "./MetricItemAggMV1mByServiceService";
+import MetricItemAggMV1mByK8sClusterService from "./MetricItemAggMV1mByK8sClusterService";
+import MetricItemAggMV1mByContainerService from "./MetricItemAggMV1mByContainerService";
 import MutableMetricService from "./MutableMetricService";
 import MetricBaselineService from "./MetricBaselineService";
 import MonitorCustomFieldService from "./MonitorCustomFieldService";
@@ -123,6 +126,7 @@ import GlobalOidcProjectService from "./GlobalOidcProjectService";
 import PromoCodeService from "./PromoCodeService";
 import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import EnterpriseLicenseInstanceService from "./EnterpriseLicenseInstanceService";
+import MarketingConversionService from "./MarketingConversionService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
 import ResellerPlanService from "./ResellerPlanService";
 import ResellerService from "./ResellerService";
@@ -253,6 +257,7 @@ import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryS
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 
 import MonitorLogService from "./MonitorLogService";
+import NetworkFlowService from "./NetworkFlowService";
 
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import ProjectSCIMLogService from "./ProjectSCIMLogService";
@@ -264,6 +269,7 @@ const services: Array<BaseService> = [
   PromoCodeService,
   EnterpriseLicenseService,
   EnterpriseLicenseInstanceService,
+  MarketingConversionService,
   OpenSourceDeploymentService,
 
   ResellerService,
@@ -532,9 +538,13 @@ export const AnalyticsServices: Array<
    */
   MetricItemAggMV1mService,
   MetricItemAggMV1mByHostV2Service,
+  MetricItemAggMV1mByServiceService,
+  MetricItemAggMV1mByK8sClusterService,
+  MetricItemAggMV1mByContainerService,
   MetricBaselineService,
   ExceptionInstanceService,
   MonitorLogService,
+  NetworkFlowService,
   ProfileService,
   ProfileSampleService,
   AuditLogService,

@@ -10,6 +10,15 @@ import React, {
 import ReactMarkdown from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from "remark-gfm";
+/*
+ * @types/react-syntax-highlighter declares every deep subpath below as ambient
+ * `declare module` blocks inside its single index.d.ts, and that file only enters the
+ * program when something resolves the bare specifier. Nothing else does, so without
+ * this line the deep imports fall back to untyped .js and every one of them errors
+ * TS7016. `import type` is erased at emit, so the deep imports below still tree-shake;
+ * importing the barrel as a value would drag in highlight.js and the full language set.
+ */
+import type {} from "react-syntax-highlighter";
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism-light";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import javascript from "react-syntax-highlighter/dist/esm/languages/prism/javascript";

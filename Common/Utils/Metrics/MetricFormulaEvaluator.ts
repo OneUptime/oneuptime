@@ -3,6 +3,7 @@ import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import MetricFormulaConfigData from "../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../Types/Metrics/MetricQueryConfigData";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 
 /**
  * Shunting-yard based evaluator for metric formulas such as
@@ -10,6 +11,17 @@ import MetricQueryConfigData from "../../Types/Metrics/MetricQueryConfigData";
  * alias (case-insensitive, with or without a leading "$"). Evaluates
  * the formula point-by-point against a time-aligned series from the
  * referenced queries/formulas.
+ *
+ * Group-aware: when a referenced query is grouped (e.g. by "host.name")
+ * and its result carries multiple series, the formula is evaluated once
+ * per group present in ALL grouped variables (Datadog-style), and the
+ * group's attributes are stamped onto the output rows so chart layers
+ * can split them back into one line per group. Ungrouped variables
+ * broadcast across groups; a variable whose QUERY was grouped is joined
+ * by group key even when it happens to return a single series (see
+ * isGroupedVariable). When every referenced variable has a single
+ * series the evaluator behaves exactly like the original timestamp-only
+ * join — no stamping, identical output.
  */
 
 enum TokenType {
@@ -47,11 +59,27 @@ export interface FormulaPoint {
   value: number;
 }
 
+interface VariableSeriesData {
+  result: AggregatedResult;
+  groupByAttributeKeys: Array<string>;
+}
+
+interface SeriesGroupBucket {
+  labels: JSONObject;
+  samples: Array<AggregatedModel>;
+}
+
 export default class MetricFormulaEvaluator {
   /**
    * Evaluate a formula against the provided query/formula results and
    * return a synthetic AggregatedResult whose timestamps are the union
-   * of all referenced series.
+   * of all referenced series. Grouped inputs produce one output series
+   * per common group, with the group attributes stamped on each row.
+   *
+   * Throws for STRUCTURAL problems (invalid formula syntax/arity,
+   * unknown variable, grouped variables with no groups in common).
+   * Per-point data gaps (a timestamp missing from one variable) are
+   * skipped silently, as before.
    */
   public static evaluateFormula(input: {
     formula: string;
@@ -64,9 +92,10 @@ export default class MetricFormulaEvaluator {
       return { data: [] };
     }
 
+    // Throws a descriptive BadDataException for syntax and arity errors.
     const rpn: Array<Token> = MetricFormulaEvaluator.toRpn(trimmedFormula);
 
-    const variableResults: Record<string, AggregatedResult> =
+    const variableData: Record<string, VariableSeriesData> =
       MetricFormulaEvaluator.buildVariableResultMap({
         queryConfigs: input.queryConfigs,
         formulaConfigs: input.formulaConfigs,
@@ -82,61 +111,132 @@ export default class MetricFormulaEvaluator {
       MetricFormulaEvaluator.collectVariableNames(rpn);
 
     for (const variableName of referencedVariables) {
-      if (!variableResults[variableName]) {
+      if (!variableData[variableName]) {
         throw new BadDataException(
           `Formula references unknown variable "$${variableName}". Define a metric query with that alias first.`,
         );
       }
     }
 
-    const timestampIndex: Map<
-      string,
-      Record<string, number>
-    > = MetricFormulaEvaluator.buildTimestampIndex(
-      referencedVariables,
-      variableResults,
+    /*
+     * Bucket each variable's rows into series groups.
+     */
+    const seriesBuckets: Record<string, Map<string, SeriesGroupBucket>> = {};
+
+    for (const variableName of referencedVariables) {
+      seriesBuckets[variableName] = MetricFormulaEvaluator.bucketSeriesByGroup(
+        variableData[variableName]!,
+      );
+    }
+
+    /*
+     * The grouped path only ENGAGES when some variable factually carries
+     * two or more series. Callers like the metric-monitor worker
+     * pre-bucket per series fingerprint and pass one series per variable
+     * (with grouped query configs still attached), and those inputs must
+     * remain an exact — byte-identical — passthrough of the original
+     * single-series behavior.
+     */
+    const hasMultiSeriesVariable: boolean = referencedVariables.some(
+      (variableName: string) => {
+        return (seriesBuckets[variableName]?.size || 0) >= 2;
+      },
     );
 
-    const sortedTimestamps: Array<string> = Array.from(
-      timestampIndex.keys(),
-    ).sort();
+    if (!hasMultiSeriesVariable) {
+      // Single-series inputs: exact passthrough of the original behavior.
+      const seriesByVariable: Record<string, Array<AggregatedModel>> = {};
+      for (const variableName of referencedVariables) {
+        seriesByVariable[variableName] =
+          variableData[variableName]!.result.data;
+      }
+
+      return {
+        data: MetricFormulaEvaluator.evaluatePointwise({
+          rpn,
+          referencedVariables,
+          seriesByVariable,
+        }),
+      };
+    }
+
+    /*
+     * Once in the grouped path, classification switches from observed
+     * series count to query intent where available: a variable whose
+     * query was grouped joins by group key even when it returned a
+     * single series. Every multi-series variable satisfies the
+     * predicate too, so groupedVariables is never empty here.
+     */
+    const groupedVariables: Array<string> = referencedVariables.filter(
+      (variableName: string) => {
+        return MetricFormulaEvaluator.isGroupedVariable(
+          seriesBuckets[variableName],
+          variableData[variableName]!,
+        );
+      },
+    );
+
+    /*
+     * Groups the formula is evaluated for = groups present in EVERY
+     * grouped variable. Ungrouped variables broadcast, so they don't
+     * constrain the set.
+     */
+    let commonGroupKeys: Array<string> = Array.from(
+      seriesBuckets[groupedVariables[0]!]!.keys(),
+    );
+
+    for (let index: number = 1; index < groupedVariables.length; index++) {
+      const buckets: Map<string, SeriesGroupBucket> =
+        seriesBuckets[groupedVariables[index]!]!;
+      commonGroupKeys = commonGroupKeys.filter((groupKey: string) => {
+        return buckets.has(groupKey);
+      });
+    }
+
+    if (commonGroupKeys.length === 0) {
+      throw new BadDataException(
+        `Formula "${trimmedFormula}" references grouped queries that have no series groups in common. Make sure every grouped query used by the formula is grouped by the same attributes.`,
+      );
+    }
+
+    /*
+     * Group keys are canonical "key=value|key2=value2" strings, so a
+     * lexicographic sort yields a stable, human-sensible series order.
+     */
+    commonGroupKeys.sort();
 
     const resultData: Array<AggregatedModel> = [];
 
-    for (const timestampString of sortedTimestamps) {
-      const values: Record<string, number> =
-        timestampIndex.get(timestampString) || {};
+    for (const groupKey of commonGroupKeys) {
+      const groupLabels: JSONObject =
+        seriesBuckets[groupedVariables[0]!]!.get(groupKey)!.labels;
 
-      /*
-       * Skip points where any referenced variable is missing a value. A
-       * partial join would produce misleading numbers (e.g. treating a
-       * gap as zero silently when using subtraction).
-       */
-      const hasAllValues: boolean = referencedVariables.every(
-        (variable: string) => {
-          return typeof values[variable] === "number";
-        },
+      const seriesByVariable: Record<string, Array<AggregatedModel>> = {};
+      for (const variableName of referencedVariables) {
+        const buckets: Map<string, SeriesGroupBucket> =
+          seriesBuckets[variableName]!;
+        if (
+          MetricFormulaEvaluator.isGroupedVariable(
+            buckets,
+            variableData[variableName]!,
+          )
+        ) {
+          seriesByVariable[variableName] = buckets.get(groupKey)?.samples || [];
+        } else {
+          // Ungrouped variable: broadcast to every group.
+          seriesByVariable[variableName] =
+            variableData[variableName]!.result.data;
+        }
+      }
+
+      resultData.push(
+        ...MetricFormulaEvaluator.evaluatePointwise({
+          rpn,
+          referencedVariables,
+          seriesByVariable,
+          groupAttributes: groupLabels,
+        }),
       );
-
-      if (!hasAllValues) {
-        continue;
-      }
-
-      let evaluated: number;
-      try {
-        evaluated = MetricFormulaEvaluator.evaluateRpn(rpn, values);
-      } catch {
-        continue;
-      }
-
-      if (!Number.isFinite(evaluated)) {
-        continue;
-      }
-
-      resultData.push({
-        timestamp: new Date(timestampString),
-        value: evaluated,
-      });
     }
 
     return { data: resultData };
@@ -203,8 +303,8 @@ export default class MetricFormulaEvaluator {
     queryConfigs: Array<MetricQueryConfigData>;
     formulaConfigs: Array<MetricFormulaConfigData>;
     results: Array<AggregatedResult>;
-  }): Record<string, AggregatedResult> {
-    const variableMap: Record<string, AggregatedResult> = {};
+  }): Record<string, VariableSeriesData> {
+    const variableMap: Record<string, VariableSeriesData> = {};
 
     const totalSeries: number =
       input.queryConfigs.length + input.formulaConfigs.length;
@@ -216,10 +316,17 @@ export default class MetricFormulaEvaluator {
       }
 
       let alias: string | undefined;
+      let groupByAttributeKeys: Array<string> = [];
+
       if (index < input.queryConfigs.length) {
         alias =
           input.queryConfigs[index]?.metricAliasData?.metricVariable ||
           undefined;
+        groupByAttributeKeys = (
+          input.queryConfigs[index]?.metricQueryData?.groupByAttributeKeys || []
+        ).filter((key: string) => {
+          return Boolean(key);
+        });
       } else {
         const formulaIndex: number = index - input.queryConfigs.length;
         alias =
@@ -231,25 +338,230 @@ export default class MetricFormulaEvaluator {
         continue;
       }
 
-      variableMap[alias.toLowerCase()] = result;
+      variableMap[alias.toLowerCase()] = {
+        result,
+        groupByAttributeKeys,
+      };
     }
 
     return variableMap;
   }
 
+  /**
+   * Whether a variable participates in per-group evaluation (joined by
+   * group key) rather than broadcasting across every group. True when
+   * it factually carries two or more series, OR when its QUERY was
+   * grouped (groupByAttributeKeys) and it returned at least one series:
+   * a grouped query that collapsed to a single series (e.g. only one
+   * host reported the denominator metric in the window) must still be
+   * matched group-by-group — broadcasting it would silently compute
+   * cross-group math stamped with another group's labels. Formula
+   * variables and ungrouped queries carry no grouping config, so they
+   * keep the observed >=2 heuristic. A config-grouped variable with an
+   * EMPTY result intentionally classifies as ungrouped: it degrades to
+   * per-point gaps (empty output) instead of a structural
+   * no-groups-in-common error.
+   *
+   * Only consulted once the grouped path has engaged — the passthrough
+   * gate in evaluateFormula deliberately does NOT use this predicate,
+   * so single-series inputs (the metric-monitor worker's per-fingerprint
+   * shape) stay a byte-identical passthrough.
+   */
+  private static isGroupedVariable(
+    buckets: Map<string, SeriesGroupBucket> | undefined,
+    variable: VariableSeriesData,
+  ): boolean {
+    const bucketCount: number = buckets?.size || 0;
+    if (bucketCount >= 2) {
+      return true;
+    }
+    return bucketCount >= 1 && variable.groupByAttributeKeys.length > 0;
+  }
+
+  /**
+   * Bucket a variable's rows by series group. Query variables group by
+   * their configured group-by attribute keys (read from each row's
+   * `attributes` map — the shape both the aggregation API and the
+   * metric-monitor worker produce). Formula variables (and queries
+   * without configured keys) group by whatever scalar `attributes`
+   * entries their rows carry — formula outputs are stamped with exactly
+   * the group attributes by this evaluator, so this round-trips
+   * formula-of-formula references. Rows without attributes fall into a
+   * single ungrouped bucket.
+   */
+  private static bucketSeriesByGroup(
+    variable: VariableSeriesData,
+  ): Map<string, SeriesGroupBucket> {
+    const buckets: Map<string, SeriesGroupBucket> = new Map();
+
+    for (const sample of variable.result.data) {
+      const labels: JSONObject = MetricFormulaEvaluator.extractGroupLabels({
+        sample,
+        groupByAttributeKeys: variable.groupByAttributeKeys,
+      });
+
+      const groupKey: string = MetricFormulaEvaluator.computeGroupKey(labels);
+
+      const existing: SeriesGroupBucket | undefined = buckets.get(groupKey);
+      if (existing) {
+        existing.samples.push(sample);
+      } else {
+        buckets.set(groupKey, { labels, samples: [sample] });
+      }
+    }
+
+    return buckets;
+  }
+
+  /**
+   * Mirror of MetricSeriesFingerprint.extractSeriesLabels semantics
+   * (missing keys preserved as "" so groups stay stable when a series
+   * occasionally drops an attribute). Not imported from that module
+   * because it pulls in node's "crypto", which the browser bundles that
+   * ship this evaluator cannot resolve.
+   */
+  private static extractGroupLabels(input: {
+    sample: AggregatedModel;
+    groupByAttributeKeys: Array<string>;
+  }): JSONObject {
+    const labels: JSONObject = {};
+
+    const sampleAttributes: JSONObject =
+      ((input.sample as unknown as JSONObject)["attributes"] as
+        | JSONObject
+        | undefined) || {};
+
+    if (input.groupByAttributeKeys.length > 0) {
+      for (const key of input.groupByAttributeKeys) {
+        const value: JSONValue | undefined = sampleAttributes[key];
+        labels[key] = value === undefined || value === null ? "" : value;
+      }
+      return labels;
+    }
+
+    for (const key of Object.keys(sampleAttributes)) {
+      const value: JSONValue | undefined = sampleAttributes[key];
+      if (value === undefined || value === null) {
+        labels[key] = "";
+        continue;
+      }
+      // Nested objects/arrays can't canonicalize into a stable label.
+      if (typeof value === "object") {
+        continue;
+      }
+      labels[key] = value;
+    }
+
+    return labels;
+  }
+
+  /**
+   * Canonical in-memory series key: sorted "key=value" pairs. Same
+   * equivalence classes as MetricSeriesFingerprint.computeFingerprint
+   * (which hashes this exact string), without the crypto dependency.
+   * Empty labels — an ungrouped series — map to "".
+   */
+  private static computeGroupKey(labels: JSONObject): string {
+    const keys: Array<string> = Object.keys(labels).sort();
+
+    if (keys.length === 0) {
+      return "";
+    }
+
+    const parts: Array<string> = [];
+    for (const key of keys) {
+      const raw: JSONValue | undefined = labels[key];
+      const value: string =
+        raw === undefined || raw === null ? "" : String(raw);
+      parts.push(`${key}=${value}`);
+    }
+
+    return parts.join("|");
+  }
+
+  /**
+   * Join the given series on timestamp and evaluate the formula per
+   * point. Points missing a value for any referenced variable are
+   * skipped (a partial join would produce misleading numbers — e.g.
+   * treating a gap as zero silently when using subtraction), as are
+   * non-finite results like divide-by-zero. Structural formula errors
+   * are impossible here: the RPN's arity is validated at parse time.
+   */
+  private static evaluatePointwise(input: {
+    rpn: Array<Token>;
+    referencedVariables: Array<string>;
+    seriesByVariable: Record<string, Array<AggregatedModel>>;
+    groupAttributes?: JSONObject | undefined;
+  }): Array<AggregatedModel> {
+    const timestampIndex: Map<
+      string,
+      Record<string, number>
+    > = MetricFormulaEvaluator.buildTimestampIndex(
+      input.referencedVariables,
+      input.seriesByVariable,
+    );
+
+    const sortedTimestamps: Array<string> = Array.from(
+      timestampIndex.keys(),
+    ).sort();
+
+    const resultData: Array<AggregatedModel> = [];
+
+    for (const timestampString of sortedTimestamps) {
+      const values: Record<string, number> =
+        timestampIndex.get(timestampString) || {};
+
+      const hasAllValues: boolean = input.referencedVariables.every(
+        (variable: string) => {
+          return typeof values[variable] === "number";
+        },
+      );
+
+      if (!hasAllValues) {
+        continue;
+      }
+
+      const evaluated: number = MetricFormulaEvaluator.evaluateRpn(
+        input.rpn,
+        values,
+      );
+
+      if (!Number.isFinite(evaluated)) {
+        continue;
+      }
+
+      const row: AggregatedModel = {
+        timestamp: new Date(timestampString),
+        value: evaluated,
+      };
+
+      if (
+        input.groupAttributes &&
+        Object.keys(input.groupAttributes).length > 0
+      ) {
+        row["attributes"] = input.groupAttributes;
+      }
+
+      resultData.push(row);
+    }
+
+    return resultData;
+  }
+
   private static buildTimestampIndex(
     variables: Array<string>,
-    variableResults: Record<string, AggregatedResult>,
+    seriesByVariable: Record<string, Array<AggregatedModel>>,
   ): Map<string, Record<string, number>> {
     const index: Map<string, Record<string, number>> = new Map();
 
     for (const variable of variables) {
-      const series: AggregatedResult | undefined = variableResults[variable];
+      const series: Array<AggregatedModel> | undefined =
+        seriesByVariable[variable];
       if (!series) {
         continue;
       }
 
-      for (const sample of series.data) {
+      for (const sample of series) {
         const timestampKey: string = MetricFormulaEvaluator.normalizeTimestamp(
           sample.timestamp,
         );
@@ -524,7 +836,59 @@ export default class MetricFormulaEvaluator {
       output.push(top);
     }
 
+    MetricFormulaEvaluator.assertValidRpn(output);
+
     return output;
+  }
+
+  /**
+   * Verify operator arity by simulating stack depth over the RPN. This
+   * turns malformed expressions like "a**b", "a+" or "()" into
+   * descriptive parse-time errors instead of silent per-point failures
+   * that render as "no data".
+   */
+  private static assertValidRpn(rpn: Array<Token>): void {
+    let depth: number = 0;
+
+    for (const token of rpn) {
+      if (
+        token.type === TokenType.Number ||
+        token.type === TokenType.Variable
+      ) {
+        depth++;
+        continue;
+      }
+
+      if (token.type === TokenType.Operator) {
+        const operatorValue: Operator = token.value as Operator;
+
+        if (operatorValue === "u-" || operatorValue === "u+") {
+          if (depth < 1) {
+            throw new BadDataException(
+              `Invalid formula: unary "${operatorValue.charAt(1)}" is missing its operand.`,
+            );
+          }
+          continue;
+        }
+
+        if (depth < 2) {
+          throw new BadDataException(
+            `Invalid formula: operator "${operatorValue}" is missing an operand.`,
+          );
+        }
+        depth--;
+      }
+    }
+
+    if (depth === 0) {
+      throw new BadDataException("Invalid formula: expression is empty.");
+    }
+
+    if (depth !== 1) {
+      throw new BadDataException(
+        "Invalid formula: expression does not reduce to a single value. Did you forget an operator between two values?",
+      );
+    }
   }
 
   private static evaluateRpn(

@@ -72,6 +72,13 @@ import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
 import "./Jobs/MonitorOwners/SendOwnerAddedNotification";
 import "./Jobs/MonitorOwners/SendStatusChangeNotification";
+
+// Network Device Owners
+import "./Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
+
+// Network Device Discovery
+import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
+
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
@@ -79,6 +86,7 @@ import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
 import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
 import "./Jobs/PaymentProvider/PopulatePlanNameInProject";
 import "./Jobs/PaymentProvider/UpdateTeamMembersIfNull";
+import "./Jobs/MarketingConversions/UploadMarketingConversions";
 import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 
 // Scheduled Event

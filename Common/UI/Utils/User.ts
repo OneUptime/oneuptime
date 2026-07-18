@@ -213,15 +213,54 @@ export default class UserUtil {
     const result: Dictionary<string> = {};
 
     for (const key in localStorageItems) {
-      if (!localStorageItems[key]) {
+      const value: string = localStorageItems[key] as string;
+
+      /*
+       * Older versions of the marketing site stored the literal strings
+       * "null" / "undefined" for missing utm params. Filter those out so
+       * they never end up on the User record.
+       */
+      if (!value || value === "null" || value === "undefined") {
         continue;
       }
 
       if (key.startsWith("utm")) {
-        result[key] = localStorageItems[key] as string;
+        result[key] = value;
       }
     }
 
     return result;
+  }
+
+  // Ad platform click IDs (gclid, fbclid, etc.) stored by the marketing site.
+  public static getAttributionClickIds(): JSONObject | null {
+    return UserUtil.parseJsonLocalStorageItem("clickIds");
+  }
+
+  // First attributed touch (utm params, click IDs, landing URL) — never overwritten.
+  public static getFirstTouchAttribution(): JSONObject | null {
+    return UserUtil.parseJsonLocalStorageItem("firstTouch");
+  }
+
+  private static parseJsonLocalStorageItem(key: string): JSONObject | null {
+    /*
+     * LocalStorage.getItem JSON-parses stored strings when it can, so this
+     * may already be an object; fall back to parsing the raw string.
+     */
+    let value: JSONValue = LocalStorage.getItem(key);
+
+    if (typeof value === "string") {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        return null;
+      }
+    }
+
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return value as JSONObject;
+    }
+
+    return null;
   }
 }

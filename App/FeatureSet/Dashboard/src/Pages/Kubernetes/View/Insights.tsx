@@ -2,9 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Card from "Common/UI/Components/Card/Card";
-import MetricView from "../../../Components/Metrics/MetricView";
-import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -33,7 +31,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 
 interface MetricSpec {
@@ -80,59 +77,14 @@ function buildQuery(
   };
 }
 
-function buildMetricViewData(
-  queries: Array<MetricQueryConfigData>,
-  startAndEndDate: InBetween<Date>,
-): MetricViewData {
-  return {
-    startAndEndDate,
-    queryConfigs: queries,
-    formulaConfigs: [],
-  };
-}
-
-interface SectionProps {
-  title: string;
-  description: string;
-  icon: IconProp;
-  data?: MetricViewData | undefined;
-  children?: ReactElement | undefined;
-  timeRange: RangeStartAndEndDateTime;
-  onTimeRangeChange: (newTimeRange: RangeStartAndEndDateTime) => void;
-}
-
-const InsightsSection: FunctionComponent<SectionProps> = (
-  props: SectionProps,
-): ReactElement => {
+function getSectionTitle(icon: IconProp, title: string): ReactElement {
   return (
-    <Card
-      title={
-        <div className="flex items-center gap-2">
-          <Icon icon={props.icon} className="h-5 w-5 text-gray-500" />
-          <span>{props.title}</span>
-        </div>
-      }
-      description={props.description}
-      rightElement={
-        <RangeStartAndEndDateView
-          dashboardStartAndEndDate={props.timeRange}
-          onChange={props.onTimeRangeChange}
-        />
-      }
-    >
-      {props.children ??
-        (props.data ? (
-          <MetricView
-            data={props.data}
-            hideQueryElements={true}
-            hideStartAndEndDate={true}
-            hideCardInCharts={true}
-            onChange={() => {}}
-          />
-        ) : undefined)}
-    </Card>
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} className="h-5 w-5 text-gray-500" />
+      <span>{title}</span>
+    </div>
   );
-};
+}
 
 function getNodeQueries(
   cluster: string,
@@ -294,47 +246,38 @@ const KubernetesClusterInsights: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
-  const nodeData: MetricViewData = buildMetricViewData(
-    getNodeQueries(clusterIdentifier, allocatable),
-    startAndEndDate,
-  );
-  const podData: MetricViewData = buildMetricViewData(
-    getPodQueries(clusterIdentifier, allocatable),
-    startAndEndDate,
-  );
-
   return (
     <Fragment>
-      <InsightsSection
-        title="Compute & Storage"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.CPUChip, "Compute & Storage")}
         description="CPU, memory and filesystem usage across all nodes in the cluster."
-        icon={IconProp.CPUChip}
-        data={nodeData}
+        queryConfigs={getNodeQueries(clusterIdentifier, allocatable)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
 
-      <InsightsSection
-        title="Network"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Signal, "Network")}
         description="Per-second inbound and outbound network throughput across all nodes."
-        icon={IconProp.Signal}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       >
         <KubernetesNetworkThroughputChart
           clusterIdentifier={clusterIdentifier}
           startDate={startAndEndDate.startValue}
           endDate={startAndEndDate.endValue}
         />
-      </InsightsSection>
+      </EmbeddedMetricCard>
 
-      <InsightsSection
-        title="Pods"
+      <EmbeddedMetricCard
+        title={getSectionTitle(IconProp.Circle, "Pods")}
         description="CPU and memory usage aggregated across all pods in the cluster."
-        icon={IconProp.Circle}
-        data={podData}
+        queryConfigs={getPodQueries(clusterIdentifier, allocatable)}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
+        startAndEndDate={startAndEndDate}
       />
     </Fragment>
   );

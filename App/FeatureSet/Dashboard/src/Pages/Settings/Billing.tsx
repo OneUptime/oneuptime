@@ -37,6 +37,7 @@ import {
 } from "Common/UI/Config";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import BaseAPI from "Common/UI/Utils/API/API";
+import UiAnalytics from "Common/UI/Utils/Analytics";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
@@ -86,6 +87,8 @@ const Settings: FunctionComponent<ComponentProps> = (
   const [showNoPaymentMethodModal, setShowNoPaymentMethodModal] =
     useState<boolean>(false);
 
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+
   const formRef: any = useRef<any>(null);
 
   const currentProjectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -133,6 +136,7 @@ const Settings: FunctionComponent<ComponentProps> = (
         modelType: Project,
         id: ProjectUtil.getCurrentProjectId()!,
         select: {
+          paymentProviderPlanId: true,
           reseller: {
             name: true,
             description: true,
@@ -150,6 +154,10 @@ const Settings: FunctionComponent<ComponentProps> = (
           },
         },
       });
+
+      if (project?.paymentProviderPlanId) {
+        setCurrentPlanId(project.paymentProviderPlanId);
+      }
 
       if (project?.reseller) {
         setReseller(project.reseller);
@@ -180,6 +188,128 @@ const Settings: FunctionComponent<ComponentProps> = (
 
     setIsLoading(false);
   }, []);
+
+  type GetPlanMonthlyAmountFunction = (planId: string | null) => number | null;
+
+  // Per-month amount, or null when unknown (custom pricing / unknown plan).
+  const getPlanMonthlyAmountInUSD: GetPlanMonthlyAmountFunction = (
+    planId: string | null,
+  ): number | null => {
+    if (!planId) {
+      return null;
+    }
+
+    const plan: SubscriptionPlan | undefined =
+      SubscriptionPlan.getSubscriptionPlanById(planId, getAllEnvVars());
+
+    if (!plan || plan.isCustomPricing()) {
+      return null;
+    }
+
+    return SubscriptionPlan.isYearlyPlan(planId, getAllEnvVars())
+      ? plan.getYearlySubscriptionAmountInUSD()
+      : plan.getMonthlySubscriptionAmountInUSD();
+  };
+
+  /*
+   * The paid-conversion events for ad platforms. The change-plan API returns
+   * an empty response, so refetch the project's plan and diff against the
+   * plan we loaded when the page opened. Events reach both PostHog and the
+   * GTM dataLayer (where Google Ads conversion tags can trigger on them).
+   *
+   * Upgrade/downgrade is classified by plan tier (getPlanOrder), not price:
+   * monthly<->yearly switches of the same tier and custom-pricing plans
+   * (amount sentinel -1) would misclassify on price comparison. The value
+   * matches the server event: per-month amount times subscription seats.
+   */
+  const capturePlanChangeEvents: PromiseVoidFunction =
+    async (): Promise<void> => {
+      try {
+        const project: Project | null = await ModelAPI.getItem<Project>({
+          modelType: Project,
+          id: ProjectUtil.getCurrentProjectId()!,
+          select: {
+            paymentProviderPlanId: true,
+            paymentProviderSubscriptionSeats: true,
+          },
+        });
+
+        const newPlanId: string | null = project?.paymentProviderPlanId || null;
+
+        if (!newPlanId || newPlanId === currentPlanId) {
+          return;
+        }
+
+        const newPlan: SubscriptionPlan | undefined =
+          SubscriptionPlan.getSubscriptionPlanById(newPlanId, getAllEnvVars());
+
+        const oldPlan: SubscriptionPlan | undefined = currentPlanId
+          ? SubscriptionPlan.getSubscriptionPlanById(
+              currentPlanId,
+              getAllEnvVars(),
+            )
+          : undefined;
+
+        const seats: number = project?.paymentProviderSubscriptionSeats || 1;
+
+        const oldMonthlyAmountInUSD: number | null =
+          getPlanMonthlyAmountInUSD(currentPlanId);
+        const newMonthlyAmountInUSD: number | null =
+          getPlanMonthlyAmountInUSD(newPlanId);
+
+        const oldPlanOrder: number | null = oldPlan
+          ? oldPlan.getPlanOrder()
+          : null;
+        const newPlanOrder: number | null = newPlan
+          ? newPlan.getPlanOrder()
+          : null;
+
+        const newPlanIsPaid: boolean = Boolean(
+          newPlan?.isCustomPricing() ||
+            (newMonthlyAmountInUSD !== null && newMonthlyAmountInUSD > 0),
+        );
+
+        UiAnalytics.capture("dashboard/billing/plan-changed", {
+          old_plan: oldPlan?.getName() || "",
+          new_plan: newPlan?.getName() || "",
+          seats: seats,
+          is_interval_change:
+            oldPlanOrder !== null &&
+            newPlanOrder !== null &&
+            oldPlanOrder === newPlanOrder,
+        });
+
+        if (
+          oldPlanOrder !== null &&
+          newPlanOrder !== null &&
+          newPlanOrder > oldPlanOrder
+        ) {
+          // GA4/Google Ads friendly conversion event.
+          UiAnalytics.capture("subscription_upgraded", {
+            plan: newPlan?.getName() || "",
+            ...(newMonthlyAmountInUSD !== null
+              ? {
+                  value: newMonthlyAmountInUSD * seats,
+                  currency: "USD",
+                }
+              : {}),
+            is_paid_conversion: oldMonthlyAmountInUSD === 0 && newPlanIsPaid,
+          });
+        } else if (
+          oldPlanOrder !== null &&
+          newPlanOrder !== null &&
+          newPlanOrder < oldPlanOrder
+        ) {
+          UiAnalytics.capture("subscription_downgraded", {
+            plan: newPlan?.getName() || "",
+          });
+        }
+
+        setCurrentPlanId(newPlanId);
+      } catch {
+        // Analytics must never break the billing page.
+      }
+    };
 
   const fetchSetupIntent: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -246,6 +376,11 @@ const Settings: FunctionComponent<ComponentProps> = (
                 return true;
               }}
               createOrUpdateApiUrl={changePlanApiUrl}
+              onSaveSuccess={() => {
+                capturePlanChangeEvents().catch(() => {
+                  // Analytics must never break the billing page.
+                });
+              }}
               formFields={[
                 {
                   field: {

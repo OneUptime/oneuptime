@@ -133,7 +133,7 @@ Synthetic monitors run the same script across multiple browsers (Chromium, Firef
 | `scriptError`       | Any error that occurred during code execution.             | `string`                                 |
 | `logMessages`       | Array of log messages generated during execution.          | `Array<string>`                          |
 
-### SNMP Monitors
+### Network Device (SNMP) Monitors
 
 | Variable               | Description                                                    | Type                 |
 | ---------------------- | -------------------------------------------------------------- | -------------------- |
@@ -147,6 +147,18 @@ Synthetic monitors run the same script across multiple browsers (Chromium, Firef
 | `oidResponses[].value` | The value returned by the OID.                                 | `string` or `number` |
 | `oidResponses[].type`  | The SNMP data type of the value.                               | `string`             |
 | `{{OID_NAME}}`         | Direct access to OID value by name (e.g., `{{sysUpTime}}`).    | `string` or `number` |
+| `sysName`              | Device name from the SNMP system group.                        | `string`             |
+| `sysDescr`             | Device description from the SNMP system group.                 | `string`             |
+| `sysObjectId`          | Vendor's registered enterprise OID (device fingerprint).       | `string`             |
+| `sysLocation`          | Device location from the SNMP system group.                    | `string`             |
+| `downInterfaces`       | Interfaces that are administratively up but operationally down, as `{name, alias, interfaceIndex}`. Requires interface monitoring. | `Array<Object>` |
+| `interfacesTotal`      | Total number of interfaces walked.                             | `number`             |
+| `interfacesUp`         | Interfaces that are administratively and operationally up.     | `number`             |
+| `interfacesDown`       | Interfaces that are administratively up but operationally down. | `number`            |
+| `interfaceWalkFailure` | Error message when the interface walk failed.                  | `string`             |
+| `trapOid`              | Trap OID — set only when the check was triggered by an SNMP trap. | `string`          |
+| `trapSourceIp`         | Source IP the trap was received from — trap-triggered checks only. | `string`         |
+| `trapVarbinds`         | Varbinds carried by the trap, as `{oid, value}` — trap-triggered checks only. | `Array<Object>` |
 
 ## Basic Usage
 

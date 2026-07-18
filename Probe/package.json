@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/probe",
-  "version": "11.5.9",
+  "version": "11.5.10",
   "description": "",
   "repository": {
     "type": "git",
@@ -41,11 +41,17 @@
     "@types/jest": "^27.5.2",
     "@types/mssql": "^12.3.0",
     "@types/net-snmp": "^3.23.0",
-    "@types/node": "^17.0.31",
+    "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "@types/whois-json": "^2.0.4",
     "jest": "^28.1.0",
     "nodemon": "^3.1.14",
     "ts-jest": "^28.0.2"
+  },
+  "optionalDependencies": {
+    "msnodesqlv8": "^5.2.2"
+  },
+  "allowScripts": {
+    "msnodesqlv8@5.2.2": true
   }
 }

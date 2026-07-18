@@ -26,6 +26,8 @@
     "adminDashboard": "Admin-dashboard",
     "users": "Gebruikers",
     "user": "Gebruiker",
+    "enterpriseLicenses": "Enterprise-licenties",
+    "enterpriseLicense": "Licentie",
     "projects": "Projecten",
     "project": "Project",
     "projectUsers": "Gebruikers",
@@ -115,6 +117,26 @@
       "cardTitle": "Gebruikers",
       "cardDescription": "Hier is een lijst met gebruikers in OneUptime.",
       "noItems": "Geen gebruikers gevonden."
+    },
+    "enterpriseLicenses": {
+      "title": "Enterprise-licenties",
+      "cardTitle": "Enterprise-licenties",
+      "cardDescription": "Licenties die zijn uitgegeven aan zelf-gehoste Enterprise-klanten, met het gebruik van gebruikersplaatsen en de vervaldatum in één oogopslag.",
+      "noItems": "Er zijn nog geen Enterprise-licenties uitgegeven.",
+      "settingsCardTitle": "Instellingen voor licentiemeldingen",
+      "settingsCardDescription": "Wie een kopie krijgt van licentie-e-mails en hoe lang van tevoren herinneringen over het verlopen worden verstuurd. Herinneringen worden dagelijks per e-mail naar de hoofdbeheerders van de klant gestuurd zolang een licentie boven de gebruikerslimiet zit of bijna verloopt.",
+      "settingsEditButton": "Instellingen bewerken"
+    },
+    "enterpriseLicenseView": {
+      "title": "Enterprise-licentie",
+      "cardTitle": "Licentiegegevens",
+      "cardDescription": "Licentie die aan deze klant is uitgegeven.",
+      "editButton": "Licentie bewerken",
+      "usageCardTitle": "Gebruik van gebruikersplaatsen",
+      "usageCardDescription": "Unieke gebruikers over alle zelf-gehoste instanties van de klant, zoals dagelijks gerapporteerd door hun installaties.",
+      "instancesCardTitle": "Instanties",
+      "instancesCardDescription": "Zelf-gehoste instanties (staging, productie, enz.) die rapporteren voor deze licentie, en de hoofdbeheerders die we per instantie kunnen benaderen.",
+      "noInstances": "Er hebben nog geen instanties gerapporteerd voor deze licentie."
     },
     "userView": {
       "title": "Gebruiker",

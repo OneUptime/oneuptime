@@ -3,6 +3,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import TelemetrySavedViewState from "../../Types/Telemetry/TelemetrySavedViewState";
+import TelemetrySavedViewType from "../../Types/Telemetry/TelemetrySavedViewType";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
@@ -331,4 +332,37 @@ export default class MetricSavedView extends BaseModel {
     default: false,
   })
   public isDefault?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "View Type",
+    description:
+      "Which surface this saved view belongs to ('list' or 'explorer'). Null means 'list' — rows created before this column existed all came from the metric list page.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public viewType?: TelemetrySavedViewType = undefined;
 }

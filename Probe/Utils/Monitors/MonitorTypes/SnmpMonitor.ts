@@ -9,14 +9,46 @@ import SnmpMonitorResponse, {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpDataType from "Common/Types/Monitor/SnmpMonitor/SnmpDataType";
-import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
-import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
-import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
+import SnmpSecurityLevel, {
+  SnmpSecurityLevelUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
+import SnmpAuthProtocol, {
+  SnmpAuthProtocolUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
+import SnmpPrivProtocol, {
+  SnmpPrivProtocolUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import SnmpInterface from "Common/Types/Monitor/SnmpMonitor/SnmpInterface";
 import LldpNeighbor from "Common/Types/Monitor/SnmpMonitor/LldpNeighbor";
+import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
+import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
+import SnmpEntityInfo from "Common/Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
+// Repairs net-snmp's DES privacy on OpenSSL 3 — must load with net-snmp.
+import "../../Snmp/SnmpDesPrivacyCompat";
 import snmp from "net-snmp";
+
+/*
+ * SNMPv2 system group scalars (1.3.6.1.2.1.1). Read in one GET; sysUpTime is
+ * TimeTicks (hundredths of a second) and sysObjectID arrives as an OID
+ * string.
+ */
+const SYSTEM_GROUP_OIDS: {
+  sysDescr: string;
+  sysObjectId: string;
+  sysUpTime: string;
+  sysContact: string;
+  sysName: string;
+  sysLocation: string;
+} = {
+  sysDescr: "1.3.6.1.2.1.1.1.0",
+  sysObjectId: "1.3.6.1.2.1.1.2.0",
+  sysUpTime: "1.3.6.1.2.1.1.3.0",
+  sysContact: "1.3.6.1.2.1.1.4.0",
+  sysName: "1.3.6.1.2.1.1.5.0",
+  sysLocation: "1.3.6.1.2.1.1.6.0",
+};
 
 /*
  * IF-MIB table OIDs and the column numbers walked for interface monitoring.
@@ -26,7 +58,9 @@ import snmp from "net-snmp";
 const IF_TABLE_OID: string = "1.3.6.1.2.1.2.2";
 const IF_TABLE_COLUMNS: {
   ifDescr: number;
+  ifType: number;
   ifSpeed: number;
+  ifPhysAddress: number;
   ifAdminStatus: number;
   ifOperStatus: number;
   ifInOctets: number;
@@ -37,7 +71,9 @@ const IF_TABLE_COLUMNS: {
   ifOutErrors: number;
 } = {
   ifDescr: 2,
+  ifType: 3,
   ifSpeed: 5,
+  ifPhysAddress: 6,
   ifAdminStatus: 7,
   ifOperStatus: 8,
   ifInOctets: 10,
@@ -80,7 +116,59 @@ const LLDP_REM_COLUMNS: {
   lldpRemSysName: 9,
 };
 
+/*
+ * CISCO-CDP-MIB cdpCacheTable — one row per CDP neighbor. The row index is
+ * "cdpCacheIfIndex.cdpCacheDeviceIndex", so the local ifIndex is the first
+ * component of the row key. Walked as an LLDP complement: CDP-only Cisco
+ * estates otherwise produce an empty topology.
+ */
+const CDP_CACHE_TABLE_OID: string = "1.3.6.1.4.1.9.9.23.1.2.1";
+const CDP_CACHE_COLUMNS: {
+  cdpCacheDeviceId: number;
+  cdpCacheDevicePort: number;
+  cdpCachePlatform: number;
+} = {
+  cdpCacheDeviceId: 6,
+  cdpCacheDevicePort: 7,
+  cdpCachePlatform: 8,
+};
+
+/*
+ * ENTITY-MIB entPhysicalTable — hardware inventory. The chassis row
+ * (entPhysicalClass == 3) carries the device's manufacturer, model, serial
+ * number, and firmware/software revisions; modular devices expose one row
+ * per component.
+ */
+const ENT_PHYSICAL_TABLE_OID: string = "1.3.6.1.2.1.47.1.1.1";
+const ENT_PHYSICAL_COLUMNS: {
+  entPhysicalClass: number;
+  entPhysicalHardwareRev: number;
+  entPhysicalFirmwareRev: number;
+  entPhysicalSoftwareRev: number;
+  entPhysicalSerialNum: number;
+  entPhysicalMfgName: number;
+  entPhysicalModelName: number;
+} = {
+  entPhysicalClass: 5,
+  entPhysicalHardwareRev: 8,
+  entPhysicalFirmwareRev: 9,
+  entPhysicalSoftwareRev: 10,
+  entPhysicalSerialNum: 11,
+  entPhysicalMfgName: 12,
+  entPhysicalModelName: 13,
+};
+
+const ENT_PHYSICAL_CLASS_CHASSIS: number = 3;
+
 type SnmpTableRows = Record<string, Record<string, unknown>>;
+
+export interface SnmpWalkResult {
+  interfaces: Array<SnmpInterface>;
+  systemInfo?: SnmpSystemInfo | undefined;
+  entityInfo?: SnmpEntityInfo | undefined;
+  lldpNeighbors?: Array<LldpNeighbor> | undefined;
+  cdpNeighbors?: Array<CdpNeighbor> | undefined;
+}
 
 export interface SnmpQueryOptions {
   timeout?: number | undefined;
@@ -130,24 +218,23 @@ export default class SnmpMonitor {
       }
 
       let interfaces: Array<SnmpInterface> | undefined = undefined;
-      let systemInfo:
-        | { sysDescr?: string | undefined; sysName?: string | undefined }
-        | undefined = undefined;
+      let systemInfo: SnmpSystemInfo | undefined = undefined;
+      let entityInfo: SnmpEntityInfo | undefined = undefined;
       let lldpNeighbors: Array<LldpNeighbor> | undefined = undefined;
+      let cdpNeighbors: Array<CdpNeighbor> | undefined = undefined;
       let interfaceWalkFailure: string | undefined = undefined;
 
       if (shouldWalkInterfaces) {
         try {
-          const walkResult: {
-            interfaces: Array<SnmpInterface>;
-            systemInfo?:
-              | { sysDescr?: string | undefined; sysName?: string | undefined }
-              | undefined;
-            lldpNeighbors?: Array<LldpNeighbor> | undefined;
-          } = await SnmpMonitor.walkInterfaces(config, options);
+          const walkResult: SnmpWalkResult = await SnmpMonitor.walkInterfaces(
+            config,
+            options,
+          );
           interfaces = walkResult.interfaces;
           systemInfo = walkResult.systemInfo;
+          entityInfo = walkResult.entityInfo;
           lldpNeighbors = walkResult.lldpNeighbors;
+          cdpNeighbors = walkResult.cdpNeighbors;
         } catch (err: unknown) {
           if (config.oids.length === 0) {
             // The walk was the only check — treat as device unreachable.
@@ -194,7 +281,9 @@ export default class SnmpMonitor {
         interfaces: interfaces,
         interfaceWalkFailure: interfaceWalkFailure,
         systemInfo: systemInfo,
+        entityInfo: entityInfo,
         lldpNeighbors: lldpNeighbors,
+        cdpNeighbors: cdpNeighbors,
       };
     } catch (err: unknown) {
       logger.debug(
@@ -282,27 +371,61 @@ export default class SnmpMonitor {
    * when the host does not answer SNMP within the timeout — the normal
    * case for most addresses in a swept subnet, so no retries and no logs.
    */
-  public static async probeSystemInfo(config: MonitorStepSnmpMonitor): Promise<{
-    sysDescr?: string | undefined;
-    sysName?: string | undefined;
-  } | null> {
+  public static async probeSystemInfo(
+    config: MonitorStepSnmpMonitor,
+  ): Promise<SnmpSystemInfo | null> {
     const session: snmp.Session = SnmpMonitor.createSnmpSession(config, {});
 
     try {
-      const varbinds: Array<snmp.Varbind> = await SnmpMonitor.getOids(session, [
-        "1.3.6.1.2.1.1.1.0",
-        "1.3.6.1.2.1.1.5.0",
-      ]);
-
-      return {
-        sysDescr: SnmpMonitor.toDisplayString(varbinds[0]?.value),
-        sysName: SnmpMonitor.toDisplayString(varbinds[1]?.value),
-      };
+      return await SnmpMonitor.readSystemInfo(session);
     } catch {
       return null;
     } finally {
       session.close();
     }
+  }
+
+  /*
+   * Reads the full system group in one GET. Some agents fail the whole GET
+   * when any single scalar is unsupported, so a varbind-level error just
+   * blanks that field rather than failing the read.
+   */
+  private static async readSystemInfo(
+    session: snmp.Session,
+  ): Promise<SnmpSystemInfo> {
+    const varbinds: Array<snmp.Varbind> = await SnmpMonitor.getOids(session, [
+      SYSTEM_GROUP_OIDS.sysDescr,
+      SYSTEM_GROUP_OIDS.sysObjectId,
+      SYSTEM_GROUP_OIDS.sysUpTime,
+      SYSTEM_GROUP_OIDS.sysContact,
+      SYSTEM_GROUP_OIDS.sysName,
+      SYSTEM_GROUP_OIDS.sysLocation,
+    ]);
+
+    const valueAt: (index: number) => unknown = (index: number) => {
+      const varbind: snmp.Varbind | undefined = varbinds[index];
+      if (!varbind || snmp.isVarbindError(varbind)) {
+        return undefined;
+      }
+      return varbind.value;
+    };
+
+    const sysUpTimeTicks: number | undefined = SnmpMonitor.toMetricNumber(
+      valueAt(2),
+    );
+
+    return {
+      sysDescr: SnmpMonitor.toDisplayString(valueAt(0)),
+      // OID varbind values arrive as dotted strings from net-snmp.
+      sysObjectId: SnmpMonitor.toDisplayString(valueAt(1)),
+      sysUpTimeSeconds:
+        sysUpTimeTicks !== undefined
+          ? Math.floor(sysUpTimeTicks / 100)
+          : undefined,
+      sysContact: SnmpMonitor.toDisplayString(valueAt(3)),
+      sysName: SnmpMonitor.toDisplayString(valueAt(4)),
+      sysLocation: SnmpMonitor.toDisplayString(valueAt(5)),
+    };
   }
 
   private static createSnmpSession(
@@ -353,35 +476,30 @@ export default class SnmpMonitor {
   public static async walkInterfaces(
     config: MonitorStepSnmpMonitor,
     options: SnmpQueryOptions,
-  ): Promise<{
-    interfaces: Array<SnmpInterface>;
-    systemInfo?:
-      | { sysDescr?: string | undefined; sysName?: string | undefined }
-      | undefined;
-    lldpNeighbors?: Array<LldpNeighbor> | undefined;
-  }> {
+  ): Promise<SnmpWalkResult> {
     const session: snmp.Session = SnmpMonitor.createSnmpSession(
       config,
       options,
     );
 
     try {
-      // Best-effort system identity (sysDescr.0, sysName.0).
-      let systemInfo:
-        | { sysDescr?: string | undefined; sysName?: string | undefined }
-        | undefined = undefined;
+      // Best-effort system identity (system group scalars).
+      let systemInfo: SnmpSystemInfo | undefined = undefined;
       try {
-        const systemVarbinds: Array<snmp.Varbind> = await SnmpMonitor.getOids(
-          session,
-          ["1.3.6.1.2.1.1.1.0", "1.3.6.1.2.1.1.5.0"],
-        );
-        systemInfo = {
-          sysDescr: SnmpMonitor.toDisplayString(systemVarbinds[0]?.value),
-          sysName: SnmpMonitor.toDisplayString(systemVarbinds[1]?.value),
-        };
+        systemInfo = await SnmpMonitor.readSystemInfo(session);
       } catch (err) {
         logger.debug(
           `SNMP system group read failed for ${config.hostname}: ${err}`,
+        );
+      }
+
+      // Best-effort hardware identity (ENTITY-MIB chassis row).
+      let entityInfo: SnmpEntityInfo | undefined = undefined;
+      try {
+        entityInfo = await SnmpMonitor.walkEntityInfo(session);
+      } catch (err) {
+        logger.debug(
+          `SNMP ENTITY-MIB walk failed for ${config.hostname} (device may not implement it): ${err}`,
         );
       }
 
@@ -445,6 +563,12 @@ export default class SnmpMonitor {
           alias: SnmpMonitor.toDisplayString(
             extendedColumn(IF_X_TABLE_COLUMNS.ifAlias),
           ),
+          macAddress: SnmpMonitor.toMacAddress(
+            column(IF_TABLE_COLUMNS.ifPhysAddress),
+          ),
+          interfaceType: SnmpMonitor.toMetricNumber(
+            column(IF_TABLE_COLUMNS.ifType),
+          ),
           isOperationallyUp:
             SnmpMonitor.toMetricNumber(
               column(IF_TABLE_COLUMNS.ifOperStatus),
@@ -496,10 +620,154 @@ export default class SnmpMonitor {
         );
       }
 
-      return { interfaces, systemInfo, lldpNeighbors };
+      /*
+       * Best-effort CDP neighbors. Only attempted on devices that plausibly
+       * speak CDP (Cisco sysObjectID or empty LLDP result) — walking a
+       * Cisco-enterprise table on every vendor's gear wastes a round-trip
+       * per poll.
+       */
+      let cdpNeighbors: Array<CdpNeighbor> | undefined = undefined;
+      const isLikelyCisco: boolean = Boolean(
+        systemInfo?.sysObjectId
+          ?.replace(/^\./, "")
+          .startsWith("1.3.6.1.4.1.9."),
+      );
+      if (isLikelyCisco || !lldpNeighbors || lldpNeighbors.length === 0) {
+        try {
+          cdpNeighbors = await SnmpMonitor.walkCdpNeighbors(session);
+        } catch (err) {
+          logger.debug(
+            `SNMP CDP walk failed for ${config.hostname} (device may not run CDP): ${err}`,
+          );
+        }
+      }
+
+      return {
+        interfaces,
+        systemInfo,
+        entityInfo,
+        lldpNeighbors,
+        cdpNeighbors,
+      };
     } finally {
       session.close();
     }
+  }
+
+  /*
+   * Picks the device's hardware identity out of entPhysicalTable: the
+   * chassis row when present, otherwise the lowest-indexed row that carries
+   * a serial number (some devices only serialize their supervisor module).
+   */
+  private static async walkEntityInfo(
+    session: snmp.Session,
+  ): Promise<SnmpEntityInfo | undefined> {
+    const table: SnmpTableRows = await SnmpMonitor.getTableColumns(
+      session,
+      ENT_PHYSICAL_TABLE_OID,
+      Object.values(ENT_PHYSICAL_COLUMNS),
+    );
+
+    const rowKeys: Array<string> = Object.keys(table).sort(
+      (a: string, b: string) => {
+        return parseInt(a, 10) - parseInt(b, 10);
+      },
+    );
+
+    let chosenRow: Record<string, unknown> | undefined = undefined;
+
+    for (const rowKey of rowKeys) {
+      const row: Record<string, unknown> = table[rowKey]!;
+      const physicalClass: number | undefined = SnmpMonitor.toMetricNumber(
+        row[ENT_PHYSICAL_COLUMNS.entPhysicalClass.toString()],
+      );
+
+      if (physicalClass === ENT_PHYSICAL_CLASS_CHASSIS) {
+        chosenRow = row;
+        break;
+      }
+
+      if (
+        !chosenRow &&
+        SnmpMonitor.toDisplayString(
+          row[ENT_PHYSICAL_COLUMNS.entPhysicalSerialNum.toString()],
+        )
+      ) {
+        chosenRow = row;
+      }
+    }
+
+    if (!chosenRow) {
+      return undefined;
+    }
+
+    const field: (columnNumber: number) => string | undefined = (
+      columnNumber: number,
+    ) => {
+      return SnmpMonitor.toDisplayString(chosenRow![columnNumber.toString()]);
+    };
+
+    const entityInfo: SnmpEntityInfo = {
+      manufacturer: field(ENT_PHYSICAL_COLUMNS.entPhysicalMfgName),
+      model: field(ENT_PHYSICAL_COLUMNS.entPhysicalModelName),
+      serialNumber: field(ENT_PHYSICAL_COLUMNS.entPhysicalSerialNum),
+      hardwareRevision: field(ENT_PHYSICAL_COLUMNS.entPhysicalHardwareRev),
+      firmwareVersion: field(ENT_PHYSICAL_COLUMNS.entPhysicalFirmwareRev),
+      softwareVersion: field(ENT_PHYSICAL_COLUMNS.entPhysicalSoftwareRev),
+    };
+
+    const hasAnyField: boolean = Object.values(entityInfo).some(
+      (value: string | undefined) => {
+        return Boolean(value);
+      },
+    );
+
+    return hasAnyField ? entityInfo : undefined;
+  }
+
+  /*
+   * Returns an EMPTY array (not undefined) when the walk succeeds but the
+   * cache has no rows: the inventory writer treats undefined as "walk did
+   * not run, keep the stored snapshot", so returning undefined here would
+   * fossilize stale CDP neighbors as ghost topology edges after a link is
+   * unplugged or CDP is disabled. A failed walk still surfaces as the
+   * caller's catch → undefined → snapshot kept.
+   */
+  private static async walkCdpNeighbors(
+    session: snmp.Session,
+  ): Promise<Array<CdpNeighbor>> {
+    const table: SnmpTableRows = await SnmpMonitor.getTableColumns(
+      session,
+      CDP_CACHE_TABLE_OID,
+      Object.values(CDP_CACHE_COLUMNS),
+    );
+
+    const neighbors: Array<CdpNeighbor> = [];
+
+    for (const rowKey of Object.keys(table)) {
+      const row: Record<string, unknown> = table[rowKey]!;
+
+      // Row key is "cdpCacheIfIndex.cdpCacheDeviceIndex".
+      const localPart: string | undefined = rowKey.split(".")[0];
+      const localInterfaceIndex: number = parseInt(localPart || "", 10);
+
+      neighbors.push({
+        localInterfaceIndex: isNaN(localInterfaceIndex)
+          ? undefined
+          : localInterfaceIndex,
+        remoteDeviceId: SnmpMonitor.toDisplayString(
+          row[CDP_CACHE_COLUMNS.cdpCacheDeviceId.toString()],
+        ),
+        remotePortId: SnmpMonitor.toDisplayString(
+          row[CDP_CACHE_COLUMNS.cdpCacheDevicePort.toString()],
+        ),
+        remotePlatform: SnmpMonitor.toDisplayString(
+          row[CDP_CACHE_COLUMNS.cdpCachePlatform.toString()],
+        ),
+      });
+    }
+
+    return neighbors;
   }
 
   private static async walkLldpNeighbors(
@@ -611,13 +879,35 @@ export default class SnmpMonitor {
     }
 
     if (Buffer.isBuffer(value)) {
+      if (value.length === 0) {
+        return undefined;
+      }
+
+      // Native fast paths.
+      if (value.length <= 6) {
+        return value.readUIntBE(0, value.length);
+      }
       if (value.length === 8) {
         return Number(value.readBigUInt64BE());
       }
-      if (value.length > 0 && value.length <= 6) {
-        return value.readUIntBE(0, value.length);
+
+      /*
+       * net-snmp hands Counter64 varbinds over as minimal-length big-endian
+       * buffers, so 7-byte (2^48..2^56-1) and 9-byte (a leading 0x00 pad on
+       * values >= 2^63) encodings both occur. Accumulate as BigInt over all
+       * bytes so those aren't dropped; >8 significant bytes can't fit a
+       * Counter64, so bail rather than return a wrong number.
+       */
+      let accumulator: bigint = BigInt(0);
+      const eight: bigint = BigInt(8);
+      for (const byte of value) {
+        accumulator = (accumulator << eight) | BigInt(byte);
       }
-      return undefined;
+      // Max Counter64 is 2^64 - 1; anything larger can't be a valid counter.
+      if (accumulator > BigInt("18446744073709551615")) {
+        return undefined;
+      }
+      return Number(accumulator);
     }
 
     return undefined;
@@ -633,6 +923,40 @@ export default class SnmpMonitor {
     }
 
     return undefined;
+  }
+
+  /*
+   * ifPhysAddress arrives as a raw octet buffer. Loopbacks/tunnels report an
+   * empty or all-zero address — treat those as "no MAC".
+   */
+  private static toMacAddress(value: unknown): string | undefined {
+    if (!Buffer.isBuffer(value) || value.length === 0) {
+      return undefined;
+    }
+
+    const isAllZero: boolean = value.every((byte: number) => {
+      return byte === 0;
+    });
+    if (isAllZero) {
+      return undefined;
+    }
+
+    return Array.from(value)
+      .map((byte: number) => {
+        return byte.toString(16).padStart(2, "0");
+      })
+      .join(":");
+  }
+
+  private static isPrintableBuffer(value: Buffer): boolean {
+    return value.every((byte: number) => {
+      return (
+        (byte >= 0x20 && byte <= 0x7e) ||
+        byte === 0x09 ||
+        byte === 0x0a ||
+        byte === 0x0d
+      );
+    });
   }
 
   private static async executeSnmpQuery(
@@ -716,25 +1040,76 @@ export default class SnmpMonitor {
 
   private static buildV3User(config: MonitorStepSnmpMonitor): snmp.User {
     const v3Auth: SnmpV3Auth = config.snmpV3Auth!;
+
+    /*
+     * Resolved once and reused: the level decides which credentials go on the
+     * wire, so the branches below and the level handed to net-snmp must agree.
+     * Comparing the raw stored string against the enum here would let a
+     * differently-spelled "AuthPriv" take the noAuthNoPriv branch and strip
+     * the device's credentials.
+     */
+    const securityLevel: SnmpSecurityLevel = SnmpMonitor.resolveSecurityLevel(
+      v3Auth.securityLevel,
+      config.hostname,
+    );
+
     const user: snmp.User = {
       name: v3Auth.username,
-      level: SnmpMonitor.mapSecurityLevel(v3Auth.securityLevel),
+      level: SnmpMonitor.mapSecurityLevel(securityLevel),
     };
 
     if (
-      v3Auth.securityLevel === SnmpSecurityLevel.AuthNoPriv ||
-      v3Auth.securityLevel === SnmpSecurityLevel.AuthPriv
+      securityLevel === SnmpSecurityLevel.AuthNoPriv ||
+      securityLevel === SnmpSecurityLevel.AuthPriv
     ) {
-      user.authProtocol = SnmpMonitor.mapAuthProtocol(v3Auth.authProtocol);
+      user.authProtocol = SnmpMonitor.mapAuthProtocol(
+        v3Auth.authProtocol,
+        config.hostname,
+      );
       user.authKey = v3Auth.authKey || "";
     }
 
-    if (v3Auth.securityLevel === SnmpSecurityLevel.AuthPriv) {
-      user.privProtocol = SnmpMonitor.mapPrivProtocol(v3Auth.privProtocol);
+    if (securityLevel === SnmpSecurityLevel.AuthPriv) {
+      user.privProtocol = SnmpMonitor.mapPrivProtocol(
+        v3Auth.privProtocol,
+        config.hostname,
+      );
       user.privKey = v3Auth.privKey || "";
     }
 
     return user;
+  }
+
+  /*
+   * The three resolvers below share one rule, and the distinction they draw is
+   * the point of them.
+   *
+   * An UNSET protocol keeps the historical default — plenty of devices were
+   * configured before these columns were mandatory, and silently breaking them
+   * would be a worse bug than the one being fixed.
+   *
+   * A protocol that is SET but matches nothing is refused. There is no safe
+   * guess available: the stored value says the operator intended *something*,
+   * and quietly substituting the weakest algorithm is how a device meant for
+   * AES ends up encrypted with DES, or an authPriv device ends up polled with
+   * no credentials at all. Throwing here is caught by SnmpMonitor.query and
+   * surfaces as the monitor's failure cause, so the operator sees the bad
+   * value instead of an unexplained timeout — the same treatment the missing
+   * v3 username already gets.
+   */
+  private static resolveSecurityLevel(
+    level: SnmpSecurityLevel | undefined,
+    hostname: string,
+  ): SnmpSecurityLevel {
+    if (SnmpSecurityLevelUtil.isUnrecognized(level)) {
+      throw new Error(
+        `SNMP v3 security level "${level}" configured for ${hostname} is not a recognized value. Expected one of: ${Object.values(
+          SnmpSecurityLevel,
+        ).join(", ")}.`,
+      );
+    }
+
+    return SnmpSecurityLevelUtil.parse(level) || SnmpSecurityLevel.NoAuthNoPriv;
   }
 
   private static mapSecurityLevel(
@@ -754,8 +1129,17 @@ export default class SnmpMonitor {
 
   private static mapAuthProtocol(
     protocol: SnmpAuthProtocol | undefined,
+    hostname: string,
   ): snmp.AuthProtocols {
-    switch (protocol) {
+    if (SnmpAuthProtocolUtil.isUnrecognized(protocol)) {
+      throw new Error(
+        `SNMP v3 authentication protocol "${protocol}" configured for ${hostname} is not a recognized value. Expected one of: ${Object.values(
+          SnmpAuthProtocol,
+        ).join(", ")}.`,
+      );
+    }
+
+    switch (SnmpAuthProtocolUtil.parse(protocol)) {
       case SnmpAuthProtocol.MD5:
         return snmp.AuthProtocols.md5;
       case SnmpAuthProtocol.SHA:
@@ -765,14 +1149,24 @@ export default class SnmpMonitor {
       case SnmpAuthProtocol.SHA512:
         return snmp.AuthProtocols.sha512;
       default:
+        // Unset only — anything unrecognized threw above.
         return snmp.AuthProtocols.md5;
     }
   }
 
   private static mapPrivProtocol(
     protocol: SnmpPrivProtocol | undefined,
+    hostname: string,
   ): snmp.PrivProtocols {
-    switch (protocol) {
+    if (SnmpPrivProtocolUtil.isUnrecognized(protocol)) {
+      throw new Error(
+        `SNMP v3 privacy protocol "${protocol}" configured for ${hostname} is not a recognized value. Expected one of: ${Object.values(
+          SnmpPrivProtocol,
+        ).join(", ")}.`,
+      );
+    }
+
+    switch (SnmpPrivProtocolUtil.parse(protocol)) {
       case SnmpPrivProtocol.DES:
         return snmp.PrivProtocols.des;
       case SnmpPrivProtocol.AES:
@@ -780,6 +1174,7 @@ export default class SnmpMonitor {
       case SnmpPrivProtocol.AES256:
         return snmp.PrivProtocols.aes256b;
       default:
+        // Unset only — anything unrecognized threw above.
         return snmp.PrivProtocols.des;
     }
   }
@@ -789,8 +1184,24 @@ export default class SnmpMonitor {
       return "";
     }
 
-    // Handle Buffer values (OctetString)
     if (Buffer.isBuffer(varbind.value)) {
+      /*
+       * net-snmp hands Counter64 values over as raw 8-byte buffers — decode
+       * them numerically so user-configured HC-counter OIDs (ifHCInOctets
+       * and friends) produce values criteria can compare, not mojibake.
+       */
+      if (varbind.type === snmp.ObjectType.Counter64) {
+        return SnmpMonitor.toMetricNumber(varbind.value) ?? "";
+      }
+
+      /*
+       * Binary OctetStrings (MAC addresses, vendor blobs) are unreadable as
+       * UTF-8 — render them as colon-separated hex instead.
+       */
+      if (!SnmpMonitor.isPrintableBuffer(varbind.value)) {
+        return SnmpMonitor.toMacAddress(varbind.value) || "";
+      }
+
       return varbind.value.toString();
     }
 

@@ -15,6 +15,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Errors from "../Utils/Errors";
+import ProductAnalytics from "../Utils/ProductAnalytics";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
@@ -55,6 +56,7 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
@@ -169,6 +171,8 @@ export class ProjectService extends DatabaseService<Model> {
         utmTerm: true,
         utmContent: true,
         utmUrl: true,
+        clickIds: true,
+        firstTouchAttribution: true,
       },
       props: {
         isRoot: true,
@@ -324,6 +328,10 @@ export class ProjectService extends DatabaseService<Model> {
     data.data.utmContent = user.utmContent!;
     data.data.utmUrl = user.utmUrl!;
 
+    // Ad attribution info (click IDs + first touch).
+    data.data.clickIds = user.clickIds!;
+    data.data.firstTouchAttribution = user.firstTouchAttribution!;
+
     // Set default number prefixes.
     if (!data.data.incidentNumberPrefix) {
       data.data.incidentNumberPrefix = "INC-";
@@ -477,6 +485,11 @@ export class ProjectService extends DatabaseService<Model> {
         paymentProviderPlanId: true,
         trialEndsAt: true,
         paymentProviderCustomerId: true,
+        createdOwnerEmail: true,
+        utmSource: true,
+        utmMedium: true,
+        utmCampaign: true,
+        clickIds: true,
       },
       props: {
         isRoot: true,
@@ -583,7 +596,114 @@ export class ProjectService extends DatabaseService<Model> {
       },
     });
 
+    this.capturePlanChangeAnalytics({
+      project: project,
+      newPlan: plan,
+      newPlanId: params.paymentProviderPlanId,
+      seats: seats,
+    });
+
     await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
+  }
+
+  /*
+   * The paid-conversion event for ad platforms: fires server-side (immune to
+   * ad blockers) whenever a project's subscription plan changes, with enough
+   * detail (plan amounts, attribution) for revenue reporting and offline
+   * conversion uploads.
+   *
+   * Upgrade/downgrade is classified by plan tier (getPlanOrder), not price:
+   * monthly<->yearly switches of the same tier and custom-pricing plans
+   * (amount sentinel -1) would misclassify on price comparison.
+   */
+  private capturePlanChangeAnalytics(data: {
+    project: Model;
+    newPlan: SubscriptionPlan;
+    newPlanId: string;
+    seats: number;
+  }): void {
+    if (!data.project.createdOwnerEmail) {
+      return;
+    }
+
+    const oldPlanId: string | undefined =
+      data.project.paymentProviderPlanId || undefined;
+
+    // Re-submitting the currently active plan is a no-op, not a plan change.
+    if (oldPlanId === data.newPlanId) {
+      return;
+    }
+
+    const oldPlan: SubscriptionPlan | undefined = oldPlanId
+      ? SubscriptionPlan.getSubscriptionPlanById(oldPlanId, getAllEnvVars())
+      : undefined;
+
+    // Per-month amount, or null when unknown (custom pricing / unknown plan).
+    const getMonthlyAmountInUSD: (
+      plan: SubscriptionPlan | undefined,
+      planId: string | undefined,
+    ) => number | null = (
+      plan: SubscriptionPlan | undefined,
+      planId: string | undefined,
+    ): number | null => {
+      if (!plan || !planId || plan.isCustomPricing()) {
+        return null;
+      }
+      return plan.getYearlyPlanId() === planId
+        ? plan.getYearlySubscriptionAmountInUSD()
+        : plan.getMonthlySubscriptionAmountInUSD();
+    };
+
+    const oldMonthlyAmountInUSD: number | null = getMonthlyAmountInUSD(
+      oldPlan,
+      oldPlanId,
+    );
+    const newMonthlyAmountInUSD: number | null = getMonthlyAmountInUSD(
+      data.newPlan,
+      data.newPlanId,
+    );
+
+    const oldPlanOrder: number | null = oldPlan ? oldPlan.getPlanOrder() : null;
+    const newPlanOrder: number = data.newPlan.getPlanOrder();
+
+    const newPlanIsPaid: boolean =
+      data.newPlan.isCustomPricing() ||
+      (newMonthlyAmountInUSD !== null && newMonthlyAmountInUSD > 0);
+
+    const properties: JSONObject = {
+      project_id: data.project.id?.toString() || "",
+      old_plan: oldPlan?.getName() || "",
+      new_plan: data.newPlan.getName(),
+      seats: data.seats,
+      is_upgrade: oldPlanOrder !== null && newPlanOrder > oldPlanOrder,
+      is_downgrade: oldPlanOrder !== null && newPlanOrder < oldPlanOrder,
+      // Same tier, different plan id: monthly<->yearly billing switch.
+      is_interval_change:
+        oldPlanOrder !== null && newPlanOrder === oldPlanOrder,
+      is_paid_conversion: oldMonthlyAmountInUSD === 0 && newPlanIsPaid,
+      has_custom_pricing: data.newPlan.isCustomPricing(),
+      utm_source: data.project.utmSource || "",
+      utm_medium: data.project.utmMedium || "",
+      utm_campaign: data.project.utmCampaign || "",
+      click_ids: data.project.clickIds || {},
+    };
+
+    if (oldMonthlyAmountInUSD !== null) {
+      properties["old_monthly_amount_in_usd"] = oldMonthlyAmountInUSD;
+    }
+
+    if (newMonthlyAmountInUSD !== null) {
+      properties["new_monthly_amount_in_usd"] = newMonthlyAmountInUSD;
+      // Value for ROAS reporting: monthly recurring revenue after the change.
+      properties["value"] = newMonthlyAmountInUSD * data.seats;
+      properties["currency"] = "USD";
+    }
+
+    ProductAnalytics.capture({
+      event: "server/subscription_plan_changed",
+      distinctId: data.project.createdOwnerEmail.toString(),
+      properties: properties,
+    });
   }
 
   private async sendSubscriptionChangeWebhookSlackNotification(
@@ -857,6 +977,22 @@ export class ProjectService extends DatabaseService<Model> {
       this.addDefaultAlertState(createdItem),
       this.addDefaultIncidentRoles(createdItem),
     ]);
+
+    if (createdItem.createdOwnerEmail) {
+      ProductAnalytics.capture({
+        event: "server/project_created",
+        distinctId: createdItem.createdOwnerEmail.toString(),
+        properties: {
+          project_id: createdItem.id?.toString() || "",
+          project_name: createdItem.name?.toString() || "",
+          plan: createdItem.planName?.toString() || "",
+          utm_source: createdItem.utmSource || "",
+          utm_medium: createdItem.utmMedium || "",
+          utm_campaign: createdItem.utmCampaign || "",
+          click_ids: createdItem.clickIds || {},
+        },
+      });
+    }
 
     if (NotificationSlackWebhookOnCreateProject) {
       // fetch project again.

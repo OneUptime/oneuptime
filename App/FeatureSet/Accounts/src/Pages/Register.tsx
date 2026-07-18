@@ -360,6 +360,24 @@ const RegisterPage: () => JSX.Element = () => {
                 UiAnalytics.capture("utm_event", utmParams);
               }
 
+              /*
+               * Ad platform click IDs (gclid, fbclid, ...) for offline
+               * conversion uploads, and the visitor's first attributed touch.
+               */
+              const clickIds: JSONObject | null =
+                UserUtil.getAttributionClickIds();
+
+              if (clickIds) {
+                item.clickIds = clickIds;
+              }
+
+              const firstTouch: JSONObject | null =
+                UserUtil.getFirstTouchAttribution();
+
+              if (firstTouch) {
+                item.firstTouchAttribution = firstTouch;
+              }
+
               return Promise.resolve(item);
             }}
             formType={FormType.Create}

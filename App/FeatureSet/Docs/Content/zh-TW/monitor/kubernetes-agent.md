@@ -120,7 +120,7 @@ DaemonSet 會在每個節點上執行一個 OpenTelemetry Collector pod。它透
 一個單一複本的 Deployment（`oneuptime/kubernetes-log-tailer` 映像檔）使用 Kubernetes API 來串流容器記錄 — 與 `kubectl logs -f` 所使用的相同端點。沒有 hostPath、沒有主機存取、沒有 DaemonSet。
 
 - **優點：** 可在 GKE Autopilot、EKS Fargate，以及任何封鎖 hostPath 或強制執行 `restricted` Pod Security Standard 的叢集上運作。
-- **缺點：** 每個容器串流都是一條對 `kube-apiserver` 的長存活連線。實務上，一個複本可以輕鬆處理數千個容器。對於非常大型的叢集，請使用 `logs.api.replicas` 加上在每個複本上的 `namespaceFilters.include` 來依命名空間分片（shard）。
+$1 每個容器串流都是連到 kube-apiserver 的長連線。一個副本通常可處理數千個容器。對於超大型叢集，請在 namespaceFilters.rules 中使用 podLogs 作用域的 include 規則，將不同 release 分片。
 
 ### 您應該使用哪一個？
 
@@ -296,8 +296,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | `oneuptime.apiKey`                        | _(必填)_                   | 專案 API 金鑰（Settings → API Keys）。                                                                                                                                                    |
 | `oneuptime.labels`                        | `{}`                       | 要附加到此 agent 每一筆記錄的專案標籤。每個 `<key>: <value>` 都會成為一個 `oneuptime.label.<key>=<value>` 資源屬性。請參閱上方的自動標記章節。                                            |
 | `clusterName`                             | _(必填)_                   | 此叢集的唯一名稱。會在每一筆記錄上標記為 `k8s.cluster.name`。                                                                                                                             |
-| `namespaceFilters.include`                | `[]`                       | 如果有設定，則只監控這些命名空間。                                                                                                                                                        |
-| `namespaceFilters.exclude`                | `["kube-system"]`          | 要略過的命名空間。                                                                                                                                                                        |
+| `namespaceFilters.rules`                  | 從 podLogs 與 ebpfDiscovery 排除 kube-system | 針對 podLogs、ebpfDiscovery、metrics 與 traces 的作用域 include/exclude 規則。模式支援 *，而且 exclude 永遠優先。 |
 | `logs.enabled`                            | `true`                     | 開啟或關閉記錄收集。                                                                                                                                                                      |
 | `logs.mode`                               | （從 `preset` 衍生）       | `daemonset`、`api` 或 `disabled`。覆寫 preset。                                                                                                                                           |
 | `logs.api.replicas`                       | `1`                        | 記錄 tailer Deployment 複本的數量（僅在 API 模式中）。                                                                                                                                    |
@@ -392,7 +391,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 ```bash
 helm install oneuptime-agent-ns-a oneuptime/kubernetes-agent \
   --set preset=gke-autopilot \
-  --set namespaceFilters.include={app-a,app-b} \
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["app-a","app-b"],"scopes":["podLogs"]}]' \
   ...
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/dashboard",
-  "version": "11.5.9",
+  "version": "11.5.10",
   "private": false,
   "repository": {
     "type": "git",
@@ -53,7 +53,7 @@
     "use-async-effect": "^2.2.6"
   },
   "devDependencies": {
-    "@types/node": "^16.11.35",
+    "@types/node": "^26.1.1",
     "@types/react": "^18.2.38",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^18.0.4",

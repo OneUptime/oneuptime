@@ -139,6 +139,70 @@ export const PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE: number =
     min: 1,
   });
 
+/*
+ * Syslog receiver. The probe listens for syslog messages (RFC 3164 and
+ * RFC 5424) on the configured UDP port, batches them, and forwards them to
+ * the OneUptime instance, where they are correlated to Network Devices by
+ * source IP and written into the telemetry Logs pipeline. Point your
+ * devices' syslog destination at this probe.
+ *
+ * Off by default: opt in with PROBE_SYSLOG_RECEIVER_ENABLED=true. The
+ * default port is 5140 rather than the standard 514 because ports < 1024
+ * need privileges outside Docker; a failed bind (port in use, or no
+ * privilege) logs an error and leaves polling untouched.
+ */
+export const PROBE_SYSLOG_RECEIVER_ENABLED: boolean =
+  process.env["PROBE_SYSLOG_RECEIVER_ENABLED"] === "true";
+
+export const PROBE_SYSLOG_RECEIVER_PORT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYSLOG_RECEIVER_PORT"],
+    defaultValue: 5140,
+    min: 1,
+  });
+
+// Safety valve: max syslog messages forwarded per minute before dropping (per probe).
+export const PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE"],
+    defaultValue: 600,
+    min: 1,
+  });
+
+/*
+ * NetFlow receiver. The probe listens for NetFlow v5 export datagrams on
+ * the configured UDP port, parses the flow records, batches them, and
+ * forwards them to the OneUptime instance, where they are correlated to
+ * Network Devices by the exporter's source IP and written into the
+ * ClickHouse network-flow table. Point your devices' NetFlow v5 export
+ * destination at this probe.
+ *
+ * Off by default: opt in with PROBE_NETFLOW_RECEIVER_ENABLED=true. Port
+ * 2055 is the conventional NetFlow collector port (above 1024, so no
+ * privileges needed); a failed bind (port in use) logs an error and
+ * leaves polling untouched.
+ */
+export const PROBE_NETFLOW_RECEIVER_ENABLED: boolean =
+  process.env["PROBE_NETFLOW_RECEIVER_ENABLED"] === "true";
+
+export const PROBE_NETFLOW_RECEIVER_PORT: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_NETFLOW_RECEIVER_PORT"],
+    defaultValue: 2055,
+    min: 1,
+  });
+
+/*
+ * Safety valve: max NetFlow DATAGRAMS accepted per minute before dropping
+ * (per probe). One datagram carries up to 30 flow records.
+ */
+export const PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE"],
+    defaultValue: 300,
+    min: 1,
+  });
+
 export const PROBE_INGRESS_FORWARD_TIMEOUT_MS: number =
   NumberUtil.parseNumberWithDefault({
     value: process.env["PROBE_INGRESS_FORWARD_TIMEOUT_MS"],

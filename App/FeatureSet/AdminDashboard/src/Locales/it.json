@@ -26,6 +26,8 @@
     "adminDashboard": "Pannello amministratore",
     "users": "Utenti",
     "user": "Utente",
+    "enterpriseLicenses": "Licenze Enterprise",
+    "enterpriseLicense": "Licenza",
     "projects": "Progetti",
     "project": "Progetto",
     "projectUsers": "Utenti",
@@ -115,6 +117,26 @@
       "cardTitle": "Utenti",
       "cardDescription": "Ecco un elenco di utenti in OneUptime.",
       "noItems": "Nessun utente trovato."
+    },
+    "enterpriseLicenses": {
+      "title": "Licenze Enterprise",
+      "cardTitle": "Licenze Enterprise",
+      "cardDescription": "Licenze rilasciate ai clienti Enterprise self-hosted, con l'utilizzo delle postazioni e la scadenza a colpo d'occhio.",
+      "noItems": "Non è stata ancora rilasciata alcuna licenza Enterprise.",
+      "settingsCardTitle": "Impostazioni di notifica delle licenze",
+      "settingsCardDescription": "Chi viene messo in copia nelle e-mail sulle licenze e con quanto anticipo vengono inviati i promemoria di scadenza. I promemoria vengono inviati ogni giorno via e-mail agli amministratori principali del cliente finché una licenza supera il limite di utenti o è prossima alla scadenza.",
+      "settingsEditButton": "Modifica impostazioni"
+    },
+    "enterpriseLicenseView": {
+      "title": "Licenza Enterprise",
+      "cardTitle": "Dettagli della licenza",
+      "cardDescription": "Licenza rilasciata a questo cliente.",
+      "editButton": "Modifica licenza",
+      "usageCardTitle": "Utilizzo delle postazioni",
+      "usageCardDescription": "Utenti unici su tutte le istanze self-hosted del cliente, come segnalato ogni giorno dalle loro installazioni.",
+      "instancesCardTitle": "Istanze",
+      "instancesCardDescription": "Istanze self-hosted (staging, produzione, ecc.) che inviano dati per questa licenza e gli amministratori principali che possiamo contattare per ciascuna.",
+      "noInstances": "Nessuna istanza ha ancora inviato dati per questa licenza."
     },
     "userView": {
       "title": "Utente",

@@ -5,6 +5,7 @@ import {
   PROBE_SNMP_TRAP_RECEIVER_PORT,
 } from "../Config";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
+import ProxyConfig from "../Utils/ProxyConfig";
 import URL from "Common/Types/API/URL";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import { JSONObject } from "Common/Types/JSON";
@@ -13,6 +14,8 @@ import SnmpTrap, {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
+// Repairs net-snmp's DES privacy on OpenSSL 3 — must load with net-snmp.
+import "../Utils/Snmp/SnmpDesPrivacyCompat";
 import snmp from "net-snmp";
 
 /*
@@ -29,6 +32,13 @@ const V1_GENERIC_TRAP_OIDS: Record<number, string> = {
 };
 
 const SNMP_TRAP_OID_VARBIND: string = "1.3.6.1.6.3.1.1.4.1.0";
+
+/*
+ * Bound each trap forward so a hung ingest cannot leave POSTs pending
+ * indefinitely under a trap storm (same bound the NetFlow/syslog forwards
+ * use).
+ */
+const FORWARD_REQUEST_TIMEOUT_MS: number = 30000;
 
 export default class SnmpTrapReceiver {
   private static forwardedThisMinute: number = 0;
@@ -131,14 +141,25 @@ export default class SnmpTrapReceiver {
       `SNMP trap received from ${trap.sourceIpAddress}: ${trap.trapOid}`,
     );
 
+    /*
+     * Build the URL from a fresh copy of PROBE_INGEST_URL — Route.addRoute
+     * mutates in place, so calling it on the shared global would permanently
+     * append "/probe/snmp-trap" to the base URL used by every probe request.
+     */
+    const ingestUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+      "/probe/snmp-trap",
+    );
+
     await API.fetch<JSONObject>({
       method: HTTPMethod.POST,
-      url: URL.fromString(
-        PROBE_INGEST_URL.addRoute("/probe/snmp-trap").toString(),
-      ),
+      url: ingestUrl,
       data: {
         ...ProbeAPIRequest.getDefaultRequestBody(),
         snmpTrap: trap as unknown as JSONObject,
+      },
+      options: {
+        ...ProxyConfig.getRequestProxyAgents(ingestUrl),
+        timeout: FORWARD_REQUEST_TIMEOUT_MS,
       },
     });
   }

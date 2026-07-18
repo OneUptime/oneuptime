@@ -111,7 +111,16 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### 名前空間のフィルタリング
 
-`namespaceFilters` は、**Pod ログ** (hostPath DaemonSet と API ログテイラーの両方) と **eBPF トレース** を、選択した名前空間にスコープします。デフォルトでは `kube-system` は除外されます。これらのシグナルを特定の名前空間に制限するには次のようにします。
+`namespaceFilters.rules` 名前空間パターンを4つのスコープに個別に適用します:
+
+- `podLogs`: hostPath filelogレシーバーまたはAPIログテイラーでPodのstdout/stderrをフィルタリングします。Kubernetesイベントと監査ログには影響しません。
+- `ebpfDiscovery`: OBIのプロセス検出をフィルタリングし、eBPFトレースとeBPFメトリクスの両方を制御します。
+- `metrics`: メタデータ付加後に名前空間付きのメトリクス系列をフィルタリングします。名前空間を持たないノードおよびクラスタ系列は保持されます。
+- `traces`: メタデータ付加後にeBPFスパンとアプリケーションから送信されたOTLPスパンの両方をフィルタリングします。
+
+名前空間パターンは完全な名前に一致し、team-* のように * をワイルドカードとして使用できます。あるスコープにincludeルールが1つでもある場合、そのスコープでは一致する名前空間だけが保持されます。excludeルールが常に優先されます。既定のルールはkube-systemをpodLogsとebpfDiscoveryからのみ除外します。
+
+PodログとeBPF検出を特定の名前空間に制限するには:
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -120,36 +129,28 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
-  --set "namespaceFilters.include={default,production,staging}"
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production","staging"],"scopes":["podLogs","ebpfDiscovery"]}]'
 ```
 
-ノイズの多い名前空間を 1 つだけ無視し、それ以外のすべてを保持したい場合は、代わりに `exclude` を使用します。`exclude` は常に `include` より優先されます。また、同梱のデフォルト値は `[kube-system]` なので、引き続き除外したい場合は改めてリストに記載してください。
+ノイズの多い名前空間のログだけを停止し、eBPFトレース、サービスマップ、メトリクスを保持するには、除外をpodLogsだけに適用します:
 
 ```bash
-  --set "namespaceFilters.exclude={kube-system,noisy-namespace}"
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system"],"scopes":["podLogs","ebpfDiscovery"]},{"action":"exclude","namespaces":["noisy-*"],"scopes":["podLogs"]}]'
 ```
 
-**Pod ログと eBPF トレースについては、これにコストは一切かかりません**。名前空間は Pod ログのパスと OBI のプロセス検出の一部であるため、フィルターで除外された名前空間はそもそも読み取られません — CPU も送信 (egress) も消費しません。
+podLogsとebpfDiscoveryのルールは送信元でフィルタリングします。除外されたログファイルは開かれず、除外されたワークロードは計装されません。metricsとtracesのルールは、名前空間メタデータが付加された後にcollector内で実行されます。
 
-#### 名前空間フィルターをメトリクスとトレースに適用する
+#### 名前空間でメトリクスとトレースをフィルタリングする
 
-デフォルトでは、上記のリストは Pod ログと eBPF トレースのみを対象とします。`applyTo` はこれらを他のシグナルにも拡張します。
+名前空間付きのメトリクスやスパンもフィルタリングする場合は、それらのスコープをルールに直接追加します:
 
 ```bash
-  --set namespaceFilters.applyTo.metrics=true \
-  --set namespaceFilters.applyTo.traces=true
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system","noisy-*"],"scopes":["podLogs","ebpfDiscovery","metrics","traces"]}]'
 ```
 
-| 設定              | 対象となる範囲                                                                             |
-| ----------------- | ------------------------------------------------------------------------------------------ |
-| `applyTo.metrics` | kubeletstats、cAdvisor、kube-state-metrics からの Pod ごと / コンテナごとのメトリクス      |
-| `applyTo.traces`  | アプリケーションがエージェントの OTLP エンドポイントに送信するスパン (eBPF のスパンはすでにスコープ済み) |
+> **ノードおよびクラスタレベルのメトリクスは常に保持されます。名前空間はノードではなくPodの属性であるため、名前空間を持たない系列はルールに一致せず削除されません。**
 
-どちらも意図的に **デフォルトで無効** です。`exclude: [kube-system]` がデフォルトとして同梱されているため、これらを自動的に有効にすると、既存のすべてのインストールにおいてアップグレード時に kube-system のメトリクスが黙って削除されてしまいます。
-
-> **ノードレベルおよびクラスターレベルのメトリクスは常に保持されます。** 名前空間はノードではなく Pod の属性であるため、ノード CPU、ノードメモリ、ファイルシステム使用量といったシリーズには照合する対象がなく、破棄されることはありません。`applyTo.metrics` は、ノードの不調を見逃す事態を招くことなく、Pod ごとのカーディナリティを削減します。
-
-Kubernetes の **イベント** は、エージェント側で名前空間によるフィルタリングができません。これらは `k8sobjects` レシーバーから `k8s.namespace.name` 属性なしで到着し — 名前空間はイベントの本文の中にあります — フィルターが照合できる対象がありません。代わりにサーバー側で破棄してください (下記参照)。
+Kubernetesイベントはエージェントで名前空間別にフィルタリングできません。k8sobjectsレシーバーからk8s.namespace.name属性なしで届き、名前空間はイベント本文に含まれます。代わりにサーバー側でフィルタリングしてください。
 
 ### ログの重大度によるフィルタリング
 
@@ -189,7 +190,7 @@ Kubernetes の **イベント** は、エージェント側で名前空間によ
 **決まったセットのみを送信する** (許可リスト — それ以外はすべて破棄されます):
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **正確な名前ではなくパターンで照合する**:
@@ -417,13 +418,13 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | **Pod ログ**                        | クラスター全体、すべてのコンテナのすべての行                         | `namespaceFilters`、`filters.logs.minSeverity`、`logs.enabled`、`logs.mode`                  |
 | **eBPF トレースとスパンメトリクス** | 計装されたすべてのプロセスの、リクエストごとに 1 つのトレース        | `sampling.traces.percentage`、`ebpf.enabled`、`ebpf.features.*`、`ebpf.autoTargetExe`、`ebpf.excludeExePaths` |
 | **メトリクスのデータポイント**      | スクレイプ頻度 × Pod/コンテナの数                                    | `collectionInterval`、`hostMetrics.collectionInterval`、`cadvisor.scrapeInterval`            |
-| **メトリクスのカーディナリティ**    | 個別のシリーズの数 (コンテナごと、PVC ごと、…)                       | `filters.metrics.exclude`、`namespaceFilters.applyTo.metrics`、`cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics` |
+| **メトリクスのカーディナリティ**    | 個別のシリーズの数 (コンテナごと、PVC ごと、…)                       | `filters.metrics.exclude`、`namespaceFilters.rules` (`metrics`)、`cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics` |
 | **オプトインの追加機能**            | プロファイリング、監査ログ、コントロールプレーン、ゾーン間メトリクス | 無効のままにする (デフォルトですでに無効です)                                                |
 
 データ量を削減する方法は 3 つあり、自分がどれを使っているのかを知っておく価値があります。
 
 - **レシーバー側** — データがそもそも収集されません。Pod ログに対する `namespaceFilters`、`cadvisor.metricsAllowlist`、より長い `collectionInterval` などです。実行コストはかからず、CPU、送信 (egress)、取り込みをまとめて節約できます。自分のケースに当てはまる場合は、常にこちらを優先してください。
-- **filter プロセッサ側** — データは収集された後、エクスポートの前に破棄されます。`filters.logs.minSeverity`、`filters.metrics.*`、`namespaceFilters.applyTo.*` などです。コレクターの CPU をわずかに多く使いますが、複数のレシーバーを横断して機能し、レシーバーでは表現できないことも表現できます。
+- **filter プロセッサ側** — データは収集された後、エクスポートの前に破棄されます。`filters.logs.minSeverity`、`filters.metrics.*`、`namespaceFilters.rules` (`metrics`/`traces`) などです。コレクターの CPU をわずかに多く使いますが、複数のレシーバーを横断して機能し、レシーバーでは表現できないことも表現できます。
 - **サンプラー側** — データは収集された後、代表的な一部が保持されます。`sampling.traces.percentage` です。これだけ性質が異なります。上記の 2 つはテレメトリの *カテゴリ* を丸ごと削除するため、それらが破棄したものはどのトレースからも失われます。サンプリングはすべてのカテゴリを維持したまま母集団を間引くため、残ったものは依然として完全であり、かつ代表性を保っています。
 
 3 つとも **元に戻せません**。ここで破棄したものが OneUptime に届くことはなく、3 つともモニターを沈黙させうるものです。最初の 2 つは、モニターが監視しているシグナルそのものを取り除くことでモニターを沈黙させます。サンプリングはもっと限定的です。eBPF の RED メトリクスはサンプラーが動作する前に計算されるため、メトリクスベースのモニターは正確なまま保たれます — ただし、*スパン* を数えるモニター (`Span Count` を条件とする **Traces** モニター、`Exception Count` を条件とする **Exceptions** モニター) は比例して少ない数しか見なくなるため、しきい値を同じ割合で調整し直す必要があります。後から判断したい場合は、代わりに OneUptime のサーバー側でデータを破棄できます (**Logs → Settings → Drop Filters**、**Metrics → Settings → Pipeline Rules**) — こちらは送信 (egress) のコストはかかりますが、再デプロイなしで変更できる設定です。
@@ -432,15 +433,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 コンテナログは、クラスター内のすべてのコンテナからのログ行ごとに 1 レコードとなるため、ほぼ常に取り込みの最大の割合を占めます。
 
-- **特定の名前空間のログのみが必要な場合は?** `namespaceFilters` は、両方のログモードで Pod ログ (およびそれに伴う eBPF トレース) をスコープします。照合は Pod ログのパスで行われるため、フィルターで除外された名前空間は読み取られることすらありません — これはこのドキュメントの中で最も低コストなレバーです。
+- **特定の名前空間のログだけが必要ですか? podLogsスコープのincludeルールを使用します。照合はログの送信元で行われるため、除外された名前空間は読み取られず、eBPFテレメトリは独立したままです。**
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set "namespaceFilters.include={default,production}"
+    --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
-  (`kube-system` はデフォルトですでに除外されています。) 1 つを除いてすべての名前空間を保持するには、`--set "namespaceFilters.exclude={kube-system,noisy-namespace}"` を使用します。
+  ノイズの多い名前空間グループだけを除外するには、namespaces: [noisy-*]とscopes: [podLogs]を指定したexcludeルールを使用します。
 
 - **警告とエラーだけに関心がある場合は?** `filters.logs.minSeverity` が残りをエージェント側で破棄します。おしゃべりなクラスターでは、これが利用可能な削減手段の中で単独で最大になることがよくあります。ほとんどのアプリケーション出力の大半は INFO と DEBUG だからです。
 
@@ -537,12 +538,12 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
   完全一致と正規表現の照合、および許可リスト形式については、[名前によるメトリクスの包含または除外](#名前によるメトリクスの包含または除外) を参照してください。
 
-- **名前空間全体のメトリクスを破棄します。** ある名前空間がノイズが多いものの、そのノードは引き続き監視したい場合、`namespaceFilters.applyTo.metrics=true` は既存の名前空間リストを Pod ごと・コンテナごとのシリーズに適用します。ノードレベルおよびクラスターレベルのシリーズは常に保持されます。
+- **名前空間全体のメトリクスを破棄しますか? metricsスコープのexcludeルールを追加します。Podおよびコンテナ単位の系列がフィルタリングされ、名前空間を持たないノードとクラスタの系列は保持されます。**
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set namespaceFilters.applyTo.metrics=true
+    --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
 ### レバー 5 — 重いオプトイン機能を無効のままにする
@@ -610,9 +611,13 @@ filters:
     minSeverity: WARN # エージェント側で INFO / DEBUG / TRACE を破棄します
 
 namespaceFilters:
-  exclude:
-    - kube-system
-    - noisy-namespace
+  rules:
+    - action: exclude
+      namespaces: [kube-system]
+      scopes: [podLogs, ebpfDiscovery]
+    - action: exclude
+      namespaces: [noisy-*]
+      scopes: [podLogs]
 
 ebpf:
   enabled: true
@@ -628,7 +633,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
   -f lean-values.yaml
 ```
 
-必要に応じてさらに絞り込みます: `minSeverity` を `ERROR` に上げる、`namespaceFilters.applyTo.metrics=true` を追加する、または OTel SDK からすでにトレースを送信している場合は `ebpf.enabled=false` を設定します。
+必要に応じてさらに絞り込みます。minSeverityをERRORに上げる、名前空間ルールのscopesにmetricsを追加する、またはOTel SDKから既にトレースを送信している場合はebpf.enabled=falseを設定します。
 
 > **何を削減するかに注意してください。** 一部のモニターは特定のシグナルに依存します: `cadvisor` を無効にすると、OOM kill と CPU スロットリングのモニターがなくなります。`kubeletstats.volumeMetrics` を無効にすると、PVC のディスク残量不足モニターがなくなります。ログを無効にすると、ログベースのアラートがなくなります。また、`sampling.traces.percentage` はモニターをなくすわけではありませんが、スパンベースのモニター (`Span Count` を条件とする **Traces** モニター、`Exception Count` を条件とする **Exceptions** モニター) を縮小させるため、それに合わせてしきい値を調整し直してください。モニターが監視しているシグナルではなく、対応しないシグナルを削減してください。
 
@@ -688,7 +693,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 1. ログテイラー Pod が Ready であることを確認します: `kubectl get pods -n oneuptime-agent -l component=log-collector`
 2. その `/healthz` を確認します — アクティブなストリーム数と最後のエクスポートエラーを報告します
 3. ログを確認します: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
-4. 非常に大規模なクラスターでは、単一のレプリカがボトルネックになる場合があります — 別々のリリースで `namespaceFilters.include` を使い、名前空間ごとにシャーディングしてください
+4. 非常に大きなクラスタでは単一のレプリカがボトルネックになることがあります。namespaceFilters.rulesでpodLogsスコープのincludeルールを使用し、リリースを分けてシャーディングしてください。
 
 ### メトリクスが表示されない
 

@@ -111,7 +111,16 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### 命名空间过滤
 
-`namespaceFilters` 会将 **Pod 日志**（既包括 hostPath DaemonSet，也包括 API 日志拉取器）以及 **eBPF 追踪**限定到你所选择的命名空间。默认情况下，`kube-system` 会被排除。要将这些信号限制到特定命名空间：
+`namespaceFilters.rules` 将命名空间模式独立应用到四个作用域:
+
+- `podLogs`: 在 hostPath filelog 接收器或 API 日志采集器中过滤 Pod 的 stdout/stderr；不会影响 Kubernetes 事件和审计日志。
+- `ebpfDiscovery`: 过滤 OBI 进程发现，因此同时控制 eBPF 追踪和 eBPF 指标。
+- `metrics`: 在元数据补充后过滤带命名空间的指标序列；不带命名空间的节点和集群序列会保留。
+- `traces`: 在元数据补充后过滤 eBPF span 和应用程序推送的 OTLP span。
+
+命名空间模式匹配完整名称，并支持使用 * 作为通配符，例如 team-*。如果某个作用域存在任何 include 规则，则该作用域只保留匹配的命名空间。exclude 规则始终优先。默认规则仅从 podLogs 和 ebpfDiscovery 中排除 kube-system。
+
+要将 Pod 日志和 eBPF 发现限制到指定命名空间：
 
 ```bash
 helm install kubernetes-agent oneuptime/kubernetes-agent \
@@ -120,36 +129,28 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
-  --set "namespaceFilters.include={default,production,staging}"
+  --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production","staging"],"scopes":["podLogs","ebpfDiscovery"]}]'
 ```
 
-要在保留其他所有命名空间的同时忽略某一个噪声较大的命名空间，请改用 `exclude`。`exclude` 始终优先于 `include`，且随 chart 提供的默认值是 `[kube-system]`——因此如果你仍希望排除它，请再次把它列出来：
+要停止某个高噪声命名空间的日志，同时保留其 eBPF 追踪、服务地图和指标，请仅将排除规则应用到 podLogs：
 
 ```bash
-  --set "namespaceFilters.exclude={kube-system,noisy-namespace}"
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system"],"scopes":["podLogs","ebpfDiscovery"]},{"action":"exclude","namespaces":["noisy-*"],"scopes":["podLogs"]}]'
 ```
 
-对于 **Pod 日志和 eBPF 追踪，这不会带来任何开销**：命名空间是 Pod 日志路径以及 OBI 进程发现的一部分，因此被过滤掉的命名空间从一开始就不会被读取——没有 CPU 开销，也没有出口流量。
+podLogs 和 ebpfDiscovery 规则在源头过滤：被排除的日志文件不会打开，被排除的工作负载不会被插桩。metrics 和 traces 规则在补充命名空间元数据后，于 collector 中稍后执行。
 
-#### 将命名空间过滤器应用于指标和追踪
+#### 按命名空间过滤指标和追踪
 
-默认情况下，上面的列表仅涵盖 Pod 日志和 eBPF 追踪。`applyTo` 会将它们扩展到其他信号：
+如果还需要过滤带命名空间的指标或 span，请直接把这些作用域添加到规则中：
 
 ```bash
-  --set namespaceFilters.applyTo.metrics=true \
-  --set namespaceFilters.applyTo.traces=true
+  --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["kube-system","noisy-*"],"scopes":["podLogs","ebpfDiscovery","metrics","traces"]}]'
 ```
 
-| 设置 | 它涵盖的内容 |
-| ------- | -------------- |
-| `applyTo.metrics` | 来自 kubeletstats、cAdvisor 和 kube-state-metrics 的每 Pod / 每容器指标 |
-| `applyTo.traces` | 你的应用推送到代理 OTLP 端点的 span（eBPF span 已经被限定了范围） |
+> **节点和集群级指标始终保留。命名空间是 Pod 而不是节点的属性，因此不带命名空间的序列不会匹配规则，也不会被删除。**
 
-两者**默认都是关闭的**，这是有意为之。`exclude: [kube-system]` 是随 chart 提供的默认值，因此自动开启它们会在升级时悄悄地从每一个现有安装中删除 kube-system 的指标。
-
-> **节点级和集群级指标始终会被保留。** 命名空间是 Pod 的属性，而不是节点的属性，因此像节点 CPU、节点内存和文件系统使用率这样的序列没有任何可供匹配的内容，也就永远不会被丢弃。`applyTo.metrics` 会削减每 Pod 的基数，但绝不会让你对某个节点出问题视而不见。
-
-Kubernetes **事件**无法在代理侧按命名空间过滤。它们来自 `k8sobjects` 接收器，且不带 `k8s.namespace.name` 属性——命名空间在事件正文内部——因此过滤器没有任何可匹配的内容。请改为在服务端丢弃它们（见下文）。
+代理无法按命名空间过滤 Kubernetes 事件。事件由 k8sobjects 接收器提供，不包含 k8s.namespace.name 属性；命名空间位于事件正文中。请改为在服务器端过滤。
 
 ### 按日志严重性过滤
 
@@ -189,7 +190,7 @@ Kubernetes **事件**无法在代理侧按命名空间过滤。它们来自 `k8s
 **只发送一组固定的指标**（一个允许列表——其他所有内容都会被丢弃）：
 
 ```bash
-  --set-json 'filters.metrics.include=["k8s.pod.cpu.usage","k8s.pod.memory.usage"]'
+  --set-json 'filters.metrics.include=["k8s.pod.cpu.utilization","k8s.pod.memory.usage"]'
 ```
 
 **按模式匹配**，而不是按精确名称：
@@ -418,30 +419,22 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | **Pod 日志**              | 整个集群中每个容器的每一行日志           | `namespaceFilters`、`filters.logs.minSeverity`、`logs.enabled`、`logs.mode`                  |
 | **eBPF 追踪与 span 指标** | 来自每个被埋点进程的每个请求一条追踪     | `sampling.traces.percentage`、`ebpf.enabled`、`ebpf.features.*`、`ebpf.autoTargetExe`、`ebpf.excludeExePaths` |
 | **指标数据点**            | 抓取频率 × Pod/容器数量                  | `collectionInterval`、`hostMetrics.collectionInterval`、`cadvisor.scrapeInterval`            |
-| **指标基数**              | 不同序列的数量（每容器、每 PVC，……）     | `filters.metrics.exclude`、`namespaceFilters.applyTo.metrics`、`cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics` |
+| **指标基数**              | 不同序列的数量（每容器、每 PVC，……）     | `filters.metrics.exclude`、`namespaceFilters.rules` (`metrics`)、`cadvisor.metricsAllowlist`、`kubeletstats.volumeMetrics` |
 | **可选启用的额外项**      | 性能分析、审计日志、控制平面、跨区域指标 | 让它们保持关闭（它们默认已经是关闭的）                                                       |
 
 削减数据量有三种方式，值得弄清楚你正在使用的是哪一种：
 
 - **在接收器处**——数据从不会被采集。作用于 Pod 日志的 `namespaceFilters`、`cadvisor.metricsAllowlist`、更长的 `collectionInterval`。它的运行开销为零，并且同时节省 CPU、出口流量和摄取量。只要能覆盖你的场景，就应始终优先选择这些方式。
-- **在 filter 处理器处**——数据会被采集，然后在导出前被丢弃。`filters.logs.minSeverity`、`filters.metrics.*`、`namespaceFilters.applyTo.*`。采集器的 CPU 开销略高，但它可以跨接收器生效，并且能表达接收器无法表达的内容。
-- **在采样器处**——数据会被采集，然后从中保留有代表性的一部分。`sampling.traces.percentage`。它是个异类：上面两种方式移除的是一整**类**遥测数据，因此它们丢弃的内容会从每一条追踪里消失。采样保留每一个类别，只是对总体做稀释，因此存活下来的数据仍然是完整且有代表性的。
-
-三者都是**不可逆的**：你在此处丢弃的数据永远不会到达 OneUptime，并且三者都可能让某个监视器陷入沉默。前两种是通过移除监视器所观察的信号来让它沉默。采样的影响更窄一些：eBPF RED 指标是在采样器运行之前计算的，因此基于指标的监视器保持精确——但那些统计 *span* 的监视器（基于 `Span Count` 的 Traces、基于 `Exception Count` 的 Exceptions）看到的数量会按比例减少，需要把它们的阈值按同样的倍数重新调校。如果你更希望以后再做决定，OneUptime 可以改为在服务端丢弃数据（**Logs → Settings → Drop Filters**、**Metrics → Settings → Pipeline Rules**）——那样仍然会产生出口流量，但它是一项你无需重新部署即可更改的设置。
-
-### 调整项 1 — Pod 日志通常是最大的单一来源
-
-容器日志几乎总是摄取量中最大的部分，因为它是集群中每个容器的每一行日志对应一条记录。
-
-- **只想要某些命名空间的日志？** `namespaceFilters` 会在两种日志模式下限定 Pod 日志（以及随之而来的 eBPF 追踪）。匹配发生在 Pod 日志路径上，因此被过滤掉的命名空间甚至从不会被读取——这是本文档中开销最低的调整项：
+- **在 filter 处理器处**——数据会被采集，然后在导出前被丢弃。`filters.logs.minSeverity`、`filters.metrics.*`、`namespaceFilters.rules` (`metrics`/`traces`)。采集器的 CPU 开销略高，但它可以跨接收器生效，并且能表达接收器无法表达的内容。
+- **只需要特定命名空间的日志？请使用作用域为 podLogs 的 include 规则。匹配发生在日志源，因此被过滤的命名空间不会被读取，而 eBPF 遥测保持独立。**
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set "namespaceFilters.include={default,production}"
+    --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
-  （`kube-system` 默认已被排除。）若要保留除某一个之外的所有命名空间，请使用 `--set "namespaceFilters.exclude={kube-system,noisy-namespace}"`。
+  要保留除一组高噪声命名空间之外的所有命名空间，请使用 namespaces: [noisy-*]、scopes: [podLogs] 的 exclude 规则。
 
 - **只关心警告和错误？** `filters.logs.minSeverity` 会在代理侧丢弃其余内容。在一个话痨般的集群上，这往往是可用的最大单项削减，因为 INFO 和 DEBUG 占了大多数应用输出的绝大部分：
 
@@ -538,12 +531,12 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
   有关精确匹配与正则匹配的对比以及允许列表的形式，请参阅[按名称包含或排除指标](#按名称包含或排除指标)。
 
-- **丢弃整个命名空间的指标。** 如果某个命名空间噪声很大，但你仍希望监视它所在的节点，`namespaceFilters.applyTo.metrics=true` 会把你现有的命名空间列表应用到每 Pod 和每容器的序列上。节点级和集群级序列始终会被保留：
+- **要丢弃整个命名空间的指标？请添加作用域为 metrics 的 exclude 规则。按 Pod 和容器划分的序列会被过滤，不带命名空间的节点和集群序列会保留。**
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
     --namespace oneuptime-agent --reuse-values \
-    --set namespaceFilters.applyTo.metrics=true
+    --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
 ### 调整项 5 — 让重型的可选启用功能保持关闭
@@ -611,9 +604,13 @@ filters:
     minSeverity: WARN # drop INFO / DEBUG / TRACE at the agent
 
 namespaceFilters:
-  exclude:
-    - kube-system
-    - noisy-namespace
+  rules:
+    - action: exclude
+      namespaces: [kube-system]
+      scopes: [podLogs, ebpfDiscovery]
+    - action: exclude
+      namespaces: [noisy-*]
+      scopes: [podLogs]
 
 ebpf:
   enabled: true
@@ -629,7 +626,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
   -f lean-values.yaml
 ```
 
-按需进一步收紧：把 `minSeverity` 提高到 `ERROR`、添加 `namespaceFilters.applyTo.metrics=true`，或者如果你已经从 OTel SDK 发送追踪，则设置 `ebpf.enabled=false`。
+可按需进一步收紧：将 minSeverity 提高到 ERROR，把 metrics 添加到命名空间规则的 scopes，或者在已通过 OTel SDK 发送追踪时设置 ebpf.enabled=false。
 
 > **注意你所削减的内容。** 某些监视器依赖特定的信号：禁用 `cadvisor` 会移除 OOM-kill 和 CPU 限流监视器；禁用 `kubeletstats.volumeMetrics` 会移除 PVC 磁盘空间不足监视器；禁用日志会移除基于日志的告警；而 `sampling.traces.percentage` 不会移除某个监视器，但会按比例缩小那些基于 span 的监视器（基于 `Span Count` 的 Traces、基于 `Exception Count` 的 Exceptions），因此请相应地重新调校它们的阈值。请削减你不会据以采取行动的信号，而不是某个监视器正在监视的信号。
 
@@ -689,7 +686,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 1. 确认日志拉取器 Pod 处于 Ready 状态：`kubectl get pods -n oneuptime-agent -l component=log-collector`
 2. 检查它的 `/healthz`——它会报告活跃流的数量和最近一次导出错误
 3. 检查日志：`kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
-4. 对于非常大的集群，单个副本可能成为瓶颈——在单独的发布版本上使用 `namespaceFilters.include` 按命名空间分片
+4. 对于超大型集群，单个副本可能成为瓶颈；请在 namespaceFilters.rules 中使用 podLogs 作用域的 include 规则，将不同发布分片。
 
 ### 没有指标出现
 

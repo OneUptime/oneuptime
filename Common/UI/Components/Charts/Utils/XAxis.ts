@@ -32,10 +32,12 @@ export default class XAxisUtil {
     const totalMonths: number = totalDays / 30;
 
     /*
-     * Mirror the server's aggregation interval (see
-     * AggregateUtil.getAggregationInterval) so the chart renders one
-     * point per backend bucket instead of re-bucketing them into
-     * coarser groups. Previously a 1h range was rendered with EVERY_
+     * Mirror the server's aggregation interval ladder (see
+     * AggregationIntervalUtil.getAggregationIntervalForWindow: 3h →
+     * Minute, 12h → FiveMinutes, 24h → FifteenMinutes, 3d →
+     * ThirtyMinutes, 7d → Hour, ...) so the chart renders one point
+     * per backend bucket instead of re-bucketing them into coarser
+     * groups. Previously a 1h range was rendered with EVERY_
      * FIVE_MINUTES (~12 points) even though the server returned 60
      * per-minute rows. Recharts thins the X-axis label set via
      * `interval="equidistantPreserveStart"`, so high point counts do
@@ -55,6 +57,15 @@ export default class XAxisUtil {
     }
     if (totalHours <= 3) {
       return XAxisPrecision.EVERY_MINUTE;
+    }
+    if (totalHours <= 12) {
+      return XAxisPrecision.EVERY_FIVE_MINUTES;
+    }
+    if (totalHours <= 24) {
+      return XAxisPrecision.EVERY_FIFTEEN_MINUTES;
+    }
+    if (totalDays <= 3) {
+      return XAxisPrecision.EVERY_THIRTY_MINUTES;
     }
     if (totalDays <= 7) {
       return XAxisPrecision.EVERY_HOUR;
@@ -115,6 +126,9 @@ export default class XAxisUtil {
           break;
         case XAxisPrecision.EVERY_TEN_MINUTES:
           currentDate.setMinutes(currentDate.getMinutes() + 10);
+          break;
+        case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
+          currentDate.setMinutes(currentDate.getMinutes() + 15);
           break;
         case XAxisPrecision.EVERY_THIRTY_MINUTES:
           currentDate.setMinutes(currentDate.getMinutes() + 30);
@@ -237,6 +251,16 @@ export default class XAxisUtil {
           const roundedValue: Date = this.cloneDate(value);
           const minutes: number = roundedValue.getMinutes();
           const roundedMinutes: number = Math.floor(minutes / 10) * 10;
+          roundedValue.setMinutes(roundedMinutes, 0, 0);
+
+          return OneUptimeDate.getLocalTimeString(roundedValue);
+        };
+      case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
+        // round down to nearest 15 minutes
+        return (value: Date) => {
+          const roundedValue: Date = this.cloneDate(value);
+          const minutes: number = roundedValue.getMinutes();
+          const roundedMinutes: number = Math.floor(minutes / 15) * 15;
           roundedValue.setMinutes(roundedMinutes, 0, 0);
 
           return OneUptimeDate.getLocalTimeString(roundedValue);

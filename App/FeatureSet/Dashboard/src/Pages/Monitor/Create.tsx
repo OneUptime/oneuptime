@@ -13,7 +13,9 @@ import React, {
   useState,
 } from "react";
 import ModelForm, { FormType } from "Common/UI/Components/Forms/ModelForm";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Navigation from "Common/UI/Utils/Navigation";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ObjectID from "Common/Types/ObjectID";
@@ -33,9 +35,131 @@ import {
 } from "Common/UI/Components/Forms/Types/Field";
 import MonitorSteps from "../../Components/Form/Monitor/MonitorSteps";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import {
+  CheckOn,
+  CriteriaFilter,
+  EvaluateOverTimeType,
+  FilterType,
+} from "Common/Types/Monitor/CriteriaFilter";
+import FilterCondition from "Common/Types/Filter/FilterCondition";
+import RollingTime from "Common/Types/RollingTime/RollingTime";
+import OneUptimeDate from "Common/Types/Date";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
+import MetricExplorerUrl, {
+  MetricExplorerUrlParam,
+  SerializedMetricFormula,
+  SerializedMetricQuery,
+} from "Common/Utils/Metrics/MetricExplorerUrl";
+import {
+  buildFormulaConfigsFromSerializedFormulas,
+  buildQueryConfigsFromSerializedQueries,
+} from "../../Components/Metrics/Utils/MetricConfigReconstruct";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
 import Card from "Common/UI/Components/Card/Card";
+
+/*
+ * Candidate rolling windows for "create monitor from this explorer view" —
+ * the explorer's arbitrary window snaps to the nearest one. Ordered
+ * ascending in minutes.
+ */
+const ROLLING_TIME_CANDIDATES: Array<{
+  minutes: number;
+  rollingTime: RollingTime;
+}> = [
+  { minutes: 1, rollingTime: RollingTime.Past1Minute },
+  { minutes: 5, rollingTime: RollingTime.Past5Minutes },
+  { minutes: 10, rollingTime: RollingTime.Past10Minutes },
+  { minutes: 15, rollingTime: RollingTime.Past15Minutes },
+  { minutes: 30, rollingTime: RollingTime.Past30Minutes },
+  { minutes: 60, rollingTime: RollingTime.Past1Hour },
+  { minutes: 120, rollingTime: RollingTime.Past2Hours },
+  { minutes: 180, rollingTime: RollingTime.Past3Hours },
+  { minutes: 360, rollingTime: RollingTime.Past6Hours },
+  { minutes: 720, rollingTime: RollingTime.Past12Hours },
+  // Past1Hours is the enum's (historically misnamed) "Past 1 Day" member.
+  { minutes: 1440, rollingTime: RollingTime.Past1Hours },
+  { minutes: 2880, rollingTime: RollingTime.Past2Days },
+  { minutes: 4320, rollingTime: RollingTime.Past3Days },
+  { minutes: 10080, rollingTime: RollingTime.Past7Days },
+  { minutes: 20160, rollingTime: RollingTime.Past14Days },
+  { minutes: 43200, rollingTime: RollingTime.Past30Days },
+  { minutes: 86400, rollingTime: RollingTime.Past60Days },
+  { minutes: 129600, rollingTime: RollingTime.Past90Days },
+  { minutes: 259200, rollingTime: RollingTime.Past180Days },
+  { minutes: 525600, rollingTime: RollingTime.Past365Days },
+];
+
+function getNearestRollingTimeForWindow(): RollingTime {
+  const startTimeParam: string | null = Navigation.getQueryStringByName(
+    MetricExplorerUrlParam.StartTime,
+  );
+  const endTimeParam: string | null = Navigation.getQueryStringByName(
+    MetricExplorerUrlParam.EndTime,
+  );
+
+  // No window on the link — fall back to the explorer's default hour.
+  if (
+    !startTimeParam ||
+    !endTimeParam ||
+    !OneUptimeDate.isValidDateString(startTimeParam) ||
+    !OneUptimeDate.isValidDateString(endTimeParam)
+  ) {
+    return RollingTime.Past1Hour;
+  }
+
+  const windowMinutes: number =
+    (OneUptimeDate.fromString(endTimeParam).getTime() -
+      OneUptimeDate.fromString(startTimeParam).getTime()) /
+    60000;
+
+  if (!Number.isFinite(windowMinutes) || windowMinutes <= 0) {
+    return RollingTime.Past1Hour;
+  }
+
+  let nearest: { minutes: number; rollingTime: RollingTime } =
+    ROLLING_TIME_CANDIDATES[0]!;
+
+  for (const candidate of ROLLING_TIME_CANDIDATES) {
+    if (
+      Math.abs(candidate.minutes - windowMinutes) <
+      Math.abs(nearest.minutes - windowMinutes)
+    ) {
+      nearest = candidate;
+    }
+  }
+
+  return nearest.rollingTime;
+}
+
+function buildThresholdCriteriaInstance(input: {
+  name: string;
+  description: string;
+  filters: Array<CriteriaFilter>;
+}): MonitorCriteriaInstance {
+  const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+  instance.data = {
+    id: ObjectID.generate().toString(),
+    monitorStatusId: undefined,
+    filterCondition: FilterCondition.Any,
+    filters: input.filters,
+    incidents: [],
+    alerts: [],
+    changeMonitorStatus: false,
+    createIncidents: false,
+    createAlerts: false,
+    isEnabled: true,
+    name: input.name,
+    description: input.description,
+  };
+
+  return instance;
+}
 
 const MonitorCreate: FunctionComponent<
   PageComponentProps
@@ -49,9 +173,184 @@ const MonitorCreate: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [initialValues, setInitialValues] = useState<JSONObject>({});
 
+  /*
+   * "Create monitor from this view" deep link from the metric explorer:
+   * pre-seed a Metric monitor from the shared serializer's
+   * metricQueries/metricFormulas params (plus the window → rolling time).
+   * Any warning/critical thresholds on the queries become generated
+   * warning/critical criteria; otherwise criteria stay at the form's
+   * defaults. Template links take priority — they carry full steps.
+   */
+  const preSeedFromMetricExplorerLink: (
+    rawMetricQueries: string,
+  ) => Promise<void> = async (rawMetricQueries: string): Promise<void> => {
+    const serializedQueries: Array<SerializedMetricQuery> =
+      MetricExplorerUrl.parseMetricQueriesParam(rawMetricQueries);
+
+    if (serializedQueries.length === 0) {
+      return;
+    }
+
+    const rawMetricFormulas: string | null = Navigation.getQueryStringByName(
+      MetricExplorerUrlParam.MetricFormulas,
+    );
+    const serializedFormulas: Array<SerializedMetricFormula> = rawMetricFormulas
+      ? MetricExplorerUrl.parseMetricFormulasParam(rawMetricFormulas)
+      : [];
+
+    const queryConfigs: Array<MetricQueryConfigData> =
+      buildQueryConfigsFromSerializedQueries(serializedQueries);
+    const formulaConfigs: Array<MetricFormulaConfigData> =
+      buildFormulaConfigsFromSerializedFormulas(
+        serializedFormulas,
+        queryConfigs.length,
+      );
+
+    const monitorSteps: MonitorStepsType = new MonitorStepsType();
+    const monitorStep: MonitorStep | undefined =
+      monitorSteps.data?.monitorStepsInstanceArray[0];
+
+    if (!monitorStep || !monitorStep.data) {
+      return;
+    }
+
+    monitorStep.data.metricMonitor = {
+      metricViewConfig: {
+        queryConfigs: queryConfigs,
+        formulaConfigs: formulaConfigs,
+      },
+      rollingTime: getNearestRollingTimeForWindow(),
+    };
+
+    /*
+     * The MonitorSteps form only auto-fills the default (operational)
+     * monitor status when it bootstraps WITHOUT an initial value, so a
+     * pre-seeded MonitorSteps must carry it itself — otherwise
+     * validation blocks the criteria step with "Default Monitor Status
+     * is required" until the user finds the dropdown manually.
+     */
+    try {
+      const monitorStatusList: ListResult<MonitorStatus> =
+        await ModelAPI.getList({
+          modelType: MonitorStatus,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            isOperationalState: true,
+          },
+          sort: {},
+        });
+
+      const operationalStatus: MonitorStatus | undefined =
+        monitorStatusList.data.find((status: MonitorStatus) => {
+          return status.isOperationalState;
+        });
+
+      if (operationalStatus?.id) {
+        monitorSteps.setDefaultMonitorStatusId(operationalStatus.id);
+      }
+    } catch {
+      // Recoverable: the user can still pick the default status in the form.
+    }
+
+    const warningFilters: Array<CriteriaFilter> = [];
+    const criticalFilters: Array<CriteriaFilter> = [];
+
+    for (const queryConfig of queryConfigs) {
+      const metricAlias: string =
+        queryConfig.metricAliasData?.metricVariable || "";
+
+      const buildFilter: (thresholdValue: number) => CriteriaFilter = (
+        thresholdValue: number,
+      ): CriteriaFilter => {
+        return {
+          checkOn: CheckOn.MetricValue,
+          filterType: FilterType.GreaterThan,
+          value: thresholdValue,
+          metricMonitorOptions: {
+            metricAggregationType: EvaluateOverTimeType.AnyValue,
+            ...(metricAlias ? { metricAlias: metricAlias } : {}),
+          },
+        };
+      };
+
+      if (queryConfig.criticalThreshold !== undefined) {
+        criticalFilters.push(buildFilter(queryConfig.criticalThreshold));
+      }
+
+      if (queryConfig.warningThreshold !== undefined) {
+        warningFilters.push(buildFilter(queryConfig.warningThreshold));
+      }
+    }
+
+    const criteriaInstances: Array<MonitorCriteriaInstance> = [];
+
+    if (criticalFilters.length > 0) {
+      criteriaInstances.push(
+        buildThresholdCriteriaInstance({
+          name: "Critical",
+          description:
+            "Generated from the critical threshold on the metric explorer view.",
+          filters: criticalFilters,
+        }),
+      );
+    }
+
+    if (warningFilters.length > 0) {
+      criteriaInstances.push(
+        buildThresholdCriteriaInstance({
+          name: "Warning",
+          description:
+            "Generated from the warning threshold on the metric explorer view.",
+          filters: warningFilters,
+        }),
+      );
+    }
+
+    if (criteriaInstances.length > 0) {
+      const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+      monitorCriteria.data = {
+        monitorCriteriaInstanceArray: criteriaInstances,
+      };
+      monitorStep.data.monitorCriteria = monitorCriteria;
+    }
+
+    const firstQuery: SerializedMetricQuery = serializedQueries[0]!;
+    const metricDisplayName: string =
+      firstQuery.alias?.title?.trim() ||
+      firstQuery.metricName.trim() ||
+      "Metric";
+
+    setInitialValues({
+      name: `${metricDisplayName} Monitor`,
+      description: `Created from the Metric Explorer view for ${metricDisplayName}.`,
+      monitorType: MonitorType.Metrics,
+      monitorSteps: monitorSteps.toJSON(),
+      monitoringInterval: "*/5 * * * *",
+    });
+  };
+
   useEffect(() => {
     if (monitorTemplateId) {
       fetchMonitorTemplate(new ObjectID(monitorTemplateId));
+      return;
+    }
+
+    const rawMetricQueries: string | null = Navigation.getQueryStringByName(
+      MetricExplorerUrlParam.MetricQueries,
+    );
+
+    if (rawMetricQueries) {
+      /*
+       * Gate the form on loading (like the template flow) so the
+       * pre-seeded initial values — including the async-fetched default
+       * monitor status — are in place before the form mounts.
+       */
+      setIsLoading(true);
+      preSeedFromMetricExplorerLink(rawMetricQueries).finally(() => {
+        setIsLoading(false);
+      });
     }
   }, []);
 

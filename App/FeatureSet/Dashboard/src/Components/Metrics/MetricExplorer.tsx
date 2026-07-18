@@ -1,11 +1,15 @@
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import MetricView from "./MetricView";
+import AddToDashboardModal from "./AddToDashboardModal";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useMemo,
   useRef,
+  useState,
 } from "react";
 import OneUptimeDate from "Common/Types/Date";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -13,108 +17,176 @@ import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import Dictionary from "Common/Types/Dictionary";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import Text from "Common/Types/Text";
-import FilterData from "Common/UI/Components/Filters/Types/FilterData";
-import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
+import ObjectID from "Common/Types/ObjectID";
+import { JSONObject } from "Common/Types/JSON";
+import MetricExplorerUrl, {
+  MetricExplorerUrlParam,
+  SerializedMetricFormula,
+  SerializedMetricQuery,
+} from "Common/Utils/Metrics/MetricExplorerUrl";
+import {
+  buildFormulaConfigsFromSerializedFormulas,
+  buildQueryConfigsFromSerializedQueries,
+} from "./Utils/MetricConfigReconstruct";
+import ExplorerLink from "./Utils/ExplorerLink";
+import TimeRange from "Common/Types/Time/TimeRange";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import AutoRefreshControl from "../TelemetryResource/AutoRefreshControl";
+import useAutoRefresh from "../TelemetryResource/useAutoRefresh";
+import { AutoRefreshInterval } from "Common/Types/Dashboard/DashboardViewConfig";
+import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
+import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
+import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
+import TelemetrySavedViewType from "Common/Types/Telemetry/TelemetrySavedViewType";
+import Query from "Common/Types/BaseDatabase/Query";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
+import HintChip from "./HintChip";
+import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import Route from "Common/Types/API/Route";
+import URL from "Common/Types/API/URL";
+
+const AUTO_REFRESH_STORAGE_KEY: string =
+  "metric-explorer-auto-refresh-interval";
+const SHOW_EVENTS_STORAGE_KEY: string = "metric-explorer-show-events";
+
+// Max incidents and alerts (each) fetched for the event-overlay markers.
+const EVENT_OVERLAY_FETCH_LIMIT: number = 50;
+
+// Muted severity-ish marker colors (fallbacks when severity has no color).
+const INCIDENT_MARKER_COLOR: string = "#f87171"; // red-400
+const ALERT_MARKER_COLOR: string = "#fbbf24"; // amber-400
+
+/*
+ * Marker labels render vertically along the reference line, so an
+ * unbounded incident/alert title would run down the whole plot height.
+ * Only the chart label truncates — the marker's click-through target
+ * still opens the full record.
+ */
+const EVENT_MARKER_TITLE_MAX_LENGTH: number = 40;
+
+function truncateEventMarkerTitle(title: string): string {
+  if (title.length <= EVENT_MARKER_TITLE_MAX_LENGTH) {
+    return title;
+  }
+
+  return `${title.slice(0, EVENT_MARKER_TITLE_MAX_LENGTH).trimEnd()}…`;
+}
+
+// One toolbar-button idiom for the explorer's investigation row.
+const TOOLBAR_BUTTON_CLASS_NAME: string =
+  "inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+const TOOLBAR_BUTTON_IDLE_CLASS_NAME: string =
+  "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
+const TOOLBAR_BUTTON_ACTIVE_CLASS_NAME: string =
+  "bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-200";
+const TOOLBAR_ACTION_BUTTON_CLASS_NAME: string =
+  "inline-flex h-8 cursor-pointer select-none items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+
+// One incident/alert mapped onto a chart time marker.
+interface EventMarker {
+  date: Date;
+  label: string;
+  color: string;
+  route: Route;
+}
+
+type ResolveRangeTokenFunction = (rangeToken: string) => InBetween<Date>;
+
+// Resolve a relative token against "now" (re-anchors on every call).
+const resolveRangeToken: ResolveRangeTokenFunction = (
+  rangeToken: string,
+): InBetween<Date> => {
+  return RangeStartAndEndDateTimeUtil.getStartAndEndDate({
+    range: rangeToken as TimeRange,
+  });
+};
+
+type GetDefaultEmptyQueryConfigFunction = () => MetricQueryConfigData;
+
+const getDefaultEmptyQueryConfig: GetDefaultEmptyQueryConfigFunction =
+  (): MetricQueryConfigData => {
+    return {
+      id: ObjectID.generate().toString(),
+      metricAliasData: {
+        metricVariable: "a",
+        title: "",
+        description: "",
+        legend: "",
+        legendUnit: "",
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: "",
+          attributes: {},
+          aggegationType: MetricsAggregationType.Avg,
+        },
+      },
+    };
+  };
 
 const MetricExplorer: FunctionComponent = (): ReactElement => {
-  const metricQueriesFromUrl: Array<MetricQueryFromUrl> =
+  const metricQueriesFromUrl: Array<SerializedMetricQuery> =
     getMetricQueriesFromQuery();
 
-  const metricFormulasFromUrl: Array<MetricFormulaFromUrl> =
+  const metricFormulasFromUrl: Array<SerializedMetricFormula> =
     getMetricFormulasFromQuery();
 
-  const defaultEndDate: Date = OneUptimeDate.getCurrentDate();
-  const defaultStartDate: Date = OneUptimeDate.addRemoveHours(
-    defaultEndDate,
-    -1,
-  );
-  const defaultStartAndEndDate: InBetween<Date> = new InBetween(
-    defaultStartDate,
-    defaultEndDate,
-  );
-
-  const initialTimeRange: InBetween<Date> =
-    getTimeRangeFromQuery() ?? defaultStartAndEndDate;
-
-  const initialQueryConfigs: Array<MetricQueryConfigData> =
-    metricQueriesFromUrl.map(
-      (
-        metricQuery: MetricQueryFromUrl,
-        index: number,
-      ): MetricQueryConfigData => {
-        return {
-          metricAliasData: {
-            metricVariable: Text.getLetterFromAByNumber(index),
-            title: metricQuery.alias?.title || "",
-            description: metricQuery.alias?.description || "",
-            legend: metricQuery.alias?.legend || "",
-            legendUnit: metricQuery.alias?.legendUnit || "",
-          },
-          metricQueryData: {
-            filterData: {
-              metricName: metricQuery.metricName,
-              attributes: metricQuery.attributes,
-              aggegationType:
-                metricQuery.aggregationType || MetricsAggregationType.Avg,
-            },
-          },
-        };
-      },
+  /*
+   * Initial time window resolution, in precedence order:
+   *  1. `range` token → re-anchor to now (deep links stay rolling; the
+   *     mount-time "now" is NOT frozen because refresh re-resolves it).
+   *  2. absolute startTime/endTime → pinned Custom window (back-compat
+   *     with older links and monitor breach deep links).
+   *  3. nothing → the default rolling Past 1 Hour.
+   */
+  const rangeTokenFromUrl: string | undefined =
+    MetricExplorerUrl.getValidRangeToken(
+      Navigation.getQueryStringByName(MetricExplorerUrlParam.Range),
     );
 
+  const absoluteWindowFromUrl: InBetween<Date> | null = getTimeRangeFromQuery();
+
+  const initialRangeToken: string | undefined = rangeTokenFromUrl
+    ? rangeTokenFromUrl
+    : absoluteWindowFromUrl
+      ? undefined
+      : TimeRange.PAST_ONE_HOUR;
+
+  const initialTimeRange: InBetween<Date> = initialRangeToken
+    ? resolveRangeToken(initialRangeToken)
+    : absoluteWindowFromUrl!;
+
+  const initialQueryConfigs: Array<MetricQueryConfigData> =
+    buildQueryConfigsFromSerializedQueries(metricQueriesFromUrl);
+
   const initialFormulaConfigs: Array<MetricFormulaConfigData> =
-    metricFormulasFromUrl.map(
-      (
-        formula: MetricFormulaFromUrl,
-        index: number,
-      ): MetricFormulaConfigData => {
-        /*
-         * Default formula variable letters start after the queries so they
-         * don't collide with query aliases (a, b, ...).
-         */
-        const defaultVariable: string = Text.getLetterFromAByNumber(
-          initialQueryConfigs.length + index,
-        );
-        return {
-          metricAliasData: {
-            metricVariable: formula.variable || defaultVariable,
-            title: formula.alias?.title || "",
-            description: formula.alias?.description || "",
-            legend: formula.alias?.legend || "",
-            legendUnit: formula.alias?.legendUnit || "",
-          },
-          metricFormulaData: {
-            metricFormula: formula.formula,
-          },
-        };
-      },
+    buildFormulaConfigsFromSerializedFormulas(
+      metricFormulasFromUrl,
+      initialQueryConfigs.length,
     );
 
   const [metricViewData, setMetricViewData] = React.useState<MetricViewData>({
     startAndEndDate: initialTimeRange,
+    rangeToken: initialRangeToken,
     queryConfigs:
       initialQueryConfigs.length > 0
         ? initialQueryConfigs
-        : [
-            {
-              metricAliasData: {
-                metricVariable: "a",
-                title: "",
-                description: "",
-                legend: "",
-                legendUnit: "",
-              },
-              metricQueryData: {
-                filterData: {
-                  metricName: "",
-                  attributes: {},
-                  aggegationType: MetricsAggregationType.Avg,
-                },
-              },
-            },
-          ],
+        : [getDefaultEmptyQueryConfig()],
     formulaConfigs: initialFormulaConfigs,
   });
 
@@ -122,28 +194,10 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
     useRef<string>("");
 
   useEffect(() => {
-    const metricQueriesFromState: Array<MetricQueryFromUrl> =
-      buildMetricQueriesFromState(metricViewData);
+    const urlParams: Dictionary<string> =
+      MetricExplorerUrl.buildQueryParamsFromMetricViewData(metricViewData);
 
-    const metricQueriesForUrl: Array<MetricQueryFromUrl> =
-      metricQueriesFromState.filter(isMeaningfulMetricQuery);
-
-    const metricFormulasForUrl: Array<MetricFormulaFromUrl> =
-      buildMetricFormulasFromState(metricViewData).filter(
-        isMeaningfulMetricFormula,
-      );
-
-    const startTimeValue: Date | undefined =
-      metricViewData.startAndEndDate?.startValue;
-    const endTimeValue: Date | undefined =
-      metricViewData.startAndEndDate?.endValue;
-
-    const serializedState: string = JSON.stringify({
-      metricQueries: metricQueriesForUrl,
-      metricFormulas: metricFormulasForUrl,
-      startTime: startTimeValue ? OneUptimeDate.toString(startTimeValue) : null,
-      endTime: endTimeValue ? OneUptimeDate.toString(endTimeValue) : null,
-    });
+    const serializedState: string = JSON.stringify(urlParams);
 
     if (serializedState === lastSerializedStateRef.current) {
       return;
@@ -151,24 +205,14 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
 
     const params: URLSearchParams = new URLSearchParams(window.location.search);
 
-    if (metricQueriesForUrl.length > 0) {
-      params.set("metricQueries", JSON.stringify(metricQueriesForUrl));
-    } else {
-      params.delete("metricQueries");
-    }
+    for (const paramName of Object.values(MetricExplorerUrlParam)) {
+      const paramValue: string | undefined = urlParams[paramName];
 
-    if (metricFormulasForUrl.length > 0) {
-      params.set("metricFormulas", JSON.stringify(metricFormulasForUrl));
-    } else {
-      params.delete("metricFormulas");
-    }
-
-    if (startTimeValue && endTimeValue) {
-      params.set("startTime", OneUptimeDate.toString(startTimeValue));
-      params.set("endTime", OneUptimeDate.toString(endTimeValue));
-    } else {
-      params.delete("startTime");
-      params.delete("endTime");
+      if (paramValue !== undefined) {
+        params.set(paramName, paramValue);
+      } else {
+        params.delete(paramName);
+      }
     }
 
     params.delete("metricName");
@@ -186,138 +230,654 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
     lastSerializedStateRef.current = serializedState;
   }, [metricViewData]);
 
+  /*
+   * Refresh plumbing. A refresh re-anchors the relative token to now (the
+   * moved end timestamp naturally misses the fetch cache), and bumps the
+   * nonce so a PINNED window — whose fetch snapshot cannot otherwise
+   * change — bypasses the aggregate result cache too.
+   */
+  const [refreshNonce, setRefreshNonce] = useState<number>(0);
+  const [isFetchingResults, setIsFetchingResults] = useState<boolean>(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+
+  const handleRefresh: VoidFunction = useCallback((): void => {
+    setMetricViewData((previous: MetricViewData): MetricViewData => {
+      if (!previous.rangeToken) {
+        return previous;
+      }
+      return {
+        ...previous,
+        startAndEndDate: resolveRangeToken(previous.rangeToken),
+      };
+    });
+    setRefreshNonce((previous: number) => {
+      return previous + 1;
+    });
+  }, []);
+
+  const {
+    autoRefreshInterval,
+    setAutoRefreshInterval,
+  }: {
+    autoRefreshInterval: AutoRefreshInterval;
+    setAutoRefreshInterval: (interval: AutoRefreshInterval) => void;
+  } = useAutoRefresh({
+    storageKey: AUTO_REFRESH_STORAGE_KEY,
+    onRefresh: handleRefresh,
+    defaultInterval: AutoRefreshInterval.OFF,
+  });
+
+  // -- Event overlays (incidents + alerts as chart time markers) --
+
+  const [showEvents, setShowEvents] = useState<boolean>(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+    return window.localStorage?.getItem(SHOW_EVENTS_STORAGE_KEY) !== "false";
+  });
+
+  const toggleShowEvents: VoidFunction = (): void => {
+    setShowEvents((previous: boolean): boolean => {
+      const next: boolean = !previous;
+      if (typeof window !== "undefined") {
+        window.localStorage?.setItem(SHOW_EVENTS_STORAGE_KEY, String(next));
+      }
+      return next;
+    });
+  };
+
+  const [eventMarkers, setEventMarkers] = useState<Array<EventMarker>>([]);
+
+  const eventsWindowStartMs: number | undefined =
+    metricViewData.startAndEndDate?.startValue instanceof Date
+      ? (metricViewData.startAndEndDate.startValue as Date).getTime()
+      : undefined;
+  const eventsWindowEndMs: number | undefined =
+    metricViewData.startAndEndDate?.endValue instanceof Date
+      ? (metricViewData.startAndEndDate.endValue as Date).getTime()
+      : undefined;
+
+  useEffect(() => {
+    if (
+      !showEvents ||
+      eventsWindowStartMs === undefined ||
+      eventsWindowEndMs === undefined
+    ) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    const fetchEventMarkers: () => Promise<void> = async (): Promise<void> => {
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      if (!projectId) {
+        return;
+      }
+
+      const eventsWindow: InBetween<Date> = new InBetween<Date>(
+        new Date(eventsWindowStartMs),
+        new Date(eventsWindowEndMs),
+      );
+
+      try {
+        const [incidents, alerts]: [ListResult<Incident>, ListResult<Alert>] =
+          await Promise.all([
+            ModelAPI.getList<Incident>({
+              modelType: Incident,
+              query: {
+                projectId: projectId,
+                createdAt: eventsWindow,
+              },
+              select: {
+                _id: true,
+                title: true,
+                createdAt: true,
+                incidentSeverity: {
+                  name: true,
+                  color: true,
+                },
+              },
+              sort: {
+                createdAt: SortOrder.Descending,
+              },
+              limit: EVENT_OVERLAY_FETCH_LIMIT,
+              skip: 0,
+            }),
+            ModelAPI.getList<Alert>({
+              modelType: Alert,
+              query: {
+                projectId: projectId,
+                createdAt: eventsWindow,
+              },
+              select: {
+                _id: true,
+                title: true,
+                createdAt: true,
+                alertSeverity: {
+                  name: true,
+                  color: true,
+                },
+              },
+              sort: {
+                createdAt: SortOrder.Descending,
+              },
+              limit: EVENT_OVERLAY_FETCH_LIMIT,
+              skip: 0,
+            }),
+          ]);
+
+        if (isCancelled) {
+          return;
+        }
+
+        const markers: Array<EventMarker> = [];
+
+        for (const incident of incidents.data) {
+          if (!incident.createdAt || !incident.id) {
+            continue;
+          }
+          markers.push({
+            date: OneUptimeDate.fromString(
+              incident.createdAt as unknown as string,
+            ),
+            label: `Incident: ${truncateEventMarkerTitle(incident.title || "")}`,
+            color:
+              incident.incidentSeverity?.color?.toString() ||
+              INCIDENT_MARKER_COLOR,
+            route: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_VIEW]!,
+              { modelId: incident.id },
+            ),
+          });
+        }
+
+        for (const alert of alerts.data) {
+          if (!alert.createdAt || !alert.id) {
+            continue;
+          }
+          markers.push({
+            date: OneUptimeDate.fromString(
+              alert.createdAt as unknown as string,
+            ),
+            label: `Alert: ${truncateEventMarkerTitle(alert.title || "")}`,
+            color: alert.alertSeverity?.color?.toString() || ALERT_MARKER_COLOR,
+            route: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERT_VIEW]!,
+              { modelId: alert.id },
+            ),
+          });
+        }
+
+        setEventMarkers(markers);
+      } catch {
+        // Event markers are best-effort — never break the charts.
+      }
+    };
+
+    void fetchEventMarkers();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [showEvents, eventsWindowStartMs, eventsWindowEndMs]);
+
+  const eventReferenceLines: Array<ChartTimeReferenceLineProps> =
+    useMemo((): Array<ChartTimeReferenceLineProps> => {
+      if (!showEvents) {
+        return [];
+      }
+      return eventMarkers.map(
+        (marker: EventMarker): ChartTimeReferenceLineProps => {
+          return {
+            date: marker.date,
+            label: marker.label,
+            color: marker.color,
+            onClick: () => {
+              Navigation.navigate(marker.route);
+            },
+          };
+        },
+      );
+    }, [showEvents, eventMarkers]);
+
+  // -- Saved explorer views --
+
+  const [headerError, setHeaderError] = useState<string>("");
+
+  // A deep link (metricQueries param) must not be clobbered by the default view.
+  const hasInitialUrlState: boolean = useMemo((): boolean => {
+    return Boolean(
+      Navigation.getQueryStringByName(MetricExplorerUrlParam.MetricQueries),
+    );
+  }, []);
+
+  const captureCurrentState: () => TelemetrySavedViewState =
+    useCallback((): TelemetrySavedViewState => {
+      /*
+       * Persist the serializer's PLAIN shapes (never raw queryConfigs —
+       * they can carry runtime function fields), plus the time selection:
+       * the relative token when rolling, the absolute window when pinned.
+       */
+      const metricQueries: Array<SerializedMetricQuery> =
+        metricViewData.queryConfigs
+          .map((queryConfig: MetricQueryConfigData): SerializedMetricQuery => {
+            return MetricExplorerUrl.buildSerializedMetricQuery(queryConfig);
+          })
+          .filter(MetricExplorerUrl.isMeaningfulMetricQuery);
+
+      const metricFormulas: Array<SerializedMetricFormula> =
+        metricViewData.formulaConfigs
+          .map(
+            (
+              formulaConfig: MetricFormulaConfigData,
+            ): SerializedMetricFormula => {
+              return MetricExplorerUrl.buildSerializedMetricFormula(
+                formulaConfig,
+              );
+            },
+          )
+          .filter(MetricExplorerUrl.isMeaningfulMetricFormula);
+
+      const startValue: Date | undefined =
+        metricViewData.startAndEndDate?.startValue;
+      const endValue: Date | undefined =
+        metricViewData.startAndEndDate?.endValue;
+
+      const explorerConfig: JSONObject = {
+        metricQueries: metricQueries,
+        metricFormulas: metricFormulas,
+        ...(metricViewData.rangeToken
+          ? { rangeToken: metricViewData.rangeToken }
+          : {}),
+        ...(startValue && endValue
+          ? {
+              startTime: OneUptimeDate.toString(startValue),
+              endTime: OneUptimeDate.toString(endValue),
+            }
+          : {}),
+      } as unknown as JSONObject;
+
+      return { explorerConfig };
+    }, [metricViewData]);
+
+  const applySavedViewState: (state: TelemetrySavedViewState) => void =
+    useCallback((state: TelemetrySavedViewState): void => {
+      const explorerConfig: JSONObject = (state.explorerConfig ||
+        {}) as JSONObject;
+
+      /*
+       * Round-trip the stored arrays through the URL parsers so saved
+       * views get the exact same defensive sanitization as deep links.
+       */
+      const metricQueries: Array<SerializedMetricQuery> =
+        MetricExplorerUrl.parseMetricQueriesParam(
+          JSON.stringify(explorerConfig["metricQueries"] || []),
+        );
+      const metricFormulas: Array<SerializedMetricFormula> =
+        MetricExplorerUrl.parseMetricFormulasParam(
+          JSON.stringify(explorerConfig["metricFormulas"] || []),
+        );
+
+      const queryConfigs: Array<MetricQueryConfigData> =
+        buildQueryConfigsFromSerializedQueries(metricQueries);
+      const formulaConfigs: Array<MetricFormulaConfigData> =
+        buildFormulaConfigsFromSerializedFormulas(
+          metricFormulas,
+          queryConfigs.length,
+        );
+
+      const savedRangeToken: string | undefined =
+        MetricExplorerUrl.getValidRangeToken(explorerConfig["rangeToken"]);
+
+      let startAndEndDate: InBetween<Date> | null = null;
+
+      if (!savedRangeToken) {
+        const startRaw: unknown = explorerConfig["startTime"];
+        const endRaw: unknown = explorerConfig["endTime"];
+        if (
+          typeof startRaw === "string" &&
+          typeof endRaw === "string" &&
+          OneUptimeDate.isValidDateString(startRaw) &&
+          OneUptimeDate.isValidDateString(endRaw)
+        ) {
+          startAndEndDate = new InBetween<Date>(
+            OneUptimeDate.fromString(startRaw),
+            OneUptimeDate.fromString(endRaw),
+          );
+        }
+      }
+
+      // Token re-anchors to now; missing/invalid window → default rolling hour.
+      const effectiveRangeToken: string | undefined = savedRangeToken
+        ? savedRangeToken
+        : startAndEndDate
+          ? undefined
+          : TimeRange.PAST_ONE_HOUR;
+
+      setMetricViewData({
+        startAndEndDate: effectiveRangeToken
+          ? resolveRangeToken(effectiveRangeToken)
+          : startAndEndDate,
+        rangeToken: effectiveRangeToken,
+        queryConfigs:
+          queryConfigs.length > 0
+            ? queryConfigs
+            : [getDefaultEmptyQueryConfig()],
+        formulaConfigs: formulaConfigs,
+      });
+    }, []);
+
+  // -- Header actions --
+
+  const timeRangePickerValue: RangeStartAndEndDateTime =
+    metricViewData.rangeToken
+      ? { range: metricViewData.rangeToken as TimeRange }
+      : {
+          range: TimeRange.CUSTOM,
+          startAndEndDate: metricViewData.startAndEndDate || undefined,
+        };
+
+  const handleTimeRangePicked: (value: RangeStartAndEndDateTime) => void = (
+    value: RangeStartAndEndDateTime,
+  ): void => {
+    if (value.range === TimeRange.CUSTOM) {
+      if (value.startAndEndDate) {
+        setMetricViewData({
+          ...metricViewData,
+          rangeToken: undefined,
+          startAndEndDate: value.startAndEndDate,
+        });
+      }
+      return;
+    }
+
+    setMetricViewData({
+      ...metricViewData,
+      rangeToken: value.range,
+      startAndEndDate: resolveRangeToken(value.range),
+    });
+  };
+
+  /*
+   * Cross-signal pivot: open the logs/traces explorer scoped to the
+   * CURRENT resolved window via their range=Custom&start&end URL params
+   * (window-only — no filter mapping).
+   */
+  const navigateToSignalWithCurrentWindow: (pageMap: PageMap) => void = (
+    pageMap: PageMap,
+  ): void => {
+    const route: Route = RouteUtil.populateRouteParams(RouteMap[pageMap]!);
+    const currentUrl: URL = Navigation.getCurrentURL();
+    const targetUrl: URL = new URL(
+      currentUrl.protocol,
+      currentUrl.hostname,
+      route,
+    );
+
+    const startValue: Date | undefined =
+      metricViewData.startAndEndDate?.startValue;
+    const endValue: Date | undefined = metricViewData.startAndEndDate?.endValue;
+
+    if (startValue && endValue) {
+      targetUrl.addQueryParam("range", TimeRange.CUSTOM, true);
+      targetUrl.addQueryParam(
+        "start",
+        OneUptimeDate.toString(startValue),
+        true,
+      );
+      targetUrl.addQueryParam("end", OneUptimeDate.toString(endValue), true);
+    }
+
+    Navigation.navigate(targetUrl);
+  };
+
+  /*
+   * "Create monitor from this view": Monitor Create parses the same
+   * serializer params (metricQueries/metricFormulas + window) and
+   * pre-seeds a Metric monitor.
+   */
+  const navigateToCreateMonitor: VoidFunction = (): void => {
+    const route: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.MONITOR_CREATE]!,
+    );
+    const currentUrl: URL = Navigation.getCurrentURL();
+    const targetUrl: URL = new URL(
+      currentUrl.protocol,
+      currentUrl.hostname,
+      route,
+    );
+
+    const urlParams: Dictionary<string> =
+      MetricExplorerUrl.buildQueryParamsFromMetricViewData(metricViewData);
+
+    for (const paramName of Object.keys(urlParams)) {
+      targetUrl.addQueryParam(paramName, urlParams[paramName] as string, true);
+    }
+
+    Navigation.navigate(targetUrl);
+  };
+
+  const [showAddToDashboardModal, setShowAddToDashboardModal] =
+    useState<boolean>(false);
+
   return (
-    <MetricView
-      data={metricViewData}
-      onChange={(data: MetricViewData) => {
-        setMetricViewData(data);
-      }}
-    />
+    <div>
+      <div className="mb-5 space-y-2">
+        {headerError ? <HintChip variant="red">{headerError}</HintChip> : null}
+
+        {/*
+         * One toolbar row: time window · refresh cadence · signal pivots ·
+         * overlays on the left; view identity & share actions on the right.
+         * Wraps into stacked clusters on narrow screens.
+         */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-gray-200 bg-gray-50/70 p-2.5 shadow-sm">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+            <AutoRefreshControl
+              autoRefreshInterval={autoRefreshInterval}
+              onAutoRefreshIntervalChange={setAutoRefreshInterval}
+              onManualRefresh={handleRefresh}
+              isRefreshing={isFetchingResults}
+              lastRefreshedAt={lastRefreshedAt}
+              timeRangePicker={
+                <TelemetryTimeRangePicker
+                  value={timeRangePickerValue}
+                  onChange={handleTimeRangePicked}
+                />
+              }
+            />
+            <div
+              className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm"
+              aria-label="Related telemetry signals"
+            >
+              <Tooltip text="Open the logs explorer scoped to this time window">
+                <button
+                  type="button"
+                  aria-label="View logs for this time window"
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                  onClick={() => {
+                    navigateToSignalWithCurrentWindow(PageMap.LOGS);
+                  }}
+                >
+                  <Icon icon={IconProp.Logs} className="h-3.5 w-3.5" />
+                  <span>Logs</span>
+                </button>
+              </Tooltip>
+              <Tooltip text="Open the traces explorer scoped to this time window">
+                <button
+                  type="button"
+                  aria-label="View traces for this time window"
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
+                  onClick={() => {
+                    navigateToSignalWithCurrentWindow(PageMap.TRACES);
+                  }}
+                >
+                  <Icon icon={IconProp.Layers} className="h-3.5 w-3.5" />
+                  <span>Traces</span>
+                </button>
+              </Tooltip>
+              <Tooltip
+                text={
+                  showEvents
+                    ? "Hide incident and alert markers on the charts"
+                    : "Show incident and alert markers on the charts"
+                }
+              >
+                <button
+                  type="button"
+                  aria-label="Toggle incident and alert markers"
+                  aria-pressed={showEvents}
+                  onClick={toggleShowEvents}
+                  className={`${TOOLBAR_BUTTON_CLASS_NAME} ${
+                    showEvents
+                      ? TOOLBAR_BUTTON_ACTIVE_CLASS_NAME
+                      : TOOLBAR_BUTTON_IDLE_CLASS_NAME
+                  }`}
+                >
+                  <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5" />
+                  <span>Events</span>
+                  {showEvents && eventMarkers.length > 0 ? (
+                    <span className="rounded-full bg-indigo-100 px-1.5 text-[11px] font-semibold text-indigo-700">
+                      {eventMarkers.length}
+                    </span>
+                  ) : null}
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-2 xl:w-auto xl:justify-start xl:border-t-0 xl:pt-0">
+            <TelemetrySavedViewsControl<MetricSavedView>
+              modelType={MetricSavedView}
+              savedViewNoun="Metric Explorer"
+              explorerLabel="metric explorer"
+              hasInitialUrlState={hasInitialUrlState}
+              captureCurrentState={captureCurrentState}
+              applyState={applySavedViewState}
+              onError={setHeaderError}
+              additionalQuery={
+                {
+                  viewType: TelemetrySavedViewType.Explorer,
+                } as Query<MetricSavedView>
+              }
+              additionalSaveFields={
+                {
+                  viewType: TelemetrySavedViewType.Explorer,
+                } as Partial<MetricSavedView>
+              }
+              triggerClassName="h-8 border-gray-200 px-2.5 text-gray-600"
+              showTriggerIcon={true}
+              dropdownAlignment="right"
+            />
+            <CopyTextButton
+              textToBeCopied={ExplorerLink.buildExplorerUrl(
+                metricViewData,
+              ).toString()}
+              label="Copy Link"
+              copiedLabel="Link Copied!"
+              size="sm"
+              variant="ghost"
+              title="Copy a shareable link to this view"
+              className="h-8 border-gray-200 bg-white px-2.5 font-medium text-gray-600 shadow-sm hover:border-gray-300 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            />
+            <MoreMenu
+              text="Actions"
+              triggerClassName={TOOLBAR_ACTION_BUTTON_CLASS_NAME}
+              elementToBeShownInsteadOfButton={
+                <>
+                  <Icon
+                    icon={IconProp.More}
+                    className="h-4 w-4 text-gray-500"
+                  />
+                  <span>Actions</span>
+                  <Icon
+                    icon={IconProp.ChevronDown}
+                    className="h-3 w-3 text-gray-400"
+                  />
+                </>
+              }
+            >
+              <MoreMenuItem
+                key="create-monitor-from-view"
+                icon={IconProp.Heartbeat}
+                text="Create monitor from this view"
+                onClick={navigateToCreateMonitor}
+              />
+              <MoreMenuItem
+                key="add-to-dashboard"
+                icon={IconProp.ChartPie}
+                text="Add to dashboard"
+                onClick={() => {
+                  setShowAddToDashboardModal(true);
+                }}
+              />
+            </MoreMenu>
+          </div>
+        </div>
+      </div>
+
+      <MetricView
+        data={metricViewData}
+        hideStartAndEndDate={true}
+        refreshNonce={refreshNonce}
+        timeReferenceLines={
+          eventReferenceLines.length > 0 ? eventReferenceLines : undefined
+        }
+        onIsFetchingResultsChange={(isFetching: boolean) => {
+          setIsFetchingResults(isFetching);
+          if (!isFetching) {
+            setLastRefreshedAt(OneUptimeDate.getCurrentDate());
+          }
+        }}
+        onChange={(data: MetricViewData) => {
+          setMetricViewData(data);
+        }}
+      />
+
+      {showAddToDashboardModal ? (
+        <AddToDashboardModal
+          metricViewData={metricViewData}
+          onClose={() => {
+            setShowAddToDashboardModal(false);
+          }}
+        />
+      ) : null}
+    </div>
   );
 };
 
 export default MetricExplorer;
 
-type MetricQueryFromUrl = {
-  metricName: string;
-  attributes: Dictionary<string | number | boolean>;
-  aggregationType?: MetricsAggregationType;
-  alias?: MetricQueryAliasFromUrl;
-};
-
-type MetricQueryAliasFromUrl = {
-  title?: string;
-  description?: string;
-  legend?: string;
-  legendUnit?: string;
-};
-
-type MetricFormulaFromUrl = {
-  formula: string;
-  variable?: string;
-  alias?: MetricQueryAliasFromUrl;
-};
-
-function buildMetricQueriesFromState(
-  data: MetricViewData,
-): Array<MetricQueryFromUrl> {
-  return data.queryConfigs.map(
-    (queryConfig: MetricQueryConfigData): MetricQueryFromUrl => {
-      const filterData: FilterData<MetricsQuery> =
-        queryConfig.metricQueryData.filterData;
-      const filterDataRecord: Record<string, unknown> = filterData as Record<
-        string,
-        unknown
-      >;
-
-      const metricNameValue: unknown = filterDataRecord["metricName"];
-
-      const metricName: string =
-        typeof metricNameValue === "string" ? metricNameValue : "";
-
-      const aggregationValue: unknown = filterDataRecord["aggegationType"];
-
-      const aggregationType: MetricsAggregationType | undefined =
-        getAggregationTypeFromValue(aggregationValue);
-
-      const attributes: Dictionary<string | number | boolean> =
-        sanitizeAttributes(filterDataRecord["attributes"]);
-
-      const aliasData: MetricQueryAliasFromUrl | undefined =
-        buildAliasFromMetricAliasData(queryConfig.metricAliasData);
-
-      return {
-        metricName,
-        attributes,
-        ...(aggregationType ? { aggregationType } : {}),
-        ...(aliasData ? { alias: aliasData } : {}),
-      };
-    },
+function getMetricQueriesFromQuery(): Array<SerializedMetricQuery> {
+  const metricQueriesParam: string | null = Navigation.getQueryStringByName(
+    MetricExplorerUrlParam.MetricQueries,
   );
-}
-
-function getMetricQueriesFromQuery(): Array<MetricQueryFromUrl> {
-  const metricQueriesParam: string | null =
-    Navigation.getQueryStringByName("metricQueries");
 
   if (!metricQueriesParam) {
     return [];
   }
 
-  try {
-    const parsedValue: unknown = JSONFunctions.parse(metricQueriesParam);
+  return MetricExplorerUrl.parseMetricQueriesParam(metricQueriesParam);
+}
 
-    if (!Array.isArray(parsedValue)) {
-      return [];
-    }
+function getMetricFormulasFromQuery(): Array<SerializedMetricFormula> {
+  const formulasParam: string | null = Navigation.getQueryStringByName(
+    MetricExplorerUrlParam.MetricFormulas,
+  );
 
-    const sanitizedQueries: Array<MetricQueryFromUrl> = [];
-
-    for (const entry of parsedValue) {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        continue;
-      }
-
-      const entryRecord: Record<string, unknown> = entry as Record<
-        string,
-        unknown
-      >;
-
-      const metricName: string =
-        typeof entryRecord["metricName"] === "string"
-          ? (entryRecord["metricName"] as string)
-          : "";
-
-      const attributes: Dictionary<string | number | boolean> =
-        sanitizeAttributes(entryRecord["attributes"]);
-
-      const aggregationType: MetricsAggregationType | undefined =
-        getAggregationTypeFromValue(entryRecord["aggregationType"]);
-
-      const alias: MetricQueryAliasFromUrl | undefined = sanitizeAlias(
-        entryRecord["alias"],
-        entryRecord,
-      );
-
-      sanitizedQueries.push({
-        metricName,
-        attributes,
-        ...(aggregationType ? { aggregationType } : {}),
-        ...(alias ? { alias } : {}),
-      });
-    }
-
-    return sanitizedQueries;
-  } catch {
+  if (!formulasParam) {
     return [];
   }
+
+  return MetricExplorerUrl.parseMetricFormulasParam(formulasParam);
 }
 
 function getTimeRangeFromQuery(): InBetween<Date> | null {
-  const startTimeParam: string | null =
-    Navigation.getQueryStringByName("startTime");
-  const endTimeParam: string | null =
-    Navigation.getQueryStringByName("endTime");
+  const startTimeParam: string | null = Navigation.getQueryStringByName(
+    MetricExplorerUrlParam.StartTime,
+  );
+  const endTimeParam: string | null = Navigation.getQueryStringByName(
+    MetricExplorerUrlParam.EndTime,
+  );
 
   if (!startTimeParam || !endTimeParam) {
     return null;
@@ -342,247 +902,4 @@ function getTimeRangeFromQuery(): InBetween<Date> | null {
   } catch {
     return null;
   }
-}
-
-function sanitizeAttributes(
-  value: unknown,
-): Dictionary<string | number | boolean> {
-  if (value === null || value === undefined) {
-    return {};
-  }
-
-  let candidate: unknown = value;
-
-  if (typeof value === "string") {
-    try {
-      candidate = JSONFunctions.parse(value);
-    } catch {
-      return {};
-    }
-  }
-
-  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-    return {};
-  }
-
-  const attributes: Dictionary<string | number | boolean> = {};
-
-  for (const key in candidate as Record<string, unknown>) {
-    const attributeValue: unknown = (candidate as Record<string, unknown>)[key];
-
-    if (
-      typeof attributeValue === "string" ||
-      typeof attributeValue === "number" ||
-      typeof attributeValue === "boolean"
-    ) {
-      attributes[key] = attributeValue;
-    }
-  }
-
-  return attributes;
-}
-
-function buildAliasFromMetricAliasData(
-  data: MetricQueryConfigData["metricAliasData"],
-): MetricQueryAliasFromUrl | undefined {
-  if (!data) {
-    return undefined;
-  }
-
-  const alias: MetricQueryAliasFromUrl = {};
-
-  if (typeof data.title === "string" && data.title.trim() !== "") {
-    alias.title = data.title;
-  }
-
-  if (typeof data.description === "string" && data.description.trim() !== "") {
-    alias.description = data.description;
-  }
-
-  if (typeof data.legend === "string" && data.legend.trim() !== "") {
-    alias.legend = data.legend;
-  }
-
-  if (typeof data.legendUnit === "string" && data.legendUnit.trim() !== "") {
-    alias.legendUnit = data.legendUnit;
-  }
-
-  return Object.keys(alias).length > 0 ? alias : undefined;
-}
-
-function sanitizeAlias(
-  value: unknown,
-  fallback?: Record<string, unknown>,
-): MetricQueryAliasFromUrl | undefined {
-  const alias: MetricQueryAliasFromUrl = {};
-
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    const aliasRecord: Record<string, unknown> = value as Record<
-      string,
-      unknown
-    >;
-
-    if (typeof aliasRecord["title"] === "string") {
-      alias.title = aliasRecord["title"] as string;
-    }
-
-    if (typeof aliasRecord["description"] === "string") {
-      alias.description = aliasRecord["description"] as string;
-    }
-
-    if (typeof aliasRecord["legend"] === "string") {
-      alias.legend = aliasRecord["legend"] as string;
-    }
-
-    if (typeof aliasRecord["legendUnit"] === "string") {
-      alias.legendUnit = aliasRecord["legendUnit"] as string;
-    }
-  }
-
-  // Backward compatibility: allow flat keys on the main query record.
-  if (fallback) {
-    if (alias.title === undefined && typeof fallback["title"] === "string") {
-      alias.title = fallback["title"] as string;
-    }
-
-    if (
-      alias.description === undefined &&
-      typeof fallback["description"] === "string"
-    ) {
-      alias.description = fallback["description"] as string;
-    }
-
-    if (alias.legend === undefined && typeof fallback["legend"] === "string") {
-      alias.legend = fallback["legend"] as string;
-    }
-
-    if (
-      alias.legendUnit === undefined &&
-      typeof fallback["legendUnit"] === "string"
-    ) {
-      alias.legendUnit = fallback["legendUnit"] as string;
-    }
-  }
-
-  return Object.keys(alias).length > 0 ? alias : undefined;
-}
-
-function getAggregationTypeFromValue(
-  value: unknown,
-): MetricsAggregationType | undefined {
-  if (typeof value === "string") {
-    const aggregationTypeValues: Array<string> = Object.values(
-      MetricsAggregationType,
-    ) as Array<string>;
-
-    if (aggregationTypeValues.includes(value)) {
-      return value as MetricsAggregationType;
-    }
-  }
-
-  return undefined;
-}
-
-function buildMetricFormulasFromState(
-  data: MetricViewData,
-): Array<MetricFormulaFromUrl> {
-  return data.formulaConfigs.map(
-    (config: MetricFormulaConfigData): MetricFormulaFromUrl => {
-      const alias: MetricQueryAliasFromUrl | undefined =
-        buildAliasFromMetricAliasData(config.metricAliasData);
-      return {
-        formula: config.metricFormulaData?.metricFormula || "",
-        ...(config.metricAliasData?.metricVariable
-          ? { variable: config.metricAliasData.metricVariable }
-          : {}),
-        ...(alias ? { alias } : {}),
-      };
-    },
-  );
-}
-
-function getMetricFormulasFromQuery(): Array<MetricFormulaFromUrl> {
-  const formulasParam: string | null =
-    Navigation.getQueryStringByName("metricFormulas");
-
-  if (!formulasParam) {
-    return [];
-  }
-
-  try {
-    const parsedValue: unknown = JSONFunctions.parse(formulasParam);
-
-    if (!Array.isArray(parsedValue)) {
-      return [];
-    }
-
-    const formulas: Array<MetricFormulaFromUrl> = [];
-
-    for (const entry of parsedValue) {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        continue;
-      }
-
-      const entryRecord: Record<string, unknown> = entry as Record<
-        string,
-        unknown
-      >;
-
-      const formula: string =
-        typeof entryRecord["formula"] === "string"
-          ? (entryRecord["formula"] as string)
-          : "";
-
-      if (!formula) {
-        continue;
-      }
-
-      const variable: string | undefined =
-        typeof entryRecord["variable"] === "string"
-          ? (entryRecord["variable"] as string)
-          : undefined;
-
-      const alias: MetricQueryAliasFromUrl | undefined = sanitizeAlias(
-        entryRecord["alias"],
-        entryRecord,
-      );
-
-      formulas.push({
-        formula,
-        ...(variable ? { variable } : {}),
-        ...(alias ? { alias } : {}),
-      });
-    }
-
-    return formulas;
-  } catch {
-    return [];
-  }
-}
-
-function isMeaningfulMetricFormula(formula: MetricFormulaFromUrl): boolean {
-  return Boolean(formula.formula && formula.formula.trim());
-}
-
-function isMeaningfulMetricQuery(query: MetricQueryFromUrl): boolean {
-  if (query.metricName) {
-    return true;
-  }
-
-  if (Object.keys(query.attributes).length > 0) {
-    return true;
-  }
-
-  if (
-    query.aggregationType &&
-    query.aggregationType !== MetricsAggregationType.Avg
-  ) {
-    return true;
-  }
-
-  if (query.alias && Object.keys(query.alias).length > 0) {
-    return true;
-  }
-
-  return false;
 }

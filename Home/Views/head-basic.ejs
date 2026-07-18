@@ -228,31 +228,94 @@
             });
         });
 
+        /*
+         * Attribution capture (UTM parameters + ad platform click IDs).
+         *
+         * - Last-touch UTM values live in the individual utm* localStorage
+         *   keys (read by the signup page and stored on the User record).
+         * - Last-touch click IDs live as a JSON object under 'clickIds'.
+         * - The visitor's first attributed visit is preserved as JSON under
+         *   'firstTouch' and never overwritten.
+         *
+         * A visit counts as a new "touch" if it carries ANY utm parameter or
+         * ad click ID — Google Ads auto-tagging sends only gclid, no UTMs.
+         */
         var urlParams = new URLSearchParams(window.location.search);
-        var utm_source = urlParams.get('utm_source');
-        var utm_medium = urlParams.get('utm_medium');
-        var utm_campaign = urlParams.get('utm_campaign');
-        var utm_term = urlParams.get('utm_term');
-        var utm_content = urlParams.get('utm_content');
-        var utm_url = window.location.href;
 
-        if (utm_source != null) {
-            localStorage.setItem('utmSource', utm_source);
-            localStorage.setItem('utmMedium', utm_medium);
-            localStorage.setItem('utmCampaign', utm_campaign);
-            localStorage.setItem('utmTerm', utm_term);
-            localStorage.setItem('utmContent', utm_content);
-            localStorage.setItem('utmUrl', utm_url);
+        var utmKeyMap = {
+            'utm_source': 'utmSource',
+            'utm_medium': 'utmMedium',
+            'utm_campaign': 'utmCampaign',
+            'utm_term': 'utmTerm',
+            'utm_content': 'utmContent'
+        };
+
+        var clickIdParams = ['gclid', 'wbraid', 'gbraid', 'fbclid', 'msclkid', 'li_fat_id', 'twclid', 'rdt_cid'];
+
+        var utmValues = {};
+        var hasUtm = false;
+        Object.keys(utmKeyMap).forEach(function (param) {
+            var value = urlParams.get(param);
+            if (value) {
+                utmValues[utmKeyMap[param]] = value;
+                hasUtm = true;
+            }
+        });
+
+        var clickIds = {};
+        var hasClickId = false;
+        clickIdParams.forEach(function (param) {
+            var value = urlParams.get(param);
+            if (value) {
+                clickIds[param] = value;
+                hasClickId = true;
+            }
+        });
+
+        if (hasUtm || hasClickId) {
+            // New touch: clear previous last-touch values, then store this visit's.
+            Object.keys(utmKeyMap).forEach(function (param) {
+                localStorage.removeItem(utmKeyMap[param]);
+            });
+            Object.keys(utmValues).forEach(function (key) {
+                localStorage.setItem(key, utmValues[key]);
+            });
+            localStorage.setItem('utmUrl', window.location.href);
+
+            if (hasClickId) {
+                localStorage.setItem('clickIds', JSON.stringify(clickIds));
+            } else {
+                localStorage.removeItem('clickIds');
+            }
+
+            // Preserve the first attributed touch forever.
+            if (!localStorage.getItem('firstTouch')) {
+                var firstTouch = {};
+                Object.keys(utmValues).forEach(function (key) {
+                    firstTouch[key] = utmValues[key];
+                });
+                if (hasClickId) {
+                    firstTouch.clickIds = clickIds;
+                }
+                firstTouch.landingUrl = window.location.href;
+                firstTouch.referrer = document.referrer || '';
+                firstTouch.timestamp = new Date().toISOString();
+                localStorage.setItem('firstTouch', JSON.stringify(firstTouch));
+            }
 
             if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
-                posthog.capture('home/utm_event', {
-                    utm_source: utm_source,
-                    utm_medium: utm_medium,
-                    utm_campaign: utm_campaign,
-                    utm_term: utm_term,
-                    utm_content: utm_content,
-                    utm_url: utm_url
-                })
+                var eventProps = {
+                    utm_url: window.location.href
+                };
+                Object.keys(utmKeyMap).forEach(function (param) {
+                    if (utmValues[utmKeyMap[param]]) {
+                        eventProps[param] = utmValues[utmKeyMap[param]];
+                    }
+                });
+                Object.keys(clickIds).forEach(function (param) {
+                    eventProps[param] = clickIds[param];
+                });
+                posthog.capture('home/utm_event', eventProps);
             }
         }
     });

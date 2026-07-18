@@ -152,14 +152,14 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
   );
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {props.timeRangePicker ?? null}
       <button
         type="button"
         onClick={props.onManualRefresh}
         disabled={props.isRefreshing}
         title="Refresh now"
-        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Icon
           icon={IconProp.Refresh}
@@ -187,7 +187,7 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
               e.target.value as AutoRefreshInterval,
             );
           }}
-          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          className="h-8 rounded-md border border-gray-200 bg-white px-2 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
         >
           {intervals.map((interval: AutoRefreshInterval): ReactElement => {
             return (

@@ -31,6 +31,7 @@ import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ProductAnalytics from "../Utils/ProductAnalytics";
 import OnCallDutyPolicyWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/OnCallDutyPolicy";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -44,12 +45,21 @@ export class Service extends DatabaseService<OnCallDutyPolicy> {
   }
 
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<OnCallDutyPolicy>,
+    onCreate: OnCreate<OnCallDutyPolicy>,
     createdItem: OnCallDutyPolicy,
   ): Promise<OnCallDutyPolicy> {
     if (!createdItem.id) {
       throw new BadDataException("On Call Policy id not found.");
     }
+
+    // Activation event for marketing funnels.
+    ProductAnalytics.captureForUser({
+      userId: onCreate.createBy.props.userId || createdItem.createdByUserId,
+      event: "server/on_call_policy_created",
+      properties: {
+        project_id: createdItem.projectId?.toString() || "",
+      },
+    });
 
     if (createdItem.projectId) {
       try {

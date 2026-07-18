@@ -60,19 +60,29 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 #   - tini: a tiny init for containers to properly reap zombie processes
 #   - ca-certificates: required by update-ca-certificates (intermediate certs
 #     copied above)
-#   - Build toolchain: python3, make, g++ (node-gyp / native npm modules)
+#   - Build toolchain: python3, make, g++, unixODBC headers (node-gyp / native
+#     npm modules, including the SQL Server trusted-connection driver)
+#   - Kerberos client: required for SQL Server Integrated Authentication on
+#     Linux; users provide their realm configuration and ticket cache
 #   - Playwright/Chromium system libraries
 # apt lists are removed in the same RUN so package metadata doesn't persist
 # in the layer.
 RUN apt-get update \
     && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         bash curl iputils-ping net-tools dnsutils traceroute tini ca-certificates \
-        python3 make g++ \
+        python3 make g++ unixodbc-dev krb5-user \
         libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
         libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
         libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 \
         libasound2 libatspi2.0-0 \
+    && curl --fail --show-error --silent --location \
+        --output /tmp/packages-microsoft-prod.deb \
+        https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb \
+    && dpkg -i /tmp/packages-microsoft-prod.deb \
+    && rm /tmp/packages-microsoft-prod.deb \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -104,6 +114,11 @@ WORKDIR /usr/src/app
 # Install app dependencies first so local Playwright CLI is available
 COPY ./Probe/package*.json /usr/src/app/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
+# The native dependency is optional for non-ODBC development environments,
+# but it is required in the official image. Fail the image build if either the
+# Node binding or Microsoft ODBC Driver 18 is unavailable.
+RUN node -e "require('mssql/msnodesqlv8')" \
+    && odbcinst -q -d -n "ODBC Driver 18 for SQL Server"
 
 # Install browsers to a fixed path accessible by any runtime user (root or non-root)
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers

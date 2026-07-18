@@ -26,6 +26,8 @@
     "adminDashboard": "管理員儀表板",
     "users": "使用者",
     "user": "使用者",
+    "enterpriseLicenses": "企業版授權",
+    "enterpriseLicense": "授權",
     "projects": "專案",
     "project": "專案",
     "projectUsers": "使用者",
@@ -115,6 +117,26 @@
       "cardTitle": "使用者",
       "cardDescription": "這是 OneUptime 中的使用者清單。",
       "noItems": "找不到使用者。"
+    },
+    "enterpriseLicenses": {
+      "title": "企業版授權",
+      "cardTitle": "企業版授權",
+      "cardDescription": "核發給自架企業客戶的授權，可一目了然地查看席次使用情況與到期時間。",
+      "noItems": "尚未核發任何企業版授權。",
+      "settingsCardTitle": "授權通知設定",
+      "settingsCardDescription": "設定哪些人會收到授權郵件副本，以及提前多久寄送到期提醒。當授權超出使用者數量上限或即將到期時，系統會每天寄送提醒郵件給該客戶的主要管理員。",
+      "settingsEditButton": "編輯設定"
+    },
+    "enterpriseLicenseView": {
+      "title": "企業版授權",
+      "cardTitle": "授權詳細資料",
+      "cardDescription": "核發給此客戶的授權。",
+      "editButton": "編輯授權",
+      "usageCardTitle": "席次使用情況",
+      "usageCardDescription": "該客戶所有自架執行個體中的不重複使用者數，由其安裝環境每天回報。",
+      "instancesCardTitle": "執行個體",
+      "instancesCardDescription": "針對此授權回報資料的自架執行個體（測試、正式等），以及我們可以在各執行個體上聯絡的主要管理員。",
+      "noInstances": "尚無執行個體針對此授權回報資料。"
     },
     "userView": {
       "title": "使用者",

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/app",
-  "version": "11.5.9",
+  "version": "11.5.10",
   "description": "",
   "repository": {
     "type": "git",
@@ -59,7 +59,7 @@
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
-    "@types/node": "^17.0.31",
+    "@types/node": "^26.1.1",
     "@types/nodemailer": "^8.0.1",
     "@types/ws": "^8.18.1",
     "@types/xml2js": "^0.4.14",

@@ -3,11 +3,15 @@ import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMoni
 import IncomingEmailMonitorLink from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailMonitorLink";
 import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonitor/Documentation";
 import PageComponentProps from "../../PageComponentProps";
+import URL from "Common/Types/API/URL";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -102,6 +106,31 @@ const MonitorDocumentation: FunctionComponent<
       {monitorType === MonitorType.Server && monitor?.serverMonitorSecretKey ? (
         <ServerMonitorDocumentation
           secretKey={monitor?.serverMonitorSecretKey}
+        />
+      ) : (
+        <></>
+      )}
+
+      {/* Network Device (SNMP) guide */}
+      {monitorType === MonitorType.NetworkDevice ? (
+        <Card
+          title={`Network Device Monitoring Guide`}
+          description={
+            <span>
+              Learn how to register devices, run subnet discovery, enable
+              interface monitoring and SNMP traps, and use template variables in
+              the{" "}
+              <Link
+                openInNewTab={true}
+                to={new URL(HTTP_PROTOCOL, HOST).addRoute(
+                  "/docs/monitor/network-device-monitor",
+                )}
+              >
+                <span>Network Device Monitor documentation</span>
+              </Link>
+              .
+            </span>
+          }
         />
       ) : (
         <></>

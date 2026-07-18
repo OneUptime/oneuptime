@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/cli",
-  "version": "11.5.9",
+  "version": "11.5.10",
   "description": "OneUptime CLI - Command-line interface for managing OneUptime resources",
   "repository": {
     "type": "git",
@@ -27,15 +27,15 @@
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "dependencies": {
-    "Common": "npm:@oneuptime/common@latest",
-    "commander": "^12.1.0",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
+    "commander": "^12.1.0",
+    "Common": "npm:@oneuptime/common@latest",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.15.21",
+    "@types/node": "^26.1.1",
     "jest": "^29.7.0",
     "nodemon": "^3.1.11",
     "ts-jest": "^29.4.6",

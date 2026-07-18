@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "11.5.9",
+  "version": "11.5.10",
   "description": "",
   "repository": {
     "type": "git",
@@ -19,7 +19,7 @@
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/node": "^20.10.4"
+    "@types/node": "^26.1.1"
   },
   "dependencies": {
     "@playwright/test": "^1.60.0",

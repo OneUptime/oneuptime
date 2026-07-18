@@ -480,7 +480,8 @@ export class MonitorTypeHelper {
     return (
       monitorType === MonitorType.IncomingRequest ||
       monitorType === MonitorType.IncomingEmail ||
-      monitorType === MonitorType.Server
+      monitorType === MonitorType.Server ||
+      monitorType === MonitorType.NetworkDevice
     );
   }
 

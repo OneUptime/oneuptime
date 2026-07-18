@@ -1,5 +1,16 @@
 export enum AggregationInterval {
   Minute = "Minute",
+  /*
+   * The sub-hour tiers are served from the same 1-minute rollup as
+   * `Minute` (any bucket that is a whole multiple of a minute is >= the
+   * MV's resolution). Unlike the calendar units they are NOT valid
+   * ClickHouse `date_trunc`/INTERVAL-1 units, so SQL builders must go
+   * through AggregateUtil.buildBucketTimestampExpression instead of
+   * lowercasing the enum value into the statement.
+   */
+  FiveMinutes = "FiveMinutes",
+  FifteenMinutes = "FifteenMinutes",
+  ThirtyMinutes = "ThirtyMinutes",
   Hour = "Hour",
   Day = "Day",
   Week = "Week",

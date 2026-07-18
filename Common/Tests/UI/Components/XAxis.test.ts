@@ -9,9 +9,11 @@ describe("XAxisUtil", () => {
       xAxisMax: new Date("2026-04-07T14:00:00.000Z"),
     });
 
-    expect(formatter(new Date("2026-04-07T07:30:00.000Z"))).toBe(
-      "07 Apr, 08:00",
-    );
+    /*
+     * A 24h window now uses the fifteen-minute precision tier, whose labels
+     * are local wall-clock times: 07:30 UTC is 08:30 in BST.
+     */
+    expect(formatter(new Date("2026-04-07T07:30:00.000Z"))).toBe("08:30");
   });
 
   test("does not mutate the original date while rounding local labels", () => {

@@ -304,7 +304,7 @@ export default class DnsMonitorUtil {
           records.push({
             type: DnsRecordType.CAA,
             value:
-              `${result.critial} ${result.issue || result.issuewild || result.iodef || ""}`.trim(),
+              `${result.critical} ${result.issue || result.issuewild || result.iodef || ""}`.trim(),
           });
         }
         break;

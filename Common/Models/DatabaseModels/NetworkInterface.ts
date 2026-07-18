@@ -312,6 +312,64 @@ export default class NetworkInterface extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadNetworkDevice,
     ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "MAC Address",
+    description:
+      "Physical address (ifPhysAddress) from SNMP, colon-separated hex",
+    example: "aa:bb:cc:dd:ee:ff",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public macAddress?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Interface Type",
+    description:
+      "IANAifType number (ifType) from SNMP — 6 = ethernetCsmacd, 24 = softwareLoopback",
+    example: "6",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public interfaceType?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

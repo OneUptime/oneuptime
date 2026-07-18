@@ -24,6 +24,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import Email from "../../Types/Email";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -2077,6 +2078,42 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public utmUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    hideColumnInDocumentation: true,
+    title: "Ad Click IDs",
+    description:
+      "Ad platform click identifiers (gclid, fbclid, msclkid, etc.) copied from the user who created this project. Used for offline conversion uploads to ad platforms.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public clickIds?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    hideColumnInDocumentation: true,
+    title: "First Touch Attribution",
+    description:
+      "First-touch attribution (UTM parameters, click IDs, landing URL, referrer) copied from the user who created this project. The utm* columns hold last-touch values.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public firstTouchAttribution?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [Permission.User],

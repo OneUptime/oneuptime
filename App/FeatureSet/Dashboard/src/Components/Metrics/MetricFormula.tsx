@@ -8,6 +8,7 @@ import Input from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import MetricFormulaData from "Common/Types/Metrics/MetricFormulaData";
 import MetricFormulaEvaluator from "Common/Utils/Metrics/MetricFormulaEvaluator";
+import HintChip from "./HintChip";
 
 export interface ComponentProps {
   data: MetricFormulaData;
@@ -76,7 +77,9 @@ const MetricFormulaInput: FunctionComponent<ComponentProps> = (
           />
 
           {validationError ? (
-            <p className="mt-1 text-xs text-red-500">{validationError}</p>
+            <div className="mt-2">
+              <HintChip variant="red">{validationError}</HintChip>
+            </div>
           ) : (
             <p className="mt-1 text-xs text-gray-400">
               Tip: reference variables with or without a leading &quot;$&quot;

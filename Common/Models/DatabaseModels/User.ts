@@ -18,6 +18,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import Email from "../../Types/Email";
 import HashedString from "../../Types/HashedString";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -617,6 +618,42 @@ class User extends UserModel {
     unique: false,
   })
   public utmUrl?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.Public],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    hideColumnInDocumentation: true,
+    title: "Ad Click IDs",
+    description:
+      "Ad platform click identifiers (gclid, fbclid, msclkid, etc.) captured on the visit that led to signup. Used for offline conversion uploads to ad platforms.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public clickIds?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.Public],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    hideColumnInDocumentation: true,
+    title: "First Touch Attribution",
+    description:
+      "UTM parameters, click IDs, landing URL and referrer from the visitor's first attributed visit. The utm* columns hold last-touch values.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public firstTouchAttribution?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],
