@@ -97,7 +97,10 @@ export default class MicrosoftAdsProvider extends ConversionUploadProvider {
     }
     params.append("refresh_token", MicrosoftAdsOAuthRefreshToken);
     params.append("grant_type", "refresh_token");
-    params.append("scope", "https://ads.microsoft.com/msads.manage offline_access");
+    params.append(
+      "scope",
+      "https://ads.microsoft.com/msads.manage offline_access",
+    );
 
     const response: AxiosResponse<{
       access_token?: string;
@@ -132,28 +135,25 @@ export default class MicrosoftAdsProvider extends ConversionUploadProvider {
     const accessToken: string = await this.getAccessToken();
 
     const body: JSONObject = {
-      OfflineConversions: conversions.map(
-        (conversion: MarketingConversion) => {
-          const payload: JSONObject = {
-            MicrosoftClickId: this.getClickId(conversion, "msclkid") || "",
-            ConversionName: this.getConversionName(conversion),
-            // ISO 8601 UTC, e.g. 2026-07-18T12:34:56Z.
-            ConversionTime: (conversion.conversionAt || new Date())
-              .toISOString()
-              .replace(/\.\d{3}Z$/, "Z"),
-          };
+      OfflineConversions: conversions.map((conversion: MarketingConversion) => {
+        const payload: JSONObject = {
+          MicrosoftClickId: this.getClickId(conversion, "msclkid") || "",
+          ConversionName: this.getConversionName(conversion),
+          // ISO 8601 UTC, e.g. 2026-07-18T12:34:56Z.
+          ConversionTime: (conversion.conversionAt || new Date())
+            .toISOString()
+            .replace(/\.\d{3}Z$/, "Z"),
+        };
 
-          const valueInUSD: number | undefined =
-            this.getValueInUSD(conversion);
+        const valueInUSD: number | undefined = this.getValueInUSD(conversion);
 
-          if (valueInUSD !== undefined) {
-            payload["ConversionValue"] = valueInUSD;
-            payload["ConversionCurrencyCode"] = "USD";
-          }
+        if (valueInUSD !== undefined) {
+          payload["ConversionValue"] = valueInUSD;
+          payload["ConversionCurrencyCode"] = "USD";
+        }
 
-          return payload;
-        },
-      ),
+        return payload;
+      }),
     };
 
     const response: AxiosResponse<JSONObject> = await axios.post(

@@ -69,9 +69,7 @@ export default abstract class ConversionUploadProvider {
     return typeof value === "string" && value ? value : undefined;
   }
 
-  protected getValueInUSD(
-    conversion: MarketingConversion,
-  ): number | undefined {
+  protected getValueInUSD(conversion: MarketingConversion): number | undefined {
     if (
       conversion.conversionValueInUSDCents === undefined ||
       conversion.conversionValueInUSDCents === null ||

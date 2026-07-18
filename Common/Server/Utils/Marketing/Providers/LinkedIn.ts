@@ -60,9 +60,7 @@ export default class LinkedInProvider extends ConversionUploadProvider {
       };
     }
 
-    if (
-      this.isOlderThanDays(conversion, LINKEDIN_MAX_CONVERSION_AGE_IN_DAYS)
-    ) {
+    if (this.isOlderThanDays(conversion, LINKEDIN_MAX_CONVERSION_AGE_IN_DAYS)) {
       return {
         reason: "Conversion older than LinkedIn's 90-day window",
         isPermanent: true,
@@ -90,9 +88,7 @@ export default class LinkedInProvider extends ConversionUploadProvider {
         conversion: `urn:lla:llaPartnerConversion:${this.getConversionRuleId(
           conversion,
         )}`,
-        conversionHappenedAt: (
-          conversion.conversionAt || new Date()
-        ).getTime(),
+        conversionHappenedAt: (conversion.conversionAt || new Date()).getTime(),
         // Dedup key: a retried batch must not double-count conversions.
         eventId: conversion.id!.toString(),
         user: {
@@ -115,7 +111,8 @@ export default class LinkedInProvider extends ConversionUploadProvider {
       }
 
       try {
-        await axios.post("https://api.linkedin.com/rest/conversionEvents",
+        await axios.post(
+          "https://api.linkedin.com/rest/conversionEvents",
           body,
           {
             headers: {
@@ -128,8 +125,7 @@ export default class LinkedInProvider extends ConversionUploadProvider {
           },
         );
       } catch (err) {
-        const status: number | undefined = (err as AxiosError).response
-          ?.status;
+        const status: number | undefined = (err as AxiosError).response?.status;
 
         /*
          * Only definitive per-event validation rejections are permanent.
@@ -142,10 +138,7 @@ export default class LinkedInProvider extends ConversionUploadProvider {
           throw err;
         }
 
-        permanentFailures.set(
-          i,
-          ConversionUploadProvider.getErrorMessage(err),
-        );
+        permanentFailures.set(i, ConversionUploadProvider.getErrorMessage(err));
       }
     }
 
