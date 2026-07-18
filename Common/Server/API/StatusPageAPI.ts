@@ -2743,9 +2743,9 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageIdOrDomain"] as string,
           );
 
-          const episodeId: ObjectID = new ObjectID(
-            req.params["episodeId"] as string,
-          );
+          const episodeIdParam: string = req.params["episodeId"] as string;
+          ObjectID.validateUUID(episodeIdParam);
+          const episodeId: ObjectID = new ObjectID(episodeIdParam);
 
           const response: JSONObject = await this.getEpisodes(
             objectId,
