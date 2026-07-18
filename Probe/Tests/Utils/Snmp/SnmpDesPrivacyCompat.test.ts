@@ -91,15 +91,6 @@ const ENGINE_ID: Buffer = Buffer.from("8000000001020304050607", "hex");
 const OTHER_ENGINE_ID: Buffer = Buffer.from("80000000aabbccddeeff00", "hex");
 
 /*
- * Mirrors the shim in the module under test: @types/node 17 predates
- * TypeScript 5.9's generic Uint8Array, so Buffer does not satisfy the
- * Uint8Array-shaped crypto parameters despite being one at run time.
- */
-function asBytes(value: Buffer): Uint8Array {
-  return value as unknown as Uint8Array;
-}
-
-/*
  * net-snmp's shipped type definitions omit the encryptPdu/decryptPdu
  * dispatchers even though the library exports them and routes all v3 privacy
  * through them. This seam gives them their real runtime signatures — engine
@@ -181,8 +172,8 @@ describe("SnmpDesPrivacyCompat — the OpenSSL 3 regression being fixed", () => 
       expect(() => {
         return crypto.createCipheriv(
           "des-cbc",
-          asBytes(Buffer.alloc(8)),
-          asBytes(Buffer.alloc(8)),
+          Buffer.alloc(8),
+          Buffer.alloc(8),
         );
       }).not.toThrow();
       return;
@@ -191,8 +182,8 @@ describe("SnmpDesPrivacyCompat — the OpenSSL 3 regression being fixed", () => 
     expect(() => {
       return crypto.createCipheriv(
         "des-cbc",
-        asBytes(Buffer.alloc(8)),
-        asBytes(Buffer.alloc(8)),
+        Buffer.alloc(8),
+        Buffer.alloc(8),
       );
     }).toThrow(/unsupported|not supported|Unknown cipher/i);
   });
@@ -328,15 +319,15 @@ describe("SnmpDesPrivacyCompat.desCbcEncrypt — equivalence with genuine DES", 
       const iv: Buffer = crypto.randomBytes(8);
       const plaintext: Buffer = crypto.randomBytes(8 * (1 + (iteration % 6)));
 
-      const native: crypto.Cipher = crypto.createCipheriv(
+      const native: crypto.Cipheriv = crypto.createCipheriv(
         "des-cbc",
-        asBytes(key),
-        asBytes(iv),
+        key,
+        iv,
       );
       native.setAutoPadding(false);
       const expected: Buffer = Buffer.concat([
-        asBytes(native.update(asBytes(plaintext))),
-        asBytes(native.final()),
+        native.update(plaintext),
+        native.final(),
       ]);
 
       expect(desCbcEncrypt(key, iv, plaintext, false).toString("hex")).toBe(

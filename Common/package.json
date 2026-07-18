@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/common",
-  "version": "11.5.9",
+  "version": "11.5.10",
   "description": "",
   "repository": {
     "type": "git",
@@ -34,7 +34,7 @@
     "@types/jest": "^28.1.4",
     "@types/json2csv": "^5.0.3",
     "@types/jsonwebtoken": "^8.5.9",
-    "@types/node": "^17.0.45",
+    "@types/node": "^26.1.1",
     "@types/node-cron": "^3.0.7",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^18.2.38",

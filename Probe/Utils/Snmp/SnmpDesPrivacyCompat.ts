@@ -47,24 +47,12 @@ export type SnmpDesEncryptResult = {
 };
 
 /*
- * The probe still pins @types/node 17, which predates TypeScript 5.9's
- * generic Uint8Array. Buffer consequently fails to satisfy the
- * Uint8Array-shaped parameters in the crypto and Buffer typings, even though
- * every Buffer is a Uint8Array at run time. This shim localizes the resulting
- * assertions so the algorithm below stays readable; it is purely type-level
- * and compiles away.
- */
-function asBytes(value: Buffer): Uint8Array {
-  return value as unknown as Uint8Array;
-}
-
-/*
  * Repeat the 8-octet DES key into the 24-octet key des-ede3-cbc expects. The
  * EDE cascade over three identical keys is single DES, so this is a change of
  * primitive rather than of algorithm.
  */
 function toTripleDesKey(desKey: Buffer): Buffer {
-  return Buffer.concat([asBytes(desKey), asBytes(desKey), asBytes(desKey)]);
+  return Buffer.concat([desKey, desKey, desKey]);
 }
 
 /*
@@ -76,8 +64,8 @@ export function isNativeDesCbcAvailable(): boolean {
   try {
     crypto.createCipheriv(
       "des-cbc",
-      asBytes(Buffer.alloc(DES_KEY_LENGTH)),
-      asBytes(Buffer.alloc(DES_BLOCK_LENGTH)),
+      Buffer.alloc(DES_KEY_LENGTH),
+      Buffer.alloc(DES_BLOCK_LENGTH),
     );
     return true;
   } catch {
@@ -89,8 +77,8 @@ export function isTripleDesCbcAvailable(): boolean {
   try {
     crypto.createCipheriv(
       TRIPLE_DES_CBC_CIPHER,
-      asBytes(Buffer.alloc(DES_KEY_LENGTH * 3)),
-      asBytes(Buffer.alloc(DES_BLOCK_LENGTH)),
+      Buffer.alloc(DES_KEY_LENGTH * 3),
+      Buffer.alloc(DES_BLOCK_LENGTH),
     );
     return true;
   } catch {
@@ -110,16 +98,13 @@ export function desCbcEncrypt(
   plaintext: Buffer,
   autoPadding: boolean,
 ): Buffer {
-  const cipher: crypto.Cipher = crypto.createCipheriv(
+  const cipher: crypto.Cipheriv = crypto.createCipheriv(
     TRIPLE_DES_CBC_CIPHER,
-    asBytes(toTripleDesKey(desKey)),
-    asBytes(iv),
+    toTripleDesKey(desKey),
+    iv,
   );
   cipher.setAutoPadding(autoPadding);
-  return Buffer.concat([
-    asBytes(cipher.update(asBytes(plaintext))),
-    asBytes(cipher.final()),
-  ]);
+  return Buffer.concat([cipher.update(plaintext), cipher.final()]);
 }
 
 export function desCbcDecrypt(
@@ -128,16 +113,13 @@ export function desCbcDecrypt(
   ciphertext: Buffer,
   autoPadding: boolean,
 ): Buffer {
-  const decipher: crypto.Decipher = crypto.createDecipheriv(
+  const decipher: crypto.Decipheriv = crypto.createDecipheriv(
     TRIPLE_DES_CBC_CIPHER,
-    asBytes(toTripleDesKey(desKey)),
-    asBytes(iv),
+    toTripleDesKey(desKey),
+    iv,
   );
   decipher.setAutoPadding(autoPadding);
-  return Buffer.concat([
-    asBytes(decipher.update(asBytes(ciphertext))),
-    asBytes(decipher.final()),
-  ]);
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
 
 /*
@@ -159,11 +141,11 @@ export function deriveDesKeyMaterial(
   );
 
   const encryptionKey: Buffer = Buffer.alloc(DES_KEY_LENGTH);
-  privLocalizedKey.copy(asBytes(encryptionKey), 0, 0, DES_KEY_LENGTH);
+  privLocalizedKey.copy(encryptionKey, 0, 0, DES_KEY_LENGTH);
 
   const preIv: Buffer = Buffer.alloc(DES_BLOCK_LENGTH);
   privLocalizedKey.copy(
-    asBytes(preIv),
+    preIv,
     0,
     DES_KEY_LENGTH,
     DES_KEY_LENGTH + DES_BLOCK_LENGTH,
@@ -191,7 +173,7 @@ export function xorDesBlock(left: Buffer, right: Buffer): Buffer {
 export function generateDesSalt(): Buffer {
   const salt: Buffer = Buffer.alloc(DES_BLOCK_LENGTH);
   salt.fill("00000001", 0, 4, "hex");
-  salt.fill(asBytes(crypto.randomBytes(4)), 4, 8);
+  salt.fill(crypto.randomBytes(4), 4, 8);
   return salt;
 }
 
@@ -211,7 +193,7 @@ export function padScopedPduForDes(scopedPdu: Buffer): Buffer {
   const paddedLength: number =
     DES_BLOCK_LENGTH * (Math.floor(scopedPdu.length / DES_BLOCK_LENGTH) + 1);
   const padded: Buffer = Buffer.alloc(paddedLength);
-  scopedPdu.copy(asBytes(padded), 0, 0, scopedPdu.length);
+  scopedPdu.copy(padded, 0, 0, scopedPdu.length);
   return padded;
 }
 
