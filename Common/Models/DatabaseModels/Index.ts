@@ -401,6 +401,7 @@ import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
+import MarketingConversion from "./MarketingConversion";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -824,6 +825,7 @@ const AllModelTypes: Array<{
   ServerlessFunctionInstance,
   CloudResourceInstance,
   RumApplicationClient,
+  MarketingConversion,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};

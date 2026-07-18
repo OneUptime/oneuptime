@@ -182,6 +182,62 @@ its userlist at startup.
   value: {{ $.Values.analytics.key }}
 - name: ANALYTICS_HOST
   value: {{ $.Values.analytics.host }}
+- name: GOOGLE_ADS_DEVELOPER_TOKEN
+  value: {{ default "" ((($.Values.marketing).googleAds).developerToken) | quote }}
+- name: GOOGLE_ADS_OAUTH_CLIENT_ID
+  value: {{ default "" ((($.Values.marketing).googleAds).oauthClientId) | quote }}
+- name: GOOGLE_ADS_OAUTH_CLIENT_SECRET
+  value: {{ default "" ((($.Values.marketing).googleAds).oauthClientSecret) | quote }}
+- name: GOOGLE_ADS_OAUTH_REFRESH_TOKEN
+  value: {{ default "" ((($.Values.marketing).googleAds).oauthRefreshToken) | quote }}
+- name: GOOGLE_ADS_CUSTOMER_ID
+  value: {{ default "" ((($.Values.marketing).googleAds).customerId) | quote }}
+- name: GOOGLE_ADS_LOGIN_CUSTOMER_ID
+  value: {{ default "" ((($.Values.marketing).googleAds).loginCustomerId) | quote }}
+- name: GOOGLE_ADS_API_VERSION
+  value: {{ default "v23" ((($.Values.marketing).googleAds).apiVersion) | quote }}
+- name: GOOGLE_ADS_SIGNUP_CONVERSION_ACTION_ID
+  value: {{ default "" ((($.Values.marketing).googleAds).signUpConversionActionId) | quote }}
+- name: GOOGLE_ADS_PAID_SUBSCRIPTION_CONVERSION_ACTION_ID
+  value: {{ default "" ((($.Values.marketing).googleAds).paidSubscriptionConversionActionId) | quote }}
+- name: META_CONVERSIONS_PIXEL_ID
+  value: {{ default "" ((($.Values.marketing).metaConversions).pixelId) | quote }}
+- name: META_CONVERSIONS_ACCESS_TOKEN
+  value: {{ default "" ((($.Values.marketing).metaConversions).accessToken) | quote }}
+- name: META_GRAPH_API_VERSION
+  value: {{ default "v22.0" ((($.Values.marketing).metaConversions).graphApiVersion) | quote }}
+- name: MICROSOFT_ADS_DEVELOPER_TOKEN
+  value: {{ default "" ((($.Values.marketing).microsoftAds).developerToken) | quote }}
+- name: MICROSOFT_ADS_OAUTH_CLIENT_ID
+  value: {{ default "" ((($.Values.marketing).microsoftAds).oauthClientId) | quote }}
+- name: MICROSOFT_ADS_OAUTH_CLIENT_SECRET
+  value: {{ default "" ((($.Values.marketing).microsoftAds).oauthClientSecret) | quote }}
+- name: MICROSOFT_ADS_OAUTH_REFRESH_TOKEN
+  value: {{ default "" ((($.Values.marketing).microsoftAds).oauthRefreshToken) | quote }}
+- name: MICROSOFT_ADS_CUSTOMER_ID
+  value: {{ default "" ((($.Values.marketing).microsoftAds).customerId) | quote }}
+- name: MICROSOFT_ADS_ACCOUNT_ID
+  value: {{ default "" ((($.Values.marketing).microsoftAds).accountId) | quote }}
+- name: MICROSOFT_ADS_SIGNUP_CONVERSION_NAME
+  value: {{ default "" ((($.Values.marketing).microsoftAds).signUpConversionName) | quote }}
+- name: MICROSOFT_ADS_PAID_SUBSCRIPTION_CONVERSION_NAME
+  value: {{ default "" ((($.Values.marketing).microsoftAds).paidSubscriptionConversionName) | quote }}
+- name: LINKEDIN_CONVERSIONS_ACCESS_TOKEN
+  value: {{ default "" ((($.Values.marketing).linkedInConversions).accessToken) | quote }}
+- name: LINKEDIN_API_VERSION
+  value: {{ default "202606" ((($.Values.marketing).linkedInConversions).apiVersion) | quote }}
+- name: LINKEDIN_SIGNUP_CONVERSION_ID
+  value: {{ default "" ((($.Values.marketing).linkedInConversions).signUpConversionId) | quote }}
+- name: LINKEDIN_PAID_SUBSCRIPTION_CONVERSION_ID
+  value: {{ default "" ((($.Values.marketing).linkedInConversions).paidSubscriptionConversionId) | quote }}
+- name: REDDIT_ADS_OAUTH_CLIENT_ID
+  value: {{ default "" ((($.Values.marketing).redditAds).oauthClientId) | quote }}
+- name: REDDIT_ADS_OAUTH_CLIENT_SECRET
+  value: {{ default "" ((($.Values.marketing).redditAds).oauthClientSecret) | quote }}
+- name: REDDIT_ADS_OAUTH_REFRESH_TOKEN
+  value: {{ default "" ((($.Values.marketing).redditAds).oauthRefreshToken) | quote }}
+- name: REDDIT_ADS_ACCOUNT_ID
+  value: {{ default "" ((($.Values.marketing).redditAds).accountId) | quote }}
 - name: CAPTCHA_ENABLED
   value: {{ ternary "true" "false" (default false $.Values.captcha.enabled) | quote }}
 - name: CAPTCHA_SITE_KEY

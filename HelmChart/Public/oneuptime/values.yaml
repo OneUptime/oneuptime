@@ -830,6 +830,51 @@ analytics:
   host:
   key:
 
+# Offline ad conversion uploads (optional, SaaS only). The MarketingConversions
+# worker job uploads ad-attributed signups and paid subscriptions to ad
+# platforms using click IDs stored at signup. All values are server-only
+# secrets and are never exposed to frontends.
+marketing:
+  googleAds:
+    developerToken:
+    oauthClientId:
+    oauthClientSecret:
+    oauthRefreshToken:
+    # Digits only, no dashes.
+    customerId:
+    # Manager (MCC) account id, if access goes through a manager account.
+    loginCustomerId:
+    apiVersion: v23
+    # Numeric conversion action ids (Google Ads > Goals > Conversions).
+    signUpConversionActionId:
+    paidSubscriptionConversionActionId:
+  metaConversions:
+    pixelId:
+    accessToken:
+    graphApiVersion: v22.0
+  microsoftAds:
+    developerToken:
+    oauthClientId:
+    oauthClientSecret:
+    oauthRefreshToken:
+    customerId:
+    accountId:
+    # Offline conversion goal names as configured in Microsoft Advertising.
+    signUpConversionName:
+    paidSubscriptionConversionName:
+  linkedInConversions:
+    # LinkedIn access tokens expire (typically 60 days) and must be rotated.
+    accessToken:
+    apiVersion: "202606"
+    # Numeric conversion rule ids (urn:lla:llaPartnerConversion:{id}).
+    signUpConversionId:
+    paidSubscriptionConversionId:
+  redditAds:
+    oauthClientId:
+    oauthClientSecret:
+    oauthRefreshToken:
+    accountId:
+
 
 # CAPTCHA Configuration
 # We support hCaptcha. You can get site key and secret key from https://hcaptcha.com/

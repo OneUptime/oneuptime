@@ -1341,6 +1341,126 @@
             },
             "additionalProperties": false
         },
+        "marketing": {
+            "type": "object",
+            "properties": {
+                "googleAds": {
+                    "type": "object",
+                    "properties": {
+                        "developerToken": {
+                            "type": ["string", "null"]
+                        },
+                        "oauthClientId": {
+                            "type": ["string", "null"]
+                        },
+                        "oauthClientSecret": {
+                            "type": ["string", "null"]
+                        },
+                        "oauthRefreshToken": {
+                            "type": ["string", "null"]
+                        },
+                        "customerId": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "loginCustomerId": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "apiVersion": {
+                            "type": ["string", "null"]
+                        },
+                        "signUpConversionActionId": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "paidSubscriptionConversionActionId": {
+                            "type": ["string", "number", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "metaConversions": {
+                    "type": "object",
+                    "properties": {
+                        "pixelId": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "accessToken": {
+                            "type": ["string", "null"]
+                        },
+                        "graphApiVersion": {
+                            "type": ["string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "microsoftAds": {
+                    "type": "object",
+                    "properties": {
+                        "developerToken": {
+                            "type": ["string", "null"]
+                        },
+                        "oauthClientId": {
+                            "type": ["string", "null"]
+                        },
+                        "oauthClientSecret": {
+                            "type": ["string", "null"]
+                        },
+                        "oauthRefreshToken": {
+                            "type": ["string", "null"]
+                        },
+                        "customerId": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "accountId": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "signUpConversionName": {
+                            "type": ["string", "null"]
+                        },
+                        "paidSubscriptionConversionName": {
+                            "type": ["string", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "linkedInConversions": {
+                    "type": "object",
+                    "properties": {
+                        "accessToken": {
+                            "type": ["string", "null"]
+                        },
+                        "apiVersion": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "signUpConversionId": {
+                            "type": ["string", "number", "null"]
+                        },
+                        "paidSubscriptionConversionId": {
+                            "type": ["string", "number", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "redditAds": {
+                    "type": "object",
+                    "properties": {
+                        "oauthClientId": {
+                            "type": ["string", "null"]
+                        },
+                        "oauthClientSecret": {
+                            "type": ["string", "null"]
+                        },
+                        "oauthRefreshToken": {
+                            "type": ["string", "null"]
+                        },
+                        "accountId": {
+                            "type": ["string", "number", "null"]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
         "captcha": {
             "type": "object",
             "properties": {

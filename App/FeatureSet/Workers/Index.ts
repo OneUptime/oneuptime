@@ -86,6 +86,7 @@ import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
 import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
 import "./Jobs/PaymentProvider/PopulatePlanNameInProject";
 import "./Jobs/PaymentProvider/UpdateTeamMembersIfNull";
+import "./Jobs/MarketingConversions/UploadMarketingConversions";
 import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 
 // Scheduled Event
