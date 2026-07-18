@@ -36,7 +36,15 @@ function mockRedisClient(): ClientType {
 }
 
 function lastMockPermit(): MockPermit {
-  const result: unknown = redisSemaphoreConstructor.mock.results.at(-1)?.value;
+  /*
+   * Indexed rather than .at(-1): this project targets es2017, so
+   * Array.prototype.at is outside its lib. Older @types/node pulled in newer
+   * lib references that happened to declare it, which is why this compiled
+   * before the types were aligned with the Node 26 runtime.
+   */
+  const results: Array<{ value: unknown }> =
+    redisSemaphoreConstructor.mock.results;
+  const result: unknown = results[results.length - 1]?.value;
   return result as MockPermit;
 }
 
