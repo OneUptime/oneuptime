@@ -123,7 +123,7 @@ export default class MarketingConversion extends BaseModel {
     length: ColumnLength.ShortText,
     nullable: true,
   })
-  public email?: string = undefined;
+  public email?: string | undefined = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -176,7 +176,7 @@ export default class MarketingConversion extends BaseModel {
     type: ColumnType.Number,
     nullable: true,
   })
-  public conversionValueInUSDCents?: number = undefined;
+  public conversionValueInUSDCents?: number | undefined = undefined;
 
   @ColumnAccessControl({
     create: [],
