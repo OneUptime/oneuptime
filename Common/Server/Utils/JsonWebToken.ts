@@ -1,6 +1,5 @@
 import { EncryptionSecret } from "../EnvironmentConfig";
 import Email from "../../Types/Email";
-import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
@@ -13,6 +12,7 @@ import User from "../../Models/DatabaseModels/User";
 import jwt from "jsonwebtoken";
 import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 
 class JSONWebToken {
   @CaptureSpan()
@@ -149,7 +149,7 @@ class JSONWebToken {
       };
     } catch (e) {
       logger.error(e);
-      throw new BadDataException("AccessToken is invalid or expired");
+      throw new NotAuthenticatedException("AccessToken is invalid or expired");
     }
   }
 }
