@@ -460,6 +460,7 @@ import { AddSnmpV3ColumnsToNetworkDeviceDiscoveryScan1784200000000 } from "./178
 import { AddNetworkDeviceInventoryAndDiscoverySchedule1784211212164 } from "./1784211212164-AddNetworkDeviceInventoryAndDiscoverySchedule";
 import { AddEnterpriseLicenseNotificationColumns1784218257664 } from "./1784218257664-AddEnterpriseLicenseNotificationColumns";
 import { AddAttributionColumnsToUserAndProject1784293516000 } from "./1784293516000-AddAttributionColumnsToUserAndProject";
+import { AddMarketingConversionTable1784298000000 } from "./1784298000000-AddMarketingConversionTable";
 
 export default [
   InitialMigration,
@@ -924,4 +925,5 @@ export default [
   AddNetworkDeviceInventoryAndDiscoverySchedule1784211212164,
   AddEnterpriseLicenseNotificationColumns1784218257664,
   AddAttributionColumnsToUserAndProject1784293516000,
+  AddMarketingConversionTable1784298000000,
 ];
