@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/status-page",
-  "version": "11.5.10",
+  "version": "11.5.11",
   "private": false,
   "repository": {
     "type": "git",
@@ -48,6 +48,7 @@
     "@types/react-dom": "^18.0.4",
     "@types/react-router-dom": "^5.3.3",
     "nodemon": "^3.1.14",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "typescript": "^5.9.3"
   }
 }

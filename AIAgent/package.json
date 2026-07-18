@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/ai-agent",
-  "version": "11.5.10",
+  "version": "11.5.11",
   "description": "OneUptime AI Agent",
   "repository": {
     "type": "git",
@@ -30,6 +30,7 @@
     "@types/node": "^26.1.1",
     "jest": "^28.1.0",
     "nodemon": "^3.1.14",
-    "ts-jest": "^28.0.2"
+    "ts-jest": "^28.0.2",
+    "typescript": "^5.9.3"
   }
 }

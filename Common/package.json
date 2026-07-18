@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/common",
-  "version": "11.5.10",
+  "version": "11.5.11",
   "description": "",
   "repository": {
     "type": "git",
@@ -48,7 +48,8 @@
     "jest-mock-extended": "^3.0.5",
     "react-test-renderer": "^18.2.0",
     "sass": "^1.89.2",
-    "ts-jest": "^28.0.5"
+    "ts-jest": "^28.0.5",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.2",
