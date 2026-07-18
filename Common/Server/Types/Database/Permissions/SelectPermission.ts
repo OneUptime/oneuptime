@@ -9,7 +9,6 @@ import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import Columns from "../../../../Types/Database/Columns";
-import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { PermissionHelper, UserPermission } from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
@@ -46,17 +45,14 @@ export default class SelectPermission {
         continue;
       }
 
-      if (!canReadOnTheseColumns.columns.includes(key)) {
-        if (!tableColumns.includes(key)) {
-          throw new BadDataException(
-            `Invalid select clause. Cannot select on "${key}". This column does not exist on ${
-              model.singularName
-            }. Here are the columns you can select on instead: ${tableColumns.join(
-              ", ",
-            )}`,
-          );
-        }
+      // Skip columns that don't exist on the model rather than throwing
+      // an error. This is consistent with how ColumnPermissions handles
+      // unknown columns and provides forward compatibility.
+      if (!tableColumns.includes(key)) {
+        continue;
+      }
 
+      if (!canReadOnTheseColumns.columns.includes(key)) {
         throw new NotAuthorizedException(
           `You do not have permissions to select on - ${key}.
                     You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
