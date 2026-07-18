@@ -214,7 +214,7 @@ export default class MonitorResourceUtil {
       mutex = await Semaphore.lock({
         key: dataToProcess.monitorId.toString(),
         namespace: "MonitorResourceUtil.monitorResource",
-        acquireTimeout: 2000,
+        acquireTimeout: 10000,
         retryInterval: 100,
         acquireAttemptsLimit: 20,
       });
