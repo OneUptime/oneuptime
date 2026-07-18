@@ -9,9 +9,15 @@ import SnmpMonitorResponse, {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpDataType from "Common/Types/Monitor/SnmpMonitor/SnmpDataType";
-import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
-import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
-import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
+import SnmpSecurityLevel, {
+  SnmpSecurityLevelUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
+import SnmpAuthProtocol, {
+  SnmpAuthProtocolUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
+import SnmpPrivProtocol, {
+  SnmpPrivProtocolUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import SnmpInterface from "Common/Types/Monitor/SnmpMonitor/SnmpInterface";
 import LldpNeighbor from "Common/Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
@@ -1034,25 +1040,76 @@ export default class SnmpMonitor {
 
   private static buildV3User(config: MonitorStepSnmpMonitor): snmp.User {
     const v3Auth: SnmpV3Auth = config.snmpV3Auth!;
+
+    /*
+     * Resolved once and reused: the level decides which credentials go on the
+     * wire, so the branches below and the level handed to net-snmp must agree.
+     * Comparing the raw stored string against the enum here would let a
+     * differently-spelled "AuthPriv" take the noAuthNoPriv branch and strip
+     * the device's credentials.
+     */
+    const securityLevel: SnmpSecurityLevel = SnmpMonitor.resolveSecurityLevel(
+      v3Auth.securityLevel,
+      config.hostname,
+    );
+
     const user: snmp.User = {
       name: v3Auth.username,
-      level: SnmpMonitor.mapSecurityLevel(v3Auth.securityLevel),
+      level: SnmpMonitor.mapSecurityLevel(securityLevel),
     };
 
     if (
-      v3Auth.securityLevel === SnmpSecurityLevel.AuthNoPriv ||
-      v3Auth.securityLevel === SnmpSecurityLevel.AuthPriv
+      securityLevel === SnmpSecurityLevel.AuthNoPriv ||
+      securityLevel === SnmpSecurityLevel.AuthPriv
     ) {
-      user.authProtocol = SnmpMonitor.mapAuthProtocol(v3Auth.authProtocol);
+      user.authProtocol = SnmpMonitor.mapAuthProtocol(
+        v3Auth.authProtocol,
+        config.hostname,
+      );
       user.authKey = v3Auth.authKey || "";
     }
 
-    if (v3Auth.securityLevel === SnmpSecurityLevel.AuthPriv) {
-      user.privProtocol = SnmpMonitor.mapPrivProtocol(v3Auth.privProtocol);
+    if (securityLevel === SnmpSecurityLevel.AuthPriv) {
+      user.privProtocol = SnmpMonitor.mapPrivProtocol(
+        v3Auth.privProtocol,
+        config.hostname,
+      );
       user.privKey = v3Auth.privKey || "";
     }
 
     return user;
+  }
+
+  /*
+   * The three resolvers below share one rule, and the distinction they draw is
+   * the point of them.
+   *
+   * An UNSET protocol keeps the historical default — plenty of devices were
+   * configured before these columns were mandatory, and silently breaking them
+   * would be a worse bug than the one being fixed.
+   *
+   * A protocol that is SET but matches nothing is refused. There is no safe
+   * guess available: the stored value says the operator intended *something*,
+   * and quietly substituting the weakest algorithm is how a device meant for
+   * AES ends up encrypted with DES, or an authPriv device ends up polled with
+   * no credentials at all. Throwing here is caught by SnmpMonitor.query and
+   * surfaces as the monitor's failure cause, so the operator sees the bad
+   * value instead of an unexplained timeout — the same treatment the missing
+   * v3 username already gets.
+   */
+  private static resolveSecurityLevel(
+    level: SnmpSecurityLevel | undefined,
+    hostname: string,
+  ): SnmpSecurityLevel {
+    if (SnmpSecurityLevelUtil.isUnrecognized(level)) {
+      throw new Error(
+        `SNMP v3 security level "${level}" configured for ${hostname} is not a recognized value. Expected one of: ${Object.values(
+          SnmpSecurityLevel,
+        ).join(", ")}.`,
+      );
+    }
+
+    return SnmpSecurityLevelUtil.parse(level) || SnmpSecurityLevel.NoAuthNoPriv;
   }
 
   private static mapSecurityLevel(
@@ -1072,8 +1129,17 @@ export default class SnmpMonitor {
 
   private static mapAuthProtocol(
     protocol: SnmpAuthProtocol | undefined,
+    hostname: string,
   ): snmp.AuthProtocols {
-    switch (protocol) {
+    if (SnmpAuthProtocolUtil.isUnrecognized(protocol)) {
+      throw new Error(
+        `SNMP v3 authentication protocol "${protocol}" configured for ${hostname} is not a recognized value. Expected one of: ${Object.values(
+          SnmpAuthProtocol,
+        ).join(", ")}.`,
+      );
+    }
+
+    switch (SnmpAuthProtocolUtil.parse(protocol)) {
       case SnmpAuthProtocol.MD5:
         return snmp.AuthProtocols.md5;
       case SnmpAuthProtocol.SHA:
@@ -1083,14 +1149,24 @@ export default class SnmpMonitor {
       case SnmpAuthProtocol.SHA512:
         return snmp.AuthProtocols.sha512;
       default:
+        // Unset only — anything unrecognized threw above.
         return snmp.AuthProtocols.md5;
     }
   }
 
   private static mapPrivProtocol(
     protocol: SnmpPrivProtocol | undefined,
+    hostname: string,
   ): snmp.PrivProtocols {
-    switch (protocol) {
+    if (SnmpPrivProtocolUtil.isUnrecognized(protocol)) {
+      throw new Error(
+        `SNMP v3 privacy protocol "${protocol}" configured for ${hostname} is not a recognized value. Expected one of: ${Object.values(
+          SnmpPrivProtocol,
+        ).join(", ")}.`,
+      );
+    }
+
+    switch (SnmpPrivProtocolUtil.parse(protocol)) {
       case SnmpPrivProtocol.DES:
         return snmp.PrivProtocols.des;
       case SnmpPrivProtocol.AES:
@@ -1098,6 +1174,7 @@ export default class SnmpMonitor {
       case SnmpPrivProtocol.AES256:
         return snmp.PrivProtocols.aes256b;
       default:
+        // Unset only — anything unrecognized threw above.
         return snmp.PrivProtocols.des;
     }
   }
