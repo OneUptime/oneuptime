@@ -180,11 +180,7 @@ describe("SnmpDesPrivacyCompat — the OpenSSL 3 regression being fixed", () => 
     }
 
     expect(() => {
-      return crypto.createCipheriv(
-        "des-cbc",
-        Buffer.alloc(8),
-        Buffer.alloc(8),
-      );
+      return crypto.createCipheriv("des-cbc", Buffer.alloc(8), Buffer.alloc(8));
     }).toThrow(/unsupported|not supported|Unknown cipher/i);
   });
 
@@ -319,11 +315,7 @@ describe("SnmpDesPrivacyCompat.desCbcEncrypt — equivalence with genuine DES", 
       const iv: Buffer = crypto.randomBytes(8);
       const plaintext: Buffer = crypto.randomBytes(8 * (1 + (iteration % 6)));
 
-      const native: crypto.Cipheriv = crypto.createCipheriv(
-        "des-cbc",
-        key,
-        iv,
-      );
+      const native: crypto.Cipheriv = crypto.createCipheriv("des-cbc", key, iv);
       native.setAutoPadding(false);
       const expected: Buffer = Buffer.concat([
         native.update(plaintext),

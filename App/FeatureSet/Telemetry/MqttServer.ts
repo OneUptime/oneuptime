@@ -608,7 +608,8 @@ function startTcpListener(broker: Aedes): void {
   const server: net.Server = net.createServer((socket: net.Socket): void => {
     const bridge: Bridge = createGuardedBridge({
       send: (chunk: Buffer, callback: (error?: Error | null) => void): void => {
-        socket.write(chunk as unknown as Uint8Array, (err?: Error): void => {
+        // Node reports success by passing null, not undefined.
+        socket.write(chunk, (err?: Error | null): void => {
           callback(err || null);
         });
       },

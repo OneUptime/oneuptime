@@ -88,7 +88,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
 
       let attempts: number = 0;
 
-      const interval: NodeJS.Timer = setInterval(async () => {
+      const interval: NodeJS.Timeout = setInterval(async () => {
         const result: MonitorTest | null = (await ModelAPI.getItem({
           modelType: MonitorTest,
           id: monitorTestId,

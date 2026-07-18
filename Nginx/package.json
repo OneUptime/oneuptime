@@ -17,11 +17,9 @@
   "license": "Apache-2.0",
   "dependencies": {
     "Common": "file:../Common",
-    
-
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
-    "@types/node": "^17.0.31"
+    "@types/node": "^26.1.1"
   }
 }
