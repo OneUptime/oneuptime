@@ -42,6 +42,10 @@ export default class SelectPermission {
       ColumnPermissions.getExcludedColumnNames();
 
     for (const key in select) {
+      if (!Object.hasOwn(select, key)) {
+        continue;
+      }
+
       if (excludedColumnNames.includes(key)) {
         continue;
       }

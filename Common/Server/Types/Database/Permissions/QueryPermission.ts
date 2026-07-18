@@ -43,6 +43,10 @@ export default class QueryPermission {
       ColumnPermissions.getExcludedColumnNames();
 
     for (const key in select) {
+      if (!Object.hasOwn(select, key)) {
+        continue;
+      }
+
       if (typeof (select as JSONObject)[key] === Typeof.Object) {
         const tableColumnMetadata: TableColumnMetadata =
           model.getTableColumnMetadata(key);
@@ -153,6 +157,10 @@ export default class QueryPermission {
     // Now we need to check all columns.
 
     for (const key in query) {
+      if (!Object.hasOwn(query, key)) {
+        continue;
+      }
+
       if (excludedColumnNames.includes(key)) {
         continue;
       }
