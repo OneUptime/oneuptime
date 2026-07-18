@@ -382,13 +382,16 @@ export default class GreenlockUtil {
         throw e;
       }
 
+      const errorMessage: string =
+        e instanceof Error ? e.message : String(e);
+
       if (IsBillingEnabled) {
         throw new ServerException(
-          `Unable to order certificate for ${data.domain}. Please contact support at support@oneuptime.com for more information.`,
+          `Unable to order certificate for ${data.domain}. ${errorMessage}. Please contact support at support@oneuptime.com for more information.`,
         );
       } else {
         throw new ServerException(
-          `Unable to order certificate for ${data.domain}. Please make sure that your server can be accessed publicly over port 80 (HTTP) and port 443 (HTTPS). If the problem persists, please refer to server logs for more information. Please also set up LOG_LEVEL=DEBUG to get more detailed server logs.`,
+          `Unable to order certificate for ${data.domain}. ${errorMessage}. Please make sure that your server can be accessed publicly over port 80 (HTTP) and port 443 (HTTPS). If the problem persists, please refer to server logs for more information. Please also set up LOG_LEVEL=DEBUG to get more detailed server logs.`,
         );
       }
     }
