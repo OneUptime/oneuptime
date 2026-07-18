@@ -218,6 +218,11 @@ jobs:
         with:
           node-version: 26
       - run: cd Common && npm install
+      # PublicDashboard imports Dashboard sources directly (e.g.
+      # src/Components/DashboardCanvas.tsx -> ../../../Dashboard/src/...), and
+      # those files resolve "Common/..." through Dashboard's own node_modules,
+      # so Dashboard has to be installed for this compile to resolve at all.
+      - run: cd App/FeatureSet/Dashboard && npm install
 
       - name: Compile Public Dashboard
         uses: nick-fields/retry@v3
