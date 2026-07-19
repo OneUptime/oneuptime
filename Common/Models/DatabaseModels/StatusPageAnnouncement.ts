@@ -63,6 +63,7 @@ import {
     Permission.StatusPageMember,
     Permission.StatusPageViewer,
     Permission.ReadStatusPageAnnouncement,
+    Permission.Public,
   ],
   delete: [
     Permission.ProjectOwner,
