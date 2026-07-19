@@ -1646,6 +1646,27 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       return decryptedItems;
     } catch (error) {
+      /*
+       * PostgreSQL 57P05 (idle_session_timeout) is transient: the server
+       * terminated a pooled connection that sat idle too long. Retrying once
+       * succeeds because the pool hands out a fresh connection. Only retry
+       * read queries — they are safe to repeat and the error is purely
+       * infrastructural.
+       */
+      const errorCode: string | undefined = (
+        error as { code?: string; driverError?: { code?: string } }
+      )?.code ?? (error as { driverError?: { code?: string } })?.driverError
+        ?.code;
+
+      if (errorCode === "57P05") {
+        logger.debug(
+          `${this.modelName}: retrying query after idle-session timeout`,
+        );
+
+        // Retry the entire query once with a fresh connection from the pool
+        return await this._findBy(findBy, withDeleted);
+      }
+
       await this.onFindError(error as Exception);
       throw this.getException(error as Exception);
     }
