@@ -188,6 +188,7 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
           // check if the new scheduledMaintenance state is in order is greater than the previous state order
           if (
             stateBeforeThis &&
+            !stateBeforeThis.endsAt &&
             stateBeforeThis.scheduledMaintenanceState &&
             stateBeforeThis.scheduledMaintenanceState.order &&
             newScheduledMaintenanceState.order <=
