@@ -1842,22 +1842,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           projectId: updateBy.props.tenantId?.toString(),
         } as LogAttributes);
 
-        // Retry once if the connection was killed by Postgres idle_session_timeout.
-        // The session may have been idle between loop iterations, causing the
-        // server to terminate it (error code 57P05). Retrying picks up a fresh
-        // connection from the pool.
-        let saveAttempt: number = 0;
-        while (true) {
-          try {
-            await this.getRepository().save(updatedItem);
-            break;
-          } catch (error) {
-            saveAttempt++;
-            if (saveAttempt > 1 || !this.isIdleSessionTimeoutError(error)) {
-              throw error;
-            }
-          }
-        }
+        await this.getRepository().save(updatedItem);
 
         // hit workflow.
         if (
