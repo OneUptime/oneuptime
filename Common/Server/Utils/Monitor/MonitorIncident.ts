@@ -19,6 +19,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ServerException from "../../../Types/Exception/ServerException";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import ObjectID from "../../../Types/ObjectID";
@@ -34,7 +35,9 @@ import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import ServiceService from "../../Services/ServiceService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
-import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
+import IncidentStateTimelineService, {
+  INCIDENT_STATE_TIMELINE_LOCK_ERROR_MESSAGE,
+} from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import NetworkDeviceOwnerUserService, {
   NetworkDeviceOwners,
@@ -1160,6 +1163,19 @@ export default class MonitorIncident {
       ) {
         logger.debug(
           `${input.openIncident.id?.toString()} - Incident already in resolved state; skipping duplicate state timeline (concurrent race).`,
+        );
+      } else if (
+        err instanceof ServerException &&
+        err.message === INCIDENT_STATE_TIMELINE_LOCK_ERROR_MESSAGE
+      ) {
+        /*
+         * The per-incident create() mutex could not be acquired, so the write was
+         * refused (fail-closed) rather than performed unlocked. This state change
+         * is skipped; the next monitor evaluation for this incident re-evaluates
+         * and recreates it.
+         */
+        logger.error(
+          `${input.openIncident.id?.toString()} - Could not acquire the incident state timeline lock; skipping this resolve state change (will be retried on the next evaluation).`,
         );
       } else {
         throw err;

@@ -14,6 +14,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ServerException from "../../../Types/Exception/ServerException";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import ObjectID from "../../../Types/ObjectID";
@@ -22,7 +23,9 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticAlertCreation } from "../../EnvironmentConfig";
 import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
-import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
+import AlertStateTimelineService, {
+  ALERT_STATE_TIMELINE_LOCK_ERROR_MESSAGE,
+} from "../../Services/AlertStateTimelineService";
 import HostService from "../../Services/HostService";
 import NetworkDeviceOwnerUserService, {
   NetworkDeviceOwners,
@@ -774,6 +777,19 @@ export default class MonitorAlert {
       ) {
         logger.debug(
           `${input.openAlert.id?.toString()} - Alert already in resolved state; skipping duplicate state timeline (concurrent race).`,
+        );
+      } else if (
+        err instanceof ServerException &&
+        err.message === ALERT_STATE_TIMELINE_LOCK_ERROR_MESSAGE
+      ) {
+        /*
+         * The per-entity mutex could not be acquired, so create() fails closed
+         * rather than inserting an unlocked (and potentially orphaned) state row.
+         * Skip this state change instead of failing the queue job; the next
+         * evaluation for this alert re-evaluates and recreates the state change.
+         */
+        logger.error(
+          `${input.openAlert.id?.toString()} - Could not acquire the alert state timeline lock; skipping resolve state change (will be retried on the next evaluation).`,
         );
       } else {
         throw err;
