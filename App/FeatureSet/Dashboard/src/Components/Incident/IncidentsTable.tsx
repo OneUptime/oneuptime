@@ -419,7 +419,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         const listResult: ListResult<IncidentTemplate> =
           await ModelAPI.getList<IncidentTemplate>({
             modelType: IncidentTemplate,
-            query: {},
+            query: { projectId: ProjectUtil.getCurrentProjectId()! },
             limit: LIMIT_PER_PROJECT,
             skip: 0,
             select: {
