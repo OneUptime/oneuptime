@@ -313,6 +313,10 @@ export default class BlogPostUtil {
   ): Promise<BlogPost | null> {
     const filePath: string = `${BlogRootPath}/posts/${fileName}/README.md`;
 
+    if ((await LocalFile.doesFileExist(filePath)) === false) {
+      return null;
+    }
+
     const postDate: string = this.getPostDateFromFileName(fileName);
     const formattedPostDate: string =
       this.getFormattedPostDateFromFileName(fileName);
