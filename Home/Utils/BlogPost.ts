@@ -317,6 +317,11 @@ export default class BlogPostUtil {
     const formattedPostDate: string =
       this.getFormattedPostDateFromFileName(fileName);
 
+    const fileExists: boolean = await LocalFile.doesFileExist(filePath);
+    if (!fileExists) {
+      return null;
+    }
+
     let markdownContent: string = await LocalFile.read(filePath);
 
     // Resolve author WITHOUT hitting GitHub API. Use Blogs.json to get username, Authors.json for name/bio.
@@ -810,7 +815,12 @@ export default class BlogPostUtil {
       if (!(await LocalFile.doesFileExist(filePath))) {
         return null;
       }
-      let markdownContent: string = await LocalFile.read(filePath);
+      const fileExists: boolean = await LocalFile.doesFileExist(filePath);
+    if (!fileExists) {
+      return null;
+    }
+
+    let markdownContent: string = await LocalFile.read(filePath);
       if (!markdownContent || !markdownContent.trim()) {
         return null;
       }
