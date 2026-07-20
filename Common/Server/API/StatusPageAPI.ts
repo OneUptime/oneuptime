@@ -209,6 +209,7 @@ export default class StatusPageAPI extends BaseAPI<
         } else {
           // then this is a status page id. We need to get the status page id from the id.
           try {
+            ObjectID.validateUUID(statusPageIdOrDomain);
             statusPageId = new ObjectID(statusPageIdOrDomain);
           } catch (err) {
             logger.error(
