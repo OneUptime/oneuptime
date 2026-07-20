@@ -136,6 +136,15 @@ export class ToolArgs {
     if (!value) {
       return undefined;
     }
+    /*
+     * Reject non-UUID strings (e.g. "INC-272") before they reach the
+     * database. The LLM may confuse an incident number with an ID; returning
+     * undefined lets callers fall through to their list query path instead of
+     * crashing with "invalid input syntax for type uuid".
+     */
+    if (!ObjectID.isValidUUID(value)) {
+      return undefined;
+    }
     return new ObjectID(value);
   }
 
