@@ -456,6 +456,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 statusPage?.downtimeMonitorStatuses || [],
               statusPageResources: statusPageResources,
               monitorsInGroup: monitorsInGroup,
+              uptimeWindow: { startDate: startDate, endDate: endDate },
             },
           );
 
@@ -840,6 +841,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               downtimeMonitorStatuses:
                 statusPage?.downtimeMonitorStatuses || [],
               monitorsInGroup: monitorsInGroup,
+              uptimeWindow: { startDate: startDate, endDate: endDate },
             });
           if (percent !== null) {
             uptimePercents.push(percent);
@@ -1296,6 +1298,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             UptimePrecision.TWO_DECIMAL,
                           resourceGroups: resourceGroups,
                           monitorsInGroup: monitorsInGroup,
+                          uptimeWindow: {
+                            startDate: startDate,
+                            endDate: endDate,
+                          },
                         },
                       )?.toString() || "100") + t("overview.uptimeSuffix")
                     : undefined

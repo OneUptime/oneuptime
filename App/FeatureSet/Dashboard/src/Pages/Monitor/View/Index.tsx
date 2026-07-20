@@ -128,10 +128,19 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       return <></>;
     }
 
+    /*
+     * this page reports the last 90 days, so measure over that window. Otherwise an open
+     * (endsAt = null) row that started before the window contributes its whole duration and
+     * the denominator becomes "first event -> now" instead of the 90 days shown.
+     */
     const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
       statusTimelines,
       UptimePrecision.THREE_DECIMAL,
       downTimeMonitorStatues,
+      {
+        startDate: startDate,
+        endDate: endDate,
+      },
     );
 
     return (

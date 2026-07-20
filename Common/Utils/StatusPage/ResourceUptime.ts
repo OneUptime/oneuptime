@@ -6,7 +6,7 @@ import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Dictionary from "../../Types/Dictionary";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
-import UptimeUtil from "../Uptime/UptimeUtil";
+import UptimeUtil, { UptimeWindow } from "../Uptime/UptimeUtil";
 
 export default class StatusPageResourceUptimeUtil {
   public static getWorstMonitorStatus(data: {
@@ -137,6 +137,8 @@ export default class StatusPageResourceUptimeUtil {
     precision: UptimePrecision;
     downtimeMonitorStatuses: Array<MonitorStatus>;
     monitorsInGroup: Dictionary<Array<ObjectID>>;
+    // if supplied, uptime is measured over this window instead of "first event -> now".
+    uptimeWindow?: UptimeWindow | undefined;
   }): number | null {
     if (!data.statusPageResource.showUptimePercent) {
       return null;
@@ -156,6 +158,7 @@ export default class StatusPageResourceUptimeUtil {
       monitorStatusTimelines,
       data.precision,
       downtimeMonitorStatuses,
+      data.uptimeWindow,
     );
 
     return uptimePercent;
@@ -168,6 +171,8 @@ export default class StatusPageResourceUptimeUtil {
     downtimeMonitorStatuses: Array<MonitorStatus>;
     statusPageResources: Array<StatusPageResource>;
     monitorsInGroup: Dictionary<Array<ObjectID>>;
+    // if supplied, uptime is measured over this window instead of "first event -> now".
+    uptimeWindow?: UptimeWindow | undefined;
   }): number | null {
     if (!data.statusPageGroup.showUptimePercent) {
       return null;
@@ -193,6 +198,7 @@ export default class StatusPageResourceUptimeUtil {
           precision: data.precision,
           downtimeMonitorStatuses: data.downtimeMonitorStatuses,
           monitorsInGroup: data.monitorsInGroup,
+          uptimeWindow: data.uptimeWindow,
         });
 
       if (calculateUptimePercentOfResource !== null) {
@@ -252,6 +258,8 @@ export default class StatusPageResourceUptimeUtil {
     statusPageResources: Array<StatusPageResource>;
     resourceGroups: Array<StatusPageGroup>;
     monitorsInGroup: Dictionary<Array<ObjectID>>;
+    // if supplied, uptime is measured over this window instead of "first event -> now".
+    uptimeWindow?: UptimeWindow | undefined;
   }): number | null {
     const showUptimePercentage: boolean = Boolean(
       data.statusPageResources.find((item: StatusPageResource) => {
@@ -276,6 +284,7 @@ export default class StatusPageResourceUptimeUtil {
           downtimeMonitorStatuses: data.downtimeMonitorStatuses,
           statusPageResources: data.statusPageResources,
           monitorsInGroup: data.monitorsInGroup,
+          uptimeWindow: data.uptimeWindow,
         });
 
       if (calculateAvgUptimePercentOfStatusPageGroup !== null) {
@@ -298,6 +307,7 @@ export default class StatusPageResourceUptimeUtil {
           precision: data.precision,
           downtimeMonitorStatuses: data.downtimeMonitorStatuses,
           monitorsInGroup: data.monitorsInGroup,
+          uptimeWindow: data.uptimeWindow,
         });
 
       if (calculateUptimePercentOfResource !== null) {
