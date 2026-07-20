@@ -42,7 +42,7 @@ export default class Domain extends DomainCommon {
               ) {
                 reject(
                   new BadDataException(
-                    `Domain "${data.domain}" not found. Please check if the domain is correct and accessible.`,
+                    `No CNAME records found for domain "${data.domain}". Please ensure you have added the CNAME record and wait for DNS propagation (up to 72 hours).`,
                   ),
                 );
                 return;
@@ -122,7 +122,7 @@ export default class Domain extends DomainCommon {
               ) {
                 return reject(
                   new BadDataException(
-                    `Domain "${domain.toString()}" not found. Please check if the domain is correct and accessible.`,
+                    `No TXT records found for domain "${domain.toString()}". Please ensure you have added the TXT record and wait for DNS propagation (up to 72 hours).`,
                   ),
                 );
               }

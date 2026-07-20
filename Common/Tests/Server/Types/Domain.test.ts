@@ -19,7 +19,7 @@ describe("Domain TXT Record Verification", () => {
       expect(error).toBeInstanceOf(BadDataException);
       if (error instanceof BadDataException) {
         expect(error.message).toContain(
-          'Domain "nonexistentsubdomain-test.google.com" not found. Please check if the domain is correct and accessible.',
+          'No TXT records found for domain "nonexistentsubdomain-test.google.com". Please ensure you have added the TXT record and wait for DNS propagation (up to 72 hours).',
         );
         expect(error.message).toContain(domain);
       }
@@ -41,7 +41,7 @@ describe("Domain TXT Record Verification", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BadDataException);
       if (error instanceof BadDataException) {
-        expect(error.message).toContain("not found");
+        expect(error.message).toContain("No TXT records found");
         expect(error.message).toContain(domain);
         // Should not contain technical DNS error codes
         expect(error.message).not.toContain("ENOTFOUND");
