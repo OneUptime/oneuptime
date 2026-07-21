@@ -8,8 +8,7 @@ import {
   readFanInWriterOptionsFromEnv,
 } from "../../../../Server/Utils/Telemetry/TelemetryFanInWriter";
 import { JSONObject } from "../../../../Types/JSON";
-import { ClickHouseError } from "@clickhouse/client";
-import type { ClickHouseSettings } from "@clickhouse/client";
+import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -185,10 +184,7 @@ describe("TelemetryFanInWriter", () => {
       );
 
       const startedAt: number = Date.now();
-      const first: FanInSubmitResult = await writer.submit(
-        target,
-        makeRows(2),
-      );
+      const first: FanInSubmitResult = await writer.submit(target, makeRows(2));
       const second: FanInSubmitResult = await writer.submit(
         target,
         makeRows(3, 2),
@@ -235,10 +231,7 @@ describe("TelemetryFanInWriter", () => {
         makeOptions({ maxBatchRows: 100, maxWaitMs: 25 }),
       );
 
-      const first: FanInSubmitResult = await writer.submit(
-        target,
-        makeRows(2),
-      );
+      const first: FanInSubmitResult = await writer.submit(target, makeRows(2));
       const second: FanInSubmitResult = await writer.submit(
         target,
         makeRows(3, 2),
@@ -251,9 +244,7 @@ describe("TelemetryFanInWriter", () => {
       await Promise.all([first.flushed, second.flushed, third.flushed]);
 
       expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
-      expect(rowSeqs(callRows(target, 0))).toEqual([
-        0, 1, 2, 3, 4, 5, 6, 7, 8,
-      ]);
+      expect(rowSeqs(callRows(target, 0))).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
     });
 
     test("a submission is never split: batch cut stops at maxBatchRows on submission boundaries", async () => {
@@ -262,13 +253,12 @@ describe("TelemetryFanInWriter", () => {
         makeOptions({ maxBatchRows: 3, maxWaitMs: 15 }),
       );
 
-      // 2 + 2 rows: the size trigger fires at 4 >= 3, but the second
-      // submission does not fit in the first batch, so it flushes later
-      // (via the timer) as its own batch.
-      const first: FanInSubmitResult = await writer.submit(
-        target,
-        makeRows(2),
-      );
+      /*
+       * 2 + 2 rows: the size trigger fires at 4 >= 3, but the second
+       * submission does not fit in the first batch, so it flushes later
+       * (via the timer) as its own batch.
+       */
+      const first: FanInSubmitResult = await writer.submit(target, makeRows(2));
       const second: FanInSubmitResult = await writer.submit(
         target,
         makeRows(2, 2),
@@ -425,16 +415,13 @@ describe("TelemetryFanInWriter", () => {
         makeOptions({ maxBatchRows: 4, maxWaitMs: 60_000 }),
       );
 
-      const first: FanInSubmitResult = await writer.submit(
-        target,
-        makeRows(2),
-      );
+      const first: FanInSubmitResult = await writer.submit(target, makeRows(2));
       const second: FanInSubmitResult = await writer.submit(
         target,
         makeRows(2, 2),
       );
 
-      const [errFirst, errSecond]: Array<Error> = await Promise.all([
+      const [errFirst, errSecond]: [Error, Error] = await Promise.all([
         captureRejection(first.flushed),
         captureRejection(second.flushed),
       ]);
@@ -471,11 +458,18 @@ describe("TelemetryFanInWriter", () => {
       const target: TestTarget = makeTarget({
         impl: failNTimesImpl(
           2,
-          clickHouseError("202", "Too many simultaneous queries. Maximum: 1000"),
+          clickHouseError(
+            "202",
+            "Too many simultaneous queries. Maximum: 1000",
+          ),
         ),
       });
       const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
-        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000, retryMaxAttempts: 5 }),
+        makeOptions({
+          maxBatchRows: 2,
+          maxWaitMs: 60_000,
+          retryMaxAttempts: 5,
+        }),
       );
 
       const result: FanInSubmitResult = await writer.submit(
@@ -508,7 +502,11 @@ describe("TelemetryFanInWriter", () => {
         },
       });
       const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
-        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000, retryMaxAttempts: 3 }),
+        makeOptions({
+          maxBatchRows: 2,
+          maxWaitMs: 60_000,
+          retryMaxAttempts: 3,
+        }),
       );
 
       const result: FanInSubmitResult = await writer.submit(
@@ -530,7 +528,11 @@ describe("TelemetryFanInWriter", () => {
         },
       });
       const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
-        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000, retryMaxAttempts: 5 }),
+        makeOptions({
+          maxBatchRows: 2,
+          maxWaitMs: 60_000,
+          retryMaxAttempts: 5,
+        }),
       );
 
       const result: FanInSubmitResult = await writer.submit(
@@ -551,7 +553,11 @@ describe("TelemetryFanInWriter", () => {
         },
       });
       const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
-        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000, retryMaxAttempts: 5 }),
+        makeOptions({
+          maxBatchRows: 2,
+          maxWaitMs: 60_000,
+          retryMaxAttempts: 5,
+        }),
       );
 
       const result: FanInSubmitResult = await writer.submit(
@@ -718,10 +724,7 @@ describe("TelemetryFanInWriter", () => {
       );
 
       // Fills the high-water mark exactly and dispatches into the blocked insert.
-      const first: FanInSubmitResult = await writer.submit(
-        target,
-        makeRows(5),
-      );
+      const first: FanInSubmitResult = await writer.submit(target, makeRows(5));
       expect(writer.getStats().pendingRows).toBe(5);
 
       let accepted: boolean = false;
@@ -761,10 +764,7 @@ describe("TelemetryFanInWriter", () => {
         makeOptions({ maxBatchRows: 3, maxWaitMs: 60_000 }),
       );
 
-      const first: FanInSubmitResult = await writer.submit(
-        target,
-        makeRows(3),
-      );
+      const first: FanInSubmitResult = await writer.submit(target, makeRows(3));
       await first.flushed;
       const second: FanInSubmitResult = await writer.submit(
         target,
@@ -774,10 +774,7 @@ describe("TelemetryFanInWriter", () => {
 
       expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
       const tokenFirst: string | undefined = callOptions(target, 0).dedupToken;
-      const tokenSecond: string | undefined = callOptions(
-        target,
-        1,
-      ).dedupToken;
+      const tokenSecond: string | undefined = callOptions(target, 1).dedupToken;
       expect(tokenFirst).toMatch(/^fanin:TestTable:/);
       expect(tokenSecond).toMatch(/^fanin:TestTable:/);
       expect(tokenSecond).not.toBe(tokenFirst);

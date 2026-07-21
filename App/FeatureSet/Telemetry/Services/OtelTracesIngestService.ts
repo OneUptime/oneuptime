@@ -722,7 +722,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   if (
                     dbExceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE
                   ) {
-                    await this.submitExceptionsBuffer(dbExceptions, pendingAcks);
+                    await this.submitExceptionsBuffer(
+                      dbExceptions,
+                      pendingAcks,
+                    );
                   }
                 } catch (spanError) {
                   if (spanError instanceof TraceStorageFlushError) {

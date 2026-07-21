@@ -343,8 +343,10 @@ describe("Telemetry fan-in ingest — traces + logs end to end through the write
 
     expect(spanInsertSpy).toHaveBeenCalledTimes(2);
 
-    // Same batch re-sent: identical rows and the SAME dedup token, so
-    // ClickHouse can drop the duplicate block if the first attempt landed.
+    /*
+     * Same batch re-sent: identical rows and the SAME dedup token, so
+     * ClickHouse can drop the duplicate block if the first attempt landed.
+     */
     const firstCall: any = spanInsertSpy.mock.calls[0];
     const secondCall: any = spanInsertSpy.mock.calls[1];
     expect(secondCall[0]).toEqual(firstCall[0]);

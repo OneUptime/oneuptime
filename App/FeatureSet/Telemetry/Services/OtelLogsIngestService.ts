@@ -1019,7 +1019,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   if (
                     dbExceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE
                   ) {
-                    await this.submitExceptionsBuffer(dbExceptions, pendingAcks);
+                    await this.submitExceptionsBuffer(
+                      dbExceptions,
+                      pendingAcks,
+                    );
                   }
                 } catch (logError) {
                   if (logError instanceof LogStorageFlushError) {

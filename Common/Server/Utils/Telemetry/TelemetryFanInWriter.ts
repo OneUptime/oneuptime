@@ -3,8 +3,7 @@ import Sleep from "../../../Types/Sleep";
 import UUID from "../../../Utils/UUID";
 import { JSONObject } from "../../../Types/JSON";
 import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
-import { ClickHouseError } from "@clickhouse/client";
-import type { ClickHouseSettings } from "@clickhouse/client";
+import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
 
 /*
  * Fan-in writer: the single funnel between the telemetry ingest workers and
@@ -124,6 +123,8 @@ const RETRYABLE_CLICKHOUSE_CODES: Set<string> = new Set([
   "319",
 ]);
 
+const NUMERIC_ERROR_CODE_REGEX: RegExp = /^\d+$/;
+
 const RETRYABLE_SOCKET_CODES: Set<string> = new Set([
   "ECONNRESET",
   "ECONNREFUSED",
@@ -145,7 +146,7 @@ export function isRetryableInsertError(err: unknown): boolean {
         return true;
       }
       // Duck-typed ClickHouseError (in case of duplicated package instances).
-      if (/^\d+$/.test(code)) {
+      if (NUMERIC_ERROR_CODE_REGEX.test(code)) {
         return RETRYABLE_CLICKHOUSE_CODES.has(code);
       }
     }
