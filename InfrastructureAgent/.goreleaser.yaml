@@ -93,6 +93,52 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+# CycloneDX SBOMs for everything published to the GitHub release.
+#
+# These artifacts are installed as root on customer hosts, and a stripped Go
+# binary's dependency tree is opaque to whoever installs it — the SBOM is how
+# they answer "am I exposed to CVE-X?" without reverse-engineering the binary.
+#
+# Two entries: `archive` and `binary`. `artifacts` takes a single value, so one
+# entry cannot cover both.
+#
+# There is deliberately NO `artifacts: package` entry. syft unpacks a .tar.gz
+# and finds the Go module tree inside, but it does NOT descend into .deb/.rpm/
+# .apk/.archlinux — for those it reads only the package control metadata, and
+# measurably produces a 2-component document (the package name plus the file
+# itself) against the 21 components in the archive SBOM for the same build.
+# Attaching that would be worse than attaching nothing: it looks like coverage
+# while carrying none of the dependency data an SBOM exists to convey.
+#
+# The `binary` entry is what covers the packages. Every nfpm package wraps
+# exactly one of these binaries, so the binary SBOM for a given os/arch
+# describes the contents of the .deb, .rpm, .apk and .archlinux for that same
+# os/arch. Verified: scanning the raw linux/amd64 binary yields the same 21
+# modules as the archive.
+#
+# `args` is pinned rather than defaulted for two reasons: the default emits
+# spdx-json, and we publish CycloneDX to match the container SBOMs; and the
+# default appends `--enrich all`, which makes network calls during the release
+# and yields non-deterministic output.
+#
+# `disable` was added in GoReleaser v2.10 and defaults to false. It is set
+# explicitly here because the upstream docs page states the default is true
+# while the code says otherwise — being explicit costs nothing and survives
+# whichever one turns out to be authoritative later.
+sboms:
+  - id: archives
+    artifacts: archive
+    disable: false
+    documents:
+      - "${artifact}.cdx.json"
+    args: ["$artifact", "--output", "cyclonedx-json=$document"]
+  - id: binaries
+    artifacts: binary
+    disable: false
+    documents:
+      - "{{ .Binary }}_{{ .Os }}_{{ .Arch }}.cdx.json"
+    args: ["$artifact", "--output", "cyclonedx-json=$document"]
+
 changelog:
   sort: asc
   filters:
