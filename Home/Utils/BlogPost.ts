@@ -179,7 +179,7 @@ export default class BlogPostUtil {
       const resultList: Array<BlogPostHeader> = [];
 
       for (const blog of blogs) {
-        const fileName: string = blog["post"] as string;
+        const fileName: string = (blog["post"] as string).replace(/ /g, "-");
         const formattedPostDate: string =
           this.getFormattedPostDateFromFileName(fileName);
         const postDate: string = this.getPostDateFromFileName(fileName);
@@ -248,21 +248,23 @@ export default class BlogPostUtil {
   }
 
   public static async getBlogPost(fileName: string): Promise<BlogPost | null> {
-    const cached: BlogPost | undefined = this.blogPostCache.get(fileName);
+    // Sanitize fileName: replace spaces with hyphens to match directory naming
+    const sanitizedFileName: string = fileName.replace(/ /g, "-");
+    const cached: BlogPost | undefined = this.blogPostCache.get(sanitizedFileName);
     if (cached) {
       return cached;
     }
 
     try {
       const blogPost: BlogPost | null =
-        await this.getBlogPostFromFile(fileName);
+        await this.getBlogPostFromFile(sanitizedFileName);
       if (blogPost && this.contributorsByPostCache) {
         /*
          * Only cache once the background warm has resolved contributors, so a
          * post rendered before the warm finishes isn't pinned with author-only
          * contributors. The warm clears this cache on completion too.
          */
-        this.blogPostCache.set(fileName, blogPost);
+        this.blogPostCache.set(sanitizedFileName, blogPost);
       }
       return blogPost;
     } catch {
