@@ -14,7 +14,6 @@ import {
   PostgresIdleSessionTimeoutMs,
   PostgresIdleTimeoutMs,
   PostgresKeepAliveInitialDelayMs,
-  PostgresQueryTimeoutMs,
   PostgresSlowQueryLogThresholdMs,
   PostgresStatementTimeoutMs,
   RunDatabaseMigrationsOnBoot,
@@ -59,7 +58,6 @@ const dataSourceOptions: DataSourceOptions = {
     idleTimeoutMillis: PostgresIdleTimeoutMs,
     connectionTimeoutMillis: PostgresConnectionAcquireTimeoutMs,
     statement_timeout: PostgresStatementTimeoutMs,
-    query_timeout: PostgresQueryTimeoutMs,
     idle_in_transaction_session_timeout: PostgresIdleInTransactionTimeoutMs,
     /*
      * Detect dead TCP peers (ungraceful client exit / network partition) so
