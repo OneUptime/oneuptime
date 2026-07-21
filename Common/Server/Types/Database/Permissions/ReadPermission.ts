@@ -69,6 +69,14 @@ export default class ReadPermission {
       return { query };
     }
 
+    // Skip block permission check for non-logged-in users. Block permissions
+    // are user-specific and only apply to authenticated users. The actual
+    // authentication check for public access is handled by
+    // BasePermission.checkPermissions which is called afterwards.
+    if (!props.userId) {
+      return { query };
+    }
+
     TablePermission.checkTableLevelBlockPermissions(
       modelType,
       props,
