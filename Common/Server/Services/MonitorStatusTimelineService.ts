@@ -79,6 +79,9 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       mutex = await Semaphore.lock({
         key: createBy.data.monitorId.toString(),
         namespace: "MonitorStatusTimeline.create",
+        acquireTimeout: 2000,
+        retryInterval: 100,
+        acquireAttemptsLimit: 20,
       });
     } catch (e) {
       /*
