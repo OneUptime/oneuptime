@@ -18,5 +18,7 @@ export { default as FixExceptionTaskHandler } from "./FixExceptionTaskHandler";
 export { default as WriteRegressionTestTaskHandler } from "./WriteRegressionTestTaskHandler";
 export { default as ImproveExceptionHandlingTaskHandler } from "./ImproveExceptionHandlingTaskHandler";
 export { default as ImproveInstrumentationTaskHandler } from "./ImproveInstrumentationTaskHandler";
+export { default as ImproveLoggingTaskHandler } from "./ImproveLoggingTaskHandler";
+export { default as ImproveTracingTaskHandler } from "./ImproveTracingTaskHandler";
 export { default as FixFromIncidentTaskHandler } from "./FixFromIncidentTaskHandler";
 export { default as FixPerformanceTaskHandler } from "./FixPerformanceTaskHandler";

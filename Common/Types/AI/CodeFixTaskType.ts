@@ -43,6 +43,27 @@ enum CodeFixTaskType {
    */
   FixPerformance = "FixPerformance",
   /*
+   * Improve a SERVICE's logging hygiene: structured/parameterized log
+   * messages (no user data interpolated into log text), correct severity
+   * levels, trace correlation, proper exception recording instead of raw
+   * stack dumps in log bodies, and less noise. Human-triggered from the
+   * service's Logs page (POST /ai-investigation/
+   * create-telemetry-improvement-task); its context (service id + name) is
+   * captured into AIRun.taskContext at trigger time. Instrumentation only —
+   * never a behavior change.
+   */
+  ImproveLogging = "ImproveLogging",
+  /*
+   * Improve a SERVICE's tracing instrumentation: spans on uninstrumented
+   * entry points and significant operations, low-cardinality span names,
+   * exceptions recorded on spans with correct status/escaped semantics,
+   * code.* and semantic-convention attributes, context propagation across
+   * async boundaries. Human-triggered from the service's Traces page (same
+   * endpoint as ImproveLogging); context captured into AIRun.taskContext.
+   * Instrumentation only — never a behavior change.
+   */
+  ImproveTracing = "ImproveTracing",
+  /*
    * Fix the root cause a completed AI investigation identified. Human-
    * triggered from the investigation panel (POST /ai-investigation/
    * create-fix-task), NOT from the exception page: its subject is the
@@ -111,6 +132,8 @@ export class CodeFixTaskTypeHelper {
       case CodeFixTaskType.FixFromIncident:
         return CodeFixContextKind.IncidentOrAlertSubject;
       case CodeFixTaskType.FixPerformance:
+      case CodeFixTaskType.ImproveLogging:
+      case CodeFixTaskType.ImproveTracing:
         return CodeFixContextKind.TaskContext;
       default:
         return CodeFixContextKind.TelemetryException;

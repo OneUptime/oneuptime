@@ -55,7 +55,7 @@ interface CodeRepositoriesResponse {
 }
 
 interface SubjectTaskDetailsResponse {
-  subjectType: "incident" | "alert" | "trace";
+  subjectType: "incident" | "alert" | "trace" | "service";
   subjectTitle: string;
   analysisMarkdown: string;
   serviceName: string | null;
@@ -133,7 +133,7 @@ export interface CodeRepositoryInfo {
  * stack trace before the name-match / only-repository fallbacks).
  */
 export interface SubjectTaskDetails {
-  subjectType: "incident" | "alert" | "trace";
+  subjectType: "incident" | "alert" | "trace" | "service";
   subjectTitle: string;
   analysisMarkdown: string;
   serviceName: string | null;

@@ -536,6 +536,103 @@ export default class AIAgentDataAPI {
           }
 
           /*
+           * Service-scoped instrumentation recipes (ImproveLogging /
+           * ImproveTracing): the context is just the service — resolve the
+           * repository by service name (no stack trace) and hand the
+           * worker a short brief; the recipe's checklist lives in the
+           * worker's prompt.
+           */
+          if (
+            taskType === CodeFixTaskType.ImproveLogging ||
+            taskType === CodeFixTaskType.ImproveTracing
+          ) {
+            const taskContext: CodeFixTaskContext | undefined = run.taskContext;
+            const improvementServiceName: string =
+              taskContext?.serviceName || "";
+
+            if (!taskContext?.telemetryServiceId) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "This telemetry-improvement task has no stored service context — the task has nothing to work from.",
+                ),
+              );
+            }
+
+            const pillar: string =
+              taskType === CodeFixTaskType.ImproveLogging
+                ? "logging"
+                : "tracing";
+            const subjectTitle: string = improvementServiceName
+              ? `Improve ${pillar} for ${improvementServiceName}`
+              : `Improve ${pillar}`;
+
+            const resolution: RepoResolution | null =
+              await CodeRepositoryService.resolveRepositoryForException({
+                projectId: run.projectId,
+                stackTrace: null,
+                serviceName: improvementServiceName || null,
+              });
+
+            const repository: CodeRepository | null = resolution
+              ? await CodeRepositoryService.findOneById({
+                  id: new ObjectID(resolution.codeRepositoryId),
+                  select: {
+                    _id: true,
+                    name: true,
+                    repositoryHostedAt: true,
+                    organizationName: true,
+                    repositoryName: true,
+                    mainBranchName: true,
+                    gitHubAppInstallationId: true,
+                  },
+                  props: { isRoot: true },
+                })
+              : null;
+
+            const basePayload: JSONObject = {
+              subjectType: "service",
+              subjectTitle,
+              analysisMarkdown: `OneUptime observes the telemetry of the service ${
+                improvementServiceName
+                  ? `"${improvementServiceName}"`
+                  : "in this repository"
+              }. A user asked for its ${pillar} instrumentation to be improved — follow the task checklist in your instructions.`,
+              serviceName: improvementServiceName,
+              projectId: run.projectId.toString(),
+            };
+
+            if (!resolution || !repository) {
+              return Response.sendJsonObjectResponse(req, res, {
+                ...basePayload,
+                repositories: [],
+                resolutionError:
+                  "Could not resolve a repository for this task: no connected repository name matches the service and the project has more than one repository. Connect the right repository via the GitHub App, or rename one to match the service.",
+              });
+            }
+
+            return Response.sendJsonObjectResponse(req, res, {
+              ...basePayload,
+              repositories: [
+                {
+                  id: repository.id!.toString(),
+                  name: repository.name || "",
+                  repositoryHostedAt: repository.repositoryHostedAt || "",
+                  organizationName: repository.organizationName || "",
+                  repositoryName: repository.repositoryName || "",
+                  mainBranchName: repository.mainBranchName || "main",
+                  servicePathInRepository: resolution.servicePathInRepository,
+                  gitHubAppInstallationId:
+                    repository.gitHubAppInstallationId || null,
+                  resolutionMethod: resolution.method,
+                  resolutionEvidence: resolution.evidence,
+                },
+              ],
+            });
+          }
+
+          /*
            * Trace-evidence recipes (FixPerformance): everything the worker
            * needs was captured into taskContext at trigger time — the spans
            * themselves may already be past ClickHouse retention.
