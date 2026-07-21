@@ -4,7 +4,7 @@ Monitor a Docker Swarm cluster — nodes, services, tasks, stacks, overlay netwo
 
 The agent is two cooperating containers:
 
-1. **Collector** (`oneuptime/docker-swarm-agent`) — a stock `otel/opentelemetry-collector-contrib` with a tuned config. It scrapes `docker_stats` for container metrics, tails container logs, and tails the inventory snapshot file, stamping everything with your cluster identity (`docker.swarm.cluster.name`) before shipping over OTLP.
+1. **Collector** (a pinned `otel/opentelemetry-collector-contrib`) — the stock upstream image, pointed at the tuned [`otel-collector-config.yaml`](./otel-collector-config.yaml) that ships next to this file. It scrapes `docker_stats` for container metrics, tails container logs, and tails the inventory snapshot file, stamping everything with your cluster identity (`docker.swarm.cluster.name`) before shipping over OTLP.
 2. **Inventory poller** (a small `alpine` + `curl` + `jq` sidecar running [`inventory-snapshot.sh`](./inventory-snapshot.sh)) — every 5 minutes it walks the Swarm manager API (`/nodes`, `/services?status=true`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`) and derives stacks from the `com.docker.stack.namespace` service label, writing one JSON line per object to a file the collector tails.
 
 ## Prerequisites

@@ -2,15 +2,20 @@ services:
   # The collector: docker_stats metrics + container logs + the
   # filelog/inventory receiver that tails the shared snapshot file.
   oneuptime-docker-swarm-agent:
-    image: oneuptime/docker-swarm-agent:release
+    # Upstream collector, pinned. There is no oneuptime/docker-swarm-agent
+    # image — the agent is entirely defined by the config below, which
+    # install.sh downloads next to this file, so nothing needs baking into a
+    # custom image. Bump this pin and otel-collector-config.yaml together.
+    image: otel/opentelemetry-collector-contrib:0.154.0
     container_name: oneuptime-docker-swarm-agent
     user: "0:0"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      # Use the downloaded config (lets you customize without rebuilding
-      # the image). The image also bakes a copy at the same path, so this
-      # bind-mount is optional — remove it to use the baked-in config.
+      # The collector's config. Required — the upstream image ships a
+      # default config that does not talk to OneUptime. install.sh downloads
+      # this file alongside the compose file; it is mounted at the path the
+      # base image's ENTRYPOINT already passes to --config.
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
       # Shared with the inventory sidecar; the collector reads the
       # snapshot file the sidecar writes here.
@@ -19,6 +24,14 @@ services:
       - ONEUPTIME_URL=${ONEUPTIME_URL}
       - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
       - DOCKER_SWARM_CLUSTER_NAME=${DOCKER_SWARM_CLUSTER_NAME:-docker-swarm}
+      # Required. otel-collector-config.yaml stamps oneuptime.agent.version
+      # from this, and the collector refuses to start pipelines when a
+      # referenced env var is unset — it would crash-loop rather than run
+      # without the attribute. It used to be baked in as ENV APP_VERSION by an
+      # image that was never actually built or published; now that the agent
+      # is the upstream collector plus this config, the image pin is the
+      # version that means something. Keep it in step with `image:` above.
+      - APP_VERSION=${APP_VERSION:-0.154.0}
     restart: unless-stopped
     logging:
       driver: json-file
