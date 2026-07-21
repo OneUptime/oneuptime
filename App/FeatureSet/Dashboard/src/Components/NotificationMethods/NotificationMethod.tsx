@@ -1,7 +1,9 @@
 import BaseModel, {
   DatabaseBaseModelType,
 } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { JSONObject } from "Common/Types/JSON";
+import NotificationMethodUtil, {
+  NotificationMethodDisplayItem,
+} from "Common/UI/Utils/NotificationMethodUtil";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -14,83 +16,18 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const item: BaseModel = BaseModel.fromJSONObject(props.item, props.modelType);
 
+  const displayItems: Array<NotificationMethodDisplayItem> =
+    NotificationMethodUtil.getDisplayItems(item);
+
   return (
     <div>
-      {item.getColumnValue("userEmail") &&
-        (item.getColumnValue("userEmail") as JSONObject)["email"] && (
-          <p>
-            Email:{" "}
-            {(item.getColumnValue("userEmail") as JSONObject)[
-              "email"
-            ]?.toString()}
+      {displayItems.map((displayItem: NotificationMethodDisplayItem) => {
+        return (
+          <p key={displayItem.title}>
+            {displayItem.title}: {displayItem.value}
           </p>
-        )}
-      {item.getColumnValue("userCall") &&
-        (item.getColumnValue("userCall") as JSONObject)["phone"] && (
-          <p>
-            Call:{" "}
-            {(item.getColumnValue("userCall") as JSONObject)[
-              "phone"
-            ]?.toString()}
-          </p>
-        )}
-      {item.getColumnValue("userSms") &&
-        (item.getColumnValue("userSms") as JSONObject)["phone"] && (
-          <p>
-            SMS:{" "}
-            {(item.getColumnValue("userSms") as JSONObject)[
-              "phone"
-            ]?.toString()}
-          </p>
-        )}
-      {item.getColumnValue("userWhatsApp") &&
-        (item.getColumnValue("userWhatsApp") as JSONObject)["phone"] && (
-          <p>
-            WhatsApp:{" "}
-            {(item.getColumnValue("userWhatsApp") as JSONObject)[
-              "phone"
-            ]?.toString()}
-          </p>
-        )}
-      {item.getColumnValue("userTelegram") &&
-        ((item.getColumnValue("userTelegram") as JSONObject)[
-          "telegramUserHandle"
-        ] ||
-          (item.getColumnValue("userTelegram") as JSONObject)[
-            "telegramChatId"
-          ]) && (
-          <p>
-            Telegram:{" "}
-            {(
-              (item.getColumnValue("userTelegram") as JSONObject)[
-                "telegramUserHandle"
-              ] ||
-              (item.getColumnValue("userTelegram") as JSONObject)[
-                "telegramChatId"
-              ]
-            )?.toString()}
-          </p>
-        )}
-      {item.getColumnValue("userWebhook") &&
-        ((item.getColumnValue("userWebhook") as JSONObject)["name"] ||
-          (item.getColumnValue("userWebhook") as JSONObject)["webhookUrl"]) && (
-          <p>
-            Webhook:{" "}
-            {(
-              (item.getColumnValue("userWebhook") as JSONObject)["name"] ||
-              (item.getColumnValue("userWebhook") as JSONObject)["webhookUrl"]
-            )?.toString()}
-          </p>
-        )}
-      {item.getColumnValue("userPush") &&
-        (item.getColumnValue("userPush") as JSONObject)["deviceName"] && (
-          <p>
-            Push:{" "}
-            {(item.getColumnValue("userPush") as JSONObject)[
-              "deviceName"
-            ]?.toString()}
-          </p>
-        )}
+        );
+      })}
     </div>
   );
 };
