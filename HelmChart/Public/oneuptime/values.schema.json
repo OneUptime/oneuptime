@@ -2570,6 +2570,48 @@
                 "telemetryConcurrency": {
                     "type": "integer"
                 },
+                "telemetryFanInMaxBatchRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxWaitMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxConcurrentInserts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxPendingRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxAttempts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryBaseDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "clickhouseMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "clickhouseIngestMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
                 "disableTelemetryCollection": {
                     "type": "boolean"
                 },
@@ -2716,6 +2758,48 @@
                 },
                 "telemetryConcurrency": {
                     "type": "integer"
+                },
+                "telemetryFanInMaxBatchRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxWaitMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxConcurrentInserts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxPendingRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxAttempts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryBaseDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "clickhouseMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "clickhouseIngestMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
                 },
                 "disableTelemetryCollection": {
                     "type": "boolean"

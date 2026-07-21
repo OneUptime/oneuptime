@@ -65,6 +65,23 @@ Work through this list to make your OneUptime installation production-ready.
   `app.keda.targetCPUUtilizationPercentage` (with `app.resources.requests.cpu`)
   so the API tier still autoscales once its queue-size trigger is disabled.
 
+- [ ] **Size ClickHouse insert concurrency when scaling telemetry ingest
+  workers.** Every telemetry-ingesting pod runs a fan-in writer that batches
+  all telemetry ClickHouse inserts into a handful of large INSERTs, so worker
+  replicas are safe to scale horizontally — ClickHouse sees a few big inserts
+  per pod instead of one per request. The knob that matters fleet-wide is
+  `worker.telemetryFanInMaxConcurrentInserts` (default 4): total ClickHouse
+  insert concurrency = worker replicas ×
+  `TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS`. Keep that product under roughly
+  60% of ClickHouse `max_concurrent_queries` (default 100) so reads and
+  background merges still get query slots — e.g. at the defaults, stay at or
+  below ~15 telemetry-ingesting replicas, or lower the per-pod insert cap as
+  you add replicas. Batch size and flush latency are tunable via
+  `worker.telemetryFanInMaxBatchRows` / `worker.telemetryFanInMaxWaitMs`, and
+  the per-pod ClickHouse pools via `worker.clickhouseMaxOpenConnections` /
+  `worker.clickhouseIngestMaxOpenConnections` (the same keys exist under
+  `app:` for setups that run ingestion on the app pods).
+
 - [ ] **Put PgBouncer in front of PostgreSQL** if you autoscale workers (KEDA) or
   use a connection-limited managed/external PostgreSQL — it keeps a connection
   storm (for example, many worker pods booting at once) from exhausting the

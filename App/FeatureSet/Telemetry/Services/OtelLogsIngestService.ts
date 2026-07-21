@@ -85,6 +85,9 @@ import {
   INVENTORY_KIND_ATTRIBUTE as DOCKER_SWARM_INVENTORY_KIND_ATTRIBUTE,
   isInventoriedDockerSwarmKind,
 } from "Common/Types/DockerSwarm/DockerSwarmInventoryExtractor";
+import TelemetryFanInWriter, {
+  FanInSubmitResult,
+} from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 
 const INVENTORIED_TYPE_SET: Set<string> = new Set(
   INVENTORIED_RESOURCE_TYPES.map((t: string) => {
@@ -106,64 +109,75 @@ class LogStorageFlushError extends Error {
 }
 
 export default class OtelLogsIngestService extends OtelIngestBaseService {
-  private static async flushLogsBuffer(
+  /*
+   * Hand accumulated log rows to the shared fan-in writer, which batches
+   * them ACROSS jobs and inserts through a small per-pod concurrency gate
+   * (see TelemetryFanInWriter). Awaiting this method is only the writer's
+   * acceptance/backpressure gate — durability acks land in `pendingAcks`
+   * and MUST be awaited before the job completes (ack-after-flush).
+   */
+  private static async submitLogsBuffer(
     logs: Array<JSONObject>,
+    pendingAcks: Array<Promise<void>>,
     force: boolean = false,
   ): Promise<void> {
     while (
       logs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE ||
       (force && logs.length > 0)
     ) {
-      const batchSize: number = Math.min(
-        logs.length,
-        TELEMETRY_LOG_FLUSH_BATCH_SIZE,
+      const batch: Array<JSONObject> = logs.splice(
+        0,
+        Math.min(logs.length, TELEMETRY_LOG_FLUSH_BATCH_SIZE),
       );
-      const batch: Array<JSONObject> = logs.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      try {
-        await LogService.insertJsonRows(batch);
-      } catch (error) {
-        throw new LogStorageFlushError(error);
-      }
-
-      logs.splice(0, batch.length);
+      const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
+        LogService,
+        batch,
+      );
+      pendingAcks.push(
+        submission.flushed.catch((error: Error) => {
+          throw new LogStorageFlushError(error);
+        }),
+      );
     }
   }
 
   /*
-   * Flush log-derived ClickHouse ExceptionInstance rows. Mirrors
-   * OtelTracesIngestService.flushExceptionsBuffer so the two ingest paths
-   * write exception instances identically.
+   * Submit log-derived ClickHouse ExceptionInstance rows to the fan-in
+   * writer. Mirrors OtelTracesIngestService.submitExceptionsBuffer so the
+   * two ingest paths write exception instances identically.
    */
-  private static async flushExceptionsBuffer(
+  private static async submitExceptionsBuffer(
     exceptions: Array<JSONObject>,
+    pendingAcks: Array<Promise<void>>,
     force: boolean = false,
   ): Promise<void> {
     while (
       exceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE ||
       (force && exceptions.length > 0)
     ) {
-      const batchSize: number = Math.min(
-        exceptions.length,
-        TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
+      const batch: Array<JSONObject> = exceptions.splice(
+        0,
+        Math.min(exceptions.length, TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE),
       );
-      const batch: Array<JSONObject> = exceptions.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      try {
-        await ExceptionInstanceService.insertJsonRows(batch);
-      } catch (error) {
-        throw new LogStorageFlushError(error);
-      }
-
-      exceptions.splice(0, batch.length);
+      const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
+        ExceptionInstanceService,
+        batch,
+      );
+      pendingAcks.push(
+        submission.flushed.catch((error: Error) => {
+          throw new LogStorageFlushError(error);
+        }),
+      );
     }
   }
 
@@ -202,6 +216,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
   @CaptureSpan()
   private static async processLogsAsync(req: ExpressRequest): Promise<void> {
+    /*
+     * Durability acks from the fan-in writer, one per submitted batch. The
+     * job only completes once every ack has resolved (ack-after-flush), so
+     * a payload whose rows never landed fails and is retried by BullMQ.
+     * Declared outside the try so the catch can settle them — an error
+     * thrown mid-processing must not leave rejected acks unobserved.
+     */
+    const pendingAcks: Array<Promise<void>> = [];
+
     try {
       const resourceLogs: JSONArray = req.body["resourceLogs"] as JSONArray;
 
@@ -990,13 +1013,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   totalLogsProcessed++;
 
                   if (dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
-                    await this.flushLogsBuffer(dbLogs);
+                    await this.submitLogsBuffer(dbLogs, pendingAcks);
                   }
 
                   if (
                     dbExceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE
                   ) {
-                    await this.flushExceptionsBuffer(dbExceptions);
+                    await this.submitExceptionsBuffer(dbExceptions, pendingAcks);
                   }
                 } catch (logError) {
                   if (logError instanceof LogStorageFlushError) {
@@ -1026,26 +1049,39 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         }
       }
 
-      await this.flushLogsBuffer(dbLogs, true);
+      await this.submitLogsBuffer(dbLogs, pendingAcks, true);
 
       /*
-       * Flush log-derived exceptions: ClickHouse ExceptionInstance rows plus
+       * Submit log-derived exceptions: ClickHouse ExceptionInstance rows plus
        * the batched Postgres TelemetryException summary upsert. The upsert is
        * wrapped so a Postgres failure can't fail the log worker — the
        * ClickHouse rows are the source of truth; a lost upsert only lags the
        * dashboard count for this batch (mirrors the trace path).
        */
-      await this.flushExceptionsBuffer(dbExceptions, true);
-      if (pendingExceptionUpserts.length > 0) {
-        await ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch(
-          pendingExceptionUpserts,
-        ).catch((err: Error) => {
-          logger.error(
-            "Telemetry exception batch upsert (from logs) failed; dashboard counts may lag this batch.",
-          );
-          logger.error(err);
-        });
-      }
+      await this.submitExceptionsBuffer(dbExceptions, pendingAcks, true);
+
+      await Promise.all([
+        /*
+         * Ack-after-flush: wait for every fan-in batch containing this
+         * job's rows to durably land in ClickHouse before the job is
+         * allowed to succeed. A rejected ack (batch definitively failed
+         * after the writer's own retries) fails the job so BullMQ
+         * re-processes the payload.
+         */
+        ...pendingAcks,
+        ...(pendingExceptionUpserts.length > 0
+          ? [
+              ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch(
+                pendingExceptionUpserts,
+              ).catch((err: Error) => {
+                logger.error(
+                  "Telemetry exception batch upsert (from logs) failed; dashboard counts may lag this batch.",
+                );
+                logger.error(err);
+              }),
+            ]
+          : []),
+      ]);
 
       /*
        * Flush the k8s inventory buffer — one upsert per cluster. Failures
@@ -1237,6 +1273,14 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
+      /*
+       * Settle all outstanding write acks before rethrowing: an error
+       * thrown mid-processing (log parse failure, lost body, ...) must
+       * not leave still-pending ack promises to reject unobserved later.
+       * The original error stays the one reported to BullMQ.
+       */
+      await Promise.allSettled(pendingAcks);
+
       logger.error("Critical error in processLogsAsync:");
       logger.error(error);
       throw error;

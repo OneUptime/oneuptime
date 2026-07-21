@@ -36,6 +36,9 @@ import {
   TELEMETRY_PROFILE_FLUSH_BATCH_SIZE,
   TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE,
 } from "../Config";
+import TelemetryFanInWriter, {
+  FanInSubmitResult,
+} from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import crypto from "crypto";
 
 type ParsedUnixNano = {
@@ -95,59 +98,70 @@ class ProfileStorageFlushError extends Error {
 }
 
 export default class OtelProfilesIngestService extends OtelIngestBaseService {
-  private static async flushProfilesBuffer(
+  /*
+   * Hand accumulated profile rows to the shared fan-in writer, which batches
+   * them ACROSS jobs and inserts through a small per-pod concurrency gate
+   * (see TelemetryFanInWriter). Awaiting this method is only the writer's
+   * acceptance/backpressure gate — durability acks land in `pendingAcks`
+   * and MUST be awaited before the job completes (ack-after-flush).
+   */
+  private static async submitProfilesBuffer(
     profiles: Array<JSONObject>,
+    pendingAcks: Array<Promise<void>>,
     force: boolean = false,
   ): Promise<void> {
     while (
       profiles.length >= TELEMETRY_PROFILE_FLUSH_BATCH_SIZE ||
       (force && profiles.length > 0)
     ) {
-      const batchSize: number = Math.min(
-        profiles.length,
-        TELEMETRY_PROFILE_FLUSH_BATCH_SIZE,
+      const batch: Array<JSONObject> = profiles.splice(
+        0,
+        Math.min(profiles.length, TELEMETRY_PROFILE_FLUSH_BATCH_SIZE),
       );
-      const batch: Array<JSONObject> = profiles.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      try {
-        await ProfileService.insertJsonRows(batch);
-      } catch (error) {
-        throw new ProfileStorageFlushError(error);
-      }
-
-      profiles.splice(0, batch.length);
+      const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
+        ProfileService,
+        batch,
+      );
+      pendingAcks.push(
+        submission.flushed.catch((error: Error) => {
+          throw new ProfileStorageFlushError(error);
+        }),
+      );
     }
   }
 
-  private static async flushSamplesBuffer(
+  private static async submitSamplesBuffer(
     samples: Array<JSONObject>,
+    pendingAcks: Array<Promise<void>>,
     force: boolean = false,
   ): Promise<void> {
     while (
       samples.length >= TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE ||
       (force && samples.length > 0)
     ) {
-      const batchSize: number = Math.min(
-        samples.length,
-        TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE,
+      const batch: Array<JSONObject> = samples.splice(
+        0,
+        Math.min(samples.length, TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE),
       );
-      const batch: Array<JSONObject> = samples.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      try {
-        await ProfileSampleService.insertJsonRows(batch);
-      } catch (error) {
-        throw new ProfileStorageFlushError(error);
-      }
-
-      samples.splice(0, batch.length);
+      const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
+        ProfileSampleService,
+        batch,
+      );
+      pendingAcks.push(
+        submission.flushed.catch((error: Error) => {
+          throw new ProfileStorageFlushError(error);
+        }),
+      );
     }
   }
 
@@ -189,6 +203,15 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
   private static async processProfilesAsync(
     req: ExpressRequest,
   ): Promise<void> {
+    /*
+     * Durability acks from the fan-in writer, one per submitted batch. The
+     * job only completes once every ack has resolved (ack-after-flush), so
+     * a payload whose rows never landed fails and is retried by BullMQ.
+     * Declared outside the try so the catch can settle them — an error
+     * thrown mid-processing must not leave rejected acks unobserved.
+     */
+    const pendingAcks: Array<Promise<void>> = [];
+
     try {
       /*
        * An empty body means the queued payload was lost (the Redis body
@@ -743,7 +766,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                         dbSamples.length >=
                         TELEMETRY_PROFILE_SAMPLE_FLUSH_BATCH_SIZE
                       ) {
-                        await this.flushSamplesBuffer(dbSamples);
+                        await this.submitSamplesBuffer(dbSamples, pendingAcks);
                       }
                     } catch (sampleError) {
                       if (sampleError instanceof ProfileStorageFlushError) {
@@ -831,7 +854,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
                   totalProfilesProcessed++;
 
                   if (dbProfiles.length >= TELEMETRY_PROFILE_FLUSH_BATCH_SIZE) {
-                    await this.flushProfilesBuffer(dbProfiles);
+                    await this.submitProfilesBuffer(dbProfiles, pendingAcks);
                   }
                 } catch (profileError) {
                   if (profileError instanceof ProfileStorageFlushError) {
@@ -858,10 +881,17 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         }
       }
 
-      await Promise.all([
-        this.flushProfilesBuffer(dbProfiles, true),
-        this.flushSamplesBuffer(dbSamples, true),
-      ]);
+      await this.submitProfilesBuffer(dbProfiles, pendingAcks, true);
+      await this.submitSamplesBuffer(dbSamples, pendingAcks, true);
+
+      /*
+       * Ack-after-flush: wait for every fan-in batch containing this
+       * job's rows to durably land in ClickHouse before the job is
+       * allowed to succeed. A rejected ack (batch definitively failed
+       * after the writer's own retries) fails the job so BullMQ
+       * re-processes the payload.
+       */
+      await Promise.all(pendingAcks);
 
       if (totalProfilesProcessed === 0) {
         logger.warn("No valid profiles were processed from the request");
@@ -883,6 +913,14 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
+      /*
+       * Settle all outstanding write acks before rethrowing: an error
+       * thrown mid-processing (profile parse failure, lost body, ...) must
+       * not leave still-pending ack promises to reject unobserved later.
+       * The original error stays the one reported to BullMQ.
+       */
+      await Promise.allSettled(pendingAcks);
+
       logger.error(
         "Critical error in processProfilesAsync:",
         getLogAttributesFromRequest(req as RequestLike),

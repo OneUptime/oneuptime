@@ -139,6 +139,29 @@ spec:
               value: {{ $.Values.worker.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.worker.telemetryConcurrency | default 100 | squote }}
+            # Fan-in telemetry writer knobs (defaults match the code —
+            # Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts). Fleet-wide
+            # ClickHouse insert concurrency is replicas x maxConcurrentInserts.
+            - name: TELEMETRY_FANIN_MAX_BATCH_ROWS
+              value: {{ $.Values.worker.telemetryFanInMaxBatchRows | default 5000 | squote }}
+            - name: TELEMETRY_FANIN_MAX_WAIT_MS
+              value: {{ $.Values.worker.telemetryFanInMaxWaitMs | default 1000 | squote }}
+            - name: TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS
+              value: {{ $.Values.worker.telemetryFanInMaxConcurrentInserts | default 4 | squote }}
+            - name: TELEMETRY_FANIN_MAX_PENDING_ROWS
+              value: {{ $.Values.worker.telemetryFanInMaxPendingRows | default 100000 | squote }}
+            - name: TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS
+              value: {{ $.Values.worker.telemetryFanInRetryMaxAttempts | default 6 | squote }}
+            - name: TELEMETRY_FANIN_RETRY_BASE_DELAY_MS
+              value: {{ $.Values.worker.telemetryFanInRetryBaseDelayMs | default 250 | squote }}
+            - name: TELEMETRY_FANIN_RETRY_MAX_DELAY_MS
+              value: {{ $.Values.worker.telemetryFanInRetryMaxDelayMs | default 10000 | squote }}
+            # Per-pod ClickHouse pool ceilings; the ingest pool inherits the
+            # query pool size when unset (same fallback the code applies).
+            - name: CLICKHOUSE_MAX_OPEN_CONNECTIONS
+              value: {{ $.Values.worker.clickhouseMaxOpenConnections | default 100 | squote }}
+            - name: CLICKHOUSE_INGEST_MAX_OPEN_CONNECTIONS
+              value: {{ $.Values.worker.clickhouseIngestMaxOpenConnections | default ($.Values.worker.clickhouseMaxOpenConnections | default 100) | squote }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
             - containerPort: {{ $.Values.worker.ports.http }}

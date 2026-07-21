@@ -1308,6 +1308,28 @@ app:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
+  # Fan-in telemetry writer (per pod). Batches all telemetry ClickHouse inserts
+  # into a handful of large INSERTs so pods can scale horizontally without
+  # exploding ClickHouse insert concurrency. Defaults match the code
+  # (Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts).
+  # Rows buffered per table before a flush is forced.
+  telemetryFanInMaxBatchRows: 5000
+  # Longest a buffered row waits (in ms) before its table is flushed anyway.
+  telemetryFanInMaxWaitMs: 1000
+  # Max simultaneous ClickHouse INSERTs per pod. Fleet-wide insert concurrency
+  # is replicas x this value — keep that product under ~60% of ClickHouse
+  # max_concurrent_queries (see docs/production-checklist.md).
+  telemetryFanInMaxConcurrentInserts: 4
+  # Backpressure cap: ingestion jobs block once this many rows are queued.
+  telemetryFanInMaxPendingRows: 100000
+  # Retry budget for failed inserts: attempts + exponential backoff bounds (ms).
+  telemetryFanInRetryMaxAttempts: 6
+  telemetryFanInRetryBaseDelayMs: 250
+  telemetryFanInRetryMaxDelayMs: 10000
+  # Per-pod ClickHouse connection pool ceilings. The ingest pool (used by the
+  # fan-in telemetry writer) inherits the query pool size when left empty.
+  clickhouseMaxOpenConnections: 100
+  clickhouseIngestMaxOpenConnections:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false
@@ -1387,6 +1409,28 @@ worker:
   # Max concurrent telemetry ingestion jobs processed by each worker pod.
   # This is the telemetry hot path; tune it together with pod CPU/memory.
   telemetryConcurrency: 100
+  # Fan-in telemetry writer (per pod). Batches all telemetry ClickHouse inserts
+  # into a handful of large INSERTs so worker replicas can scale horizontally
+  # without exploding ClickHouse insert concurrency. Defaults match the code
+  # (Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts).
+  # Rows buffered per table before a flush is forced.
+  telemetryFanInMaxBatchRows: 5000
+  # Longest a buffered row waits (in ms) before its table is flushed anyway.
+  telemetryFanInMaxWaitMs: 1000
+  # Max simultaneous ClickHouse INSERTs per pod. Fleet-wide insert concurrency
+  # is replicas x this value — keep that product under ~60% of ClickHouse
+  # max_concurrent_queries (see docs/production-checklist.md).
+  telemetryFanInMaxConcurrentInserts: 4
+  # Backpressure cap: ingestion jobs block once this many rows are queued.
+  telemetryFanInMaxPendingRows: 100000
+  # Retry budget for failed inserts: attempts + exponential backoff bounds (ms).
+  telemetryFanInRetryMaxAttempts: 6
+  telemetryFanInRetryBaseDelayMs: 250
+  telemetryFanInRetryMaxDelayMs: 10000
+  # Per-pod ClickHouse connection pool ceilings. The ingest pool (used by the
+  # fan-in telemetry writer) inherits the query pool size when left empty.
+  clickhouseMaxOpenConnections: 100
+  clickhouseIngestMaxOpenConnections:
   disableTelemetryCollection: false
   enableProfiling: false
   disableAutoscaler: false

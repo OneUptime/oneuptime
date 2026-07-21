@@ -1,0 +1,1016 @@
+import {
+  FanInInsertError,
+  FanInInsertTarget,
+  FanInSubmitResult,
+  FanInWriterOptions,
+  TelemetryFanInWriter,
+  isRetryableInsertError,
+  readFanInWriterOptionsFromEnv,
+} from "../../../../Server/Utils/Telemetry/TelemetryFanInWriter";
+import { JSONObject } from "../../../../Types/JSON";
+import { ClickHouseError } from "@clickhouse/client";
+import type { ClickHouseSettings } from "@clickhouse/client";
+import { describe, expect, test } from "@jest/globals";
+
+/*
+ * The fan-in writer is the single funnel between telemetry ingest jobs and
+ * ClickHouse. These tests exercise the real class with tiny limits, real
+ * (short) timers, an injectable no-op backoff sleep, and a fully mocked
+ * insert target — no ClickHouse involved.
+ */
+
+jest.mock("../../../../Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    default: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+  };
+});
+
+type InsertRowsOptions = {
+  dedupToken?: string | undefined;
+  clickhouseSettings?: ClickHouseSettings | undefined;
+};
+
+type InsertImpl = (
+  rows: Array<JSONObject>,
+  options?: InsertRowsOptions,
+) => Promise<void>;
+
+interface TestTarget extends FanInInsertTarget {
+  insertJsonRows: jest.Mock;
+}
+
+function makeTarget(data?: {
+  tableName?: string;
+  impl?: InsertImpl;
+}): TestTarget {
+  const impl: InsertImpl =
+    data?.impl ??
+    (async (): Promise<void> => {
+      // durable by default
+    });
+  return {
+    model: { tableName: data?.tableName ?? "TestTable" },
+    insertJsonRows: jest.fn(impl),
+  };
+}
+
+function makeOptions(
+  overrides?: Partial<FanInWriterOptions>,
+): FanInWriterOptions {
+  const defaults: FanInWriterOptions = {
+    maxBatchRows: 10,
+    maxWaitMs: 20,
+    maxConcurrentInserts: 4,
+    maxPendingRows: 1000,
+    retryMaxAttempts: 3,
+    retryBaseDelayMs: 1,
+    retryMaxDelayMs: 2,
+    sleep: async (): Promise<void> => {
+      // no-op backoff so retry tests are instant
+    },
+  };
+  return { ...defaults, ...overrides };
+}
+
+function makeRows(count: number, offset: number = 0): Array<JSONObject> {
+  const rows: Array<JSONObject> = [];
+  for (let i: number = 0; i < count; i++) {
+    rows.push({ seq: offset + i });
+  }
+  return rows;
+}
+
+function rowSeqs(rows: Array<JSONObject>): Array<number> {
+  return rows.map((row: JSONObject) => {
+    return row["seq"] as number;
+  });
+}
+
+/** Rows the mock received on call `callIndex`. */
+function callRows(target: TestTarget, callIndex: number): Array<JSONObject> {
+  return target.insertJsonRows.mock.calls[callIndex]![0] as Array<JSONObject>;
+}
+
+/** Options the mock received on call `callIndex`. */
+function callOptions(target: TestTarget, callIndex: number): InsertRowsOptions {
+  return target.insertJsonRows.mock.calls[callIndex]![1] as InsertRowsOptions;
+}
+
+type Deferred = {
+  promise: Promise<void>;
+  resolve: () => void;
+  reject: (err: Error) => void;
+};
+
+function deferred(): Deferred {
+  let resolveFn: () => void = () => {};
+  let rejectFn: (err: Error) => void = () => {};
+  const promise: Promise<void> = new Promise<void>(
+    (resolve: () => void, reject: (err: Error) => void) => {
+      resolveFn = resolve;
+      rejectFn = reject;
+    },
+  );
+  return { promise, resolve: resolveFn, reject: rejectFn };
+}
+
+/** Real-timer sleep — the writer itself uses real setTimeout. */
+function tick(ms: number): Promise<void> {
+  return new Promise<void>((resolve: () => void) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * True if the promise is still unsettled after `ms` of real time.
+ * Also swallows rejections so unhandled-rejection warnings never fire.
+ */
+async function stillPendingAfter(
+  promise: Promise<unknown>,
+  ms: number,
+): Promise<boolean> {
+  let pending: boolean = true;
+  const mark: () => void = () => {
+    pending = false;
+  };
+  promise.then(mark, mark);
+  await tick(ms);
+  return pending;
+}
+
+/** Await a promise that MUST reject; returns the rejection error. */
+function captureRejection(promise: Promise<void>): Promise<Error> {
+  return promise.then(
+    () => {
+      throw new Error("Expected the promise to reject, but it resolved.");
+    },
+    (err: Error) => {
+      return err;
+    },
+  );
+}
+
+function clickHouseError(code: string, message?: string): ClickHouseError {
+  return new ClickHouseError({
+    message: message ?? `simulated server error with code ${code}`,
+    code,
+    type: "SIMULATED",
+  });
+}
+
+/** Insert impl that fails `failures` times with `err`, then succeeds. */
+function failNTimesImpl(failures: number, err: Error): InsertImpl {
+  let calls: number = 0;
+  return async (): Promise<void> => {
+    calls++;
+    if (calls <= failures) {
+      throw err;
+    }
+  };
+}
+
+describe("TelemetryFanInWriter", () => {
+  describe("flush triggers", () => {
+    test("size-triggered flush: reaching maxBatchRows inserts immediately without waiting maxWaitMs", async () => {
+      const target: TestTarget = makeTarget();
+      // maxWaitMs is huge on purpose: if the flush waited for the timer, the test would time out.
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 5, maxWaitMs: 60_000 }),
+      );
+
+      const startedAt: number = Date.now();
+      const first: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      const second: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(3, 2),
+      );
+
+      await Promise.all([first.flushed, second.flushed]);
+
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(rowSeqs(callRows(target, 0))).toEqual([0, 1, 2, 3, 4]);
+      expect(writer.getStats()).toEqual({
+        bufferedRows: 0,
+        pendingRows: 0,
+        activeInserts: 0,
+      });
+    });
+
+    test("time-triggered flush: a below-threshold submission inserts after ~maxWaitMs", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 100, maxWaitMs: 25 }),
+      );
+
+      const startedAt: number = Date.now();
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(3),
+      );
+
+      // Below threshold: nothing dispatched yet.
+      expect(target.insertJsonRows).not.toHaveBeenCalled();
+      expect(writer.getStats().bufferedRows).toBe(3);
+
+      await result.flushed;
+
+      expect(Date.now() - startedAt).toBeGreaterThanOrEqual(20);
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(rowSeqs(callRows(target, 0))).toEqual([0, 1, 2]);
+    });
+
+    test("cross-submission batching: several small submissions collapse into one insert with all rows in order", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 100, maxWaitMs: 25 }),
+      );
+
+      const first: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      const second: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(3, 2),
+      );
+      const third: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(4, 5),
+      );
+
+      await Promise.all([first.flushed, second.flushed, third.flushed]);
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(rowSeqs(callRows(target, 0))).toEqual([
+        0, 1, 2, 3, 4, 5, 6, 7, 8,
+      ]);
+    });
+
+    test("a submission is never split: batch cut stops at maxBatchRows on submission boundaries", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 3, maxWaitMs: 15 }),
+      );
+
+      // 2 + 2 rows: the size trigger fires at 4 >= 3, but the second
+      // submission does not fit in the first batch, so it flushes later
+      // (via the timer) as its own batch.
+      const first: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      const second: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2, 2),
+      );
+
+      await Promise.all([first.flushed, second.flushed]);
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+      expect(rowSeqs(callRows(target, 0))).toEqual([0, 1]);
+      expect(rowSeqs(callRows(target, 1))).toEqual([2, 3]);
+    });
+
+    test("oversized single submission (rows > maxBatchRows) inserts as one batch", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 3, maxWaitMs: 60_000 }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(8),
+      );
+      await result.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(rowSeqs(callRows(target, 0))).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    });
+
+    test("per-table isolation: two targets with different tableNames never share an insert", async () => {
+      const targetA: TestTarget = makeTarget({ tableName: "TableA" });
+      const targetB: TestTarget = makeTarget({ tableName: "TableB" });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 100, maxWaitMs: 60_000 }),
+      );
+
+      const fromA: FanInSubmitResult = await writer.submit(
+        targetA,
+        makeRows(3),
+      );
+      const fromB: FanInSubmitResult = await writer.submit(
+        targetB,
+        makeRows(2, 100),
+      );
+
+      await writer.flushAll();
+      await Promise.all([fromA.flushed, fromB.flushed]);
+
+      expect(targetA.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(targetB.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(rowSeqs(callRows(targetA, 0))).toEqual([0, 1, 2]);
+      expect(rowSeqs(callRows(targetB, 0))).toEqual([100, 101]);
+
+      const tokenA: string | undefined = callOptions(targetA, 0).dedupToken;
+      const tokenB: string | undefined = callOptions(targetB, 0).dedupToken;
+      expect(tokenA).toMatch(/^fanin:TableA:/);
+      expect(tokenB).toMatch(/^fanin:TableB:/);
+    });
+
+    test("empty rows array: resolves immediately with zero insert calls", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions(),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(target, []);
+      await result.flushed;
+
+      expect(target.insertJsonRows).not.toHaveBeenCalled();
+      expect(writer.getStats()).toEqual({
+        bufferedRows: 0,
+        pendingRows: 0,
+        activeInserts: 0,
+      });
+    });
+
+    test("flushAll(): buffered below-threshold rows are flushed and awaited", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 100, maxWaitMs: 60_000 }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(3),
+      );
+      expect(target.insertJsonRows).not.toHaveBeenCalled();
+
+      await writer.flushAll();
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(rowSeqs(callRows(target, 0))).toEqual([0, 1, 2]);
+      await result.flushed; // already settled — must not hang
+      expect(writer.getStats()).toEqual({
+        bufferedRows: 0,
+        pendingRows: 0,
+        activeInserts: 0,
+      });
+    });
+
+    test("flushAll() with nothing buffered resolves immediately", async () => {
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions(),
+      );
+      await writer.flushAll();
+      expect(writer.getStats()).toEqual({
+        bufferedRows: 0,
+        pendingRows: 0,
+        activeInserts: 0,
+      });
+    });
+  });
+
+  describe("acks", () => {
+    test("ack-after-flush: flushed stays pending until the insert resolves, then resolves", async () => {
+      const gate: Deferred = deferred();
+      const target: TestTarget = makeTarget({
+        impl: (): Promise<void> => {
+          return gate.promise;
+        },
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000 }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+
+      expect(await stillPendingAfter(result.flushed, 25)).toBe(true);
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(writer.getStats().activeInserts).toBe(1);
+      // Rows are in flight, not buffered — but still count against the high-water mark.
+      expect(writer.getStats().bufferedRows).toBe(0);
+      expect(writer.getStats().pendingRows).toBe(2);
+
+      gate.resolve();
+      await result.flushed;
+      await writer.flushAll();
+      expect(writer.getStats().activeInserts).toBe(0);
+      expect(writer.getStats().pendingRows).toBe(0);
+    });
+
+    test("a batch failure rejects exactly the submissions in that batch; a later submission still succeeds", async () => {
+      let shouldFail: boolean = true;
+      const target: TestTarget = makeTarget({
+        impl: async (): Promise<void> => {
+          if (shouldFail) {
+            throw clickHouseError("60", "Table does not exist");
+          }
+        },
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 4, maxWaitMs: 60_000 }),
+      );
+
+      const first: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      const second: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2, 2),
+      );
+
+      const [errFirst, errSecond]: Array<Error> = await Promise.all([
+        captureRejection(first.flushed),
+        captureRejection(second.flushed),
+      ]);
+
+      expect(errFirst).toBeInstanceOf(FanInInsertError);
+      expect(errFirst.name).toBe("FanInInsertError");
+      expect(errFirst.message).toContain("TestTable");
+      expect(errFirst.message).toContain("after 1 attempt(s)");
+      expect(errFirst.message).toContain("Table does not exist");
+      // Same batch → the very same error instance for every submission in it.
+      expect(errSecond).toBe(errFirst);
+
+      // The failed rows are gone from the pending count — no wedged capacity.
+      expect(writer.getStats()).toEqual({
+        bufferedRows: 0,
+        pendingRows: 0,
+        activeInserts: 0,
+      });
+
+      shouldFail = false;
+      const third: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(4, 100),
+      );
+      await third.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+      expect(rowSeqs(callRows(target, 1))).toEqual([100, 101, 102, 103]);
+    });
+  });
+
+  describe("retries", () => {
+    test("ClickHouseError code 202 is retried with the SAME dedup token until success", async () => {
+      const target: TestTarget = makeTarget({
+        impl: failNTimesImpl(
+          2,
+          clickHouseError("202", "Too many simultaneous queries. Maximum: 1000"),
+        ),
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000, retryMaxAttempts: 5 }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      await result.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(3);
+
+      const tokens: Array<string | undefined> = [0, 1, 2].map(
+        (callIndex: number) => {
+          return callOptions(target, callIndex).dedupToken;
+        },
+      );
+      expect(tokens[0]).toMatch(/^fanin:TestTable:/);
+      expect(tokens[1]).toBe(tokens[0]);
+      expect(tokens[2]).toBe(tokens[0]);
+
+      // Every attempt re-sends the identical row set.
+      expect(rowSeqs(callRows(target, 0))).toEqual([0, 1]);
+      expect(rowSeqs(callRows(target, 1))).toEqual([0, 1]);
+      expect(rowSeqs(callRows(target, 2))).toEqual([0, 1]);
+    });
+
+    test("retry exhaustion: always-202 rejects flushed with FanInInsertError after retryMaxAttempts calls", async () => {
+      const target: TestTarget = makeTarget({
+        impl: async (): Promise<void> => {
+          throw clickHouseError("202");
+        },
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000, retryMaxAttempts: 3 }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      const err: Error = await captureRejection(result.flushed);
+
+      expect(err).toBeInstanceOf(FanInInsertError);
+      expect(err.message).toContain("after 3 attempt(s)");
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(3);
+      expect(writer.getStats().pendingRows).toBe(0);
+    });
+
+    test("non-retryable ClickHouse code (60) fails after exactly 1 attempt", async () => {
+      const target: TestTarget = makeTarget({
+        impl: async (): Promise<void> => {
+          throw clickHouseError("60", "Unknown table");
+        },
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000, retryMaxAttempts: 5 }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      const err: Error = await captureRejection(result.flushed);
+
+      expect(err).toBeInstanceOf(FanInInsertError);
+      expect(err.message).toContain("after 1 attempt(s)");
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+    });
+
+    test("a plain error with no matching code or message fails after exactly 1 attempt", async () => {
+      const target: TestTarget = makeTarget({
+        impl: async (): Promise<void> => {
+          throw new Error("schema mismatch: column type is wrong");
+        },
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000, retryMaxAttempts: 5 }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      const err: Error = await captureRejection(result.flushed);
+
+      expect(err).toBeInstanceOf(FanInInsertError);
+      expect(err.message).toContain("schema mismatch");
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+    });
+
+    test("plain Error('Timeout error.') is retried", async () => {
+      const target: TestTarget = makeTarget({
+        impl: failNTimesImpl(1, new Error("Timeout error.")),
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000 }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      await result.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+    });
+
+    test("Error with code ECONNRESET is retried", async () => {
+      const socketError: Error = Object.assign(new Error("read ECONNRESET"), {
+        code: "ECONNRESET",
+      });
+      const target: TestTarget = makeTarget({
+        impl: failNTimesImpl(1, socketError),
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000 }),
+      );
+
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+      );
+      await result.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+      // Retry reused the same dedup token.
+      expect(callOptions(target, 1).dedupToken).toBe(
+        callOptions(target, 0).dedupToken,
+      );
+    });
+  });
+
+  describe("concurrency and backpressure", () => {
+    test("semaphore: with maxConcurrentInserts 1, two ready tables never insert concurrently", async () => {
+      let active: number = 0;
+      let maxActive: number = 0;
+      let firstCall: boolean = true;
+      const gate: Deferred = deferred();
+
+      const impl: InsertImpl = async (): Promise<void> => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        if (firstCall) {
+          firstCall = false;
+          await gate.promise; // slow first insert holds the only slot
+        } else {
+          await tick(5);
+        }
+        active--;
+      };
+
+      const targetA: TestTarget = makeTarget({ tableName: "TableA", impl });
+      const targetB: TestTarget = makeTarget({ tableName: "TableB", impl });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({
+          maxBatchRows: 2,
+          maxWaitMs: 60_000,
+          maxConcurrentInserts: 1,
+        }),
+      );
+
+      // Both tables hit the size trigger and are ready to insert simultaneously.
+      const fromA: FanInSubmitResult = await writer.submit(
+        targetA,
+        makeRows(2),
+      );
+      const fromB: FanInSubmitResult = await writer.submit(
+        targetB,
+        makeRows(2),
+      );
+
+      await tick(25);
+      expect(active).toBe(1);
+      expect(targetA.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(targetB.insertJsonRows).not.toHaveBeenCalled();
+      expect(writer.getStats().activeInserts).toBe(1);
+
+      gate.resolve();
+      await Promise.all([fromA.flushed, fromB.flushed]);
+
+      expect(maxActive).toBe(1);
+      expect(targetB.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(writer.getStats().activeInserts).toBe(0);
+    });
+
+    test("semaphore actually allows parallelism up to maxConcurrentInserts", async () => {
+      let active: number = 0;
+      let maxActive: number = 0;
+      const gate: Deferred = deferred();
+
+      const impl: InsertImpl = async (): Promise<void> => {
+        active++;
+        maxActive = Math.max(maxActive, active);
+        await gate.promise;
+        active--;
+      };
+
+      const targetA: TestTarget = makeTarget({ tableName: "TableA", impl });
+      const targetB: TestTarget = makeTarget({ tableName: "TableB", impl });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({
+          maxBatchRows: 2,
+          maxWaitMs: 60_000,
+          maxConcurrentInserts: 2,
+        }),
+      );
+
+      const fromA: FanInSubmitResult = await writer.submit(
+        targetA,
+        makeRows(2),
+      );
+      const fromB: FanInSubmitResult = await writer.submit(
+        targetB,
+        makeRows(2),
+      );
+
+      await tick(15);
+      expect(maxActive).toBe(2);
+
+      gate.resolve();
+      await Promise.all([fromA.flushed, fromB.flushed]);
+    });
+
+    test("backpressure: submit() acceptance blocks at maxPendingRows and resumes after the insert completes", async () => {
+      const gate: Deferred = deferred();
+      let blockedOnce: boolean = false;
+      const target: TestTarget = makeTarget({
+        impl: async (): Promise<void> => {
+          if (!blockedOnce) {
+            blockedOnce = true;
+            await gate.promise;
+          }
+        },
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({
+          maxBatchRows: 5,
+          maxWaitMs: 10,
+          maxPendingRows: 5,
+        }),
+      );
+
+      // Fills the high-water mark exactly and dispatches into the blocked insert.
+      const first: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(5),
+      );
+      expect(writer.getStats().pendingRows).toBe(5);
+
+      let accepted: boolean = false;
+      const secondAcceptance: Promise<FanInSubmitResult> = writer
+        .submit(target, makeRows(3, 100))
+        .then((result: FanInSubmitResult) => {
+          accepted = true;
+          return result;
+        });
+
+      await tick(30);
+      expect(accepted).toBe(false);
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+
+      gate.resolve();
+      const second: FanInSubmitResult = await secondAcceptance;
+      expect(accepted).toBe(true);
+
+      await first.flushed;
+      await second.flushed;
+      await writer.flushAll();
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+      expect(rowSeqs(callRows(target, 1))).toEqual([100, 101, 102]);
+      expect(writer.getStats()).toEqual({
+        bufferedRows: 0,
+        pendingRows: 0,
+        activeInserts: 0,
+      });
+    });
+  });
+
+  describe("dedup tokens and settings", () => {
+    test("two different batches get different dedup tokens with the fanin:<table>: prefix", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 3, maxWaitMs: 60_000 }),
+      );
+
+      const first: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(3),
+      );
+      await first.flushed;
+      const second: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(3, 3),
+      );
+      await second.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+      const tokenFirst: string | undefined = callOptions(target, 0).dedupToken;
+      const tokenSecond: string | undefined = callOptions(
+        target,
+        1,
+      ).dedupToken;
+      expect(tokenFirst).toMatch(/^fanin:TestTable:/);
+      expect(tokenSecond).toMatch(/^fanin:TestTable:/);
+      expect(tokenSecond).not.toBe(tokenFirst);
+    });
+
+    test("clickhouseSettings pass through to insertJsonRows", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 2, maxWaitMs: 60_000 }),
+      );
+
+      const settings: ClickHouseSettings = {
+        async_insert: 1,
+        wait_for_async_insert: 1,
+      };
+      const result: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+        { clickhouseSettings: settings },
+      );
+      await result.flushed;
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(callOptions(target, 0).clickhouseSettings).toBe(settings);
+    });
+
+    test("a mixed batch applies the FIRST submission's clickhouseSettings", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 4, maxWaitMs: 60_000 }),
+      );
+
+      const settingsFirst: ClickHouseSettings = { async_insert: 1 };
+      const settingsSecond: ClickHouseSettings = { async_insert: 0 };
+
+      const first: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2),
+        { clickhouseSettings: settingsFirst },
+      );
+      const second: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2, 2),
+        { clickhouseSettings: settingsSecond },
+      );
+      await Promise.all([first.flushed, second.flushed]);
+
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+      expect(callOptions(target, 0).clickhouseSettings).toBe(settingsFirst);
+    });
+  });
+});
+
+describe("isRetryableInsertError", () => {
+  test.each([["202"], ["209"], ["210"], ["241"], ["252"], ["319"]])(
+    "ClickHouseError code %s is retryable",
+    (code: string) => {
+      expect(isRetryableInsertError(clickHouseError(code))).toBe(true);
+    },
+  );
+
+  test.each([["60"], ["81"], ["1000"], ["404"]])(
+    "ClickHouseError code %s is NOT retryable",
+    (code: string) => {
+      expect(isRetryableInsertError(clickHouseError(code))).toBe(false);
+    },
+  );
+
+  test.each([
+    ["ECONNRESET"],
+    ["ECONNREFUSED"],
+    ["ECONNABORTED"],
+    ["ETIMEDOUT"],
+    ["EPIPE"],
+    ["EAI_AGAIN"],
+  ])("socket code %s on a plain Error is retryable", (code: string) => {
+    const err: Error = Object.assign(new Error(`syscall failed: ${code}`), {
+      code,
+    });
+    expect(isRetryableInsertError(err)).toBe(true);
+  });
+
+  test("unknown socket code (ENOENT) is not retryable", () => {
+    const err: Error = Object.assign(new Error("no such file"), {
+      code: "ENOENT",
+    });
+    expect(isRetryableInsertError(err)).toBe(false);
+  });
+
+  test("duck-typed numeric-string code on a plain Error follows the ClickHouse code list", () => {
+    const retryable: Error = Object.assign(new Error("duplicated package"), {
+      code: "202",
+    });
+    const notRetryable: Error = Object.assign(new Error("duplicated package"), {
+      code: "57",
+    });
+    expect(isRetryableInsertError(retryable)).toBe(true);
+    expect(isRetryableInsertError(notRetryable)).toBe(false);
+  });
+
+  test("a NUMERIC (non-string) code does not match and falls through to the message checks", () => {
+    const err: Error = Object.assign(new Error("some failure"), { code: 202 });
+    expect(isRetryableInsertError(err)).toBe(false);
+  });
+
+  test("plain Error('Timeout error.') is retryable", () => {
+    expect(isRetryableInsertError(new Error("Timeout error."))).toBe(true);
+  });
+
+  test("message containing 'socket hang up' is retryable", () => {
+    expect(isRetryableInsertError(new Error("socket hang up"))).toBe(true);
+  });
+
+  test("ordinary errors and non-errors are not retryable", () => {
+    expect(isRetryableInsertError(new Error("something else"))).toBe(false);
+    expect(isRetryableInsertError(null)).toBe(false);
+    expect(isRetryableInsertError(undefined)).toBe(false);
+    expect(isRetryableInsertError("Timeout error.")).toBe(false);
+    expect(isRetryableInsertError(42)).toBe(false);
+    expect(isRetryableInsertError({ code: "202" })).toBe(false);
+  });
+});
+
+describe("FanInInsertError", () => {
+  test("formats table, attempts, and an Error cause (with chained stack)", () => {
+    const cause: Error = new Error("underlying failure");
+    const err: FanInInsertError = new FanInInsertError({
+      tableName: "MetricSum",
+      attempts: 4,
+      cause,
+    });
+
+    expect(err.name).toBe("FanInInsertError");
+    expect(err.message).toBe(
+      "Fan-in insert into MetricSum failed after 4 attempt(s): underlying failure",
+    );
+    expect(err.stack).toContain("Caused by:");
+  });
+
+  test("stringifies a non-Error cause", () => {
+    const err: FanInInsertError = new FanInInsertError({
+      tableName: "LogItems",
+      attempts: 1,
+      cause: "boom",
+    });
+    expect(err.message).toBe(
+      "Fan-in insert into LogItems failed after 1 attempt(s): boom",
+    );
+  });
+});
+
+describe("readFanInWriterOptionsFromEnv", () => {
+  const ENV_KEYS: Array<string> = [
+    "TELEMETRY_FANIN_MAX_BATCH_ROWS",
+    "TELEMETRY_FANIN_MAX_WAIT_MS",
+    "TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS",
+    "TELEMETRY_FANIN_MAX_PENDING_ROWS",
+    "TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS",
+    "TELEMETRY_FANIN_RETRY_BASE_DELAY_MS",
+    "TELEMETRY_FANIN_RETRY_MAX_DELAY_MS",
+  ];
+
+  function withEnv(
+    env: Record<string, string | undefined>,
+    run: () => void,
+  ): void {
+    const saved: Record<string, string | undefined> = {};
+    for (const key of ENV_KEYS) {
+      saved[key] = process.env[key];
+    }
+    try {
+      for (const key of ENV_KEYS) {
+        const value: string | undefined = env[key];
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
+      }
+      run();
+    } finally {
+      for (const key of ENV_KEYS) {
+        const value: string | undefined = saved[key];
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
+      }
+    }
+  }
+
+  test("returns documented defaults when nothing is set", () => {
+    withEnv({}, () => {
+      const options: FanInWriterOptions = readFanInWriterOptionsFromEnv();
+      expect(options.maxBatchRows).toBe(5000);
+      expect(options.maxWaitMs).toBe(1000);
+      expect(options.maxConcurrentInserts).toBe(4);
+      expect(options.maxPendingRows).toBe(100_000);
+      expect(options.retryMaxAttempts).toBe(6);
+      expect(options.retryBaseDelayMs).toBe(250);
+      expect(options.retryMaxDelayMs).toBe(10_000);
+    });
+  });
+
+  test("reads positive integer overrides from the environment", () => {
+    withEnv(
+      {
+        TELEMETRY_FANIN_MAX_BATCH_ROWS: "123",
+        TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS: "2",
+      },
+      () => {
+        const options: FanInWriterOptions = readFanInWriterOptionsFromEnv();
+        expect(options.maxBatchRows).toBe(123);
+        expect(options.maxConcurrentInserts).toBe(2);
+        expect(options.maxWaitMs).toBe(1000); // untouched default
+      },
+    );
+  });
+
+  test("non-numeric, zero, and negative values fall back to defaults", () => {
+    withEnv(
+      {
+        TELEMETRY_FANIN_MAX_BATCH_ROWS: "not-a-number",
+        TELEMETRY_FANIN_MAX_WAIT_MS: "0",
+        TELEMETRY_FANIN_MAX_PENDING_ROWS: "-5",
+      },
+      () => {
+        const options: FanInWriterOptions = readFanInWriterOptionsFromEnv();
+        expect(options.maxBatchRows).toBe(5000);
+        expect(options.maxWaitMs).toBe(1000);
+        expect(options.maxPendingRows).toBe(100_000);
+      },
+    );
+  });
+});
