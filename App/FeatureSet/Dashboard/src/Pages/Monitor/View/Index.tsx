@@ -6,7 +6,9 @@ import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonito
 import Summary from "../../../Components/Monitor/SummaryView/Summary";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
+import GreaterThanOrNull from "Common/Types/BaseDatabase/GreaterThanOrNull";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black, Gray500, Green, Red500 } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -128,10 +130,19 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       return <></>;
     }
 
+    /*
+     * this page reports the last 90 days, so measure over that window. Otherwise an open
+     * (endsAt = null) row that started before the window contributes its whole duration and
+     * the denominator becomes "first event -> now" instead of the 90 days shown.
+     */
     const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
       statusTimelines,
       UptimePrecision.THREE_DECIMAL,
       downTimeMonitorStatues,
+      {
+        startDate: startDate,
+        endDate: endDate,
+      },
     );
 
     return (
@@ -165,7 +176,14 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         await ModelAPI.getList({
           modelType: MonitorStatusTimeline,
           query: {
-            createdAt: new InBetween(startDate, endDate),
+            /*
+             * Select every row that OVERLAPS the 90 day window, not just rows created inside
+             * it: a row that started before the window and is still open (or closed inside it)
+             * carries downtime this page must count. Without this, a monitor that has been
+             * Offline since before the window renders as 100% uptime.
+             */
+            startsAt: new LessThanOrEqual(endDate),
+            endsAt: new GreaterThanOrNull(startDate),
             monitorId: modelId,
             projectId: ProjectUtil.getCurrentProjectId()!,
           },
@@ -184,7 +202,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           },
           sort: {
-            createdAt: SortOrder.Ascending,
+            /*
+             * startsAt, not createdAt: they are different clocks (DB now() vs worker moment())
+             * with real skew, and startsAt is the one the timeline math orders by.
+             */
+            startsAt: SortOrder.Ascending,
           },
         });
 

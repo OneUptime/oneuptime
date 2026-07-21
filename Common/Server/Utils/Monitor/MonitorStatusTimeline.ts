@@ -5,7 +5,11 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import ObjectID from "../../../Types/ObjectID";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
-import MonitorStatusTimelineService from "../../Services/MonitorStatusTimelineService";
+import MonitorStatusTimelineService, {
+  MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
+  MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
+} from "../../Services/MonitorStatusTimelineService";
+import ServerException from "../../../Types/Exception/ServerException";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -124,22 +128,43 @@ export default class MonitorStatusTimelineUtil {
       } catch (err) {
         /*
          * Concurrency race: two probe/ingest results for the same monitor can be
-         * processed near-simultaneously (the per-monitor mutexes in
-         * MonitorResourceUtil.monitorResource and MonitorStatusTimeline.create can
-         * time out under load and fall through unlocked). Both see the same prior
-         * status and both try to write the same new status row. The
+         * processed near-simultaneously and both see the same prior status, so both
+         * try to write the same new status row. The
          * MonitorStatusTimelineService.onBeforeCreate dedupe check then throws this
          * exact BadDataException for the loser of the race. This is an idempotent
          * no-op (the desired status is already the current status), so swallow it at
-         * debug level instead of failing the job and logging a full ERROR stack.
+         * debug level instead of failing the job and logging a full ERROR stack. The
+         * race itself is now logged at warn by onBeforeCreate, which is the
+         * authoritative telemetry for it - this log only records that we skipped.
          * Match the exact message so unrelated BadDataExceptions still propagate.
          */
         if (
           err instanceof BadDataException &&
-          err.message === "Monitor Status cannot be same as previous status."
+          err.message === MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE
         ) {
           logger.debug(
             `${input.monitor.id?.toString()} - Monitor status already equals desired status; skipping duplicate status timeline (concurrent race).`,
+          );
+          return null;
+        }
+
+        /*
+         * The per-monitor mutex in MonitorStatusTimelineService.create() is
+         * fail-closed: if Redis is unavailable or the lock cannot be acquired within
+         * the acquire timeout, the create is refused rather than performed unlocked.
+         * Writing unlocked is what produced permanently orphaned (endsAt = NULL)
+         * timeline rows, which read back as unbounded downtime on status pages and
+         * uptime reports - far worse than a missed status transition. Skipping is
+         * recoverable: the next probe result for this monitor evaluates the same
+         * criteria and creates the same status change. So log and skip rather than
+         * failing the whole probe ingest run for this monitor.
+         */
+        if (
+          err instanceof ServerException &&
+          err.message === MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE
+        ) {
+          logger.error(
+            `${input.monitor.id?.toString()} - Could not acquire the monitor status timeline lock; skipping this status change. It will be retried on the next probe result.`,
           );
           return null;
         }

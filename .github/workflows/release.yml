@@ -1583,6 +1583,68 @@ jobs:
           body: |
             ${{steps.fallback_changelog.outputs.changelog}}
 
+  # Attach a CycloneDX SBOM per published image to the draft release.
+  #
+  # This is the copy enterprise buyers and Dependency-Track actually ingest. It
+  # is deliberately separate from the SPDX attestations that
+  # build_docker_images.sh bakes into the images: those answer "what is in this
+  # image?" for anyone holding the reference, but they cannot be fetched without
+  # talking to a registry, and CycloneDX is what the vulnerability-management
+  # tooling speaks.
+  #
+  # Ordering matters: this runs after draft-github-release so there is a release
+  # to attach to, and finalize-github-release depends on it so the release is
+  # never published without its SBOMs.
+  # The needs list is not just ordering sugar. This job scans all twelve
+  # published tags, and the unsuffixed tag it scans is created only by the
+  # corresponding *-docker-image-merge job. Nine of those merges are reached
+  # transitively via draft-github-release; docker-agent, podman-agent and
+  # kubernetes-log-tailer are leaves that nothing else depends on, so they must
+  # be named explicitly. Without them a failure in any of the three would let
+  # this job run against a tag that was never pushed, fail on MANIFEST_UNKNOWN,
+  # and — since finalize-github-release now needs this job — strand the release
+  # as a permanent draft after the images and tags had already gone out.
+  generate-sboms:
+    name: Generate CycloneDX SBOMs
+    needs:
+      - draft-github-release
+      - read-version
+      - docker-agent-docker-image-merge
+      - podman-agent-docker-image-merge
+      - kubernetes-log-tailer-docker-image-merge
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      # syft reads the manifest over the registry API using the credentials in
+      # ~/.docker/config.json — no image pull, so this job stays small and fast.
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Generate CycloneDX SBOMs
+        run: |
+          bash ./Scripts/GHA/generate_sboms.sh \
+            --version "${{needs.read-version.outputs.major_minor}}"
+
+      - name: Attach SBOMs to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            sbom/*.cdx.json
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true
+          prerelease: false
+          tag_name: ${{needs.read-version.outputs.major_minor}}
+
   infrastructure-agent-deploy:
     needs: [draft-github-release, generate-build-number, read-version]
     runs-on: ubuntu-latest
@@ -1836,7 +1898,7 @@ jobs:
 
   finalize-github-release:
     name: Publish GitHub release
-    needs: [infrastructure-agent-deploy, generate-build-number, read-version]
+    needs: [infrastructure-agent-deploy, generate-sboms, generate-build-number, read-version]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/release'
     permissions:

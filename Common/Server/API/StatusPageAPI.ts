@@ -88,7 +88,7 @@ import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import { Green } from "../../Types/BrandColors";
-import UptimeUtil from "../../Utils/Uptime/UptimeUtil";
+import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import URL from "../../Types/API/URL";
 import SMS from "../../Types/SMS/SMS";
@@ -1265,6 +1265,17 @@ export default class StatusPageAPI extends BaseAPI<
           const downtimeMonitorStatuses: Array<MonitorStatus> =
             statusPage.downtimeMonitorStatuses || [];
 
+          /*
+           * this endpoint reports uptime over an explicit [startDate, endDate] range, so events
+           * have to be clipped to it and the denominator has to be the range itself. Without
+           * this an open (endsAt = null) row that started before the range contributes its
+           * entire duration to the downtime total.
+           */
+          const uptimeWindow: UptimeWindow = {
+            startDate: startDate,
+            endDate: endDate,
+          };
+
           type ResourceUptime = {
             statusPageResourceId: ObjectID;
             uptimePercent: number | null;
@@ -1369,6 +1380,7 @@ export default class StatusPageAPI extends BaseAPI<
                           resourceStatusTimelines,
                           precision,
                           downtimeMonitorStatuses,
+                          uptimeWindow,
                         );
 
                       resourceUptime.uptimePercent = uptimePercent;
@@ -1419,6 +1431,7 @@ export default class StatusPageAPI extends BaseAPI<
                           resourceStatusTimelines,
                           precision,
                           downtimeMonitorStatuses,
+                          uptimeWindow,
                         );
 
                       resourceUptime.uptimePercent = uptimePercent;
