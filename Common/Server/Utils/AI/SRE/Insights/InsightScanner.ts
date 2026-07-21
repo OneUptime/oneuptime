@@ -8,7 +8,6 @@ import ProjectService from "../../../../Services/ProjectService";
 import AIInsightService from "../../../../Services/AIInsightService";
 import InsightDetectors from "./Detectors/Index";
 import InsightStore, { UpsertCandidatesResult } from "./InsightStore";
-import InsightFixRouting, { InsightFixRoutingResult } from "./FixRouting";
 import InsightTriage, { InsightTriageResult } from "./Triage";
 import { InsightCandidate, InsightDetector, InsightScanContext } from "./Types";
 import logger from "../../../Logger";
@@ -19,8 +18,9 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
  *
  * THE RULE: no LLM here. Detectors are deterministic statistical sensors;
  * the LLM only engages per-finding AFTERWARDS through InsightTriage
- * (budgeted, read-only), and the fix decision inside InsightFixRouting is
- * deterministic and reuses the existing budgeted CodeFix creation paths.
+ * (budgeted, read-only). The automatic fix decision happens after triage
+ * completes (InsightTriageRunner → InsightFixRouting) and only for
+ * insights the triage classified as code faults.
  *
  * Everything is opt-in and quiet: only projects with the default-false
  * enableAiInsights flag are scanned, insights never page and never
@@ -73,8 +73,8 @@ export default class InsightScanner {
    * One project's scan: self-heal any insight an earlier tick left unrouted,
    * run every registered detector (isolated — one failing sensor must not
    * blind the others), dedupe/upsert the candidates through InsightStore,
-   * then route each NEWLY created insight to FixOpened or ActionRequired and
-   * enqueue its triage.
+   * then route each NEWLY created insight to ActionRequired and enqueue its
+   * triage (which, on a code-fault verdict, routes the fix).
    */
   @CaptureSpan()
   public static async scanProjectForInsights(project: Project): Promise<void> {
@@ -215,55 +215,38 @@ export default class InsightScanner {
 
   /*
    * Route one insight — newly created this tick, or swept up as stranded
-   * from an earlier one — out of the defensive Detected state:
-   *   1. deterministic fix routing (gated on enableAi + enableInsightFixTasks
-   *      inside InsightFixRouting) → FixOpened + fixAiRunId, else
-   *      ActionRequired;
-   *   2. triage enqueue for EVERY new insight — triage enriches fix and
-   *      non-fix insights alike → triageAiRunId when a run was enqueued.
-   * Both collaborators are never-throws by contract, but they are wrapped
-   * anyway: a contract breach must degrade (no fix / no triage), not leave
-   * the insight stuck in Detected or fail the scan.
+   * from an earlier one — out of the defensive Detected state.
+   *
+   * TRIAGE GATES THE FIX. The automatic fix decision no longer happens
+   * here: every new insight goes to ActionRequired and gets its triage
+   * enqueued; when the triage run completes with a code-fault
+   * classification, InsightTriageRunner routes the fix (via
+   * InsightFixRouting) and flips the insight to FixOpened. This exists
+   * because roughly half of real exception insights turn out to be
+   * expected user errors or intentional denials (auth, paywalls, scanner
+   * probes) — opening an unreviewed fix PR for those is worse than
+   * opening none: the agent's only "fix" is to weaken the check that
+   * correctly fired. Fail-closed by design: no triage verdict, no
+   * automatic PR. The manual "Fix with AI" button on the exception page
+   * is unaffected.
+   *
+   * The collaborator is never-throws by contract, but it is wrapped
+   * anyway: a contract breach must degrade (no triage), not leave the
+   * insight stuck in Detected or fail the scan.
    */
   private static async routeNewInsight(data: {
     insight: AIInsight;
     project: Project;
   }): Promise<void> {
-    const { insight, project } = data;
+    const { insight } = data;
 
-    let fixAiRunId: ObjectID | undefined = undefined;
-
-    try {
-      const fixResult: InsightFixRoutingResult =
-        await InsightFixRouting.routeInsightFix({
-          insight: insight,
-          project: project,
-        });
-      fixAiRunId = fixResult.fixAiRunId;
-    } catch (error) {
-      logger.error(
-        `AI Insights: fix routing threw for insight ${insight.id?.toString()} (treating as no fix opened): ${error}`,
-      );
-    }
-
-    if (fixAiRunId) {
-      await AIInsightService.updateOneById({
-        id: insight.id!,
-        data: {
-          status: AIInsightStatus.FixOpened,
-          fixAiRunId: fixAiRunId,
-        },
-        props: { isRoot: true },
-      });
-    } else {
-      await AIInsightService.updateOneById({
-        id: insight.id!,
-        data: {
-          status: AIInsightStatus.ActionRequired,
-        },
-        props: { isRoot: true },
-      });
-    }
+    await AIInsightService.updateOneById({
+      id: insight.id!,
+      data: {
+        status: AIInsightStatus.ActionRequired,
+      },
+      props: { isRoot: true },
+    });
 
     let triageAiRunId: ObjectID | undefined = undefined;
 

@@ -7,6 +7,7 @@ import {
   getTaskHandlerRegistry,
   FixExceptionTaskHandler,
   WriteRegressionTestTaskHandler,
+  ImproveExceptionHandlingTaskHandler,
   ImproveInstrumentationTaskHandler,
   FixFromIncidentTaskHandler,
   FixPerformanceTaskHandler,
@@ -73,6 +74,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         getTaskHandlerRegistry();
       taskHandlerRegistry.register(new FixExceptionTaskHandler());
       taskHandlerRegistry.register(new WriteRegressionTestTaskHandler());
+      taskHandlerRegistry.register(new ImproveExceptionHandlingTaskHandler());
       taskHandlerRegistry.register(new ImproveInstrumentationTaskHandler());
       taskHandlerRegistry.register(new FixFromIncidentTaskHandler());
       taskHandlerRegistry.register(new FixPerformanceTaskHandler());

@@ -89,6 +89,23 @@ type ExceptionEventPayload = {
   serviceMetadata: TelemetryServiceMetadata;
 };
 
+/*
+ * Exception content lifted verbatim from a span's exception event.
+ * Deliberately unfingerprinted and unscrubbed: rows are only built
+ * AFTER the span has survived the drop filter and passed through the
+ * scrub rules, so exception storage sees the same post-scrub view of
+ * the data as the Span row itself (mirrors the logs path, which
+ * extracts exceptions from the post-scrub log row).
+ */
+type RawSpanExceptionEvent = {
+  message: string;
+  stackTrace: string;
+  exceptionType: string;
+  escaped: boolean | null;
+  attributes: JSONObject;
+  time: ParsedUnixNano;
+};
+
 const SPAN_KIND_BY_OTEL_INT: Record<number, SpanKind> = {
   1: SpanKind.Internal,
   2: SpanKind.Server,
@@ -565,27 +582,16 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
                   let spanEvents: Array<JSONObject> = [];
                   let hasException: boolean = false;
+                  let rawSpanExceptions: Array<RawSpanExceptionEvent> = [];
                   try {
                     const spanEventsResult: {
                       events: Array<JSONObject>;
                       hasException: boolean;
-                    } = this.getSpanEvents(
-                      span["events"] as JSONArray,
-                      {
-                        projectId: projectId,
-                        primaryEntityId: primaryEntityId,
-                        spanId: spanId,
-                        traceId: traceId,
-                        spanStatusCode: statusCode,
-                        spanName: spanName,
-                        resourceAttributes: resourceAttributes,
-                        serviceMetadata: serviceDictionary[serviceName]!,
-                      },
-                      dbExceptions,
-                      pendingExceptionUpserts,
-                    );
+                      rawExceptions: Array<RawSpanExceptionEvent>;
+                    } = this.getSpanEvents(span["events"] as JSONArray);
                     spanEvents = spanEventsResult.events;
                     hasException = spanEventsResult.hasException;
+                    rawSpanExceptions = spanEventsResult.rawExceptions;
                   } catch (eventsError) {
                     logger.warn(
                       `Error processing span events: ${eventsError instanceof Error ? eventsError.message : String(eventsError)}`,
@@ -657,6 +663,30 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       spanRow,
                       pipelines,
                     );
+                  }
+
+                  /*
+                   * Exception rows are only built for spans that survived
+                   * the drop filter, and on post-scrub content — see
+                   * collectSpanExceptions.
+                   */
+                  if (rawSpanExceptions.length > 0) {
+                    this.collectSpanExceptions({
+                      rawExceptions: rawSpanExceptions,
+                      spanContext: {
+                        projectId: projectId,
+                        primaryEntityId: primaryEntityId,
+                        spanId: spanId,
+                        traceId: traceId,
+                        spanStatusCode: statusCode,
+                        spanName: spanName,
+                        resourceAttributes: resourceAttributes,
+                        serviceMetadata: serviceDictionary[serviceName]!,
+                      },
+                      scrubRules: scrubRules,
+                      dbExceptions: dbExceptions,
+                      pendingExceptionUpserts: pendingExceptionUpserts,
+                    });
                   }
 
                   dbSpans.push(spanRow);
@@ -772,22 +802,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     return spanStatusCode;
   }
 
-  private static getSpanEvents(
-    events: JSONArray,
-    spanContext: {
-      projectId: ObjectID;
-      primaryEntityId: ObjectID;
-      spanId: string;
-      traceId: string;
-      spanStatusCode: SpanStatus;
-      spanName: string;
-      resourceAttributes: Dictionary<AttributeType | Array<AttributeType>>;
-      serviceMetadata: TelemetryServiceMetadata;
-    },
-    dbExceptions: Array<JSONObject>,
-    pendingExceptionUpserts: Array<TelemetryExceptionPayload>,
-  ): { events: Array<JSONObject>; hasException: boolean } {
+  private static getSpanEvents(events: JSONArray): {
+    events: Array<JSONObject>;
+    hasException: boolean;
+    rawExceptions: Array<RawSpanExceptionEvent>;
+  } {
     const spanEvents: Array<JSONObject> = [];
+    const rawExceptions: Array<RawSpanExceptionEvent> = [];
     let hasException: boolean = false;
 
     if (events && Array.isArray(events)) {
@@ -815,135 +836,36 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
           if (eventName === SpanEventType.Exception) {
             hasException = true;
-            try {
-              const message: string =
-                (eventAttributes["exception.message"] as string) || "";
-              const stackTrace: string =
-                (eventAttributes["exception.stacktrace"] as string) || "";
-              const exceptionType: string =
-                (eventAttributes["exception.type"] as string) || "";
 
-              const escapedParsed: boolean | null = this.toBoolean(
-                eventAttributes["exception.escaped"],
-              );
-              const escaped: boolean | null =
-                escapedParsed === null ? false : escapedParsed;
+            const escapedParsed: boolean | null = this.toBoolean(
+              eventAttributes["exception.escaped"],
+            );
 
-              const exceptionAttributes: JSONObject = { ...eventAttributes };
-              for (const key of Object.keys(exceptionAttributes)) {
-                if (key.startsWith("exception.")) {
-                  delete exceptionAttributes[key];
-                }
+            const exceptionAttributes: JSONObject = { ...eventAttributes };
+            for (const key of Object.keys(exceptionAttributes)) {
+              if (key.startsWith("exception.")) {
+                delete exceptionAttributes[key];
               }
-
-              const fingerprint: string = ExceptionUtil.getFingerprint({
-                projectId: spanContext.projectId,
-                primaryEntityId: spanContext.primaryEntityId,
-                message: message,
-                stackTrace: stackTrace,
-                exceptionType: exceptionType,
-              });
-
-              // Extract release and environment from resource attributes
-              const release: string =
-                (spanContext.resourceAttributes[
-                  "resource.service.version"
-                ] as string) || "";
-              const environment: string =
-                (spanContext.resourceAttributes[
-                  "resource.deployment.environment"
-                ] as string) || "";
-
-              // Parse stack trace into structured frames
-              let parsedFramesJson: string = "[]";
-              if (stackTrace) {
-                try {
-                  const parsed: ParsedStackTrace =
-                    StackTraceParser.parse(stackTrace);
-                  parsedFramesJson = JSON.stringify(parsed.frames);
-                } catch {
-                  parsedFramesJson = "[]";
-                }
-              }
-
-              const exceptionData: ExceptionEventPayload = {
-                projectId: spanContext.projectId,
-                primaryEntityId: spanContext.primaryEntityId,
-                spanId: spanContext.spanId,
-                traceId: spanContext.traceId,
-                spanStatusCode: spanContext.spanStatusCode,
-                spanName: spanContext.spanName,
-                message: message,
-                stackTrace: stackTrace,
-                exceptionType: exceptionType,
-                escaped: escaped,
-                attributes: exceptionAttributes,
-                time: parsedTime,
-                fingerprint: fingerprint,
-                release: release,
-                environment: environment,
-                parsedFrames: parsedFramesJson,
-                serviceMetadata: spanContext.serviceMetadata,
-              };
-
-              dbExceptions.push(this.buildExceptionRow(exceptionData));
-
-              /*
-               * Buffer the Postgres upsert payload for the batched
-               * flush at the end of the worker job (see
-               * pendingExceptionUpserts in processTracesAsync). The
-               * legacy code called
-               * ExceptionUtil.saveOrUpdateTelemetryException here
-               * fire-and-forget per event, which produced one
-               * Postgres round-trip per exception and lost
-               * occuranceCount increments under concurrent writes.
-               * Aggregation by fingerprint + atomic increment now
-               * happens inside saveOrUpdateTelemetryExceptionsBatch.
-               *
-               * Every primaryEntityType gets a TelemetryException summary row.
-               * The table's primaryEntityId is polymorphic now (the FK to
-               * Service was dropped), so exceptions from Host /
-               * DockerHost / KubernetesCluster and unattributed (Unknown)
-               * telemetry land in the Issues list too — attributed by
-               * primaryEntityType — instead of being dropped from the summary.
-               */
-              pendingExceptionUpserts.push({
-                fingerprint: fingerprint,
-                projectId: spanContext.projectId,
-                primaryEntityId: spanContext.primaryEntityId,
-                primaryEntityType:
-                  spanContext.serviceMetadata.primaryEntityType,
-                ...(exceptionType
-                  ? {
-                      exceptionType: exceptionType,
-                    }
-                  : {}),
-                ...(message
-                  ? {
-                      message: message,
-                    }
-                  : {}),
-                ...(stackTrace
-                  ? {
-                      stackTrace: stackTrace,
-                    }
-                  : {}),
-                ...(release
-                  ? {
-                      release: release,
-                    }
-                  : {}),
-                ...(environment
-                  ? {
-                      environment: environment,
-                    }
-                  : {}),
-              });
-            } catch (exceptionError) {
-              logger.warn(
-                `Error processing span exception event: ${exceptionError instanceof Error ? exceptionError.message : String(exceptionError)}`,
-              );
             }
+
+            /*
+             * Only lift the raw content here. Fingerprinting and row
+             * building happen in collectSpanExceptions AFTER the span
+             * has cleared the drop filter and scrub rules — a dropped
+             * span must not leave exception rows behind, and scrubbed
+             * secrets must not survive in the exception copy of the
+             * event attributes.
+             */
+            rawExceptions.push({
+              message: (eventAttributes["exception.message"] as string) || "",
+              stackTrace:
+                (eventAttributes["exception.stacktrace"] as string) || "",
+              exceptionType:
+                (eventAttributes["exception.type"] as string) || "",
+              escaped: escapedParsed === null ? false : escapedParsed,
+              attributes: exceptionAttributes,
+              time: parsedTime,
+            });
           }
         } catch (eventError) {
           logger.warn(
@@ -953,7 +875,158 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       }
     }
 
-    return { events: spanEvents, hasException };
+    return { events: spanEvents, hasException, rawExceptions };
+  }
+
+  /*
+   * Build ClickHouse ExceptionInstance rows + Postgres TelemetryException
+   * upsert payloads for a span's exception events. Runs post-drop and
+   * post-scrub: the fingerprint is computed on the scrubbed content, the
+   * same way the logs path fingerprints the post-scrub log row.
+   *
+   * Buffering rationale: the legacy code called
+   * ExceptionUtil.saveOrUpdateTelemetryException fire-and-forget per
+   * event, which produced one Postgres round-trip per exception and lost
+   * occuranceCount increments under concurrent writes. Aggregation by
+   * fingerprint + atomic increment now happens inside
+   * saveOrUpdateTelemetryExceptionsBatch at the end of the worker job.
+   *
+   * Every primaryEntityType gets a TelemetryException summary row. The
+   * table's primaryEntityId is polymorphic (the FK to Service was
+   * dropped), so exceptions from Host / DockerHost / KubernetesCluster
+   * and unattributed (Unknown) telemetry land in the Issues list too —
+   * attributed by primaryEntityType — instead of being dropped from the
+   * summary.
+   */
+  private static collectSpanExceptions(data: {
+    rawExceptions: Array<RawSpanExceptionEvent>;
+    spanContext: {
+      projectId: ObjectID;
+      primaryEntityId: ObjectID;
+      spanId: string;
+      traceId: string;
+      spanStatusCode: SpanStatus;
+      spanName: string;
+      resourceAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+      serviceMetadata: TelemetryServiceMetadata;
+    };
+    scrubRules: Array<CompiledTraceScrubRule>;
+    dbExceptions: Array<JSONObject>;
+    pendingExceptionUpserts: Array<TelemetryExceptionPayload>;
+  }): void {
+    const { spanContext } = data;
+
+    for (const rawException of data.rawExceptions) {
+      try {
+        const scrubbed: {
+          message: string;
+          stackTrace: string;
+          attributes: JSONObject;
+        } =
+          data.scrubRules.length > 0
+            ? TraceScrubRuleService.scrubExceptionContent(
+                {
+                  message: rawException.message,
+                  stackTrace: rawException.stackTrace,
+                  attributes: rawException.attributes,
+                },
+                data.scrubRules,
+              )
+            : rawException;
+
+        const message: string = scrubbed.message;
+        const stackTrace: string = scrubbed.stackTrace;
+        const exceptionType: string = rawException.exceptionType;
+
+        const fingerprint: string = ExceptionUtil.getFingerprint({
+          projectId: spanContext.projectId,
+          primaryEntityId: spanContext.primaryEntityId,
+          message: message,
+          stackTrace: stackTrace,
+          exceptionType: exceptionType,
+        });
+
+        // Extract release and environment from resource attributes
+        const release: string =
+          (spanContext.resourceAttributes[
+            "resource.service.version"
+          ] as string) || "";
+        const environment: string =
+          (spanContext.resourceAttributes[
+            "resource.deployment.environment"
+          ] as string) || "";
+
+        // Parse stack trace into structured frames
+        let parsedFramesJson: string = "[]";
+        if (stackTrace) {
+          try {
+            const parsed: ParsedStackTrace = StackTraceParser.parse(stackTrace);
+            parsedFramesJson = JSON.stringify(parsed.frames);
+          } catch {
+            parsedFramesJson = "[]";
+          }
+        }
+
+        const exceptionData: ExceptionEventPayload = {
+          projectId: spanContext.projectId,
+          primaryEntityId: spanContext.primaryEntityId,
+          spanId: spanContext.spanId,
+          traceId: spanContext.traceId,
+          spanStatusCode: spanContext.spanStatusCode,
+          spanName: spanContext.spanName,
+          message: message,
+          stackTrace: stackTrace,
+          exceptionType: exceptionType,
+          escaped: rawException.escaped,
+          attributes: scrubbed.attributes,
+          time: rawException.time,
+          fingerprint: fingerprint,
+          release: release,
+          environment: environment,
+          parsedFrames: parsedFramesJson,
+          serviceMetadata: spanContext.serviceMetadata,
+        };
+
+        data.dbExceptions.push(this.buildExceptionRow(exceptionData));
+
+        data.pendingExceptionUpserts.push({
+          fingerprint: fingerprint,
+          projectId: spanContext.projectId,
+          primaryEntityId: spanContext.primaryEntityId,
+          primaryEntityType: spanContext.serviceMetadata.primaryEntityType,
+          unhandled: rawException.escaped === true,
+          ...(exceptionType
+            ? {
+                exceptionType: exceptionType,
+              }
+            : {}),
+          ...(message
+            ? {
+                message: message,
+              }
+            : {}),
+          ...(stackTrace
+            ? {
+                stackTrace: stackTrace,
+              }
+            : {}),
+          ...(release
+            ? {
+                release: release,
+              }
+            : {}),
+          ...(environment
+            ? {
+                environment: environment,
+              }
+            : {}),
+        });
+      } catch (exceptionError) {
+        logger.warn(
+          `Error processing span exception event: ${exceptionError instanceof Error ? exceptionError.message : String(exceptionError)}`,
+        );
+      }
+    }
   }
 
   private static getSpanLinks(links: JSONArray): Array<JSONObject> {

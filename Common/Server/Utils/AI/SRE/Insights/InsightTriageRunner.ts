@@ -1,13 +1,20 @@
 import ObjectID from "../../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../../Types/Date";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
+import Project from "../../../../../Models/DatabaseModels/Project";
 import AIInsightEvidence from "../../../../../Types/AI/AIInsightEvidence";
+import AIInsightStatus from "../../../../../Types/AI/AIInsightStatus";
+import ExceptionAIClassification from "../../../../../Types/AI/ExceptionAIClassification";
 import AIInsightService from "../../../../Services/AIInsightService";
+import ProjectService from "../../../../Services/ProjectService";
+import TelemetryExceptionService from "../../../../Services/TelemetryExceptionService";
 import { AI_INSIGHT_TRIAGE_FEATURE } from "../../../../Services/AIService";
 import AIInvestigationEngine from "../AIInvestigationEngine";
 import AIInvestigationQueue from "../InvestigationQueue";
+import InsightFixRouting, { InsightFixRoutingResult } from "./FixRouting";
 import { ConfidenceSignal } from "../ConfidenceSignal";
 import { ObservabilityAssistantResult } from "../../Chat/ObservabilityAssistant";
+import ToolResultSerializer from "../../Toolbox/Serializer";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
@@ -44,7 +51,17 @@ const PREVENTIVE_TRIAGE_FRAMING: string = `IMPORTANT — this is PREVENTIVE TRIA
 - Establish the most likely root cause of the finding.
 - Estimate the blast radius: which services/users/operations are affected, and how badly.
 - Recommend exactly ONE next action (the single most useful thing an engineer should do first).
-Cite the evidence for every factual claim. If the telemetry cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.`;
+Cite the evidence for every factual claim. If the telemetry cannot support a conclusion, say so plainly. Do not refer to "the incident" — there is none.
+
+CLASSIFICATION — you MUST end your analysis with one line in EXACTLY this format, on its own line, with nothing after it:
+Classification: <verdict>
+where <verdict> is exactly one of: code-fault, user-error, expected-denial, infrastructure, unknown.
+- code-fault: a defect in the monitored code that a code change should fix.
+- user-error: an expected consequence of invalid end-user input (bad parameters, malformed values, garbage in a URL). The code rejected it correctly; the input was wrong.
+- expected-denial: an intentional check doing its job — authentication/authorization failures, plan or paywall rejections, rate limits, or security scanners/fuzzers tripping validation on purpose-built probes.
+- infrastructure: an environmental condition (network timeout, connection reset, resource exhaustion, dependency outage) rather than a logic defect.
+- unknown: the evidence does not support a confident verdict.
+This verdict gates automation: ONLY code-fault findings may get an automatic fix pull request, so classify conservatively — when torn between code-fault and anything else, pick the other one.`;
 
 export default class InsightTriageRunner {
   /*
@@ -63,11 +80,13 @@ export default class InsightTriageRunner {
     const { aiRunId, projectId, sentinelInsightId, attemptCount } = data;
 
     let contextSummary: string;
+    let insight: AIInsight | null = null;
     try {
-      const insight: AIInsight | null = await AIInsightService.findOneById({
+      insight = await AIInsightService.findOneById({
         id: sentinelInsightId,
         select: {
           _id: true,
+          projectId: true,
           insightType: true,
           severity: true,
           title: true,
@@ -75,6 +94,7 @@ export default class InsightTriageRunner {
           evidence: true,
           serviceName: true,
           traceId: true,
+          telemetryExceptionId: true,
           metricName: true,
           firstSeenAt: true,
           lastSeenAt: true,
@@ -118,28 +138,163 @@ export default class InsightTriageRunner {
           confidence: ConfidenceSignal;
           result: ObservabilityAssistantResult;
         }): Promise<void> => {
+          const classification: ExceptionAIClassification =
+            this.parseClassification(postData.analysisMarkdown);
+
           /*
-           * The quiet inbox — deliberately the ONLY write: no feed items,
-           * no workspace notification, no owner/on-call ping, no metrics,
-           * and no instrumentation-task trigger. Insights never page and
-           * never enter the notification pipeline (Preventive-lane rule);
-           * the summary waits on the Insights page until a human looks.
+           * The quiet inbox — the summary and verdict land on the insight
+           * row: no feed items, no workspace notification, no owner/on-call
+           * ping, no metrics, and no instrumentation-task trigger. Insights
+           * never page and never enter the notification pipeline
+           * (Preventive-lane rule); the summary waits on the Insights page
+           * until a human looks.
            */
           await AIInsightService.updateOneById({
             id: sentinelInsightId,
             data: {
               triageSummaryMarkdown: postData.analysisMarkdown,
               triageCompletedAt: OneUptimeDate.getCurrentDate(),
+              classification: classification,
             },
             props: { isRoot: true },
           });
 
           logger.debug(
-            `AI insights: triage summary posted for insight ${sentinelInsightId.toString()} (run ${aiRunId.toString()}, confident=${postData.confidence.confident} via ${postData.confidence.source}).`,
+            `AI insights: triage summary posted for insight ${sentinelInsightId.toString()} (run ${aiRunId.toString()}, classification=${classification}, confident=${postData.confidence.confident} via ${postData.confidence.source}).`,
           );
+
+          /*
+           * Verdict-driven follow-through. Best-effort by design: the
+           * triage summary is already posted, and a failure here must not
+           * fail the triage run itself.
+           */
+          try {
+            await this.actOnClassification({
+              insight: insight!,
+              classification: classification,
+            });
+          } catch (error) {
+            logger.error(
+              `AI insights: post-triage action failed for insight ${sentinelInsightId.toString()} (verdict ${classification}): ${error}`,
+            );
+          }
         },
       },
     });
+  }
+
+  /*
+   * Parse the mandatory trailing "Classification: <verdict>" line out of
+   * the triage analysis. The LAST match wins (the model may discuss the
+   * taxonomy earlier in its reasoning). Anything unparseable is Unknown —
+   * and Unknown never routes a fix, so a malformed answer fails closed.
+   */
+  public static parseClassification(
+    analysisMarkdown: string,
+  ): ExceptionAIClassification {
+    const matches: Array<RegExpMatchArray> = Array.from(
+      (analysisMarkdown || "").matchAll(
+        /^\s*\**\s*classification\s*\**\s*[:=]\s*\**\s*(code-fault|user-error|expected-denial|infrastructure|unknown)\b/gim,
+      ),
+    );
+
+    const last: RegExpMatchArray | undefined = matches[matches.length - 1];
+
+    if (!last || !last[1]) {
+      return ExceptionAIClassification.Unknown;
+    }
+
+    return last[1].toLowerCase() as ExceptionAIClassification;
+  }
+
+  /*
+   * Act on the triage verdict:
+   *
+   * 1. Stamp the verdict onto the exception group row (aiClassification)
+   *    so the exceptions list can filter on it and the fix lane can skip
+   *    known-non-defects without re-triaging.
+   * 2. code-fault → route the automatic fix (InsightFixRouting owns every
+   *    gate: enableAi, enableInsightFixTasks, budget, readiness, dedupe)
+   *    and flip the insight to FixOpened when a run was queued.
+   * 3. expected-denial → optionally auto-archive the exception group when
+   *    the project opted in (autoArchiveNonActionableExceptions). Only
+   *    expected denials are archived — user errors and infrastructure
+   *    conditions stay visible for a human to judge.
+   */
+  private static async actOnClassification(data: {
+    insight: AIInsight;
+    classification: ExceptionAIClassification;
+  }): Promise<void> {
+    const { insight, classification } = data;
+
+    if (!insight.id || !insight.projectId) {
+      return;
+    }
+
+    if (insight.telemetryExceptionId) {
+      await TelemetryExceptionService.updateOneById({
+        id: insight.telemetryExceptionId,
+        data: {
+          aiClassification: classification,
+        },
+        props: { isRoot: true },
+      });
+    }
+
+    const project: Project | null = await ProjectService.findOneById({
+      id: insight.projectId,
+      select: {
+        _id: true,
+        enableAi: true,
+        enableInsightFixTasks: true,
+        autoArchiveNonActionableExceptions: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!project) {
+      return;
+    }
+
+    if (classification === ExceptionAIClassification.CodeFault) {
+      const fixResult: InsightFixRoutingResult =
+        await InsightFixRouting.routeInsightFix({
+          insight: insight,
+          project: project,
+        });
+
+      if (fixResult.fixAiRunId) {
+        await AIInsightService.updateOneById({
+          id: insight.id,
+          data: {
+            status: AIInsightStatus.FixOpened,
+            fixAiRunId: fixResult.fixAiRunId,
+          },
+          props: { isRoot: true },
+        });
+      }
+
+      return;
+    }
+
+    if (
+      classification === ExceptionAIClassification.ExpectedDenial &&
+      project.autoArchiveNonActionableExceptions === true &&
+      insight.telemetryExceptionId
+    ) {
+      await TelemetryExceptionService.updateOneById({
+        id: insight.telemetryExceptionId,
+        data: {
+          isArchived: true,
+          markedAsArchivedAt: OneUptimeDate.getCurrentDate(),
+        },
+        props: { isRoot: true },
+      });
+
+      logger.debug(
+        `AI insights: auto-archived exception ${insight.telemetryExceptionId.toString()} (expected-denial verdict, project opted in).`,
+      );
+    }
   }
 
   // Build the compact insight record that seeds the triage.
@@ -191,7 +346,13 @@ export default class InsightTriageRunner {
       lines.push(renderedEvidence);
     }
 
-    return lines.join("\n");
+    /*
+     * Detector detailMarkdown and evidence quote raw exception messages —
+     * sweep secrets/PII before the text reaches the LLM provider. (The
+     * chat/investigation toolbox path already redacts its tool results;
+     * this closes the same gap for the detector-supplied context.)
+     */
+    return ToolResultSerializer.redact(lines.join("\n")).text;
   }
 
   /*

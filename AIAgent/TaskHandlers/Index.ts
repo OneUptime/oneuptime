@@ -16,6 +16,7 @@ export { default as ExceptionPullRequestTaskHandler } from "./ExceptionPullReque
 export { default as SubjectPullRequestTaskHandler } from "./SubjectPullRequestTaskHandler";
 export { default as FixExceptionTaskHandler } from "./FixExceptionTaskHandler";
 export { default as WriteRegressionTestTaskHandler } from "./WriteRegressionTestTaskHandler";
+export { default as ImproveExceptionHandlingTaskHandler } from "./ImproveExceptionHandlingTaskHandler";
 export { default as ImproveInstrumentationTaskHandler } from "./ImproveInstrumentationTaskHandler";
 export { default as FixFromIncidentTaskHandler } from "./FixFromIncidentTaskHandler";
 export { default as FixPerformanceTaskHandler } from "./FixPerformanceTaskHandler";

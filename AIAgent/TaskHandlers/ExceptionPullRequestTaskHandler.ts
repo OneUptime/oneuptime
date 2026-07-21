@@ -390,21 +390,4 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
 
     return prResult.htmlUrl;
   }
-
-  /*
-   * Clean an exception message into a single line suitable for commit
-   * subjects and PR titles.
-   */
-  protected cleanExceptionMessage(message: string, maxLength: number): string {
-    const cleaned: string = message
-      .replace(/\n/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    if (cleaned.length <= maxLength) {
-      return cleaned;
-    }
-
-    return `${cleaned.substring(0, maxLength - 3)}...`;
-  }
 }

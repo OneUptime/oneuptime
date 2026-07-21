@@ -13,6 +13,16 @@ enum CodeFixTaskType {
   // Write a failing-then-passing regression test that reproduces the exception.
   WriteRegressionTest = "WriteRegressionTest",
   /*
+   * Improve how the code HANDLES and REPORTS this exception without
+   * changing business behavior: parameterize messages that interpolate
+   * user data (PII out of error text, stable fingerprints), validate bad
+   * input earlier with an actionable error, and mark expected/operational
+   * errors as handled in telemetry. The recipe for exceptions the triage
+   * classified as user errors or expected denials — where "fix the bug"
+   * is the wrong instruction because there is no bug.
+   */
+  ImproveExceptionHandling = "ImproveExceptionHandling",
+  /*
    * Add the observability an INCONCLUSIVE AI investigation was missing
    * (structured logs, spans, metric counters on the implicated code paths).
    * NOT user-triggerable from the exception page — it has its own automatic
@@ -77,7 +87,11 @@ export class CodeFixTaskTypeHelper {
    * (POST /ai-investigation/create-performance-fix-task).
    */
   public static getUserTriggerableTaskTypes(): Array<CodeFixTaskType> {
-    return [CodeFixTaskType.FixException, CodeFixTaskType.WriteRegressionTest];
+    return [
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.WriteRegressionTest,
+      CodeFixTaskType.ImproveExceptionHandling,
+    ];
   }
 
   public static isUserTriggerable(taskType: CodeFixTaskType): boolean {

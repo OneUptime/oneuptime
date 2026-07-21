@@ -28,6 +28,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Query from "../Types/Database/Query";
 import Includes from "../../Types/BaseDatabase/Includes";
 import logger from "../Utils/Logger";
+import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import AIAgentTaskPullRequestService from "./AIAgentTaskPullRequestService";
+import PullRequestState from "../../Types/CodeRepository/PullRequestState";
+import { normalizeExceptionText } from "../Utils/Telemetry/ExceptionSanitizer";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -221,12 +225,56 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         projectId: true,
+        message: true,
+        exceptionType: true,
+        isResolved: true,
+        isArchived: true,
+        aiFixDeclinedAt: true,
       },
       props,
     });
 
     if (!telemetryException || !telemetryException.projectId) {
       throw new BadDataException("Telemetry Exception not found");
+    }
+
+    /*
+     * Server-side lifecycle gate (the dashboard hides the button for
+     * resolved exceptions, but the API must enforce it — the automatic
+     * insight lane and any direct API caller land here too).
+     */
+    if (telemetryException.isResolved) {
+      throw new BadDataException(
+        "This exception is marked as resolved. Unresolve it before starting an AI agent task for it.",
+      );
+    }
+
+    if (telemetryException.isArchived) {
+      throw new BadDataException(
+        "This exception is archived. Unarchive it before starting an AI agent task for it.",
+      );
+    }
+
+    /*
+     * Human "closed without merging" feedback: when an AI fix PR for this
+     * exception was declined, the automatic lane must not keep re-opening
+     * PRs for it. A HUMAN clicking "Fix with AI" is an explicit override —
+     * it clears the stamp and retries.
+     */
+    if (telemetryException.aiFixDeclinedAt) {
+      if (!props.userId) {
+        throw new BadDataException(
+          "A previous AI fix pull request for this exception was closed without merging, so automatic fix attempts are paused for it. A user can retry from the exception page.",
+        );
+      }
+
+      await this.updateOneById({
+        id: telemetryExceptionId,
+        data: {
+          aiFixDeclinedAt: null,
+        },
+        props: { isRoot: true },
+      });
     }
 
     /*
@@ -265,6 +313,22 @@ export class Service extends DatabaseService<Model> {
      * run must not block queuing a WriteRegressionTest run and vice versa.
      */
     await this.validateNoActiveCodeFixRunExists(telemetryExceptionId, taskType);
+
+    /*
+     * Cross-group duplicate guard: interpolated dynamic values (garbage
+     * UUIDs, file paths, request payloads) splinter one root cause into
+     * many fingerprints, and the per-exception guard above cannot see
+     * that. Compare NORMALIZED messages against exceptions that already
+     * have an active run or an open AI pull request, so one root cause
+     * yields one PR — not one per interpolated variant.
+     */
+    await this.validateNoOpenFixForSimilarException({
+      projectId: telemetryException.projectId,
+      telemetryExceptionId: telemetryExceptionId,
+      taskType: taskType,
+      message: telemetryException.message || "",
+      exceptionType: telemetryException.exceptionType || "",
+    });
 
     const run: AIRun = new AIRun();
     run.projectId = telemetryException.projectId;
@@ -335,6 +399,161 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(
         `An AI agent task (${taskType}) is already in progress for this exception. Please wait for it to complete before creating a new one.`,
       );
+    }
+  }
+
+  /*
+   * Cross-group duplicate guard. Two exception groups are "the same work"
+   * for the fix lane when their exceptionType and NORMALIZED message match
+   * (normalizeExceptionText replaces UUIDs, IDs, emails, paths' dynamic
+   * segments, timestamps...). Candidates are the exceptions behind
+   * (a) non-terminal CodeFix runs of the same recipe, and (b) OPEN
+   * AI-authored pull requests — a completed run whose PR is still open
+   * must keep blocking, or every interpolated variant re-fixes the same
+   * root cause (observed: 15 near-identical PRs for one invalid-uuid
+   * throw site).
+   */
+  @CaptureSpan()
+  private async validateNoOpenFixForSimilarException(data: {
+    projectId: ObjectID;
+    telemetryExceptionId: ObjectID;
+    taskType: CodeFixTaskType;
+    message: string;
+    exceptionType: string;
+  }): Promise<void> {
+    const CANDIDATE_LIMIT: number = 100;
+
+    // (a) Exceptions with a non-terminal run of the same recipe.
+    const activeRuns: Array<AIRun> = await AIRunService.findBy({
+      query: {
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        /*
+         * A null codeFixTaskType means FixException (rows created before
+         * task recipes existed) — same legacy-null matching as
+         * validateNoActiveCodeFixRunExists.
+         */
+        codeFixTaskType:
+          data.taskType === CodeFixTaskType.FixException
+            ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
+            : data.taskType,
+        status: QueryHelper.notIn([
+          AIRunStatus.Completed,
+          AIRunStatus.NoFixFound,
+          AIRunStatus.Error,
+          AIRunStatus.Cancelled,
+          AIRunStatus.Stale,
+        ]),
+      },
+      select: {
+        triggeredByTelemetryExceptionId: true,
+      },
+      limit: CANDIDATE_LIMIT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    // (b) Exceptions behind still-open AI pull requests.
+    const openPullRequests: Array<AIAgentTaskPullRequest> =
+      await AIAgentTaskPullRequestService.findBy({
+        query: {
+          projectId: data.projectId,
+          pullRequestState: PullRequestState.Open,
+        },
+        select: {
+          aiRunId: true,
+        },
+        limit: CANDIDATE_LIMIT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const openPrRunIds: Array<ObjectID> = openPullRequests
+      .map((pullRequest: AIAgentTaskPullRequest) => {
+        return pullRequest.aiRunId;
+      })
+      .filter((runId: ObjectID | undefined): runId is ObjectID => {
+        return Boolean(runId);
+      });
+
+    const openPrRuns: Array<AIRun> =
+      openPrRunIds.length > 0
+        ? await AIRunService.findBy({
+            query: {
+              _id: new Includes(openPrRunIds),
+              projectId: data.projectId,
+              runType: AIRunType.CodeFix,
+              codeFixTaskType:
+                data.taskType === CodeFixTaskType.FixException
+                  ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
+                  : data.taskType,
+            },
+            select: {
+              triggeredByTelemetryExceptionId: true,
+            },
+            limit: CANDIDATE_LIMIT,
+            skip: 0,
+            props: { isRoot: true },
+          })
+        : [];
+
+    const candidateExceptionIds: Array<ObjectID> = [];
+    const seenIds: Set<string> = new Set<string>();
+
+    for (const run of [...activeRuns, ...openPrRuns]) {
+      const exceptionId: ObjectID | undefined =
+        run.triggeredByTelemetryExceptionId;
+
+      if (!exceptionId) {
+        continue;
+      }
+
+      const idString: string = exceptionId.toString();
+
+      if (
+        idString === data.telemetryExceptionId.toString() ||
+        seenIds.has(idString)
+      ) {
+        continue;
+      }
+
+      seenIds.add(idString);
+      candidateExceptionIds.push(exceptionId);
+    }
+
+    if (candidateExceptionIds.length === 0) {
+      return;
+    }
+
+    const targetSignature: string = `${data.exceptionType}|${normalizeExceptionText(
+      data.message,
+    )}`;
+
+    const candidates: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        _id: new Includes(candidateExceptionIds),
+      },
+      select: {
+        _id: true,
+        message: true,
+        exceptionType: true,
+      },
+      limit: CANDIDATE_LIMIT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    for (const candidate of candidates) {
+      const candidateSignature: string = `${candidate.exceptionType || ""}|${normalizeExceptionText(
+        candidate.message || "",
+      )}`;
+
+      if (candidateSignature === targetSignature) {
+        throw new BadDataException(
+          `A similar exception (same type and normalized message, exception ${candidate._id?.toString()}) already has an AI agent task in progress or an open AI pull request. Review that pull request instead of opening another one for the same root cause.`,
+        );
+      }
     }
   }
 

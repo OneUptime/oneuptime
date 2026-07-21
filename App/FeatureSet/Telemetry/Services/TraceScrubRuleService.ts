@@ -35,6 +35,15 @@ const BUILT_IN_PATTERNS: Record<string, RegExp> = {
   [TraceScrubPatternType.IPAddress]: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
 };
 
+/*
+ * Attribute-KEY denylist for the SensitiveKeys pattern. Matched
+ * case-insensitively against the attribute key; on a hit the WHOLE value
+ * gets the rule's scrub action, whatever the value looks like. Same list
+ * as the log engine — keep them in sync.
+ */
+const SENSITIVE_KEY_REGEX: RegExp =
+  /(password|passwd|pwd|secret|token|api[._-]?key|access[._-]?key|private[._-]?key|client[._-]?secret|authorization|auth[._-]?header|cookie|session[._-]?id|credit[._-]?card|card[._-]?number|ssn|csrf|xsrf)/i;
+
 export class TraceScrubRuleService {
   public static async loadScrubRules(
     projectId: ObjectID,
@@ -108,6 +117,15 @@ export class TraceScrubRuleService {
       } catch {
         return null;
       }
+    }
+
+    /*
+     * SensitiveKeys compiles to the KEY regex — it is matched against
+     * attribute keys (not values) by scrubAttributesInPlace, and skipped
+     * entirely by scrubString.
+     */
+    if (patternType === TraceScrubPatternType.SensitiveKeys) {
+      return new RegExp(SENSITIVE_KEY_REGEX.source, SENSITIVE_KEY_REGEX.flags);
     }
 
     const builtIn: RegExp | undefined = BUILT_IN_PATTERNS[patternType];
@@ -199,11 +217,17 @@ export class TraceScrubRuleService {
     let result: string = value;
 
     for (const { rule, regex } of compiledRules) {
+      const patternType: string = (rule.patternType as string) || "";
+
+      // Key-targeted rules never scan free text.
+      if (patternType === TraceScrubPatternType.SensitiveKeys) {
+        continue;
+      }
+
       regex.lastIndex = 0;
 
       const action: string =
         (rule.scrubAction as string) || TraceScrubAction.Redact;
-      const patternType: string = (rule.patternType as string) || "";
 
       result = result.replace(regex, (match: string) => {
         return this.applyScrubAction(match, action, patternType);
@@ -215,14 +239,79 @@ export class TraceScrubRuleService {
 
   private static scrubAttributesInPlace(
     attributes: JSONObject,
-    singleRule: Array<CompiledRule>,
+    rules: Array<CompiledRule>,
   ): void {
-    for (const key of Object.keys(attributes)) {
-      const v: unknown = attributes[key];
-      if (typeof v === "string") {
+    for (const compiled of rules) {
+      const isKeyTargeted: boolean =
+        (compiled.rule.patternType as string) ===
+        TraceScrubPatternType.SensitiveKeys;
+      const singleRule: Array<CompiledRule> = [compiled];
+
+      for (const key of Object.keys(attributes)) {
+        const v: unknown = attributes[key];
+        if (typeof v !== "string") {
+          continue;
+        }
+
+        if (isKeyTargeted) {
+          // Key match → the whole value gets the action.
+          if (compiled.regex.test(key)) {
+            attributes[key] = this.applyScrubAction(
+              v,
+              (compiled.rule.scrubAction as string) || TraceScrubAction.Redact,
+              TraceScrubPatternType.SensitiveKeys,
+            );
+          }
+          continue;
+        }
+
         attributes[key] = this.scrubString(v, singleRule);
       }
     }
+  }
+
+  /*
+   * Scrub exception content extracted from a span's exception event.
+   * Exception message / stack trace / attributes are copies of the
+   * span-event attributes, so the rules that apply are the ones scoped
+   * to Events (or All) — keeping the ExceptionInstance copy consistent
+   * with the scrubbed event attributes stored on the Span row.
+   */
+  public static scrubExceptionContent(
+    content: {
+      message: string;
+      stackTrace: string;
+      attributes: JSONObject;
+    },
+    compiledRules: Array<CompiledRule>,
+  ): { message: string; stackTrace: string; attributes: JSONObject } {
+    if (compiledRules.length === 0) {
+      return content;
+    }
+
+    const applicableRules: Array<CompiledRule> = compiledRules.filter(
+      (compiled: CompiledRule): boolean => {
+        const fieldsToScrub: string =
+          (compiled.rule.fieldsToScrub as string) || TraceScrubField.All;
+        return (
+          fieldsToScrub === TraceScrubField.All ||
+          fieldsToScrub === TraceScrubField.Events
+        );
+      },
+    );
+
+    if (applicableRules.length === 0) {
+      return content;
+    }
+
+    const attributes: JSONObject = { ...content.attributes };
+    this.scrubAttributesInPlace(attributes, applicableRules);
+
+    return {
+      message: this.scrubString(content.message, applicableRules),
+      stackTrace: this.scrubString(content.stackTrace, applicableRules),
+      attributes: attributes,
+    };
   }
 
   public static scrubSpan(

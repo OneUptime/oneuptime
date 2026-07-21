@@ -43,6 +43,11 @@ import CodeFixTaskContext, {
   PerformanceFinding,
 } from "../../Types/AI/CodeFixTaskContext";
 import SpanTreeAnalyzer from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+import {
+  sanitizeExceptionMessage,
+  sanitizeStackTrace,
+} from "../Utils/Telemetry/ExceptionSanitizer";
+import ToolResultSerializer from "../Utils/AI/Toolbox/Serializer";
 import OpenPullRequestCap, {
   OpenPullRequestCapDecision,
 } from "../Utils/AI/CodeFix/OpenPullRequestCap";
@@ -204,6 +209,7 @@ export default class AIAgentDataAPI {
                 stackTrace: true,
                 exceptionType: true,
                 fingerprint: true,
+                aiClassification: true,
                 primaryEntityId: true,
                 primaryEntityType: true,
               },
@@ -221,7 +227,7 @@ export default class AIAgentDataAPI {
           }
 
           logger.debug(
-            `Exception details fetched: ${exception._id} - ${exception.message?.substring(0, 100)}`,
+            `Exception details fetched: ${exception._id}`,
             getLogAttributesFromRequest(req as any),
           );
 
@@ -245,13 +251,23 @@ export default class AIAgentDataAPI {
               })
             : null;
 
+          /*
+           * Sanitize at the choke point: everything the AI agent worker
+           * sees — and therefore everything that can end up in an LLM
+           * prompt, a public pull-request title/body, or a commit
+           * message — flows through this response. The message gets
+           * dynamic-token normalization + secret redaction; the stack
+           * trace gets redaction only, so file:line frames stay intact
+           * for the code agent.
+           */
           return Response.sendJsonObjectResponse(req, res, {
             exception: {
               id: exception._id?.toString(),
-              message: exception.message,
-              stackTrace: exception.stackTrace,
+              message: sanitizeExceptionMessage(exception.message || ""),
+              stackTrace: sanitizeStackTrace(exception.stackTrace || ""),
               exceptionType: exception.exceptionType,
               fingerprint: exception.fingerprint,
+              aiClassification: exception.aiClassification || null,
             },
             service: exception.primaryEntityId
               ? {
@@ -607,8 +623,10 @@ export default class AIAgentDataAPI {
             const basePayload: JSONObject = {
               subjectType: "trace",
               subjectTitle: findings[0]!.headline,
-              analysisMarkdown:
+              // Redact before it can reach a prompt or PR body.
+              analysisMarkdown: ToolResultSerializer.redact(
                 SpanTreeAnalyzer.renderFindingsMarkdown(findings),
+              ).text,
               serviceName,
               projectId: run.projectId.toString(),
               traceId: taskContext.traceId,
@@ -787,6 +805,14 @@ export default class AIAgentDataAPI {
               ),
             );
           }
+
+          /*
+           * The analysis was written by the investigation LLM over
+           * redacted tool results, but quoted exception text can still
+           * carry secrets — sweep it again before it reaches the worker's
+           * prompt and the pull-request body.
+           */
+          analysisMarkdown = ToolResultSerializer.redact(analysisMarkdown).text;
 
           /*
            * Resolve the repository WITHOUT a stack trace — these tasks have

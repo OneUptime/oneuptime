@@ -23,6 +23,7 @@ interface ExceptionResponse {
   stackTrace: string;
   exceptionType: string;
   fingerprint: string;
+  aiClassification?: string | null;
 }
 
 interface ServiceResponse {
@@ -96,6 +97,12 @@ export interface ExceptionDetails {
     stackTrace: string;
     exceptionType: string;
     fingerprint: string;
+    /*
+     * AI triage verdict for the exception's group (code-fault, user-error,
+     * expected-denial, infrastructure, unknown) — null when the group has
+     * not been triaged. Recipes use it to tune their prompt.
+     */
+    aiClassification?: string | null;
   };
   service: {
     id: string;
@@ -247,6 +254,7 @@ export default class BackendAPI {
         stackTrace: data.exception.stackTrace,
         exceptionType: data.exception.exceptionType,
         fingerprint: data.exception.fingerprint,
+        aiClassification: data.exception.aiClassification || null,
       },
       service: data.service
         ? {
