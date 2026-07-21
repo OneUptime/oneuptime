@@ -1,0 +1,550 @@
+import logger from "../Logger";
+import Sleep from "../../../Types/Sleep";
+import UUID from "../../../Utils/UUID";
+import { JSONObject } from "../../../Types/JSON";
+import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
+import { ClickHouseError } from "@clickhouse/client";
+import type { ClickHouseSettings } from "@clickhouse/client";
+
+/*
+ * Fan-in writer: the single funnel between the telemetry ingest workers and
+ * ClickHouse.
+ *
+ * Problem it solves: each worker job used to insert its own row batches
+ * directly, so fleet-wide concurrent-query demand scaled as
+ * (pods × TELEMETRY_CONCURRENCY) and overran ClickHouse's
+ * max_concurrent_queries once the worker fleet scaled out ("Too many
+ * simultaneous queries. Maximum: 1000"). ClickHouse wants few fat inserts,
+ * not thousands of thin concurrent ones.
+ *
+ * This component accumulates rows per table ACROSS jobs and flushes them as
+ * large combined inserts through a small per-pod semaphore, so ClickHouse
+ * sees (pods × maxConcurrentInserts) queries regardless of job concurrency.
+ *
+ * Delivery semantics — ack-after-flush, at-least-once:
+ * - submit() resolves with a `flushed` promise that settles only when the
+ *   batch containing those rows has durably landed in ClickHouse
+ *   (wait_for_async_insert=1) or definitively failed. Jobs await it before
+ *   completing, so BullMQ retries any payload whose rows did not land.
+ * - Every batch carries a unique insert_deduplication_token, reused across
+ *   the writer's own retries of that batch. Transient errors (overload,
+ *   timeouts, network) are therefore retried in place without double-writing:
+ *   if the previous attempt actually landed, ClickHouse drops the duplicate
+ *   block (the telemetry tables set non_replicated_deduplication_window).
+ * - A submission is never split across batches, so a batch failure rejects
+ *   exactly the submissions it contains and nothing else.
+ *
+ * Backpressure: awaiting submit() blocks while (buffered + in-flight) rows
+ * are at maxPendingRows, bounding per-pod memory; the retry loop holds its
+ * insert slot during backoff so a saturated ClickHouse is never offered more
+ * concurrent load. Upstream, jobs slow down, the BullMQ queue absorbs the
+ * backlog, and queue depth becomes the scale-out signal.
+ */
+
+export interface FanInInsertTarget {
+  model: { tableName: string };
+  insertJsonRows(
+    rows: Array<JSONObject>,
+    options?: {
+      dedupToken?: string | undefined;
+      clickhouseSettings?: ClickHouseSettings | undefined;
+    },
+  ): Promise<void>;
+}
+
+export interface FanInSubmitResult {
+  /** Settles when the rows have durably landed in ClickHouse (or definitively failed). */
+  flushed: Promise<void>;
+}
+
+export interface FanInWriterOptions {
+  /** Target rows per ClickHouse insert. Buffers flush as soon as they reach this. */
+  maxBatchRows: number;
+  /** Max time rows sit buffered before a flush is forced, ms. */
+  maxWaitMs: number;
+  /** Per-pod cap on concurrent ClickHouse inserts across all tables. */
+  maxConcurrentInserts: number;
+  /** High-water mark of buffered+in-flight rows; submit() blocks above it. */
+  maxPendingRows: number;
+  retryMaxAttempts: number;
+  retryBaseDelayMs: number;
+  retryMaxDelayMs: number;
+  /** Injectable for tests. */
+  sleep?: (ms: number) => Promise<void>;
+}
+
+export class FanInInsertError extends Error {
+  public constructor(data: {
+    tableName: string;
+    attempts: number;
+    cause: unknown;
+  }) {
+    const causeMessage: string =
+      data.cause instanceof Error ? data.cause.message : String(data.cause);
+    super(
+      `Fan-in insert into ${data.tableName} failed after ${data.attempts} attempt(s): ${causeMessage}`,
+    );
+    this.name = "FanInInsertError";
+    if (data.cause instanceof Error && data.cause.stack) {
+      this.stack = `${this.stack}\nCaused by: ${data.cause.stack}`;
+    }
+  }
+}
+
+type PendingSubmission = {
+  rows: Array<JSONObject>;
+  clickhouseSettings: ClickHouseSettings | undefined;
+  resolveAck: () => void;
+  rejectAck: (err: Error) => void;
+};
+
+type TableBuffer = {
+  target: FanInInsertTarget;
+  submissions: Array<PendingSubmission>;
+  rowCount: number;
+  timer: NodeJS.Timeout | null;
+};
+
+/*
+ * ClickHouse server error codes that indicate transient overload or an
+ * ambiguous outcome. All are safe to retry here because every batch carries
+ * a stable dedup token: a retry of a block that actually landed is dropped
+ * server-side.
+ *   202 TOO_MANY_SIMULTANEOUS_QUERIES, 209 SOCKET_TIMEOUT,
+ *   210 NETWORK_ERROR, 241 MEMORY_LIMIT_EXCEEDED, 252 TOO_MANY_PARTS,
+ *   319 UNKNOWN_STATUS_OF_INSERT
+ * NOTE: the client exposes `code` as a STRING (e.g. "202").
+ */
+const RETRYABLE_CLICKHOUSE_CODES: Set<string> = new Set([
+  "202",
+  "209",
+  "210",
+  "241",
+  "252",
+  "319",
+]);
+
+const RETRYABLE_SOCKET_CODES: Set<string> = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ECONNABORTED",
+  "ETIMEDOUT",
+  "EPIPE",
+  "EAI_AGAIN",
+]);
+
+export function isRetryableInsertError(err: unknown): boolean {
+  if (err instanceof ClickHouseError) {
+    return RETRYABLE_CLICKHOUSE_CODES.has(err.code);
+  }
+
+  if (err instanceof Error) {
+    const code: unknown = (err as unknown as JSONObject)["code"];
+    if (typeof code === "string") {
+      if (RETRYABLE_SOCKET_CODES.has(code)) {
+        return true;
+      }
+      // Duck-typed ClickHouseError (in case of duplicated package instances).
+      if (/^\d+$/.test(code)) {
+        return RETRYABLE_CLICKHOUSE_CODES.has(code);
+      }
+    }
+    /*
+     * @clickhouse/client surfaces its socket-idle request_timeout as a plain
+     * Error("Timeout error."), with no code. The outcome is ambiguous (the
+     * body may have been received), which is exactly what the per-batch dedup
+     * token exists for — retry.
+     */
+    if (
+      err.message.includes("Timeout error") ||
+      err.message.includes("socket hang up")
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+type EnvIntReader = (envKey: string, defaultValue: number) => number;
+
+const readPositiveInt: EnvIntReader = (
+  envKey: string,
+  defaultValue: number,
+): number => {
+  const raw: string | undefined = process.env[envKey];
+  if (!raw) {
+    return defaultValue;
+  }
+  const parsed: number = parseInt(raw, 10);
+  return !isNaN(parsed) && parsed > 0 ? parsed : defaultValue;
+};
+
+export function readFanInWriterOptionsFromEnv(): FanInWriterOptions {
+  return {
+    maxBatchRows: readPositiveInt("TELEMETRY_FANIN_MAX_BATCH_ROWS", 5000),
+    maxWaitMs: readPositiveInt("TELEMETRY_FANIN_MAX_WAIT_MS", 1000),
+    maxConcurrentInserts: readPositiveInt(
+      "TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS",
+      4,
+    ),
+    maxPendingRows: readPositiveInt(
+      "TELEMETRY_FANIN_MAX_PENDING_ROWS",
+      100_000,
+    ),
+    retryMaxAttempts: readPositiveInt("TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS", 6),
+    retryBaseDelayMs: readPositiveInt(
+      "TELEMETRY_FANIN_RETRY_BASE_DELAY_MS",
+      250,
+    ),
+    retryMaxDelayMs: readPositiveInt(
+      "TELEMETRY_FANIN_RETRY_MAX_DELAY_MS",
+      10_000,
+    ),
+  };
+}
+
+export class TelemetryFanInWriter {
+  private options: FanInWriterOptions;
+  private buffers: Map<string, TableBuffer> = new Map();
+  private pendingRows: number = 0;
+  private capacityWaiters: Array<() => void> = [];
+  private activeInserts: number = 0;
+  private insertSlotWaiters: Array<() => void> = [];
+  private inFlightDispatches: Set<Promise<void>> = new Set();
+  private shutdownHandlerRegistered: boolean = false;
+
+  public constructor(options: FanInWriterOptions) {
+    this.options = options;
+  }
+
+  /** Test hook: override options on the shared instance (e.g. shrink maxWaitMs). */
+  public configure(partial: Partial<FanInWriterOptions>): void {
+    this.options = { ...this.options, ...partial };
+  }
+
+  public getStats(): {
+    bufferedRows: number;
+    pendingRows: number;
+    activeInserts: number;
+  } {
+    let bufferedRows: number = 0;
+    for (const buffer of this.buffers.values()) {
+      bufferedRows += buffer.rowCount;
+    }
+    return {
+      bufferedRows,
+      pendingRows: this.pendingRows,
+      activeInserts: this.activeInserts,
+    };
+  }
+
+  /*
+   * Hand a batch of rows to the writer. Takes ownership of the `rows` array —
+   * callers must not mutate it afterwards.
+   *
+   * Awaiting submit() itself is the backpressure point: it resolves once the
+   * rows are accepted into the buffer (immediately under normal load, later
+   * when the pod is at maxPendingRows). The returned `flushed` promise is the
+   * durability ack — resolve it into the job's pending-ack list and await
+   * before completing the job.
+   *
+   * All submitters of one table must pass identical clickhouseSettings: a
+   * batch mixes submissions and applies the first submission's settings.
+   */
+  public async submit(
+    target: FanInInsertTarget,
+    rows: Array<JSONObject>,
+    options?: { clickhouseSettings?: ClickHouseSettings | undefined },
+  ): Promise<FanInSubmitResult> {
+    if (!rows || rows.length === 0) {
+      return { flushed: Promise.resolve() };
+    }
+
+    this.registerShutdownHandlerOnce();
+
+    await this.waitForCapacity();
+
+    const tableName: string = target.model.tableName;
+    let buffer: TableBuffer | undefined = this.buffers.get(tableName);
+    if (!buffer) {
+      buffer = {
+        target,
+        submissions: [],
+        rowCount: 0,
+        timer: null,
+      };
+      this.buffers.set(tableName, buffer);
+    }
+
+    let resolveAck: () => void = () => {};
+    let rejectAck: (err: Error) => void = () => {};
+    const flushed: Promise<void> = new Promise<void>(
+      (resolve: () => void, reject: (err: Error) => void) => {
+        resolveAck = resolve;
+        rejectAck = reject;
+      },
+    );
+
+    buffer.submissions.push({
+      rows,
+      clickhouseSettings: options?.clickhouseSettings,
+      resolveAck,
+      rejectAck,
+    });
+    buffer.rowCount += rows.length;
+    this.pendingRows += rows.length;
+
+    if (buffer.rowCount >= this.options.maxBatchRows) {
+      this.cutAndDispatch(tableName, false);
+    } else if (!buffer.timer) {
+      buffer.timer = setTimeout(() => {
+        const timedBuffer: TableBuffer | undefined =
+          this.buffers.get(tableName);
+        if (timedBuffer) {
+          timedBuffer.timer = null;
+        }
+        this.cutAndDispatch(tableName, true);
+      }, this.options.maxWaitMs);
+      /*
+       * Never keep the process alive just for a pending flush timer —
+       * graceful shutdown drains buffers explicitly.
+       */
+      buffer.timer.unref?.();
+    }
+
+    return { flushed };
+  }
+
+  /** Force-flush everything buffered and wait for all in-flight inserts to settle. */
+  public async flushAll(): Promise<void> {
+    for (const tableName of Array.from(this.buffers.keys())) {
+      this.cutAndDispatch(tableName, true);
+    }
+    /*
+     * Dispatch promises never reject (failures are routed to submission
+     * acks), so a plain all() is safe. Loop because new dispatches can be
+     * created while awaiting (late submits racing shutdown).
+     */
+    while (this.inFlightDispatches.size > 0) {
+      await Promise.all(Array.from(this.inFlightDispatches));
+    }
+  }
+
+  private registerShutdownHandlerOnce(): void {
+    if (this.shutdownHandlerRegistered) {
+      return;
+    }
+    this.shutdownHandlerRegistered = true;
+    GracefulShutdown.registerHandler(
+      "TelemetryFanInWriter",
+      ShutdownPriority.Buffers,
+      async () => {
+        await this.flushAll();
+      },
+    );
+  }
+
+  private async waitForCapacity(): Promise<void> {
+    while (this.pendingRows >= this.options.maxPendingRows) {
+      await new Promise<void>((resolve: () => void) => {
+        this.capacityWaiters.push(resolve);
+      });
+    }
+  }
+
+  private releaseCapacity(): void {
+    /*
+     * Wake all waiters; each re-checks the high-water mark in its
+     * waitForCapacity loop, so overshoot stays bounded to one submission
+     * per waiter.
+     */
+    const waiters: Array<() => void> = this.capacityWaiters;
+    this.capacityWaiters = [];
+    for (const wake of waiters) {
+      wake();
+    }
+  }
+
+  private async acquireInsertSlot(): Promise<void> {
+    while (this.activeInserts >= this.options.maxConcurrentInserts) {
+      await new Promise<void>((resolve: () => void) => {
+        this.insertSlotWaiters.push(resolve);
+      });
+    }
+    this.activeInserts++;
+  }
+
+  private releaseInsertSlot(): void {
+    this.activeInserts--;
+    const next: (() => void) | undefined = this.insertSlotWaiters.shift();
+    if (next) {
+      next();
+    }
+  }
+
+  /*
+   * Cut batches from a table buffer and dispatch them. When `drain` is false,
+   * only full batches (>= maxBatchRows) are cut — the remainder keeps waiting
+   * for more rows or the timer. When true, everything goes.
+   *
+   * A batch is a FIFO run of WHOLE submissions packed up to maxBatchRows
+   * (a single oversized submission forms its own batch), so an insert failure
+   * maps 1:1 onto the submissions it contained.
+   */
+  private cutAndDispatch(tableName: string, drain: boolean): void {
+    const buffer: TableBuffer | undefined = this.buffers.get(tableName);
+    if (!buffer) {
+      return;
+    }
+
+    while (
+      buffer.rowCount >= this.options.maxBatchRows ||
+      (drain && buffer.rowCount > 0)
+    ) {
+      const batch: Array<PendingSubmission> = [];
+      let batchRows: number = 0;
+
+      while (buffer.submissions.length > 0) {
+        const next: PendingSubmission = buffer.submissions[0]!;
+        if (
+          batch.length > 0 &&
+          batchRows + next.rows.length > this.options.maxBatchRows
+        ) {
+          break;
+        }
+        buffer.submissions.shift();
+        batch.push(next);
+        batchRows += next.rows.length;
+        if (batchRows >= this.options.maxBatchRows) {
+          break;
+        }
+      }
+
+      if (batch.length === 0) {
+        break;
+      }
+
+      buffer.rowCount -= batchRows;
+
+      const dispatch: Promise<void> = this.dispatchInsert(
+        buffer.target,
+        tableName,
+        batch,
+        batchRows,
+      );
+      this.inFlightDispatches.add(dispatch);
+      dispatch.finally(() => {
+        this.inFlightDispatches.delete(dispatch);
+      });
+    }
+
+    if (buffer.rowCount === 0 && buffer.timer) {
+      clearTimeout(buffer.timer);
+      buffer.timer = null;
+    }
+  }
+
+  /*
+   * Insert one batch, retrying transient failures with full-jitter
+   * exponential backoff. The insert slot is held across backoff sleeps on
+   * purpose: when ClickHouse is saturated, offering it MORE concurrent load
+   * from this pod is the failure mode this component exists to prevent.
+   * Never rejects — outcomes are routed to the submissions' acks.
+   */
+  private async dispatchInsert(
+    target: FanInInsertTarget,
+    tableName: string,
+    batch: Array<PendingSubmission>,
+    batchRows: number,
+  ): Promise<void> {
+    await this.acquireInsertSlot();
+
+    const rows: Array<JSONObject> = [];
+    for (const submission of batch) {
+      for (const row of submission.rows) {
+        rows.push(row);
+      }
+    }
+
+    const dedupToken: string = `fanin:${tableName}:${UUID.generateTimeOrdered()}`;
+    const clickhouseSettings: ClickHouseSettings | undefined =
+      batch[0]?.clickhouseSettings;
+    const sleep: (ms: number) => Promise<void> =
+      this.options.sleep ??
+      ((ms: number): Promise<void> => {
+        return Sleep.sleep(ms);
+      });
+
+    let lastError: unknown = null;
+    let attemptsMade: number = 0;
+
+    try {
+      for (
+        let attempt: number = 1;
+        attempt <= this.options.retryMaxAttempts;
+        attempt++
+      ) {
+        attemptsMade = attempt;
+        try {
+          await target.insertJsonRows(rows, {
+            dedupToken,
+            clickhouseSettings,
+          });
+
+          for (const submission of batch) {
+            submission.resolveAck();
+          }
+          if (attempt > 1) {
+            logger.info(
+              `TelemetryFanInWriter: insert into ${tableName} (${batchRows} rows) succeeded on attempt ${attempt}.`,
+            );
+          }
+          return;
+        } catch (err) {
+          lastError = err;
+
+          if (
+            !isRetryableInsertError(err) ||
+            attempt === this.options.retryMaxAttempts
+          ) {
+            break;
+          }
+
+          const expDelay: number = Math.min(
+            this.options.retryMaxDelayMs,
+            this.options.retryBaseDelayMs * Math.pow(2, attempt - 1),
+          );
+          const jitteredDelay: number = Math.ceil(Math.random() * expDelay);
+          logger.warn(
+            `TelemetryFanInWriter: transient insert failure on ${tableName} (${batchRows} rows, attempt ${attempt}/${this.options.retryMaxAttempts}); retrying with the same dedup token in ${jitteredDelay}ms: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          await sleep(jitteredDelay);
+        }
+      }
+
+      const finalError: FanInInsertError = new FanInInsertError({
+        tableName,
+        attempts: attemptsMade,
+        cause: lastError,
+      });
+      logger.error(
+        `TelemetryFanInWriter: giving up on insert into ${tableName} (${batchRows} rows); failing ${batch.length} submission(s).`,
+      );
+      logger.error(finalError);
+      for (const submission of batch) {
+        submission.rejectAck(finalError);
+      }
+    } finally {
+      this.pendingRows -= batchRows;
+      this.releaseCapacity();
+      this.releaseInsertSlot();
+    }
+  }
+}
+
+const defaultWriter: TelemetryFanInWriter = new TelemetryFanInWriter(
+  readFanInWriterOptionsFromEnv(),
+);
+
+export default defaultWriter;
