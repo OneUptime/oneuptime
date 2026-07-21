@@ -71,6 +71,17 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
             )?.toString()}
           </p>
         )}
+      {item.getColumnValue("userWebhook") &&
+        ((item.getColumnValue("userWebhook") as JSONObject)["name"] ||
+          (item.getColumnValue("userWebhook") as JSONObject)["webhookUrl"]) && (
+          <p>
+            Webhook:{" "}
+            {(
+              (item.getColumnValue("userWebhook") as JSONObject)["name"] ||
+              (item.getColumnValue("userWebhook") as JSONObject)["webhookUrl"]
+            )?.toString()}
+          </p>
+        )}
       {item.getColumnValue("userPush") &&
         (item.getColumnValue("userPush") as JSONObject)["deviceName"] && (
           <p>
