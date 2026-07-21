@@ -53,6 +53,10 @@ import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
 import Columns from "./Columns";
+import {
+  getRelationSelectFromColumns,
+  getSelectFromColumns,
+} from "./SelectFromColumns";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -664,33 +668,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const getRelationSelect: GetRelationSelectFunction =
     (): Select<TBaseModel> => {
-      const relationSelect: Select<TBaseModel> = {};
-
-      for (const column of props.columns || []) {
-        const key: string | null = column.field
-          ? (Object.keys(column.field)[0] as string)
-          : null;
-
-        if (key && model.isFileColumn(key)) {
-          (relationSelect as JSONObject)[key] = {
-            file: true,
-            _id: true,
-            fileType: true,
-            name: true,
-          };
-        } else if (key && model.isEntityColumn(key)) {
-          if (!(relationSelect as JSONObject)[key]) {
-            (relationSelect as JSONObject)[key] = {};
-          }
-
-          (relationSelect as JSONObject)[key] = {
-            ...((relationSelect as JSONObject)[key] as JSONObject),
-            ...(column.field as any)[key],
-          };
-        }
-      }
-
-      return relationSelect;
+      return getRelationSelectFromColumns<TBaseModel>({
+        columns: props.columns || [],
+        model: model,
+      });
     };
 
   type DeleteItemFunction = (item: TBaseModel) => Promise<void>;
@@ -1226,25 +1207,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   type GetSelectFunction = () => Select<TBaseModel>;
 
   const getSelect: GetSelectFunction = (): Select<TBaseModel> => {
-    const selectFields: Select<TBaseModel> = {
-      _id: true,
-    };
-
-    for (const column of props.columns || []) {
-      const key: string | null = column.field
-        ? (Object.keys(column.field)[0] as string)
-        : null;
-
-      if (key) {
-        if (model.hasColumn(key)) {
-          (selectFields as Dictionary<boolean>)[key] = true;
-        } else {
-          throw new BadDataException(
-            `${key} column not found on ${model.singularName}`,
-          );
-        }
-      }
-    }
+    const selectFields: Select<TBaseModel> = getSelectFromColumns<TBaseModel>({
+      columns: props.columns || [],
+      model: model,
+      hasPermissionToReadField: (field: string): boolean => {
+        return hasPermissionToReadField(field as keyof TBaseModel);
+      },
+    });
 
     const selectMoreFields: Array<keyof TBaseModel> = props.selectMoreFields
       ? (Object.keys(props.selectMoreFields) as Array<keyof TBaseModel>)

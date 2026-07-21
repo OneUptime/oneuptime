@@ -33,15 +33,16 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  * broken project, detector or insight never stops the rest), only NEWLY
  * created insights are routed — refreshed rows keep their status — and a
  * new insight always leaves the defensive Detected state in the same tick:
- * FixOpened + fixAiRunId when fix routing opened one, ActionRequired
- * otherwise, with triage enqueued for fix and non-fix insights alike.
+ * ActionRequired, with its triage enqueued. TRIAGE GATES THE FIX: the
+ * scanner NEVER calls fix routing — the automatic fix decision moved to
+ * the triage runner, which routes a fix only on a code-fault verdict.
  *
  * Plus the self-heal sweep: a row an earlier tick created but never routed
  * (pod death, failed status write) is stranded in Detected forever — the
  * refresh path never re-routes it, and its fingerprint stays pinned. The
  * sweep re-routes it on the next tick, runs BEFORE the detectors (so this
  * tick's own rows cannot be routed twice), never breaks the scan when it
- * fails, and cannot double-create work (the fix/triage dedupes hold).
+ * fails, and cannot double-create work (the triage dedupe holds).
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -301,29 +302,7 @@ describe("InsightScanner — routing newly created insights", () => {
     jest.restoreAllMocks();
   });
 
-  test("fix routing returned a run → status FixOpened + fixAiRunId persisted", async () => {
-    const insight: AIInsight = fakeInsight();
-    const fixAiRunId: ObjectID = ObjectID.generate();
-    jest
-      .spyOn(InsightStore, "upsertCandidates")
-      .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
-    routeInsightFix.mockResolvedValue({ fixAiRunId });
-
-    await InsightScanner.scanProjectForInsights(fakeProject());
-
-    expect(updateOneById).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: insight.id,
-        data: expect.objectContaining({
-          status: AIInsightStatus.FixOpened,
-          fixAiRunId,
-        }),
-        props: expect.objectContaining({ isRoot: true }),
-      }),
-    );
-  });
-
-  test("no fix opened → status ActionRequired", async () => {
+  test("a new insight lands on ActionRequired — the scanner NEVER calls fix routing (triage gates the fix)", async () => {
     const insight: AIInsight = fakeInsight();
     jest
       .spyOn(InsightStore, "upsertCandidates")
@@ -331,6 +310,7 @@ describe("InsightScanner — routing newly created insights", () => {
 
     await InsightScanner.scanProjectForInsights(fakeProject());
 
+    expect(routeInsightFix).not.toHaveBeenCalled();
     expect(updateOneById).toHaveBeenCalledWith(
       expect.objectContaining({
         id: insight.id,
@@ -340,18 +320,7 @@ describe("InsightScanner — routing newly created insights", () => {
         props: expect.objectContaining({ isRoot: true }),
       }),
     );
-  });
-
-  test("the project (carrying its enableInsightFixTasks flag) is handed to fix routing — the flag gate lives there", async () => {
-    const insight: AIInsight = fakeInsight();
-    const project: Project = fakeProject();
-    jest
-      .spyOn(InsightStore, "upsertCandidates")
-      .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
-
-    await InsightScanner.scanProjectForInsights(project);
-
-    expect(routeInsightFix).toHaveBeenCalledWith({ insight, project });
+    expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight });
   });
 
   test("triage run enqueued → triageAiRunId persisted", async () => {
@@ -418,27 +387,6 @@ describe("InsightScanner — routing newly created insights", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  test("fix routing rejecting (contract breach) degrades to ActionRequired and still triages", async () => {
-    const insight: AIInsight = fakeInsight();
-    jest
-      .spyOn(InsightStore, "upsertCandidates")
-      .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
-    routeInsightFix.mockRejectedValue(new Error("routing blew up"));
-
-    await expect(
-      InsightScanner.scanProjectForInsights(fakeProject()),
-    ).resolves.toBeUndefined();
-
-    expect(updateOneById).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          status: AIInsightStatus.ActionRequired,
-        }),
-      }),
-    );
-    expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight });
-  });
-
   test("triage rejecting (contract breach) does not fail the scan — the status was already routed", async () => {
     const insight: AIInsight = fakeInsight();
     jest
@@ -473,9 +421,14 @@ describe("InsightScanner — routing newly created insights", () => {
       InsightScanner.scanProjectForInsights(fakeProject()),
     ).resolves.toBeUndefined();
 
-    expect(routeInsightFix).toHaveBeenCalledTimes(2);
-    expect(routeInsightFix).toHaveBeenCalledWith(
-      expect.objectContaining({ insight: second }),
+    expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight: second });
+    expect(updateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: second.id,
+        data: expect.objectContaining({
+          status: AIInsightStatus.ActionRequired,
+        }),
+      }),
     );
   });
 });
@@ -486,14 +439,42 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
   let routeInsightFix: jest.SpyInstance;
   let enqueueInsightTriage: jest.SpyInstance;
 
+  /*
+   * The sweep now issues THREE findBy queries per tick (Detected rows,
+   * untriaged ActionRequired rows, unrouted code-fault rows) — the mock
+   * dispatches on the queried status/classification so each test can feed
+   * exactly one stranded shape.
+   */
+  let detectedStranded: Array<AIInsight>;
+  let untriagedStranded: Array<AIInsight>;
+  let unroutedCodeFaults: Array<AIInsight>;
+
   beforeEach(() => {
+    detectedStranded = [];
+    untriagedStranded = [];
+    unroutedCodeFaults = [];
+
     // No candidates this tick: only the sweep is under test.
     jest
       .spyOn(InsightDetectors, "getAllDetectors")
       .mockReturnValue([fakeDetector({ candidates: [] })]);
     findBy = jest
       .spyOn(AIInsightService, "findBy")
-      .mockResolvedValue([] as unknown as Array<AIInsight>);
+      .mockImplementation((findByArgs: unknown): Promise<Array<AIInsight>> => {
+        const query: Record<string, unknown> =
+          (findByArgs as { query: Record<string, unknown> }).query || {};
+
+        if (query["status"] === AIInsightStatus.Detected) {
+          return Promise.resolve(detectedStranded);
+        }
+        if (query["classification"]) {
+          return Promise.resolve(unroutedCodeFaults);
+        }
+        if (query["triageCompletedAt"]) {
+          return Promise.resolve(untriagedStranded);
+        }
+        return Promise.resolve([]);
+      });
     updateOneById = jest
       .spyOn(AIInsightService, "updateOneById")
       .mockResolvedValue(undefined);
@@ -511,7 +492,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
 
   test("a Detected row left over from an earlier tick is swept up and re-routed to ActionRequired (and triaged)", async () => {
     const stranded: AIInsight = fakeInsight();
-    findBy.mockResolvedValue([stranded]);
+    detectedStranded = [stranded];
 
     await InsightScanner.scanProjectForInsights(fakeProject());
 
@@ -526,9 +507,8 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
         props: expect.objectContaining({ isRoot: true }),
       }),
     );
-    expect(routeInsightFix).toHaveBeenCalledWith(
-      expect.objectContaining({ insight: stranded }),
-    );
+    // Fix routing is NOT part of scan-time routing — triage gates the fix.
+    expect(routeInsightFix).not.toHaveBeenCalled();
     expect(updateOneById).toHaveBeenCalledWith(
       expect.objectContaining({
         id: stranded.id,
@@ -541,34 +521,21 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
     expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight: stranded });
   });
 
-  test("a swept row whose fix routing opens a run lands on FixOpened + fixAiRunId — the full routing path, not a status patch", async () => {
-    const stranded: AIInsight = fakeInsight();
-    const fixAiRunId: ObjectID = ObjectID.generate();
-    findBy.mockResolvedValue([stranded]);
-    routeInsightFix.mockResolvedValue({ fixAiRunId });
-
-    await InsightScanner.scanProjectForInsights(fakeProject());
-
-    expect(updateOneById).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: stranded.id,
-        data: expect.objectContaining({
-          status: AIInsightStatus.FixOpened,
-          fixAiRunId,
-        }),
-      }),
-    );
-  });
-
   test("the sweep runs BEFORE the detectors — so rows created by THIS tick are routed exactly once, never twice", async () => {
     const callOrder: Array<string> = [];
     const created: AIInsight = fakeInsight();
 
-    findBy.mockImplementation((): Promise<Array<AIInsight>> => {
-      callOrder.push("sweep");
-      // Nothing stranded: the row below does not exist yet at sweep time.
-      return Promise.resolve([]);
-    });
+    findBy.mockImplementation(
+      (findByArgs: unknown): Promise<Array<AIInsight>> => {
+        const query: Record<string, unknown> =
+          (findByArgs as { query: Record<string, unknown> }).query || {};
+        if (query["status"] === AIInsightStatus.Detected) {
+          callOrder.push("sweep");
+        }
+        // Nothing stranded: the row below does not exist yet at sweep time.
+        return Promise.resolve([]);
+      },
+    );
     jest.spyOn(InsightDetectors, "getAllDetectors").mockReturnValue([
       {
         insightType: AIInsightType.NewException,
@@ -585,10 +552,8 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
     await InsightScanner.scanProjectForInsights(fakeProject());
 
     expect(callOrder).toEqual(["sweep", "detect"]);
-    expect(routeInsightFix).toHaveBeenCalledTimes(1);
-    expect(routeInsightFix).toHaveBeenCalledWith(
-      expect.objectContaining({ insight: created }),
-    );
+    expect(enqueueInsightTriage).toHaveBeenCalledTimes(1);
+    expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight: created });
   });
 
   test("a sweep failure never breaks the scan — detectors still run and this tick's new insights still route", async () => {
@@ -606,15 +571,13 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
     ).resolves.toBeUndefined();
 
     expect(upsert).toHaveBeenCalledTimes(1);
-    expect(routeInsightFix).toHaveBeenCalledWith(
-      expect.objectContaining({ insight: created }),
-    );
+    expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight: created });
   });
 
   test("one stranded row failing to re-route does not stop the next one", async () => {
     const first: AIInsight = fakeInsight();
     const second: AIInsight = fakeInsight();
-    findBy.mockResolvedValue([first, second]);
+    detectedStranded = [first, second];
     updateOneById
       .mockRejectedValueOnce(new Error("write conflict"))
       .mockResolvedValue(undefined);
@@ -623,31 +586,99 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
       InsightScanner.scanProjectForInsights(fakeProject()),
     ).resolves.toBeUndefined();
 
-    expect(routeInsightFix).toHaveBeenCalledTimes(2);
+    expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight: second });
+  });
+
+  test("stranded shape 2: an ActionRequired insight with no triage verdict gets its triage re-enqueued (capped on failed attempts)", async () => {
+    const untriaged: AIInsight = fakeInsight();
+    untriagedStranded = [untriaged];
+
+    // Zero failed attempts: the re-enqueue proceeds.
+    const countBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue({
+        toNumber: () => {
+          return 0;
+        },
+      } as never);
+    const triageAiRunId: ObjectID = ObjectID.generate();
+    enqueueInsightTriage.mockResolvedValue({ triageAiRunId });
+
+    await InsightScanner.scanProjectForInsights(fakeProject());
+
+    expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight: untriaged });
+    expect(updateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: untriaged.id,
+        data: expect.objectContaining({ triageAiRunId }),
+      }),
+    );
+
+    // Three failed attempts: the insight is left alone (no retry storm).
+    enqueueInsightTriage.mockClear();
+    countBy.mockResolvedValue({
+      toNumber: () => {
+        return 3;
+      },
+    } as never);
+
+    await InsightScanner.scanProjectForInsights(fakeProject());
+
+    expect(enqueueInsightTriage).not.toHaveBeenCalled();
+  });
+
+  test("stranded shape 3: a code-fault verdict whose fix never routed is re-routed with a CONDITIONAL FixOpened flip", async () => {
+    const unrouted: AIInsight = {
+      ...fakeInsight(),
+      insightType: AIInsightType.NewException,
+    } as AIInsight;
+    unroutedCodeFaults = [unrouted];
+
+    const fixAiRunId: ObjectID = ObjectID.generate();
+    routeInsightFix.mockResolvedValue({ fixAiRunId });
+    const flipStatus: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
+
+    await InsightScanner.scanProjectForInsights(fakeProject());
+
     expect(routeInsightFix).toHaveBeenCalledWith(
-      expect.objectContaining({ insight: second }),
+      expect.objectContaining({ insight: unrouted }),
+    );
+    expect(flipStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          status: AIInsightStatus.ActionRequired,
+        }),
+        data: expect.objectContaining({
+          status: AIInsightStatus.FixOpened,
+          fixAiRunId,
+        }),
+      }),
     );
   });
 });
 
 /*
- * The safety proof for the sweep: re-routing a row that ALREADY got its fix
- * run (the pod died after the run was created but before the status write)
- * cannot create a second one. The dedupe lives inside the creation path
- * itself — this exercises the REAL InsightFixRouting against it.
+ * The safety proof for the post-triage fix path: routing a fix for an
+ * insight whose exception ALREADY has a run (the pod died after the run was
+ * created but before the insight status write; or triage re-ran) cannot
+ * create a second one. The dedupe lives inside the creation path itself —
+ * this exercises the REAL InsightFixRouting against it, exactly as the
+ * triage runner invokes it on a code-fault verdict.
  */
-describe("InsightScanner — re-routing a stranded insight cannot double-create a fix run", () => {
+describe("InsightFixRouting — a dedupe rejection from the creation path is a quiet no-fix", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("the creation path's per-(exception, recipe) dedupe rejection is a quiet no-fix: no run is stamped, the row lands on ActionRequired", async () => {
-    const stranded: AIInsight = {
+  test("the creation path's per-(exception, recipe) dedupe rejection yields an empty result and stamps nothing", async () => {
+    const insight: AIInsight = {
       id: ObjectID.generate(),
       projectId,
       insightType: AIInsightType.NewException,
       telemetryExceptionId: ObjectID.generate(),
-      status: AIInsightStatus.Detected,
+      status: AIInsightStatus.ActionRequired,
     } as unknown as AIInsight;
 
     const optedInProject: Project = {
@@ -665,24 +696,14 @@ describe("InsightScanner — re-routing a stranded insight cannot double-create 
       runsToday: 0,
     };
 
-    jest
-      .spyOn(InsightDetectors, "getAllDetectors")
-      .mockReturnValue([fakeDetector({ candidates: [] })]);
-    jest
-      .spyOn(AIInsightService, "findBy")
-      .mockResolvedValue([stranded] as unknown as Array<AIInsight>);
-    const updateOneById: jest.SpyInstance = jest
-      .spyOn(AIInsightService, "updateOneById")
-      .mockResolvedValue(undefined);
-    jest.spyOn(InsightTriage, "enqueueInsightTriage").mockResolvedValue({});
     jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue(budget);
     jest
       .spyOn(TelemetryExceptionService, "getAIFixReadiness")
       .mockResolvedValue({ ready: true, checks: [] });
 
     /*
-     * The dedupe: the fix run created before the pod died is still
-     * non-terminal, so the creation path refuses a second one.
+     * The dedupe: a fix run for this exception is still non-terminal, so
+     * the creation path refuses a second one.
      */
     const create: jest.SpyInstance = jest
       .spyOn(TelemetryExceptionService, "createCodeFixRunForException")
@@ -693,28 +714,16 @@ describe("InsightScanner — re-routing a stranded insight cannot double-create 
       );
     const stamp: jest.SpyInstance = jest.spyOn(AIRunService, "updateOneById");
 
-    await expect(
-      InsightScanner.scanProjectForInsights(optedInProject),
-    ).resolves.toBeUndefined();
+    const result: { fixAiRunId?: ObjectID | undefined } =
+      await InsightFixRouting.routeInsightFix({
+        insight,
+        project: optedInProject,
+      });
 
-    // The creation path was asked exactly once — and it refused.
+    // The creation path was asked exactly once — and it refused, quietly.
     expect(create).toHaveBeenCalledTimes(1);
-    // No second run exists, so nothing was stamped and nothing is FixOpened.
+    expect(result.fixAiRunId).toBeUndefined();
+    // No second run exists, so nothing was stamped.
     expect(stamp).not.toHaveBeenCalled();
-    expect(updateOneById).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: stranded.id,
-        data: expect.objectContaining({
-          status: AIInsightStatus.ActionRequired,
-        }),
-      }),
-    );
-    expect(updateOneById).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          status: AIInsightStatus.FixOpened,
-        }),
-      }),
-    );
   });
 });

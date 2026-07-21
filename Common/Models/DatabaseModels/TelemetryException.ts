@@ -1281,4 +1281,132 @@ export default class TelemetryException extends DatabaseBaseModel {
     length: ColumnLength.LongText,
   })
   public environment?: string = undefined;
+
+  @ColumnAccessControl({
+    /*
+     * Server-written only (isRoot bypasses column ACL): this is derived
+     * state maintained by ingest / triage / the PR-state sync — a client
+     * PATCH must not be able to set it (the value flows into LLM prompts
+     * and public PR text, and it gates the automatic fix lane).
+     */
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  /*
+   * Sticky rollup of the OTel exception.escaped flag: true once ANY
+   * occurrence of this group escaped its span scope (was unhandled).
+   * Maintained by the ingest upsert with `unhandled OR EXCLUDED.unhandled`
+   * — a group never flips back to handled. Handled exceptions are usually
+   * expected/operational errors, which is a key signal for deciding
+   * whether an AI fix PR is warranted.
+   */
+  @TableColumn({
+    title: "Unhandled",
+    description:
+      "True when at least one occurrence of this exception escaped its span scope (was unhandled, per OTel exception.escaped)",
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public unhandled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    /*
+     * Server-written only (isRoot bypasses column ACL): this is derived
+     * state maintained by ingest / triage / the PR-state sync — a client
+     * PATCH must not be able to set it (the value flows into LLM prompts
+     * and public PR text, and it gates the automatic fix lane).
+     */
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  /*
+   * Verdict of the AI insight triage for this exception group: is this a
+   * code defect the AI should try to fix, an expected end-user error, an
+   * expected denial (auth/paywall/probe), or an infrastructure condition?
+   * Values come from ExceptionAIClassification. Written by the triage
+   * runner; the automatic fix lane only opens PRs for CodeFault groups.
+   */
+  @TableColumn({
+    title: "AI Classification",
+    description:
+      "AI triage verdict for this exception group (code-fault, user-error, expected-denial, infrastructure)",
+    required: false,
+    type: TableColumnType.ShortText,
+    example: "code-fault",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public aiClassification?: string = undefined;
+
+  @ColumnAccessControl({
+    /*
+     * Server-written only (isRoot bypasses column ACL): this is derived
+     * state maintained by ingest / triage / the PR-state sync — a client
+     * PATCH must not be able to set it (the value flows into LLM prompts
+     * and public PR text, and it gates the automatic fix lane).
+     */
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadTelemetryException,
+    ],
+    update: [],
+  })
+  /*
+   * Stamped when a human closes an AI-authored fix PR for this exception
+   * without merging it — the strongest "the AI fix was not wanted" signal.
+   * The automatic fix lane skips groups carrying this stamp; a human
+   * clicking "Fix with AI" on the exception page clears it and retries.
+   */
+  @TableColumn({
+    title: "AI Fix Declined At",
+    description:
+      "Set when an AI-authored fix pull request for this exception was closed without merging; suppresses further automatic fix attempts",
+    required: false,
+    type: TableColumnType.Date,
+    example: "2026-01-01T00:00:00.000Z",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public aiFixDeclinedAt?: Date = undefined;
 }

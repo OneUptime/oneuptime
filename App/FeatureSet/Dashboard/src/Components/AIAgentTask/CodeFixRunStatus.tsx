@@ -34,7 +34,10 @@ export interface CodeFixRunStatusText {
 const TASK_TYPE_LABEL: { [key in CodeFixTaskType]: string } = {
   [CodeFixTaskType.FixException]: "Fix Exception",
   [CodeFixTaskType.WriteRegressionTest]: "Regression Test",
+  [CodeFixTaskType.ImproveExceptionHandling]: "Improve Error Handling",
   [CodeFixTaskType.ImproveInstrumentation]: "Improve Instrumentation",
+  [CodeFixTaskType.ImproveLogging]: "Improve Logging",
+  [CodeFixTaskType.ImproveTracing]: "Improve Tracing",
   [CodeFixTaskType.FixPerformance]: "Fix Performance",
   [CodeFixTaskType.FixFromIncident]: "Fix from Incident",
 };

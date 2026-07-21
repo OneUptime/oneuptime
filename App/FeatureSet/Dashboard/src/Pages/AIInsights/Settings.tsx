@@ -44,7 +44,17 @@ const AIInsightsSettings: FunctionComponent<ComponentProps> = (
             },
             title: "Automatically open draft fix PRs from insights",
             description:
-              "When enabled, insights whose deterministic evidence points at code (new or spiking exceptions with a resolvable repository, trace-latency regressions with span-tree findings) automatically queue an AI agent task that opens a draft pull request with a proposed fix. Honors the daily fix task budget and per-repository open-PR caps. Pull requests are always human-reviewed — nothing merges automatically.",
+              "When enabled, insights the AI triage classifies as code faults automatically queue an AI agent task that opens a draft pull request with a proposed fix. Insights triaged as user errors, expected denials or infrastructure conditions never get automatic PRs. Honors the daily fix task budget and per-repository open-PR caps. Pull requests are always human-reviewed — nothing merges automatically.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+          {
+            field: {
+              autoArchiveNonActionableExceptions: true,
+            },
+            title: "Auto-archive expected-denial exceptions",
+            description:
+              "When enabled, exception groups the AI triage classifies as expected denials (auth failures, plan/paywall rejections, security scanners tripping intentional validation) are automatically archived so they stop surfacing in the unresolved list. User errors and infrastructure conditions are never auto-archived. Archiving is reversible from the Archived tab.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },
@@ -66,6 +76,14 @@ const AIInsightsSettings: FunctionComponent<ComponentProps> = (
                 enableInsightFixTasks: true,
               },
               title: "Automatically open draft fix PRs from insights",
+              placeholder: "Disabled",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                autoArchiveNonActionableExceptions: true,
+              },
+              title: "Auto-archive expected-denial exceptions",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
             },

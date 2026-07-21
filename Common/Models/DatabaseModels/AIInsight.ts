@@ -206,6 +206,36 @@ export default class AIInsight extends BaseModel {
   public severity?: AIInsightSeverity = undefined;
 
   /*
+   * Triage verdict (ExceptionAIClassification values) written by the
+   * insight triage runner. Null until triage completes. The automatic
+   * fix lane only opens pull requests for insights triaged as
+   * code-fault — see InsightScanner / InsightFixRouting.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Classification",
+    description:
+      "AI triage verdict: code-fault, user-error, expected-denial, infrastructure or unknown. Automatic fix pull requests are only opened for code-fault.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public classification?: string = undefined;
+
+  /*
    * The detector's stable dedupe key for this finding (e.g.
    * "new-exception:<telemetryExceptionId>"). The scanner refreshes the
    * existing non-terminal insight with the same (projectId, fingerprint)

@@ -187,6 +187,14 @@ export class Service extends DatabaseService<Model> {
           run.triggeredByIncidentId || run.triggeredByAlertId
             ? null
             : "Queued code-fix run has no incident or alert subject.";
+      } else if (
+        run.codeFixTaskType === CodeFixTaskType.ImproveLogging ||
+        run.codeFixTaskType === CodeFixTaskType.ImproveTracing
+      ) {
+        // Service-scoped instrumentation recipes carry the service instead.
+        missingContextMessage = run.taskContext?.telemetryServiceId
+          ? null
+          : "Queued code-fix run has no telemetry service in its task context.";
       } else {
         missingContextMessage = run.taskContext?.traceId
           ? null

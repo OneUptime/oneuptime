@@ -117,6 +117,45 @@ export default class SubjectCodeFixRun {
   }
 
   /*
+   * Per-(service, recipe) dedupe for the service-scoped instrumentation
+   * recipes (ImproveLogging / ImproveTracing): at most one non-terminal
+   * run of a recipe per (project, telemetryServiceId). Same in-memory
+   * taskContext matching as the per-trace guard above — the id lives in
+   * JSON the Query layer cannot filter on, and the candidate set is
+   * bounded and rare.
+   */
+  @CaptureSpan()
+  public static async findNonTerminalRunForTelemetryService(data: {
+    projectId: ObjectID;
+    taskType: CodeFixTaskType;
+    telemetryServiceId: string;
+  }): Promise<AIRun | null> {
+    const activeRuns: Array<AIRun> = await AIRunService.findBy({
+      query: {
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        codeFixTaskType: data.taskType,
+        status: QueryHelper.notIn([
+          AIRunStatus.Completed,
+          AIRunStatus.Error,
+          AIRunStatus.Cancelled,
+          AIRunStatus.Stale,
+        ]),
+      },
+      select: { _id: true, taskContext: true },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return (
+      activeRuns.find((run: AIRun): boolean => {
+        return run.taskContext?.telemetryServiceId === data.telemetryServiceId;
+      }) || null
+    );
+  }
+
+  /*
    * Record the durable intent as a Queued CodeFix AIRun that the external
    * agent worker claims via /ai-agent-task/get-pending-task. `userId` is
    * attribution for human-triggered recipes (who clicked the button);

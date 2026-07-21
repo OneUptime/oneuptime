@@ -31,6 +31,8 @@ import ServiceService from "../Services/ServiceService";
 import SpanService from "../Services/SpanService";
 import FixFromIncidentTaskTrigger from "../Utils/AI/SRE/FixFromIncidentTaskTrigger";
 import FixPerformanceTaskTrigger from "../Utils/AI/SRE/FixPerformanceTaskTrigger";
+import TelemetryImprovementTaskTrigger from "../Utils/AI/SRE/TelemetryImprovementTaskTrigger";
+import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import { AnalyzableSpan } from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 
 const router: ExpressRouter = Express.getRouter();
@@ -561,6 +563,91 @@ router.post(
           traceId,
           spans: analyzableSpans,
           serviceName: service?.name,
+          userId: props.userId!,
+        });
+
+      Response.sendJsonObjectResponse(req, res, {
+        aiRunId: run.id!.toString(),
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * "Improve logging / tracing with AI" from a telemetry service's Logs or
+ * Traces page: gate and enqueue a service-scoped instrumentation-
+ * improvement CodeFix run (ImproveLogging / ImproveTracing). Human-
+ * triggered — the click is the gate; budget, repository and per-service
+ * dedupe are enforced in the trigger. Returns { aiRunId }.
+ */
+router.post(
+  "/ai-investigation/create-telemetry-improvement-task",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const projectId: ObjectID | undefined = props.tenantId;
+
+      if (!projectId) {
+        throw new BadDataException("A project scope is required.");
+      }
+
+      const telemetryServiceIdParam: string | undefined = req.body[
+        "telemetryServiceId"
+      ] as string | undefined;
+
+      if (!telemetryServiceIdParam) {
+        throw new BadDataException("telemetryServiceId is required.");
+      }
+
+      const rawTaskType: string | undefined = req.body["taskType"] as
+        | string
+        | undefined;
+
+      if (
+        rawTaskType !== CodeFixTaskType.ImproveLogging &&
+        rawTaskType !== CodeFixTaskType.ImproveTracing
+      ) {
+        throw new BadDataException(
+          `taskType must be ${CodeFixTaskType.ImproveLogging} or ${CodeFixTaskType.ImproveTracing}.`,
+        );
+      }
+
+      const telemetryServiceId: ObjectID = new ObjectID(
+        telemetryServiceIdParam,
+      );
+
+      /*
+       * Access check under the USER's permissions: the caller must be able
+       * to read the service they are asking the agent to instrument. The
+       * trigger re-reads as root afterwards.
+       */
+      const service: Service | null = await ServiceService.findOneById({
+        id: telemetryServiceId,
+        select: { _id: true },
+        props: props,
+      });
+
+      if (!service) {
+        throw new BadDataException(
+          "Telemetry service not found (or you do not have access to it).",
+        );
+      }
+
+      const run: AIRun =
+        await TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+          projectId,
+          telemetryServiceId,
+          taskType: rawTaskType,
           userId: props.userId!,
         });
 

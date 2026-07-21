@@ -1337,6 +1337,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       projectId: data.projectId,
       primaryEntityId: data.primaryEntityId,
       primaryEntityType: data.serviceMetadata.primaryEntityType,
+      /*
+       * Log-derived exceptions only carry the unhandled flag when the
+       * log explicitly set exception.escaped=true — a body-scan
+       * extraction (escaped null) must not mark the group unhandled.
+       */
+      unhandled: extracted.escaped === true,
       ...(extracted.exceptionType
         ? { exceptionType: extracted.exceptionType }
         : {}),

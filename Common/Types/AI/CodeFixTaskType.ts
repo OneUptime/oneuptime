@@ -13,6 +13,16 @@ enum CodeFixTaskType {
   // Write a failing-then-passing regression test that reproduces the exception.
   WriteRegressionTest = "WriteRegressionTest",
   /*
+   * Improve how the code HANDLES and REPORTS this exception without
+   * changing business behavior: parameterize messages that interpolate
+   * user data (PII out of error text, stable fingerprints), validate bad
+   * input earlier with an actionable error, and mark expected/operational
+   * errors as handled in telemetry. The recipe for exceptions the triage
+   * classified as user errors or expected denials — where "fix the bug"
+   * is the wrong instruction because there is no bug.
+   */
+  ImproveExceptionHandling = "ImproveExceptionHandling",
+  /*
    * Add the observability an INCONCLUSIVE AI investigation was missing
    * (structured logs, spans, metric counters on the implicated code paths).
    * NOT user-triggerable from the exception page — it has its own automatic
@@ -32,6 +42,27 @@ enum CodeFixTaskType {
    * Common/Server/Utils/AI/SRE/FixPerformanceTaskTrigger.ts).
    */
   FixPerformance = "FixPerformance",
+  /*
+   * Improve a SERVICE's logging hygiene: structured/parameterized log
+   * messages (no user data interpolated into log text), correct severity
+   * levels, trace correlation, proper exception recording instead of raw
+   * stack dumps in log bodies, and less noise. Human-triggered from the
+   * service's Logs page (POST /ai-investigation/
+   * create-telemetry-improvement-task); its context (service id + name) is
+   * captured into AIRun.taskContext at trigger time. Instrumentation only —
+   * never a behavior change.
+   */
+  ImproveLogging = "ImproveLogging",
+  /*
+   * Improve a SERVICE's tracing instrumentation: spans on uninstrumented
+   * entry points and significant operations, low-cardinality span names,
+   * exceptions recorded on spans with correct status/escaped semantics,
+   * code.* and semantic-convention attributes, context propagation across
+   * async boundaries. Human-triggered from the service's Traces page (same
+   * endpoint as ImproveLogging); context captured into AIRun.taskContext.
+   * Instrumentation only — never a behavior change.
+   */
+  ImproveTracing = "ImproveTracing",
   /*
    * Fix the root cause a completed AI investigation identified. Human-
    * triggered from the investigation panel (POST /ai-investigation/
@@ -77,7 +108,11 @@ export class CodeFixTaskTypeHelper {
    * (POST /ai-investigation/create-performance-fix-task).
    */
   public static getUserTriggerableTaskTypes(): Array<CodeFixTaskType> {
-    return [CodeFixTaskType.FixException, CodeFixTaskType.WriteRegressionTest];
+    return [
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.WriteRegressionTest,
+      CodeFixTaskType.ImproveExceptionHandling,
+    ];
   }
 
   public static isUserTriggerable(taskType: CodeFixTaskType): boolean {
@@ -97,6 +132,8 @@ export class CodeFixTaskTypeHelper {
       case CodeFixTaskType.FixFromIncident:
         return CodeFixContextKind.IncidentOrAlertSubject;
       case CodeFixTaskType.FixPerformance:
+      case CodeFixTaskType.ImproveLogging:
+      case CodeFixTaskType.ImproveTracing:
         return CodeFixContextKind.TaskContext;
       default:
         return CodeFixContextKind.TelemetryException;

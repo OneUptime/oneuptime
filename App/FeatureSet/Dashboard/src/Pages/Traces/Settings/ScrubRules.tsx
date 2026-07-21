@@ -59,6 +59,13 @@ const patternTypeConfig: Record<string, PillConfig> = {
     icon: IconProp.Globe,
     tooltip: "Matches IPv4 addresses",
   },
+  sensitiveKeys: {
+    label: "Sensitive Keys",
+    color: Purple500,
+    icon: IconProp.Lock,
+    tooltip:
+      "Scrubs the whole value of span/event attributes whose key looks sensitive (password, token, apiKey, authorization, cookie, ...) — regardless of what the value looks like",
+  },
   custom: {
     label: "Custom Regex",
     color: Indigo500,
@@ -229,6 +236,7 @@ const TraceScrubRules: FunctionComponent<
             { label: "SSN (Social Security Number)", value: "ssn" },
             { label: "Phone Number", value: "phoneNumber" },
             { label: "IP Address", value: "ipAddress" },
+            { label: "Sensitive Attribute Keys", value: "sensitiveKeys" },
             { label: "Custom Regex", value: "custom" },
           ],
         },

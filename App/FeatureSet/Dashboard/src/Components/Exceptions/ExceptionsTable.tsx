@@ -531,6 +531,20 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              unhandled: true,
+            },
+            title: "Unhandled",
+            type: FieldType.Boolean,
+          },
+          {
+            field: {
+              aiClassification: true,
+            },
+            title: "AI Classification",
+            type: FieldType.Text,
+          },
+          {
+            field: {
               markedAsResolvedAt: true,
             },
             title: "Marked As Resolved At",
@@ -558,6 +572,8 @@ const TelemetryExceptionTable: FunctionComponent<ComponentProps> = (
           firstSeenInRelease: true,
           lastSeenInRelease: true,
           environment: true,
+          unhandled: true,
+          aiClassification: true,
         }}
         columns={[
           {

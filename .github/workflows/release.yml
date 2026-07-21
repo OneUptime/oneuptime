@@ -1680,6 +1680,13 @@ jobs:
       - name: Install NFPM
         run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
 
+      # Required by the sboms: block in InfrastructureAgent/.goreleaser.yaml and
+      # by build-msi.sh. syft is not otherwise present in this job — it is
+      # installed only in generate-sboms — and GoReleaser fails the release if
+      # the SBOM command is missing.
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@v0
+
       - name: Show GoReleaser version
         run: goreleaser -v
 

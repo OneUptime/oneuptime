@@ -34,6 +34,17 @@ const BUILT_IN_PATTERNS: Record<string, RegExp> = {
   [LogScrubPatternType.IPAddress]: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
 };
 
+/*
+ * Attribute-KEY denylist for the SensitiveKeys pattern. Value-regex rules
+ * miss secrets that don't look like anything (a random password, an opaque
+ * token) — but the attribute key names them. Matched case-insensitively
+ * against the attribute key; on a hit the WHOLE value gets the rule's
+ * scrub action, whatever the value looks like. Same list as the trace
+ * engine — keep them in sync.
+ */
+const SENSITIVE_KEY_REGEX: RegExp =
+  /(password|passwd|pwd|secret|token|api[._-]?key|access[._-]?key|private[._-]?key|client[._-]?secret|authorization|auth[._-]?header|cookie|session[._-]?id|credit[._-]?card|card[._-]?number|ssn|csrf|xsrf)/i;
+
 export class LogScrubRuleService {
   public static async loadScrubRules(
     projectId: ObjectID,
@@ -108,6 +119,15 @@ export class LogScrubRuleService {
       } catch {
         return null;
       }
+    }
+
+    /*
+     * SensitiveKeys compiles to the KEY regex — it is matched against
+     * attribute keys (not values) by the attribute scrub loop, and
+     * skipped entirely by scrubString.
+     */
+    if (patternType === LogScrubPatternType.SensitiveKeys) {
+      return new RegExp(SENSITIVE_KEY_REGEX.source, SENSITIVE_KEY_REGEX.flags);
     }
 
     const builtIn: RegExp | undefined = BUILT_IN_PATTERNS[patternType];
@@ -203,12 +223,18 @@ export class LogScrubRuleService {
     let result: string = value;
 
     for (const { rule, regex } of compiledRules) {
+      const patternType: string = (rule.patternType as string) || "";
+
+      // Key-targeted rules never scan free text.
+      if (patternType === LogScrubPatternType.SensitiveKeys) {
+        continue;
+      }
+
       // Reset lastIndex for global regex
       regex.lastIndex = 0;
 
       const action: string =
         (rule.scrubAction as string) || LogScrubAction.Redact;
-      const patternType: string = (rule.patternType as string) || "";
 
       result = result.replace(regex, (match: string) => {
         return this.applyScrubAction(match, action, patternType);
@@ -239,8 +265,20 @@ export class LogScrubRuleService {
 
     for (const compiled of compiledRules) {
       singleRule[0] = compiled;
-      const fieldsToScrub: string =
-        (compiled.rule.fieldsToScrub as string) || "both";
+
+      /*
+       * SensitiveKeys is key-targeted, so it can only ever act on
+       * attributes — a rule saved with a body-only scope would otherwise
+       * be a silent no-op while looking active in the rules table. Force
+       * the attributes scope for it regardless of the stored value.
+       */
+      const isSensitiveKeysRule: boolean =
+        (compiled.rule.patternType as string) ===
+        LogScrubPatternType.SensitiveKeys;
+
+      const fieldsToScrub: string = isSensitiveKeysRule
+        ? "attributes"
+        : (compiled.rule.fieldsToScrub as string) || "both";
 
       // Scrub body
       if (
@@ -257,14 +295,31 @@ export class LogScrubRuleService {
         typeof logRow["attributes"] === "object"
       ) {
         const attributes: JSONObject = logRow["attributes"] as JSONObject;
+        const isKeyTargeted: boolean =
+          (compiled.rule.patternType as string) ===
+          LogScrubPatternType.SensitiveKeys;
 
         for (const key of Object.keys(attributes)) {
-          if (typeof attributes[key] === "string") {
-            attributes[key] = this.scrubString(
-              attributes[key] as string,
-              singleRule,
-            );
+          if (typeof attributes[key] !== "string") {
+            continue;
           }
+
+          if (isKeyTargeted) {
+            // Key match → the whole value gets the action.
+            if (compiled.regex.test(key)) {
+              attributes[key] = this.applyScrubAction(
+                attributes[key] as string,
+                (compiled.rule.scrubAction as string) || LogScrubAction.Redact,
+                LogScrubPatternType.SensitiveKeys,
+              );
+            }
+            continue;
+          }
+
+          attributes[key] = this.scrubString(
+            attributes[key] as string,
+            singleRule,
+          );
         }
       }
     }

@@ -1024,6 +1024,13 @@ jobs:
       - name: Install NFPM
         run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
 
+      # This job runs the same InfrastructureAgent/.goreleaser.yaml as
+      # release.yml, and that config now has an sboms: block. --snapshot does
+      # not skip SBOM generation, so without syft on PATH GoReleaser fails the
+      # whole job — and this workflow runs on every push to master.
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@v0
+
       - name: Show GoReleaser version
         run: goreleaser -v
 

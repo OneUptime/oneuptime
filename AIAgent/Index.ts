@@ -7,7 +7,10 @@ import {
   getTaskHandlerRegistry,
   FixExceptionTaskHandler,
   WriteRegressionTestTaskHandler,
+  ImproveExceptionHandlingTaskHandler,
   ImproveInstrumentationTaskHandler,
+  ImproveLoggingTaskHandler,
+  ImproveTracingTaskHandler,
   FixFromIncidentTaskHandler,
   FixPerformanceTaskHandler,
 } from "./TaskHandlers/Index";
@@ -73,7 +76,10 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
         getTaskHandlerRegistry();
       taskHandlerRegistry.register(new FixExceptionTaskHandler());
       taskHandlerRegistry.register(new WriteRegressionTestTaskHandler());
+      taskHandlerRegistry.register(new ImproveExceptionHandlingTaskHandler());
       taskHandlerRegistry.register(new ImproveInstrumentationTaskHandler());
+      taskHandlerRegistry.register(new ImproveLoggingTaskHandler());
+      taskHandlerRegistry.register(new ImproveTracingTaskHandler());
       taskHandlerRegistry.register(new FixFromIncidentTaskHandler());
       taskHandlerRegistry.register(new FixPerformanceTaskHandler());
       logger.debug(
