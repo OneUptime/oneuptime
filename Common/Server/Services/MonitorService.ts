@@ -14,7 +14,12 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorStatusService from "./MonitorStatusService";
-import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
+import MonitorStatusTimelineService, {
+  MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
+  MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
+} from "./MonitorStatusTimelineService";
+import ServerException from "../../Types/Exception/ServerException";
+import Sleep from "../../Types/Sleep";
 import ProbeService from "./ProbeService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import TeamMemberService from "./TeamMemberService";
@@ -1733,10 +1738,93 @@ ${createdItem.description?.trim() || "No description provided."}
         statusTimeline.startsAt = startsAt;
       }
 
-      await MonitorStatusTimelineService.create({
-        data: statusTimeline,
+      await this.createStatusTimelineWithRetry({
+        statusTimeline: statusTimeline,
         props: props,
+        projectId: projectId,
+        monitorId: monitorId,
       });
+    }
+  }
+
+  /*
+   * Creates one status timeline row, absorbing the two error classes that are
+   * recoverable per monitor so one monitor cannot abort a caller's loop over
+   * many (incident resolve, scheduled maintenance end, incident create with
+   * changeMonitorStatusTo):
+   *
+   *   - "same as previous" from onBeforeCreate's dedupe check: a concurrent
+   *     writer (or an earlier backfilled row at this startsAt) already put the
+   *     monitor in this status, so the desired state holds. Idempotent no-op.
+   *
+   *   - the fail-closed lock error from MonitorStatusTimelineService.create():
+   *     retried a few times with a short delay, because the common causes (a
+   *     transient Redis blip, or a concurrent writer holding the per-monitor
+   *     mutex) clear quickly. This retry is also what protects the INITIAL
+   *     status row written from MonitorService.onCreateSuccess - without it a
+   *     lock failure at monitor-create time leaves a Manual monitor with no
+   *     timeline forever, since Manual monitors are never probed and so never
+   *     self-heal. If all attempts fail, log and continue: for probed monitors
+   *     the next probe result recreates the transition, and failing the caller
+   *     outright would strand its remaining monitors instead.
+   *
+   * Every other error still propagates.
+   */
+  private async createStatusTimelineWithRetry(data: {
+    statusTimeline: MonitorStatusTimeline;
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    monitorId: ObjectID;
+  }): Promise<void> {
+    const maxAttempts: number = 3;
+    const retryDelayInMs: number = 2000;
+
+    const logAttributes: LogAttributes = {
+      projectId: data.projectId.toString(),
+      monitorId: data.monitorId.toString(),
+    } as LogAttributes;
+
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await MonitorStatusTimelineService.create({
+          data: data.statusTimeline,
+          props: data.props,
+        });
+        return;
+      } catch (err) {
+        if (
+          err instanceof BadDataException &&
+          err.message === MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE
+        ) {
+          logger.debug(
+            `changeMonitorStatus: monitor ${data.monitorId.toString()} is already in the requested status; skipping duplicate status timeline.`,
+          );
+          return;
+        }
+
+        const isLockError: boolean =
+          err instanceof ServerException &&
+          err.message === MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE;
+
+        if (isLockError && attempt < maxAttempts) {
+          logger.warn(
+            `changeMonitorStatus: could not acquire the status timeline lock for monitor ${data.monitorId.toString()} (attempt ${attempt} of ${maxAttempts}); retrying.`,
+            logAttributes,
+          );
+          await Sleep.sleep(retryDelayInMs);
+          continue;
+        }
+
+        if (isLockError) {
+          logger.error(
+            `changeMonitorStatus: could not acquire the status timeline lock for monitor ${data.monitorId.toString()} after ${maxAttempts} attempt(s); skipping this status change. The monitor keeps its current status.`,
+            logAttributes,
+          );
+          return;
+        }
+
+        throw err;
+      }
     }
   }
 

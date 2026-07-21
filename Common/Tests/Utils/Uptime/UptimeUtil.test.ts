@@ -418,6 +418,7 @@ describe("UptimeUtil", () => {
       };
 
       const timelines: Array<MonitorStatusTimeline> = [
+        operational("2026-06-01T00:00:00.000Z", "2026-07-17T00:00:00.000Z"),
         offline("2026-07-17T00:00:00.000Z"),
       ];
 
@@ -431,7 +432,10 @@ describe("UptimeUtil", () => {
       // 17 July -> now (19 July) is 2 days. The open row must not run to the window end.
       expect(totalDowntimeInSeconds).toBe(2 * SECONDS_IN_DAY);
 
-      // and the denominator is clipped to now too, so it is 1 July -> 19 July.
+      /*
+       * the denominator is clipped to now too, so it is 1 July -> 19 July. (The operational
+       * row covers the window start, so the first-event clamp does not move it.)
+       */
       expect(totalSecondsInTimePeriod).toBe(18 * SECONDS_IN_DAY);
 
       expect(
@@ -442,6 +446,44 @@ describe("UptimeUtil", () => {
           window,
         ),
       ).toBe(88.88);
+    });
+
+    it("measures a monitor younger than the window from its first event, not the window start", () => {
+      /*
+       * A monitor created on 17 July that has been Offline its whole life, reported over a
+       * 31 day window. If the denominator were the whole window, the 16 days before the
+       * monitor existed would count as uptime and this would report ~88.9% for a monitor
+       * that has NEVER been up. The window start is clamped forward to the first event, so
+       * both the numerator and the denominator are "17 July -> now" and the answer is 0% -
+       * the same answer the windowless "first event -> now" denominator gives.
+       */
+      const window: UptimeWindow = {
+        startDate: new Date("2026-07-01T00:00:00.000Z"),
+        endDate: new Date("2026-08-01T00:00:00.000Z"),
+      };
+
+      const timelines: Array<MonitorStatusTimeline> = [
+        offline("2026-07-17T00:00:00.000Z"),
+      ];
+
+      const { totalDowntimeInSeconds, totalSecondsInTimePeriod } =
+        UptimeUtil.getTotalDowntimeInSeconds(
+          timelines,
+          downtimeStatuses,
+          window,
+        );
+
+      expect(totalDowntimeInSeconds).toBe(2 * SECONDS_IN_DAY);
+      expect(totalSecondsInTimePeriod).toBe(2 * SECONDS_IN_DAY);
+
+      expect(
+        UptimeUtil.calculateUptimePercentage(
+          timelines,
+          UptimePrecision.TWO_DECIMAL,
+          downtimeStatuses,
+          window,
+        ),
+      ).toBe(0);
     });
 
     it("closes an open row at the start of the next row for the same monitor", () => {

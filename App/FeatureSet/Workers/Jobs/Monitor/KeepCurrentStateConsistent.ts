@@ -66,8 +66,23 @@ RunCron(
        * Now that each repaired monitor has exactly one open row, its current status can be
        * resolved unambiguously. Monitors that failed to reconcile are intentionally skipped -
        * they still have several open rows, so refreshing them could pin the wrong status.
+       *
+       * A monitor can be in BOTH sets: repairedMonitorIds records any successful batch, and a
+       * multi-batch backlog that fails in a LATER round leaves the monitor repaired-then-failed
+       * with open rows remaining. Those must be skipped too, so failed always wins.
        */
-      for (const monitorId of result.repairedMonitorIds) {
+      const failedMonitorIdSet: Set<string> = new Set<string>(
+        result.failedMonitorIds.map((monitorId: ObjectID) => {
+          return monitorId.toString();
+        }),
+      );
+
+      const monitorIdsSafeToRefresh: Array<ObjectID> =
+        result.repairedMonitorIds.filter((monitorId: ObjectID) => {
+          return !failedMonitorIdSet.has(monitorId.toString());
+        });
+
+      for (const monitorId of monitorIdsSafeToRefresh) {
         try {
           await MonitorService.refreshMonitorCurrentStatus(monitorId);
         } catch (err) {

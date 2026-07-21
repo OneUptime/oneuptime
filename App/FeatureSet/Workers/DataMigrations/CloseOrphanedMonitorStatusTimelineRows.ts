@@ -96,7 +96,7 @@ export default class CloseOrphanedMonitorStatusTimelineRows extends DataMigratio
         .join(", ");
 
       throw new Error(
-        `Failed to repair stale open MonitorStatusTimeline rows for ${result.failedMonitorIds.length} monitor(s): ${failedIds}. Not marking this migration executed — duplicate open rows must be gone before the partial unique index can be built. Investigate those monitors and re-run.`,
+        `Failed to repair stale open MonitorStatusTimeline rows for ${result.failedMonitorIds.length} monitor(s): ${failedIds}. Not marking this migration executed — the remaining open rows keep corrupting uptime reports until they are closed. Investigate those monitors and re-run (the repair is idempotent, so re-running is safe).`,
       );
     }
   }

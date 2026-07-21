@@ -96,11 +96,27 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       throw new ServerException(MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE);
     }
 
+    let createdItem: MonitorStatusTimeline;
+
     try {
-      return await super.create(createBy);
+      createdItem = await super.create(createBy);
     } finally {
       await this.releaseMutex(mutex, logAttributes);
     }
+
+    /*
+     * The feed item and its workspace notification run AFTER the mutex is
+     * released: they can involve third-party HTTP (Slack/Teams) with unbounded
+     * latency, and holding the per-monitor lock across them would block every
+     * concurrent status write for this monitor until acquireTimeout - turning
+     * one slow webhook into refused status transitions. Only the predecessor
+     * read -> INSERT -> predecessor close needs the lock, and all of that has
+     * completed by this point. (The pre-fail-closed code released the lock at
+     * this same boundary, before the feed block.)
+     */
+    await this.createStatusChangeFeedItem(createdItem, createBy);
+
+    return createdItem;
   }
 
   @CaptureSpan()
@@ -304,12 +320,19 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
    * Closes the status timeline row that precedes the row we just created.
    *
    * The update is conditional instead of a blind updateOneById: it only touches
-   * the row if it really does start before the new row (startsAt < endsAt) and is
+   * the row if it starts at or before the new row (startsAt <= endsAt) and is
    * either still open or currently closed at or after the new row's startsAt
    * (endsAt >= :endsAt OR endsAt IS NULL). That keeps a concurrent or
    * out-of-order writer from extending a row forward over a gap it does not own,
    * and keeps a backfilled row from being closed at a time earlier than the row
    * that actually follows it.
+   *
+   * startsAt uses <= and not <: on an exact startsAt tie (a backfill inserted at
+   * the same timestamp as the open predecessor) the predecessor must still be
+   * closed - at zero duration, which is harmless. With a strict < the tie would
+   * leave BOTH rows open forever: the reconciler deliberately never closes
+   * startsAt ties (its successor predicate is strictly later), so nothing would
+   * ever repair it, and the pair would read back as unbounded downtime.
    *
    * Note this closes only the single immediately-preceding row. If a monitor has
    * more than one open row (the orphans this bug produced), the older ones are
@@ -327,7 +350,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     const updatedCount: number = await this.updateOneBy({
       query: {
         _id: data.precedingStatusTimelineId.toString(),
-        startsAt: QueryHelper.lessThan(data.endsAt),
+        startsAt: QueryHelper.lessThanEqualTo(data.endsAt),
         endsAt: QueryHelper.greaterThanEqualToOrNull(data.endsAt),
       },
       data: {
@@ -457,6 +480,24 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         props: onCreate.createBy.props,
       });
     }
+    return createdItem;
+  }
+
+  /*
+   * Writes the monitor feed item (and its workspace notification, which can be
+   * third-party HTTP to Slack/Teams) for a status change. Called from create()
+   * AFTER the per-monitor mutex has been released - see the comment there. Kept
+   * out of onCreateSuccess on purpose: everything in onCreateSuccess runs while
+   * the mutex is held.
+   */
+  private async createStatusChangeFeedItem(
+    createdItem: MonitorStatusTimeline,
+    createBy: CreateBy<MonitorStatusTimeline>,
+  ): Promise<void> {
+    if (!createdItem.monitorId || !createdItem.monitorStatusId) {
+      return;
+    }
+
     const monitorStatus: MonitorStatus | null =
       await MonitorStatusService.findOneBy({
         query: {
@@ -502,19 +543,15 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
         ` Changed Monitor **[${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) State** to **` +
         stateName +
         "**",
-      moreInformationInMarkdown: `**Cause:** 
+      moreInformationInMarkdown: `**Cause:**
     ${createdItem.rootCause}`,
-      userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+      userId: createdItem.createdByUserId || createBy.props.userId,
       workspaceNotification: {
         sendWorkspaceNotification: true,
         notifyUserId:
-          createdItem.createdByUserId ||
-          onCreate.createBy.props.userId ||
-          undefined,
+          createdItem.createdByUserId || createBy.props.userId || undefined,
       },
     });
-
-    return createdItem;
   }
 
   @CaptureSpan()

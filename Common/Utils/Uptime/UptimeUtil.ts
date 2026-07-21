@@ -9,7 +9,9 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 
 /**
  * The time period an uptime calculation is reported over. When this is supplied, events are
- * clipped to it and the denominator of the uptime percentage is the window itself. Without it,
+ * clipped to it and the denominator of the uptime percentage is the window itself - clipped to
+ * now, and starting no earlier than the first recorded event (so a monitor younger than the
+ * window is measured from its first event, not diluted by time it did not exist). Without it,
  * events run to the start of the next event (or now) and the denominator is "first event -> now",
  * which lets an open (endsAt = null) row from months ago leak into an unrelated report.
  */
@@ -311,18 +313,42 @@ export default class UptimeUtil {
 
     /*
      * If a window is supplied then the time period is the window itself, and not "first event -> now".
-     * The window end is clipped to now so a window that reaches into the future does not inflate the
-     * denominator (which is what made the reported percentage drift upwards every day).
+     * Two clamps apply to the window:
+     *
+     *   - The window end is clipped to now, so a window that reaches into the future does not
+     *     inflate the denominator (which is what made the reported percentage drift upwards
+     *     every day).
+     *
+     *   - The window start is clamped forward to the first event's start, so time from before
+     *     the monitor's first recorded event does not count as uptime. Events are already
+     *     clipped to the window, so this only moves the start when the monitor has NO data for
+     *     the head of the window - i.e. it is younger than the window. Without this a monitor
+     *     created a day ago and Offline ever since would report ~98.9% uptime over a 90 day
+     *     window; with it, it reports 0% - the same answer the windowless
+     *     "first event -> now" denominator always gave.
+     *
+     * When there are no events at all there is nothing to clamp to and the denominator is the
+     * full (now-clipped) window.
      */
     let windowSecondsInTimePeriod: number | null = null;
 
     if (window) {
+      const windowEndDate: Date = OneUptimeDate.getLesserDate(
+        window.endDate,
+        OneUptimeDate.getCurrentDate(),
+      );
+
+      const windowStartDate: Date =
+        monitorEvents.length > 0
+          ? OneUptimeDate.getGreaterDate(
+              window.startDate,
+              monitorEvents[0]!.startDate,
+            )
+          : window.startDate;
+
       windowSecondsInTimePeriod = OneUptimeDate.getSecondsBetweenDates(
-        window.startDate,
-        OneUptimeDate.getLesserDate(
-          window.endDate,
-          OneUptimeDate.getCurrentDate(),
-        ),
+        windowStartDate,
+        windowEndDate,
       );
 
       // never let the denominator be zero or negative.

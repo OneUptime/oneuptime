@@ -272,6 +272,14 @@ export default class MonitorStatusTimelineReconciler {
      * nextStartsAt is NULL for an open row with no strictly later row. Those rows are the
      * legitimate current-state row (or a startsAt tie at the head of the timeline) and are
      * excluded from the UPDATE, so they stay open.
+     *
+     * The UPDATE re-checks m."endsAt" IS NULL even though candidates already filtered on it:
+     * the reconciler runs WITHOUT the per-monitor mutex, and under READ COMMITTED a live
+     * writer can close a candidate row between this statement's snapshot and the UPDATE
+     * taking the row lock. Postgres then re-evaluates only the UPDATE's own WHERE against
+     * the new row version (EvalPlanQual), so the openness check must live in the UPDATE
+     * itself - otherwise the reconciler would overwrite the endsAt the writer just committed
+     * with its stale snapshot-time value.
      */
     const sql: string = `
       WITH candidates AS (
@@ -299,6 +307,7 @@ export default class MonitorStatusTimelineReconciler {
             "version" = m."version" + 1
         FROM candidates c
         WHERE m."_id" = c."_id"
+          AND m."endsAt" IS NULL
           AND c."nextStartsAt" IS NOT NULL
         RETURNING m."_id"
       )
