@@ -32,6 +32,8 @@ import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullR
 import AIAgentTaskPullRequestService from "./AIAgentTaskPullRequestService";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import { normalizeExceptionText } from "../Utils/Telemetry/ExceptionSanitizer";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -256,25 +258,25 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Human "closed without merging" feedback: when an AI fix PR for this
+     * Human "closed without merging" feedback: when an AI FIX PR for this
      * exception was declined, the automatic lane must not keep re-opening
-     * PRs for it. A HUMAN clicking "Fix with AI" is an explicit override —
-     * it clears the stamp and retries.
+     * fix PRs for it. Scoped to the FixException recipe — the stamp is only
+     * ever SET for closed fix PRs (SyncPullRequestStates), so a regression
+     * test or error-handling task is neither blocked by it nor allowed to
+     * clear it. A HUMAN clicking "Fix with AI" is the explicit override;
+     * the stamp is cleared only AFTER the retry run is actually created
+     * (see below), so a retry that fails a later gate leaves the human's
+     * decline in force.
      */
-    if (telemetryException.aiFixDeclinedAt) {
-      if (!props.userId) {
-        throw new BadDataException(
-          "A previous AI fix pull request for this exception was closed without merging, so automatic fix attempts are paused for it. A user can retry from the exception page.",
-        );
-      }
+    const isDeclinedFixOverride: boolean = Boolean(
+      telemetryException.aiFixDeclinedAt &&
+        taskType === CodeFixTaskType.FixException,
+    );
 
-      await this.updateOneById({
-        id: telemetryExceptionId,
-        data: {
-          aiFixDeclinedAt: null,
-        },
-        props: { isRoot: true },
-      });
+    if (isDeclinedFixOverride && !props.userId) {
+      throw new BadDataException(
+        "A previous AI fix pull request for this exception was closed without merging, so automatic fix attempts are paused for it. A user can retry from the exception page.",
+      );
     }
 
     /*
@@ -309,52 +311,105 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Duplicate guard is per (exception, taskType): an active FixException
-     * run must not block queuing a WriteRegressionTest run and vice versa.
+     * The duplicate guards below are check-then-create: without
+     * serialization, two triage completions for splintered variants of the
+     * same root cause can both pass the guards and both create runs. A
+     * per-project Redis mutex closes the window; acquisition failure
+     * (Redis down) degrades to the unserialized behavior rather than
+     * blocking fix creation — the guards still run, they just race.
      */
-    await this.validateNoActiveCodeFixRunExists(telemetryExceptionId, taskType);
+    let mutex: SemaphoreMutex | null = null;
 
-    /*
-     * Cross-group duplicate guard: interpolated dynamic values (garbage
-     * UUIDs, file paths, request payloads) splinter one root cause into
-     * many fingerprints, and the per-exception guard above cannot see
-     * that. Compare NORMALIZED messages against exceptions that already
-     * have an active run or an open AI pull request, so one root cause
-     * yields one PR — not one per interpolated variant.
-     */
-    await this.validateNoOpenFixForSimilarException({
-      projectId: telemetryException.projectId,
-      telemetryExceptionId: telemetryExceptionId,
-      taskType: taskType,
-      message: telemetryException.message || "",
-      exceptionType: telemetryException.exceptionType || "",
-    });
-
-    const run: AIRun = new AIRun();
-    run.projectId = telemetryException.projectId;
-    run.runType = AIRunType.CodeFix;
-    run.codeFixTaskType = taskType;
-    run.status = AIRunStatus.Queued;
-    run.triggeredByTelemetryExceptionId = telemetryExceptionId;
-
-    // Attribution: the user who clicked "Fix with AI Agent".
-    if (props.userId) {
-      run.userId = props.userId;
+    try {
+      mutex = await Semaphore.lock({
+        key: telemetryException.projectId.toString(),
+        namespace: "TelemetryExceptionService.createCodeFixRunForException",
+        lockTimeout: 15000,
+      });
+    } catch (err) {
+      logger.debug(
+        `Could not acquire the code-fix creation mutex for project ${telemetryException.projectId.toString()} — proceeding without serialization: ${err}`,
+      );
     }
 
-    /*
-     * Created as root: AIRun rows are server-written only (empty create
-     * ACL); the user's access was already checked by the exception read.
-     */
-    const createdRun: AIRun = await AIRunService.create({
-      data: run,
-      props: {
-        isRoot: true,
-      },
-    });
+    let createdRun: AIRun;
+
+    try {
+      /*
+       * Duplicate guard is per (exception, taskType): an active
+       * FixException run must not block queuing a WriteRegressionTest run
+       * and vice versa.
+       */
+      await this.validateNoActiveCodeFixRunExists(
+        telemetryExceptionId,
+        taskType,
+      );
+
+      /*
+       * Cross-group duplicate guard: interpolated dynamic values (garbage
+       * UUIDs, file paths, request payloads) splinter one root cause into
+       * many fingerprints, and the per-exception guard above cannot see
+       * that. Compare NORMALIZED messages against exceptions that already
+       * have an active run or an open AI pull request, so one root cause
+       * yields one PR — not one per interpolated variant.
+       */
+      await this.validateNoOpenFixForSimilarException({
+        projectId: telemetryException.projectId,
+        telemetryExceptionId: telemetryExceptionId,
+        taskType: taskType,
+        message: telemetryException.message || "",
+        exceptionType: telemetryException.exceptionType || "",
+      });
+
+      const run: AIRun = new AIRun();
+      run.projectId = telemetryException.projectId;
+      run.runType = AIRunType.CodeFix;
+      run.codeFixTaskType = taskType;
+      run.status = AIRunStatus.Queued;
+      run.triggeredByTelemetryExceptionId = telemetryExceptionId;
+
+      // Attribution: the user who clicked "Fix with AI Agent".
+      if (props.userId) {
+        run.userId = props.userId;
+      }
+
+      /*
+       * Created as root: AIRun rows are server-written only (empty create
+       * ACL); the user's access was already checked by the exception read.
+       */
+      createdRun = await AIRunService.create({
+        data: run,
+        props: {
+          isRoot: true,
+        },
+      });
+    } finally {
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (err) {
+          logger.debug(`Failed to release the code-fix creation mutex: ${err}`);
+        }
+      }
+    }
 
     if (!createdRun.id) {
       throw new BadDataException("Failed to create the AI fix run");
+    }
+
+    /*
+     * The human's retry actually went through — only now consume the
+     * decline override. A retry that failed any gate above leaves the
+     * suppression in force.
+     */
+    if (isDeclinedFixOverride) {
+      await this.updateOneById({
+        id: telemetryExceptionId,
+        data: {
+          aiFixDeclinedAt: null,
+        },
+        props: { isRoot: true },
+      });
     }
 
     return createdRun;
@@ -421,8 +476,6 @@ export class Service extends DatabaseService<Model> {
     message: string;
     exceptionType: string;
   }): Promise<void> {
-    const CANDIDATE_LIMIT: number = 100;
-
     // (a) Exceptions with a non-terminal run of the same recipe.
     const activeRuns: Array<AIRun> = await AIRunService.findBy({
       query: {
@@ -448,7 +501,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         triggeredByTelemetryExceptionId: true,
       },
-      limit: CANDIDATE_LIMIT,
+      limit: LIMIT_MAX,
       skip: 0,
       props: { isRoot: true },
     });
@@ -463,10 +516,23 @@ export class Service extends DatabaseService<Model> {
         select: {
           aiRunId: true,
         },
-        limit: CANDIDATE_LIMIT,
+        limit: LIMIT_MAX,
         skip: 0,
         props: { isRoot: true },
       });
+
+    /*
+     * A guard that silently stops guarding is worse than none — surface
+     * candidate-scan truncation instead of quietly missing duplicates.
+     */
+    if (
+      activeRuns.length >= LIMIT_MAX ||
+      openPullRequests.length >= LIMIT_MAX
+    ) {
+      logger.warn(
+        `Cross-group AI fix dedupe guard: candidate scan truncated at ${LIMIT_MAX} rows for project ${data.projectId.toString()} — the duplicate-PR guard may miss matches.`,
+      );
+    }
 
     const openPrRunIds: Array<ObjectID> = openPullRequests
       .map((pullRequest: AIAgentTaskPullRequest) => {
@@ -491,12 +557,18 @@ export class Service extends DatabaseService<Model> {
             select: {
               triggeredByTelemetryExceptionId: true,
             },
-            limit: CANDIDATE_LIMIT,
+            limit: LIMIT_MAX,
             skip: 0,
             props: { isRoot: true },
           })
         : [];
 
+    /*
+     * The target exception is deliberately NOT excluded: its own COMPLETED
+     * run with a still-open PR must keep blocking a re-fix (the
+     * non-terminal guard above cannot see completed runs). Its own ACTIVE
+     * runs were already rejected by validateNoActiveCodeFixRunExists.
+     */
     const candidateExceptionIds: Array<ObjectID> = [];
     const seenIds: Set<string> = new Set<string>();
 
@@ -510,10 +582,7 @@ export class Service extends DatabaseService<Model> {
 
       const idString: string = exceptionId.toString();
 
-      if (
-        idString === data.telemetryExceptionId.toString() ||
-        seenIds.has(idString)
-      ) {
+      if (seenIds.has(idString)) {
         continue;
       }
 
@@ -539,7 +608,7 @@ export class Service extends DatabaseService<Model> {
         message: true,
         exceptionType: true,
       },
-      limit: CANDIDATE_LIMIT,
+      limit: candidateExceptionIds.length,
       skip: 0,
       props: { isRoot: true },
     });
@@ -549,11 +618,19 @@ export class Service extends DatabaseService<Model> {
         candidate.message || "",
       )}`;
 
-      if (candidateSignature === targetSignature) {
+      if (candidateSignature !== targetSignature) {
+        continue;
+      }
+
+      if (candidate._id?.toString() === data.telemetryExceptionId.toString()) {
         throw new BadDataException(
-          `A similar exception (same type and normalized message, exception ${candidate._id?.toString()}) already has an AI agent task in progress or an open AI pull request. Review that pull request instead of opening another one for the same root cause.`,
+          "This exception already has an open AI pull request for this task type. Review that pull request instead of opening another one.",
         );
       }
+
+      throw new BadDataException(
+        `A similar exception (same type and normalized message, exception ${candidate._id?.toString()}) already has an AI agent task in progress or an open AI pull request. Review that pull request instead of opening another one for the same root cause.`,
+      );
     }
   }
 

@@ -265,7 +265,8 @@ export default class AIAgentDataAPI {
               id: exception._id?.toString(),
               message: sanitizeExceptionMessage(exception.message || ""),
               stackTrace: sanitizeStackTrace(exception.stackTrace || ""),
-              exceptionType: exception.exceptionType,
+              // Legacy pre-batch-upsert rows can carry NULL here.
+              exceptionType: exception.exceptionType || "",
               fingerprint: exception.fingerprint,
               aiClassification: exception.aiClassification || null,
             },

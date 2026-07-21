@@ -469,9 +469,12 @@ ${data.summary}
     prefix?: string;
   }): string {
     const prefix: string = data.prefix || "fix: resolve";
+    // Legacy exceptions can carry a NULL type despite the string typing.
     const exceptionType: string =
-      data.exceptionType.replace(/\s+/g, " ").trim() || "exception";
-    const serviceName: string = data.serviceName.replace(/\s+/g, " ").trim();
+      (data.exceptionType || "").replace(/\s+/g, " ").trim() || "exception";
+    const serviceName: string = (data.serviceName || "")
+      .replace(/\s+/g, " ")
+      .trim();
 
     const title: string = serviceName
       ? `${prefix} ${exceptionType} in ${serviceName}`

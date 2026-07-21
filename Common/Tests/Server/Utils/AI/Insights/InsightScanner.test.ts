@@ -439,14 +439,42 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
   let routeInsightFix: jest.SpyInstance;
   let enqueueInsightTriage: jest.SpyInstance;
 
+  /*
+   * The sweep now issues THREE findBy queries per tick (Detected rows,
+   * untriaged ActionRequired rows, unrouted code-fault rows) — the mock
+   * dispatches on the queried status/classification so each test can feed
+   * exactly one stranded shape.
+   */
+  let detectedStranded: Array<AIInsight>;
+  let untriagedStranded: Array<AIInsight>;
+  let unroutedCodeFaults: Array<AIInsight>;
+
   beforeEach(() => {
+    detectedStranded = [];
+    untriagedStranded = [];
+    unroutedCodeFaults = [];
+
     // No candidates this tick: only the sweep is under test.
     jest
       .spyOn(InsightDetectors, "getAllDetectors")
       .mockReturnValue([fakeDetector({ candidates: [] })]);
     findBy = jest
       .spyOn(AIInsightService, "findBy")
-      .mockResolvedValue([] as unknown as Array<AIInsight>);
+      .mockImplementation((findByArgs: unknown): Promise<Array<AIInsight>> => {
+        const query: Record<string, unknown> =
+          (findByArgs as { query: Record<string, unknown> }).query || {};
+
+        if (query["status"] === AIInsightStatus.Detected) {
+          return Promise.resolve(detectedStranded);
+        }
+        if (query["classification"]) {
+          return Promise.resolve(unroutedCodeFaults);
+        }
+        if (query["triageCompletedAt"]) {
+          return Promise.resolve(untriagedStranded);
+        }
+        return Promise.resolve([]);
+      });
     updateOneById = jest
       .spyOn(AIInsightService, "updateOneById")
       .mockResolvedValue(undefined);
@@ -464,7 +492,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
 
   test("a Detected row left over from an earlier tick is swept up and re-routed to ActionRequired (and triaged)", async () => {
     const stranded: AIInsight = fakeInsight();
-    findBy.mockResolvedValue([stranded]);
+    detectedStranded = [stranded];
 
     await InsightScanner.scanProjectForInsights(fakeProject());
 
@@ -497,11 +525,17 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
     const callOrder: Array<string> = [];
     const created: AIInsight = fakeInsight();
 
-    findBy.mockImplementation((): Promise<Array<AIInsight>> => {
-      callOrder.push("sweep");
-      // Nothing stranded: the row below does not exist yet at sweep time.
-      return Promise.resolve([]);
-    });
+    findBy.mockImplementation(
+      (findByArgs: unknown): Promise<Array<AIInsight>> => {
+        const query: Record<string, unknown> =
+          (findByArgs as { query: Record<string, unknown> }).query || {};
+        if (query["status"] === AIInsightStatus.Detected) {
+          callOrder.push("sweep");
+        }
+        // Nothing stranded: the row below does not exist yet at sweep time.
+        return Promise.resolve([]);
+      },
+    );
     jest.spyOn(InsightDetectors, "getAllDetectors").mockReturnValue([
       {
         insightType: AIInsightType.NewException,
@@ -543,7 +577,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
   test("one stranded row failing to re-route does not stop the next one", async () => {
     const first: AIInsight = fakeInsight();
     const second: AIInsight = fakeInsight();
-    findBy.mockResolvedValue([first, second]);
+    detectedStranded = [first, second];
     updateOneById
       .mockRejectedValueOnce(new Error("write conflict"))
       .mockResolvedValue(undefined);
@@ -553,6 +587,75 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
     ).resolves.toBeUndefined();
 
     expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight: second });
+  });
+
+  test("stranded shape 2: an ActionRequired insight with no triage verdict gets its triage re-enqueued (capped on failed attempts)", async () => {
+    const untriaged: AIInsight = fakeInsight();
+    untriagedStranded = [untriaged];
+
+    // Zero failed attempts: the re-enqueue proceeds.
+    const countBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue({
+        toNumber: () => {
+          return 0;
+        },
+      } as never);
+    const triageAiRunId: ObjectID = ObjectID.generate();
+    enqueueInsightTriage.mockResolvedValue({ triageAiRunId });
+
+    await InsightScanner.scanProjectForInsights(fakeProject());
+
+    expect(enqueueInsightTriage).toHaveBeenCalledWith({ insight: untriaged });
+    expect(updateOneById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: untriaged.id,
+        data: expect.objectContaining({ triageAiRunId }),
+      }),
+    );
+
+    // Three failed attempts: the insight is left alone (no retry storm).
+    enqueueInsightTriage.mockClear();
+    countBy.mockResolvedValue({
+      toNumber: () => {
+        return 3;
+      },
+    } as never);
+
+    await InsightScanner.scanProjectForInsights(fakeProject());
+
+    expect(enqueueInsightTriage).not.toHaveBeenCalled();
+  });
+
+  test("stranded shape 3: a code-fault verdict whose fix never routed is re-routed with a CONDITIONAL FixOpened flip", async () => {
+    const unrouted: AIInsight = {
+      ...fakeInsight(),
+      insightType: AIInsightType.NewException,
+    } as AIInsight;
+    unroutedCodeFaults = [unrouted];
+
+    const fixAiRunId: ObjectID = ObjectID.generate();
+    routeInsightFix.mockResolvedValue({ fixAiRunId });
+    const flipStatus: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
+
+    await InsightScanner.scanProjectForInsights(fakeProject());
+
+    expect(routeInsightFix).toHaveBeenCalledWith(
+      expect.objectContaining({ insight: unrouted }),
+    );
+    expect(flipStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          status: AIInsightStatus.ActionRequired,
+        }),
+        data: expect.objectContaining({
+          status: AIInsightStatus.FixOpened,
+          fixAiRunId,
+        }),
+      }),
+    );
   });
 });
 

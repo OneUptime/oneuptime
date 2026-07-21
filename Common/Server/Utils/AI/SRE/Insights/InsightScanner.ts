@@ -8,8 +8,15 @@ import ProjectService from "../../../../Services/ProjectService";
 import AIInsightService from "../../../../Services/AIInsightService";
 import InsightDetectors from "./Detectors/Index";
 import InsightStore, { UpsertCandidatesResult } from "./InsightStore";
+import InsightFixRouting, { InsightFixRoutingResult } from "./FixRouting";
 import InsightTriage, { InsightTriageResult } from "./Triage";
 import { InsightCandidate, InsightDetector, InsightScanContext } from "./Types";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
+import AIRunType from "../../../../../Types/AI/AIRunType";
+import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
+import ExceptionAIClassification from "../../../../../Types/AI/ExceptionAIClassification";
+import AIRunService from "../../../../Services/AIRunService";
+import QueryHelper from "../../../../Types/Database/QueryHelper";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 
@@ -211,6 +218,178 @@ export default class InsightScanner {
         );
       }
     }
+
+    await this.resweepUntriagedInsights({ projectId });
+    await this.resweepUnroutedCodeFaults({ projectId, project });
+  }
+
+  /*
+   * Stranded shape 2: ActionRequired insights that never got a triage
+   * verdict. With triage gating the automatic fix, a triage that was
+   * quiet-skipped (token budget exhausted), expired in the queue, or
+   * failed would otherwise strand the insight verdict-less FOREVER — and
+   * with it any automatic fix. Re-enqueueing is safe and cheap: the
+   * triage enqueue dedupes to one non-terminal run per insight and
+   * quiet-skips when the budget still has no headroom. Bounded two ways:
+   * only insights from the last 7 days (older rows predate the verdict
+   * gate or were consciously left alone), and only while fewer than 3
+   * triage attempts have ended in failure (a permanently failing triage
+   * must not retry every 15 minutes for a week).
+   */
+  private static async resweepUntriagedInsights(data: {
+    projectId: ObjectID;
+  }): Promise<void> {
+    const { projectId } = data;
+
+    try {
+      const untriaged: Array<AIInsight> = await AIInsightService.findBy({
+        query: {
+          projectId: projectId,
+          status: AIInsightStatus.ActionRequired,
+          triageCompletedAt: QueryHelper.isNull(),
+          createdAt: QueryHelper.greaterThanEqualTo(
+            OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7),
+          ),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          insightType: true,
+          serviceName: true,
+          traceId: true,
+          telemetryExceptionId: true,
+          evidence: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      for (const insight of untriaged) {
+        try {
+          const failedTriageAttempts: number = (
+            await AIRunService.countBy({
+              query: {
+                runType: AIRunType.Investigation,
+                triggeredByAiInsightId: insight.id!,
+                status: QueryHelper.any([
+                  AIRunStatus.Error,
+                  AIRunStatus.Cancelled,
+                  AIRunStatus.Stale,
+                ]),
+              },
+              props: { isRoot: true },
+            })
+          ).toNumber();
+
+          if (failedTriageAttempts >= 3) {
+            continue;
+          }
+
+          const triageResult: InsightTriageResult =
+            await InsightTriage.enqueueInsightTriage({ insight: insight });
+
+          if (triageResult.triageAiRunId) {
+            await AIInsightService.updateOneById({
+              id: insight.id!,
+              data: {
+                triageAiRunId: triageResult.triageAiRunId,
+              },
+              props: { isRoot: true },
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `AI Insights: triage re-enqueue failed for insight ${insight.id?.toString()} — continuing: ${error}`,
+          );
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `AI Insights: failed to sweep untriaged insights for project ${projectId.toString()} — continuing with the scan: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * Stranded shape 3: a code-fault verdict was recorded but the fix was
+   * never routed — the pod died between the verdict write and the fix
+   * routing, or routing quiet-skipped on a transient gate (daily fix
+   * budget, readiness). Re-routing is idempotent: the creation path's
+   * per-(exception, recipe) dedupe and the cross-group guard refuse
+   * duplicates, and the conditional status flip only moves
+   * ActionRequired → FixOpened. Bounded to verdicts from the last 24
+   * hours so a permanently refused group (declined by a human, capped
+   * repo) does not retry forever. Latency insights are excluded — they
+   * are fix-routed deterministically at scan time.
+   */
+  private static async resweepUnroutedCodeFaults(data: {
+    projectId: ObjectID;
+    project: Project;
+  }): Promise<void> {
+    const { projectId, project } = data;
+
+    try {
+      const unrouted: Array<AIInsight> = await AIInsightService.findBy({
+        query: {
+          projectId: projectId,
+          status: AIInsightStatus.ActionRequired,
+          classification: ExceptionAIClassification.CodeFault,
+          fixAiRunId: QueryHelper.isNull(),
+          triageCompletedAt: QueryHelper.greaterThanEqualTo(
+            OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -1),
+          ),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          insightType: true,
+          serviceName: true,
+          traceId: true,
+          telemetryExceptionId: true,
+          evidence: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      for (const insight of unrouted) {
+        if (insight.insightType === AIInsightType.TraceLatencyRegression) {
+          continue;
+        }
+
+        try {
+          const fixResult: InsightFixRoutingResult =
+            await InsightFixRouting.routeInsightFix({
+              insight: insight,
+              project: project,
+            });
+
+          if (fixResult.fixAiRunId) {
+            await AIInsightService.updateOneBy({
+              query: {
+                _id: insight.id!.toString(),
+                status: AIInsightStatus.ActionRequired,
+              },
+              data: {
+                status: AIInsightStatus.FixOpened,
+                fixAiRunId: fixResult.fixAiRunId,
+              },
+              props: { isRoot: true },
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `AI Insights: fix re-routing failed for insight ${insight.id?.toString()} — continuing: ${error}`,
+          );
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `AI Insights: failed to sweep unrouted code-fault insights for project ${projectId.toString()} — continuing with the scan: ${error}`,
+      );
+    }
   }
 
   /*
@@ -238,15 +417,51 @@ export default class InsightScanner {
     insight: AIInsight;
     project: Project;
   }): Promise<void> {
-    const { insight } = data;
+    const { insight, project } = data;
 
-    await AIInsightService.updateOneById({
-      id: insight.id!,
-      data: {
-        status: AIInsightStatus.ActionRequired,
-      },
-      props: { isRoot: true },
-    });
+    /*
+     * TraceLatencyRegression keeps DETERMINISTIC scan-time fix routing:
+     * its evidence is the SpanTreeAnalyzer's own findings (N+1, dominant
+     * span, sequential fan-out) — no LLM verdict adds signal there, and
+     * the exception-centric classification taxonomy would mislabel most
+     * latency regressions as "infrastructure". Exception insights go
+     * through the verdict gate instead.
+     */
+    let fixAiRunId: ObjectID | undefined = undefined;
+
+    if (insight.insightType === AIInsightType.TraceLatencyRegression) {
+      try {
+        const fixResult: InsightFixRoutingResult =
+          await InsightFixRouting.routeInsightFix({
+            insight: insight,
+            project: project,
+          });
+        fixAiRunId = fixResult.fixAiRunId;
+      } catch (error) {
+        logger.error(
+          `AI Insights: fix routing threw for latency insight ${insight.id?.toString()} (treating as no fix opened): ${error}`,
+        );
+      }
+    }
+
+    if (fixAiRunId) {
+      await AIInsightService.updateOneById({
+        id: insight.id!,
+        data: {
+          status: AIInsightStatus.FixOpened,
+          fixAiRunId: fixAiRunId,
+        },
+        props: { isRoot: true },
+      });
+    } else {
+      await AIInsightService.updateOneById({
+        id: insight.id!,
+        data: {
+          status: AIInsightStatus.ActionRequired,
+        },
+        props: { isRoot: true },
+      });
+    }
 
     let triageAiRunId: ObjectID | undefined = undefined;
 

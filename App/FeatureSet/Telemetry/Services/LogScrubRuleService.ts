@@ -265,8 +265,20 @@ export class LogScrubRuleService {
 
     for (const compiled of compiledRules) {
       singleRule[0] = compiled;
-      const fieldsToScrub: string =
-        (compiled.rule.fieldsToScrub as string) || "both";
+
+      /*
+       * SensitiveKeys is key-targeted, so it can only ever act on
+       * attributes — a rule saved with a body-only scope would otherwise
+       * be a silent no-op while looking active in the rules table. Force
+       * the attributes scope for it regardless of the stored value.
+       */
+      const isSensitiveKeysRule: boolean =
+        (compiled.rule.patternType as string) ===
+        LogScrubPatternType.SensitiveKeys;
+
+      const fieldsToScrub: string = isSensitiveKeysRule
+        ? "attributes"
+        : (compiled.rule.fieldsToScrub as string) || "both";
 
       // Scrub body
       if (

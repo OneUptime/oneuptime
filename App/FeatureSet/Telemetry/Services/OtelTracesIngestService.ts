@@ -881,8 +881,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
   /*
    * Build ClickHouse ExceptionInstance rows + Postgres TelemetryException
    * upsert payloads for a span's exception events. Runs post-drop and
-   * post-scrub: the fingerprint is computed on the scrubbed content, the
-   * same way the logs path fingerprints the post-scrub log row.
+   * post-scrub: stored content is the scrubbed view, while the fingerprint
+   * hashes the pre-scrub content to keep existing group identities stable
+   * (see the comment at the getFingerprint call).
    *
    * Buffering rationale: the legacy code called
    * ExceptionUtil.saveOrUpdateTelemetryException fire-and-forget per
@@ -938,11 +939,21 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         const stackTrace: string = scrubbed.stackTrace;
         const exceptionType: string = rawException.exceptionType;
 
+        /*
+         * Fingerprint deliberately computed on the PRE-scrub content while
+         * everything STORED uses the scrubbed values. The fingerprint is a
+         * one-way SHA-256 over normalized text — it never surfaces content
+         * — but it IS the group identity: hashing post-scrub text would
+         * re-fingerprint every existing group the moment a project adds a
+         * scrub rule matching its exception messages, orphaning the old
+         * rows (with their resolved/archived/classification state) and
+         * restarting occurrence counts from zero.
+         */
         const fingerprint: string = ExceptionUtil.getFingerprint({
           projectId: spanContext.projectId,
           primaryEntityId: spanContext.primaryEntityId,
-          message: message,
-          stackTrace: stackTrace,
+          message: rawException.message,
+          stackTrace: rawException.stackTrace,
           exceptionType: exceptionType,
         });
 

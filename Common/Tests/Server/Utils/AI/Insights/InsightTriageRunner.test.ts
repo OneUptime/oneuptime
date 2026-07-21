@@ -259,6 +259,9 @@ describe("InsightTriageRunner.executeTriage", () => {
     const persistInsight: jest.SpyInstance = jest
       .spyOn(AIInsightService, "updateOneById")
       .mockResolvedValue(undefined);
+    const flipStatus: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
     const stampException: jest.SpyInstance = jest
       .spyOn(TelemetryExceptionService, "updateOneById")
       .mockResolvedValue(undefined as never);
@@ -302,15 +305,81 @@ describe("InsightTriageRunner.executeTriage", () => {
         }),
       }),
     );
-    // The fix decision happens HERE, post-verdict — and flips the status.
+    /*
+     * The fix decision happens HERE, post-verdict — and flips the status
+     * CONDITIONALLY: only a still-ActionRequired insight becomes FixOpened.
+     */
     expect(routeFix).toHaveBeenCalledTimes(1);
-    expect(persistInsight).toHaveBeenCalledWith(
+    expect(flipStatus).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: sentinelInsightId,
+        query: expect.objectContaining({
+          status: AIInsightStatus.ActionRequired,
+        }),
         data: expect.objectContaining({
           status: AIInsightStatus.FixOpened,
           fixAiRunId,
         }),
+      }),
+    );
+  });
+
+  test("a human Dismissed/Resolved during triage blocks all automation — no fix, no archive, terminal status untouched", async () => {
+    const telemetryExceptionId: ObjectID = ObjectID.generate();
+
+    /*
+     * First read (context build) returns the snapshot; the SECOND read is
+     * actOnClassification's status re-check — the human dismissed the
+     * insight while the triage run executed.
+     */
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValueOnce(makeInsight({ telemetryExceptionId }))
+      .mockResolvedValue(
+        makeInsight({
+          telemetryExceptionId,
+          status: AIInsightStatus.Dismissed,
+        }),
+      );
+    const persistInsight: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneById")
+      .mockResolvedValue(undefined);
+    const flipStatus: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
+    const exceptionWrites: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    const routeFix: jest.SpyInstance = jest.spyOn(
+      InsightFixRouting,
+      "routeInsightFix",
+    );
+
+    driveTriageWithAnalysis(
+      "A clear null deref.\n\nClassification: code-fault",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    // The verdict still lands (summary + classification are metadata)...
+    expect(persistInsight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          classification: ExceptionAIClassification.CodeFault,
+        }),
+      }),
+    );
+    // ...but no automation fires, and the terminal status is never touched.
+    expect(routeFix).not.toHaveBeenCalled();
+    expect(flipStatus).not.toHaveBeenCalled();
+    expect(exceptionWrites).toHaveBeenCalledTimes(1); // classification stamp only
+    expect(exceptionWrites).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ isArchived: true }),
       }),
     );
   });

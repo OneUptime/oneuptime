@@ -34,8 +34,8 @@ export interface TelemetryExceptionPayload {
 }
 
 /*
- * Per-batch parameter footprint: 12 columns x rows. Postgres caps a
- * single statement at 65535 placeholders, so 500 rows = 6000 params
+ * Per-batch parameter footprint: 14 columns x rows. Postgres caps a
+ * single statement at 65535 placeholders, so 500 rows = 7000 params
  * gives us plenty of headroom while matching the chunk size used by
  * KubernetesResourceService.bulkUpsert (the precedent this batch
  * upsert is modelled on).

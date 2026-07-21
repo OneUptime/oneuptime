@@ -291,6 +291,14 @@ export class TraceScrubRuleService {
 
     const applicableRules: Array<CompiledRule> = compiledRules.filter(
       (compiled: CompiledRule): boolean => {
+        // SensitiveKeys always applies to attribute content (see scrubSpan).
+        if (
+          (compiled.rule.patternType as string) ===
+          TraceScrubPatternType.SensitiveKeys
+        ) {
+          return true;
+        }
+
         const fieldsToScrub: string =
           (compiled.rule.fieldsToScrub as string) || TraceScrubField.All;
         return (
@@ -334,8 +342,21 @@ export class TraceScrubRuleService {
 
     for (const compiled of compiledRules) {
       singleRule[0] = compiled;
-      const fieldsToScrub: string =
-        (compiled.rule.fieldsToScrub as string) || TraceScrubField.All;
+
+      /*
+       * SensitiveKeys is key-targeted, so it can only ever act on
+       * attributes (span + event) — a rule saved with a name-only scope
+       * would otherwise be a silent no-op while looking active in the
+       * rules table. Treat it as All (the name pass skips key-targeted
+       * rules inside scrubString anyway).
+       */
+      const isSensitiveKeysRule: boolean =
+        (compiled.rule.patternType as string) ===
+        TraceScrubPatternType.SensitiveKeys;
+
+      const fieldsToScrub: string = isSensitiveKeysRule
+        ? TraceScrubField.All
+        : (compiled.rule.fieldsToScrub as string) || TraceScrubField.All;
       const scrubAll: boolean = fieldsToScrub === TraceScrubField.All;
 
       // Span name.

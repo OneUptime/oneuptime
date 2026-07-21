@@ -189,14 +189,34 @@ export function sanitizeExceptionMessage(message: string): string {
 }
 
 /**
- * Sanitize a stack trace for the same surfaces. Deliberately redact-only:
- * normalization would rewrite file:line references, and those are exactly
- * what a code-fix agent needs to locate the defect. Secrets, emails and
- * IPs embedded in frames still get stripped.
+ * Sanitize a stack trace for the same surfaces.
+ *
+ * Runtimes prefix the native stack string with the exception MESSAGE
+ * ("Error: <message>" in Node, "ValueError: <message>" in Python
+ * headers, "Caused by: ..." in Java) — so a redact-only pass would leak
+ * the very identifiers sanitizeExceptionMessage strips. Frame lines are
+ * indented ("    at fn (file:42:7)", '  File "x.py", line 3', "\tat ...")
+ * and must keep exact file:line references for the code agent, so the
+ * split is: unindented header/message lines get full normalization,
+ * indented frame lines are left intact, and the secret redactor sweeps
+ * everything at the end.
  */
+// Frame lines are indented; header/message lines are not.
+const INDENTED_FRAME_LINE_REGEX: RegExp = /^\s/;
+
 export function sanitizeStackTrace(stackTrace: string): string {
   if (!stackTrace) {
     return "";
   }
-  return ToolResultSerializer.redact(stackTrace).text;
+
+  const normalized: string = stackTrace
+    .split("\n")
+    .map((line: string): string => {
+      return INDENTED_FRAME_LINE_REGEX.test(line)
+        ? line
+        : normalizeExceptionText(line);
+    })
+    .join("\n");
+
+  return ToolResultSerializer.redact(normalized).text;
 }

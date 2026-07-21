@@ -803,8 +803,12 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const canStartAITask: CanStartAITaskFunction = (
     task: AIAgentTaskInfo | undefined,
   ): boolean => {
+    // The server rejects resolved AND archived exceptions — mirror both.
     return (
-      !isResolved && !isAIAgentTaskLoading && (!task || !isAITaskActive(task))
+      !isResolved &&
+      !isArchived &&
+      !isAIAgentTaskLoading &&
+      (!task || !isAITaskActive(task))
     );
   };
 
@@ -826,7 +830,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     task: AIAgentTaskInfo | undefined,
     presentation: AITaskPresentation,
   ): ReactElement => {
-    if (!task || isResolved) {
+    // Retry buttons in the failure cards hit the same server gates.
+    if (!task || isResolved || isArchived) {
       return <></>;
     }
 

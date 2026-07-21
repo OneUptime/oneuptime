@@ -369,6 +369,41 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
     expect(create).toHaveBeenCalled();
   });
 
+  test("the decline stamp is scoped to FixException: other recipes are neither blocked by it nor clear it", async () => {
+    mockReadinessOk();
+
+    jest
+      .spyOn(TelemetryExceptionService, "findOneById")
+      .mockResolvedValue(fakeException({ aiFixDeclinedAt: new Date() }));
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    const exceptionUpdates: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    /*
+     * A user asking for a regression TEST on a group whose FIX a human
+     * declined: the test run proceeds, and — critically — the fix-decline
+     * suppression stays in force (the user never overrode the fix).
+     */
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true, userId: ObjectID.generate() },
+        taskType: CodeFixTaskType.WriteRegressionTest,
+      }),
+    ).resolves.toBeDefined();
+
+    expect(create).toHaveBeenCalled();
+    expect(exceptionUpdates).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ aiFixDeclinedAt: null }),
+      }),
+    );
+  });
+
   test("cross-group duplicate guard: a similar exception (same type + normalized message) with an active run blocks creation", async () => {
     mockReadinessOk();
 

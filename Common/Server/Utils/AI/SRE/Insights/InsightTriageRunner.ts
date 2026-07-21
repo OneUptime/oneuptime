@@ -3,7 +3,10 @@ import OneUptimeDate from "../../../../../Types/Date";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import AIInsightEvidence from "../../../../../Types/AI/AIInsightEvidence";
-import AIInsightStatus from "../../../../../Types/AI/AIInsightStatus";
+import AIInsightStatus, {
+  AIInsightStatusHelper,
+} from "../../../../../Types/AI/AIInsightStatus";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import ExceptionAIClassification from "../../../../../Types/AI/ExceptionAIClassification";
 import AIInsightService from "../../../../Services/AIInsightService";
 import ProjectService from "../../../../Services/ProjectService";
@@ -231,6 +234,15 @@ export default class InsightTriageRunner {
       return;
     }
 
+    /*
+     * The verdict stamp on the exception group is metadata and always
+     * lands; the AUTOMATION below (fix PR, auto-archive) additionally
+     * requires that no human closed the insight while the triage run sat
+     * in the queue or executed. The `insight` object is a snapshot from
+     * claim time — minutes to half an hour old — so the status MUST be
+     * re-read here: an insight a human Dismissed or Resolved in the
+     * meantime gets no PR and keeps its terminal status.
+     */
     if (insight.telemetryExceptionId) {
       await TelemetryExceptionService.updateOneById({
         id: insight.telemetryExceptionId,
@@ -239,6 +251,28 @@ export default class InsightTriageRunner {
         },
         props: { isRoot: true },
       });
+    }
+
+    const currentInsight: AIInsight | null = await AIInsightService.findOneById(
+      {
+        id: insight.id,
+        select: {
+          _id: true,
+          status: true,
+        },
+        props: { isRoot: true },
+      },
+    );
+
+    if (
+      !currentInsight ||
+      (currentInsight.status &&
+        AIInsightStatusHelper.isTerminalStatus(currentInsight.status))
+    ) {
+      logger.debug(
+        `AI insights: skipping post-triage automation for insight ${insight.id.toString()} — insight is ${currentInsight?.status || "deleted"}.`,
+      );
+      return;
     }
 
     const project: Project | null = await ProjectService.findOneById({
@@ -256,7 +290,20 @@ export default class InsightTriageRunner {
       return;
     }
 
-    if (classification === ExceptionAIClassification.CodeFault) {
+    /*
+     * TraceLatencyRegression insights are fix-routed DETERMINISTICALLY at
+     * scan time (their span-tree evidence needs no LLM verdict — see
+     * InsightScanner.routeNewInsight); routing them again here would
+     * duplicate the run/PR. The verdict gate applies to exception
+     * insights only.
+     */
+    const isVerdictGatedInsight: boolean =
+      insight.insightType !== AIInsightType.TraceLatencyRegression;
+
+    if (
+      classification === ExceptionAIClassification.CodeFault &&
+      isVerdictGatedInsight
+    ) {
       const fixResult: InsightFixRoutingResult =
         await InsightFixRouting.routeInsightFix({
           insight: insight,
@@ -264,8 +311,16 @@ export default class InsightTriageRunner {
         });
 
       if (fixResult.fixAiRunId) {
-        await AIInsightService.updateOneById({
-          id: insight.id,
+        /*
+         * Conditional flip: only a still-ActionRequired insight moves to
+         * FixOpened, so a dismissal landing between the status re-read
+         * above and this write can never be clobbered.
+         */
+        await AIInsightService.updateOneBy({
+          query: {
+            _id: insight.id.toString(),
+            status: AIInsightStatus.ActionRequired,
+          },
           data: {
             status: AIInsightStatus.FixOpened,
             fixAiRunId: fixResult.fixAiRunId,

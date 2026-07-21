@@ -1283,11 +1283,13 @@ export default class TelemetryException extends DatabaseBaseModel {
   public environment?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateTelemetryException,
-    ],
+    /*
+     * Server-written only (isRoot bypasses column ACL): this is derived
+     * state maintained by ingest / triage / the PR-state sync — a client
+     * PATCH must not be able to set it (the value flows into LLM prompts
+     * and public PR text, and it gates the automatic fix lane).
+     */
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1298,11 +1300,7 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditTelemetryException,
-    ],
+    update: [],
   })
   /*
    * Sticky rollup of the OTel exception.escaped flag: true once ANY
@@ -1331,11 +1329,13 @@ export default class TelemetryException extends DatabaseBaseModel {
   public unhandled?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateTelemetryException,
-    ],
+    /*
+     * Server-written only (isRoot bypasses column ACL): this is derived
+     * state maintained by ingest / triage / the PR-state sync — a client
+     * PATCH must not be able to set it (the value flows into LLM prompts
+     * and public PR text, and it gates the automatic fix lane).
+     */
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1346,11 +1346,7 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditTelemetryException,
-    ],
+    update: [],
   })
   /*
    * Verdict of the AI insight triage for this exception group: is this a
@@ -1375,11 +1371,13 @@ export default class TelemetryException extends DatabaseBaseModel {
   public aiClassification?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateTelemetryException,
-    ],
+    /*
+     * Server-written only (isRoot bypasses column ACL): this is derived
+     * state maintained by ingest / triage / the PR-state sync — a client
+     * PATCH must not be able to set it (the value flows into LLM prompts
+     * and public PR text, and it gates the automatic fix lane).
+     */
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1390,11 +1388,7 @@ export default class TelemetryException extends DatabaseBaseModel {
       Permission.TelemetryViewer,
       Permission.ReadTelemetryException,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditTelemetryException,
-    ],
+    update: [],
   })
   /*
    * Stamped when a human closes an AI-authored fix PR for this exception
