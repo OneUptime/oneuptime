@@ -43,6 +43,11 @@ import CodeFixTaskContext, {
   PerformanceFinding,
 } from "../../Types/AI/CodeFixTaskContext";
 import SpanTreeAnalyzer from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
+import {
+  sanitizeExceptionMessage,
+  sanitizeStackTrace,
+} from "../Utils/Telemetry/ExceptionSanitizer";
+import ToolResultSerializer from "../Utils/AI/Toolbox/Serializer";
 import OpenPullRequestCap, {
   OpenPullRequestCapDecision,
 } from "../Utils/AI/CodeFix/OpenPullRequestCap";
@@ -204,6 +209,7 @@ export default class AIAgentDataAPI {
                 stackTrace: true,
                 exceptionType: true,
                 fingerprint: true,
+                aiClassification: true,
                 primaryEntityId: true,
                 primaryEntityType: true,
               },
@@ -221,7 +227,7 @@ export default class AIAgentDataAPI {
           }
 
           logger.debug(
-            `Exception details fetched: ${exception._id} - ${exception.message?.substring(0, 100)}`,
+            `Exception details fetched: ${exception._id}`,
             getLogAttributesFromRequest(req as any),
           );
 
@@ -245,13 +251,24 @@ export default class AIAgentDataAPI {
               })
             : null;
 
+          /*
+           * Sanitize at the choke point: everything the AI agent worker
+           * sees — and therefore everything that can end up in an LLM
+           * prompt, a public pull-request title/body, or a commit
+           * message — flows through this response. The message gets
+           * dynamic-token normalization + secret redaction; the stack
+           * trace gets redaction only, so file:line frames stay intact
+           * for the code agent.
+           */
           return Response.sendJsonObjectResponse(req, res, {
             exception: {
               id: exception._id?.toString(),
-              message: exception.message,
-              stackTrace: exception.stackTrace,
-              exceptionType: exception.exceptionType,
+              message: sanitizeExceptionMessage(exception.message || ""),
+              stackTrace: sanitizeStackTrace(exception.stackTrace || ""),
+              // Legacy pre-batch-upsert rows can carry NULL here.
+              exceptionType: exception.exceptionType || "",
               fingerprint: exception.fingerprint,
+              aiClassification: exception.aiClassification || null,
             },
             service: exception.primaryEntityId
               ? {
@@ -519,6 +536,103 @@ export default class AIAgentDataAPI {
           }
 
           /*
+           * Service-scoped instrumentation recipes (ImproveLogging /
+           * ImproveTracing): the context is just the service — resolve the
+           * repository by service name (no stack trace) and hand the
+           * worker a short brief; the recipe's checklist lives in the
+           * worker's prompt.
+           */
+          if (
+            taskType === CodeFixTaskType.ImproveLogging ||
+            taskType === CodeFixTaskType.ImproveTracing
+          ) {
+            const taskContext: CodeFixTaskContext | undefined = run.taskContext;
+            const improvementServiceName: string =
+              taskContext?.serviceName || "";
+
+            if (!taskContext?.telemetryServiceId) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                  "This telemetry-improvement task has no stored service context — the task has nothing to work from.",
+                ),
+              );
+            }
+
+            const pillar: string =
+              taskType === CodeFixTaskType.ImproveLogging
+                ? "logging"
+                : "tracing";
+            const subjectTitle: string = improvementServiceName
+              ? `Improve ${pillar} for ${improvementServiceName}`
+              : `Improve ${pillar}`;
+
+            const resolution: RepoResolution | null =
+              await CodeRepositoryService.resolveRepositoryForException({
+                projectId: run.projectId,
+                stackTrace: null,
+                serviceName: improvementServiceName || null,
+              });
+
+            const repository: CodeRepository | null = resolution
+              ? await CodeRepositoryService.findOneById({
+                  id: new ObjectID(resolution.codeRepositoryId),
+                  select: {
+                    _id: true,
+                    name: true,
+                    repositoryHostedAt: true,
+                    organizationName: true,
+                    repositoryName: true,
+                    mainBranchName: true,
+                    gitHubAppInstallationId: true,
+                  },
+                  props: { isRoot: true },
+                })
+              : null;
+
+            const basePayload: JSONObject = {
+              subjectType: "service",
+              subjectTitle,
+              analysisMarkdown: `OneUptime observes the telemetry of the service ${
+                improvementServiceName
+                  ? `"${improvementServiceName}"`
+                  : "in this repository"
+              }. A user asked for its ${pillar} instrumentation to be improved — follow the task checklist in your instructions.`,
+              serviceName: improvementServiceName,
+              projectId: run.projectId.toString(),
+            };
+
+            if (!resolution || !repository) {
+              return Response.sendJsonObjectResponse(req, res, {
+                ...basePayload,
+                repositories: [],
+                resolutionError:
+                  "Could not resolve a repository for this task: no connected repository name matches the service and the project has more than one repository. Connect the right repository via the GitHub App, or rename one to match the service.",
+              });
+            }
+
+            return Response.sendJsonObjectResponse(req, res, {
+              ...basePayload,
+              repositories: [
+                {
+                  id: repository.id!.toString(),
+                  name: repository.name || "",
+                  repositoryHostedAt: repository.repositoryHostedAt || "",
+                  organizationName: repository.organizationName || "",
+                  repositoryName: repository.repositoryName || "",
+                  mainBranchName: repository.mainBranchName || "main",
+                  servicePathInRepository: resolution.servicePathInRepository,
+                  gitHubAppInstallationId:
+                    repository.gitHubAppInstallationId || null,
+                  resolutionMethod: resolution.method,
+                  resolutionEvidence: resolution.evidence,
+                },
+              ],
+            });
+          }
+
+          /*
            * Trace-evidence recipes (FixPerformance): everything the worker
            * needs was captured into taskContext at trigger time — the spans
            * themselves may already be past ClickHouse retention.
@@ -607,8 +721,10 @@ export default class AIAgentDataAPI {
             const basePayload: JSONObject = {
               subjectType: "trace",
               subjectTitle: findings[0]!.headline,
-              analysisMarkdown:
+              // Redact before it can reach a prompt or PR body.
+              analysisMarkdown: ToolResultSerializer.redact(
                 SpanTreeAnalyzer.renderFindingsMarkdown(findings),
+              ).text,
               serviceName,
               projectId: run.projectId.toString(),
               traceId: taskContext.traceId,
@@ -787,6 +903,14 @@ export default class AIAgentDataAPI {
               ),
             );
           }
+
+          /*
+           * The analysis was written by the investigation LLM over
+           * redacted tool results, but quoted exception text can still
+           * carry secrets — sweep it again before it reaches the worker's
+           * prompt and the pull-request body.
+           */
+          analysisMarkdown = ToolResultSerializer.redact(analysisMarkdown).text;
 
           /*
            * Resolve the repository WITHOUT a stack trace — these tasks have

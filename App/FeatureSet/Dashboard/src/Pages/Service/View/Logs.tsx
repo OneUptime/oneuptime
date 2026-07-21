@@ -1,3 +1,4 @@
+import TelemetryImprovementCard from "../../../Components/AI/TelemetryImprovementCard";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
@@ -17,6 +18,12 @@ const ServiceLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         limit={100}
         noLogsMessage="No logs found for this service."
       />
+      <div className="mt-4">
+        <TelemetryImprovementCard
+          telemetryServiceId={modelId}
+          taskType="ImproveLogging"
+        />
+      </div>
     </Fragment>
   );
 };
