@@ -3632,7 +3632,6 @@ ${incidentSeverity.name}
     const response: AILogResponse = await AIService.executeWithLogging({
       projectId: incident.projectId,
       feature: "Incident Postmortem",
-      incidentId: data.incidentId,
       messages: aiContext.messages,
       temperature: 0.2,
       storeContentPreviews: false,
