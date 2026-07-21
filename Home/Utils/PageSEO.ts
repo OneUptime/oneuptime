@@ -65,9 +65,9 @@ export const createDefaultSEO: (
 export const PageSEOConfig: Record<string, PageSEOData> = {
   // Homepage
   "/": {
-    title: "OneUptime | The Open-Source Observability Platform",
+    title: "OneUptime | Open-Source Observability & Incident Management",
     description:
-      "Catch outages in seconds, page the right engineer, and keep customers in the loop — one open-source platform that replaces your monitoring, incident management, and status page stack.",
+      "Detect outages in seconds, page the right engineer, update your status page, and ship the fix — open-source observability and incident management.",
     canonicalPath: "/",
     ogType: "website",
     twitterCard: "summary_large_image",
