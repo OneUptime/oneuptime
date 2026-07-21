@@ -23,16 +23,12 @@ export default class Domain extends DomainCommon {
                 domainLogAttributes,
               );
 
-              // Handle specific DNS error types with user-friendly messages
+              // ENODATA means the domain exists but has no CNAME records - return empty array
               if (
                 err.message.includes("ENODATA") ||
                 err.message.includes("queryCname ENODATA")
               ) {
-                reject(
-                  new BadDataException(
-                    `No CNAME records found for domain "${data.domain}". Please ensure you have added the CNAME record and wait for DNS propagation (up to 72 hours).`,
-                  ),
-                );
+                resolve([]);
                 return;
               }
 
@@ -69,11 +65,7 @@ export default class Domain extends DomainCommon {
             } else if (addresses.length > 0) {
               resolve(addresses);
             } else {
-              reject(
-                new BadDataException(
-                  "No CNAME record found for domain: " + data.domain,
-                ),
-              );
+              resolve([]);
             }
           },
         );
