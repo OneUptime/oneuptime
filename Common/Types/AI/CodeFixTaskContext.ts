@@ -83,6 +83,12 @@ export interface CodeFixTaskContext {
   performanceFindings?: Array<PerformanceFinding> | undefined;
   // code.* attribute locations for stack-trace-style repo resolution.
   codeLocations?: Array<PerformanceCodeLocation> | undefined;
+  /*
+   * ImproveLogging / ImproveTracing: the telemetry service whose
+   * instrumentation the recipe improves (serviceName above carries its
+   * name for repository resolution and PR wording).
+   */
+  telemetryServiceId?: string | undefined;
 }
 
 export default CodeFixTaskContext;

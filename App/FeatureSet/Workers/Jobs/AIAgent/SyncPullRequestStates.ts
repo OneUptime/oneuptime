@@ -18,6 +18,7 @@ import GitHubUtil, {
   GitHubInstallationNotFoundError,
   GitHubInstallationToken,
 } from "Common/Server/Utils/CodeRepository/GitHub/GitHub";
+import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -95,6 +96,88 @@ async function mintInstallationTokenBundle(
  * Looked up lazily (only when a conclusion is Red) and cached per run id
  * for the sweep. Null column normalizes to FixException (legacy rows).
  */
+/*
+ * Close the feedback loop between PR outcomes and the exception lifecycle
+ * (FixException recipe only — declining or merging a regression-test PR
+ * says nothing about whether the FIX was wanted):
+ *
+ * - MERGED: the fix landed — auto-resolve the exception group. The ingest
+ *   upsert un-resolves on any new occurrence, so a fix that did not
+ *   actually work surfaces again by itself (free regression detection).
+ * - CLOSED unmerged: the strongest "this AI fix was not wanted" signal a
+ *   human can send — stamp aiFixDeclinedAt so the automatic lane stops
+ *   re-attempting this group. A user clicking "Fix with AI" clears the
+ *   stamp and retries.
+ *
+ * Best-effort: a failure here must never block the PR-state sweep.
+ */
+async function applyExceptionFeedbackForStateChange(data: {
+  newState: PullRequestState;
+  aiRunId: ObjectID;
+}): Promise<void> {
+  try {
+    const run: AIRun | null = await AIRunService.findOneById({
+      id: data.aiRunId,
+      select: {
+        _id: true,
+        codeFixTaskType: true,
+        triggeredByTelemetryExceptionId: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!run || !run.triggeredByTelemetryExceptionId) {
+      return;
+    }
+
+    const taskType: CodeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
+      run.codeFixTaskType,
+    );
+
+    if (taskType !== CodeFixTaskType.FixException) {
+      return;
+    }
+
+    if (data.newState === PullRequestState.Merged) {
+      await TelemetryExceptionService.updateOneById({
+        id: run.triggeredByTelemetryExceptionId,
+        data: {
+          isResolved: true,
+          markedAsResolvedAt: OneUptimeDate.getCurrentDate(),
+        },
+        props: { isRoot: true },
+      });
+
+      logger.info(
+        `AI fix PR merged — auto-resolved exception ${run.triggeredByTelemetryExceptionId.toString()}`,
+        { service: "workers" },
+      );
+      return;
+    }
+
+    if (data.newState === PullRequestState.Closed) {
+      await TelemetryExceptionService.updateOneById({
+        id: run.triggeredByTelemetryExceptionId,
+        data: {
+          aiFixDeclinedAt: OneUptimeDate.getCurrentDate(),
+        },
+        props: { isRoot: true },
+      });
+
+      logger.info(
+        `AI fix PR closed without merging — paused automatic fix attempts for exception ${run.triggeredByTelemetryExceptionId.toString()}`,
+        { service: "workers" },
+      );
+    }
+  } catch (error) {
+    logger.error(
+      `Failed to apply exception feedback for AI run ${data.aiRunId.toString()}:`,
+      { service: "workers" },
+    );
+    logger.error(error, { service: "workers" });
+  }
+}
+
 async function getTaskTypeForRun(
   aiRunId: ObjectID,
   cache: Map<string, CodeFixTaskType>,
@@ -300,6 +383,13 @@ RunCron(
             `AI agent PR ${organizationName}/${repositoryName}#${pullRequest.pullRequestNumber} is now ${currentState}`,
             { service: "workers" },
           );
+
+          if (pullRequest.aiRunId) {
+            await applyExceptionFeedbackForStateChange({
+              newState: updateData.pullRequestState,
+              aiRunId: pullRequest.aiRunId,
+            });
+          }
         }
 
         /*

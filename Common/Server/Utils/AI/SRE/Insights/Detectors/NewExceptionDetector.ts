@@ -9,6 +9,7 @@ import Service from "../../../../../../Models/DatabaseModels/Service";
 import TelemetryExceptionService from "../../../../../Services/TelemetryExceptionService";
 import ServiceService from "../../../../../Services/ServiceService";
 import QueryHelper from "../../../../../Types/Database/QueryHelper";
+import { sanitizeExceptionMessage } from "../../../../Telemetry/ExceptionSanitizer";
 import {
   InsightCandidate,
   InsightDetector,
@@ -166,9 +167,19 @@ export default class NewExceptionDetector implements InsightDetector {
         exception.primaryEntityId,
       );
 
+      /*
+       * The message flows into the insight title/detail/evidence, and from
+       * there into the triage LLM prompt — sanitize it once here so no
+       * interpolated user data (IDs, emails, domains) rides along. The raw
+       * message stays on the exception row for the dashboard.
+       */
+      const safeMessage: string = sanitizeExceptionMessage(
+        exception.message || "",
+      );
+
       const label: string = NewExceptionDetector.buildExceptionLabel(
         exception.exceptionType,
-        exception.message,
+        safeMessage,
       );
 
       const firstSeenAtIso: string | undefined = exception.firstSeenAt
@@ -180,8 +191,8 @@ export default class NewExceptionDetector implements InsightDetector {
         "",
         `- Exception: \`${label}\``,
       ];
-      if (exception.message) {
-        detailLines.push(`- Message: ${exception.message}`);
+      if (safeMessage) {
+        detailLines.push(`- Message: ${safeMessage}`);
       }
       if (serviceName) {
         detailLines.push(`- Service: ${serviceName}`);
@@ -204,7 +215,7 @@ export default class NewExceptionDetector implements InsightDetector {
         telemetryExceptionId: exception.id,
         evidence: {
           exception: {
-            exceptionMessage: exception.message,
+            exceptionMessage: safeMessage,
             exceptionType: exception.exceptionType,
             totalOccurrenceCount: occurrenceCount,
             firstSeenAt: firstSeenAtIso,

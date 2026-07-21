@@ -65,7 +65,8 @@ interface AIAgentTaskInfo {
 // The task types this page can start (FixException is the legacy default).
 type ExceptionAITaskType =
   | CodeFixTaskType.FixException
-  | CodeFixTaskType.WriteRegressionTest;
+  | CodeFixTaskType.WriteRegressionTest
+  | CodeFixTaskType.ImproveExceptionHandling;
 
 /*
  * Wording for one task type's card group (active / unsuccessful / completed /
@@ -132,6 +133,27 @@ const AI_TASK_PRESENTATION: {
       "AI will write a failing test that reproduces this exception and open a Pull Request with it. This does not fix the bug — the test should fail until the bug is fixed.",
     startActionName: "Generate Regression Test",
     startActionIcon: IconProp.Beaker,
+  },
+  [CodeFixTaskType.ImproveExceptionHandling]: {
+    taskType: CodeFixTaskType.ImproveExceptionHandling,
+    activeCardTitle: "Error Handling Task Status",
+    activeCardDescription:
+      "AI is improving how the code handles and reports this error.",
+    failedCardTitle: "Error handling attempt failed",
+    failedCardDescription:
+      "The last error-handling task for this exception did not complete.",
+    noFixCardTitle: "AI proposed no handling changes",
+    noFixCardDescription:
+      "The last error-handling task reviewed this exception and had no improvement to propose.",
+    retryActionName: "Retry Error Handling",
+    completedStrongTitle: "Error handling improvement completed",
+    completedTitle:
+      "AI has already completed an error-handling task for this exception. Click to view the completed task.",
+    startCardTitle: "Improve Error Handling",
+    startCardDescription:
+      "For expected errors (invalid user input, intentional denials): AI will open a Pull Request that parameterizes messages leaking user data, validates input earlier with an actionable error, and marks the error as handled in telemetry — without changing behavior.",
+    startActionName: "Improve Error Handling",
+    startActionIcon: IconProp.ShieldCheck,
   },
 };
 
@@ -765,6 +787,12 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     },
   );
 
+  const improveHandlingTask: AIAgentTaskInfo | undefined = aiAgentTasks.find(
+    (task: AIAgentTaskInfo) => {
+      return task.taskType === CodeFixTaskType.ImproveExceptionHandling;
+    },
+  );
+
   type CanStartAITaskFunction = (task: AIAgentTaskInfo | undefined) => boolean;
 
   /*
@@ -775,8 +803,12 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const canStartAITask: CanStartAITaskFunction = (
     task: AIAgentTaskInfo | undefined,
   ): boolean => {
+    // The server rejects resolved AND archived exceptions — mirror both.
     return (
-      !isResolved && !isAIAgentTaskLoading && (!task || !isAITaskActive(task))
+      !isResolved &&
+      !isArchived &&
+      !isAIAgentTaskLoading &&
+      (!task || !isAITaskActive(task))
     );
   };
 
@@ -798,7 +830,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     task: AIAgentTaskInfo | undefined,
     presentation: AITaskPresentation,
   ): ReactElement => {
-    if (!task || isResolved) {
+    // Retry buttons in the failure cards hit the same server gates.
+    if (!task || isResolved || isArchived) {
       return <></>;
     }
 
@@ -967,6 +1000,10 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         regressionTestTask,
         AI_TASK_PRESENTATION[CodeFixTaskType.WriteRegressionTest],
       )}
+      {renderAITaskCards(
+        improveHandlingTask,
+        AI_TASK_PRESENTATION[CodeFixTaskType.ImproveExceptionHandling],
+      )}
 
       {/** Inline error for AI task actions (create / retry) */}
 
@@ -983,7 +1020,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
       {/** Setup checklist — prerequisites are missing, so no start buttons yet. Both task types share the gate. */}
 
-      {(canStartAITask(fixTask) || canStartAITask(regressionTestTask)) &&
+      {(canStartAITask(fixTask) ||
+        canStartAITask(regressionTestTask) ||
+        canStartAITask(improveHandlingTask)) &&
         isAIFixBlockedBySetup &&
         aiFixReadiness && (
           <Card
@@ -1040,6 +1079,10 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       {renderStartAITaskCard(
         regressionTestTask,
         AI_TASK_PRESENTATION[CodeFixTaskType.WriteRegressionTest],
+      )}
+      {renderStartAITaskCard(
+        improveHandlingTask,
+        AI_TASK_PRESENTATION[CodeFixTaskType.ImproveExceptionHandling],
       )}
 
       {/** Resolve / Unresolve Button */}
