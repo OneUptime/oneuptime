@@ -73,8 +73,14 @@ for tag in "${TAG_LIST[@]}"; do
 	# survive `imagetools create` is a property of buildx, not something we
 	# control here — verify rather than assume. Warn-only on purpose: a missing
 	# SBOM should not fail a release, but it must be visible in the job log.
-	SBOM_JSON="$(docker buildx imagetools inspect "${GHCR}/${IMAGE}:${tag}" --format '{{json .SBOM}}' 2>/dev/null || true)"
-	if [[ "$SBOM_JSON" == *"spdxVersion"* ]]; then
+	# Three outcomes, and they must not be conflated. A missing attestation
+	# returns "{}" with exit 0, so a non-zero exit means the inspect itself
+	# failed (transient registry 5xx, read-after-write lag on the manifest we
+	# just pushed) — which says nothing about whether the SBOM survived. Keep
+	# stderr so the real cause is in the log rather than guessed at.
+	if ! SBOM_JSON="$(docker buildx imagetools inspect "${GHCR}/${IMAGE}:${tag}" --format '{{json .SBOM}}' 2>&1)"; then
+		echo "⚠️  Could not inspect ${IMAGE}:${tag} for attestations: ${SBOM_JSON}"
+	elif [[ "$SBOM_JSON" == *"spdxVersion"* ]]; then
 		echo "✅ SBOM attestation present on ${IMAGE}:${tag}"
 	else
 		echo "⚠️  No SBOM attestation found on ${IMAGE}:${tag} — it was likely dropped by the manifest merge. Generate the SBOM in this job instead."

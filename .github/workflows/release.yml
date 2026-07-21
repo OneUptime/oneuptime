@@ -1595,9 +1595,23 @@ jobs:
   # Ordering matters: this runs after draft-github-release so there is a release
   # to attach to, and finalize-github-release depends on it so the release is
   # never published without its SBOMs.
+  # The needs list is not just ordering sugar. This job scans all twelve
+  # published tags, and the unsuffixed tag it scans is created only by the
+  # corresponding *-docker-image-merge job. Nine of those merges are reached
+  # transitively via draft-github-release; docker-agent, podman-agent and
+  # kubernetes-log-tailer are leaves that nothing else depends on, so they must
+  # be named explicitly. Without them a failure in any of the three would let
+  # this job run against a tag that was never pushed, fail on MANIFEST_UNKNOWN,
+  # and — since finalize-github-release now needs this job — strand the release
+  # as a permanent draft after the images and tags had already gone out.
   generate-sboms:
     name: Generate CycloneDX SBOMs
-    needs: [draft-github-release, read-version]
+    needs:
+      - draft-github-release
+      - read-version
+      - docker-agent-docker-image-merge
+      - podman-agent-docker-image-merge
+      - kubernetes-log-tailer-docker-image-merge
     runs-on: ubuntu-latest
     permissions:
       contents: write
