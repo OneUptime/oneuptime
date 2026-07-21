@@ -2645,9 +2645,7 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageIdOrDomain"] as string,
           );
 
-          const incidentId: ObjectID = new ObjectID(
-            req.params["incidentId"] as string,
-          );
+          const incidentId: string = req.params["incidentId"] as string;
 
           const response: JSONObject = await this.getIncidents(
             objectId,
@@ -4134,7 +4132,7 @@ export default class StatusPageAPI extends BaseAPI<
   @CaptureSpan()
   public async getIncidents(
     statusPageId: ObjectID,
-    incidentId: ObjectID | null,
+    incidentId: string | null,
     req: ExpressRequest,
   ): Promise<JSONObject> {
     await this.checkHasReadAccess({
@@ -4193,12 +4191,21 @@ export default class StatusPageAPI extends BaseAPI<
     };
 
     if (incidentId) {
-      incidentQuery = {
-        monitors: monitorsOnStatusPage as any,
-        projectId: statusPage.projectId!,
-        _id: incidentId.toString(),
-        isVisibleOnStatusPage: true,
-      };
+      if (ObjectID.isValidUUID(incidentId)) {
+        incidentQuery = {
+          monitors: monitorsOnStatusPage as any,
+          projectId: statusPage.projectId!,
+          _id: incidentId,
+          isVisibleOnStatusPage: true,
+        };
+      } else {
+        incidentQuery = {
+          monitors: monitorsOnStatusPage as any,
+          projectId: statusPage.projectId!,
+          slug: incidentId,
+          isVisibleOnStatusPage: true,
+        };
+      }
     }
 
     // check if status page has active incident.
