@@ -1,6 +1,10 @@
 import MonitorProbeService from "../../Services/MonitorProbeService";
 import MonitorService from "../../Services/MonitorService";
-import MonitorStatusTimelineService from "../../Services/MonitorStatusTimelineService";
+import MonitorStatusTimelineService, {
+  MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
+  MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
+} from "../../Services/MonitorStatusTimelineService";
+import ServerException from "../../../Types/Exception/ServerException";
 import logger from "../Logger";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
 import MonitorLogUtil from "./MonitorLogUtil";
@@ -1013,6 +1017,15 @@ export default class MonitorResourceUtil {
           monitorStatusTimeline.rootCause =
             "No monitoring criteria met. Change to default status. ";
 
+          /*
+           * Tracks whether the monitor really is at its default status after the
+           * create call, so the summary event below records only what actually
+           * happened. On the lock-skip path the write was REFUSED - recording a
+           * "reverted" event there would put a false entry in the monitor log and
+           * mask the very lock failure the error log surfaces.
+           */
+          let revertedToDefaultStatus: boolean = true;
+
           try {
             await MonitorStatusTimelineService.create({
               data: monitorStatusTimeline,
@@ -1033,29 +1046,45 @@ export default class MonitorResourceUtil {
              */
             if (
               err instanceof BadDataException &&
-              err.message ===
-                "Monitor Status cannot be same as previous status."
+              err.message === MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE
             ) {
               logger.debug(
                 `${dataToProcess.monitorId.toString()} - Monitor status already at default; skipping duplicate status timeline (concurrent race).`,
               );
+            } else if (
+              err instanceof ServerException &&
+              err.message === MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE
+            ) {
+              /*
+               * The per-monitor timeline mutex could not be acquired (fail-closed
+               * create, see MonitorStatusTimelineService). Skipping is recoverable:
+               * the next probe result re-evaluates the same criteria and recreates
+               * the revert-to-default, while failing here would abort the whole
+               * ingest run and lose the monitor log for this probe result.
+               */
+              logger.error(
+                `${dataToProcess.monitorId.toString()} - Could not acquire the monitor status timeline lock; skipping revert to default status. It will be retried on the next probe result.`,
+              );
+              revertedToDefaultStatus = false;
             } else {
               throw err;
             }
           }
 
-          const defaultStatusName: string | null = await getMonitorStatusName(
-            monitorSteps.data.defaultMonitorStatusId,
-          );
+          if (revertedToDefaultStatus) {
+            const defaultStatusName: string | null = await getMonitorStatusName(
+              monitorSteps.data.defaultMonitorStatusId,
+            );
 
-          evaluationSummary.events.push({
-            type: "monitor-status-changed",
-            title: "Monitor status reverted",
-            message: defaultStatusName
-              ? `Monitor status reverted to "${defaultStatusName}" because no monitoring criteria were met.`
-              : "Monitor status reverted to its default state because no monitoring criteria were met.",
-            at: OneUptimeDate.getCurrentDate(),
-          });
+            evaluationSummary.events.push({
+              type: "monitor-status-changed",
+              title: "Monitor status reverted",
+              message: defaultStatusName
+                ? `Monitor status reverted to "${defaultStatusName}" because no monitoring criteria were met.`
+                : "Monitor status reverted to its default state because no monitoring criteria were met.",
+              at: OneUptimeDate.getCurrentDate(),
+            });
+          }
         }
       }
 

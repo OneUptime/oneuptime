@@ -27,7 +27,11 @@ describe("GreaterThanOrEqual", () => {
     const obj: GreaterThanOrEqual<number> = new GreaterThanOrEqual<number>(42);
     const expectedJSON: JSONObject = {
       _type: "GreaterThanOrEqual",
-      value: "42",
+      /*
+       * toJSON carries the RAW value (like InBetween), not a stringified one -
+       * see the comment on toJSON. For numbers that means the number itself.
+       */
+      value: 42,
     };
     expect(obj.toJSON()).toEqual(expectedJSON);
   });

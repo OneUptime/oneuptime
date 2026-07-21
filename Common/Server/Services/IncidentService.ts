@@ -15,7 +15,6 @@ import IncidentStateService from "./IncidentStateService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
-import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamMemberService from "./TeamMemberService";
 import UserService from "./UserService";
@@ -43,7 +42,6 @@ import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
-import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import MutableMetricService from "./MutableMetricService";
@@ -2538,84 +2536,81 @@ ${incidentSeverity.name}
 
       if (resolvedMonitorState) {
         for (const monitor of monitors) {
-          //check state of the monitor.
-
-          const doesMonitorHasMoreActiveManualIncidents: boolean =
-            await this.doesMonitorHasMoreActiveManualIncidents(
-              monitor.id!,
-              projectId!,
-            );
-
-          if (doesMonitorHasMoreActiveManualIncidents) {
-            continue;
-          }
-
-          await MonitorService.updateOneById({
-            id: monitor.id!,
-            data: {
-              disableActiveMonitoringBecauseOfManualIncident: false,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
           /*
-           * Don't flip the monitor to operational while other incidents
-           * are still open on it — e.g. a metric monitor with group-by
-           * may have one incident per series, and resolving one series
-           * shouldn't claim the whole monitor is healthy.
+           * Per-monitor isolation: one monitor failing here (for example the
+           * fail-closed status timeline lock, or a transient DB error) must not
+           * abort the loop and strand the REMAINING monitors with
+           * disableActiveMonitoringBecauseOfManualIncident still true - a
+           * monitor left in that state is skipped by probes and sits in its
+           * down status indefinitely, silently accruing downtime.
            */
-          const hasOtherActiveIncidents: boolean =
-            await this.doesMonitorHaveActiveIncidents(monitor.id!, projectId!);
+          try {
+            //check state of the monitor.
 
-          if (hasOtherActiveIncidents) {
-            continue;
-          }
+            const doesMonitorHasMoreActiveManualIncidents: boolean =
+              await this.doesMonitorHasMoreActiveManualIncidents(
+                monitor.id!,
+                projectId!,
+              );
 
-          const latestState: MonitorStatusTimeline | null =
-            await MonitorStatusTimelineService.findOneBy({
-              query: {
-                monitorId: monitor.id!,
-                projectId: projectId!,
-              },
-              select: {
-                _id: true,
-                monitorStatusId: true,
+            if (doesMonitorHasMoreActiveManualIncidents) {
+              continue;
+            }
+
+            await MonitorService.updateOneById({
+              id: monitor.id!,
+              data: {
+                disableActiveMonitoringBecauseOfManualIncident: false,
               },
               props: {
                 isRoot: true,
               },
-              sort: {
-                startsAt: SortOrder.Descending,
-              },
             });
 
-          if (
-            latestState &&
-            latestState.monitorStatusId?.toString() ===
-              resolvedMonitorState.id!.toString()
-          ) {
-            // already on this state. Skip.
+            /*
+             * Don't flip the monitor to operational while other incidents
+             * are still open on it — e.g. a metric monitor with group-by
+             * may have one incident per series, and resolving one series
+             * shouldn't claim the whole monitor is healthy.
+             */
+            const hasOtherActiveIncidents: boolean =
+              await this.doesMonitorHaveActiveIncidents(
+                monitor.id!,
+                projectId!,
+              );
+
+            if (hasOtherActiveIncidents) {
+              continue;
+            }
+
+            /*
+             * changeMonitorStatus performs the same latest-status dedupe check
+             * this loop used to do inline, and additionally absorbs the two
+             * recoverable error classes (status already set by a concurrent
+             * writer, lock not acquired after retries) by skipping the write,
+             * so the common failure modes never even reach the catch below.
+             * notifyOwners is true to preserve the previous behavior here: the
+             * created row had isOwnerNotified unset, so owners were notified.
+             */
+            await MonitorService.changeMonitorStatus(
+              projectId!,
+              [monitor.id!],
+              resolvedMonitorState.id!,
+              true, // notifyOwners - matches the pre-existing behavior of this loop.
+              undefined,
+              undefined,
+              {
+                isRoot: true,
+              },
+              startsAt,
+            );
+          } catch (err) {
+            logger.error(
+              `IncidentService.markMonitorsActiveForMonitoring: failed for monitor ${monitor.id?.toString()}; continuing with the remaining monitors.`,
+            );
+            logger.error(err);
             continue;
           }
-
-          const monitorStatusTimeline: MonitorStatusTimeline =
-            new MonitorStatusTimeline();
-          monitorStatusTimeline.monitorId = monitor.id!;
-          monitorStatusTimeline.projectId = projectId!;
-          monitorStatusTimeline.monitorStatusId = resolvedMonitorState.id!;
-
-          if (startsAt) {
-            monitorStatusTimeline.startsAt = startsAt;
-          }
-
-          await MonitorStatusTimelineService.create({
-            data: monitorStatusTimeline,
-            props: {
-              isRoot: true,
-            },
-          });
         }
       }
     }

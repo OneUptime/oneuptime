@@ -65,10 +65,19 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       }) &&
       props.showUptimePercent
     ) {
+      /*
+       * measure uptime over the same window the history chart is drawn for. Without this an
+       * open (endsAt = null) row that started before the window contributes its whole
+       * duration, and the denominator becomes "first event -> now" rather than the window.
+       */
       const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
         props.monitorStatusTimeline,
         precision,
         props.downtimeMonitorStatuses,
+        {
+          startDate: props.startDate,
+          endDate: props.endDate,
+        },
       );
 
       return (

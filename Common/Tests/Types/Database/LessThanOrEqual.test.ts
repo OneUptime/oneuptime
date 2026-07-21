@@ -23,11 +23,34 @@ describe("LessThanOrEqual", () => {
 
   it("should generate the correct JSON representation using toJSON", () => {
     const obj: LessThanOrEqual<number> = new LessThanOrEqual<number>(42);
+    /*
+     * toJSON carries the RAW value (like InBetween), not a stringified one -
+     * see the comment on toJSON. For numbers that means the number itself.
+     */
     const expectedJSON: JSONObject = {
       _type: "LessThanOrEqual",
-      value: "42",
+      value: 42,
     };
     expect(obj.toJSON()).toEqual(expectedJSON);
+  });
+
+  it("keeps the full timestamp when serializing a Date value", () => {
+    const value: Date = new Date("2026-07-21T14:35:12.345Z");
+    const obj: LessThanOrEqual<Date> = new LessThanOrEqual<Date>(value);
+
+    /*
+     * The raw Date is serialized, so JSON.stringify emits the full ISO
+     * timestamp. The old toString()-based toJSON collapsed it to a
+     * local-timezone date-only string, which shifted query bounds sent from
+     * the browser by up to a day and silently dropped same-day rows.
+     */
+    expect(obj.toJSON()).toEqual({
+      _type: "LessThanOrEqual",
+      value: value,
+    });
+    expect(JSON.parse(JSON.stringify(obj.toJSON()))["value"]).toBe(
+      "2026-07-21T14:35:12.345Z",
+    );
   });
 
   it("should create a LessThanOrEqual object from valid JSON input", () => {

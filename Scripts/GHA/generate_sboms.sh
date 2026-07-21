@@ -15,24 +15,33 @@ in this image?" for anyone holding the image reference; these files are the
 artifact we attach to the GitHub release, so an enterprise buyer or a
 Dependency-Track instance can ingest them without touching a registry.
 
+Every image is scanned once per published architecture. The package sets really
+do differ between them — Chrome build skew in probe, disjoint Debian packages,
+and arch-specific npm binaries (@esbuild/linux-x64 vs @esbuild/linux-arm64) in
+every Node image — so an amd64-only SBOM ingested by an arm64 operator produces
+both false negatives and false positives.
+
 Only community tags are scanned. The enterprise images are built from the same
 Dockerfile in the same job and differ solely in ENV/LABEL metadata
-(IS_ENTERPRISE_EDITION) — no RUN step reads that build arg, so the installed
-package set is byte-identical and a second scan would emit a duplicate.
+(IS_ENTERPRISE_EDITION) — no RUN step reads that build arg. Verified against the
+registry: for all 12 images on both architectures, :release and
+:enterprise-release resolve to identical platform-manifest digests and identical
+rootfs.diff_ids, so a second scan would emit a byte-equivalent duplicate.
 
 Required flags:
 	--version <version>   Version to scan (matches the pushed tag, e.g. 11.5)
 
 Optional flags:
 	--output-dir <path>   Directory for generated SBOMs (default: ./sbom)
-	--platform <platform> Platform to scan from the multi-arch index (default: linux/amd64)
+	--platforms <list>    Comma-separated platforms to scan
+	                      (default: linux/amd64,linux/arm64)
 	--registry <host>     Registry to read from (default: ghcr.io/oneuptime)
 EOF
 }
 
 VERSION=""
 OUTPUT_DIR="./sbom"
-PLATFORM="linux/amd64"
+PLATFORMS="linux/amd64,linux/arm64"
 REGISTRY="ghcr.io/oneuptime"
 
 while [[ $# -gt 0 ]]; do
@@ -45,8 +54,8 @@ while [[ $# -gt 0 ]]; do
 			OUTPUT_DIR="$2"
 			shift 2
 			;;
-		--platform)
-			PLATFORM="$2"
+		--platforms)
+			PLATFORMS="$2"
 			shift 2
 			;;
 		--registry)
@@ -94,7 +103,17 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RELEASE_WORKFLOW="${REPO_ROOT}/.github/workflows/release.yml"
 
 if [[ -f "$RELEASE_WORKFLOW" ]]; then
-	WORKFLOW_IMAGES="$(grep -oE -- '--image [a-z0-9-]+' "$RELEASE_WORKFLOW" | awk '{print $2}' | sort -u)"
+	# `|| true` because a zero-match grep exits 1, and under `set -o pipefail`
+	# that would abort the script here — before the diagnostic block below ever
+	# runs, leaving a red step with no output at all. The empty check that
+	# follows is load-bearing: `|| true` alone would let an empty result reach
+	# comm, which emits a spurious blank entry instead of a clear error.
+	WORKFLOW_IMAGES="$(grep -oE -- '--image [a-z0-9-]+' "$RELEASE_WORKFLOW" | awk '{print $2}' | sort -u || true)"
+	if [[ -z "$WORKFLOW_IMAGES" ]]; then
+		echo "❌ Found no '--image <name>' arguments in ${RELEASE_WORKFLOW}; the drift check cannot run." >&2
+		echo "   The build jobs were probably refactored (e.g. to a matrix). Update this check." >&2
+		exit 1
+	fi
 	SCRIPT_IMAGES="$(printf '%s\n' "${IMAGES[@]}" | sort -u)"
 	if [[ "$WORKFLOW_IMAGES" != "$SCRIPT_IMAGES" ]]; then
 		echo "❌ Image list drift between release.yml and generate_sboms.sh" >&2
@@ -115,19 +134,8 @@ if ! command -v syft >/dev/null 2>&1; then
 fi
 
 SANITIZED_VERSION="${VERSION//+/-}"
-PLATFORM_SLUG="${PLATFORM//\//-}"
 
-# syft ignores --platform for remote (registry:) sources — anchore/syft#1803,
-# still open. It falls back to the linux/amd64 manifest, which is why that is
-# our default: the bug is a no-op for us. Any other platform would silently
-# produce an amd64 SBOM under a filename claiming otherwise, so refuse rather
-# than publish a mislabelled artifact. The per-image check below re-verifies
-# against the SBOM's own metadata regardless.
-if [[ "$PLATFORM" != "linux/amd64" ]]; then
-	echo "❌ --platform ${PLATFORM} requested, but syft ignores --platform for registry sources (anchore/syft#1803)." >&2
-	echo "   It would emit a linux/amd64 SBOM named '${PLATFORM_SLUG}'. Refusing to publish a mislabelled SBOM." >&2
-	exit 1
-fi
+IFS=',' read -ra PLATFORM_LIST <<< "$PLATFORMS"
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -135,64 +143,54 @@ FAILED=()
 
 for image in "${IMAGES[@]}"; do
 	ref="${REGISTRY}/${image}:${SANITIZED_VERSION}"
-	out="${OUTPUT_DIR}/${image}-${SANITIZED_VERSION}-${PLATFORM_SLUG}.cdx.json"
 
-	echo "📦 Scanning ${ref} (${PLATFORM})"
+	for platform in "${PLATFORM_LIST[@]}"; do
+		platform="$(echo "$platform" | xargs)"  # trim whitespace
+		[[ -z "$platform" ]] && continue
 
-	# `registry:` forces syft to read the manifest over the registry API rather
-	# than looking for a local daemon image. --platform is required because the
-	# tag resolves to a multi-arch index; without it syft picks the runner's
-	# arch, which would silently vary with the runner image.
-	if ! syft "registry:${ref}" \
-		--platform "$PLATFORM" \
-		--output "cyclonedx-json=${out}"; then
-		echo "❌ Failed to generate SBOM for ${ref}" >&2
-		FAILED+=("$image")
-		continue
-	fi
+		platform_slug="${platform//\//-}"
+		out="${OUTPUT_DIR}/${image}-${SANITIZED_VERSION}-${platform_slug}.cdx.json"
 
-	# A syft run that resolves an empty or wrong-media-type manifest can still
-	# exit 0 while producing an SBOM with no components. That would attach a
-	# useless file to the release, so treat it as a failure. Read the recorded
-	# architecture back out at the same time so a silently-wrong platform
-	# (anchore/syft#1803) cannot ship under a filename that claims otherwise.
-	if ! sbom_stats="$(python3 - "$out" <<'PY'
+		echo "📦 Scanning ${ref} (${platform})"
+
+		# `registry:` forces syft to read the manifest over the registry API
+		# rather than looking for a local daemon image. --platform is required
+		# because the tag resolves to a multi-arch index; without it syft picks
+		# the runner's arch, which would silently vary with the runner image.
+		# syft resolves the platform correctly for an index and hard-errors on a
+		# mismatch (anchore/stereoscope#336), so a wrong platform fails here
+		# rather than producing a mislabelled file.
+		if ! syft "registry:${ref}" \
+			--platform "$platform" \
+			--output "cyclonedx-json=${out}"; then
+			echo "❌ Failed to generate SBOM for ${ref} (${platform})" >&2
+			FAILED+=("${image}/${platform}")
+			continue
+		fi
+
+		# A syft run that resolves an empty or wrong-media-type manifest can
+		# still exit 0 while producing an SBOM with no components. That would
+		# attach a useless file to the release, so treat it as a failure.
+		if ! component_count="$(python3 - "$out" <<'PY'
 import json, sys
 
 doc = json.load(open(sys.argv[1]))
-count = len(doc.get("components", []))
-component = (doc.get("metadata", {}) or {}).get("component", {}) or {}
-props = component.get("properties", []) or []
-arch = next(
-    (p.get("value") for p in props if p.get("name", "").endswith(":architecture")),
-    "unknown",
-)
-print(count, arch)
+print(len(doc.get("components", [])))
 PY
-	)"; then
-		echo "❌ Could not parse SBOM for ${ref}" >&2
-		FAILED+=("$image")
-		continue
-	fi
+		)"; then
+			echo "❌ Could not parse SBOM for ${ref} (${platform})" >&2
+			FAILED+=("${image}/${platform}")
+			continue
+		fi
 
-	component_count="${sbom_stats%% *}"
-	sbom_arch="${sbom_stats##* }"
+		if [[ "$component_count" -eq 0 ]]; then
+			echo "❌ SBOM for ${ref} (${platform}) contains zero components" >&2
+			FAILED+=("${image}/${platform}")
+			continue
+		fi
 
-	if [[ "$component_count" -eq 0 ]]; then
-		echo "❌ SBOM for ${ref} contains zero components" >&2
-		FAILED+=("$image")
-		continue
-	fi
-
-	# "unknown" means syft did not record an architecture property — not proof of
-	# a mismatch, so only a real disagreement is fatal.
-	if [[ "$sbom_arch" != "unknown" && "$sbom_arch" != "${PLATFORM#*/}" ]]; then
-		echo "❌ SBOM for ${ref} reports architecture '${sbom_arch}', expected '${PLATFORM#*/}'" >&2
-		FAILED+=("$image")
-		continue
-	fi
-
-	echo "✅ ${out} (${component_count} components, arch=${sbom_arch})"
+		echo "✅ ${out} (${component_count} components)"
+	done
 done
 
 if [[ ${#FAILED[@]} -gt 0 ]]; then
@@ -202,5 +200,5 @@ if [[ ${#FAILED[@]} -gt 0 ]]; then
 fi
 
 echo ""
-echo "✅ Generated ${#IMAGES[@]} CycloneDX SBOMs in ${OUTPUT_DIR}"
+echo "✅ Generated $(( ${#IMAGES[@]} * ${#PLATFORM_LIST[@]} )) CycloneDX SBOMs in ${OUTPUT_DIR} (${#IMAGES[@]} images × ${#PLATFORM_LIST[@]} platforms)"
 ls -la "$OUTPUT_DIR"

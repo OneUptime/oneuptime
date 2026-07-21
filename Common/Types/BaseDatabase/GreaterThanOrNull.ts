@@ -10,10 +10,18 @@ export default class GreaterThanOrNull<
     super(value);
   }
 
+  /*
+   * Serializes the RAW value (like InBetween does), not toString(): toString()
+   * collapses a Date to a date-only string in the LOCAL timezone
+   * (asDateForDatabaseQuery), so a Date bound would arrive at the server as
+   * midnight of the browser's calendar date and shift the query bound by up to
+   * a day. JSON.stringify turns a raw Date into its full ISO timestamp, which
+   * the server binds at full precision.
+   */
   public override toJSON(): JSONObject {
     return {
       _type: ObjectType.GreaterThanOrNull,
-      value: (this as GreaterThanOrNull<T>).toString(),
+      value: (this as GreaterThanOrNull<T>).value,
     };
   }
 
