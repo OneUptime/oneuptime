@@ -167,7 +167,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
     scheduledMaintenanceStateTimelines,
     setScheduledMaintenanceStateTimelines,
   ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
-  const uptimeHistoryDays: number = statusPage?.showUptimeHistoryInDays || 90;
+  /*
+   * Clamped to [1, 90] to mirror the server (StatusPageAPI clamps before fetching the
+   * timeline). showUptimeHistoryInDays has no server-side validation, so an out-of-range
+   * value set via the API would otherwise make this window longer than the fetched data
+   * range - and the unfetched days would silently count as uptime in the windowed math.
+   */
+  const uptimeHistoryDays: number = Math.min(
+    Math.max(statusPage?.showUptimeHistoryInDays || 90, 1),
+    90,
+  );
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const [currentStatus, setCurrentStatus] = useState<MonitorStatus | null>(
@@ -456,6 +465,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 statusPage?.downtimeMonitorStatuses || [],
               statusPageResources: statusPageResources,
               monitorsInGroup: monitorsInGroup,
+              uptimeWindow: { startDate: startDate, endDate: endDate },
             },
           );
 
@@ -840,6 +850,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               downtimeMonitorStatuses:
                 statusPage?.downtimeMonitorStatuses || [],
               monitorsInGroup: monitorsInGroup,
+              uptimeWindow: { startDate: startDate, endDate: endDate },
             });
           if (percent !== null) {
             uptimePercents.push(percent);
@@ -1296,6 +1307,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             UptimePrecision.TWO_DECIMAL,
                           resourceGroups: resourceGroups,
                           monitorsInGroup: monitorsInGroup,
+                          uptimeWindow: {
+                            startDate: startDate,
+                            endDate: endDate,
+                          },
                         },
                       )?.toString() || "100") + t("overview.uptimeSuffix")
                     : undefined

@@ -93,7 +93,16 @@ export class Service extends DatabaseService<MonitorGroup> {
               },
             ),
           ),
-          createdAt: QueryHelper.inBetween(startDate, endDate),
+          /*
+           * Select every row that OVERLAPS [startDate, endDate] - it started on or before the
+           * window ends, and it either ended on or after the window started or is still open
+           * (endsAt IS NULL). Filtering by createdAt-in-window missed rows that started before
+           * the window but carry downtime into it (e.g. a monitor Offline since before the
+           * window rendered as 100% uptime on the group page). Same predicate as
+           * StatusPageService.getMonitorStatusTimelineForStatusPage.
+           */
+          startsAt: QueryHelper.lessThanEqualTo(endDate),
+          endsAt: QueryHelper.greaterThanEqualToOrNull(startDate),
         },
         select: {
           createdAt: true,
@@ -108,7 +117,11 @@ export class Service extends DatabaseService<MonitorGroup> {
           } as any,
         },
         sort: {
-          createdAt: SortOrder.Ascending,
+          /*
+           * startsAt, not createdAt: they are different clocks (DB now() vs worker moment())
+           * with real skew, and startsAt is the order the timeline math relies on.
+           */
+          startsAt: SortOrder.Ascending,
         },
         skip: 0,
         limit: LIMIT_MAX, // This can be optimized.

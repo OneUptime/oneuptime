@@ -13,7 +13,14 @@ export default class LessThanOrNull<
   public override toJSON(): JSONObject {
     return {
       _type: ObjectType.LessThanOrNull,
-      value: (this as LessThanOrNull<T>).toString(),
+      /*
+       * The RAW value is serialized (like InBetween), not toString():
+       * toString() collapses a Date to a local-timezone date-only string
+       * (asDateForDatabaseQuery), shifting Date bounds sent from the browser
+       * by up to a day. JSON.stringify emits a raw Date as its full ISO
+       * timestamp, which the server binds at full precision.
+       */
+      value: (this as LessThanOrNull<T>).value,
     };
   }
 

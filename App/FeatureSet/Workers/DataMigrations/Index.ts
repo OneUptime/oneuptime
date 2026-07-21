@@ -92,6 +92,7 @@ import AddAttributeKeysToExceptionInstance from "./AddAttributeKeysToExceptionIn
 import AddMutableMetricTable from "./AddMutableMetricTable";
 import AddInstanceIdToGlobalConfig from "./AddInstanceIdToGlobalConfig";
 import AddMetricEntityMinuteAggregateMaterializedViews from "./AddMetricEntityMinuteAggregateMaterializedViews";
+import CloseOrphanedMonitorStatusTimelineRows from "./CloseOrphanedMonitorStatusTimelineRows";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -249,6 +250,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * backfills and re-attaches the per-entity rollup triggers.
    */
   new AddMetricEntityMinuteAggregateMaterializedViews(),
+  /*
+   * Closes the MonitorStatusTimeline rows orphaned with `endsAt = NULL` by the
+   * concurrent double-INSERT race (67,498 rows across 410 monitors / 124
+   * projects). These orphans are what render as months of phantom downtime on
+   * status page uptime reports, because the timeline query applies no lower date
+   * bound to open rows. Batched, restartable and idempotent.
+   */
+  new CloseOrphanedMonitorStatusTimelineRows(),
 ];
 
 export default DataMigrations;

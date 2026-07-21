@@ -10,10 +10,18 @@ export default class LessThanOrEqual<
     super(value);
   }
 
+  /*
+   * Serializes the RAW value (like InBetween does), not toString(): toString()
+   * collapses a Date to a date-only string in the LOCAL timezone
+   * (asDateForDatabaseQuery), so a bound of "now" would arrive at the server as
+   * midnight of the browser's calendar date and silently exclude every row from
+   * today. JSON.stringify turns a raw Date into its full ISO timestamp, which
+   * the server binds at full precision.
+   */
   public override toJSON(): JSONObject {
     return {
       _type: ObjectType.LessThanOrEqual,
-      value: (this as LessThanOrEqual<T>).toString(),
+      value: (this as LessThanOrEqual<T>).value,
     };
   }
 

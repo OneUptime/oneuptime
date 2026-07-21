@@ -65,7 +65,7 @@ import IncidentService from "./IncidentService";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import UptimeUtil from "../../Utils/Uptime/UptimeUtil";
+import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import IP from "../../Types/IP/IP";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -708,24 +708,51 @@ export class Service extends DatabaseService<StatusPage> {
     let monitorStatusTimelines: Array<MonitorStatusTimeline> = [];
 
     if (data.monitorIds.length > 0) {
+      /*
+       * Select every row that actually OVERLAPS [startDate, endDate]:
+       * it started on or before the window ends, and it either ended on or after the window
+       * started or is still open (endsAt IS NULL).
+       *
+       * This used to be two queries that were concatenated - one keyed on
+       * `endsAt BETWEEN startDate AND endDate`, and one on `endsAt IS NULL` with NO date bound
+       * at all. That had two bugs. The unbounded open-row query pulled orphaned rows from
+       * months (or years) before the window into the report, and the endsAt-only window
+       * excluded any event that spanned the ENTIRE window but closed after it, so a total
+       * outage could render as a silent 100% uptime.
+       *
+       * `greaterThanEqualToOrNull` emits `(endsAt >= :date or endsAt IS NULL)`. Note that
+       * `greaterThanOrNull` emits exactly the same `>=` SQL despite its name, so the explicit
+       * name is used here to keep the intent readable.
+       *
+       * Supported by the (monitorId, startsAt) and (endsAt) indexes.
+       */
       monitorStatusTimelines = await MonitorStatusTimelineService.findBy({
         query: {
           monitorId: QueryHelper.any(data.monitorIds),
-          endsAt: QueryHelper.inBetween(startDate, endDate),
+          startsAt: QueryHelper.lessThanEqualTo(endDate),
+          endsAt: QueryHelper.greaterThanEqualToOrNull(startDate),
         },
         select: {
           monitorId: true,
           createdAt: true,
           endsAt: true,
           startsAt: true,
+          /*
+           * `_id` is selected explicitly because UptimeUtil reads `monitorStatus.id` (a getter
+           * over `_id`) to match events against the downtime statuses. It works today only
+           * because SelectUtil.sanitizeSelect force injects `_id: true` into every relation
+           * select - state that dependency here rather than rely on it implicitly. Note `_id`
+           * is the decorated primary column; `id` itself has no TableColumnMetadata.
+           */
           monitorStatus: {
+            _id: true,
             name: true,
             color: true,
             priority: true,
           } as any,
         },
         sort: {
-          createdAt: SortOrder.Descending,
+          startsAt: SortOrder.Descending,
         },
         skip: 0,
         limit: LIMIT_MAX, // This can be optimized.
@@ -734,42 +761,19 @@ export class Service extends DatabaseService<StatusPage> {
         },
       });
 
-      monitorStatusTimelines = monitorStatusTimelines.concat(
-        await MonitorStatusTimelineService.findBy({
-          query: {
-            monitorId: QueryHelper.any(data.monitorIds),
-            endsAt: QueryHelper.isNull(),
-          },
-          select: {
-            monitorId: true,
-            createdAt: true,
-            endsAt: true,
-            startsAt: true,
-            monitorStatus: {
-              name: true,
-              color: true,
-              priority: true,
-            } as any,
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
-          skip: 0,
-          limit: LIMIT_MAX, // This can be optimized.
-          props: {
-            isRoot: true,
-          },
-        }),
-      );
-
-      // sort monitorStatusTimelines by createdAt.
+      /*
+       * Sort by startsAt and NOT by createdAt. createdAt is generated DB side with now(),
+       * while startsAt is generated on the worker pod with moment(). Those are different
+       * clocks with measured skew, so ordering by createdAt does not reliably reproduce the
+       * real chronological order of the timeline.
+       */
       monitorStatusTimelines = monitorStatusTimelines.sort(
         (a: MonitorStatusTimeline, b: MonitorStatusTimeline) => {
-          if (!a.createdAt || !b.createdAt) {
+          if (!a.startsAt || !b.startsAt) {
             return 0;
           }
 
-          return b.createdAt!.getTime() - a.createdAt!.getTime();
+          return b.startsAt!.getTime() - a.startsAt!.getTime();
         },
       );
     }
@@ -1201,6 +1205,18 @@ export class Service extends DatabaseService<StatusPage> {
     const startDate: Date = OneUptimeDate.getSomeDaysAgo(numberOfDays);
     const startAndEndDate: string = `${numberOfDays} days (${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(startDate, true)} - ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(endDate, true)})`;
 
+    /*
+     * The report is explicitly "the last N days", so this window is what every uptime number
+     * below has to be measured against. It used to be computed only to fetch the timeline and
+     * was then discarded, which let an event that started before the window contribute its
+     * whole duration to the downtime total, and made the denominator "first event -> now"
+     * instead of the window - so the reported percentage drifted upwards every day.
+     */
+    const reportWindow: UptimeWindow = {
+      startDate: startDate,
+      endDate: endDate,
+    };
+
     if (statusPageResources.length === 0) {
       return {
         reportDates: startAndEndDate,
@@ -1260,6 +1276,7 @@ export class Service extends DatabaseService<StatusPage> {
         timelineForThisResource,
         resource.uptimePercentPrecision || UptimePrecision.TWO_DECIMAL,
         statusPage.downtimeMonitorStatuses!,
+        reportWindow,
       );
       const downtime: {
         totalDowntimeInSeconds: number;
@@ -1267,6 +1284,7 @@ export class Service extends DatabaseService<StatusPage> {
       } = UptimeUtil.getTotalDowntimeInSeconds(
         timelineForThisResource,
         statusPage.downtimeMonitorStatuses!,
+        reportWindow,
       );
 
       const reportItem: StatusPageReportItem = {
@@ -1299,6 +1317,7 @@ export class Service extends DatabaseService<StatusPage> {
     } = UptimeUtil.getTotalDowntimeInSeconds(
       timeline,
       statusPage.downtimeMonitorStatuses!,
+      reportWindow,
     );
 
     return {
@@ -1462,6 +1481,12 @@ export class Service extends DatabaseService<StatusPage> {
           },
           monitorGroupId: true,
           order: true,
+          /*
+           * needed so the emailed report rounds to the same precision the status page renders
+           * with. Without it `resource.uptimePercentPrecision` is always undefined and the
+           * report silently falls back to two decimals.
+           */
+          uptimePercentPrecision: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
