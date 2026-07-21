@@ -36,6 +36,7 @@ import LogScrubRuleService from "./LogScrubRuleService";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
+  pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 
 class FluentLogStorageFlushError extends Error {
@@ -670,11 +671,9 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         LogService,
         batch,
       );
-      pendingAcks.push(
-        submission.flushed.catch((error: Error) => {
-          throw new FluentLogStorageFlushError(error);
-        }),
-      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new FluentLogStorageFlushError(error);
+      });
     }
   }
 }

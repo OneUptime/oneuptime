@@ -5,8 +5,10 @@ import {
   FanInWriterOptions,
   TelemetryFanInWriter,
   isRetryableInsertError,
+  pushObservedAck,
   readFanInWriterOptionsFromEnv,
 } from "../../../../Server/Utils/Telemetry/TelemetryFanInWriter";
+import { runWithInsertDedup } from "../../../../Server/Utils/AnalyticsDatabase/InsertDedupContext";
 import { JSONObject } from "../../../../Types/JSON";
 import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
 import { describe, expect, test } from "@jest/globals";
@@ -1009,5 +1011,344 @@ describe("readFanInWriterOptionsFromEnv", () => {
         expect(options.maxPendingRows).toBe(100_000);
       },
     );
+  });
+});
+
+/*
+ * The blocks below cover the adversarial-review rework: flushAll's re-cut
+ * loop with the acceptingSubmits guard (rows that buffer only after the
+ * drain begins must still be drained), the deterministic per-job dedup
+ * tokens captured from runWithInsertDedup at submit time, and
+ * pushObservedAck's pre-observed durability acks.
+ */
+
+describe("flushAll strand regressions", () => {
+  test("capacity-parked submit: flushAll also drains rows that buffer only after its first pass releases capacity", async () => {
+    const gate: Deferred = deferred();
+    let firstInsertCall: boolean = true;
+    const target: TestTarget = makeTarget({
+      impl: async (): Promise<void> => {
+        if (firstInsertCall) {
+          firstInsertCall = false;
+          await gate.promise;
+        }
+      },
+    });
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({
+        maxPendingRows: 5,
+        maxBatchRows: 100,
+        maxWaitMs: 60_000,
+      }),
+    );
+
+    // A fills the high-water mark exactly and stays buffered (below maxBatchRows).
+    const first: FanInSubmitResult = await writer.submit(target, makeRows(5));
+    expect(target.insertJsonRows).not.toHaveBeenCalled();
+    expect(writer.getStats().bufferedRows).toBe(5);
+
+    // B parks in waitForCapacity — its rows are not buffered anywhere yet.
+    let accepted: boolean = false;
+    const secondAcceptance: Promise<FanInSubmitResult> = writer
+      .submit(target, makeRows(3, 100))
+      .then((result: FanInSubmitResult) => {
+        accepted = true;
+        return result;
+      });
+
+    let insertCallsWhenFlushAllResolved: number = -1;
+    const flushPromise: Promise<void> = writer.flushAll().then((): void => {
+      insertCallsWhenFlushAllResolved = target.insertJsonRows.mock.calls.length;
+    });
+
+    // flushAll dispatched A into the gated insert; B is still parked.
+    await tick(25);
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+    expect(rowSeqs(callRows(target, 0))).toEqual([0, 1, 2, 3, 4]);
+    expect(accepted).toBe(false);
+    expect(await stillPendingAfter(flushPromise, 5)).toBe(true);
+
+    /*
+     * A lands → its dispatch releases capacity → B wakes and buffers its
+     * rows WITHOUT creating a dispatch (3 < maxBatchRows; its flush timer
+     * is 60s and unref'd). flushAll must re-cut and drain B too — this
+     * previously stranded B's rows.
+     */
+    gate.resolve();
+    await flushPromise;
+
+    expect(insertCallsWhenFlushAllResolved).toBe(2);
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+    expect(rowSeqs(callRows(target, 1))).toEqual([100, 101, 102]);
+    expect(writer.getStats().bufferedRows).toBe(0);
+
+    // BOTH durability acks resolved — B's rows were not stranded.
+    const second: FanInSubmitResult = await secondAcceptance;
+    expect(accepted).toBe(true);
+    await first.flushed;
+    await second.flushed;
+    expect(writer.getStats()).toEqual({
+      bufferedRows: 0,
+      pendingRows: 0,
+      activeInserts: 0,
+    });
+  });
+
+  test("un-awaited submit: flushAll waits out a submit still parked on its acceptance microtask", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({ maxBatchRows: 100, maxWaitMs: 60_000 }),
+    );
+
+    /*
+     * No await between submit() and flushAll(): the submit has not yet
+     * buffered its rows (it is parked on waitForCapacity's fast-path
+     * microtask). flushAll previously concluded the drain before those
+     * rows landed in the buffer, returning with them stranded.
+     */
+    const submitPromise: Promise<FanInSubmitResult> = writer.submit(
+      target,
+      makeRows(3),
+    );
+    await writer.flushAll();
+
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+    expect(rowSeqs(callRows(target, 0))).toEqual([0, 1, 2]);
+    expect(writer.getStats().bufferedRows).toBe(0);
+
+    const result: FanInSubmitResult = await submitPromise;
+    await result.flushed;
+    expect(writer.getStats()).toEqual({
+      bufferedRows: 0,
+      pendingRows: 0,
+      activeInserts: 0,
+    });
+  });
+});
+
+describe("deterministic per-job dedup tokens (runWithInsertDedup)", () => {
+  test("tokened submissions insert separately under '<jobId>:<table>:<chunkIndex>' and re-derive byte-identical tokens on a simulated BullMQ retry", async () => {
+    type JobRunner = (
+      writer: TelemetryFanInWriter,
+      target: TestTarget,
+    ) => Promise<Array<Promise<void>>>;
+
+    /*
+     * Simulates one queue job processing a fixed payload: chunk tokens are
+     * a pure function of (jobId, table, submit order), so a retry that
+     * re-processes the same payload must re-issue the same tokens.
+     */
+    const runIdenticalJob: JobRunner = async (
+      writer: TelemetryFanInWriter,
+      target: TestTarget,
+    ): Promise<Array<Promise<void>>> => {
+      const acks: Array<Promise<void>> = [];
+      await runWithInsertDedup("job1", async (): Promise<void> => {
+        acks.push((await writer.submit(target, makeRows(3))).flushed);
+        acks.push((await writer.submit(target, makeRows(2, 3))).flushed);
+      });
+      return acks;
+    };
+
+    // First attempt: the second submit reaches maxBatchRows and triggers the flush.
+    const firstTarget: TestTarget = makeTarget();
+    const firstWriter: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({ maxBatchRows: 5, maxWaitMs: 60_000 }),
+    );
+    await Promise.all(await runIdenticalJob(firstWriter, firstTarget));
+
+    // Two SEPARATE inserts — tokened submissions are never merged.
+    expect(firstTarget.insertJsonRows).toHaveBeenCalledTimes(2);
+    expect(rowSeqs(callRows(firstTarget, 0))).toEqual([0, 1, 2]);
+    expect(rowSeqs(callRows(firstTarget, 1))).toEqual([3, 4]);
+    const firstTokens: Array<string | undefined> = [0, 1].map(
+      (callIndex: number) => {
+        return callOptions(firstTarget, callIndex).dedupToken;
+      },
+    );
+    expect(firstTokens).toEqual(["job1:TestTable:0", "job1:TestTable:1"]);
+
+    // Simulated BullMQ retry: identical payload, fresh writer instance.
+    const retryTarget: TestTarget = makeTarget();
+    const retryWriter: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({ maxBatchRows: 5, maxWaitMs: 60_000 }),
+    );
+    await Promise.all(await runIdenticalJob(retryWriter, retryTarget));
+
+    expect(retryTarget.insertJsonRows).toHaveBeenCalledTimes(2);
+    const retryTokens: Array<string | undefined> = [0, 1].map(
+      (callIndex: number) => {
+        return callOptions(retryTarget, callIndex).dedupToken;
+      },
+    );
+    // Byte-identical across retries — what lets ClickHouse drop duplicates.
+    expect(retryTokens).toEqual(["job1:TestTable:0", "job1:TestTable:1"]);
+    expect(retryTokens).toEqual(firstTokens);
+  });
+
+  test("mixed batch: tokened rows insert under their deterministic token; untokened rows under a minted fanin token", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({ maxBatchRows: 100, maxWaitMs: 60_000 }),
+    );
+
+    const acks: Array<Promise<void>> = [];
+    await runWithInsertDedup("job2", async (): Promise<void> => {
+      acks.push((await writer.submit(target, makeRows(2))).flushed);
+    });
+    acks.push((await writer.submit(target, makeRows(3, 100))).flushed);
+
+    expect(target.insertJsonRows).not.toHaveBeenCalled();
+    await writer.flushAll();
+    await Promise.all(acks);
+
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+    // The tokened submission inserts first, alone, under its per-job token …
+    expect(rowSeqs(callRows(target, 0))).toEqual([0, 1]);
+    expect(callOptions(target, 0).dedupToken).toBe("job2:TestTable:0");
+    // … and the untokened one inserts separately under a minted batch token.
+    expect(rowSeqs(callRows(target, 1))).toEqual([100, 101, 102]);
+    expect(callOptions(target, 1).dedupToken).toMatch(/^fanin:TestTable:/);
+  });
+
+  test("failure isolation: a non-retryable failure on one token group rejects only that group's ack", async () => {
+    const target: TestTarget = makeTarget({
+      impl: async (
+        rows: Array<JSONObject>,
+        options?: InsertRowsOptions,
+      ): Promise<void> => {
+        if (options?.dedupToken?.endsWith(":0")) {
+          throw clickHouseError("60", `Unknown table (${rows.length} rows)`);
+        }
+      },
+    });
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({ maxBatchRows: 100, maxWaitMs: 60_000 }),
+    );
+
+    const acks: Array<Promise<void>> = [];
+    await runWithInsertDedup("job3", async (): Promise<void> => {
+      acks.push((await writer.submit(target, makeRows(2))).flushed);
+      acks.push((await writer.submit(target, makeRows(2, 2))).flushed);
+    });
+
+    // Handler attached BEFORE the flush so the rejection is always observed.
+    const firstOutcome: Promise<Error> = captureRejection(acks[0]!);
+    await writer.flushAll();
+
+    const err: Error = await firstOutcome;
+    expect(err).toBeInstanceOf(FanInInsertError);
+    expect(err.message).toContain("after 1 attempt(s)");
+    expect(err.message).toContain("Unknown table");
+
+    // The sibling token group in the SAME batch still lands and resolves.
+    await acks[1]!;
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+    expect(callOptions(target, 0).dedupToken).toBe("job3:TestTable:0");
+    expect(callOptions(target, 1).dedupToken).toBe("job3:TestTable:1");
+    expect(writer.getStats()).toEqual({
+      bufferedRows: 0,
+      pendingRows: 0,
+      activeInserts: 0,
+    });
+  });
+
+  test("tokened retry: transient 202 failures retry with the SAME deterministic token, never a fanin token", async () => {
+    const target: TestTarget = makeTarget({
+      impl: failNTimesImpl(
+        2,
+        clickHouseError("202", "Too many simultaneous queries. Maximum: 1000"),
+      ),
+    });
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({
+        maxBatchRows: 2,
+        maxWaitMs: 60_000,
+        retryMaxAttempts: 5,
+      }),
+    );
+
+    const acks: Array<Promise<void>> = [];
+    await runWithInsertDedup("job4", async (): Promise<void> => {
+      acks.push((await writer.submit(target, makeRows(2))).flushed);
+    });
+    await Promise.all(acks);
+
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(3);
+    const tokens: Array<string | undefined> = [0, 1, 2].map(
+      (callIndex: number) => {
+        return callOptions(target, callIndex).dedupToken;
+      },
+    );
+    expect(tokens).toEqual([
+      "job4:TestTable:0",
+      "job4:TestTable:0",
+      "job4:TestTable:0",
+    ]);
+    expect(tokens[0]).not.toMatch(/^fanin:/);
+    // Every attempt re-sends the identical row set.
+    expect(rowSeqs(callRows(target, 2))).toEqual([0, 1]);
+  });
+});
+
+describe("pushObservedAck", () => {
+  class WrappedStorageError extends Error {
+    public constructor(message: string) {
+      super(message);
+      this.name = "WrappedStorageError";
+    }
+  }
+
+  test("a rejected flushed promise fires no unhandledRejection and delivers the wrapped error at the await point", async () => {
+    const unhandledReasons: Array<unknown> = [];
+    const onUnhandledRejection: (reason: unknown) => void = (
+      reason: unknown,
+    ): void => {
+      unhandledReasons.push(reason);
+    };
+    process.on("unhandledRejection", onUnhandledRejection);
+
+    try {
+      const pendingAcks: Array<Promise<void>> = [];
+      const flushed: Promise<void> = Promise.reject(
+        new Error("insert definitively failed"),
+      );
+
+      pushObservedAck(pendingAcks, flushed, (err: Error): Error => {
+        return new WrappedStorageError(
+          `Telemetry write failed: ${err.message}`,
+        );
+      });
+      expect(pendingAcks).toHaveLength(1);
+
+      // An unobserved rejection would surface within a few macrotasks.
+      await tick(30);
+      expect(unhandledReasons).toEqual([]);
+
+      // …but it is still delivered for real at the job's await point.
+      const settled: Array<PromiseSettledResult<void>> =
+        await Promise.allSettled(pendingAcks);
+      const firstSettled: PromiseSettledResult<void> = settled[0]!;
+      expect(firstSettled.status).toBe("rejected");
+      if (firstSettled.status !== "rejected") {
+        throw new Error("Expected the ack to be rejected.");
+      }
+      expect(firstSettled.reason).toBeInstanceOf(WrappedStorageError);
+      expect((firstSettled.reason as Error).message).toBe(
+        "Telemetry write failed: insert definitively failed",
+      );
+    } finally {
+      process.removeListener("unhandledRejection", onUnhandledRejection);
+    }
+  });
+
+  test("a resolved flushed promise pushes a resolving ack", async () => {
+    const pendingAcks: Array<Promise<void>> = [];
+    pushObservedAck(pendingAcks, Promise.resolve(), (err: Error): Error => {
+      return new WrappedStorageError(err.message);
+    });
+
+    expect(pendingAcks).toHaveLength(1);
+    await expect(Promise.all(pendingAcks)).resolves.toEqual([undefined]);
   });
 });

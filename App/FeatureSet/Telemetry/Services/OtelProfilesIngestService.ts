@@ -38,6 +38,7 @@ import {
 } from "../Config";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
+  pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import crypto from "crypto";
 
@@ -127,11 +128,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         ProfileService,
         batch,
       );
-      pendingAcks.push(
-        submission.flushed.catch((error: Error) => {
-          throw new ProfileStorageFlushError(error);
-        }),
-      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new ProfileStorageFlushError(error);
+      });
     }
   }
 
@@ -157,11 +156,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
         ProfileSampleService,
         batch,
       );
-      pendingAcks.push(
-        submission.flushed.catch((error: Error) => {
-          throw new ProfileStorageFlushError(error);
-        }),
-      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new ProfileStorageFlushError(error);
+      });
     }
   }
 

@@ -41,6 +41,7 @@ import {
 } from "../Utils/SyslogParser";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
+  pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 
 class SyslogStorageFlushError extends Error {
@@ -534,11 +535,9 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         LogService,
         batch,
       );
-      pendingAcks.push(
-        submission.flushed.catch((error: Error) => {
-          throw new SyslogStorageFlushError(error);
-        }),
-      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new SyslogStorageFlushError(error);
+      });
     }
   }
 

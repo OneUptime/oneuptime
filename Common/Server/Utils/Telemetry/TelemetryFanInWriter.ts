@@ -3,6 +3,7 @@ import Sleep from "../../../Types/Sleep";
 import UUID from "../../../Utils/UUID";
 import { JSONObject } from "../../../Types/JSON";
 import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
+import { nextInsertDedupToken } from "../AnalyticsDatabase/InsertDedupContext";
 import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
 
 /*
@@ -20,18 +21,26 @@ import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
  * large combined inserts through a small per-pod semaphore, so ClickHouse
  * sees (pods × maxConcurrentInserts) queries regardless of job concurrency.
  *
- * Delivery semantics — ack-after-flush, at-least-once:
+ * Delivery semantics — ack-after-flush with per-job retry idempotence:
  * - submit() resolves with a `flushed` promise that settles only when the
- *   batch containing those rows has durably landed in ClickHouse
- *   (wait_for_async_insert=1) or definitively failed. Jobs await it before
- *   completing, so BullMQ retries any payload whose rows did not land.
- * - Every batch carries a unique insert_deduplication_token, reused across
- *   the writer's own retries of that batch. Transient errors (overload,
- *   timeouts, network) are therefore retried in place without double-writing:
- *   if the previous attempt actually landed, ClickHouse drops the duplicate
- *   block (the telemetry tables set non_replicated_deduplication_window).
- * - A submission is never split across batches, so a batch failure rejects
- *   exactly the submissions it contains and nothing else.
+ *   rows have durably landed in ClickHouse (wait_for_async_insert=1) or
+ *   definitively failed. Jobs await it before completing, so BullMQ retries
+ *   any payload whose rows did not land.
+ * - submit() captures a deterministic insert_deduplication_token from the
+ *   ambient runWithInsertDedup context AT SUBMIT TIME (still inside the
+ *   job's scope). Tokened submissions are inserted individually under that
+ *   token — "<jobId>:<table>:<chunkIndex>", byte-identical when a BullMQ
+ *   retry re-processes the same payload — so ClickHouse drops rows a prior
+ *   attempt already landed. Merging them under one cross-job token would
+ *   forfeit exactly that guarantee.
+ * - Submissions arriving outside any dedup scope are merged into one insert
+ *   under a minted per-batch token, unique per batch and reused only across
+ *   the writer's own in-place retries of it. Either way, transient errors
+ *   (overload, timeouts, network) retry with the SAME token, so an
+ *   ambiguous failure whose rows actually landed never double-writes (the
+ *   telemetry tables set non_replicated_deduplication_window).
+ * - A submission is never split across batches, so an insert failure
+ *   rejects exactly the submissions it contains and nothing else.
  *
  * Backpressure: awaiting submit() blocks while (buffered + in-flight) rows
  * are at maxPendingRows, bounding per-pod memory; the retry loop holds its
@@ -93,6 +102,15 @@ export class FanInInsertError extends Error {
 type PendingSubmission = {
   rows: Array<JSONObject>;
   clickhouseSettings: ClickHouseSettings | undefined;
+  /*
+   * Deterministic per-job dedup token captured at submit time from the
+   * ambient runWithInsertDedup context ("<jobId>:<table>:<chunkIndex>"),
+   * or undefined when submitted outside any job scope. Tokened submissions
+   * are inserted individually under their token so a BullMQ job retry
+   * re-issues byte-identical tokens and ClickHouse drops already-landed
+   * rows; untokened ones are merged under a minted per-batch token.
+   */
+  dedupToken: string | undefined;
   resolveAck: () => void;
   rejectAck: (err: Error) => void;
 };
@@ -106,9 +124,9 @@ type TableBuffer = {
 
 /*
  * ClickHouse server error codes that indicate transient overload or an
- * ambiguous outcome. All are safe to retry here because every batch carries
- * a stable dedup token: a retry of a block that actually landed is dropped
- * server-side.
+ * ambiguous outcome. All are safe to retry here because every insert
+ * carries a dedup token that is stable across the writer's retries: a
+ * retry of a block that actually landed is dropped server-side.
  *   202 TOO_MANY_SIMULTANEOUS_QUERIES, 209 SOCKET_TIMEOUT,
  *   210 NETWORK_ERROR, 241 MEMORY_LIMIT_EXCEEDED, 252 TOO_MANY_PARTS,
  *   319 UNKNOWN_STATUS_OF_INSERT
@@ -213,6 +231,13 @@ export class TelemetryFanInWriter {
   private activeInserts: number = 0;
   private insertSlotWaiters: Array<() => void> = [];
   private inFlightDispatches: Set<Promise<void>> = new Set();
+  /*
+   * Submits that have been called but have not yet buffered their rows
+   * (parked at the waitForCapacity await, or merely yielding its one
+   * microtask). flushAll() must not conclude the drain while any exist —
+   * their rows would land just after the final cut and strand.
+   */
+  private acceptingSubmits: number = 0;
   private shutdownHandlerRegistered: boolean = false;
 
   public constructor(options: FanInWriterOptions) {
@@ -264,71 +289,106 @@ export class TelemetryFanInWriter {
 
     this.registerShutdownHandlerOnce();
 
-    await this.waitForCapacity();
-
     const tableName: string = target.model.tableName;
-    let buffer: TableBuffer | undefined = this.buffers.get(tableName);
-    if (!buffer) {
-      buffer = {
-        target,
-        submissions: [],
-        rowCount: 0,
-        timer: null,
-      };
-      this.buffers.set(tableName, buffer);
+
+    /*
+     * Capture the deterministic per-job dedup token NOW, synchronously in
+     * the caller's flow: submit() runs inside the job's runWithInsertDedup
+     * scope, while the dispatch that eventually inserts these rows runs on
+     * a timer with no ambient context. Capturing before any await also
+     * keeps token order deterministic across retries of the same payload.
+     */
+    const dedupToken: string | undefined = nextInsertDedupToken(tableName);
+
+    this.acceptingSubmits++;
+    try {
+      await this.waitForCapacity();
+
+      let buffer: TableBuffer | undefined = this.buffers.get(tableName);
+      if (!buffer) {
+        buffer = {
+          target,
+          submissions: [],
+          rowCount: 0,
+          timer: null,
+        };
+        this.buffers.set(tableName, buffer);
+      }
+
+      let resolveAck: () => void = () => {};
+      let rejectAck: (err: Error) => void = () => {};
+      const flushed: Promise<void> = new Promise<void>(
+        (resolve: () => void, reject: (err: Error) => void) => {
+          resolveAck = resolve;
+          rejectAck = reject;
+        },
+      );
+
+      buffer.submissions.push({
+        rows,
+        clickhouseSettings: options?.clickhouseSettings,
+        dedupToken,
+        resolveAck,
+        rejectAck,
+      });
+      buffer.rowCount += rows.length;
+      this.pendingRows += rows.length;
+
+      if (buffer.rowCount >= this.options.maxBatchRows) {
+        this.cutAndDispatch(tableName, false);
+      } else if (!buffer.timer) {
+        buffer.timer = setTimeout(() => {
+          const timedBuffer: TableBuffer | undefined =
+            this.buffers.get(tableName);
+          if (timedBuffer) {
+            timedBuffer.timer = null;
+          }
+          this.cutAndDispatch(tableName, true);
+        }, this.options.maxWaitMs);
+        /*
+         * Never keep the process alive just for a pending flush timer —
+         * graceful shutdown drains buffers explicitly.
+         */
+        buffer.timer.unref?.();
+      }
+
+      return { flushed };
+    } finally {
+      this.acceptingSubmits--;
     }
-
-    let resolveAck: () => void = () => {};
-    let rejectAck: (err: Error) => void = () => {};
-    const flushed: Promise<void> = new Promise<void>(
-      (resolve: () => void, reject: (err: Error) => void) => {
-        resolveAck = resolve;
-        rejectAck = reject;
-      },
-    );
-
-    buffer.submissions.push({
-      rows,
-      clickhouseSettings: options?.clickhouseSettings,
-      resolveAck,
-      rejectAck,
-    });
-    buffer.rowCount += rows.length;
-    this.pendingRows += rows.length;
-
-    if (buffer.rowCount >= this.options.maxBatchRows) {
-      this.cutAndDispatch(tableName, false);
-    } else if (!buffer.timer) {
-      buffer.timer = setTimeout(() => {
-        const timedBuffer: TableBuffer | undefined =
-          this.buffers.get(tableName);
-        if (timedBuffer) {
-          timedBuffer.timer = null;
-        }
-        this.cutAndDispatch(tableName, true);
-      }, this.options.maxWaitMs);
-      /*
-       * Never keep the process alive just for a pending flush timer —
-       * graceful shutdown drains buffers explicitly.
-       */
-      buffer.timer.unref?.();
-    }
-
-    return { flushed };
   }
 
   /** Force-flush everything buffered and wait for all in-flight inserts to settle. */
   public async flushAll(): Promise<void> {
-    for (const tableName of Array.from(this.buffers.keys())) {
-      this.cutAndDispatch(tableName, true);
-    }
     /*
      * Dispatch promises never reject (failures are routed to submission
-     * acks), so a plain all() is safe. Loop because new dispatches can be
-     * created while awaiting (late submits racing shutdown).
+     * acks), so a plain all() is safe. Re-cut on EVERY pass: a submit
+     * parked in waitForCapacity() resumes when a completing dispatch
+     * releases capacity — scheduled BEFORE the dispatch promise's own
+     * reactions — and buffers its rows WITHOUT creating a dispatch when
+     * they are below maxBatchRows (its flush timer is unref'd and will
+     * never fire before process exit). Waiting on inFlightDispatches alone
+     * would therefore return with those rows stranded. Exit only when a
+     * fresh cut pass leaves nothing in flight and no submit is still
+     * mid-acceptance; the microtask yield lets a not-yet-buffered submit
+     * (parked only on waitForCapacity's fast-path await) land its rows so
+     * the next pass picks them up.
      */
-    while (this.inFlightDispatches.size > 0) {
-      await Promise.all(Array.from(this.inFlightDispatches));
+    for (;;) {
+      for (const tableName of Array.from(this.buffers.keys())) {
+        this.cutAndDispatch(tableName, true);
+      }
+
+      if (this.inFlightDispatches.size > 0) {
+        await Promise.all(Array.from(this.inFlightDispatches));
+        continue;
+      }
+
+      if (this.acceptingSubmits === 0) {
+        return;
+      }
+
+      await Promise.resolve();
     }
   }
 
@@ -447,10 +507,24 @@ export class TelemetryFanInWriter {
   }
 
   /*
-   * Insert one batch, retrying transient failures with full-jitter
-   * exponential backoff. The insert slot is held across backoff sleeps on
-   * purpose: when ClickHouse is saturated, offering it MORE concurrent load
-   * from this pod is the failure mode this component exists to prevent.
+   * Insert one batch while holding a single insert slot. Submissions that
+   * carry a deterministic per-job dedup token are inserted INDIVIDUALLY
+   * under their own token — this is what keeps BullMQ job retries
+   * duplicate-free: the retry re-derives byte-identical tokens and
+   * ClickHouse drops blocks a prior attempt already landed. Merging them
+   * under one shared cross-job token would break that (a token dedups by
+   * token, not content, so a differently-composed block under a reused
+   * token would silently drop other jobs' rows — the same hazard that kept
+   * the probe paths off dedup tokens historically). Untokened submissions
+   * are merged into one insert under a minted per-batch token.
+   *
+   * The tokened inserts run sequentially within this one slot, so the
+   * per-pod concurrency cap — the property that fixes the
+   * max_concurrent_queries incident — is unaffected; only the statement
+   * count returns to master's per-chunk granularity, and ClickHouse's
+   * async-insert coalescing (async_insert=1) still assembles fat parts
+   * server-side.
+   *
    * Never rejects — outcomes are routed to the submissions' acks.
    */
   private async dispatchInsert(
@@ -461,16 +535,62 @@ export class TelemetryFanInWriter {
   ): Promise<void> {
     await this.acquireInsertSlot();
 
+    try {
+      const untokened: Array<PendingSubmission> = [];
+
+      for (const submission of batch) {
+        if (submission.dedupToken) {
+          await this.insertGroupWithRetry(
+            target,
+            tableName,
+            [submission],
+            submission.dedupToken,
+          );
+        } else {
+          untokened.push(submission);
+        }
+      }
+
+      if (untokened.length > 0) {
+        await this.insertGroupWithRetry(
+          target,
+          tableName,
+          untokened,
+          `fanin:${tableName}:${UUID.generateTimeOrdered()}`,
+        );
+      }
+    } finally {
+      this.pendingRows -= batchRows;
+      this.releaseCapacity();
+      this.releaseInsertSlot();
+    }
+  }
+
+  /*
+   * Insert one token group, retrying transient failures with full-jitter
+   * exponential backoff and the SAME dedup token — an ambiguous failure
+   * (timeout, connection reset) whose rows actually landed is dropped
+   * server-side on the retry. The insert slot is held across backoff sleeps
+   * on purpose: when ClickHouse is saturated, offering it MORE concurrent
+   * load from this pod is the failure mode this component exists to
+   * prevent. Never rejects — outcomes are routed to the group's acks, so
+   * one group's definitive failure does not fail the batch's other groups.
+   */
+  private async insertGroupWithRetry(
+    target: FanInInsertTarget,
+    tableName: string,
+    group: Array<PendingSubmission>,
+    dedupToken: string,
+  ): Promise<void> {
     const rows: Array<JSONObject> = [];
-    for (const submission of batch) {
+    for (const submission of group) {
       for (const row of submission.rows) {
         rows.push(row);
       }
     }
 
-    const dedupToken: string = `fanin:${tableName}:${UUID.generateTimeOrdered()}`;
     const clickhouseSettings: ClickHouseSettings | undefined =
-      batch[0]?.clickhouseSettings;
+      group[0]?.clickhouseSettings;
     const sleep: (ms: number) => Promise<void> =
       this.options.sleep ??
       ((ms: number): Promise<void> => {
@@ -480,68 +600,85 @@ export class TelemetryFanInWriter {
     let lastError: unknown = null;
     let attemptsMade: number = 0;
 
-    try {
-      for (
-        let attempt: number = 1;
-        attempt <= this.options.retryMaxAttempts;
-        attempt++
-      ) {
-        attemptsMade = attempt;
-        try {
-          await target.insertJsonRows(rows, {
-            dedupToken,
-            clickhouseSettings,
-          });
+    for (
+      let attempt: number = 1;
+      attempt <= this.options.retryMaxAttempts;
+      attempt++
+    ) {
+      attemptsMade = attempt;
+      try {
+        await target.insertJsonRows(rows, {
+          dedupToken,
+          clickhouseSettings,
+        });
 
-          for (const submission of batch) {
-            submission.resolveAck();
-          }
-          if (attempt > 1) {
-            logger.info(
-              `TelemetryFanInWriter: insert into ${tableName} (${batchRows} rows) succeeded on attempt ${attempt}.`,
-            );
-          }
-          return;
-        } catch (err) {
-          lastError = err;
-
-          if (
-            !isRetryableInsertError(err) ||
-            attempt === this.options.retryMaxAttempts
-          ) {
-            break;
-          }
-
-          const expDelay: number = Math.min(
-            this.options.retryMaxDelayMs,
-            this.options.retryBaseDelayMs * Math.pow(2, attempt - 1),
-          );
-          const jitteredDelay: number = Math.ceil(Math.random() * expDelay);
-          logger.warn(
-            `TelemetryFanInWriter: transient insert failure on ${tableName} (${batchRows} rows, attempt ${attempt}/${this.options.retryMaxAttempts}); retrying with the same dedup token in ${jitteredDelay}ms: ${err instanceof Error ? err.message : String(err)}`,
-          );
-          await sleep(jitteredDelay);
+        for (const submission of group) {
+          submission.resolveAck();
         }
-      }
+        if (attempt > 1) {
+          logger.info(
+            `TelemetryFanInWriter: insert into ${tableName} (${rows.length} rows) succeeded on attempt ${attempt}.`,
+          );
+        }
+        return;
+      } catch (err) {
+        lastError = err;
 
-      const finalError: FanInInsertError = new FanInInsertError({
-        tableName,
-        attempts: attemptsMade,
-        cause: lastError,
-      });
-      logger.error(
-        `TelemetryFanInWriter: giving up on insert into ${tableName} (${batchRows} rows); failing ${batch.length} submission(s).`,
-      );
-      logger.error(finalError);
-      for (const submission of batch) {
-        submission.rejectAck(finalError);
+        if (
+          !isRetryableInsertError(err) ||
+          attempt === this.options.retryMaxAttempts
+        ) {
+          break;
+        }
+
+        const expDelay: number = Math.min(
+          this.options.retryMaxDelayMs,
+          this.options.retryBaseDelayMs * Math.pow(2, attempt - 1),
+        );
+        const jitteredDelay: number = Math.ceil(Math.random() * expDelay);
+        logger.warn(
+          `TelemetryFanInWriter: transient insert failure on ${tableName} (${rows.length} rows, attempt ${attempt}/${this.options.retryMaxAttempts}); retrying with the same dedup token in ${jitteredDelay}ms: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        await sleep(jitteredDelay);
       }
-    } finally {
-      this.pendingRows -= batchRows;
-      this.releaseCapacity();
-      this.releaseInsertSlot();
+    }
+
+    const finalError: FanInInsertError = new FanInInsertError({
+      tableName,
+      attempts: attemptsMade,
+      cause: lastError,
+    });
+    logger.error(
+      `TelemetryFanInWriter: giving up on insert into ${tableName} (${rows.length} rows); failing ${group.length} submission(s).`,
+    );
+    logger.error(finalError);
+    for (const submission of group) {
+      submission.rejectAck(finalError);
     }
   }
+}
+
+/*
+ * Register a durability ack on a job's pending-ack list, wrapped in the
+ * service's storage error class and pre-observed: a mid-job batch failure
+ * would otherwise reject the stored promise long before the job's final
+ * `await Promise.all(pendingAcks)` reaches it, firing the process-level
+ * unhandledRejection logger once per ack. The no-op catch marks the promise
+ * handled without swallowing anything — the rejection is still delivered at
+ * the job's await point, failing the job so BullMQ retries the payload.
+ */
+export function pushObservedAck(
+  pendingAcks: Array<Promise<void>>,
+  flushed: Promise<void>,
+  wrapError: (err: Error) => Error,
+): void {
+  const ack: Promise<void> = flushed.catch((error: Error) => {
+    throw wrapError(error);
+  });
+  ack.catch(() => {
+    // Pre-observed; delivered for real at the job's await point.
+  });
+  pendingAcks.push(ack);
 }
 
 const defaultWriter: TelemetryFanInWriter = new TelemetryFanInWriter(

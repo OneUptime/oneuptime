@@ -87,6 +87,7 @@ import {
 } from "Common/Types/DockerSwarm/DockerSwarmInventoryExtractor";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
+  pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 
 const INVENTORIED_TYPE_SET: Set<string> = new Set(
@@ -138,11 +139,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         LogService,
         batch,
       );
-      pendingAcks.push(
-        submission.flushed.catch((error: Error) => {
-          throw new LogStorageFlushError(error);
-        }),
-      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new LogStorageFlushError(error);
+      });
     }
   }
 
@@ -173,11 +172,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         ExceptionInstanceService,
         batch,
       );
-      pendingAcks.push(
-        submission.flushed.catch((error: Error) => {
-          throw new LogStorageFlushError(error);
-        }),
-      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new LogStorageFlushError(error);
+      });
     }
   }
 

@@ -58,6 +58,7 @@ import {
 } from "../Config";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
+  pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 
 type CompiledTraceScrubRule = {
@@ -188,11 +189,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         SpanService,
         batch,
       );
-      pendingAcks.push(
-        submission.flushed.catch((error: Error) => {
-          throw new TraceStorageFlushError(error);
-        }),
-      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new TraceStorageFlushError(error);
+      });
     }
   }
 
@@ -218,11 +217,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         ExceptionInstanceService,
         batch,
       );
-      pendingAcks.push(
-        submission.flushed.catch((error: Error) => {
-          throw new TraceStorageFlushError(error);
-        }),
-      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new TraceStorageFlushError(error);
+      });
     }
   }
 

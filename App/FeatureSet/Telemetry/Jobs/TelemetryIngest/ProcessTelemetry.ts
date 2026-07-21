@@ -82,13 +82,18 @@ if (DisableQueueWorkers) {
         job.data as TelemetryIngestJobData;
 
       /*
-       * For the telemetry signal types, every ClickHouse insert performed
-       * while processing the job carries a deterministic
-       * insert_deduplication_token derived from the BullMQ job id (stable
-       * across stalled-job recoveries and attempts-based retries), so a
-       * retry that re-processes the same payload is deduplicated
-       * server-side instead of double-writing rows. See runWithInsertDedup
-       * in AnalyticsDatabaseService.
+       * For the telemetry signal types, every ClickHouse write carries a
+       * deterministic insert_deduplication_token derived from the BullMQ
+       * job id (stable across stalled-job recoveries and attempts-based
+       * retries), so a retry that re-processes the same payload is
+       * deduplicated server-side instead of double-writing rows. The
+       * services route rows through TelemetryFanInWriter, which captures
+       * the token from this ambient scope AT SUBMIT TIME and inserts each
+       * tokened submission individually under it — cross-job batching
+       * never merges differently-tokened rows, precisely so this guarantee
+       * survives. See runWithInsertDedup / nextInsertDedupToken in
+       * Common/Server/Utils/AnalyticsDatabase/InsertDedupContext and the
+       * dispatch logic in TelemetryFanInWriter.
        *
        * The probe / server-monitor / incoming-request types are excluded
        * deliberately: their inserts go through shared cross-job buffers

@@ -1,5 +1,9 @@
 import OtelTracesIngestService from "../../FeatureSet/Telemetry/Services/OtelTracesIngestService";
 import OtelLogsIngestService from "../../FeatureSet/Telemetry/Services/OtelLogsIngestService";
+import OtelMetricsIngestService from "../../FeatureSet/Telemetry/Services/OtelMetricsIngestService";
+import MetricPipelineRuleService, {
+  MetricRulesForProject,
+} from "../../FeatureSet/Telemetry/Services/MetricPipelineRuleService";
 import TraceDropFilterService from "../../FeatureSet/Telemetry/Services/TraceDropFilterService";
 import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import TracePipelineService from "../../FeatureSet/Telemetry/Services/TracePipelineService";
@@ -9,8 +13,11 @@ import LogScrubRuleService from "../../FeatureSet/Telemetry/Services/LogScrubRul
 import ExceptionUtil from "../../FeatureSet/Telemetry/Utils/Exception";
 import SpanService from "Common/Server/Services/SpanService";
 import LogService from "Common/Server/Services/LogService";
+import MetricService from "Common/Server/Services/MetricService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import { runWithInsertDedup } from "Common/Server/Services/AnalyticsDatabaseService";
+import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -69,7 +76,9 @@ const AUTO_DISCOVERY_METHODS_RETURNING_NULL: Array<string> = [
   "autoDiscoverRum",
 ];
 
-type InsertOptions = { dedupToken?: string } | undefined;
+type InsertOptions =
+  | { dedupToken?: string; clickhouseSettings?: JSONObject }
+  | undefined;
 
 function setupIngestMocks(): void {
   for (const ingestService of [
@@ -465,5 +474,245 @@ describe("Telemetry fan-in ingest — traces + logs end to end through the write
     // The Postgres summary upsert got the matching payload (mocked away).
     expect(upsertCallCount).toBe(1);
     expect(upsertPayloadCount).toBe(1);
+  });
+});
+
+/*
+ * ------------------------------------------------------------------
+ * Metrics: OTLP JSON body -> processMetricsFromQueue ->
+ * TelemetryFanInWriter (REAL — submitMetricsBuffer is NOT stubbed) ->
+ * mocked ClickHouse insertJsonRows on MetricService.
+ * ------------------------------------------------------------------
+ *
+ * The metrics path additionally pins its ClickHouse insert settings
+ * (async_insert + wait_for_async_insert + distributed_foreground_insert)
+ * so a successful job means the Distributed table has delivered the block
+ * to the shard-local table — asserted below on every insert call.
+ */
+
+/*
+ * Metrics-path auto-discovery methods that hit Postgres: the shared list
+ * plus the IoT fleet discovery, which only the metrics service has.
+ */
+const METRICS_AUTO_DISCOVERY_METHODS_RETURNING_NULL: Array<string> = [
+  ...AUTO_DISCOVERY_METHODS_RETURNING_NULL,
+  "autoDiscoverIoTFleet",
+];
+
+/*
+ * The exact ClickHouse settings submitMetricsBuffer attaches to every
+ * Metric-table submission (see OtelMetricsIngestService).
+ */
+const METRICS_CLICKHOUSE_SETTINGS: JSONObject = {
+  async_insert: 1,
+  wait_for_async_insert: 1,
+  distributed_foreground_insert: 1,
+};
+
+function setupMetricsIngestMocks(): void {
+  const service: Record<string, any> = OtelMetricsIngestService as unknown as {
+    [key: string]: any;
+  };
+
+  /*
+   * Postgres lookups/write-backs only — submitMetricsBuffer and the fan-in
+   * writer run for REAL (that is the durability wiring under test).
+   */
+  jest.spyOn(service, "runBatchHostEnrichment").mockResolvedValue(undefined);
+
+  for (const method of METRICS_AUTO_DISCOVERY_METHODS_RETURNING_NULL) {
+    jest.spyOn(service, method).mockResolvedValue(null);
+  }
+
+  jest.spyOn(service, "resolveTelemetryResource").mockResolvedValue({
+    serviceName: SERVICE_NAME,
+    primaryEntityId: SERVICE_ID,
+    primaryEntityType: ServiceType.OpenTelemetry,
+    dataRententionInDays: 15,
+    serviceRetentionConfig: null,
+    serviceRetentionInDays: null,
+    projectRetentionConfig: null,
+    projectRetentionInDays: 15,
+  });
+
+  const noRules: MetricRulesForProject = {
+    projectRules: [],
+    rulesByServiceId: new Map(),
+  };
+  jest.spyOn(MetricPipelineRuleService, "loadRules").mockResolvedValue(noRules);
+
+  // Postgres MetricType catalog upsert (fired without await, end of job).
+  jest
+    .spyOn(TelemetryUtil, "indexMetricNameServiceNameMap")
+    .mockResolvedValue(undefined as any);
+}
+
+function makeGaugeMetric(name: string, values: Array<number>): JSONObject {
+  return {
+    name: name,
+    description: "test gauge",
+    unit: "1",
+    gauge: {
+      dataPoints: values.map((value: number) => {
+        return {
+          asInt: value,
+          timeUnixNano: `${Date.now()}000000`,
+          attributes: [
+            { key: "dp.value", value: { stringValue: String(value) } },
+          ],
+        };
+      }),
+    },
+  };
+}
+
+function makeSumMetric(name: string, value: number): JSONObject {
+  return {
+    name: name,
+    description: "test sum",
+    unit: "1",
+    sum: {
+      aggregationTemporality: 2,
+      isMonotonic: true,
+      dataPoints: [
+        {
+          asInt: value,
+          startTimeUnixNano: `${Date.now() - 60_000}000000`,
+          timeUnixNano: `${Date.now()}000000`,
+          attributes: [],
+        },
+      ],
+    },
+  };
+}
+
+/*
+ * No host.name in the resource attributes on purpose: a host.name would
+ * add a synthetic oneuptime.host.heartbeat row to the insert and pull the
+ * (mocked-away) host enrichment into play.
+ */
+function metricsRequest(metrics: Array<JSONObject>): TelemetryRequest {
+  return telemetryRequest({
+    resourceMetrics: [
+      {
+        resource: {
+          attributes: [
+            { key: "service.name", value: { stringValue: SERVICE_NAME } },
+          ],
+        },
+        scopeMetrics: [{ metrics: metrics }],
+      },
+    ],
+  });
+}
+
+describe("Telemetry fan-in ingest — metrics end to end through the writer", () => {
+  let metricInsertSpy: jest.SpyInstance;
+
+  beforeAll(() => {
+    // Same fast-flush reconfiguration as the traces/logs block above.
+    TelemetryFanInWriter.configure({
+      maxWaitMs: 10,
+      maxBatchRows: 50,
+      retryBaseDelayMs: 1,
+      retryMaxDelayMs: 5,
+    });
+  });
+
+  beforeEach(() => {
+    setupMetricsIngestMocks();
+    metricInsertSpy = jest
+      .spyOn(MetricService, "insertJsonRows")
+      .mockResolvedValue(undefined);
+  });
+
+  afterEach(async () => {
+    await TelemetryFanInWriter.flushAll();
+    jest.restoreAllMocks();
+  });
+
+  test("metrics happy path: all rows land with fan-in dedup tokens and the metrics-only ClickHouse settings", async () => {
+    await expect(
+      OtelMetricsIngestService.processMetricsFromQueue(
+        metricsRequest([
+          makeGaugeMetric("app.cpu.usage", [7, 11]),
+          makeSumMetric("app.requests.total", 42),
+        ]),
+      ),
+    ).resolves.toBeUndefined();
+
+    // All 3 datapoints arrived as rows, in payload order.
+    const rows: Array<JSONObject> = insertedRows(metricInsertSpy);
+    expect(rows).toHaveLength(3);
+    expect(
+      rows.map((row: JSONObject) => {
+        return [row["name"], row["value"]];
+      }),
+    ).toEqual([
+      ["app.cpu.usage", 7],
+      ["app.cpu.usage", 11],
+      ["app.requests.total", 42],
+    ]);
+    expect(rows[0]!["projectId"]).toBe(PROJECT_ID.toString());
+    expect(rows[0]!["primaryEntityId"]).toBe(SERVICE_ID.toString());
+
+    // Outside any dedup scope the writer mints per-batch fanin: tokens...
+    expectEveryCallHasFanInDedupToken(metricInsertSpy);
+
+    /*
+     * ...and every insert carries the metrics-only settings that make the
+     * ack mean "flushed through the Distributed table", not just accepted.
+     */
+    for (const call of metricInsertSpy.mock.calls) {
+      const options: InsertOptions = call[1] as InsertOptions;
+      expect(options?.clickhouseSettings).toEqual(METRICS_CLICKHOUSE_SETTINGS);
+    }
+  });
+
+  test("metrics ack-after-flush: a non-retryable insert failure rejects the job so BullMQ retries it", async () => {
+    // Code 60 = UNKNOWN_TABLE: numeric-string code, not in the retryable set.
+    metricInsertSpy.mockRejectedValue(
+      Object.assign(
+        new Error("Code: 60. DB::Exception: Table does not exist"),
+        { code: "60" },
+      ),
+    );
+
+    await expect(
+      OtelMetricsIngestService.processMetricsFromQueue(
+        metricsRequest([makeGaugeMetric("doomed.metric", [1])]),
+      ),
+    ).rejects.toThrow(/Failed to flush metrics to ClickHouse/);
+
+    // Non-retryable -> the writer gave up after exactly one attempt.
+    expect(metricInsertSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("dedup scope: a job wrapped in runWithInsertDedup gets deterministic per-job tokens, not fanin:-minted ones", async () => {
+    await expect(
+      runWithInsertDedup("job-x", () => {
+        return OtelMetricsIngestService.processMetricsFromQueue(
+          metricsRequest([makeGaugeMetric("scoped.metric", [1, 2])]),
+        );
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(insertedRows(metricInsertSpy)).toHaveLength(2);
+
+    /*
+     * One submission (the end-of-job force submit) -> one insert under the
+     * deterministic "<jobId>:<table>:<chunkIndex>" token. A BullMQ retry of
+     * the same payload would re-derive the byte-identical token, so
+     * ClickHouse drops blocks a prior attempt already landed.
+     */
+    expect(metricInsertSpy).toHaveBeenCalledTimes(1);
+    const options: InsertOptions = metricInsertSpy.mock
+      .calls[0]![1] as InsertOptions;
+    expect(MetricService.model.tableName).toBe("MetricItemV3");
+    expect(options?.dedupToken).toBe(
+      `job-x:${MetricService.model.tableName}:0`,
+    );
+    expect(options?.dedupToken).not.toMatch(/^fanin:/);
+    expect(options?.clickhouseSettings).toEqual(METRICS_CLICKHOUSE_SETTINGS);
   });
 });

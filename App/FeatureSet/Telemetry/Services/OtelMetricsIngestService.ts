@@ -103,6 +103,7 @@ import {
 } from "Common/Server/Utils/Telemetry/IoTSnapshotScan";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
+  pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 
 type MetricTimestamp = {
@@ -329,11 +330,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           },
         },
       );
-      pendingAcks.push(
-        submission.flushed.catch((error: Error) => {
-          throw new MetricStorageFlushError(error);
-        }),
-      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new MetricStorageFlushError(error);
+      });
     }
   }
 

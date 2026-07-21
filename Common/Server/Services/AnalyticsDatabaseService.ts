@@ -47,7 +47,7 @@ import {
   ResponseJSON,
   ResultSet,
 } from "@clickhouse/client";
-import { AsyncLocalStorage } from "node:async_hooks";
+import { nextInsertDedupToken } from "../Utils/AnalyticsDatabase/InsertDedupContext";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import { WorkflowRoute } from "../../ServiceRoute";
 import Protocol from "../../Types/API/Protocol";
@@ -140,41 +140,21 @@ export const MigrationExecuteOptions: ClickhouseExecuteOptions = {
   },
 };
 
-/**
- * Ambient context that makes ClickHouse inserts idempotent across queue
- * retries. The telemetry queue worker wraps each job in
- * `runWithInsertDedup(jobId, ...)`; every insertJsonRows call inside the
- * job then stamps `insert_deduplication_token =
- * "<tokenBase>:<table>:<chunkIndex>"` plus async_insert_deduplicate=1 /
- * wait_for_async_insert=1, so a stalled-job retry that re-processes the
- * same payload re-issues byte-identical tokens and ClickHouse drops the
- * duplicate blocks (on replicated tables; on plain MergeTree the token is
- * ignored unless non_replicated_deduplication_window is set — no harm
- * either way). The chunk counter is per table because one job inserts
- * into several tables (e.g. Span + ExceptionInstance) in a deterministic
- * order.
+/*
+ * The insert-dedup ambient context lives in
+ * Utils/AnalyticsDatabase/InsertDedupContext so that both this service and
+ * TelemetryFanInWriter can consume deterministic tokens without an import
+ * cycle. Re-exported here for existing callers.
  *
  * HTTP-path inserts run outside the context and keep the fire-and-forget
  * async insert (wait_for_async_insert=0) — dedup waiting is only
  * affordable off the request thread.
  */
-export interface InsertDedupContextStore {
-  tokenBase: string;
-  chunkIndexByTable: Map<string, number>;
-}
-
-const insertDedupContext: AsyncLocalStorage<InsertDedupContextStore> =
-  new AsyncLocalStorage<InsertDedupContextStore>();
-
-export function runWithInsertDedup<T>(
-  tokenBase: string,
-  fn: () => Promise<T>,
-): Promise<T> {
-  return insertDedupContext.run(
-    { tokenBase, chunkIndexByTable: new Map<string, number>() },
-    fn,
-  );
-}
+export {
+  runWithInsertDedup,
+  nextInsertDedupToken,
+  type InsertDedupContextStore,
+} from "../Utils/AnalyticsDatabase/InsertDedupContext";
 
 export default class AnalyticsDatabaseService<
   TBaseModel extends AnalyticsBaseModel,
@@ -259,14 +239,7 @@ export default class AnalyticsDatabaseService<
     let dedupToken: string | undefined = options?.dedupToken;
 
     if (!dedupToken) {
-      const dedupStore: InsertDedupContextStore | undefined =
-        insertDedupContext.getStore();
-      if (dedupStore) {
-        const chunkIndex: number =
-          dedupStore.chunkIndexByTable.get(tableName) ?? 0;
-        dedupStore.chunkIndexByTable.set(tableName, chunkIndex + 1);
-        dedupToken = `${dedupStore.tokenBase}:${tableName}:${chunkIndex}`;
-      }
+      dedupToken = nextInsertDedupToken(tableName);
     }
 
     let clickhouseSettings: ClickHouseSettings = {
