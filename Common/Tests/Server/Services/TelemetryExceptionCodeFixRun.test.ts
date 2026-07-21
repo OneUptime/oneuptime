@@ -6,6 +6,7 @@ import ServiceService from "../../../Server/Services/ServiceService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIAgentService from "../../../Server/Services/AIAgentService";
 import AIRunService from "../../../Server/Services/AIRunService";
+import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
 import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
@@ -37,12 +38,19 @@ const projectId: ObjectID = ObjectID.generate();
 const exceptionId: ObjectID = ObjectID.generate();
 const serviceId: ObjectID = ObjectID.generate();
 
-function fakeException(): TelemetryException {
+function fakeException(
+  overrides: Partial<TelemetryException> = {},
+): TelemetryException {
   return {
     id: exceptionId,
     projectId: projectId,
     primaryEntityId: serviceId,
+    message: "Failed to charge card for user 123",
+    exceptionType: "PaymentError",
     stackTrace: "at charge (/app/src/billing/charge.ts:12:5)",
+    isResolved: false,
+    isArchived: false,
+    ...overrides,
   } as unknown as TelemetryException;
 }
 
@@ -91,6 +99,14 @@ function mockReadinessOk(): void {
     limitInTokens: null,
     usedTokensToday: 0,
   });
+
+  /*
+   * Cross-group duplicate guard collaborators: no non-terminal runs and no
+   * open AI pull requests unless a test overrides these. findBy on the
+   * exception service itself is only reached when candidates exist.
+   */
+  jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+  jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
 }
 
 describe("TelemetryExceptionService.createCodeFixRunForException", () => {
@@ -282,6 +298,194 @@ describe("TelemetryExceptionService.createCodeFixRunForException", () => {
         data: expect.objectContaining({ userId }),
       }),
     );
+  });
+
+  test("rejects resolved and archived exceptions server-side", async () => {
+    mockReadinessOk();
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    jest
+      .spyOn(TelemetryExceptionService, "findOneById")
+      .mockResolvedValue(fakeException({ isResolved: true }));
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(/marked as resolved/);
+
+    jest
+      .spyOn(TelemetryExceptionService, "findOneById")
+      .mockResolvedValue(fakeException({ isArchived: true }));
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(/archived/);
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("a declined AI fix (aiFixDeclinedAt) blocks the automatic lane but a user click clears the stamp and proceeds", async () => {
+    mockReadinessOk();
+
+    jest
+      .spyOn(TelemetryExceptionService, "findOneById")
+      .mockResolvedValue(fakeException({ aiFixDeclinedAt: new Date() }));
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    const clearStamp: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    // System-triggered (no userId): blocked.
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(/closed without merging/);
+    expect(create).not.toHaveBeenCalled();
+
+    // A human click: clears the stamp and creates the run.
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true, userId: ObjectID.generate() },
+      }),
+    ).resolves.toBeDefined();
+
+    expect(clearStamp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: exceptionId,
+        data: expect.objectContaining({ aiFixDeclinedAt: null }),
+      }),
+    );
+    expect(create).toHaveBeenCalled();
+  });
+
+  test("the decline stamp is scoped to FixException: other recipes are neither blocked by it nor clear it", async () => {
+    mockReadinessOk();
+
+    jest
+      .spyOn(TelemetryExceptionService, "findOneById")
+      .mockResolvedValue(fakeException({ aiFixDeclinedAt: new Date() }));
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    const exceptionUpdates: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    /*
+     * A user asking for a regression TEST on a group whose FIX a human
+     * declined: the test run proceeds, and — critically — the fix-decline
+     * suppression stays in force (the user never overrode the fix).
+     */
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true, userId: ObjectID.generate() },
+        taskType: CodeFixTaskType.WriteRegressionTest,
+      }),
+    ).resolves.toBeDefined();
+
+    expect(create).toHaveBeenCalled();
+    expect(exceptionUpdates).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ aiFixDeclinedAt: null }),
+      }),
+    );
+  });
+
+  test("cross-group duplicate guard: a similar exception (same type + normalized message) with an active run blocks creation", async () => {
+    mockReadinessOk();
+
+    /*
+     * The observed flood shape: one throw site interpolating a different
+     * UUID per request splinters into one fingerprint (and one exception
+     * group) per value. Normalization collapses both messages to
+     * `...uuid: "<UUID>"`, which is what the guard compares.
+     */
+    jest.spyOn(TelemetryExceptionService, "findOneById").mockResolvedValue(
+      fakeException({
+        message:
+          'invalid input syntax for type uuid: "550e8400-e29b-41d4-a716-446655440000"',
+        exceptionType: "QueryFailedError",
+      }),
+    );
+
+    // Per-exception guard finds nothing for THIS exception...
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+
+    /*
+     * ...but another exception group — same root cause, different
+     * interpolated value — has a non-terminal FixException run.
+     */
+    const similarExceptionId: ObjectID = ObjectID.generate();
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([
+      {
+        triggeredByTelemetryExceptionId: similarExceptionId,
+      } as unknown as AIRun,
+    ]);
+    jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue([
+      {
+        _id: similarExceptionId.toString(),
+        message:
+          'invalid input syntax for type uuid: "123e4567-e89b-12d3-a456-426614174000"',
+        exceptionType: "QueryFailedError",
+      } as unknown as TelemetryException,
+    ]);
+
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(/similar exception/);
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("cross-group duplicate guard: a DIFFERENT normalized message does not block", async () => {
+    mockReadinessOk();
+
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+
+    const otherExceptionId: ObjectID = ObjectID.generate();
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([
+      {
+        triggeredByTelemetryExceptionId: otherExceptionId,
+      } as unknown as AIRun,
+    ]);
+    jest.spyOn(TelemetryExceptionService, "findBy").mockResolvedValue([
+      {
+        _id: otherExceptionId.toString(),
+        message: "Connection refused to redis",
+        exceptionType: "ConnectionError",
+      } as unknown as TelemetryException,
+    ]);
+
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await expect(
+      TelemetryExceptionService.createCodeFixRunForException({
+        telemetryExceptionId: exceptionId,
+        props: { isRoot: true },
+      }),
+    ).resolves.toBeDefined();
+
+    expect(create).toHaveBeenCalled();
   });
 });
 

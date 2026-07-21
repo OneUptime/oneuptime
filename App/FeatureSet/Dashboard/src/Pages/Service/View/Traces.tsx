@@ -1,3 +1,4 @@
+import TelemetryImprovementCard from "../../../Components/AI/TelemetryImprovementCard";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
@@ -12,6 +13,12 @@ const ServiceTraces: FunctionComponent<
   return (
     <Fragment>
       <TracesViewer primaryEntityId={modelId} />
+      <div className="mt-4">
+        <TelemetryImprovementCard
+          telemetryServiceId={modelId}
+          taskType="ImproveTracing"
+        />
+      </div>
     </Fragment>
   );
 };

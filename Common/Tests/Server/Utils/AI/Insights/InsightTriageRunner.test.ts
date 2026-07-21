@@ -7,12 +7,18 @@ import InstrumentationTaskTrigger from "../../../../../Server/Utils/AI/SRE/Instr
 import { ConfidenceSignal } from "../../../../../Server/Utils/AI/SRE/ConfidenceSignal";
 import { ObservabilityAssistantResult } from "../../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import AIInsightService from "../../../../../Server/Services/AIInsightService";
+import ProjectService from "../../../../../Server/Services/ProjectService";
+import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import IncidentFeedService from "../../../../../Server/Services/IncidentFeedService";
 import AlertFeedService from "../../../../../Server/Services/AlertFeedService";
 import { AI_INSIGHT_TRIAGE_FEATURE } from "../../../../../Server/Services/AIService";
+import InsightFixRouting from "../../../../../Server/Utils/AI/SRE/Insights/FixRouting";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
+import Project from "../../../../../Models/DatabaseModels/Project";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import AIInsightSeverity from "../../../../../Types/AI/AIInsightSeverity";
+import AIInsightStatus from "../../../../../Types/AI/AIInsightStatus";
+import ExceptionAIClassification from "../../../../../Types/AI/ExceptionAIClassification";
 import ObjectID from "../../../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
@@ -34,9 +40,10 @@ const aiRunId: ObjectID = ObjectID.generate();
 const projectId: ObjectID = ObjectID.generate();
 const sentinelInsightId: ObjectID = ObjectID.generate();
 
-function makeInsight(): AIInsight {
+function makeInsight(overrides: Partial<AIInsight> = {}): AIInsight {
   return {
     id: sentinelInsightId,
+    projectId,
     insightType: AIInsightType.ExceptionSpike,
     severity: AIInsightSeverity.High,
     title: "Spike: NullPointerException in checkout",
@@ -50,7 +57,32 @@ function makeInsight(): AIInsight {
         spikeMultiplier: 60,
       },
     },
+    ...overrides,
   } as unknown as AIInsight;
+}
+
+/*
+ * Harness for the verdict-driven follow-through: the engine is mocked to
+ * immediately drive postAnalysis with the given analysis text, exactly the
+ * way the real engine hands over its result.
+ */
+function driveTriageWithAnalysis(analysisMarkdown: string): void {
+  jest
+    .spyOn(AIInvestigationEngine, "executeRun")
+    .mockImplementation(
+      async (data: {
+        aiRunId: ObjectID;
+        projectId: ObjectID;
+        attemptCount: number;
+        request: InvestigationRequest;
+      }): Promise<void> => {
+        await data.request.postAnalysis({
+          analysisMarkdown,
+          confidence: makeConfidence(),
+          result: {} as unknown as ObservabilityAssistantResult,
+        });
+      },
+    );
 }
 
 function makeConfidence(): ConfidenceSignal {
@@ -217,5 +249,249 @@ describe("InsightTriageRunner.executeTriage", () => {
     expect(incidentFeed).not.toHaveBeenCalled();
     expect(alertFeed).not.toHaveBeenCalled();
     expect(instrumentationTrigger).not.toHaveBeenCalled();
+  });
+
+  test("a code-fault verdict stamps the exception, routes the fix post-triage, and flips the insight to FixOpened", async () => {
+    const telemetryExceptionId: ObjectID = ObjectID.generate();
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValue(makeInsight({ telemetryExceptionId }));
+    const persistInsight: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneById")
+      .mockResolvedValue(undefined);
+    const flipStatus: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
+    const stampException: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: false,
+    } as unknown as Project);
+    const fixAiRunId: ObjectID = ObjectID.generate();
+    const routeFix: jest.SpyInstance = jest
+      .spyOn(InsightFixRouting, "routeInsightFix")
+      .mockResolvedValue({ fixAiRunId });
+
+    driveTriageWithAnalysis(
+      "Root cause: null deref in checkout.\n\nClassification: code-fault",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    // The verdict lands on the insight row alongside the summary.
+    expect(persistInsight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: sentinelInsightId,
+        data: expect.objectContaining({
+          classification: ExceptionAIClassification.CodeFault,
+        }),
+      }),
+    );
+    // ...and on the exception group row.
+    expect(stampException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: telemetryExceptionId,
+        data: expect.objectContaining({
+          aiClassification: ExceptionAIClassification.CodeFault,
+        }),
+      }),
+    );
+    /*
+     * The fix decision happens HERE, post-verdict — and flips the status
+     * CONDITIONALLY: only a still-ActionRequired insight becomes FixOpened.
+     */
+    expect(routeFix).toHaveBeenCalledTimes(1);
+    expect(flipStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          status: AIInsightStatus.ActionRequired,
+        }),
+        data: expect.objectContaining({
+          status: AIInsightStatus.FixOpened,
+          fixAiRunId,
+        }),
+      }),
+    );
+  });
+
+  test("a human Dismissed/Resolved during triage blocks all automation — no fix, no archive, terminal status untouched", async () => {
+    const telemetryExceptionId: ObjectID = ObjectID.generate();
+
+    /*
+     * First read (context build) returns the snapshot; the SECOND read is
+     * actOnClassification's status re-check — the human dismissed the
+     * insight while the triage run executed.
+     */
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValueOnce(makeInsight({ telemetryExceptionId }))
+      .mockResolvedValue(
+        makeInsight({
+          telemetryExceptionId,
+          status: AIInsightStatus.Dismissed,
+        }),
+      );
+    const persistInsight: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneById")
+      .mockResolvedValue(undefined);
+    const flipStatus: jest.SpyInstance = jest
+      .spyOn(AIInsightService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
+    const exceptionWrites: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    const routeFix: jest.SpyInstance = jest.spyOn(
+      InsightFixRouting,
+      "routeInsightFix",
+    );
+
+    driveTriageWithAnalysis(
+      "A clear null deref.\n\nClassification: code-fault",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    // The verdict still lands (summary + classification are metadata)...
+    expect(persistInsight).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          classification: ExceptionAIClassification.CodeFault,
+        }),
+      }),
+    );
+    // ...but no automation fires, and the terminal status is never touched.
+    expect(routeFix).not.toHaveBeenCalled();
+    expect(flipStatus).not.toHaveBeenCalled();
+    expect(exceptionWrites).toHaveBeenCalledTimes(1); // classification stamp only
+    expect(exceptionWrites).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ isArchived: true }),
+      }),
+    );
+  });
+
+  test("a user-error verdict NEVER routes a fix", async () => {
+    const telemetryExceptionId: ObjectID = ObjectID.generate();
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValue(makeInsight({ telemetryExceptionId }));
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(undefined);
+    const exceptionWrites: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: false,
+    } as unknown as Project);
+    const routeFix: jest.SpyInstance = jest.spyOn(
+      InsightFixRouting,
+      "routeInsightFix",
+    );
+
+    driveTriageWithAnalysis(
+      "The uuid in the URL was garbage user input.\n\nClassification: user-error",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(routeFix).not.toHaveBeenCalled();
+    // The verdict still lands on the exception; no archive (not a denial).
+    expect(exceptionWrites).toHaveBeenCalledTimes(1);
+    expect(exceptionWrites).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          aiClassification: ExceptionAIClassification.UserError,
+        }),
+      }),
+    );
+  });
+
+  test("an expected-denial verdict auto-archives the exception ONLY when the project opted in", async () => {
+    const telemetryExceptionId: ObjectID = ObjectID.generate();
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValue(makeInsight({ telemetryExceptionId }));
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(undefined);
+    const exceptionWrites: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    const routeFix: jest.SpyInstance = jest.spyOn(
+      InsightFixRouting,
+      "routeInsightFix",
+    );
+
+    // Opted IN: the group gets archived.
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
+    } as unknown as Project);
+
+    driveTriageWithAnalysis(
+      "This is the paywall doing its job.\n\nClassification: expected-denial",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(routeFix).not.toHaveBeenCalled();
+    expect(exceptionWrites).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: telemetryExceptionId,
+        data: expect.objectContaining({
+          isArchived: true,
+          markedAsArchivedAt: expect.any(Date),
+        }),
+      }),
+    );
+
+    // Opted OUT: verdict stamp only, no archive write.
+    exceptionWrites.mockClear();
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: false,
+    } as unknown as Project);
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(exceptionWrites).toHaveBeenCalledTimes(1);
+    expect(exceptionWrites).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ isArchived: true }),
+      }),
+    );
   });
 });

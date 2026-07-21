@@ -294,66 +294,13 @@ const ProxmoxClusters: FunctionComponent<
               );
             },
           },
-          {
-            field: {
-              nodeCount: true,
-              onlineNodeCount: true,
-            },
-            title: "Nodes",
-            type: FieldType.Element,
-            getElement: (item: ProxmoxCluster): ReactElement => {
-              /*
-               * Snapshot columns written by the ingest path from the
-               * same buffer that populates the ProxmoxResource
-               * inventory — no ClickHouse round-trip here (WI-3).
-               */
-              const total: number = item.nodeCount || 0;
-              if (total <= 0) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              const online: number = item.onlineNodeCount || 0;
-              const allOnline: boolean = online >= total;
-              return (
-                <span
-                  className={`text-sm font-medium ${
-                    allOnline ? "text-gray-900" : "text-red-700"
-                  }`}
-                >
-                  {online}/{total} online
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              guestCount: true,
-            },
-            title: "Guests",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: ProxmoxCluster): ReactElement => {
-              return (
-                <span className="text-sm text-gray-700">
-                  {item.guestCount || 0}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              storageCount: true,
-            },
-            title: "Storage",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: ProxmoxCluster): ReactElement => {
-              return (
-                <span className="text-sm text-gray-700">
-                  {item.storageCount || 0}
-                </span>
-              );
-            },
-          },
+          /*
+           * The node / guest / storage counts deliberately do NOT live on
+           * this list. They are per-scrape snapshot columns whose meaning
+           * needs the cluster's own context to read correctly — the
+           * cluster overview page shows them next to the inventory they
+           * summarise.
+           */
           {
             field: {
               pveVersion: true,

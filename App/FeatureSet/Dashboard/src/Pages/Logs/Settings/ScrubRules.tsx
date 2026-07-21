@@ -59,6 +59,13 @@ const patternTypeConfig: Record<string, PillConfig> = {
     icon: IconProp.Globe,
     tooltip: "Matches IPv4 addresses (e.g. 192.168.1.1)",
   },
+  sensitiveKeys: {
+    label: "Sensitive Keys",
+    color: Purple500,
+    icon: IconProp.Lock,
+    tooltip:
+      "Scrubs the whole value of attributes whose key looks sensitive (password, token, apiKey, authorization, cookie, ...) — regardless of what the value looks like",
+  },
   custom: {
     label: "Custom Regex",
     color: Indigo500,
@@ -138,6 +145,7 @@ flowchart TD
 | **SSN** | US Social Security Numbers | 123-45-6789 |
 | **Phone Number** | Phone numbers | +1 (555) 123-4567 |
 | **IP Address** | IPv4 addresses | 192.168.1.1 |
+| **Sensitive Attribute Keys** | The whole value of any attribute whose key looks sensitive (password, token, apiKey, authorization, cookie, ...) | \`password: "hunter2"\` → \`password: "[REDACTED]"\` |
 | **Custom Regex** | Your own pattern | Any regex you define |
 
 ---
@@ -272,6 +280,10 @@ const LogScrubRules: FunctionComponent<
             {
               label: "IP Address",
               value: "ipAddress",
+            },
+            {
+              label: "Sensitive Attribute Keys",
+              value: "sensitiveKeys",
             },
             {
               label: "Custom Regex",

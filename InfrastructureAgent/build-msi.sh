@@ -61,4 +61,24 @@ for i in "${!BINARIES[@]}"; do
     echo "Error: Failed to create MSI for $ARCH."
     exit 1
   fi
+
+  # The MSIs are built here, after `goreleaser release` has already finished,
+  # so GoReleaser's sboms: config never sees them. Generate theirs by hand so
+  # every artifact on the release has one. Scan the .exe rather than the .msi:
+  # syft does not understand the MSI container format and would report zero
+  # components, and the .exe is what actually lands on the host.
+  SBOM_FILE="$OUTPUT_DIR/$APP_NAME-$ARCH.msi.cdx.json"
+  echo "Generating SBOM for $BINARY into $SBOM_FILE..."
+  # `file:` is explicit on purpose. Given a bare path syft tries its image
+  # providers first (oci, docker-archive, snap, ...) and only falls back to
+  # local-file, so a path that happens to look like an image reference, or a
+  # transient registry lookup, can turn a local scan into a confusing failure.
+  syft "file:$BINARY" --output "cyclonedx-json=$SBOM_FILE"
+
+  COMPONENTS=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1])).get("components", [])))' "$SBOM_FILE")
+  if [ "$COMPONENTS" -eq 0 ]; then
+    echo "Error: SBOM for $ARCH MSI has zero components." >&2
+    exit 1
+  fi
+  echo "SBOM created: $SBOM_FILE ($COMPONENTS components)"
 done
