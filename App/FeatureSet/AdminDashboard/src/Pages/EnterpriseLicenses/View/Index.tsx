@@ -11,6 +11,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
+import VersionUtil from "Common/Utils/VersionUtil";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -44,6 +45,11 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
     EnterpriseLicenseUsageUtil.defaultExpiryReminderDays,
   );
   const [usageError, setUsageError] = useState<string>("");
+  /*
+   * The latest OneUptime release as known to this (hosted) installation. Used
+   * to badge customer instances that are running an older build.
+   */
+  const [latestReleaseVersion, setLatestReleaseVersion] = useState<string>("");
 
   useEffect(() => {
     const loadUsage: () => Promise<void> = async (): Promise<void> => {
@@ -69,6 +75,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
             id: ObjectID.getZeroObjectID(),
             select: {
               enterpriseLicenseExpiryReminderDays: true,
+              latestReleaseVersion: true,
             },
           });
 
@@ -76,6 +83,8 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
           globalConfig?.enterpriseLicenseExpiryReminderDays ||
             EnterpriseLicenseUsageUtil.defaultExpiryReminderDays,
         );
+
+        setLatestReleaseVersion(globalConfig?.latestReleaseVersion || "");
 
         const instances: ListResult<EnterpriseLicenseInstance> =
           await AdminModelAPI.getList<EnterpriseLicenseInstance>({
@@ -381,6 +390,13 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                oneuptimeVersion: true,
+              },
+              title: "Version",
+              type: FieldType.Text,
+            },
+            {
+              field: {
                 lastReportedAt: true,
               },
               title: "Last Reported At",
@@ -408,6 +424,56 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                   <span className="font-mono text-xs text-gray-600">
                     {item.instanceId || "-"}
                   </span>
+                );
+              },
+            },
+            {
+              field: {
+                oneuptimeVersion: true,
+              },
+              title: "Version",
+              type: FieldType.Element,
+              getElement: (item: EnterpriseLicenseInstance): ReactElement => {
+                if (!item.oneuptimeVersion) {
+                  return (
+                    <span className="text-sm text-gray-400">Not reported</span>
+                  );
+                }
+
+                /*
+                 * Without a known latest release there is nothing to compare
+                 * against, and a bare version would read as "current" — which
+                 * is exactly the wrong thing for support to conclude. Say so
+                 * instead of staying silent.
+                 */
+                const isLatestReleaseKnown: boolean =
+                  VersionUtil.isValid(latestReleaseVersion);
+
+                const isOutdated: boolean = VersionUtil.isUpdateAvailable({
+                  currentVersion: item.oneuptimeVersion,
+                  latestVersion: latestReleaseVersion,
+                });
+
+                return (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm tabular-nums text-gray-700">
+                      v{item.oneuptimeVersion}
+                    </span>
+                    {!isLatestReleaseKnown ? (
+                      <span
+                        className="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500"
+                        title="This installation does not know the latest OneUptime release, so it cannot tell whether this instance is behind."
+                      >
+                        Not compared
+                      </span>
+                    ) : isOutdated ? (
+                      <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800">
+                        Outdated
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
                 );
               },
             },

@@ -28,12 +28,22 @@ import {
 } from "../../Config";
 import Alert, { AlertType } from "../Alerts/Alert";
 import EnterpriseLicenseInstanceSummary from "../../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import VersionUtil from "../../../Utils/VersionUtil";
 
 export interface ComponentProps {
   className?: string | undefined;
 }
 
 const ENTERPRISE_URL: string = "https://oneuptime.com/enterprise/demo";
+
+/*
+ * Linked only for major upgrades. Points at GitHub rather than the docs site
+ * on this installation, because the guide for the version you are moving TO is
+ * the one you need, and this installation only ships the guide for the version
+ * it is already running.
+ */
+const UPGRADE_GUIDE_URL: string =
+  "https://github.com/OneUptime/oneuptime/blob/master/App/FeatureSet/Docs/Content/en/installation/upgrading.md";
 const SALES_EMAIL: string = "sales@oneuptime.com";
 const SALES_MAILTO_URL: string = "mailto:sales@oneuptime.com";
 
@@ -85,6 +95,10 @@ const parseLicenseInstances: ParseLicenseInstancesFunction = (
         typeof instance["lastReportedAt"] === "string"
           ? instance["lastReportedAt"]
           : null,
+      version:
+        typeof instance["version"] === "string" && instance["version"]
+          ? instance["version"]
+          : null,
     });
   }
 
@@ -128,6 +142,21 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   >([]);
   const [thisInstanceId, setThisInstanceId] = useState<string>("");
   /*
+   * Version state comes from the server rather than APP_VERSION in the
+   * browser bundle: the frontend env var is empty in every build that was
+   * not produced by the release pipeline, which would silently render a
+   * blank version instead of an honest one.
+   */
+  const [currentVersion, setCurrentVersion] = useState<string>("");
+  const [latestVersion, setLatestVersion] = useState<string>("");
+  const [latestVersionPublishedAt, setLatestVersionPublishedAt] =
+    useState<string>("");
+  const [latestVersionCheckedAt, setLatestVersionCheckedAt] =
+    useState<string>("");
+  const [isUpdateAvailable, setIsUpdateAvailable] = useState<boolean>(false);
+  const [isUpdateCheckDisabled, setIsUpdateCheckDisabled] =
+    useState<boolean>(false);
+  /*
    * Validity as computed by the server. The server redacts the license
    * token for signed-out visitors (e.g. on the login page), so the client
    * cannot always derive validity from the token itself.
@@ -142,12 +171,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  /*
+   * Runs on Community Edition too. The license half of the response is empty
+   * there, but the version and update-check half is not — a community
+   * installation still wants to be told a newer OneUptime has been released.
+   */
   const fetchGlobalConfig: () => Promise<void> =
     useCallback(async (): Promise<void> => {
-      if (!IS_ENTERPRISE_EDITION) {
-        return;
-      }
-
       setIsConfigLoading(true);
       setConfigError("");
 
@@ -218,6 +248,29 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             : null,
         );
 
+        setCurrentVersion(
+          typeof payload["currentVersion"] === "string"
+            ? payload["currentVersion"]
+            : "",
+        );
+        setLatestVersion(
+          typeof payload["latestVersion"] === "string"
+            ? payload["latestVersion"]
+            : "",
+        );
+        setLatestVersionPublishedAt(
+          typeof payload["latestVersionPublishedAt"] === "string"
+            ? payload["latestVersionPublishedAt"]
+            : "",
+        );
+        setLatestVersionCheckedAt(
+          typeof payload["latestVersionCheckedAt"] === "string"
+            ? payload["latestVersionCheckedAt"]
+            : "",
+        );
+        setIsUpdateAvailable(payload["isUpdateAvailable"] === true);
+        setIsUpdateCheckDisabled(payload["isUpdateCheckDisabled"] === true);
+
         if (!licenseInputEditedRef.current) {
           setLicenseKeyInput(configModel.enterpriseLicenseKey || "");
         }
@@ -225,13 +278,29 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         setGlobalConfig(null);
         setLicenseInstances([]);
         setServerLicenseValid(null);
+        setCurrentVersion("");
+        setLatestVersion("");
+        setLatestVersionPublishedAt("");
+        setLatestVersionCheckedAt("");
+        setIsUpdateAvailable(false);
+        setIsUpdateCheckDisabled(false);
         setConfigError(API.getFriendlyMessage(err));
       } finally {
         setIsConfigLoading(false);
       }
     }, []);
 
+  /*
+   * Only Enterprise Edition needs this on mount — its pill reports license
+   * validity and seat pressure, which it cannot know without asking. The
+   * community pill is a static label, so it waits until the modal is actually
+   * opened rather than adding a request to every page load.
+   */
   useEffect(() => {
+    if (!IS_ENTERPRISE_EDITION) {
+      return;
+    }
+
     void fetchGlobalConfig();
   }, [fetchGlobalConfig]);
 
@@ -278,6 +347,105 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
     return expiresAt.toLocaleString();
   }, [globalConfig?.enterpriseLicenseExpiresAt]);
+
+  /*
+   * True only for a build that reports a real semantic version. Dev builds and
+   * images assembled without APP_VERSION report "unknown", which is worth
+   * showing verbatim but must never be compared against a release.
+   */
+  const hasComparableVersion: boolean = useMemo(() => {
+    return VersionUtil.isValid(currentVersion);
+  }, [currentVersion]);
+
+  const latestVersionPublishedAtText: string | null = useMemo(() => {
+    if (!latestVersionPublishedAt) {
+      return null;
+    }
+
+    const publishedAt: Date = OneUptimeDate.fromString(
+      latestVersionPublishedAt,
+    );
+
+    if (Number.isNaN(publishedAt.getTime())) {
+      return null;
+    }
+
+    return publishedAt.toLocaleDateString();
+  }, [latestVersionPublishedAt]);
+
+  const latestVersionCheckedAtText: string | null = useMemo(() => {
+    if (!latestVersionCheckedAt) {
+      return null;
+    }
+
+    const checkedAt: Date = OneUptimeDate.fromString(latestVersionCheckedAt);
+
+    if (Number.isNaN(checkedAt.getTime())) {
+      return null;
+    }
+
+    return checkedAt.toLocaleString();
+  }, [latestVersionCheckedAt]);
+
+  /*
+   * Only claim an installation is current once a release has actually been
+   * fetched to compare it against — an air-gapped install that has never
+   * reached GitHub knows nothing, and saying "up to date" there would be a
+   * guess dressed up as a fact.
+   */
+  const isUpToDate: boolean = useMemo(() => {
+    return (
+      hasComparableVersion &&
+      VersionUtil.isValid(latestVersion) &&
+      !isUpdateAvailable
+    );
+  }, [hasComparableVersion, latestVersion, isUpdateAvailable]);
+
+  /*
+   * Computed client-side rather than served, because the same comparison has
+   * to run per-instance in the list below, where the server has no single
+   * "current version" to compare against.
+   */
+  const isMajorUpgrade: boolean = useMemo(() => {
+    return VersionUtil.isMajorUpgrade({
+      currentVersion: currentVersion,
+      latestVersion: latestVersion,
+    });
+  }, [currentVersion, latestVersion]);
+
+  const updateAdvisoryText: string = useMemo(() => {
+    const released: string = latestVersionPublishedAtText
+      ? `Released on ${latestVersionPublishedAtText}. `
+      : "";
+
+    if (isMajorUpgrade) {
+      return `${released}Major versions carry breaking changes and have to be applied one at a time, so check the upgrade guide before you start.`;
+    }
+
+    return `${released}Upgrading picks up the latest fixes and improvements.`;
+  }, [isMajorUpgrade, latestVersionPublishedAtText]);
+
+  /*
+   * Null renders no footer at all. Every branch here has to be true of this
+   * installation specifically — a line promising a daily check would be a lie
+   * on a build that cannot be compared, and a worse one where the check has
+   * been turned off.
+   */
+  const updateFooterText: string | null = useMemo(() => {
+    if (isUpdateCheckDisabled) {
+      return "Update checks are turned off on this installation (DISABLE_UPDATE_CHECK), so it is not compared against OneUptime releases.";
+    }
+
+    if (!hasComparableVersion) {
+      return null;
+    }
+
+    if (!latestVersionCheckedAtText) {
+      return "This installation has not checked for updates yet. It checks OneUptime releases on GitHub once a day.";
+    }
+
+    return `Checked for updates on ${latestVersionCheckedAtText}.`;
+  }, [isUpdateCheckDisabled, hasComparableVersion, latestVersionCheckedAtText]);
 
   const userLimit: number | null = useMemo(() => {
     return typeof globalConfig?.enterpriseLicenseUserLimit === "number"
@@ -619,7 +787,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return "Validate your license key to activate Enterprise Edition.";
     }
 
-    return "License, seat usage, and the instances covered by this key.";
+    return "License, version, seat usage, and the instances covered by this key.";
   }, [isConfigLoading, licenseValid]);
 
   /*
@@ -677,9 +845,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     setValidationError("");
     setSuccessMessage("");
 
-    if (IS_ENTERPRISE_EDITION) {
-      void fetchGlobalConfig();
-    }
+    void fetchGlobalConfig();
   };
 
   const closeDialog: () => void = () => {
@@ -829,6 +995,16 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     IS_ENTERPRISE_EDITION && !configError && !isConfigLoading && !licenseValid;
 
   /*
+   * Gated on neither edition nor licenseValid: which build you run, and
+   * whether a newer one exists, is a property of the installation rather than
+   * of the license, and is useful precisely when the license needs sorting
+   * out. The server returns currentVersion only to a signed-in user, so an
+   * anonymous visitor on the login page falls out here.
+   */
+  const showVersionCard: boolean =
+    !configError && !isConfigLoading && Boolean(currentVersion);
+
+  /*
    * GlobalConfigAPI returns userLimit and currentUserCount to anonymous callers
    * because the same route serves the signed-out login page, and gates only
    * licenseKey, token, instances and instanceId on isAuthenticatedUser. Gate
@@ -912,6 +1088,121 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       : pillTone === "warning"
         ? "text-[11px] text-amber-600 group-hover:text-amber-700"
         : "text-[11px] text-indigo-500 group-hover:text-indigo-600";
+
+  /*
+   * Rendered in both the enterprise and the community branch of the modal:
+   * the version and update state belong to the installation, not the license.
+   */
+  const versionCardElement: ReactElement | null = showVersionCard ? (
+    <section
+      aria-labelledby="edition-version-heading"
+      className={`overflow-hidden rounded-xl border ${
+        isUpdateAvailable ? "border-amber-200" : "border-gray-200"
+      } bg-white`}
+    >
+      <div className="flex items-center justify-between gap-4 p-5">
+        <div className="min-w-0">
+          <h4
+            id="edition-version-heading"
+            className="text-sm font-semibold text-gray-900"
+          >
+            This installation
+          </h4>
+          <p className="mt-1.5 flex items-baseline gap-2">
+            <span
+              className={`text-2xl font-semibold leading-none tabular-nums ${
+                hasComparableVersion ? "text-gray-900" : "text-gray-400"
+              }`}
+            >
+              {hasComparableVersion ? `v${currentVersion}` : currentVersion}
+            </span>
+          </p>
+          {!hasComparableVersion && (
+            <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
+              This build does not report a version number, so it cannot be
+              compared against the latest OneUptime release.
+            </p>
+          )}
+        </div>
+        {(isUpdateAvailable || isUpToDate) && (
+          <span
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+              isUpdateAvailable
+                ? "bg-amber-100 text-amber-800"
+                : "bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {/*
+             * Colour comes from className only — see the note on
+             * the seat advisory icon below.
+             */}
+            <Icon
+              icon={
+                isUpdateAvailable
+                  ? IconProp.ArrowCircleUp
+                  : IconProp.CheckCircle
+              }
+              className={`h-3.5 w-3.5 shrink-0 ${
+                isUpdateAvailable ? "text-amber-700" : "text-emerald-600"
+              }`}
+            />
+            {isUpdateAvailable ? "Update available" : "Up to date"}
+          </span>
+        )}
+      </div>
+
+      {isUpdateAvailable && (
+        <div
+          role="status"
+          className="border-t border-amber-200 bg-amber-50 px-5 py-4"
+        >
+          <h5 className="text-sm font-semibold text-amber-900">
+            {isMajorUpgrade
+              ? `OneUptime v${latestVersion} is a major upgrade`
+              : `OneUptime v${latestVersion} is available`}
+          </h5>
+          <p className="mt-1 text-xs leading-relaxed text-amber-800">
+            {updateAdvisoryText}
+          </p>
+          {/*
+           * Only a major upgrade gets a call to action. Minor and patch
+           * releases are routine — a button on every one of them trains
+           * administrators to dismiss the banner, and there is nothing to read
+           * before taking them. A major has breaking changes and must be
+           * applied one major at a time, so it earns the interruption.
+           */}
+          {isMajorUpgrade && (
+            <div className="mt-3">
+              <a
+                href={UPGRADE_GUIDE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                /*
+                 * Indigo, not amber: the seat advisory directly
+                 * below is an amber panel with an indigo primary
+                 * button, and two different accent colours for
+                 * the same role would read as two conventions.
+                 */
+                className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2"
+              >
+                Read the upgrade guide
+                <Icon
+                  icon={IconProp.ExternalLink}
+                  className="h-3 w-3 shrink-0 text-white"
+                />
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isUpdateAvailable && updateFooterText && (
+        <div className="border-t border-gray-100 px-5 py-3">
+          <p className="text-xs text-gray-500">{updateFooterText}</p>
+        </div>
+      )}
+    </section>
+  ) : null;
 
   return (
     <>
@@ -1020,6 +1311,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     </div>
                   </dl>
                 )}
+
+                {versionCardElement}
 
                 {showLicenseDetails && (
                   <section
@@ -1240,7 +1533,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     <p className="mt-1 text-xs leading-relaxed text-gray-500">
                       Use the same license key on every instance you deploy
                       (staging, production, and so on). Each instance reports
-                      its usage daily.
+                      its usage and the version it runs once a day.
                     </p>
                     {licenseInstances.length > 1 && (
                       <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
@@ -1257,15 +1550,47 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                             Boolean(thisInstanceId) &&
                             instance.instanceId === thisInstanceId;
 
+                          /*
+                           * The list is a snapshot of what each instance last
+                           * reported, refreshed at most once a day. For the
+                           * instance serving this page the server just told us
+                           * what it is running right now, so prefer that —
+                           * otherwise this row contradicts the "This
+                           * installation" card above it for up to a day after
+                           * an upgrade. hasComparableVersion keeps a dev build
+                           * from rendering "vunknown".
+                           */
+                          const displayVersion: string | null =
+                            isThisInstance && hasComparableVersion
+                              ? currentVersion
+                              : instance.version;
+
+                          /*
+                           * Per-instance, so an admin can see which of their
+                           * deployments are lagging rather than only the one
+                           * they happen to be signed in to.
+                           */
+                          const isInstanceOutdated: boolean =
+                            VersionUtil.isUpdateAvailable({
+                              currentVersion: displayVersion,
+                              latestVersion: latestVersion,
+                            });
+
                           return (
                             <li
                               key={instance.instanceId || index}
                               className="flex items-center justify-between gap-4 bg-white px-3 py-2.5 transition-colors hover:bg-gray-50"
                             >
                               <div className="min-w-0 flex-1">
-                                <div className="flex min-w-0 items-center gap-2">
+                                {/*
+                                 * Wraps rather than squeezing: both pills are
+                                 * shrink-0, so without this a long hostname on
+                                 * a narrow modal absorbs all the overflow and
+                                 * truncates to a few characters.
+                                 */}
+                                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                                   <span
-                                    className="truncate text-sm font-medium text-gray-900"
+                                    className="min-w-0 max-w-full truncate text-sm font-medium text-gray-900"
                                     title={instance.host || "Unknown host"}
                                   >
                                     {instance.host || "Unknown host"}
@@ -1275,11 +1600,30 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                                       This instance
                                     </span>
                                   )}
+                                  {displayVersion && (
+                                    <span
+                                      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${
+                                        isInstanceOutdated
+                                          ? "bg-amber-50 text-amber-800"
+                                          : "bg-gray-100 text-gray-600"
+                                      }`}
+                                      title={
+                                        isInstanceOutdated
+                                          ? `Running v${displayVersion}. OneUptime v${latestVersion} is available.`
+                                          : `Running v${displayVersion}.`
+                                      }
+                                    >
+                                      v{displayVersion}
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="mt-0.5 truncate text-xs text-gray-500">
                                   {formatInstanceReportedAt(
                                     instance.lastReportedAt,
                                   )}
+                                  {isInstanceOutdated
+                                    ? " Update available."
+                                    : ""}
                                 </p>
                               </div>
                               <div className="flex shrink-0 items-baseline justify-end gap-1">
@@ -1424,6 +1768,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
               </>
             ) : (
               <>
+                {versionCardElement}
                 <p>
                   You are running the Community Edition of OneUptime. Here is a
                   quick comparison to help you decide if Enterprise is the right

@@ -1557,6 +1557,21 @@
             },
             "additionalProperties": false
         },
+        "updateCheck": {
+            "type": "object",
+            "properties": {
+                "disabled": {
+                    "type": "boolean"
+                },
+                "url": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
         "queueDashboard": {
             "type": "object",
             "properties": {

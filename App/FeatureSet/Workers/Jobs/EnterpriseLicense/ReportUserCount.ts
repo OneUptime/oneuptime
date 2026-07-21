@@ -1,6 +1,7 @@
 import RunCron from "../../Utils/Cron";
 import { EVERY_DAY, EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import {
+  AppVersion,
   EnterpriseLicenseUserCountReportUrl,
   Host,
   IsBillingEnabled,
@@ -184,6 +185,13 @@ RunCron(
           userCount: userEmailHashes.length,
           instanceId: instanceId.toString(),
           host: Host,
+          /*
+           * So the customer can see which of their instances are running
+           * which build, and OneUptime support can spot stragglers. "unknown"
+           * on dev builds with no APP_VERSION baked in — the license server
+           * discards anything that is not a real version.
+           */
+          version: AppVersion,
           userEmailHashes: userEmailHashes,
           masterAdminEmails: masterAdminEmails,
         },

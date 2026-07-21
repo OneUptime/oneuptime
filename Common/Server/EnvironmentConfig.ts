@@ -665,6 +665,14 @@ export const IpWhitelist: string = process.env["IP_WHITELIST"] || "";
 export const DisableTelemetry: boolean =
   process.env["DISABLE_TELEMETRY"] === "true";
 
+/*
+ * Opt out of the daily "is a newer OneUptime released?" check against the
+ * GitHub API. Deliberately separate from DISABLE_TELEMETRY, which turns off
+ * the OpenTelemetry SDK and says nothing about outbound calls.
+ */
+export const DisableUpdateCheck: boolean =
+  process.env["DISABLE_UPDATE_CHECK"] === "true";
+
 export const EnableProfiling: boolean =
   process.env["ENABLE_PROFILING"] === "true";
 
@@ -780,6 +788,20 @@ export const EnterpriseLicenseValidationUrl: URL = URL.fromString(
 
 export const EnterpriseLicenseUserCountReportUrl: URL = URL.fromString(
   "https://oneuptime.com/api/enterprise-license/report-user-count",
+);
+
+/*
+ * GitHub's "latest release" endpoint. It already excludes drafts and
+ * prereleases, so whatever it returns is a version an administrator can
+ * safely be told to upgrade to.
+ *
+ * Overridable so an installation with no route to github.com can point the
+ * check at an internal mirror instead of turning it off entirely. The mirror
+ * must answer with GitHub's release shape (tag_name, html_url, published_at).
+ */
+export const LatestReleaseCheckUrl: URL = URL.fromString(
+  process.env["LATEST_RELEASE_CHECK_URL"] ||
+    "https://api.github.com/repos/OneUptime/oneuptime/releases/latest",
 );
 
 // Inbound Email Configuration for Incoming Email Monitor
