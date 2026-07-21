@@ -2632,6 +2632,7 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageIdOrDomain"] as string,
           );
 
+          ObjectID.validateUUID(req.params["incidentId"] as string);
           const incidentId: ObjectID = new ObjectID(
             req.params["incidentId"] as string,
           );
