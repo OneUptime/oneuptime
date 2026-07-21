@@ -2,6 +2,7 @@ import Dashboard from "../../Models/DatabaseModels/Dashboard";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenanceTemplate from "../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
+import Workflow from "../../Models/DatabaseModels/Workflow";
 import EventInterval from "../../Types/Events/EventInterval";
 import Recurring from "../../Types/Events/Recurring";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -84,6 +85,35 @@ describe("ModelImportExport", () => {
         ModelImportExport.getImportExportableColumnNames(StatusPage);
 
       expect(columns).not.toContain("embeddedOverallStatusToken");
+    });
+
+    test("should include the workflow graph and its own settings", () => {
+      const columns: Array<string> =
+        ModelImportExport.getImportExportableColumnNames(Workflow);
+
+      expect(columns).toContain("name");
+      expect(columns).toContain("description");
+      expect(columns).toContain("graph");
+      expect(columns).toContain("isEnabled");
+    });
+
+    test("should exclude workflow secrets and server-derived trigger state", () => {
+      const columns: Array<string> =
+        ModelImportExport.getImportExportableColumnNames(Workflow);
+
+      /*
+       * These all carry create: [] access control - they are derived from the
+       * graph or generated on create, and re-importing them would either leak
+       * the source workflow's webhook secret or point the runner at stale
+       * trigger state.
+       */
+      expect(columns).not.toContain("webhookSecretKey");
+      expect(columns).not.toContain("triggerId");
+      expect(columns).not.toContain("triggerArguments");
+      expect(columns).not.toContain("repeatableJobKey");
+      expect(columns).not.toContain("slug");
+      expect(columns).not.toContain("projectId");
+      expect(columns).not.toContain("labels");
     });
 
     test("should exclude monitor runtime-state columns", () => {
@@ -265,6 +295,77 @@ describe("ModelImportExport", () => {
       expect(imported.name).toBe("Round Trip");
       expect(imported.description).toBe("Round trip description");
       expect(imported._id).toBeUndefined();
+    });
+
+    test("should round-trip a workflow graph and drop its webhook secret", () => {
+      const graph: JSONObject = {
+        nodes: [
+          {
+            id: "node-1",
+            data: {
+              metadataId: "Webhook",
+              componentType: "Trigger",
+              nodeType: "Node",
+              arguments: {},
+            },
+          },
+        ],
+        edges: [],
+      };
+
+      const original: Workflow = new Workflow();
+      original.name = "Deploy Notifier";
+      original.description = "Posts to chat on deploy";
+      original.isEnabled = true;
+      original.graph = graph;
+      original.webhookSecretKey = "super-secret-key";
+      original.triggerId = "Webhook";
+      original.slug = "deploy-notifier";
+
+      const envelope: JSONObject = ModelImportExport.buildExportEnvelope({
+        modelType: Workflow,
+        items: [original],
+        exportedAt: new Date(),
+      });
+
+      const exported: JSONObject = (envelope["items"] as Array<JSONObject>)[0]!;
+
+      expect(exported["graph"]).toEqual(graph);
+      expect(exported["isEnabled"]).toBe(true);
+      expect(exported["webhookSecretKey"]).toBeUndefined();
+      expect(exported["triggerId"]).toBeUndefined();
+      expect(exported["slug"]).toBeUndefined();
+
+      const imported: Workflow = ModelImportExport.fromImportJSON({
+        json: exported,
+        modelType: Workflow,
+      });
+
+      expect(imported.name).toBe("Deploy Notifier");
+      expect(imported.description).toBe("Posts to chat on deploy");
+      expect(imported.graph).toEqual(graph);
+      expect(imported.webhookSecretKey).toBeUndefined();
+      expect(imported.triggerId).toBeUndefined();
+      expect(imported._id).toBeUndefined();
+    });
+
+    test("should import workflows disabled even when exported enabled", () => {
+      /*
+       * An imported workflow can reference resources that do not exist here,
+       * and enabling it starts it firing - so it must land disabled and be
+       * turned on deliberately.
+       */
+      const imported: Workflow = ModelImportExport.fromImportJSON({
+        json: {
+          name: "Pager Escalation",
+          isEnabled: true,
+          graph: { nodes: [], edges: [] },
+        },
+        modelType: Workflow,
+      });
+
+      expect(imported.name).toBe("Pager Escalation");
+      expect(imported.isEnabled).toBe(false);
     });
 
     test("should advance past recurring dates for scheduled maintenance templates", () => {

@@ -105,7 +105,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         <ModelTable<Workflow>
           modelType={Workflow}
-          id="status-page-table"
+          enableJsonImportExport={true}
+          id="workflows-table"
           userPreferencesKey="workflow-table"
           topContent={filterBar}
           currentFacetState={facetSaveState}
