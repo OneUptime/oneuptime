@@ -25,6 +25,7 @@ import UserPush from "Common/Models/DatabaseModels/UserPush";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
+import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import React, {
   Fragment,
   FunctionComponent,
@@ -43,6 +44,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [userSMSs, setUserSMSs] = useState<Array<UserSMS>>([]);
   const [userWhatsApps, setUserWhatsApps] = useState<Array<UserWhatsApp>>([]);
   const [userTelegrams, setUserTelegrams] = useState<Array<UserTelegram>>([]);
+  const [userWebhooks, setUserWebhooks] = useState<Array<UserWebhook>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
   const [userPush, setUserPush] = useState<Array<UserPush>>([]);
   const [
@@ -161,6 +163,19 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             if (userTelegram) {
               model.userTelegramId = userTelegram.id!;
             }
+
+            const userWebhook: UserWebhook | undefined = userWebhooks.find(
+              (userWebhook: UserWebhook) => {
+                return (
+                  userWebhook.id!.toString() ===
+                  miscDataProps["notificationMethod"]?.toString()
+                );
+              },
+            );
+
+            if (userWebhook) {
+              model.userWebhookId = userWebhook.id!;
+            }
           }
 
           return Promise.resolve(model);
@@ -226,6 +241,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             telegramUserHandle: true,
             telegramChatId: true,
           },
+          userWebhook: {
+            name: true,
+            webhookUrl: true,
+          },
         }}
         filters={[]}
         columns={[
@@ -249,6 +268,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               userTelegram: {
                 telegramUserHandle: true,
                 telegramChatId: true,
+              },
+              userWebhook: {
+                name: true,
+                webhookUrl: true,
               },
             },
             title: "Notification Method",
@@ -413,6 +436,23 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setUserTelegrams(userTelegramList.data);
 
+      const userWebhookList: ListResult<UserWebhook> = await ModelAPI.getList({
+        modelType: UserWebhook,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          userId: User.getUserId(),
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+          webhookUrl: true,
+        },
+        sort: {},
+      });
+
+      setUserWebhooks(userWebhookList.data);
+
       setAlertSeverities(alertSeverities.data);
 
       const dropdownOptions: Array<DropdownOption> = [
@@ -422,16 +462,27 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ...userPushDevices.data,
         ...userWhatsAppList.data,
         ...userTelegramList.data,
+        ...userWebhookList.data,
       ].map((model: BaseModel) => {
         const isUserCall: boolean = model instanceof UserCall;
         const isUserSms: boolean = model instanceof UserSMS;
         const isUserPush: boolean = model instanceof UserPush;
         const isUserWhatsApp: boolean = model instanceof UserWhatsApp;
         const isUserTelegram: boolean = model instanceof UserTelegram;
+        const isUserWebhook: boolean = model instanceof UserWebhook;
 
         let option: DropdownOption;
 
-        if (isUserPush) {
+        if (isUserWebhook) {
+          option = {
+            label:
+              "Webhook: " +
+              (model.getColumnValue("name")?.toString() ||
+                model.getColumnValue("webhookUrl")?.toString() ||
+                "Unknown Webhook"),
+            value: model.id!.toString(),
+          };
+        } else if (isUserPush) {
           option = {
             label:
               "Push: " +
