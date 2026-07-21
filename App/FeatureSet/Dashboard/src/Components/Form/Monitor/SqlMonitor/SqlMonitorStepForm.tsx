@@ -34,6 +34,11 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
       },
     );
 
+  const useWindowsIntegratedAuthentication: boolean =
+    props.monitorStepSqlMonitor.databaseType ===
+      SqlDatabaseType.MicrosoftSqlServer &&
+    Boolean(props.monitorStepSqlMonitor.useWindowsIntegratedAuthentication);
+
   return (
     <div className="space-y-5">
       <div>
@@ -53,10 +58,32 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
               ...props.monitorStepSqlMonitor,
               databaseType: databaseType,
               port: SqlDatabaseTypeUtil.getDefaultPort(databaseType),
+              useWindowsIntegratedAuthentication:
+                databaseType === SqlDatabaseType.MicrosoftSqlServer
+                  ? props.monitorStepSqlMonitor
+                      .useWindowsIntegratedAuthentication
+                  : false,
             });
           }}
         />
       </div>
+
+      {props.monitorStepSqlMonitor.databaseType ===
+        SqlDatabaseType.MicrosoftSqlServer && (
+        <div>
+          <Toggle
+            title="Use Windows Integrated Authentication"
+            description="Authenticate as the account running the probe (SSPI on Windows or Kerberos on Linux/macOS). Username and password are ignored."
+            initialValue={useWindowsIntegratedAuthentication}
+            onChange={(value: boolean) => {
+              props.onChange({
+                ...props.monitorStepSqlMonitor,
+                useWindowsIntegratedAuthentication: value,
+              });
+            }}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -99,7 +126,11 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div
+        className={`grid gap-4 ${
+          useWindowsIntegratedAuthentication ? "grid-cols-1" : "grid-cols-2"
+        }`}
+      >
         <div>
           <FieldLabelElement
             title="Database Name"
@@ -118,60 +149,65 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
           />
         </div>
 
+        {!useWindowsIntegratedAuthentication && (
+          <div>
+            <FieldLabelElement
+              title="Username"
+              description="Use a read-only, least-privilege database user."
+              required={false}
+            />
+            <Input
+              initialValue={props.monitorStepSqlMonitor.username}
+              placeholder="readonly_user"
+              onChange={(value: string) => {
+                props.onChange({
+                  ...props.monitorStepSqlMonitor,
+                  username: value,
+                });
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {!useWindowsIntegratedAuthentication && (
         <div>
           <FieldLabelElement
-            title="Username"
-            description="Use a read-only, least-privilege database user."
+            title="Password"
+            description={
+              <p>
+                Database password. We recommend referencing a monitor secret
+                with{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  {"{{monitorSecrets.name}}"}
+                </code>{" "}
+                instead of typing the password here, so it stays encrypted at
+                rest.{" "}
+                <Link
+                  className="underline"
+                  openInNewTab={true}
+                  to={URL.fromString(
+                    DOCS_URL.toString() + "/monitor/monitor-secrets",
+                  )}
+                >
+                  Learn more about secrets.
+                </Link>
+              </p>
+            }
             required={false}
           />
           <Input
-            initialValue={props.monitorStepSqlMonitor.username}
-            placeholder="readonly_user"
+            initialValue={props.monitorStepSqlMonitor.password}
+            placeholder="{{monitorSecrets.dbPassword}}"
             onChange={(value: string) => {
               props.onChange({
                 ...props.monitorStepSqlMonitor,
-                username: value,
+                password: value,
               });
             }}
           />
         </div>
-      </div>
-
-      <div>
-        <FieldLabelElement
-          title="Password"
-          description={
-            <p>
-              Database password. We recommend referencing a monitor secret with{" "}
-              <code className="bg-gray-100 px-1 rounded">
-                {"{{monitorSecrets.name}}"}
-              </code>{" "}
-              instead of typing the password here, so it stays encrypted at
-              rest.{" "}
-              <Link
-                className="underline"
-                openInNewTab={true}
-                to={URL.fromString(
-                  DOCS_URL.toString() + "/monitor/monitor-secrets",
-                )}
-              >
-                Learn more about secrets.
-              </Link>
-            </p>
-          }
-          required={false}
-        />
-        <Input
-          initialValue={props.monitorStepSqlMonitor.password}
-          placeholder="{{monitorSecrets.dbPassword}}"
-          onChange={(value: string) => {
-            props.onChange({
-              ...props.monitorStepSqlMonitor,
-              password: value,
-            });
-          }}
-        />
-      </div>
+      )}
 
       <div>
         <FieldLabelElement

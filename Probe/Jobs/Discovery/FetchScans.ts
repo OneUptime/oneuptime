@@ -13,9 +13,15 @@ import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
-import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
-import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
-import SnmpPrivProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
+import SnmpSecurityLevel, {
+  SnmpSecurityLevelUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
+import SnmpAuthProtocol, {
+  SnmpAuthProtocolUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
+import SnmpPrivProtocol, {
+  SnmpPrivProtocolUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import ProxyConfig from "../../Utils/ProxyConfig";
@@ -26,23 +32,58 @@ import ProxyConfig from "../../Utils/ProxyConfig";
  * username means no v3 config, so return undefined and let the scan run as
  * v1/v2c.
  */
-function buildSnmpV3Auth(
+export function buildSnmpV3Auth(
   scan: NetworkDeviceDiscoveryScan,
 ): SnmpV3Auth | undefined {
   if (!scan.snmpV3Username) {
     return undefined;
   }
 
+  /*
+   * Validated here rather than deeper in the scan for one reason: this runs
+   * inside runScan's try, so a bad value is reported back as a failed scan the
+   * operator can read. The same check inside SnmpMonitor would throw once per
+   * host into SubnetScanner's debug-level catch, and the scan would finish
+   * "successfully" having found nothing — indistinguishable from a subnet with
+   * no SNMP devices on it.
+   *
+   * One credential set is built per scan and reused for every host, so a
+   * single unreadable value silently blanks the entire sweep.
+   */
+  const scanLabel: string = scan.cidr || scan.id?.toString() || "scan";
+
+  if (SnmpSecurityLevelUtil.isUnrecognized(scan.snmpV3SecurityLevel)) {
+    throw new Error(
+      `SNMP v3 security level "${scan.snmpV3SecurityLevel}" configured for discovery scan ${scanLabel} is not a recognized value. Expected one of: ${Object.values(
+        SnmpSecurityLevel,
+      ).join(", ")}.`,
+    );
+  }
+
+  if (SnmpAuthProtocolUtil.isUnrecognized(scan.snmpV3AuthProtocol)) {
+    throw new Error(
+      `SNMP v3 authentication protocol "${scan.snmpV3AuthProtocol}" configured for discovery scan ${scanLabel} is not a recognized value. Expected one of: ${Object.values(
+        SnmpAuthProtocol,
+      ).join(", ")}.`,
+    );
+  }
+
+  if (SnmpPrivProtocolUtil.isUnrecognized(scan.snmpV3PrivProtocol)) {
+    throw new Error(
+      `SNMP v3 privacy protocol "${scan.snmpV3PrivProtocol}" configured for discovery scan ${scanLabel} is not a recognized value. Expected one of: ${Object.values(
+        SnmpPrivProtocol,
+      ).join(", ")}.`,
+    );
+  }
+
   return {
     securityLevel:
-      (scan.snmpV3SecurityLevel as SnmpSecurityLevel) ||
+      SnmpSecurityLevelUtil.parse(scan.snmpV3SecurityLevel) ||
       SnmpSecurityLevel.NoAuthNoPriv,
     username: scan.snmpV3Username,
-    authProtocol:
-      (scan.snmpV3AuthProtocol as SnmpAuthProtocol | undefined) || undefined,
+    authProtocol: SnmpAuthProtocolUtil.parse(scan.snmpV3AuthProtocol),
     authKey: scan.snmpV3AuthKey || undefined,
-    privProtocol:
-      (scan.snmpV3PrivProtocol as SnmpPrivProtocol | undefined) || undefined,
+    privProtocol: SnmpPrivProtocolUtil.parse(scan.snmpV3PrivProtocol),
     privKey: scan.snmpV3PrivKey || undefined,
   };
 }

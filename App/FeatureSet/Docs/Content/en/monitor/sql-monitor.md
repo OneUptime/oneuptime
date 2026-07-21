@@ -42,7 +42,7 @@ Running a customer-supplied query against a production database is sensitive, so
 ## Prerequisites
 
 - A **probe** with network access to your database host and port. This can be a OneUptime-hosted probe (if your database is reachable from the internet) or a self-hosted probe running inside your network. See the probe documentation for how to install a custom probe.
-- A **read-only database user** and the connection details (host, port, database name, username, password).
+- A **read-only database user** and the connection details (host, port, database name, username, password), or a read-only Windows/domain identity when using SQL Server Integrated Authentication.
 
 ## Configuration
 
@@ -52,10 +52,20 @@ Create a new monitor and choose **SQL Query** as the monitor type, then fill in 
 - **Host** — the database host reachable from the probe (for example `db.internal`).
 - **Port** — the database port.
 - **Database Name** — the database to run the query against.
+- **Use Windows Integrated Authentication** — Microsoft SQL Server only. Authenticate with the account running the probe instead of a SQL username and password. See [Windows Integrated Authentication](#windows-integrated-authentication).
 - **Username** — a read-only, least-privilege database user.
 - **Password** — the database password. We strongly recommend referencing a [Monitor Secret](/docs/monitor/monitor-secrets) with `{{monitorSecrets.name}}` instead of typing the password in plain text (see below).
 - **SQL Query** — the read-only query to run (see [Writing the query](#writing-the-query)).
 - **Use SSL/TLS** — enable to connect over TLS. When enabled, you can turn off **Verify server certificate** if the database uses a self-signed certificate.
+
+### Windows Integrated Authentication
+
+For Microsoft SQL Server, enable **Use Windows Integrated Authentication** to open a trusted connection with the identity of the probe process. The Username and Password fields are ignored in this mode and are not passed to the driver. Because the probe needs an identity trusted by your domain, use a self-hosted probe for this authentication mode.
+
+- **Windows probes:** run the probe service as a domain account that has a read-only SQL Server login.
+- **Linux or macOS probes:** configure Kerberos for the SQL Server domain and give the probe process a valid ticket (for example through a keytab). The official Linux probe image includes Microsoft ODBC Driver 18, unixODBC, and the Kerberos client. Mount the Kerberos configuration and ticket cache into the container, make them readable by the probe process, and set `KRB5_CONFIG` or `KRB5CCNAME` when their locations are non-default.
+
+SQL Server must have an appropriate `MSSQLSvc` service principal name, the probe and domain controller clocks must be synchronized, and the probe must resolve/reach the SQL Server by the hostname covered by that service principal. Grant only the database permissions needed by the monitoring query to the trusted identity.
 
 ### Advanced options
 

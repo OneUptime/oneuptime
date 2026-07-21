@@ -152,3 +152,6 @@ RFP/
 
 # Sentinel eval harness output (npm run ai-eval)
 eval-corpus.json
+
+# CycloneDX SBOMs written by Scripts/GHA/generate_sboms.sh
+/sbom/

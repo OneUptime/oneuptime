@@ -2938,21 +2938,41 @@ const Icon: FunctionComponent<ComponentProps> = ({
     );
   } else if (icon === IconProp.Podman) {
     /*
-     * Podman mark — a clean side-profile silhouette of Podman's seal mascot:
-     * head raised with a visible eye, an arched back, and trailing tail
-     * flippers. The official emblem (a finely detailed seal inside a hexagonal
-     * frame) collapses into an illegible blob at small sizes, so this reads as
-     * a recognizable little sea creature down to ~16px and sits well beside the
-     * other resource brand logos (Docker / Proxmox / Ceph). The eye is punched
-     * out via the even-odd fill rule.
+     * Podman mark — the seal mascot's face inside the octagon from Podman's
+     * emblem. The official artwork (a mother seal flanked by two pups, with
+     * whiskers and water lines, all inside the octagon) turns to mush below
+     * ~48px, so this keeps only the cues that survive at icon sizes: the
+     * octagonal frame, the brow arches, the eyes and the round muzzle. The
+     * octagon doubles as the head outline so there is a single silhouette
+     * rather than two nested rings, and its straight edges stay crisp down to
+     * 16px next to the other resource brand logos (Docker / Proxmox / Ceph).
      */
     return getSvgWrapper(
-      <path
-        fill="currentColor"
-        stroke="none"
-        fillRule="evenodd"
-        d="M6.6 8.4C6.2 6.6 7.4 5 9.2 4.9c1.6-.1 2.9 1 3.5 2.2.7-.5 1.7-.7 2.5-.2.6.36.8 1.06.5 1.6 1.9 1.3 3.2 3.4 3.6 5.9.9-.15 1.9.15 2.3.95.35.75-.2 1.45-1.1 1.7-1.5.42-3.2-.15-4.1-1.5-.3.95-.9 1.75-1.7 2.25 1.2.5 2 1.2 1.6 2-.3.6-1.2.7-2.2.4-1.7-.5-3-1.9-3.4-3.6-.9.9-2.2 1.4-3.5 1.3-1-.1-1.5-.8-1.2-1.5.25-.6.9-.9 1.6-1-1-1.5-1.5-3.4-1.4-5.3-.6-.3-1.05-.85-1.1-1.55ZM8.4 8a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"
-      />,
+      <>
+        {/* Octagonal frame of the emblem, doubling as the seal's head */}
+        <path
+          strokeLinejoin="round"
+          d="M15.79 2.85H8.21L2.85 8.21v7.58l5.36 5.36h7.58l5.36-5.36V8.21Z"
+        />
+        {/* Brow arches */}
+        <path
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          d="M7.7 8.3C8.2 7.7 9.2 7.6 9.9 8M16.3 8.3C15.8 7.7 14.8 7.6 14.1 8"
+        />
+        {/* Eyes */}
+        <circle cx="9.1" cy="10.7" r="1.25" fill="currentColor" stroke="none" />
+        <circle
+          cx="14.9"
+          cy="10.7"
+          r="1.25"
+          fill="currentColor"
+          stroke="none"
+        />
+        {/* Muzzle and nose */}
+        <circle cx="12" cy="15.2" r="2.6" />
+        <circle cx="12" cy="14.35" r="0.6" fill="currentColor" stroke="none" />
+      </>,
     );
   } else if (icon === IconProp.Proxmox) {
     // Proxmox official logo mark (Simple Icons, CC0) — single filled path.

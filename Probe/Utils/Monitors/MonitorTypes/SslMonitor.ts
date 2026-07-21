@@ -208,12 +208,12 @@ export default class SSLMonitor {
       isSelfSigned: isSelfSigned,
       createdAt: OneUptimeDate.fromString(certificate.valid_from),
       expiresAt: OneUptimeDate.fromString(certificate.valid_to),
-      commonName: certificate.subject.CN,
-      organizationalUnit: certificate.subject.OU,
-      organization: certificate.subject.O,
-      locality: certificate.subject.L,
-      state: certificate.subject.ST,
-      country: certificate.subject.C,
+      commonName: SSLMonitor.certificateField(certificate.subject.CN),
+      organizationalUnit: SSLMonitor.certificateField(certificate.subject.OU),
+      organization: SSLMonitor.certificateField(certificate.subject.O),
+      locality: SSLMonitor.certificateField(certificate.subject.L),
+      state: SSLMonitor.certificateField(certificate.subject.ST),
+      country: SSLMonitor.certificateField(certificate.subject.C),
       serialNumber: certificate.serialNumber,
       fingerprint: certificate.fingerprint,
       fingerprint256: certificate.fingerprint256,
@@ -221,6 +221,26 @@ export default class SSLMonitor {
     };
 
     return res;
+  }
+
+  /*
+   * A relative distinguished name may legitimately repeat — a certificate
+   * carrying two OU values hands Node an array rather than a string, which is
+   * why tls types these fields as string | string[].
+   *
+   * Older @types/node declared them as plain strings, so the array case was
+   * assigned straight into a string field and surfaced to the user as
+   * "[object Object]"-grade noise. Joining keeps every value visible and
+   * restores the string contract SslMonitorResponse declares.
+   */
+  private static certificateField(
+    value: string | Array<string> | undefined,
+  ): string | undefined {
+    if (Array.isArray(value)) {
+      return value.join(", ") || undefined;
+    }
+
+    return value;
   }
 
   public static async getCertificate(data: {

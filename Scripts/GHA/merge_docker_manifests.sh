@@ -67,4 +67,16 @@ for tag in "${TAG_LIST[@]}"; do
 		"${GHCR}/${IMAGE}:${tag}-arm64"
 
 	echo "✅ Pushed multi-arch manifest for ${IMAGE}:${tag}"
+
+	# The per-arch builds carry SPDX attestations (see build_docker_images.sh).
+	# Those live in the source index as separate manifests, so whether they
+	# survive `imagetools create` is a property of buildx, not something we
+	# control here — verify rather than assume. Warn-only on purpose: a missing
+	# SBOM should not fail a release, but it must be visible in the job log.
+	SBOM_JSON="$(docker buildx imagetools inspect "${GHCR}/${IMAGE}:${tag}" --format '{{json .SBOM}}' 2>/dev/null || true)"
+	if [[ "$SBOM_JSON" == *"spdxVersion"* ]]; then
+		echo "✅ SBOM attestation present on ${IMAGE}:${tag}"
+	else
+		echo "⚠️  No SBOM attestation found on ${IMAGE}:${tag} — it was likely dropped by the manifest merge. Generate the SBOM in this job instead."
+	fi
 done

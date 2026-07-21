@@ -47,6 +47,7 @@ import MonitorStepDnssecMonitor, {
 import MonitorStepSqlMonitor, {
   MonitorStepSqlMonitorUtil,
 } from "./MonitorStepSqlMonitor";
+import SqlDatabaseType from "./SqlDatabaseType";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "./MonitorStepExternalStatusPageMonitor";
@@ -779,6 +780,14 @@ export default class MonitorStep extends DatabaseProperty {
 
       if (!value.data.sqlMonitor.query || !value.data.sqlMonitor.query.trim()) {
         return "SQL query is required";
+      }
+
+      if (
+        value.data.sqlMonitor.useWindowsIntegratedAuthentication &&
+        value.data.sqlMonitor.databaseType !==
+          SqlDatabaseType.MicrosoftSqlServer
+      ) {
+        return "Windows Integrated Authentication is only supported for Microsoft SQL Server";
       }
     }
 

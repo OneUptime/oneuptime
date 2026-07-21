@@ -130,6 +130,21 @@ export default class NetworkDeviceHydrationUtil {
    * snmpV3* columns (the current storage), falling back to the deprecated
    * snmpV3Auth JSON column so devices created before the columns existed keep
    * working. Returns undefined when no v3 username is configured.
+   *
+   * The protocol columns are passed through as stored, on purpose. It is
+   * tempting to validate them here with SnmpSecurityLevelUtil /
+   * SnmpAuthProtocolUtil / SnmpPrivProtocolUtil, but this runs server-side
+   * inside the probe's monitor-list request, and that request claims its
+   * monitors — advancing nextPingAt — before hydration runs. A throw here
+   * would 500 the whole batch, so one malformed row would stall up to a
+   * hundred unrelated monitors of every type, every cycle, with nothing
+   * recorded against them.
+   *
+   * The probe validates instead, in SnmpMonitor.buildV3User, where a bad value
+   * fails exactly one monitor and shows up as its failure cause. Parsing here
+   * would defeat that by folding an unreadable value into undefined, which the
+   * probe cannot tell from "never configured" — and would therefore poll with
+   * a silently defaulted algorithm.
    */
   private static buildSnmpV3Auth(
     device: NetworkDevice,

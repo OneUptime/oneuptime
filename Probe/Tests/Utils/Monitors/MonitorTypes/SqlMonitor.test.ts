@@ -3,10 +3,41 @@ process.env["ONEUPTIME_URL"] = "https://oneuptime.com";
 process.env["PROBE_KEY"] = "test-probe-key";
 
 import SqlMonitor, {
+  buildMicrosoftSqlServerPoolConfig,
+  buildSqlServerIntegratedConnectionString,
+  loadMicrosoftSqlServerDriver,
+  MicrosoftSqlServerPoolConfig,
+  SQL_SERVER_ODBC_DRIVER,
   SqlQueryValidator,
 } from "../../../../Utils/Monitors/MonitorTypes/SqlMonitor";
 import SqlMonitorResponse from "Common/Types/Monitor/SqlMonitor/SqlMonitorResponse";
+import MonitorStepSqlMonitor from "Common/Types/Monitor/MonitorStepSqlMonitor";
+import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
+import * as mssql from "mssql";
 import { describe, expect, it } from "@jest/globals";
+
+const getMicrosoftSqlServerConfig: (
+  overrides?: Partial<MonitorStepSqlMonitor>,
+) => MonitorStepSqlMonitor = (
+  overrides: Partial<MonitorStepSqlMonitor> = {},
+): MonitorStepSqlMonitor => {
+  return {
+    databaseType: SqlDatabaseType.MicrosoftSqlServer,
+    host: "sql.internal",
+    port: 1433,
+    databaseName: "orders",
+    username: "readonly",
+    password: "sql-password",
+    useWindowsIntegratedAuthentication: false,
+    useSsl: true,
+    rejectUnauthorizedSsl: true,
+    query: "SELECT 1",
+    connectionTimeoutInMs: 10000,
+    statementTimeoutInMs: 15000,
+    maxRows: 100,
+    ...overrides,
+  };
+};
 
 describe("SqlQueryValidator.getRejectionReason", () => {
   it("allows a plain SELECT", () => {
@@ -275,6 +306,7 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
         databaseName: "orders",
         username: "readonly",
         password: "",
+        useWindowsIntegratedAuthentication: false,
         useSsl: false,
         rejectUnauthorizedSsl: true,
         query: "DELETE FROM orders",
@@ -300,6 +332,7 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
         databaseName: "orders",
         username: "readonly",
         password: "",
+        useWindowsIntegratedAuthentication: false,
         useSsl: false,
         rejectUnauthorizedSsl: true,
         query: "SELECT 1",
@@ -329,6 +362,7 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
           databaseName: "orders",
           username: "readonly",
           password: "",
+          useWindowsIntegratedAuthentication: false,
           useSsl: false,
           rejectUnauthorizedSsl: true,
           query: "DELETE FROM orders",
@@ -343,5 +377,190 @@ describe("SqlMonitor.execute (guard rejections, no DB needed)", () => {
       expect(response!.isOnline).toBe(false);
       expect(response!.queryError).toBeTruthy();
     }
+  });
+
+  it("rejects integrated authentication for non-SQL Server engines", async () => {
+    const response: SqlMonitorResponse | null = await SqlMonitor.execute(
+      {
+        databaseType: "PostgreSQL" as any,
+        host: "db.internal",
+        port: 5432,
+        databaseName: "orders",
+        username: "",
+        password: "",
+        useWindowsIntegratedAuthentication: true,
+        useSsl: false,
+        rejectUnauthorizedSsl: true,
+        query: "SELECT 1",
+        connectionTimeoutInMs: 10000,
+        statementTimeoutInMs: 15000,
+        maxRows: 100,
+      },
+      { isOnlineCheckRequest: true },
+    );
+
+    expect(response).not.toBeNull();
+    expect(response!.isOnline).toBe(false);
+    expect(response!.failureCause).toContain("only supported");
+  });
+});
+
+describe("buildSqlServerIntegratedConnectionString", () => {
+  it("uses a trusted connection without SQL login credentials", () => {
+    const connectionString: string = buildSqlServerIntegratedConnectionString({
+      host: "sql.internal",
+      port: 1433,
+      databaseName: "orders",
+      useSsl: true,
+      rejectUnauthorizedSsl: true,
+    });
+
+    expect(connectionString).toContain(`Driver={${SQL_SERVER_ODBC_DRIVER}}`);
+    expect(connectionString).toContain("Server={sql.internal,1433}");
+    expect(connectionString).toContain("Database={orders}");
+    expect(connectionString).toContain("Trusted_Connection=yes");
+    expect(connectionString).toContain("Encrypt=yes");
+    expect(connectionString).toContain("TrustServerCertificate=no");
+    expect(connectionString).not.toMatch(/(?:Uid|Pwd|Password)=/i);
+  });
+
+  it("escapes ODBC values and supports trusted self-signed certificates", () => {
+    const connectionString: string = buildSqlServerIntegratedConnectionString({
+      host: "sql;primary}",
+      port: 1433,
+      databaseName: "orders;archive}",
+      useSsl: true,
+      rejectUnauthorizedSsl: false,
+    });
+
+    expect(connectionString).toContain("Server={sql;primary}},1433}");
+    expect(connectionString).toContain("Database={orders;archive}}}");
+    expect(connectionString).toContain("TrustServerCertificate=yes");
+  });
+
+  it("turns encryption and certificate trust off together when TLS is disabled", () => {
+    const connectionString: string = buildSqlServerIntegratedConnectionString({
+      host: "sql.internal",
+      port: 1433,
+      databaseName: "orders",
+      useSsl: false,
+      rejectUnauthorizedSsl: false,
+    });
+
+    expect(connectionString).toContain("Encrypt=no");
+    expect(connectionString).toContain("TrustServerCertificate=no");
+  });
+});
+
+describe("buildMicrosoftSqlServerPoolConfig", () => {
+  it("preserves SQL login credentials for the default Tedious driver", () => {
+    const poolConfig: MicrosoftSqlServerPoolConfig =
+      buildMicrosoftSqlServerPoolConfig({
+        config: getMicrosoftSqlServerConfig(),
+        connectionTimeoutInMs: 7000,
+        statementTimeoutInMs: 9000,
+      });
+
+    expect(poolConfig.server).toBe("sql.internal");
+    expect(poolConfig.port).toBe(1433);
+    expect(poolConfig.database).toBe("orders");
+    expect(poolConfig.user).toBe("readonly");
+    expect(poolConfig.password).toBe("sql-password");
+    expect(poolConfig.connectionString).toBeUndefined();
+    expect(poolConfig.connectionTimeout).toBe(7000);
+    expect(poolConfig.requestTimeout).toBe(9000);
+    expect(poolConfig.options?.encrypt).toBe(true);
+    expect(poolConfig.options?.trustServerCertificate).toBe(false);
+  });
+
+  it("omits every SQL credential property for integrated authentication", () => {
+    const poolConfig: MicrosoftSqlServerPoolConfig =
+      buildMicrosoftSqlServerPoolConfig({
+        config: getMicrosoftSqlServerConfig({
+          username: "must-not-leak-user",
+          password: "must-not-leak-password",
+          useWindowsIntegratedAuthentication: true,
+        }),
+        connectionTimeoutInMs: 7000,
+        statementTimeoutInMs: 9000,
+      });
+
+    expect(Object.prototype.hasOwnProperty.call(poolConfig, "user")).toBe(
+      false,
+    );
+    expect(Object.prototype.hasOwnProperty.call(poolConfig, "password")).toBe(
+      false,
+    );
+    expect(poolConfig.connectionString).toContain("Trusted_Connection=yes");
+    expect(poolConfig.connectionString).not.toContain("must-not-leak-user");
+    expect(poolConfig.connectionString).not.toContain("must-not-leak-password");
+  });
+
+  it("keeps pool sizing, timeout, and application metadata identical for both authentication modes", () => {
+    for (const useWindowsIntegratedAuthentication of [false, true]) {
+      const poolConfig: MicrosoftSqlServerPoolConfig =
+        buildMicrosoftSqlServerPoolConfig({
+          config: getMicrosoftSqlServerConfig({
+            useWindowsIntegratedAuthentication,
+          }),
+          connectionTimeoutInMs: 1234,
+          statementTimeoutInMs: 5678,
+        });
+
+      expect(poolConfig.connectionTimeout).toBe(1234);
+      expect(poolConfig.requestTimeout).toBe(5678);
+      expect(poolConfig.pool).toEqual({
+        max: 1,
+        min: 0,
+        idleTimeoutMillis: 30000,
+      });
+      expect(poolConfig.options?.appName).toBe("OneUptimeProbe-SQLMonitor");
+    }
+  });
+});
+
+describe("loadMicrosoftSqlServerDriver", () => {
+  it("does not load the native module for SQL login authentication", () => {
+    let loaderWasCalled: boolean = false;
+
+    const driver: typeof mssql = loadMicrosoftSqlServerDriver(false, () => {
+      loaderWasCalled = true;
+      throw new Error("The native driver must remain lazy");
+    });
+
+    expect(loaderWasCalled).toBe(false);
+    expect(driver.ConnectionPool).toBe(mssql.ConnectionPool);
+  });
+
+  it("loads the msnodesqlv8 mssql adapter for integrated authentication", () => {
+    const fakeDriver: typeof mssql = {
+      marker: "native-driver",
+    } as unknown as typeof mssql;
+    let requestedModule: string | undefined;
+
+    const driver: typeof mssql = loadMicrosoftSqlServerDriver(
+      true,
+      (moduleId: string): unknown => {
+        requestedModule = moduleId;
+        return fakeDriver;
+      },
+    );
+
+    expect(requestedModule).toBe("mssql/msnodesqlv8");
+    expect(driver).toBe(fakeDriver);
+  });
+
+  it("returns an actionable error when the native driver cannot load", () => {
+    expect(() => {
+      loadMicrosoftSqlServerDriver(true, () => {
+        throw new Error("missing native binding");
+      });
+    }).toThrow("Windows Integrated Authentication requires");
+
+    expect(() => {
+      loadMicrosoftSqlServerDriver(true, () => {
+        throw new Error("missing native binding");
+      });
+    }).toThrow(SQL_SERVER_ODBC_DRIVER);
   });
 });

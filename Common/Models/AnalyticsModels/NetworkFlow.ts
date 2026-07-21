@@ -285,8 +285,19 @@ export default class NetworkFlow extends AnalyticsBaseModel {
        * (a retentionDate column computed at ingest, like Log/Metric) is
        * the phase-2 follow-up. Keyed on server-assigned ingestedAt so a
        * device with a wrong clock cannot make rows expire early.
+       *
+       * toDateTime() is NOT redundant: ingestedAt is DateTime64(9), so
+       * `ingestedAt + INTERVAL 30 DAY` stays DateTime64(9), and a TTL
+       * expression must evaluate to Date or DateTime. ClickHouse only began
+       * accepting DateTime64 there in 25.x; on 24.x it fails the CREATE with
+       * BAD_TTL_EXPRESSION, which aborts the whole boot schema-sync (it has
+       * no per-table error handling) and takes every table registered after
+       * this one down with it. The Helm chart ships `tag: latest` but tells
+       * operators to pin for production, so older servers are supported and
+       * this must stay version-portable. Narrowing to second precision is
+       * lossless for a 30-day retention window.
        */
-      ttlExpression: "ingestedAt + INTERVAL 30 DAY DELETE",
+      ttlExpression: "toDateTime(ingestedAt) + INTERVAL 30 DAY DELETE",
       defaultSortColumn: "flowStartAt",
     });
   }

@@ -132,10 +132,20 @@ build_variant() {
 	# manifest that references them, producing intermittent BlobNotFound import
 	# failures that fail the whole build. BuildKit's in-builder local cache still
 	# speeds up the enterprise pass within the same job.
+	# --sbom/--provenance attach in-toto attestations alongside the image manifest,
+	# so `docker buildx imagetools inspect <ref> --format '{{json .SBOM}}'` answers
+	# "which packages are in this image?" without pulling it. The SBOM is SPDX 2.3.
+	# mode=max records the full build steps and build args — all of ours (GIT_SHA,
+	# APP_VERSION, IS_ENTERPRISE_EDITION) are non-secret; registry creds arrive via
+	# `docker login`, never as build args, so nothing sensitive is embedded.
+	# Side effect: this turns each pushed tag into an OCI index, so registry UIs
+	# list an extra "unknown/unknown" entry per image — that's the attestation.
 	docker buildx build \
 		--file "$DOCKERFILE" \
 		--platform "$PLATFORMS" \
 		--push \
+		--sbom=true \
+		--provenance=mode=max \
 		"${tag_args[@]}" \
 		--build-arg "GIT_SHA=${GIT_SHA}" \
 		--build-arg "APP_VERSION=${VERSION}" \

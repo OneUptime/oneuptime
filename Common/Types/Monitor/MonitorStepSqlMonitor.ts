@@ -64,6 +64,12 @@ export default interface MonitorStepSqlMonitor {
   username: string;
   // Raw password OR a {{monitorSecrets.name}} reference resolved server-side.
   password: string;
+  /*
+   * Microsoft SQL Server only: authenticate with the identity under which the
+   * probe is running (SSPI on Windows, Kerberos on Linux/macOS). Username and
+   * password are ignored when this is enabled.
+   */
+  useWindowsIntegratedAuthentication: boolean;
   useSsl: boolean;
   /*
    * When SSL is on, whether the server certificate chain must validate. Users
@@ -87,6 +93,7 @@ export class MonitorStepSqlMonitorUtil {
       databaseName: "",
       username: "",
       password: "",
+      useWindowsIntegratedAuthentication: false,
       useSsl: false,
       rejectUnauthorizedSsl: true,
       query: "",
@@ -105,6 +112,9 @@ export class MonitorStepSqlMonitorUtil {
       databaseName: (json["databaseName"] as string) || "",
       username: (json["username"] as string) || "",
       password: (json["password"] as string) || "",
+      useWindowsIntegratedAuthentication: Boolean(
+        json["useWindowsIntegratedAuthentication"],
+      ),
       useSsl: Boolean(json["useSsl"]),
       rejectUnauthorizedSsl:
         json["rejectUnauthorizedSsl"] === undefined ||
@@ -130,6 +140,8 @@ export class MonitorStepSqlMonitorUtil {
       databaseName: monitor.databaseName,
       username: monitor.username,
       password: monitor.password,
+      useWindowsIntegratedAuthentication:
+        monitor.useWindowsIntegratedAuthentication,
       useSsl: monitor.useSsl,
       rejectUnauthorizedSsl: monitor.rejectUnauthorizedSsl,
       query: monitor.query,

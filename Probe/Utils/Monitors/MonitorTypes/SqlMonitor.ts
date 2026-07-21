@@ -20,6 +20,134 @@ import {
   createConnection as createMySqlConnection,
 } from "mysql2/promise";
 import * as mssql from "mssql";
+import { createRequire } from "module";
+
+const loadProbeModule: ReturnType<typeof createRequire> =
+  createRequire(__filename);
+
+export const SQL_SERVER_ODBC_DRIVER: string = "ODBC Driver 18 for SQL Server";
+
+/*
+ * Escape a value for an ODBC connection string. Braced values can safely
+ * contain semicolons; a literal closing brace is represented by two braces.
+ */
+const escapeOdbcConnectionStringValue: (value: string) => string = (
+  value: string,
+): string => {
+  return `{${value.replace(/}/g, "}}")}}`;
+};
+
+/*
+ * Build the trusted connection string used by msnodesqlv8. Keeping this
+ * separate from the normal Tedious config ensures SQL credentials are never
+ * passed when integrated authentication is selected.
+ */
+export const buildSqlServerIntegratedConnectionString: (
+  config: Pick<
+    MonitorStepSqlMonitor,
+    "host" | "port" | "databaseName" | "useSsl" | "rejectUnauthorizedSsl"
+  >,
+) => string = (
+  config: Pick<
+    MonitorStepSqlMonitor,
+    "host" | "port" | "databaseName" | "useSsl" | "rejectUnauthorizedSsl"
+  >,
+): string => {
+  return [
+    `Driver=${escapeOdbcConnectionStringValue(SQL_SERVER_ODBC_DRIVER)}`,
+    `Server=${escapeOdbcConnectionStringValue(`${config.host},${config.port}`)}`,
+    `Database=${escapeOdbcConnectionStringValue(config.databaseName)}`,
+    "Trusted_Connection=yes",
+    `Encrypt=${config.useSsl ? "yes" : "no"}`,
+    `TrustServerCertificate=${
+      config.useSsl && !config.rejectUnauthorizedSsl ? "yes" : "no"
+    }`,
+    `APP=${escapeOdbcConnectionStringValue("OneUptimeProbe-SQLMonitor")}`,
+  ].join(";");
+};
+
+export interface MicrosoftSqlServerPoolConfig extends mssql.config {
+  connectionString?: string | undefined;
+}
+
+export type SqlServerDriverLoader = (moduleId: string) => unknown;
+
+/*
+ * Build the pool configuration independently from opening a connection. This
+ * makes the authentication boundary explicit: SQL credentials are present for
+ * the normal Tedious driver, while a trusted connection has only an ODBC
+ * connection string and cannot accidentally forward a saved username/password.
+ */
+export const buildMicrosoftSqlServerPoolConfig: (input: {
+  config: MonitorStepSqlMonitor;
+  statementTimeoutInMs: number;
+  connectionTimeoutInMs: number;
+}) => MicrosoftSqlServerPoolConfig = (input: {
+  config: MonitorStepSqlMonitor;
+  statementTimeoutInMs: number;
+  connectionTimeoutInMs: number;
+}): MicrosoftSqlServerPoolConfig => {
+  const { config, statementTimeoutInMs, connectionTimeoutInMs } = input;
+
+  const baseConfig: MicrosoftSqlServerPoolConfig = {
+    server: config.host,
+    port: config.port,
+    database: config.databaseName,
+    connectionTimeout: connectionTimeoutInMs,
+    requestTimeout: statementTimeoutInMs,
+    pool: { max: 1, min: 0, idleTimeoutMillis: 30000 },
+    options: {
+      encrypt: config.useSsl,
+      /*
+       * When SSL is on, validate the chain unless the user opted out (a
+       * self-signed cert). When SSL is off this value is irrelevant.
+       */
+      trustServerCertificate: config.useSsl
+        ? !config.rejectUnauthorizedSsl
+        : true,
+      appName: "OneUptimeProbe-SQLMonitor",
+    },
+  };
+
+  if (config.useWindowsIntegratedAuthentication) {
+    return {
+      ...baseConfig,
+      connectionString: buildSqlServerIntegratedConnectionString(config),
+    };
+  }
+
+  return {
+    ...baseConfig,
+    user: config.username,
+    password: config.password,
+  };
+};
+
+/*
+ * Keep the native driver lazy so PostgreSQL, MySQL, and SQL-authenticated SQL
+ * Server monitors continue to work on developer probes without unixODBC. The
+ * loader parameter makes the selection and failure behavior unit-testable
+ * without requiring a native binary in the test environment.
+ */
+export const loadMicrosoftSqlServerDriver: (
+  useWindowsIntegratedAuthentication: boolean,
+  moduleLoader?: SqlServerDriverLoader,
+) => typeof mssql = (
+  useWindowsIntegratedAuthentication: boolean,
+  moduleLoader: SqlServerDriverLoader = loadProbeModule,
+): typeof mssql => {
+  if (!useWindowsIntegratedAuthentication) {
+    return mssql;
+  }
+
+  try {
+    return moduleLoader("mssql/msnodesqlv8") as typeof mssql;
+  } catch {
+    throw new Error(
+      `Windows Integrated Authentication requires ${SQL_SERVER_ODBC_DRIVER} and the msnodesqlv8 driver on the probe. Use the official probe image or install both dependencies, then run the probe under the trusted Windows account or with a valid Kerberos ticket.`,
+    );
+  }
+};
 
 export interface SqlQueryOptions {
   timeout?: number | undefined;
@@ -336,6 +464,23 @@ export default class SqlMonitor {
       const message: string = `Database type "${config.databaseType}" is not supported yet. Supported: ${SqlDatabaseTypeUtil.getSupportedDatabaseTypes().join(
         ", ",
       )}.`;
+      return {
+        isOnline: false,
+        responseTimeInMs: 0,
+        failureCause: message,
+        rowCount: null,
+        scalarValue: null,
+        firstRow: null,
+        queryError: message,
+      };
+    }
+
+    if (
+      config.useWindowsIntegratedAuthentication &&
+      config.databaseType !== SqlDatabaseType.MicrosoftSqlServer
+    ) {
+      const message: string =
+        "Windows Integrated Authentication is only supported for Microsoft SQL Server.";
       return {
         isOnline: false,
         responseTimeInMs: 0,
@@ -848,29 +993,20 @@ export default class SqlMonitor {
      */
     const teardownTimeoutInMs: number = 5000;
 
-    const poolConfig: mssql.config = {
-      server: config.host,
-      port: config.port,
-      database: config.databaseName,
-      user: config.username,
-      password: config.password,
-      connectionTimeout: connectionTimeoutInMs,
-      requestTimeout: statementTimeoutInMs,
-      pool: { max: 1, min: 0, idleTimeoutMillis: 30000 },
-      options: {
-        encrypt: config.useSsl,
-        /*
-         * When SSL is on, validate the chain unless the user opted out (a
-         * self-signed cert). When SSL is off this value is irrelevant.
-         */
-        trustServerCertificate: config.useSsl
-          ? !config.rejectUnauthorizedSsl
-          : true,
-        appName: "OneUptimeProbe-SQLMonitor",
-      },
-    };
+    const poolConfig: MicrosoftSqlServerPoolConfig =
+      buildMicrosoftSqlServerPoolConfig({
+        config,
+        statementTimeoutInMs,
+        connectionTimeoutInMs,
+      });
 
-    const pool: mssql.ConnectionPool = new mssql.ConnectionPool(poolConfig);
+    const sqlServerDriver: typeof mssql = loadMicrosoftSqlServerDriver(
+      config.useWindowsIntegratedAuthentication,
+    );
+
+    const pool: mssql.ConnectionPool = new sqlServerDriver.ConnectionPool(
+      poolConfig,
+    );
     let transaction: mssql.Transaction | undefined;
     let transactionBegun: boolean = false;
 
@@ -881,7 +1017,7 @@ export default class SqlMonitor {
        */
       await pool.connect();
 
-      transaction = new mssql.Transaction(pool);
+      transaction = new sqlServerDriver.Transaction(pool);
       await transaction.begin();
       transactionBegun = true;
 
@@ -891,10 +1027,12 @@ export default class SqlMonitor {
        * wins over a larger user-supplied TOP. It is connection-scoped, so it
        * applies to the query request that runs next on this transaction.
        */
-      const setRequest: mssql.Request = new mssql.Request(transaction);
+      const setRequest: mssql.Request = new sqlServerDriver.Request(
+        transaction,
+      );
       await setRequest.batch(`SET ROWCOUNT ${maxRows + 1}`);
 
-      const request: mssql.Request = new mssql.Request(transaction);
+      const request: mssql.Request = new sqlServerDriver.Request(transaction);
 
       const result: mssql.IResult<Record<string, unknown>> =
         await SqlMonitor.withHardTimeout({

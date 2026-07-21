@@ -14,6 +14,8 @@ import SnmpTrap, {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
+// Repairs net-snmp's DES privacy on OpenSSL 3 — must load with net-snmp.
+import "../Utils/Snmp/SnmpDesPrivacyCompat";
 import snmp from "net-snmp";
 
 /*
