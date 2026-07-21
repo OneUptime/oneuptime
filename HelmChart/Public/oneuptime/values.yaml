@@ -309,6 +309,11 @@ clickhouse:
         <interserver_http_port>9009</interserver_http_port>
         <listen_host>::</listen_host>
 
+        <!-- Maximum number of concurrently executing queries. 0 = unlimited.
+             Raised well above ClickHouse's default (100) so bursts of dashboard
+             and telemetry queries are not rejected with TOO_MANY_SIMULTANEOUS_QUERIES. -->
+        <max_concurrent_queries>10000</max_concurrent_queries>
+
         <!-- System log retention: 6 hour TTL to prevent unbounded disk growth -->
         <query_log>
             <database>system</database>
@@ -507,6 +512,10 @@ clickhouseOperator:
       postgresql_port: "9005"
       logger/level: warning
       merge_tree/max_suspicious_broken_parts: "1000"
+      # Maximum number of concurrently executing queries (0 = unlimited). Raised
+      # well above ClickHouse's default (100) so bursts of dashboard and telemetry
+      # queries are not rejected with TOO_MANY_SIMULTANEOUS_QUERIES.
+      max_concurrent_queries: "10000"
     # User/profile-level settings rendered into users.d (under <profiles>). Slash-separated
     # keys become nested XML (default/max_threads -> <profiles><default><max_threads>).
     #
