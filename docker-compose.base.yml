@@ -397,6 +397,15 @@ services:
     restart: always
     networks:
       - oneuptime
+    # The ingress proxies a high volume of short-lived upstream connections to a
+    # single backend. Widen the ephemeral source-port range and allow TIME_WAIT
+    # reuse so the gateway never exhausts local ports — otherwise nginx starts
+    # returning "connect() ... (99: Address not available)" 502s for every route.
+    # These are per-container (network-namespace) sysctls; no privileged mode.
+    sysctls:
+      net.ipv4.ip_local_port_range: "1024 65535"
+      net.ipv4.tcp_tw_reuse: "1"
+      net.ipv4.tcp_fin_timeout: "15"
     environment:
       <<: *common-runtime-variables
       ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}

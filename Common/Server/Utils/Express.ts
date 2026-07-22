@@ -103,6 +103,19 @@ class Express {
 
     if (!this.httpServer) {
       this.httpServer = createServer(this.app);
+
+      /*
+       * Keep upstream (nginx) connection reuse safe. When the ingress pools
+       * idle upstream connections (proxy keepalive), the backend must NOT be
+       * the side that closes an idle socket first — otherwise nginx can pick a
+       * socket the backend already closed and 502 a request it cannot safely
+       * retry (e.g. a POST on the telemetry ingest path). Node's default
+       * keepAliveTimeout (~5s) is well below nginx's upstream keepalive_timeout
+       * (60s), so raise it above that window. headersTimeout must stay greater
+       * than keepAliveTimeout or Node can cut an idle socket mid-request.
+       */
+      this.httpServer.keepAliveTimeout = 75 * 1000;
+      this.httpServer.headersTimeout = 76 * 1000;
     }
 
     /*
