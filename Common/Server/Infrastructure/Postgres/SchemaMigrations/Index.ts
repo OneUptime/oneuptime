@@ -464,6 +464,7 @@ import { AddMarketingConversionTable1784298000000 } from "./1784298000000-AddMar
 import { AddExceptionTriageAndPrivacyColumns1784640000000 } from "./1784640000000-AddExceptionTriageAndPrivacyColumns";
 import { AddInstanceVersionAndLatestReleaseColumns1784659816363 } from "./1784659816363-AddInstanceVersionAndLatestReleaseColumns";
 import { AddEnterpriseLicenseEvaluationColumns1784705487674 } from "./1784705487674-AddEnterpriseLicenseEvaluationColumns";
+import { AddNetworkSiteHierarchyAndEndpoints1784757142154 } from "./1784757142154-AddNetworkSiteHierarchyAndEndpoints";
 
 export default [
   InitialMigration,
@@ -932,4 +933,5 @@ export default [
   AddExceptionTriageAndPrivacyColumns1784640000000,
   AddInstanceVersionAndLatestReleaseColumns1784659816363,
   AddEnterpriseLicenseEvaluationColumns1784705487674,
+  AddNetworkSiteHierarchyAndEndpoints1784757142154,
 ];

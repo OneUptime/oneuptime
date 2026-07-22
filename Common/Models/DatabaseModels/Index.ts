@@ -13,6 +13,11 @@ import NetworkDeviceOwnerRule from "./NetworkDeviceOwnerRule";
 import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkInterface from "./NetworkInterface";
+import NetworkSite from "./NetworkSite";
+import NetworkEndpoint from "./NetworkEndpoint";
+import NetworkSiteStatusTimeline from "./NetworkSiteStatusTimeline";
+import NetworkSiteLink from "./NetworkSiteLink";
+import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
@@ -780,6 +785,11 @@ const AllModelTypes: Array<{
   NetworkDeviceLabelRule,
   NetworkDeviceDiscoveryScan,
   NetworkInterface,
+  NetworkSite,
+  NetworkEndpoint,
+  NetworkSiteStatusTimeline,
+  NetworkSiteLink,
+  NetworkSiteAssignmentRule,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,

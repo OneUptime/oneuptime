@@ -27,10 +27,16 @@ export interface HydratableMonitor {
 }
 
 export default class NetworkDeviceHydrationUtil {
-  // Accepts Monitor and MonitorTest alike (structural: monitorType + monitorSteps).
-  public static async hydrateNetworkDeviceMonitors(
+  /*
+   * Parses which NetworkDevice IDs a batch of Network Device monitors
+   * reference in their steps (step.data.networkDeviceMonitor.networkDeviceId).
+   * Non-NetworkDevice monitors are skipped. Shared by hydration below and by
+   * the site rollup engine, which stamps device status on monitor status
+   * changes - keep this the single copy of the step-parsing logic.
+   */
+  public static getReferencedNetworkDeviceIds(
     monitors: Array<HydratableMonitor>,
-  ): Promise<void> {
+  ): Array<string> {
     const deviceIds: Set<string> = new Set();
 
     for (const monitor of monitors) {
@@ -48,13 +54,23 @@ export default class NetworkDeviceHydrationUtil {
       }
     }
 
-    if (deviceIds.size === 0) {
+    return Array.from(deviceIds);
+  }
+
+  // Accepts Monitor and MonitorTest alike (structural: monitorType + monitorSteps).
+  public static async hydrateNetworkDeviceMonitors(
+    monitors: Array<HydratableMonitor>,
+  ): Promise<void> {
+    const deviceIds: Array<string> =
+      NetworkDeviceHydrationUtil.getReferencedNetworkDeviceIds(monitors);
+
+    if (deviceIds.length === 0) {
       return;
     }
 
     const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
       query: {
-        _id: QueryHelper.any(Array.from(deviceIds)),
+        _id: QueryHelper.any(deviceIds),
       },
       select: {
         _id: true,

@@ -23,6 +23,13 @@ export interface DiscoveredNetworkDevice {
   sysName?: string | undefined;
   sysDescr?: string | undefined;
   isAlreadyRegistered?: boolean | undefined;
+  /*
+   * False when the host answered ping but not SNMP — such hosts cannot be
+   * imported as SNMP-credentialed Network Devices; they surface as
+   * endpoints via ARP/FDB discovery instead. Undefined on scans stored
+   * before this field existed (those hosts all answered SNMP).
+   */
+  snmpReachable?: boolean | undefined;
 }
 
 @EnableDocumentation()

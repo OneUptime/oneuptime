@@ -25,6 +25,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
+import { isImportableDiscoveredHost } from "../../Components/NetworkDevice/DiscoveryImportEligibility";
 import React, {
   Fragment,
   FunctionComponent,
@@ -90,10 +91,18 @@ const NetworkDeviceDiscovery: FunctionComponent<
   ): void => {
     const entries: Array<DiscoveredDeviceEntry> = getDiscoveredDevices(scan);
 
-    // Preselect every device that is not already registered.
+    /*
+     * Preselect every device that is not already registered and actually
+     * answered SNMP — importing a ping-only host would create an
+     * SNMP-credentialed device that can never be polled.
+     */
     const initialSelection: Record<string, boolean> = {};
     for (const entry of entries) {
-      if (entry.ipAddress && !entry.isAlreadyRegistered) {
+      if (
+        entry.ipAddress &&
+        !entry.isAlreadyRegistered &&
+        isImportableDiscoveredHost(entry)
+      ) {
         initialSelection[entry.ipAddress] = true;
       }
     }
@@ -123,6 +132,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
             return (
               Boolean(entry.ipAddress) &&
               !entry.isAlreadyRegistered &&
+              isImportableDiscoveredHost(entry) &&
               Boolean(selectedIps[entry.ipAddress])
             );
           },
@@ -246,6 +256,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
       return (
         Boolean(entry.ipAddress) &&
         !entry.isAlreadyRegistered &&
+        isImportableDiscoveredHost(entry) &&
         Boolean(selectedIps[entry.ipAddress])
       );
     },
@@ -507,9 +518,9 @@ const NetworkDeviceDiscovery: FunctionComponent<
       {showReviewModal && scanToReview && (
         <Modal
           title="Review Discovered Devices"
-          description={`Devices that responded to SNMP in ${
+          description={`Hosts that responded in ${
             scanToReview.cidr || "the scanned subnet"
-          }. Select the ones you want to import as Network Devices.`}
+          }. Select the ones you want to import as Network Devices — hosts without SNMP cannot be imported.`}
           modalWidth={ModalWidth.Medium}
           isLoading={isImporting}
           error={importError || undefined}
@@ -531,6 +542,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
             )}
             {reviewEntries.map(
               (entry: DiscoveredDeviceEntry, index: number): ReactElement => {
+                /*
+                 * Ping-only hosts (snmpReachable === false) stay visible
+                 * but cannot be imported — importing creates an
+                 * SNMP-credentialed device, which is meaningless for an
+                 * SNMP-silent host. Legacy rows (snmpReachable undefined)
+                 * behave as before.
+                 */
+                const isImportable: boolean = isImportableDiscoveredHost(entry);
                 return (
                   <div
                     key={`${entry.ipAddress}-${index}`}
@@ -540,12 +559,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       <CheckboxElement
                         dataTestId={`discovered-device-checkbox-${entry.ipAddress}`}
                         value={
-                          entry.isAlreadyRegistered
+                          entry.isAlreadyRegistered || !isImportable
                             ? false
                             : Boolean(selectedIps[entry.ipAddress])
                         }
                         disabled={
-                          Boolean(entry.isAlreadyRegistered) || isImporting
+                          Boolean(entry.isAlreadyRegistered) ||
+                          !isImportable ||
+                          isImporting
                         }
                         onChange={(value: boolean) => {
                           setSelectedIps((current: Record<string, boolean>) => {
@@ -570,11 +591,21 @@ const NetworkDeviceDiscovery: FunctionComponent<
                         )}
                       </div>
                     </div>
-                    {entry.isAlreadyRegistered && (
-                      <span className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-                        Already added
-                      </span>
-                    )}
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      {!isImportable && (
+                        <span
+                          className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600"
+                          title="Responds to ping only — will appear as an endpoint via ARP/FDB discovery once its switch is monitored"
+                        >
+                          No SNMP
+                        </span>
+                      )}
+                      {entry.isAlreadyRegistered && (
+                        <span className="inline-flex flex-shrink-0 items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                          Already added
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               },

@@ -257,6 +257,27 @@ describe("SubnetScanner ICMP pre-sweep", () => {
     expect(result.respondedToPingCount).toBeUndefined();
   });
 
+  it("flags SNMP responders with snmpReachable: true", async () => {
+    mockSnmpAnsweringEverywhere();
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    expect(result.discoveredHosts).toEqual([
+      {
+        ipAddress: "10.0.0.0",
+        sysName: "device-10.0.0.0",
+        snmpReachable: true,
+      },
+      {
+        ipAddress: "10.0.0.1",
+        sysName: "device-10.0.0.1",
+        snmpReachable: true,
+      },
+    ]);
+  });
+
   it("does not report a partial ping count when the pre-sweep dies mid-scan", async () => {
     const probed: Array<string> = mockSnmpAnsweringEverywhere();
 
@@ -280,5 +301,108 @@ describe("SubnetScanner ICMP pre-sweep", () => {
      * unknown subset, so it must not be reported at all.
      */
     expect(result.respondedToPingCount).toBeUndefined();
+  });
+});
+
+/*
+ * Hosts that answer ICMP but not SNMP used to be silently discarded — an
+ * entire class of gear (printers, cameras, POS terminals, hosts with a
+ * wrong community string) invisible to discovery. They are now recorded
+ * with snmpReachable: false so the server can surface them as unmanaged
+ * endpoints.
+ */
+describe("SubnetScanner ping-only host recording", () => {
+  // A /31 sweeps exactly two hosts: 10.0.0.0 and 10.0.0.1.
+  const TINY_CIDR: string = "10.0.0.0/31";
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("records a ping-alive, SNMP-silent host with snmpReachable: false", async () => {
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+    jest.spyOn(SnmpMonitor, "probeSystemInfo").mockResolvedValue(null);
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    expect(result.discoveredHosts).toEqual([
+      { ipAddress: "10.0.0.0", snmpReachable: false },
+      { ipAddress: "10.0.0.1", snmpReachable: false },
+    ]);
+    // Counts are unchanged by the recording.
+    expect(result.scannedHostCount).toBe(2);
+    expect(result.respondedToPingCount).toBe(2);
+  });
+
+  it("mixes snmpReachable true/false correctly in one sweep", async () => {
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(async (config: MonitorStepSnmpMonitor) => {
+        if (config.hostname === "10.0.0.1") {
+          return { sysName: "sw1", sysDescr: "Cisco IOS" };
+        }
+        return null;
+      });
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    expect(result.discoveredHosts).toEqual([
+      { ipAddress: "10.0.0.0", snmpReachable: false },
+      {
+        ipAddress: "10.0.0.1",
+        sysName: "sw1",
+        sysDescr: "Cisco IOS",
+        snmpReachable: true,
+      },
+    ]);
+  });
+
+  it("still discards SNMP-silent hosts when the ping sweep never ran (aliveness unknown)", async () => {
+    jest
+      .spyOn(SubnetScanner, "isHostAliveByPing")
+      .mockRejectedValue(new Error("ICMP sockets require elevated privileges"));
+    jest.spyOn(SnmpMonitor, "probeSystemInfo").mockResolvedValue(null);
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    /*
+     * Without the pre-sweep there is no ICMP evidence the host exists, so
+     * "no SNMP answer" cannot be distinguished from "no host" — recording
+     * these would turn every dead address into a phantom endpoint.
+     */
+    expect(result.discoveredHosts).toEqual([]);
+  });
+
+  it("does not record ping-dead hosts at all", async () => {
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(false);
+    // eslint-disable-next-line @typescript-eslint/typedef
+    const probeSpy = jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockResolvedValue(null);
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    expect(result.discoveredHosts).toEqual([]);
+    expect(probeSpy).not.toHaveBeenCalled();
+  });
+
+  it("a throwing SNMP probe records the ping-alive host as SNMP-unreachable", async () => {
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockRejectedValue(new Error("unexpected decode failure"));
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    expect(result.discoveredHosts).toEqual([
+      { ipAddress: "10.0.0.0", snmpReachable: false },
+      { ipAddress: "10.0.0.1", snmpReachable: false },
+    ]);
   });
 });

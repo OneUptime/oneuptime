@@ -1,6 +1,7 @@
 import { PROBE_INGEST_URL } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import SubnetScanner, {
+  DiscoveredHost,
   SubnetScanResult,
 } from "../../Utils/Discovery/SubnetScanner";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -153,6 +154,17 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
     });
 
     /*
+     * discoveredHosts now includes ping-only hosts (snmpReachable false),
+     * so the "answered SNMP" count must filter — the whole-array length
+     * would overstate manageable devices.
+     */
+    const snmpResponderCount: number = scanResult.discoveredHosts.filter(
+      (host: DiscoveredHost) => {
+        return host.snmpReachable;
+      },
+    ).length;
+
+    /*
      * The scan model has no column for the ICMP pre-sweep count, so it rides
      * along in statusMessage (which the ingest endpoint already accepts)
      * instead of a payload field the server would silently drop.
@@ -161,10 +173,10 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
       scanResult.respondedToPingCount !== undefined
         ? `Swept ${scanResult.scannedHostCount} hosts: ` +
           `${scanResult.respondedToPingCount} answered ICMP ping, ` +
-          `${scanResult.discoveredHosts.length} answered SNMP.`
+          `${snmpResponderCount} answered SNMP.`
         : `Swept ${scanResult.scannedHostCount} hosts via SNMP ` +
           `(ICMP pre-sweep unavailable on this probe): ` +
-          `${scanResult.discoveredHosts.length} answered SNMP.`;
+          `${snmpResponderCount} answered SNMP.`;
 
     await API.fetch<JSONArray>({
       method: HTTPMethod.POST,
@@ -182,7 +194,7 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
     });
 
     logger.debug(
-      `Discovery scan ${scan.id?.toString()} found ${scanResult.discoveredHosts.length} SNMP hosts`,
+      `Discovery scan ${scan.id?.toString()} found ${snmpResponderCount} SNMP hosts (${scanResult.discoveredHosts.length} alive in total)`,
     );
   } catch (err) {
     logger.error(`Discovery scan ${scan.id?.toString()} failed: ${err}`);

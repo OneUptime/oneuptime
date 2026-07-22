@@ -9,6 +9,13 @@ export interface DiscoveredHost {
   ipAddress: string;
   sysName?: string | undefined;
   sysDescr?: string | undefined;
+  /*
+   * True when the host answered SNMP (sysName/sysDescr then come from its
+   * system group). False for hosts that answered the ICMP pre-sweep but not
+   * SNMP — recorded rather than discarded so unmanaged gear (printers,
+   * cameras, POS terminals) still surfaces in discovery results.
+   */
+  snmpReachable: boolean;
 }
 
 export interface SubnetScanConfig {
@@ -20,6 +27,11 @@ export interface SubnetScanConfig {
 }
 
 export interface SubnetScanResult {
+  /*
+   * Every host the sweep found alive: SNMP responders (snmpReachable true)
+   * and, when the ICMP pre-sweep ran, ping-only hosts (snmpReachable
+   * false). Callers reporting "answered SNMP" counts must filter.
+   */
   discoveredHosts: Array<DiscoveredHost>;
   scannedHostCount: number;
   /*
@@ -91,9 +103,13 @@ export default class SubnetScanner {
       while (cursor < hosts.length) {
         const host: string = hosts[cursor++]!;
 
-        if (isPingSweepAvailable) {
-          let isAliveByPing: boolean = false;
+        /*
+         * Per-host, so a host confirmed alive by ICMP stays known-alive
+         * even if the pre-sweep breaks for a later host on this worker.
+         */
+        let isAliveByPing: boolean = false;
 
+        if (isPingSweepAvailable) {
           try {
             isAliveByPing = await SubnetScanner.isHostAliveByPing(host);
           } catch (pingErr) {
@@ -137,21 +153,34 @@ export default class SubnetScanner {
           retries: 0,
         };
 
-        try {
-          const systemInfo: {
-            sysDescr?: string | undefined;
-            sysName?: string | undefined;
-          } | null = await SnmpMonitor.probeSystemInfo(snmpConfig);
+        let systemInfo: {
+          sysDescr?: string | undefined;
+          sysName?: string | undefined;
+        } | null = null;
 
-          if (systemInfo) {
-            discoveredHosts.push({
-              ipAddress: host,
-              sysName: systemInfo.sysName,
-              sysDescr: systemInfo.sysDescr,
-            });
-          }
+        try {
+          systemInfo = await SnmpMonitor.probeSystemInfo(snmpConfig);
         } catch (err) {
           logger.debug("Discovery probe error for " + host + ": " + err);
+        }
+
+        if (systemInfo) {
+          discoveredHosts.push({
+            ipAddress: host,
+            sysName: systemInfo.sysName,
+            sysDescr: systemInfo.sysDescr,
+            snmpReachable: true,
+          });
+        } else if (isAliveByPing) {
+          /*
+           * Answered ICMP but not SNMP: a real host without (readable)
+           * SNMP. Record it instead of discarding it — the scan's job is
+           * to surface what is on the subnet, not only what is manageable.
+           */
+          discoveredHosts.push({
+            ipAddress: host,
+            snmpReachable: false,
+          });
         }
       }
     };

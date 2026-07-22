@@ -21,12 +21,34 @@ import SnmpPrivProtocol, {
 import SnmpInterface from "Common/Types/Monitor/SnmpMonitor/SnmpInterface";
 import LldpNeighbor from "Common/Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
+import ArpEntry from "Common/Types/Monitor/SnmpMonitor/ArpEntry";
+import FdbEntry from "Common/Types/Monitor/SnmpMonitor/FdbEntry";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpEntityInfo from "Common/Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 // Repairs net-snmp's DES privacy on OpenSSL 3 — must load with net-snmp.
 import "../../Snmp/SnmpDesPrivacyCompat";
+import {
+  SnmpTableRows,
+  IP_NET_TO_MEDIA_TABLE_OID,
+  IP_NET_TO_MEDIA_COLUMNS,
+  DOT1Q_TP_FDB_TABLE_OID,
+  DOT1Q_TP_FDB_COLUMNS,
+  DOT1D_TP_FDB_TABLE_OID,
+  DOT1D_TP_FDB_COLUMNS,
+  DOT1D_BASE_PORT_TABLE_OID,
+  DOT1D_BASE_PORT_COLUMNS,
+  MAX_ARP_ENTRIES,
+  MAX_FDB_ENTRIES,
+  MAX_BASE_PORT_ENTRIES,
+  parseArpRows,
+  parseFdbRowsQBridge,
+  parseFdbRowsDot1d,
+  parseBasePortMap,
+  applyBasePortMapping,
+  toMacAddressString,
+} from "../../Snmp/EndpointTableParsers";
 import snmp from "net-snmp";
 
 /*
@@ -160,7 +182,21 @@ const ENT_PHYSICAL_COLUMNS: {
 
 const ENT_PHYSICAL_CLASS_CHASSIS: number = 3;
 
-type SnmpTableRows = Record<string, Record<string, unknown>>;
+/*
+ * GETBULK max-repetitions for the row-bounded endpoint walks; matches
+ * net-snmp's own default so the on-wire behavior is unchanged and only the
+ * stopping rule differs.
+ */
+const SNMP_TABLE_MAX_REPETITIONS: number = 20;
+
+/*
+ * Wall-clock budget for the WHOLE endpoint phase (ARP + both FDB tables +
+ * the base-port map) of a single poll. The row caps bound how many PDUs a
+ * walk issues, but not how slow each one is; without a deadline a device
+ * that answers just inside the per-PDU timeout can still hold the session
+ * open for far longer than the check interval.
+ */
+const ENDPOINT_WALK_BUDGET_MS: number = 30000;
 
 export interface SnmpWalkResult {
   interfaces: Array<SnmpInterface>;
@@ -168,6 +204,8 @@ export interface SnmpWalkResult {
   entityInfo?: SnmpEntityInfo | undefined;
   lldpNeighbors?: Array<LldpNeighbor> | undefined;
   cdpNeighbors?: Array<CdpNeighbor> | undefined;
+  arpEntries?: Array<ArpEntry> | undefined;
+  fdbEntries?: Array<FdbEntry> | undefined;
 }
 
 export interface SnmpQueryOptions {
@@ -177,6 +215,14 @@ export interface SnmpQueryOptions {
   monitorId?: ObjectID | undefined;
   isOnlineCheckRequest?: boolean | undefined;
   attempts?: Array<ProbeAttempt> | undefined;
+  /*
+   * ARP + FDB endpoint collection during the interface walk. Defaults OFF
+   * (only an explicit true collects) to mirror the monitor step's
+   * strictly-opt-in collectEndpoints flag; only meaningful when
+   * monitorInterfaces is on, exactly like the LLDP/CDP walks it rides
+   * alongside.
+   */
+  collectEndpoints?: boolean | undefined;
 }
 
 export default class SnmpMonitor {
@@ -222,6 +268,8 @@ export default class SnmpMonitor {
       let entityInfo: SnmpEntityInfo | undefined = undefined;
       let lldpNeighbors: Array<LldpNeighbor> | undefined = undefined;
       let cdpNeighbors: Array<CdpNeighbor> | undefined = undefined;
+      let arpEntries: Array<ArpEntry> | undefined = undefined;
+      let fdbEntries: Array<FdbEntry> | undefined = undefined;
       let interfaceWalkFailure: string | undefined = undefined;
 
       if (shouldWalkInterfaces) {
@@ -235,6 +283,8 @@ export default class SnmpMonitor {
           entityInfo = walkResult.entityInfo;
           lldpNeighbors = walkResult.lldpNeighbors;
           cdpNeighbors = walkResult.cdpNeighbors;
+          arpEntries = walkResult.arpEntries;
+          fdbEntries = walkResult.fdbEntries;
         } catch (err: unknown) {
           if (config.oids.length === 0) {
             // The walk was the only check — treat as device unreachable.
@@ -284,6 +334,8 @@ export default class SnmpMonitor {
         entityInfo: entityInfo,
         lldpNeighbors: lldpNeighbors,
         cdpNeighbors: cdpNeighbors,
+        arpEntries: arpEntries,
+        fdbEntries: fdbEntries,
       };
     } catch (err: unknown) {
       logger.debug(
@@ -642,16 +694,152 @@ export default class SnmpMonitor {
         }
       }
 
+      /*
+       * Best-effort ARP + FDB endpoint collection, gated on the step's
+       * collectEndpoints flag. STRICTLY OPT-IN: only an explicit true turns
+       * it on, so no existing monitor starts walking extra tables (and
+       * writing an endpoint row per MAC per poll) just because it was
+       * upgraded. Each walk fails independently — a router with no bridge
+       * tables still ships its ARP cache, and vice versa — matching
+       * ifXTable's best-effort pattern: a failure leaves the field
+       * undefined so the server keeps its stored snapshot.
+       */
+      let arpEntries: Array<ArpEntry> | undefined = undefined;
+      let fdbEntries: Array<FdbEntry> | undefined = undefined;
+
+      if (options.collectEndpoints === true) {
+        // One budget for the whole endpoint phase, not one per table.
+        const endpointDeadlineAt: number = Date.now() + ENDPOINT_WALK_BUDGET_MS;
+
+        try {
+          arpEntries = await SnmpMonitor.walkArpTable(
+            session,
+            endpointDeadlineAt,
+          );
+        } catch (err) {
+          logger.debug(
+            `SNMP ARP walk failed for ${config.hostname} (device may not expose ipNetToMediaTable): ${err}`,
+          );
+        }
+
+        try {
+          fdbEntries = await SnmpMonitor.walkFdb(session, endpointDeadlineAt);
+        } catch (err) {
+          logger.debug(
+            `SNMP FDB walk failed for ${config.hostname} (device may not be a bridge): ${err}`,
+          );
+        }
+      }
+
       return {
         interfaces,
         systemInfo,
         entityInfo,
         lldpNeighbors,
         cdpNeighbors,
+        arpEntries,
+        fdbEntries,
       };
     } finally {
       session.close();
     }
+  }
+
+  /*
+   * Walks IP-MIB ipNetToMediaTable — the device's ARP cache. Returns an
+   * EMPTY array (not undefined) when the walk succeeds but the cache has no
+   * rows, for the same stale-snapshot reason as walkCdpNeighbors.
+   */
+  private static async walkArpTable(
+    session: snmp.Session,
+    deadlineAt: number = Date.now() + ENDPOINT_WALK_BUDGET_MS,
+  ): Promise<Array<ArpEntry>> {
+    const table: SnmpTableRows = await SnmpMonitor.getBoundedTableColumns(
+      session,
+      IP_NET_TO_MEDIA_TABLE_OID,
+      Object.values(IP_NET_TO_MEDIA_COLUMNS),
+      MAX_ARP_ENTRIES,
+      deadlineAt,
+    );
+
+    return parseArpRows(table);
+  }
+
+  /*
+   * Walks the bridge forwarding database: Q-BRIDGE-MIB dot1qTpFdbTable
+   * first (per-VLAN, so it carries vlanIds), falling back to BRIDGE-MIB
+   * dot1dTpFdbTable when the Q-BRIDGE walk yields nothing. Bridge ports are
+   * then translated to ifIndexes via dot1dBasePortTable — a DIFFERENT
+   * number space, so entries without a mapping row keep interfaceIndex
+   * undefined. Throws only when NEITHER FDB table is walkable; an empty
+   * result from a successful walk is returned as [] (stale-snapshot rule).
+   */
+  private static async walkFdb(
+    session: snmp.Session,
+    deadlineAt: number = Date.now() + ENDPOINT_WALK_BUDGET_MS,
+  ): Promise<Array<FdbEntry>> {
+    let entries: Array<FdbEntry> = [];
+    let qBridgeError: unknown = undefined;
+
+    try {
+      const qBridgeTable: SnmpTableRows =
+        await SnmpMonitor.getBoundedTableColumns(
+          session,
+          DOT1Q_TP_FDB_TABLE_OID,
+          Object.values(DOT1Q_TP_FDB_COLUMNS),
+          MAX_FDB_ENTRIES,
+          deadlineAt,
+        );
+      entries = parseFdbRowsQBridge(qBridgeTable);
+    } catch (err) {
+      qBridgeError = err;
+    }
+
+    if (entries.length === 0) {
+      try {
+        const dot1dTable: SnmpTableRows =
+          await SnmpMonitor.getBoundedTableColumns(
+            session,
+            DOT1D_TP_FDB_TABLE_OID,
+            Object.values(DOT1D_TP_FDB_COLUMNS),
+            MAX_FDB_ENTRIES,
+            deadlineAt,
+          );
+        entries = parseFdbRowsDot1d(dot1dTable);
+      } catch (err) {
+        if (qBridgeError !== undefined) {
+          // Neither table walkable — the device has no readable FDB.
+          throw err;
+        }
+        // Q-BRIDGE answered (empty); treat the FDB as genuinely empty.
+        logger.debug(
+          `SNMP dot1dTpFdbTable walk failed after an empty Q-BRIDGE result: ${err}`,
+        );
+      }
+    }
+
+    if (entries.length === 0) {
+      return entries;
+    }
+
+    // Best-effort bridgePort -> ifIndex translation.
+    try {
+      const basePortTable: SnmpTableRows =
+        await SnmpMonitor.getBoundedTableColumns(
+          session,
+          DOT1D_BASE_PORT_TABLE_OID,
+          Object.values(DOT1D_BASE_PORT_COLUMNS),
+          MAX_BASE_PORT_ENTRIES,
+          deadlineAt,
+        );
+      entries = applyBasePortMapping(entries, parseBasePortMap(basePortTable));
+    } catch (err) {
+      logger.debug(
+        `SNMP dot1dBasePortTable walk failed (FDB bridge ports left untranslated): ${err}`,
+      );
+    }
+
+    return entries;
   }
 
   /*
@@ -865,6 +1053,149 @@ export default class SnmpMonitor {
   }
 
   /*
+   * Row-bounded alternative to getTableColumns, used for the endpoint
+   * tables. net-snmp's session.tableColumns buffers the ENTIRE subtree
+   * before it calls back and exposes no way to stop early — fine for
+   * ifTable/ifXTable/LLDP/CDP/entPhysicalTable, which are bounded by port
+   * and neighbor count, but not for ARP caches and forwarding databases,
+   * which are bounded by adjacent-host and learned-MAC count and routinely
+   * run to five figures on aggregation gear (or on any switch someone
+   * MAC-floods). Capping the parsed output cannot help: by then the probe
+   * has already buffered every row and spent thousands of sequential
+   * GETBULKs fetching them.
+   *
+   * So drive session.subtree per column instead, whose feed callback can
+   * return true to abort the walk, and stop at maxRows rows per column. The
+   * caller passes the TABLE oid; the ".1." Entry subid is appended here and
+   * the OID -> row/column split mirrors net-snmp's own tableColumnsFeedCb,
+   * so the produced SnmpTableRows is identical in shape to what
+   * tableColumns would have returned.
+   *
+   * Exceeding deadlineAt rejects rather than returning a partial table: a
+   * truncated-by-cap walk is intentional, but a truncated-by-slowness walk
+   * is degraded data, and the callers' best-effort catch turns a rejection
+   * into "keep the stored snapshot" instead of half-clearing it.
+   */
+  private static async getBoundedTableColumns(
+    session: snmp.Session,
+    tableOid: string,
+    columns: Array<number>,
+    maxRows: number,
+    deadlineAt: number,
+  ): Promise<SnmpTableRows> {
+    const rowOid: string = `${tableOid}.1.`;
+    const table: SnmpTableRows = {};
+
+    for (const column of columns) {
+      await SnmpMonitor.walkTableColumn(
+        session,
+        rowOid,
+        column,
+        maxRows,
+        deadlineAt,
+        table,
+      );
+    }
+
+    return table;
+  }
+
+  // Walks one column of a table into `table`, stopping at maxRows rows.
+  private static walkTableColumn(
+    session: snmp.Session,
+    rowOid: string,
+    column: number,
+    maxRows: number,
+    deadlineAt: number,
+    table: SnmpTableRows,
+  ): Promise<void> {
+    return new Promise(
+      (resolve: () => void, reject: (reason?: Error) => void) => {
+        if (Date.now() > deadlineAt) {
+          reject(
+            new Error(
+              "SNMP endpoint walk exceeded its time budget before the table was read",
+            ),
+          );
+          return;
+        }
+
+        let rowsForColumn: number = 0;
+        let failure: Error | undefined = undefined;
+
+        const feedCb: (varbinds: Array<snmp.Varbind>) => boolean = (
+          varbinds: Array<snmp.Varbind>,
+        ): boolean => {
+          if (Date.now() > deadlineAt) {
+            failure = new Error(
+              "SNMP endpoint walk exceeded its time budget before the table was read",
+            );
+            return true;
+          }
+
+          for (const varbind of varbinds) {
+            if (snmp.isVarbindError(varbind)) {
+              failure = new Error(snmp.varbindError(varbind));
+              return true;
+            }
+
+            /*
+             * Residue of "<rowOid><column>.<rowIndex>" is
+             * "<column>.<rowIndex>"; the row index may itself be composite.
+             */
+            const residue: string = varbind.oid.replace(rowOid, "");
+            if (!residue || residue === varbind.oid) {
+              continue;
+            }
+
+            const match: RegExpMatchArray | null =
+              residue.match(/^(\d+)\.(.+)$/);
+            if (!match || !match[1] || !match[2]) {
+              continue;
+            }
+
+            const columnKey: string = match[1];
+            const rowKey: string = match[2];
+            if (parseInt(columnKey, 10) <= 0) {
+              continue;
+            }
+
+            if (!table[rowKey]) {
+              table[rowKey] = {};
+            }
+            table[rowKey]![columnKey] = varbind.value;
+
+            rowsForColumn++;
+            if (rowsForColumn >= maxRows) {
+              // Cap reached mid-walk: stop asking the device for more rows.
+              return true;
+            }
+          }
+
+          return false;
+        };
+
+        (session as any).subtree(
+          `${rowOid}${column}`,
+          SNMP_TABLE_MAX_REPETITIONS,
+          feedCb,
+          (error: Error | null) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            if (failure) {
+              reject(failure);
+              return;
+            }
+            resolve();
+          },
+        );
+      },
+    );
+  }
+
+  /*
    * net-snmp returns Counter64 values as 8-byte big-endian Buffers (there is
    * no native 64-bit varbind decoding); smaller integer types come through
    * as plain numbers.
@@ -927,25 +1258,12 @@ export default class SnmpMonitor {
 
   /*
    * ifPhysAddress arrives as a raw octet buffer. Loopbacks/tunnels report an
-   * empty or all-zero address — treat those as "no MAC".
+   * empty or all-zero address — treat those as "no MAC". Shared with the
+   * endpoint-table parsers so ARP/FDB MACs format identically and join
+   * cleanly server-side.
    */
   private static toMacAddress(value: unknown): string | undefined {
-    if (!Buffer.isBuffer(value) || value.length === 0) {
-      return undefined;
-    }
-
-    const isAllZero: boolean = value.every((byte: number) => {
-      return byte === 0;
-    });
-    if (isAllZero) {
-      return undefined;
-    }
-
-    return Array.from(value)
-      .map((byte: number) => {
-        return byte.toString(16).padStart(2, "0");
-      })
-      .join(":");
+    return toMacAddressString(value);
   }
 
   private static isPrintableBuffer(value: Buffer): boolean {

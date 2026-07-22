@@ -697,6 +697,15 @@ export default class MonitorUtil {
           retry: PROBE_MONITOR_RETRY_LIMIT,
           monitorId: monitorId,
           timeout: snmpConfig.timeout || 5000,
+          /*
+           * ARP/FDB endpoint collection rides the interface walk. Strictly
+           * OPT-IN: it adds SNMP table walks per poll and an endpoint write
+           * per discovered MAC, so a step that never asked for it — every
+           * step saved before the flag existed included — must not start
+           * paying for it on upgrade. Only an explicit true enables it.
+           */
+          collectEndpoints:
+            monitorStep.data?.networkDeviceMonitor?.collectEndpoints === true,
         },
       );
 

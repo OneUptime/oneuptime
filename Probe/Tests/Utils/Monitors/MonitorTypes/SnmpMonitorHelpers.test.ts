@@ -2,10 +2,14 @@
 process.env["ONEUPTIME_URL"] = "https://oneuptime.com";
 process.env["PROBE_KEY"] = "test-probe-key";
 
-import { describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import SnmpEntityInfo from "Common/Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
+import ArpEntry from "Common/Types/Monitor/SnmpMonitor/ArpEntry";
+import FdbEntry from "Common/Types/Monitor/SnmpMonitor/FdbEntry";
+import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
+import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 
 /*
  * Same seam as SnmpMonitorV3Session.test.ts: net-snmp keeps its real
@@ -30,7 +34,9 @@ jest.mock("net-snmp", () => {
 });
 
 import snmp from "net-snmp";
-import SnmpMonitor from "../../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
+import SnmpMonitor, {
+  SnmpWalkResult,
+} from "../../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 
 /*
  * The helpers under test are private statics; this cast seam exposes them
@@ -50,6 +56,11 @@ type SnmpMonitorHelpers = {
   walkEntityInfo: (session: unknown) => Promise<SnmpEntityInfo | undefined>;
   walkCdpNeighbors: (session: unknown) => Promise<Array<CdpNeighbor>>;
   readSystemInfo: (session: unknown) => Promise<SnmpSystemInfo>;
+  walkArpTable: (
+    session: unknown,
+    deadlineAt?: number,
+  ) => Promise<Array<ArpEntry>>;
+  walkFdb: (session: unknown, deadlineAt?: number) => Promise<Array<FdbEntry>>;
 };
 
 const Internal: SnmpMonitorHelpers = SnmpMonitor as any as SnmpMonitorHelpers;
@@ -788,5 +799,582 @@ describe("SnmpMonitor.readSystemInfo", () => {
     await expect(Internal.readSystemInfo(session)).rejects.toThrow(
       "Request timed out",
     );
+  });
+});
+
+/*
+ * Endpoint-discovery TABLE OIDs, as walked by walkArpTable/walkFdb. These
+ * are the table OIDs, NOT the Entry OIDs: the walker appends the ".1."
+ * Entry subid itself, exactly as net-snmp's session.tableColumns does, so a
+ * constant that already carries the Entry subid walks one level too deep,
+ * resolves cleanly to zero rows, and discovers nothing forever without
+ * logging a thing.
+ *
+ * The fixtures below are therefore keyed by RAW instance OID as an agent
+ * would actually return them, and the session stand-in only answers
+ * varbinds that genuinely live under the subtree the walker asked for —
+ * so an off-by-one-subid constant produces an empty result here too. The
+ * parsing rules themselves are covered exhaustively in
+ * Tests/Utils/Snmp/EndpointTableParsers.test.ts; these tests pin the OID
+ * arithmetic, the walk orchestration (which tables are read, the
+ * Q-BRIDGE -> dot1d fallback, best-effort base-port translation), and the
+ * row/time bounds enforced DURING the walk.
+ */
+const ARP_TABLE_OID: string = "1.3.6.1.2.1.4.22";
+const Q_BRIDGE_FDB_OID: string = "1.3.6.1.2.1.17.7.1.2.2";
+const DOT1D_FDB_OID: string = "1.3.6.1.2.1.17.4.3";
+const BASE_PORT_OID: string = "1.3.6.1.2.1.17.1.4";
+
+const ENDPOINT_TABLE_OIDS: Array<string> = [
+  ARP_TABLE_OID,
+  Q_BRIDGE_FDB_OID,
+  DOT1D_FDB_OID,
+  BASE_PORT_OID,
+];
+
+// Row caps the walker enforces mid-walk; mirrored from the parsers module.
+const MAX_ARP_ENTRIES: number = 2048;
+
+const ENDPOINT_MAC_BUFFER: Buffer = Buffer.from([
+  0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+]);
+
+// GETBULK batch size the walker asks subtree for.
+const EXPECTED_MAX_REPETITIONS: number = 20;
+
+type MockVarbind = {
+  oid: string;
+  value: unknown;
+};
+
+// Canned varbinds (or a walk error) per endpoint TABLE oid.
+type EndpointFixtures = Record<string, Array<MockVarbind> | Error>;
+
+type MockSubtreeSession = {
+  // Exact OIDs handed to session.subtree, in request order.
+  subtreeOids: Array<string>;
+  // How many varbinds the "device" actually shipped, across all columns.
+  deliveredVarbinds: number;
+  maxRepetitions: Array<number>;
+  subtree: (
+    oid: string,
+    maxRepetitions: number,
+    feedCb: (varbinds: Array<MockVarbind>) => boolean,
+    doneCb: (error: Error | null) => void,
+  ) => void;
+};
+
+/*
+ * Stand-in for a net-snmp session's subtree walk. It resolves the fixture
+ * whose "<table>.1." entry prefix contains the requested OID, ships only
+ * the varbinds genuinely under that OID, and feeds them in maxRepetitions
+ * batches — stopping as soon as the walker's feed callback returns true,
+ * which is how a real GETBULK walk is aborted mid-flight.
+ */
+function createSubtreeSession(fixtures: EndpointFixtures): MockSubtreeSession {
+  const session: MockSubtreeSession = {
+    subtreeOids: [],
+    deliveredVarbinds: 0,
+    maxRepetitions: [],
+    subtree: (
+      oid: string,
+      maxRepetitions: number,
+      feedCb: (varbinds: Array<MockVarbind>) => boolean,
+      doneCb: (error: Error | null) => void,
+    ): void => {
+      session.subtreeOids.push(oid);
+      session.maxRepetitions.push(maxRepetitions);
+
+      let fixture: Array<MockVarbind> | Error | undefined = undefined;
+      for (const tableOid of Object.keys(fixtures)) {
+        if (oid.startsWith(`${tableOid}.1.`)) {
+          fixture = fixtures[tableOid];
+          break;
+        }
+      }
+
+      if (fixture instanceof Error) {
+        doneCb(fixture);
+        return;
+      }
+
+      const inSubtree: Array<MockVarbind> = (fixture || []).filter(
+        (varbind: MockVarbind) => {
+          return varbind.oid.startsWith(`${oid}.`);
+        },
+      );
+
+      for (let i: number = 0; i < inSubtree.length; i += maxRepetitions) {
+        const batch: Array<MockVarbind> = inSubtree.slice(
+          i,
+          i + maxRepetitions,
+        );
+        session.deliveredVarbinds += batch.length;
+        if (feedCb(batch)) {
+          // Walker aborted: row cap or time budget reached.
+          break;
+        }
+      }
+
+      doneCb(null);
+    },
+  };
+
+  return session;
+}
+
+// The distinct endpoint tables a session was asked for, in request order.
+function walkedTables(session: MockSubtreeSession): Array<string> {
+  const tables: Array<string> = [];
+
+  for (const oid of session.subtreeOids) {
+    for (const tableOid of ENDPOINT_TABLE_OIDS) {
+      if (oid.startsWith(`${tableOid}.1.`) && !tables.includes(tableOid)) {
+        tables.push(tableOid);
+      }
+    }
+  }
+
+  return tables;
+}
+
+/*
+ * One real ipNetToMediaTable row: ifIndex 2, 10.0.0.5 ->
+ * aa:bb:cc:dd:ee:ff, dynamic(3). Row index is "<ifIndex>.<a.b.c.d>", so
+ * every instance OID is "<table>.1.<column>.2.10.0.0.5".
+ */
+const ARP_VARBINDS: Array<MockVarbind> = [
+  { oid: "1.3.6.1.2.1.4.22.1.1.2.10.0.0.5", value: 2 },
+  { oid: "1.3.6.1.2.1.4.22.1.2.2.10.0.0.5", value: ENDPOINT_MAC_BUFFER },
+  { oid: "1.3.6.1.2.1.4.22.1.3.2.10.0.0.5", value: "10.0.0.5" },
+  { oid: "1.3.6.1.2.1.4.22.1.4.2.10.0.0.5", value: 3 },
+];
+
+/*
+ * One dot1qTpFdbTable row: fdbId(vlan) 100, MAC aa:bb:cc:dd:ee:ff learned
+ * on bridge port 5. Row index is "<fdbId>.<six MAC octets in decimal>".
+ */
+const Q_BRIDGE_VARBINDS: Array<MockVarbind> = [
+  {
+    oid: "1.3.6.1.2.1.17.7.1.2.2.1.2.100.170.187.204.221.238.255",
+    value: 5,
+  },
+  {
+    oid: "1.3.6.1.2.1.17.7.1.2.2.1.3.100.170.187.204.221.238.255",
+    value: 3,
+  },
+];
+
+// The same MAC in dot1dTpFdbTable, on bridge port 7. Index is the MAC.
+const DOT1D_VARBINDS: Array<MockVarbind> = [
+  {
+    oid: "1.3.6.1.2.1.17.4.3.1.1.170.187.204.221.238.255",
+    value: ENDPOINT_MAC_BUFFER,
+  },
+  { oid: "1.3.6.1.2.1.17.4.3.1.2.170.187.204.221.238.255", value: 7 },
+  { oid: "1.3.6.1.2.1.17.4.3.1.3.170.187.204.221.238.255", value: 3 },
+];
+
+// dot1dBasePortTable: bridge port 5 -> ifIndex 10105, 7 -> 10107.
+const BASE_PORT_VARBINDS: Array<MockVarbind> = [
+  { oid: "1.3.6.1.2.1.17.1.4.1.2.5", value: 10105 },
+  { oid: "1.3.6.1.2.1.17.1.4.1.2.7", value: 10107 },
+];
+
+/*
+ * Builds `count` distinct ARP rows so the mid-walk row cap can be
+ * exercised: row i is ifIndex 2, IP 10.0.<i/250>.<(i%250)+1>, MAC
+ * 02:00:00:<i as three octets>, dynamic(3).
+ */
+function buildLargeArpVarbinds(count: number): Array<MockVarbind> {
+  const varbinds: Array<MockVarbind> = [];
+
+  for (let i: number = 0; i < count; i++) {
+    const ip: string = `10.0.${Math.floor(i / 250)}.${(i % 250) + 1}`;
+    const index: string = `2.${ip}`;
+    const mac: Buffer = Buffer.from([
+      0x02,
+      0x00,
+      0x00,
+      (i >> 16) & 0xff,
+      (i >> 8) & 0xff,
+      i & 0xff,
+    ]);
+
+    varbinds.push({ oid: `1.3.6.1.2.1.4.22.1.1.${index}`, value: 2 });
+    varbinds.push({ oid: `1.3.6.1.2.1.4.22.1.2.${index}`, value: mac });
+    varbinds.push({ oid: `1.3.6.1.2.1.4.22.1.3.${index}`, value: ip });
+    varbinds.push({ oid: `1.3.6.1.2.1.4.22.1.4.${index}`, value: 3 });
+  }
+
+  return varbinds;
+}
+
+describe("SnmpMonitor.walkArpTable", () => {
+  test("walks the ipNetToMediaTable columns as raw entry subtrees", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({});
+
+    await Internal.walkArpTable(session);
+
+    /*
+     * The exact wire OIDs: "<table>.1.<column>". If the table constant
+     * carried the Entry subid these would each gain a spurious ".1",
+     * landing under ipNetToMediaIfIndex instead of on the real columns.
+     */
+    expect(session.subtreeOids).toEqual([
+      "1.3.6.1.2.1.4.22.1.1",
+      "1.3.6.1.2.1.4.22.1.2",
+      "1.3.6.1.2.1.4.22.1.3",
+      "1.3.6.1.2.1.4.22.1.4",
+    ]);
+    expect(session.maxRepetitions).toEqual([
+      EXPECTED_MAX_REPETITIONS,
+      EXPECTED_MAX_REPETITIONS,
+      EXPECTED_MAX_REPETITIONS,
+      EXPECTED_MAX_REPETITIONS,
+    ]);
+  });
+
+  test("merges raw varbinds into ArpEntry values", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [ARP_TABLE_OID]: ARP_VARBINDS,
+    });
+
+    const entries: Array<ArpEntry> = await Internal.walkArpTable(session);
+
+    expect(entries).toEqual([
+      {
+        ipAddress: "10.0.0.5",
+        macAddress: "aa:bb:cc:dd:ee:ff",
+        interfaceIndex: 2,
+        entryType: "dynamic",
+      },
+    ]);
+  });
+
+  test("an empty ARP cache produces an empty array so stale entries are cleared", async () => {
+    expect(await Internal.walkArpTable(createSubtreeSession({}))).toEqual([]);
+  });
+
+  test("a table walk error propagates to the caller", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [ARP_TABLE_OID]: new Error("RequestTimedOutError"),
+    });
+
+    await expect(Internal.walkArpTable(session)).rejects.toThrow(
+      "RequestTimedOutError",
+    );
+  });
+
+  test("the row cap stops the walk mid-flight instead of buffering the whole cache", async () => {
+    // 5000 rows x 4 columns = 20000 varbinds available from the "device".
+    const session: MockSubtreeSession = createSubtreeSession({
+      [ARP_TABLE_OID]: buildLargeArpVarbinds(5000),
+    });
+
+    const entries: Array<ArpEntry> = await Internal.walkArpTable(session);
+
+    expect(entries).toHaveLength(MAX_ARP_ENTRIES);
+    expect(entries[0]).toEqual({
+      ipAddress: "10.0.0.1",
+      macAddress: "02:00:00:00:00:00",
+      interfaceIndex: 2,
+      entryType: "dynamic",
+    });
+    // Row 2047 is the last one kept: 2047 = 0x7ff, 2047 % 250 = 47.
+    expect(entries[MAX_ARP_ENTRIES - 1]).toEqual({
+      ipAddress: "10.0.8.48",
+      macAddress: "02:00:00:00:07:ff",
+      interfaceIndex: 2,
+      entryType: "dynamic",
+    });
+
+    /*
+     * The bound is enforced DURING the walk, not after it: each of the 4
+     * columns aborts in the GETBULK batch that crosses 2048 rows, i.e.
+     * after 2060 varbinds (103 batches of 20), for 8240 in total — not the
+     * 20000 the device was willing to ship.
+     */
+    expect(session.deliveredVarbinds).toBe(8240);
+  });
+
+  test("an already-exhausted time budget rejects before a single PDU is sent", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [ARP_TABLE_OID]: ARP_VARBINDS,
+    });
+
+    await expect(
+      Internal.walkArpTable(session, Date.now() - 1),
+    ).rejects.toThrow("exceeded its time budget");
+
+    /*
+     * Rejecting (rather than returning a partial table) is what makes the
+     * caller keep its stored snapshot instead of half-clearing it.
+     */
+    expect(session.subtreeOids).toEqual([]);
+  });
+});
+
+describe("SnmpMonitor.walkFdb", () => {
+  test("Q-BRIDGE rows win: dot1d is never walked and bridge ports are translated", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [Q_BRIDGE_FDB_OID]: Q_BRIDGE_VARBINDS,
+      [BASE_PORT_OID]: BASE_PORT_VARBINDS,
+    });
+
+    const entries: Array<FdbEntry> = await Internal.walkFdb(session);
+
+    expect(entries).toEqual([
+      {
+        macAddress: "aa:bb:cc:dd:ee:ff",
+        bridgePort: 5,
+        interfaceIndex: 10105,
+        vlanId: 100,
+        status: "learned",
+      },
+    ]);
+    expect(walkedTables(session)).toEqual([Q_BRIDGE_FDB_OID, BASE_PORT_OID]);
+    // Exact wire OIDs for the Q-BRIDGE port/status columns and base-port map.
+    expect(session.subtreeOids).toEqual([
+      "1.3.6.1.2.1.17.7.1.2.2.1.2",
+      "1.3.6.1.2.1.17.7.1.2.2.1.3",
+      "1.3.6.1.2.1.17.1.4.1.2",
+    ]);
+  });
+
+  test("an empty Q-BRIDGE table falls back to dot1dTpFdbTable", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [DOT1D_FDB_OID]: DOT1D_VARBINDS,
+      [BASE_PORT_OID]: BASE_PORT_VARBINDS,
+    });
+
+    const entries: Array<FdbEntry> = await Internal.walkFdb(session);
+
+    expect(entries).toEqual([
+      {
+        macAddress: "aa:bb:cc:dd:ee:ff",
+        bridgePort: 7,
+        interfaceIndex: 10107,
+        vlanId: undefined,
+        status: "learned",
+      },
+    ]);
+    expect(walkedTables(session)).toEqual([
+      Q_BRIDGE_FDB_OID,
+      DOT1D_FDB_OID,
+      BASE_PORT_OID,
+    ]);
+    // The dot1d columns are read at "<table>.1.<column>", not one deeper.
+    expect(session.subtreeOids).toContain("1.3.6.1.2.1.17.4.3.1.1");
+    expect(session.subtreeOids).toContain("1.3.6.1.2.1.17.4.3.1.2");
+    expect(session.subtreeOids).toContain("1.3.6.1.2.1.17.4.3.1.3");
+  });
+
+  test("a Q-BRIDGE walk error (table unimplemented) falls back to dot1d", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [Q_BRIDGE_FDB_OID]: new Error("NoSuchName"),
+      [DOT1D_FDB_OID]: DOT1D_VARBINDS,
+      [BASE_PORT_OID]: BASE_PORT_VARBINDS,
+    });
+
+    const entries: Array<FdbEntry> = await Internal.walkFdb(session);
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.bridgePort).toBe(7);
+    expect(entries[0]!.interfaceIndex).toBe(10107);
+  });
+
+  test("rejects only when NEITHER FDB table is walkable", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [Q_BRIDGE_FDB_OID]: new Error("NoSuchName"),
+      [DOT1D_FDB_OID]: new Error("NoSuchName"),
+    });
+
+    await expect(Internal.walkFdb(session)).rejects.toThrow("NoSuchName");
+  });
+
+  test("an empty Q-BRIDGE answer with a failing dot1d walk resolves to [] (empty FDB, not an error)", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [DOT1D_FDB_OID]: new Error("NoSuchName"),
+    });
+
+    expect(await Internal.walkFdb(session)).toEqual([]);
+  });
+
+  test("a failing base-port walk leaves entries untranslated instead of failing the FDB", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [Q_BRIDGE_FDB_OID]: Q_BRIDGE_VARBINDS,
+      [BASE_PORT_OID]: new Error("RequestTimedOutError"),
+    });
+
+    const entries: Array<FdbEntry> = await Internal.walkFdb(session);
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.bridgePort).toBe(5);
+    expect(entries[0]!.interfaceIndex).toBeUndefined();
+  });
+
+  test("a bridge port with no base-port mapping row keeps interfaceIndex undefined", async () => {
+    const session: MockSubtreeSession = createSubtreeSession({
+      [Q_BRIDGE_FDB_OID]: Q_BRIDGE_VARBINDS,
+      [BASE_PORT_OID]: [{ oid: "1.3.6.1.2.1.17.1.4.1.2.9", value: 10109 }],
+    });
+
+    const entries: Array<FdbEntry> = await Internal.walkFdb(session);
+
+    expect(entries[0]!.interfaceIndex).toBeUndefined();
+  });
+});
+
+describe("SnmpMonitor.walkInterfaces — endpoint collection gating", () => {
+  const config: MonitorStepSnmpMonitor = {
+    snmpVersion: SnmpVersion.V2c,
+    hostname: "10.0.0.1",
+    port: 161,
+    communityString: "public",
+    oids: [],
+    timeout: 1000,
+    retries: 0,
+    monitorInterfaces: true,
+  };
+
+  /*
+   * A full-session stand-in: system-group GETs fail (best-effort, caught),
+   * the IF-MIB/LLDP/CDP/entity walks answer with empty tables, and the
+   * endpoint tables answer from the subtree fixtures. Installed via the
+   * module-level createSession mock so walkInterfaces runs its real flow
+   * end to end without a socket.
+   */
+  function installWalkSession(
+    endpointFixtures: EndpointFixtures,
+  ): MockSubtreeSession {
+    const subtreeSession: MockSubtreeSession =
+      createSubtreeSession(endpointFixtures);
+    const session: Record<string, unknown> = {
+      subtree: subtreeSession.subtree,
+      tableColumns: (
+        _tableOid: string,
+        _columns: Array<number>,
+        callback: (err: Error | null, tbl?: unknown) => void,
+      ): void => {
+        callback(null, {});
+      },
+      get: (
+        _oids: Array<string>,
+        callback: (error: Error | null) => void,
+      ): void => {
+        callback(new Error("system group unavailable"));
+      },
+      close: jest.fn(),
+      on: jest.fn(),
+    };
+
+    (
+      snmp.createSession as unknown as {
+        mockReturnValue: (value: unknown) => void;
+      }
+    ).mockReturnValue(session);
+
+    return subtreeSession;
+  }
+
+  afterEach(() => {
+    // Restore the module-mock default so later tests get the plain stub.
+    (
+      snmp.createSession as unknown as {
+        mockImplementation: (impl: () => unknown) => void;
+      }
+    ).mockImplementation(() => {
+      return { close: jest.fn(), on: jest.fn() };
+    });
+  });
+
+  test("collectEndpoints defaults OFF: an absent flag walks no endpoint table", async () => {
+    const session: MockSubtreeSession = installWalkSession({});
+
+    const result: SnmpWalkResult = await SnmpMonitor.walkInterfaces(config, {});
+
+    /*
+     * Endpoint collection is strictly opt-in — a monitor that never asked
+     * for it must not start walking ARP/FDB (and writing an endpoint row
+     * per MAC per poll) merely because the probe was upgraded.
+     */
+    expect(session.subtreeOids).toEqual([]);
+    expect(result.arpEntries).toBeUndefined();
+    expect(result.fdbEntries).toBeUndefined();
+  });
+
+  test("collectEndpoints: false skips the ARP and FDB walks entirely", async () => {
+    const session: MockSubtreeSession = installWalkSession({});
+
+    const result: SnmpWalkResult = await SnmpMonitor.walkInterfaces(config, {
+      collectEndpoints: false,
+    });
+
+    expect(walkedTables(session)).toEqual([]);
+    expect(result.arpEntries).toBeUndefined();
+    expect(result.fdbEntries).toBeUndefined();
+  });
+
+  test("collectEndpoints: true opts in — ARP and FDB ride the interface walk", async () => {
+    const session: MockSubtreeSession = installWalkSession({});
+
+    const result: SnmpWalkResult = await SnmpMonitor.walkInterfaces(config, {
+      collectEndpoints: true,
+    });
+
+    expect(walkedTables(session)).toEqual([
+      ARP_TABLE_OID,
+      Q_BRIDGE_FDB_OID,
+      DOT1D_FDB_OID,
+    ]);
+    // Successful-but-empty walks report [], clearing stale snapshots.
+    expect(result.arpEntries).toEqual([]);
+    expect(result.fdbEntries).toEqual([]);
+  });
+
+  test("an ARP walk failure is best-effort: the interface walk still succeeds", async () => {
+    installWalkSession({
+      [ARP_TABLE_OID]: new Error("RequestTimedOutError"),
+    });
+
+    const result: SnmpWalkResult = await SnmpMonitor.walkInterfaces(config, {
+      collectEndpoints: true,
+    });
+
+    // Undefined (walk failed, keep stored snapshot), not a thrown error.
+    expect(result.arpEntries).toBeUndefined();
+    expect(result.fdbEntries).toEqual([]);
+    expect(result.interfaces).toEqual([]);
+  });
+
+  test("endpoint results thread through to the walk result", async () => {
+    installWalkSession({
+      [ARP_TABLE_OID]: ARP_VARBINDS,
+      [Q_BRIDGE_FDB_OID]: Q_BRIDGE_VARBINDS,
+      [BASE_PORT_OID]: BASE_PORT_VARBINDS,
+    });
+
+    const result: SnmpWalkResult = await SnmpMonitor.walkInterfaces(config, {
+      collectEndpoints: true,
+    });
+
+    expect(result.arpEntries).toEqual([
+      {
+        ipAddress: "10.0.0.5",
+        macAddress: "aa:bb:cc:dd:ee:ff",
+        interfaceIndex: 2,
+        entryType: "dynamic",
+      },
+    ]);
+    expect(result.fdbEntries).toEqual([
+      {
+        macAddress: "aa:bb:cc:dd:ee:ff",
+        bridgePort: 5,
+        interfaceIndex: 10105,
+        vlanId: 100,
+        status: "learned",
+      },
+    ]);
   });
 });

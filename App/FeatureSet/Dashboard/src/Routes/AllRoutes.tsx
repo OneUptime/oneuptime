@@ -28,6 +28,7 @@ export { default as CodeRepositoryRoutes } from "./CodeRepositoryRoutes";
 export { default as KubernetesRoutes } from "./KubernetesRoutes";
 export { default as DockerRoutes } from "./DockerRoutes";
 export { default as NetworkDeviceRoutes } from "./NetworkDeviceRoutes";
+export { default as NetworkSiteRoutes } from "./NetworkSiteRoutes";
 export { default as PodmanRoutes } from "./PodmanRoutes";
 export { default as ProxmoxRoutes } from "./ProxmoxRoutes";
 export { default as IoTRoutes } from "./IoTRoutes";

@@ -79,6 +79,9 @@ import "./Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
 // Network Device Discovery
 import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
 
+// Network Sites
+import "./Jobs/NetworkSite/RecomputeStaleRollups";
+
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";

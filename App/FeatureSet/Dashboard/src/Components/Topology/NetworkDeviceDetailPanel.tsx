@@ -53,7 +53,27 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
     });
   }, [props.edges, node.id]);
 
+  const isEndpoint: boolean = node.kind === "endpoint";
+
   const detailRows: Array<{ label: string; value: string }> = [];
+  if (node.macAddress) {
+    detailRows.push({
+      label: translateString("MAC address") || "MAC address",
+      value: node.macAddress,
+    });
+  }
+  if (node.ipAddress) {
+    detailRows.push({
+      label: translateString("IP address") || "IP address",
+      value: node.ipAddress,
+    });
+  }
+  if (node.classification) {
+    detailRows.push({
+      label: translateString("Classification") || "Classification",
+      value: node.classification,
+    });
+  }
   if (node.sysName) {
     detailRows.push({
       label: translateString("System name") || "System name",
@@ -85,9 +105,11 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
     <SideOver
       title={node.name}
       description={
-        node.isManaged
-          ? translateString("Network device") || "Network device"
-          : translateString("Unmanaged neighbor") || "Unmanaged neighbor"
+        isEndpoint
+          ? translateString("Discovered endpoint") || "Discovered endpoint"
+          : node.isManaged
+            ? translateString("Network device") || "Network device"
+            : translateString("Unmanaged neighbor") || "Unmanaged neighbor"
       }
       onClose={props.onClose}
       size={SideOverSize.Small}
@@ -104,7 +126,11 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
           <span className="text-sm font-medium text-gray-900 capitalize">
             {node.status}
           </span>
-          {!node.isManaged ? (
+          {isEndpoint ? (
+            <span className="inline-flex items-center rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
+              {translateString("Endpoint") || "Endpoint"}
+            </span>
+          ) : !node.isManaged ? (
             <span className="inline-flex items-center rounded-full border border-gray-300 px-2.5 py-0.5 text-xs font-medium text-gray-600">
               {translateString("Unmanaged") || "Unmanaged"}
             </span>
