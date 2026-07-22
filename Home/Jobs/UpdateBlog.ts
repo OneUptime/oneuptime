@@ -62,14 +62,24 @@ BasicCron({
         logger.debug(err);
       }
     } else {
-      // Pull latest changes from the repository. Wrap so a transient network
-      // failure does not skip the cache-clear / contributor warm below.
+      /*
+       * Sync the existing clone to the latest upstream with a hard reset rather
+       * than a plain `git pull`. A persistent per-pod volume (pvc / statefulset
+       * modes) never re-clones on restart, so if the blog history is
+       * force-pushed / rewritten upstream (e.g. large-media purge via BFG /
+       * git-filter-repo) a plain pull aborts on divergent branches and the cache
+       * stays wedged on stale content forever. A hard reset to the upstream
+       * adopts a rewritten history and is safe here because the clone is a
+       * read-only mirror with no local commits. Wrapped so a transient network
+       * failure does not skip the cache-clear / contributor warm below; the next
+       * run retries.
+       */
       try {
-        await CodeRepositoryUtil.pullChanges({
+        await CodeRepositoryUtil.resetHardToRemote({
           repoPath: BlogRootPath,
         });
       } catch (err: unknown) {
-        logger.debug("UpdateBlog: pull failed");
+        logger.debug("UpdateBlog: sync failed");
         logger.debug(err);
       }
     }

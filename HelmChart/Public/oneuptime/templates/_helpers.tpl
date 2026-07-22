@@ -1069,7 +1069,9 @@ metadata:
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
-    kind: Deployment
+    # Defaults to Deployment; callers that render the workload as a StatefulSet
+    # (e.g. Home in blog.mode=statefulset) pass ScaleTargetKind="StatefulSet".
+    kind: {{ .ScaleTargetKind | default "Deployment" }}
     name: {{ printf "%s-%s" $.Release.Name $.ServiceName }}
   minReplicas: {{ $minReplicas }}
   maxReplicas: {{ $maxReplicas }}

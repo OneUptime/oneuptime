@@ -1354,6 +1354,14 @@ home:
     #              replica (clone paid once, cached across restarts). Requires a
     #              single Home replica with the HPA disabled — a RWO volume cannot
     #              be attached to multiple pods. Helm fails fast if misconfigured.
+    #   statefulset - render Home as a StatefulSet where EACH replica gets its own
+    #              ReadWriteOnce PVC (volumeClaimTemplates, sized by persistence.size
+    #              below). Scales horizontally (multiple replicas / HPA) AND caches
+    #              the clone per pod across restarts — the best option for a large
+    #              blog at scale. Cost: one PVC per replica; by default they are
+    #              retained on scale-down (see persistence.retentionPolicy). Adds a
+    #              headless Service (<release>-home-headless) for pod identity;
+    #              real traffic still flows through the regular `home` Service.
     mode: emptyDir
     # Where the blog repo is cloned to, mounted, and read from (BLOG_ROOT_PATH).
     rootPath: /usr/src/blog
@@ -1375,11 +1383,28 @@ home:
       # home.resources, keep it >= this value so the scheduler reserves node disk.
       sizeLimit: 15Gi
     persistence:
-      # pvc mode only. Sized above the ~8GB checkout with headroom for .git growth
-      # across pulls (a persistent volume accumulates history over time).
+      # pvc and statefulset modes. Sized above the ~8GB checkout with headroom for
+      # .git growth across pulls (a persistent volume accumulates history over time).
+      # In statefulset mode this is the size of EACH per-replica PVC.
       size: 20Gi
       # "" = use global.storageClass; "-" = force the cluster default.
       storageClass: ""
+      # statefulset mode only. Fate of the per-replica blog PVCs (needs Kubernetes
+      # >= 1.27). Retain (default) keeps a scaled-down pod's cache so scaling back
+      # up re-uses it (no re-clone); set whenScaled/whenDeleted to Delete to reclaim
+      # the storage instead. Null this block out on clusters older than 1.27.
+      retentionPolicy:
+        whenScaled: Retain
+        whenDeleted: Retain
+    statefulset:
+      # statefulset mode only. Parallel (default) starts and scales all replicas
+      # at once — fast, and the right choice for a stateless frontend. Trade-off:
+      # on the first rollout / scale-out every replica clones the multi-GB blog
+      # concurrently from a single egress IP (a "thundering herd" that can hit
+      # git-host rate limits or node disk). For a large blog at high replica
+      # counts, set OrderedReady to bring pods up one at a time (slower, but the
+      # clones are serialized), and/or point repoUrl at a mirror / CDN.
+      podManagementPolicy: Parallel
     initContainer:
       # Bound the clone so a stalled network can't wedge the pod in Init forever
       # (init containers are not covered by the startup/liveness probes).

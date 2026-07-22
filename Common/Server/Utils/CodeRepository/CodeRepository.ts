@@ -79,6 +79,27 @@ export default class CodeRepositoryUtil {
   }
 
   /**
+   * Force the local checkout to exactly match its upstream branch, discarding any
+   * local divergence. Unlike pullChanges (`git pull`), this recovers a persistent
+   * clone whose upstream history was force-pushed / rewritten: a plain pull aborts
+   * on "divergent branches", and on a persistent volume that never re-clones
+   * (pvc / statefulset blog modes) the clone would otherwise stay wedged on stale
+   * content forever. Fetches incrementally and honours a partial-clone filter, so
+   * on the normal fast-forward path it only transfers new objects. Safe only for a
+   * read-only mirror (e.g. the blog cache) that has no local commits to preserve.
+   */
+  @CaptureSpan()
+  public static async resetHardToRemote(data: {
+    repoPath: string;
+  }): Promise<void> {
+    await this.runGitCommand(data.repoPath, ["fetch", "--no-tags", "origin"]);
+    // "@{u}" is the current branch's upstream (e.g. origin/main), configured by
+    // git clone. Hard-resetting onto it adopts a rewritten/force-pushed history
+    // wholesale instead of failing to reconcile divergent branches.
+    await this.runGitCommand(data.repoPath, ["reset", "--hard", "@{u}"]);
+  }
+
+  /**
    * Returns true only when `repoPath` is itself the root of a COMPLETE git
    * repository, so callers can cheaply branch on "clone vs pull". Two guards
    * beyond a plain existence check:

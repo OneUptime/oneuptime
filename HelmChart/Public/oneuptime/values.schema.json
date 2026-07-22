@@ -2493,7 +2493,8 @@
                             "type": "string",
                             "enum": [
                                 "emptyDir",
-                                "pvc"
+                                "pvc",
+                                "statefulset"
                             ]
                         },
                         "rootPath": {
@@ -2525,6 +2526,42 @@
                                 },
                                 "storageClass": {
                                     "type": "string"
+                                },
+                                "retentionPolicy": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ],
+                                    "properties": {
+                                        "whenScaled": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Retain",
+                                                "Delete"
+                                            ]
+                                        },
+                                        "whenDeleted": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Retain",
+                                                "Delete"
+                                            ]
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "statefulset": {
+                            "type": "object",
+                            "properties": {
+                                "podManagementPolicy": {
+                                    "type": "string",
+                                    "enum": [
+                                        "Parallel",
+                                        "OrderedReady"
+                                    ]
                                 }
                             },
                             "additionalProperties": false
