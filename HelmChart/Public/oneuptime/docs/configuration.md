@@ -122,6 +122,24 @@ features. See the full [Local AI with vLLM](ai-vllm.md) guide.
 | `vllm.resources`                                       | Pod resources. Defaults request one `nvidia.com/gpu`.                                            | see `values.yaml` |
 | `vllm.nodeSelector` / `vllm.tolerations`               | Schedule vLLM onto your GPU nodes.                                                               | `{}` / `[]` |
 
+## Telemetry writer tier
+
+Optional fixed-size deployment that owns all telemetry ClickHouse inserts.
+When enabled, app/worker pods ship their batched inserts to it over
+cluster-key-authenticated HTTP instead of inserting directly, so telemetry
+ingest workers can scale out without adding ClickHouse insert concurrency
+(which stays at `replicaCount × telemetryFanInMaxConcurrentInserts`). See the
+sizing guidance in [production-checklist.md](production-checklist.md).
+
+| Parameter                                            | Description                                                                                          | Default |
+|------------------------------------------------------|------------------------------------------------------------------------------------------------------|---------|
+| `telemetryWriter.enabled`                            | Deploy the tier and route app/worker telemetry inserts through it.                                   | `false` |
+| `telemetryWriter.replicaCount`                       | Fixed pod count — a ClickHouse capacity decision, not a demand one. Do not autoscale on queue depth. | `2` |
+| `telemetryWriter.telemetryFanInMaxConcurrentInserts` | Concurrent ClickHouse INSERTs per pod. Cluster-wide = replicas × this.                               | `4` |
+| `telemetryWriter.maxInflightRequests`                | Insert requests served concurrently per pod before shedding with 429 (bounds pod memory).            | `100` |
+| `telemetryWriter.telemetryFanIn*`                    | Same batching/retry knobs as `worker.telemetryFanIn*`.                                               | see `values.yaml` |
+| `telemetryWriter.clickhouseMaxOpenConnections` / `telemetryWriter.clickhouseIngestMaxOpenConnections` | Per-pod ClickHouse pool ceilings.                                    | `100` / inherit |
+
 ## Update check
 
 Once a day the worker asks GitHub which OneUptime version is the latest

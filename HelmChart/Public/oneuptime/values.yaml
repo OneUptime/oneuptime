@@ -1495,6 +1495,64 @@ worker:
       failureThreshold: 3
       replicas: 2
 
+# Dedicated telemetry-writer tier (opt-in). Decouples worker/app replica count
+# from ClickHouse insert concurrency so telemetry ingest workers can scale out
+# WITHOUT limit: when enabled, every pod that processes telemetry ingest gets
+# TELEMETRY_WRITER_URL and ships its batched ClickHouse inserts to this
+# fixed-size deployment over HTTP (cluster-key authenticated) instead of
+# inserting directly. ClickHouse telemetry-insert load is then
+#   replicaCount x telemetryFanInMaxConcurrentInserts
+# — a constant — regardless of worker fleet size. Overload is shed with 429
+# and retried by workers with idempotent dedup tokens, so bursts land in the
+# BullMQ queue (the scale-out signal for workers), never on ClickHouse.
+# Size it against ClickHouse capacity, not demand: keep the product above
+# under ~60% of ClickHouse max_concurrent_queries (docs/production-checklist.md).
+# Runs the same image as `app`; no ingress, no queue consumption.
+telemetryWriter:
+  enabled: false
+  # Fixed size — scale by capacity math, not autoscaling. 2 gives you rolling
+  # restarts and one-pod-failure headroom at 8 total concurrent inserts.
+  replicaCount: 2
+  # Override the per-pod Postgres pool ceiling (DATABASE_MAX_OPEN_CONNECTIONS)
+  # for this service. Empty = inherit deployment.databaseMaxOpenConnections.
+  databaseMaxOpenConnections:
+  # Concurrently-served insert requests per pod before shedding with 429.
+  # Worst-case buffered memory is roughly
+  # (maxInflightRequests + telemetryFanInMaxPendingRows/telemetryFanInMaxBatchRows)
+  # x telemetryFanInMaxBatchRows rows — raise resources together with this.
+  maxInflightRequests: 100
+  # Fan-in telemetry writer (per pod) — same knobs as worker/app, but here they
+  # define CLUSTER-WIDE ClickHouse insert behavior. Defaults match the code
+  # (Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts).
+  telemetryFanInMaxBatchRows: 5000
+  telemetryFanInMaxWaitMs: 1000
+  # Max simultaneous ClickHouse INSERTs per pod. Total telemetry insert
+  # concurrency = replicaCount x this value — keep it under ~60% of ClickHouse
+  # max_concurrent_queries.
+  telemetryFanInMaxConcurrentInserts: 4
+  telemetryFanInMaxPendingRows: 100000
+  telemetryFanInRetryMaxAttempts: 6
+  telemetryFanInRetryBaseDelayMs: 250
+  telemetryFanInRetryMaxDelayMs: 10000
+  # Per-pod ClickHouse connection pool ceilings. The ingest pool (used by the
+  # fan-in telemetry writer) inherits the query pool size when left empty.
+  clickhouseMaxOpenConnections: 100
+  clickhouseIngestMaxOpenConnections:
+  disableTelemetryCollection: false
+  enableProfiling: false
+  # Per-service Pod Disruption Budget override; falls back to the global
+  # podDisruptionBudget block.
+  # podDisruptionBudget:
+  #   enabled: true
+  #   minAvailable: 1
+  ports:
+    http: 3002
+  resources:
+  nodeSelector: {}
+  podSecurityContext: {}
+  hostAliases: []
+  containerSecurityContext: {}
+
 # AI Agent Configuration
 # Runs the OneUptime AI Agent within your Kubernetes cluster.
 # Note: This is enabled by default so AI fix tasks work out of the box. The

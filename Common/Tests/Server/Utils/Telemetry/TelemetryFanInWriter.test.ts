@@ -4,6 +4,7 @@ import {
   FanInSubmitResult,
   FanInWriterOptions,
   TelemetryFanInWriter,
+  TransientInsertError,
   isRetryableInsertError,
   pushObservedAck,
   readFanInWriterOptionsFromEnv,
@@ -1350,5 +1351,215 @@ describe("pushObservedAck", () => {
 
     expect(pendingAcks).toHaveLength(1);
     await expect(Promise.all(pendingAcks)).resolves.toEqual([undefined]);
+  });
+});
+
+describe("explicit dedup tokens (writer-tier passthrough)", () => {
+  test("submit honors options.dedupToken outside any dedup scope", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions(),
+    );
+
+    const submission: FanInSubmitResult = await writer.submit(
+      target,
+      makeRows(3),
+      { dedupToken: "job-9:TestTable:2" },
+    );
+    await writer.flushAll();
+    await submission.flushed;
+
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+    expect(callOptions(target, 0).dedupToken).toBe("job-9:TestTable:2");
+  });
+
+  test("explicit token wins over the ambient dedup context", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions(),
+    );
+
+    await runWithInsertDedup("ambient-job", async (): Promise<void> => {
+      await writer.submit(target, makeRows(2), {
+        dedupToken: "explicit-token",
+      });
+    });
+    await writer.flushAll();
+
+    expect(callOptions(target, 0).dedupToken).toBe("explicit-token");
+  });
+
+  test("distinct explicit tokens in one batch insert individually", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({ maxBatchRows: 100 }),
+    );
+
+    await writer.submit(target, makeRows(2, 0), { dedupToken: "token-a" });
+    await writer.submit(target, makeRows(2, 2), { dedupToken: "token-b" });
+    await writer.flushAll();
+
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+    expect(callOptions(target, 0).dedupToken).toBe("token-a");
+    expect(callOptions(target, 1).dedupToken).toBe("token-b");
+    expect(rowSeqs(callRows(target, 0))).toEqual([0, 1]);
+    expect(rowSeqs(callRows(target, 1))).toEqual([2, 3]);
+  });
+});
+
+describe("insert transport hook", () => {
+  test("an installed transport replaces the direct insert and receives token + settings", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions(),
+    );
+    const transportCalls: Array<{
+      tableName: string;
+      rows: Array<JSONObject>;
+      dedupToken: string;
+      clickhouseSettings: ClickHouseSettings | undefined;
+    }> = [];
+    writer.setInsertTransport(
+      async (
+        transportTarget: FanInInsertTarget,
+        rows: Array<JSONObject>,
+        options: {
+          dedupToken: string;
+          clickhouseSettings: ClickHouseSettings | undefined;
+        },
+      ): Promise<void> => {
+        transportCalls.push({
+          tableName: transportTarget.model.tableName,
+          rows,
+          dedupToken: options.dedupToken,
+          clickhouseSettings: options.clickhouseSettings,
+        });
+      },
+    );
+
+    const submission: FanInSubmitResult = await writer.submit(
+      target,
+      makeRows(2),
+      {
+        dedupToken: "remote-token",
+        clickhouseSettings: { async_insert: 1 },
+      },
+    );
+    await writer.flushAll();
+    await submission.flushed;
+
+    expect(target.insertJsonRows).not.toHaveBeenCalled();
+    expect(transportCalls).toHaveLength(1);
+    expect(transportCalls[0]!.tableName).toBe("TestTable");
+    expect(transportCalls[0]!.dedupToken).toBe("remote-token");
+    expect(transportCalls[0]!.clickhouseSettings).toEqual({ async_insert: 1 });
+    expect(rowSeqs(transportCalls[0]!.rows)).toEqual([0, 1]);
+  });
+
+  test("TransientInsertError from the transport retries with the SAME token", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions(),
+    );
+    const seenTokens: Array<string> = [];
+    let attempts: number = 0;
+    writer.setInsertTransport(
+      async (
+        _transportTarget: FanInInsertTarget,
+        _rows: Array<JSONObject>,
+        options: {
+          dedupToken: string;
+          clickhouseSettings: ClickHouseSettings | undefined;
+        },
+      ): Promise<void> => {
+        seenTokens.push(options.dedupToken);
+        attempts++;
+        if (attempts < 3) {
+          throw new TransientInsertError("writer tier is shedding load (429)");
+        }
+      },
+    );
+
+    const submission: FanInSubmitResult = await writer.submit(
+      target,
+      makeRows(1),
+      { dedupToken: "sticky-token" },
+    );
+    await writer.flushAll();
+    await expect(submission.flushed).resolves.toBeUndefined();
+
+    expect(seenTokens).toEqual([
+      "sticky-token",
+      "sticky-token",
+      "sticky-token",
+    ]);
+  });
+
+  test("a permanent transport error fails the ack after one attempt", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions(),
+    );
+    let attempts: number = 0;
+    writer.setInsertTransport(async (): Promise<void> => {
+      attempts++;
+      throw new Error("writer returned 400: unknown table");
+    });
+
+    const submission: FanInSubmitResult = await writer.submit(
+      target,
+      makeRows(1),
+      { dedupToken: "token" },
+    );
+    await writer.flushAll();
+
+    const err: Error = await captureRejection(submission.flushed);
+    expect(err).toBeInstanceOf(FanInInsertError);
+    expect(attempts).toBe(1);
+  });
+
+  test("clearing the transport restores the direct insert path", async () => {
+    const target: TestTarget = makeTarget();
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions(),
+    );
+    writer.setInsertTransport(async (): Promise<void> => {
+      throw new Error("should not be used");
+    });
+    writer.setInsertTransport(null);
+    expect(writer.hasInsertTransport()).toBe(false);
+
+    const submission: FanInSubmitResult = await writer.submit(
+      target,
+      makeRows(1),
+      { dedupToken: "token" },
+    );
+    await writer.flushAll();
+    await submission.flushed;
+
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("isRetryableInsertError — TransientInsertError", () => {
+  test("TransientInsertError is retryable", () => {
+    expect(isRetryableInsertError(new TransientInsertError("shed"))).toBe(true);
+  });
+
+  test("duck-typed TransientInsertError (duplicate module instance) is retryable", () => {
+    const err: Error = new Error("shed");
+    err.name = "TransientInsertError";
+    expect(isRetryableInsertError(err)).toBe(true);
+  });
+
+  test("FanInInsertError keeps its structured cause", () => {
+    const cause: TransientInsertError = new TransientInsertError("503");
+    const err: FanInInsertError = new FanInInsertError({
+      tableName: "T",
+      attempts: 3,
+      cause,
+    });
+    expect(err.causeError).toBe(cause);
+    expect(isRetryableInsertError(err.causeError)).toBe(true);
   });
 });

@@ -7,6 +7,12 @@ import { nextInsertDedupToken } from "../AnalyticsDatabase/InsertDedupContext";
 import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
 
 /*
+ * Re-exported so App-side code (which does not depend on @clickhouse/client
+ * directly) can type fan-in submissions.
+ */
+export { type ClickHouseSettings } from "@clickhouse/client";
+
+/*
  * Fan-in writer: the single funnel between the telemetry ingest workers and
  * ClickHouse.
  *
@@ -47,6 +53,15 @@ import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
  * insert slot during backoff so a saturated ClickHouse is never offered more
  * concurrent load. Upstream, jobs slow down, the BullMQ queue absorbs the
  * backlog, and queue depth becomes the scale-out signal.
+ *
+ * Remote mode (unbounded worker scale-out): when TELEMETRY_WRITER_URL is
+ * set, an insert transport (TelemetryWriterClient) replaces the direct
+ * ClickHouse call and ships each token group to the dedicated
+ * telemetry-writer tier over HTTP. ClickHouse then sees
+ * (writerReplicas × maxConcurrentInserts) queries — a constant chosen by
+ * the operator — no matter how many worker pods exist. Everything else
+ * (dedup tokens, ack-after-flush, retries, backpressure) is unchanged; the
+ * writer tier runs this same class with the default direct transport.
  */
 
 export interface FanInInsertTarget {
@@ -65,6 +80,25 @@ export interface FanInSubmitResult {
   flushed: Promise<void>;
 }
 
+/*
+ * Pluggable delivery for one token group. The default transport inserts
+ * directly into ClickHouse via target.insertJsonRows; the remote transport
+ * (TelemetryWriterClient) ships the group to the telemetry-writer tier over
+ * HTTP instead, so worker pods add no telemetry INSERT load to ClickHouse
+ * and fleet-wide insert concurrency is bounded by the writer tier's size,
+ * not by worker replica count. Transports signal "retry me with the same token"
+ * by throwing TransientInsertError (or any error isRetryableInsertError
+ * recognizes).
+ */
+export type FanInInsertTransport = (
+  target: FanInInsertTarget,
+  rows: Array<JSONObject>,
+  options: {
+    dedupToken: string;
+    clickhouseSettings: ClickHouseSettings | undefined;
+  },
+) => Promise<void>;
+
 export interface FanInWriterOptions {
   /** Target rows per ClickHouse insert. Buffers flush as soon as they reach this. */
   maxBatchRows: number;
@@ -81,7 +115,28 @@ export interface FanInWriterOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
+/*
+ * Marker for transient failures raised by a pluggable insert transport
+ * (e.g. the remote telemetry-writer client): overload shedding (HTTP 429),
+ * writer-tier unavailability (503), or an ambiguous network failure. The
+ * writer retries these with the SAME dedup token, so an ambiguous failure
+ * whose rows actually landed never double-writes.
+ */
+export class TransientInsertError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = "TransientInsertError";
+  }
+}
+
 export class FanInInsertError extends Error {
+  /*
+   * The final underlying failure, kept structured so the telemetry-writer
+   * HTTP endpoint can map "gave up on a transient error" to 503 (caller
+   * should retry with the same token) vs. a definitive failure to 500.
+   */
+  public readonly causeError: unknown;
+
   public constructor(data: {
     tableName: string;
     attempts: number;
@@ -93,6 +148,7 @@ export class FanInInsertError extends Error {
       `Fan-in insert into ${data.tableName} failed after ${data.attempts} attempt(s): ${causeMessage}`,
     );
     this.name = "FanInInsertError";
+    this.causeError = data.cause;
     if (data.cause instanceof Error && data.cause.stack) {
       this.stack = `${this.stack}\nCaused by: ${data.cause.stack}`;
     }
@@ -157,7 +213,15 @@ export function isRetryableInsertError(err: unknown): boolean {
     return RETRYABLE_CLICKHOUSE_CODES.has(err.code);
   }
 
+  if (err instanceof TransientInsertError) {
+    return true;
+  }
+
   if (err instanceof Error) {
+    // Duck-typed TransientInsertError (duplicated module instances).
+    if (err.name === "TransientInsertError") {
+      return true;
+    }
     const code: unknown = (err as unknown as JSONObject)["code"];
     if (typeof code === "string") {
       if (RETRYABLE_SOCKET_CODES.has(code)) {
@@ -239,9 +303,24 @@ export class TelemetryFanInWriter {
    */
   private acceptingSubmits: number = 0;
   private shutdownHandlerRegistered: boolean = false;
+  private insertTransport: FanInInsertTransport | null = null;
 
   public constructor(options: FanInWriterOptions) {
     this.options = options;
+  }
+
+  /*
+   * Install (or clear, with null) a custom delivery transport for token
+   * groups. Set once at boot when TELEMETRY_WRITER_URL is configured;
+   * batching, dedup-token capture, the per-pod semaphore, retry/backoff,
+   * and backpressure all stay in front of it unchanged.
+   */
+  public setInsertTransport(transport: FanInInsertTransport | null): void {
+    this.insertTransport = transport;
+  }
+
+  public hasInsertTransport(): boolean {
+    return this.insertTransport !== null;
   }
 
   /** Test hook: override options on the shared instance (e.g. shrink maxWaitMs). */
@@ -281,7 +360,16 @@ export class TelemetryFanInWriter {
   public async submit(
     target: FanInInsertTarget,
     rows: Array<JSONObject>,
-    options?: { clickhouseSettings?: ClickHouseSettings | undefined },
+    options?: {
+      clickhouseSettings?: ClickHouseSettings | undefined;
+      /*
+       * Explicit dedup token for rows whose token was already captured
+       * elsewhere — the telemetry-writer endpoint passes through the token
+       * the worker-side writer minted/captured, since no ambient
+       * runWithInsertDedup scope exists in an HTTP handler.
+       */
+      dedupToken?: string | undefined;
+    },
   ): Promise<FanInSubmitResult> {
     if (!rows || rows.length === 0) {
       return { flushed: Promise.resolve() };
@@ -298,7 +386,8 @@ export class TelemetryFanInWriter {
      * a timer with no ambient context. Capturing before any await also
      * keeps token order deterministic across retries of the same payload.
      */
-    const dedupToken: string | undefined = nextInsertDedupToken(tableName);
+    const dedupToken: string | undefined =
+      options?.dedupToken ?? nextInsertDedupToken(tableName);
 
     this.acceptingSubmits++;
     try {
@@ -607,10 +696,17 @@ export class TelemetryFanInWriter {
     ) {
       attemptsMade = attempt;
       try {
-        await target.insertJsonRows(rows, {
-          dedupToken,
-          clickhouseSettings,
-        });
+        if (this.insertTransport) {
+          await this.insertTransport(target, rows, {
+            dedupToken,
+            clickhouseSettings,
+          });
+        } else {
+          await target.insertJsonRows(rows, {
+            dedupToken,
+            clickhouseSettings,
+          });
+        }
 
         for (const submission of group) {
           submission.resolveAck();

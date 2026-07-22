@@ -162,6 +162,7 @@ spec:
               value: {{ $.Values.worker.clickhouseMaxOpenConnections | default 100 | squote }}
             - name: CLICKHOUSE_INGEST_MAX_OPEN_CONNECTIONS
               value: {{ $.Values.worker.clickhouseIngestMaxOpenConnections | default ($.Values.worker.clickhouseMaxOpenConnections | default 100) | squote }}
+            {{- include "oneuptime.env.telemetryWriterUrl" . | nindent 12 }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
           ports:
             - containerPort: {{ $.Values.worker.ports.http }}

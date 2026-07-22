@@ -82,6 +82,25 @@ Work through this list to make your OneUptime installation production-ready.
   `worker.clickhouseIngestMaxOpenConnections` (the same keys exist under
   `app:` for setups that run ingestion on the app pods).
 
+- [ ] **Enable the telemetry-writer tier before the worker fleet outgrows the
+  sizing rule above.** With `telemetryWriter.enabled: true`, worker and app
+  pods stop inserting telemetry into ClickHouse themselves and ship their
+  batched inserts (cluster-key authenticated HTTP, idempotent dedup tokens,
+  ack-after-flush end to end) to a dedicated fixed-size deployment that owns
+  all telemetry insert concurrency. ClickHouse then sees
+  `telemetryWriter.replicaCount × telemetryWriter.telemetryFanInMaxConcurrentInserts`
+  concurrent inserts — a constant — so worker replicas can autoscale WITHOUT
+  limit; the replicas × inserts rule above moves from the (elastic) worker
+  fleet to the (fixed) writer tier. Size the writer tier against ClickHouse
+  capacity: keep its product under ~60% of `max_concurrent_queries`, and do
+  not autoscale it on queue depth — when it saturates it sheds load with 429,
+  workers back off and retry, and the backlog collects in the BullMQ queue
+  where the worker KEDA scaler (not ClickHouse) absorbs it. Writer-pod memory
+  is bounded by `telemetryWriter.maxInflightRequests`; raise pod resources
+  together with it. If individual telemetry rows are very large (multi-KB log
+  bodies), lower `worker.telemetryFanInMaxBatchRows` so a shipped batch stays
+  well under the 50 MB internal request-body limit.
+
 - [ ] **Put PgBouncer in front of PostgreSQL** if you autoscale workers (KEDA) or
   use a connection-limited managed/external PostgreSQL — it keeps a connection
   storm (for example, many worker pods booting at once) from exhausting the

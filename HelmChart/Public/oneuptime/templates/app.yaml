@@ -152,6 +152,7 @@ spec:
               value: {{ $.Values.app.clickhouseMaxOpenConnections | default 100 | squote }}
             - name: CLICKHOUSE_INGEST_MAX_OPEN_CONNECTIONS
               value: {{ $.Values.app.clickhouseIngestMaxOpenConnections | default ($.Values.app.clickhouseMaxOpenConnections | default 100) | squote }}
+            {{- include "oneuptime.env.telemetryWriterUrl" . | nindent 12 }}
             # When the dedicated worker deployment is enabled, the app stops
             # consuming BullMQ queues so heavy background/telemetry processing
             # can't stall API requests on the shared event loop. Flips

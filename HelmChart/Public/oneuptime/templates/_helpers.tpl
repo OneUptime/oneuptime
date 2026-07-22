@@ -1266,3 +1266,20 @@ spec:
     {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+TELEMETRY_WRITER_URL for pods that process telemetry ingest (app, worker).
+Emitted only when the dedicated telemetry-writer tier is enabled: the fan-in
+writer on these pods then ships ClickHouse inserts to that tier over HTTP, so
+ClickHouse insert concurrency is (telemetryWriter.replicaCount x
+telemetryWriter.telemetryFanInMaxConcurrentInserts) no matter how far the
+worker fleet scales. The telemetry-writer pods themselves MUST NOT get this
+var — its absence is what makes them insert directly (and they refuse to
+serve inserts when it is set, to prevent forwarding loops).
+*/}}
+{{- define "oneuptime.env.telemetryWriterUrl" }}
+{{- if $.Values.telemetryWriter.enabled }}
+- name: TELEMETRY_WRITER_URL
+  value: http://{{ $.Release.Name }}-telemetry-writer.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.telemetryWriter.ports.http }}
+{{- end }}
+{{- end }}
