@@ -180,6 +180,16 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                isEvaluationLicense: true,
+              },
+              title: "Evaluation License",
+              description:
+                "Turn on for an evaluation/testing key. The customer's installation shows an evaluation notice and it is not meant for production use.",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+            },
+            {
+              field: {
                 userLimit: true,
               },
               title: "User Limit",
@@ -236,6 +246,15 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 title: "Expires At",
                 fieldType: FieldType.Date,
                 placeholder: "-",
+              },
+              {
+                field: {
+                  isEvaluationLicense: true,
+                },
+                title: "Evaluation License",
+                description:
+                  "When on, the customer's installation shows an evaluation notice and the key is not meant for production use.",
+                fieldType: FieldType.Boolean,
               },
               {
                 field: {

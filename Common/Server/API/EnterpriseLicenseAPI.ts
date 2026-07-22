@@ -87,6 +87,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
                 userLimit: true,
                 currentUserCount: true,
                 userCountUpdatedAt: true,
+                isEvaluationLicense: true,
               },
               props: {
                 isRoot: true,
@@ -161,6 +162,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             userCountUpdatedAt: license.userCountUpdatedAt
               ? license.userCountUpdatedAt.toISOString()
               : null,
+            isEvaluationLicense: Boolean(license.isEvaluationLicense),
             instances: this.getInstanceSummaries(instances),
             token,
           });
@@ -203,6 +205,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
               select: {
                 _id: true,
                 userLimit: true,
+                isEvaluationLicense: true,
               },
               props: {
                 isRoot: true,
@@ -284,6 +287,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             userCountUpdatedAt: reportedAt.toISOString(),
             userLimit:
               typeof license.userLimit === "number" ? license.userLimit : null,
+            isEvaluationLicense: Boolean(license.isEvaluationLicense),
             instances: this.getInstanceSummaries(instances),
           });
         } catch (err) {

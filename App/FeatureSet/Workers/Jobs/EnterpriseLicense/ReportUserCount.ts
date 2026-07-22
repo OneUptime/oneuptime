@@ -237,6 +237,12 @@ RunCron(
     const updateData: PartialEntity<GlobalConfig> = {
       enterpriseLicenseCurrentUserCount: aggregatedUserCount,
       enterpriseLicenseUserCountUpdatedAt: reportedAt,
+      /*
+       * Kept in sync on every report so that flipping a license to (or from)
+       * evaluation on oneuptime.com reaches the customer's modal within a day,
+       * rather than only when they next re-validate the key.
+       */
+      enterpriseLicenseIsEvaluation: payload["isEvaluationLicense"] === true,
     };
 
     if (Array.isArray(payload["instances"])) {
