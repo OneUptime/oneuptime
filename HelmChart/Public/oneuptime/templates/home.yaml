@@ -168,6 +168,29 @@ spec:
             - |
               set -eu
               REPO_DIR="${BLOG_ROOT_PATH:-/usr/src/blog}"
+              # A clone killed by `timeout` (below) does not reliably take its git
+              # worker children with it: index-pack / git-remote-http can keep
+              # running, reparented, still writing the pack. If the next attempt's
+              # `rm -rf` then deletes the dir out from under such an orphan, both
+              # the orphan and the retry die with "unable to write .../*.pack: No
+              # such file or directory", wedging every remaining attempt. Reap any
+              # leftover workers before we touch the dir. Match on each process's
+              # own comm (never its cmdline): this very script contains the word
+              # "git", so a cmdline match would also kill our own shell.
+              reap_git_workers() {
+                for _p in /proc/[0-9]*; do
+                  _pid="${_p#/proc/}"
+                  if [ "$_pid" = "$$" ]; then
+                    continue
+                  fi
+                  _comm="$(cat "$_p/comm" 2>/dev/null)" || continue
+                  case "$_comm" in
+                    git|git-remote-http|git-remote-https|index-pack)
+                      kill -9 "$_pid" 2>/dev/null || true
+                      ;;
+                  esac
+                done
+              }
               # Only a repo with a real HEAD commit counts as "already cloned". An
               # interrupted clone leaves a .git with no HEAD (which
               # rev-parse --is-inside-work-tree would still accept), so gate on
@@ -181,12 +204,15 @@ spec:
                 fi
                 attempt=0
                 cloned=""
-                max_attempts={{ $.Values.home.blog.initContainer.cloneRetries | default 5 }}
+                max_attempts={{ $.Values.home.blog.initContainer.cloneRetries | default 3 }}
                 until [ "$attempt" -ge "$max_attempts" ]; do
                   attempt=$((attempt + 1))
                   echo "cloning blog into $REPO_DIR (attempt ${attempt}/${max_attempts})"
+                  # Reap any worker orphaned by a previous timed-out attempt, then
+                  # start from a clean dir so the retry cannot be corrupted.
+                  reap_git_workers
                   rm -rf "$REPO_DIR"/* "$REPO_DIR"/.[!.]* 2>/dev/null || true
-                  if timeout {{ $.Values.home.blog.initContainer.cloneTimeoutSeconds | default 600 }} git clone $filter_arg --no-tags "$BLOG_REPOSITORY_URL" "$REPO_DIR" \
+                  if timeout {{ $.Values.home.blog.initContainer.cloneTimeoutSeconds | default 1800 }} git clone $filter_arg --no-tags "$BLOG_REPOSITORY_URL" "$REPO_DIR" \
                     && git -C "$REPO_DIR" rev-parse --verify HEAD >/dev/null 2>&1; then
                     cloned="yes"
                     break
@@ -201,6 +227,7 @@ spec:
                   # every few hours) fills in /blog once the source is reachable.
                   # Blog pages degrade to empty meanwhile.
                   echo "WARNING: blog clone did not complete after ${max_attempts} attempts; starting Home without the blog. UpdateBlog will keep retrying." >&2
+                  reap_git_workers
                   rm -rf "$REPO_DIR"/* "$REPO_DIR"/.[!.]* 2>/dev/null || true
                   exit 0
                 fi

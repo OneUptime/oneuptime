@@ -1364,7 +1364,13 @@ home:
   #   targetMemoryUtilizationPercentage: 80
   ports:
     http: 1444
+  # Requests (no limits) so Home is Burstable rather than BestEffort and, crucially,
+  # so the HorizontalPodAutoscaler has a CPU request to compute utilization against
+  # — without it the HPA reports "missing request for cpu" and cannot scale Home.
   resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
@@ -1447,11 +1453,24 @@ home:
       # clones are serialized), and/or point repoUrl at a mirror / CDN.
       podManagementPolicy: Parallel
     initContainer:
-      # Bound the clone so a stalled network can't wedge the pod in Init forever
-      # (init containers are not covered by the startup/liveness probes).
-      cloneTimeoutSeconds: 600
-      cloneRetries: 5
-      resources: {}
+      # Per-attempt bound on the clone so a stalled network can't wedge the pod in
+      # Init forever (init containers are not covered by the startup/liveness
+      # probes). Must comfortably exceed a real clone: blob:none still checks out
+      # the full working tree (~8GB of current post images), which at typical
+      # egress takes ~10-15 min — so the old 600s always timed out mid-checkout and
+      # the pod cycled through every retry, then failed open with no blog.
+      cloneTimeoutSeconds: 1800
+      # Retries cover transient git-host blips. Kept small so a genuinely
+      # unreachable source fails open (Home starts blogless) in bounded time rather
+      # than looping cloneRetries x cloneTimeoutSeconds (~90 min) in Init.
+      cloneRetries: 3
+      # Guarantee the clone real CPU (index-pack delta resolution is CPU-bound) and
+      # memory so it is not throttled or evicted as a BestEffort pod. Requests only
+      # (no limits) so a large clone is never OOM-killed mid-checkout.
+      resources:
+        requests:
+          cpu: 500m
+          memory: 512Mi
 
 
 app:
