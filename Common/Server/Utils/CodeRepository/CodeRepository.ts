@@ -78,6 +78,91 @@ export default class CodeRepositoryUtil {
     await this.runGitCommand(data.repoPath, ["pull"]);
   }
 
+  /**
+   * Returns true only when `repoPath` is itself the root of a COMPLETE git
+   * repository, so callers can cheaply branch on "clone vs pull". Two guards
+   * beyond a plain existence check:
+   *   - the path must be the repo root (not merely nested inside an enclosing
+   *     repo), so a custom path under an unrelated repo re-clones rather than
+   *     pulling the wrong tree;
+   *   - HEAD must resolve to a real commit, so a partial/interrupted clone (a
+   *     .git dir with no HEAD) is treated as "not a repo" and re-cloned instead
+   *     of pulled into.
+   * Swallows git's error for a missing/empty directory (a fresh volume).
+   */
+  @CaptureSpan()
+  public static async isGitRepository(data: {
+    repoPath: string;
+  }): Promise<boolean> {
+    try {
+      const topLevel: string = (
+        await this.runGitCommand(data.repoPath, ["rev-parse", "--show-toplevel"])
+      ).trim();
+
+      if (path.resolve(topLevel) !== path.resolve(data.repoPath)) {
+        return false;
+      }
+
+      // Throws (exit 128) on a partial clone with no HEAD; caught below.
+      await this.runGitCommand(data.repoPath, ["rev-parse", "--verify", "HEAD"]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Clones `repoUrl` into an explicit target directory (unlike cloneRepository,
+   * which clones into a subfolder of the cwd). Pass `filter` (e.g. "blob:none")
+   * for a partial clone that keeps full commit + tree history while omitting
+   * historical file blobs. Rename detection is disabled on the resulting repo so
+   * later history walks never lazily re-fetch those omitted blobs.
+   */
+  @CaptureSpan()
+  public static async cloneRepositoryToDirectory(data: {
+    repoUrl: string;
+    directoryPath: string;
+    filter?: string | undefined;
+  }): Promise<void> {
+    const targetPath: string = path.resolve(data.directoryPath);
+
+    // git clone needs the parent to exist; ensure it (no-op if already there).
+    await LocalFile.makeDirectory(path.dirname(targetPath));
+
+    // Start from a clean target so a previous partial/interrupted clone can't
+    // wedge the retry. Remove the target's CONTENTS rather than the directory
+    // itself (it may be a volume mount point); git clone accepts an existing
+    // empty directory.
+    try {
+      for (const entry of await fs.promises.readdir(targetPath)) {
+        await fs.promises.rm(path.join(targetPath, entry), {
+          recursive: true,
+          force: true,
+        });
+      }
+    } catch {
+      // Target does not exist yet — git clone will create it.
+    }
+
+    const args: Array<string> = ["clone"];
+
+    if (data.filter) {
+      args.push(`--filter=${data.filter}`);
+    }
+
+    args.push("--no-tags", data.repoUrl, targetPath);
+
+    await Execute.executeCommandFile({
+      command: "git",
+      args,
+      cwd: path.dirname(targetPath),
+    });
+
+    // See getCommitAuthorsWithFiles: keep rename detection off so the contributor
+    // history walk stays fully local on a partial clone.
+    await this.runGitCommand(targetPath, ["config", "diff.renames", "false"]);
+  }
+
   @CaptureSpan()
   public static async createOrCheckoutBranch(data: {
     repoPath: string;
@@ -421,6 +506,15 @@ export default class CodeRepositoryUtil {
     const args: Array<string> = [
       "log",
       "--no-merges",
+      /*
+       * Disable rename detection. On a partial (--filter=blob:none) clone git's
+       * default rename detection would read blob CONTENT to score similarity,
+       * lazily fetching the omitted historical blobs from the remote — turning
+       * this history walk network-bound (slow online, a hard failure offline).
+       * With --name-only we only need the file paths recorded in tree objects
+       * (all present locally), so --no-renames keeps the walk fully local.
+       */
+      "--no-renames",
       `--pretty=format:${recordSeparator}%an${unitSeparator}%ae`,
       "--name-only",
     ];

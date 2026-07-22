@@ -34,6 +34,7 @@ import React, {
 import MonitorCriteriaAlertsForm from "./MonitorCriteriaAlertsForm";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 
@@ -70,8 +71,9 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   const seriesAttributeKeys: Array<string> = Array.from(
     new Set(
       (
-        props.monitorStep?.data?.metricMonitor?.metricViewConfig
-          ?.queryConfigs || []
+        MonitorStepMetricViewConfigUtil.getMetricViewConfig(
+          props.monitorStep?.data,
+        )?.queryConfigs || []
       ).flatMap((q: MetricQueryConfigData): Array<string> => {
         return q.metricQueryData?.groupByAttributeKeys || [];
       }),

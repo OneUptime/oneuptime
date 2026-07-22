@@ -2481,6 +2481,73 @@
                 },
                 "enableProfiling": {
                     "type": "boolean"
+                },
+                "blog": {
+                    "type": "object",
+                    "properties": {
+                        "skipDownload": {
+                            "type": "boolean"
+                        },
+                        "mode": {
+                            "type": "string",
+                            "enum": [
+                                "emptyDir",
+                                "pvc"
+                            ]
+                        },
+                        "rootPath": {
+                            "type": "string"
+                        },
+                        "repoUrl": {
+                            "type": "string"
+                        },
+                        "cloneFilter": {
+                            "type": "string"
+                        },
+                        "volume": {
+                            "type": "object",
+                            "properties": {
+                                "sizeLimit": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "persistence": {
+                            "type": "object",
+                            "properties": {
+                                "size": {
+                                    "type": "string"
+                                },
+                                "storageClass": {
+                                    "type": "string"
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "initContainer": {
+                            "type": "object",
+                            "properties": {
+                                "cloneTimeoutSeconds": {
+                                    "type": "integer"
+                                },
+                                "cloneRetries": {
+                                    "type": "integer"
+                                },
+                                "resources": {
+                                    "type": [
+                                        "object",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

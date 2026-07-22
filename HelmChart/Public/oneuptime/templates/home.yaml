@@ -1,3 +1,22 @@
+{{- /*
+  Validate the blog volume mode before rendering. A ReadWriteOnce PVC (pvc mode)
+  can only attach to a single pod, so it is incompatible with multiple Home
+  replicas or the Home autoscaler. Fail fast with a clear message instead of
+  producing a Deployment that deadlocks on volume multi-attach.
+*/ -}}
+{{- if and $.Values.home.enabled (eq $.Values.home.blog.mode "pvc") }}
+  {{- /* Effective count mirrors the Deployment's own replicas logic below: it
+     falls back to deployment.replicaCount when home.replicaCount is unset, so the
+     guard cannot be bypassed by leaving home.replicaCount null. */}}
+  {{- $effectiveReplicas := ($.Values.home.replicaCount | default $.Values.deployment.replicaCount | default 1) }}
+  {{- if gt (int $effectiveReplicas) 1 }}
+    {{- fail "home.blog.mode=pvc requires a single Home replica: a ReadWriteOnce blog volume cannot be shared across replicas. Set home.replicaCount=1 (or deployment.replicaCount=1), or use home.blog.mode=emptyDir to run multiple Home replicas." }}
+  {{- end }}
+  {{- if and (eq (include "oneuptime.autoscalingEnabled" (dict "Values" $.Values "Override" $.Values.home.autoscaling)) "true") (not $.Values.home.disableAutoscaler) }}
+    {{- fail "home.blog.mode=pvc is incompatible with the Home autoscaler (a ReadWriteOnce volume cannot attach to multiple pods). Set home.disableAutoscaler=true with home.replicaCount=1, or use home.blog.mode=emptyDir." }}
+  {{- end }}
+{{- end }}
+
 {{- if and $.Values.home.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime Home Deployment
 apiVersion: apps/v1
@@ -24,7 +43,15 @@ spec:
   replicas: {{ $.Values.deployment.replicaCount }}
   {{- end }}
   {{- end }}
+  {{- if eq $.Values.home.blog.mode "pvc" }}
+  # A ReadWriteOnce blog volume attaches to one pod at a time, so a replacement
+  # pod cannot start until the old one releases it. Recreate avoids the resulting
+  # rollout deadlock (RollingUpdate would try to attach the volume to two pods).
+  strategy:
+    type: Recreate
+  {{- else }}
   strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       labels:
@@ -38,13 +65,26 @@ spec:
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
       {{- end }}
-      {{- if $.Values.home.podSecurityContext }}
+      # fsGroup makes the blog volume (emptyDir/PVC) group-owned by GID 1000 so the
+      # non-root `node` user (which clones/pulls the blog) can write to it. Any
+      # user-provided podSecurityContext keys win; fsGroup is only defaulted when
+      # the operator has not set it. OnRootMismatch keeps PVC remounts cheap.
       securityContext:
-        {{- toYaml $.Values.home.podSecurityContext | nindent 8 }}
-      {{- else if $.Values.podSecurityContext }}
-      securityContext:
-        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
-      {{- end }}
+        {{- $homePodSecCtx := dict }}
+        {{- if $.Values.home.podSecurityContext }}
+        {{- $homePodSecCtx = $.Values.home.podSecurityContext }}
+        {{- else if $.Values.podSecurityContext }}
+        {{- $homePodSecCtx = $.Values.podSecurityContext }}
+        {{- end }}
+        {{- if not (hasKey $homePodSecCtx "fsGroup") }}
+        fsGroup: 1000
+        {{- end }}
+        {{- if not (hasKey $homePodSecCtx "fsGroupChangePolicy") }}
+        fsGroupChangePolicy: OnRootMismatch
+        {{- end }}
+        {{- if $homePodSecCtx }}
+        {{- toYaml $homePodSecCtx | nindent 8 }}
+        {{- end }}
       {{- if $.Values.home.hostAliases }}
       hostAliases:
         {{- toYaml $.Values.home.hostAliases | nindent 8 }}
@@ -64,6 +104,90 @@ spec:
       {{- else if $.Values.nodeSelector }}
       nodeSelector:
         {{- toYaml $.Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if not $.Values.home.blog.skipDownload }}
+      initContainers:
+        # Clone the blog into the mounted volume before Home starts, so the pod is
+        # not Ready (and takes no traffic) until the blog is present. Idempotent:
+        # skips the clone when the volume already holds the repo (e.g. a pvc-mode
+        # restart). Uses the Home image (which ships git + bash).
+        - name: clone-blog
+          image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "home") }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          {{- if $.Values.home.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.home.containerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          env:
+            - name: BLOG_ROOT_PATH
+              value: {{ $.Values.home.blog.rootPath | quote }}
+            - name: BLOG_REPOSITORY_URL
+              value: {{ $.Values.home.blog.repoUrl | quote }}
+            - name: BLOG_CLONE_FILTER
+              value: {{ $.Values.home.blog.cloneFilter | quote }}
+            # Abort a stalled clone (transfer < 1KB/s for 20s) rather than hanging
+            # the pod in Init — init containers are not covered by the probes.
+            - name: GIT_HTTP_LOW_SPEED_LIMIT
+              value: "1000"
+            - name: GIT_HTTP_LOW_SPEED_TIME
+              value: "20"
+          command:
+            - bash
+            - -c
+            - |
+              set -eu
+              REPO_DIR="${BLOG_ROOT_PATH:-/usr/src/blog}"
+              # Only a repo with a real HEAD commit counts as "already cloned". An
+              # interrupted clone leaves a .git with no HEAD (which
+              # rev-parse --is-inside-work-tree would still accept), so gate on
+              # --verify HEAD to force a clean re-clone of a partial repo.
+              if git -C "$REPO_DIR" rev-parse --verify HEAD >/dev/null 2>&1; then
+                echo "blog repo already present at $REPO_DIR; skipping clone"
+              else
+                filter_arg=""
+                if [ -n "${BLOG_CLONE_FILTER:-}" ]; then
+                  filter_arg="--filter=${BLOG_CLONE_FILTER}"
+                fi
+                attempt=0
+                cloned=""
+                max_attempts={{ $.Values.home.blog.initContainer.cloneRetries | default 5 }}
+                until [ "$attempt" -ge "$max_attempts" ]; do
+                  attempt=$((attempt + 1))
+                  echo "cloning blog into $REPO_DIR (attempt ${attempt}/${max_attempts})"
+                  rm -rf "$REPO_DIR"/* "$REPO_DIR"/.[!.]* 2>/dev/null || true
+                  if timeout {{ $.Values.home.blog.initContainer.cloneTimeoutSeconds | default 600 }} git clone $filter_arg --no-tags "$BLOG_REPOSITORY_URL" "$REPO_DIR" \
+                    && git -C "$REPO_DIR" rev-parse --verify HEAD >/dev/null 2>&1; then
+                    cloned="yes"
+                    break
+                  fi
+                  echo "clone attempt ${attempt} failed; retrying in 10s..."
+                  sleep 10
+                done
+                if [ -z "$cloned" ]; then
+                  # Fail open: never block Home (marketing/product/docs) on a blog
+                  # clone that cannot reach its source. Leave the volume empty and
+                  # clean; the app's UpdateBlog cron (clone-if-missing, on startup +
+                  # every few hours) fills in /blog once the source is reachable.
+                  # Blog pages degrade to empty meanwhile.
+                  echo "WARNING: blog clone did not complete after ${max_attempts} attempts; starting Home without the blog. UpdateBlog will keep retrying." >&2
+                  rm -rf "$REPO_DIR"/* "$REPO_DIR"/.[!.]* 2>/dev/null || true
+                  exit 0
+                fi
+              fi
+              # Keep rename detection off so the contributor `git log` walk never
+              # lazily re-fetches the omitted historical blobs on a partial clone.
+              git -C "$REPO_DIR" config diff.renames false || true
+              echo "blog ready at $REPO_DIR"
+          volumeMounts:
+            - name: blog
+              mountPath: {{ $.Values.home.blog.rootPath | quote }}
+          {{- if $.Values.home.blog.initContainer.resources }}
+          resources:
+            {{- toYaml $.Values.home.blog.initContainer.resources | nindent 12 }}
+          {{- end }}
       {{- end }}
       containers:
         - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "home") }}
@@ -116,13 +240,40 @@ spec:
               value: {{ $.Values.home.disableTelemetryCollection | quote }}
             - name: ENABLE_PROFILING
               value: {{ $.Values.home.enableProfiling | quote }}
+            # Keep in sync with the clone-blog initContainer so the UpdateBlog cron
+            # (clone-if-missing + git pull) reads/writes the same mounted volume.
+            - name: BLOG_ROOT_PATH
+              value: {{ $.Values.home.blog.rootPath | quote }}
+            - name: BLOG_REPOSITORY_URL
+              value: {{ $.Values.home.blog.repoUrl | quote }}
+            - name: BLOG_CLONE_FILTER
+              value: {{ $.Values.home.blog.cloneFilter | quote }}
+            # Emergency kill-switch: when true the clone initContainer is skipped
+            # and the UpdateBlog job does nothing, so Home starts with no blog
+            # (blog pages degrade to empty; marketing/product/docs are unaffected).
+            - name: BLOG_SKIP_DOWNLOAD
+              value: {{ $.Values.home.blog.skipDownload | quote }}
           ports:
             - containerPort: {{ $.Values.home.ports.http }}
               protocol: TCP
               name: http
+          volumeMounts:
+            - name: blog
+              mountPath: {{ $.Values.home.blog.rootPath | quote }}
           {{- if $.Values.home.resources }}
           resources:
             {{- toYaml $.Values.home.resources | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: blog
+          {{- if eq $.Values.home.blog.mode "pvc" }}
+          persistentVolumeClaim:
+            claimName: {{ printf "%s-%s" $.Release.Name "home-blog" }}
+          {{- else }}
+          emptyDir:
+            {{- if $.Values.home.blog.volume.sizeLimit }}
+            sizeLimit: {{ $.Values.home.blog.volume.sizeLimit }}
+            {{- end }}
           {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
@@ -148,4 +299,38 @@ spec:
 {{- if and $.Values.home.enabled (not $.Values.deployment.disableDeployments) }}
 # OneUptime home PodDisruptionBudget
 {{- include "oneuptime.pdb" (dict "ServiceName" "home" "Override" $.Values.home.podDisruptionBudget "Release" $.Release "Values" $.Values) }}
+{{- end }}
+
+{{- if and $.Values.home.enabled (not $.Values.deployment.disableDeployments) (eq $.Values.home.blog.mode "pvc") }}
+---
+# OneUptime Home blog PersistentVolumeClaim (optional pvc mode).
+# ReadWriteOnce: a single Home replica owns this cached blog clone so it is paid
+# once and survives pod restarts. Requires home.replicaCount=1 (enforced above).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "home-blog" }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "home" }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if $.Values.home.blog.persistence.storageClass }}
+  {{- if eq $.Values.home.blog.persistence.storageClass "-" }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ $.Values.home.blog.persistence.storageClass }}
+  {{- end }}
+  {{- else }}
+  {{- if $.Values.global.storageClass }}
+  storageClassName: {{ $.Values.global.storageClass }}
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $.Values.home.blog.persistence.size }}
 {{- end }}
