@@ -423,8 +423,9 @@ describe("POST /probe/discovery-scan/result", () => {
     const deviceFindArgs: JSONObject = deviceService.findBy.mock
       .calls[0]![0] as JSONObject;
     expect(
-      ((deviceFindArgs["query"] as JSONObject)["projectId"] as ObjectID)
-        .toString(),
+      (
+        (deviceFindArgs["query"] as JSONObject)["projectId"] as ObjectID
+      ).toString(),
     ).toBe(projectId.toString());
 
     const devices: Array<JSONObject> = lastUpdateData()[
@@ -480,7 +481,10 @@ describe("POST /probe/discovery-scan/result", () => {
 
   test("a recurring scan schedules its next run after the configured interval", async () => {
     scanService.findOneBy.mockResolvedValue(
-      makeFoundScan({ isRecurring: true, rescanIntervalInMinutes: 60 }) as never,
+      makeFoundScan({
+        isRecurring: true,
+        rescanIntervalInMinutes: 60,
+      }) as never,
     );
 
     const before: number = Date.now();
@@ -505,7 +509,10 @@ describe("POST /probe/discovery-scan/result", () => {
 
   test("a recurring scan reschedules even when the sweep failed — one bad run must not end the recurrence", async () => {
     scanService.findOneBy.mockResolvedValue(
-      makeFoundScan({ isRecurring: true, rescanIntervalInMinutes: 60 }) as never,
+      makeFoundScan({
+        isRecurring: true,
+        rescanIntervalInMinutes: 60,
+      }) as never,
     );
 
     await callResultEndpoint(

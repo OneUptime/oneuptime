@@ -188,4 +188,29 @@ export default class EnterpriseLicenseInstance extends BaseModel {
     nullable: true,
   })
   public masterAdminEmails?: Array<string> = undefined;
+
+  /*
+   * Named oneuptimeVersion, not version: DatabaseBaseModel already declares a
+   * `version` @VersionColumn() (the optimistic-locking row revision) on every
+   * model, so a second `version` property would collide in the TypeORM entity
+   * metadata.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "OneUptime Version",
+    description:
+      "OneUptime version this instance last reported, for example 11.5.13. Lets support see which instances are running an outdated build.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public oneuptimeVersion?: string = undefined;
 }

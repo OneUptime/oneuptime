@@ -789,6 +789,12 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 - name: DISABLE_TELEMETRY_INGESTION
   value: {{ default false $.Values.telemetry.disableIngestion | squote }}
 
+- name: DISABLE_UPDATE_CHECK
+  value: {{ default false $.Values.updateCheck.disabled | squote }}
+
+- name: LATEST_RELEASE_CHECK_URL
+  value: {{ default "" $.Values.updateCheck.url | quote }}
+
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 

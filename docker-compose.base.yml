@@ -112,6 +112,11 @@ x-common-runtime-variables: &common-runtime-variables
 
   DISABLE_TELEMETRY_INGESTION: ${DISABLE_TELEMETRY_INGESTION}
 
+  # Defaulted, unlike its siblings: this one gates outbound traffic, and an
+  # existing config.env upgraded in place will not have the key.
+  DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}
+  LATEST_RELEASE_CHECK_URL: ${LATEST_RELEASE_CHECK_URL:-}
+
   # Open Source Deployment Webhook
   OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL: ${OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL}
 

@@ -309,6 +309,11 @@ clickhouse:
         <interserver_http_port>9009</interserver_http_port>
         <listen_host>::</listen_host>
 
+        <!-- Maximum number of concurrently executing queries. 0 = unlimited.
+             Raised well above ClickHouse's default (100) so bursts of dashboard
+             and telemetry queries are not rejected with TOO_MANY_SIMULTANEOUS_QUERIES. -->
+        <max_concurrent_queries>10000</max_concurrent_queries>
+
         <!-- System log retention: 6 hour TTL to prevent unbounded disk growth -->
         <query_log>
             <database>system</database>
@@ -507,6 +512,10 @@ clickhouseOperator:
       postgresql_port: "9005"
       logger/level: warning
       merge_tree/max_suspicious_broken_parts: "1000"
+      # Maximum number of concurrently executing queries (0 = unlimited). Raised
+      # well above ClickHouse's default (100) so bursts of dashboard and telemetry
+      # queries are not rejected with TOO_MANY_SIMULTANEOUS_QUERIES.
+      max_concurrent_queries: "10000"
     # User/profile-level settings rendered into users.d (under <profiles>). Slash-separated
     # keys become nested XML (default/max_threads -> <profiles><default><max_threads>).
     #
@@ -912,6 +921,17 @@ alerts:
 # clients do not retry, but no data is queued or persisted.
 telemetry:
   disableIngestion: false
+
+# Once a day this installation asks the GitHub API which OneUptime version is
+# the latest release, so admins are told in the dashboard when an upgrade is
+# available. No usage data is sent — GitHub sees your public IP and a
+# User-Agent naming OneUptime and the version you run.
+# Set disabled to true to make no outbound call at all, or point url at an
+# internal mirror that answers with GitHub's release shape
+# (tag_name, html_url, published_at).
+updateCheck:
+  disabled: false
+  url:
 
 # If you would like to attach status page to custom domains use this setting.
 # For example, lets say you would like the status page to be hosted on status.yourcompany.com, then

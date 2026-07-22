@@ -122,6 +122,20 @@ features. See the full [Local AI with vLLM](ai-vllm.md) guide.
 | `vllm.resources`                                       | Pod resources. Defaults request one `nvidia.com/gpu`.                                            | see `values.yaml` |
 | `vllm.nodeSelector` / `vllm.tolerations`               | Schedule vLLM onto your GPU nodes.                                                               | `{}` / `[]` |
 
+## Update check
+
+Once a day the worker asks GitHub which OneUptime version is the latest
+release, so admins are shown an "update available" notice in the dashboard. No
+usage data is sent — GitHub sees your public IP and a `User-Agent` naming
+OneUptime and the version you run. An installation with no route to
+`api.github.com` does not need to change anything: the request fails, is
+logged, and nothing is shown.
+
+| Parameter              | Description                                                                                                            | Default |
+|------------------------|------------------------------------------------------------------------------------------------------------------------|---------|
+| `updateCheck.disabled` | Set to `true` to make no outbound call at all.                                                                          | `false` |
+| `updateCheck.url`      | Point the check at an internal mirror. Must answer with GitHub's release shape (`tag_name`, `html_url`, `published_at`). | `""` (GitHub) |
+
 ## Other
 
 | Parameter                          | Description                              | Default |

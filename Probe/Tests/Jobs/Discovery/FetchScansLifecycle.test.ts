@@ -46,7 +46,9 @@ function makeScan(overrides?: JSONObject): NetworkDeviceDiscoveryScan {
   } as unknown as NetworkDeviceDiscoveryScan;
 }
 
-function makeScanResult(overrides?: Partial<SubnetScanResult>): SubnetScanResult {
+function makeScanResult(
+  overrides?: Partial<SubnetScanResult>,
+): SubnetScanResult {
   return {
     discoveredHosts: [
       { ipAddress: "10.0.0.5", sysName: "sw1", sysDescr: "Cisco IOS" },
@@ -149,9 +151,9 @@ describe("runScan — a successful sweep", () => {
     expect(body["scanId"]).toBe(scanId.toString());
     expect(body["success"]).toBe(true);
     expect(body["scannedHostCount"]).toBe(254);
-    expect((body["discoveredDevices"] as Array<JSONObject>)[0]!["ipAddress"]).toBe(
-      "10.0.0.5",
-    );
+    expect(
+      (body["discoveredDevices"] as Array<JSONObject>)[0]!["ipAddress"],
+    ).toBe("10.0.0.5");
     // Auth rides along on the result report too.
     expect(body["probeId"]).toBe("11111111-2222-3333-4444-555555555555");
     expect(body["probeKey"]).toBe("test-probe-key");

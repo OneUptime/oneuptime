@@ -9,6 +9,7 @@ describe("CodeFixTaskTypeHelper", () => {
       expect(CodeFixTaskTypeHelper.getUserTriggerableTaskTypes()).toEqual([
         CodeFixTaskType.FixException,
         CodeFixTaskType.WriteRegressionTest,
+        CodeFixTaskType.ImproveExceptionHandling,
       ]);
     });
   });
@@ -17,6 +18,7 @@ describe("CodeFixTaskTypeHelper", () => {
     test.each([
       CodeFixTaskType.FixException,
       CodeFixTaskType.WriteRegressionTest,
+      CodeFixTaskType.ImproveExceptionHandling,
     ])("returns true for %s", (taskType: CodeFixTaskType) => {
       expect(CodeFixTaskTypeHelper.isUserTriggerable(taskType)).toBe(true);
     });
@@ -69,6 +71,7 @@ describe("CodeFixTaskTypeHelper", () => {
     test.each([
       CodeFixTaskType.FixException,
       CodeFixTaskType.WriteRegressionTest,
+      CodeFixTaskType.ImproveExceptionHandling,
     ])("returns true for %s", (taskType: CodeFixTaskType) => {
       expect(CodeFixTaskTypeHelper.requiresTelemetryException(taskType)).toBe(
         true,
