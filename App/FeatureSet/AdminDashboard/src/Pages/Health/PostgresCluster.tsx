@@ -13,6 +13,12 @@ import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsag
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import {
+  MetricInfo,
+  MetricInfoTip,
+  MetricInfoWrap,
+  MetricSectionHeading,
+} from "../../Components/HealthMetricTooltip/HealthMetricTooltip";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -160,6 +166,101 @@ const formatShareOfDatabase: (
   return `${percent.toFixed(1)}% of database`;
 };
 
+/*
+ * Plain-language explanations for every metric on this card. Kept in one place
+ * so the copy is easy to review and reuse — each entry drives an info tooltip
+ * next to the metric's label.
+ */
+type MetricInfoKey =
+  | "overallStatus"
+  | "databaseSize"
+  | "commits"
+  | "rollbacks"
+  | "tempFiles"
+  | "streamingReplication"
+  | "replicationSlots"
+  | "connections"
+  | "active"
+  | "idle"
+  | "idleInTransaction"
+  | "waitingOnLock"
+  | "cacheHitRatio"
+  | "longestTransaction"
+  | "deadlocks"
+  | "wraparoundHeadroom"
+  | "autovacuumHotspots";
+
+const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
+  overallStatus: {
+    title: "Overall status",
+    body: "A roll-up of the signals below. Healthy (green): nothing notable. Degraded (yellow): a soft signal — cache-hit ratio under 90%, connections at 75%+, a standby not streaming, replication lag over 10s, an inactive slot, or 10+ idle-in-transaction sessions. Needs attention (red): a hard problem — sessions blocked on a lock, connections at 90%+, wraparound headroom under 10%, a lost replication slot, or replication lag over 60s.",
+  },
+  databaseSize: {
+    title: "Database size",
+    body: "Total on-disk size of the current database — tables, indexes, and TOAST data combined — as reported by pg_database_size().",
+  },
+  commits: {
+    title: "Commits",
+    body: "Transactions committed in this database since the statistics were last reset. A steady climb is just normal write traffic; it's shown next to the reset age so the number has context.",
+  },
+  rollbacks: {
+    title: "Rollbacks",
+    body: "Transactions rolled back since the last stats reset. A high count relative to commits can point to application errors, deadlocks, or frequently aborted work.",
+  },
+  tempFiles: {
+    title: "Temp files",
+    body: "Temporary files Postgres spilled to disk since the last stats reset, with total bytes written. Large volumes mean sorts or hashes are exceeding work_mem and falling back to disk.",
+  },
+  streamingReplication: {
+    title: "Streaming replication",
+    body: "The primary's view of each connected standby — its state and how far behind it is in receiving, writing, flushing, and replaying WAL. Empty on a single-node deployment.",
+  },
+  replicationSlots: {
+    title: "Replication slots",
+    body: "Named slots that make the primary retain WAL until a consumer (a standby or logical subscriber) has read it. Inactive slots can pile up WAL and fill the disk; a 'lost' slot has already dropped WAL a consumer still needed.",
+  },
+  connections: {
+    title: "Connections",
+    body: "Server connections in use versus max_connections. Postgres runs one backend process per connection, so approaching the limit starves new sessions. A pooler such as PgBouncer keeps this low.",
+  },
+  active: {
+    title: "Active",
+    body: "Backends currently executing a query.",
+  },
+  idle: {
+    title: "Idle",
+    body: "Backends connected but not running a query — usually sessions held open by a connection pool.",
+  },
+  idleInTransaction: {
+    title: "Idle in transaction",
+    body: "Backends that have an open transaction but aren't doing anything. They hold locks and pin old row versions, which blocks vacuum — worth watching closely.",
+  },
+  waitingOnLock: {
+    title: "Waiting on lock",
+    body: "Backends blocked waiting to acquire a lock held by another session. Sustained values indicate lock contention.",
+  },
+  cacheHitRatio: {
+    title: "Cache hit ratio",
+    body: "Share of block reads served from Postgres' shared buffers rather than the OS or disk, since the last stats reset. Under ~90% suggests shared_buffers is small relative to the working set. Note: reads served by the OS page cache still count as misses here, so true disk-hit rate is usually higher.",
+  },
+  longestTransaction: {
+    title: "Longest transaction",
+    body: "Age of the oldest transaction still running. Long-lived transactions hold locks and stop vacuum from reclaiming dead rows.",
+  },
+  deadlocks: {
+    title: "Deadlocks",
+    body: "Deadlocks detected since the last stats reset. Postgres automatically aborts one transaction to break each one; recurring deadlocks point to conflicting lock ordering in the application.",
+  },
+  wraparoundHeadroom: {
+    title: "Wraparound headroom",
+    body: "How much room remains before the oldest transaction ID reaches the ~2.1B wraparound limit. As it nears zero, Postgres forces aggressive autovacuum and ultimately refuses new writes. Higher is safer.",
+  },
+  autovacuumHotspots: {
+    title: "Autovacuum hotspots",
+    body: "Autovacuum is Postgres' background housekeeping process: it reclaims storage from dead tuples (row versions left behind by updates and deletes) and refreshes the planner's statistics, without blocking reads or writes. This lists the tables with the most dead tuples and when each was last autovacuumed — rising dead-tuple counts alongside stale vacuum times cause table bloat and slower scans.",
+  },
+};
+
 const PostgresCluster: FunctionComponent = (): ReactElement => {
   const [data, setData] = useState<JSONObject | null>(null);
   const [activity, setActivity] = useState<JSONObject | null>(null);
@@ -238,14 +339,19 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     label: string,
     value: string,
     hint?: string,
+    info?: MetricInfo,
   ) => ReactElement = (
     label: string,
     value: string,
     hint?: string,
+    info?: MetricInfo,
   ): ReactElement => {
     return (
       <div className="rounded-lg border border-gray-200 p-3">
-        <div className="text-xs text-gray-500">{label}</div>
+        <div className="text-xs text-gray-500 flex items-center">
+          {label}
+          {info ? <MetricInfoTip info={info} /> : <></>}
+        </div>
         <div className="text-base font-semibold text-gray-900 mt-1">
           {value}
         </div>
@@ -525,27 +631,35 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
               ? ` · up ${formatDuration(data?.["uptimeSeconds"])}`
               : ""}
           </div>
-          <Statusbubble
-            text={statusText}
-            color={statusColor}
-            shouldAnimate={shouldAnimate}
-          />
+          <MetricInfoWrap info={METRIC_INFO.overallStatus}>
+            <span className="inline-flex cursor-help">
+              <Statusbubble
+                text={statusText}
+                color={statusColor}
+                shouldAnimate={shouldAnimate}
+              />
+            </span>
+          </MetricInfoWrap>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {renderStat(
             "Database size",
             bytesToReadable(data?.["databaseSizeInBytes"]),
+            undefined,
+            METRIC_INFO.databaseSize,
           )}
           {renderStat(
             "Commits",
             formatNumber(database["xactCommit"]),
             statsResetHint,
+            METRIC_INFO.commits,
           )}
           {renderStat(
             "Rollbacks",
             formatNumber(database["xactRollback"]),
             statsResetHint,
+            METRIC_INFO.rollbacks,
           )}
           {renderStat(
             "Temp files",
@@ -553,30 +667,34 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             isNum(database["tempBytes"])
               ? `${bytesToReadable(database["tempBytes"])} written`
               : undefined,
+            METRIC_INFO.tempFiles,
           )}
         </div>
 
         {/* Streaming replication — the primary's view of every standby. */}
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">
-            Streaming replication
-          </div>
+          <MetricSectionHeading
+            text="Streaming replication"
+            info={METRIC_INFO.streamingReplication}
+          />
           {renderReplication(replication, isInRecovery)}
         </div>
 
         {/* Replication slots — inactive / lost slots silently retain or drop WAL. */}
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">
-            Replication slots
-          </div>
+          <MetricSectionHeading
+            text="Replication slots"
+            info={METRIC_INFO.replicationSlots}
+          />
           {renderSlots(slots)}
         </div>
 
         {/* Connection saturation + lock pressure. */}
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">
-            Connections
-          </div>
+          <MetricSectionHeading
+            text="Connections"
+            info={METRIC_INFO.connections}
+          />
           {connPercent !== null ? (
             <ResourceUsageBar
               label="Connections"
@@ -590,15 +708,29 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             <></>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
-            {renderStat("Active", formatNumber(connections["active"]))}
-            {renderStat("Idle", formatNumber(connections["idle"]))}
+            {renderStat(
+              "Active",
+              formatNumber(connections["active"]),
+              undefined,
+              METRIC_INFO.active,
+            )}
+            {renderStat(
+              "Idle",
+              formatNumber(connections["idle"]),
+              undefined,
+              METRIC_INFO.idle,
+            )}
             {renderStat(
               "Idle in txn",
               formatNumber(connections["idleInTransaction"]),
+              undefined,
+              METRIC_INFO.idleInTransaction,
             )}
             {renderStat(
               "Waiting on lock",
               formatNumber(connections["waitingOnLock"]),
+              undefined,
+              METRIC_INFO.waitingOnLock,
             )}
           </div>
           {blocked > 0 ? (
@@ -616,28 +748,36 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           {renderStat(
             "Cache hit ratio",
             cacheHit !== null ? `${cacheHit.toFixed(1)}%` : "—",
+            undefined,
+            METRIC_INFO.cacheHitRatio,
           )}
           {renderStat(
             "Longest transaction",
             formatDuration(connections["longestTransactionSeconds"]),
+            undefined,
+            METRIC_INFO.longestTransaction,
           )}
           {renderStat(
             "Deadlocks",
             formatNumber(database["deadlocks"]),
             statsResetHint,
+            METRIC_INFO.deadlocks,
           )}
           {renderStat(
             "Wraparound headroom",
             wrapHeadroom !== null ? `${wrapHeadroom.toFixed(0)}%` : "—",
+            undefined,
+            METRIC_INFO.wraparoundHeadroom,
           )}
         </div>
 
         {/* Dead-tuple / autovacuum hotspots. */}
         {topTables.length > 0 ? (
           <div>
-            <div className="text-sm font-semibold text-gray-900 mb-2">
-              Autovacuum hotspots
-            </div>
+            <MetricSectionHeading
+              text="Autovacuum hotspots"
+              info={METRIC_INFO.autovacuumHotspots}
+            />
             <div className="space-y-1">
               {topTables
                 .slice(0, MAX_ROWS_TO_SHOW)

@@ -12,6 +12,11 @@ import ResourceUsageBar from "Common/UI/Components/ResourceUsageBar/ResourceUsag
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import {
+  MetricInfo,
+  MetricInfoTip,
+  MetricInfoWrap,
+} from "../../Components/HealthMetricTooltip/HealthMetricTooltip";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -49,6 +54,35 @@ const bytesToReadable: (value: number | null) => string = (
   const decimals: number = scaled >= 10 || exponent === 0 ? 0 : 1;
 
   return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+};
+
+/*
+ * Plain-language explanations for the Redis signals on this card. Kept in one
+ * place so the copy is easy to review; each entry drives an info tooltip.
+ */
+type MetricInfoKey =
+  | "overallStatus"
+  | "memoryUtilization"
+  | "memoryUsed"
+  | "memoryLimit";
+
+const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
+  overallStatus: {
+    title: "Overall status",
+    body: "Redis backs OneUptime's caching and queues. This card tracks reachability: Connected means this instance can reach Redis; Unreachable means it can't, which stalls cache reads and queued jobs. There is no partial state here — it's a binary reachability check, not a degraded/healthy scale.",
+  },
+  memoryUtilization: {
+    title: "Redis memory utilization",
+    body: "Used memory as a share of Redis' configured maxmemory. As this approaches 100%, Redis begins evicting keys per its eviction policy (or rejecting writes if no policy is set). If maxmemory is unset, no percentage can be shown.",
+  },
+  memoryUsed: {
+    title: "Memory used",
+    body: "Total memory Redis currently holds — cached data plus its own bookkeeping overhead (used_memory from INFO).",
+  },
+  memoryLimit: {
+    title: "Memory limit",
+    body: "The maxmemory ceiling Redis will use before it starts evicting keys or rejecting writes. 'Not configured' means Redis can grow until the host itself runs out of memory.",
+  },
 };
 
 const RedisHealth: FunctionComponent = (): ReactElement => {
@@ -130,24 +164,32 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
                 Redis is {connected ? "reachable" : "not reachable"} from this
                 instance.
               </div>
-              <Statusbubble
-                text={connected ? "Connected" : "Unreachable"}
-                color={connected ? Green : Red}
-                shouldAnimate={connected}
-              />
+              <MetricInfoWrap info={METRIC_INFO.overallStatus}>
+                <span className="inline-flex cursor-help">
+                  <Statusbubble
+                    text={connected ? "Connected" : "Unreachable"}
+                    color={connected ? Green : Red}
+                    shouldAnimate={connected}
+                  />
+                </span>
+              </MetricInfoWrap>
             </div>
 
             {connected ? (
               <>
                 {memoryPercent !== null ? (
-                  <ResourceUsageBar
-                    label="Redis memory"
-                    value={memoryPercent}
-                    valueLabel={`${memoryPercent.toFixed(0)}%`}
-                    secondaryLabel={`${bytesToReadable(
-                      usedMemory,
-                    )} / ${bytesToReadable(maxMemory)}`}
-                  />
+                  <MetricInfoWrap info={METRIC_INFO.memoryUtilization}>
+                    <div className="cursor-help">
+                      <ResourceUsageBar
+                        label="Redis memory"
+                        value={memoryPercent}
+                        valueLabel={`${memoryPercent.toFixed(0)}%`}
+                        secondaryLabel={`${bytesToReadable(
+                          usedMemory,
+                        )} / ${bytesToReadable(maxMemory)}`}
+                      />
+                    </div>
+                  </MetricInfoWrap>
                 ) : (
                   <Alert
                     type={AlertType.INFO}
@@ -157,13 +199,19 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div className="rounded-lg border border-gray-200 p-3">
-                    <div className="text-xs text-gray-500">Memory used</div>
+                    <div className="text-xs text-gray-500 flex items-center">
+                      Memory used
+                      <MetricInfoTip info={METRIC_INFO.memoryUsed} />
+                    </div>
                     <div className="text-base font-semibold text-gray-900 mt-1">
                       {bytesToReadable(usedMemory)}
                     </div>
                   </div>
                   <div className="rounded-lg border border-gray-200 p-3">
-                    <div className="text-xs text-gray-500">Memory limit</div>
+                    <div className="text-xs text-gray-500 flex items-center">
+                      Memory limit
+                      <MetricInfoTip info={METRIC_INFO.memoryLimit} />
+                    </div>
                     <div className="text-base font-semibold text-gray-900 mt-1">
                       {maxMemory !== null && maxMemory > 0
                         ? bytesToReadable(maxMemory)
