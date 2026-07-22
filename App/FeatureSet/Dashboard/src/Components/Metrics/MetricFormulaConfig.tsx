@@ -55,8 +55,13 @@ const MetricFormulaConfigComponent: FunctionComponent<ComponentProps> = (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {props.data.metricAliasData?.metricVariable && (
-            <div className="flex h-6 w-6 min-w-6 items-center justify-center rounded-md border border-violet-200 bg-violet-50 text-xs font-bold text-violet-700">
-              {props.data.metricAliasData.metricVariable}
+            <div
+              className="flex h-6 min-w-6 max-w-[12rem] items-center justify-center rounded-md border border-violet-200 bg-violet-50 px-1.5 text-xs font-bold text-violet-700"
+              title={props.data.metricAliasData.metricVariable}
+            >
+              <span className="min-w-0 truncate">
+                {props.data.metricAliasData.metricVariable}
+              </span>
             </div>
           )}
           <div className="min-w-0 flex-1">

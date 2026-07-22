@@ -13,7 +13,9 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import User from "Common/UI/Utils/User";
+import SelectEntityField from "Common/UI/Types/SelectEntityField";
 import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 import React, {
   Fragment,
@@ -54,18 +56,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         selectMoreFields={{
           statusMessage: true,
-          userEmail: {
-            email: true,
-          },
-          userSms: {
-            phone: true,
-          },
-          userPush: {
-            deviceName: true,
-          },
-          userWhatsApp: {
-            phone: true,
-          },
+          ...NotificationMethodUtil.getSelectForNotificationMethods<UserOnCallLogTimeline>(),
         }}
         noItemsMessage={"No notifications sent out so far."}
         showRefreshButton={true}
@@ -114,23 +105,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ]}
         columns={[
           {
-            field: {
-              userCall: {
-                phone: true,
-              },
-              userEmail: {
-                email: true,
-              },
-              userSms: {
-                phone: true,
-              },
-              userPush: {
-                deviceName: true,
-              },
-              userWhatsApp: {
-                phone: true,
-              },
-            },
+            field:
+              NotificationMethodUtil.getSelectForNotificationMethods<UserOnCallLogTimeline>() as SelectEntityField<UserOnCallLogTimeline>,
             title: "Notification Method",
             type: FieldType.Element,
             getElement: (item: UserOnCallLogTimeline): ReactElement => {

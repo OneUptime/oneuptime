@@ -4,6 +4,7 @@ import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import DuplicateModel from "Common/UI/Components/DuplicateModel/DuplicateModel";
+import ExportModelCard from "Common/UI/Components/ImportExport/ExportModelCard";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -163,10 +164,17 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <DuplicateModel
         modelId={modelId}
         modelType={Workflow}
+        /*
+         * isEnabled is deliberately not duplicated. The copy is created with
+         * the graph already attached, so its trigger is live from the moment
+         * it is enabled - duplicating an enabled workflow would immediately
+         * start a second copy of the same automation. The duplicate lands
+         * disabled and is turned on once it has been edited, which matches
+         * both a new workflow and an imported one.
+         */
         fieldsToDuplicate={{
           description: true,
           graph: true,
-          isEnabled: true,
           labels: true,
         }}
         navigateToOnSuccess={RouteUtil.populateRouteParams(
@@ -187,6 +195,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
+
+      <div className="mt-5">
+        <ExportModelCard modelId={modelId} modelType={Workflow} />
+      </div>
     </Fragment>
   );
 };

@@ -59,6 +59,30 @@ KEDA ScaledObjects for various services
 {{- include "oneuptime.kedaScaledObject" $workerKedaArgs }}
 {{- end }}
 
+{{/* Telemetry-writer KEDA ScaledObject — scales the writer tier on its
+     fleet-wide shed rate: 429s rejected across ALL writer pods over roughly
+     the last two minutes, read from a shared Redis counter via whichever pod
+     KEDA polls (/metrics/telemetry-writer-shed-rate). Sustained shedding
+     while ClickHouse is healthy is the one honest "tier too small" signal.
+     Deliberately NOT scaled on queue depth — queue growth is the worker
+     fleet's scale signal; reacting to it here would hand ClickHouse the very
+     burst this tier exists to absorb. Optional CPU/memory triggers compose.
+     Keep maxReplicas x telemetryFanInMaxConcurrentInserts inside the
+     ClickHouse max_concurrent_queries budget. */}}
+{{- if and .Values.keda.enabled .Values.telemetryWriter.enabled ((.Values.telemetryWriter.keda).enabled) (not .Values.deployment.disableDeployments) }}
+{{- $twResources := .Values.telemetryWriter.resources | default dict }}
+{{- $twRequests := get $twResources "requests" | default dict }}
+{{- if and (gt (int (.Values.telemetryWriter.keda.targetCPUUtilizationPercentage | default 0)) 0) (not (get $twRequests "cpu")) }}
+{{- fail "telemetryWriter.keda.targetCPUUtilizationPercentage requires telemetryWriter.resources.requests.cpu to be set" }}
+{{- end }}
+{{- if and (gt (int (.Values.telemetryWriter.keda.targetMemoryUtilizationPercentage | default 0)) 0) (not (get $twRequests "memory")) }}
+{{- fail "telemetryWriter.keda.targetMemoryUtilizationPercentage requires telemetryWriter.resources.requests.memory to be set" }}
+{{- end }}
+{{- $metricsConfig := dict "enabled" .Values.telemetryWriter.keda.enabled "minReplicas" .Values.telemetryWriter.keda.minReplicas "maxReplicas" .Values.telemetryWriter.keda.maxReplicas "pollingInterval" .Values.telemetryWriter.keda.pollingInterval "cooldownPeriod" .Values.telemetryWriter.keda.cooldownPeriod "fallback" .Values.telemetryWriter.keda.fallback "targetCPUUtilizationPercentage" .Values.telemetryWriter.keda.targetCPUUtilizationPercentage "targetMemoryUtilizationPercentage" .Values.telemetryWriter.keda.targetMemoryUtilizationPercentage "triggers" (list (dict "threshold" .Values.telemetryWriter.keda.shedCountThreshold "port" .Values.telemetryWriter.ports.http "urlPath" "/metrics/telemetry-writer-shed-rate" "valueLocation" "shedCount")) }}
+{{- $twKedaArgs := dict "ServiceName" "telemetry-writer" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" false }}
+{{- include "oneuptime.kedaScaledObject" $twKedaArgs }}
+{{- end }}
+
 {{/* AI Agent KEDA ScaledObject */}}
 {{- if and .Values.keda.enabled .Values.aiAgent.enabled .Values.aiAgent.keda.enabled (not .Values.aiAgent.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
 {{- $metricsConfig := dict "enabled" .Values.aiAgent.keda.enabled "minReplicas" .Values.aiAgent.keda.minReplicas "maxReplicas" .Values.aiAgent.keda.maxReplicas "pollingInterval" .Values.aiAgent.keda.pollingInterval "cooldownPeriod" .Values.aiAgent.keda.cooldownPeriod "fallback" .Values.aiAgent.keda.fallback "triggers" (list (dict "query" "oneuptime_ai_agent_queue_size" "threshold" .Values.aiAgent.keda.queueSizeThreshold "port" .Values.aiAgent.ports.http)) }}

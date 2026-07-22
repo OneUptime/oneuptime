@@ -830,6 +830,25 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Enterprise License Is Evaluation",
+    description:
+      "True when the validated enterprise license is an evaluation/testing license. Drives the evaluation notice shown in the edition modal.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public enterpriseLicenseIsEvaluation?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     type: TableColumnType.Number,
     title: "Enterprise License User Limit",
     description:
@@ -928,6 +947,63 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public enterpriseLicenseExpiryReminderDays?: number = undefined;
+
+  /*
+   * The four latestRelease* columns cache the daily GitHub release check
+   * (Workers/Jobs/InstanceUpdate/CheckForNewVersion). They are a cache, not
+   * configuration: an air-gapped installation simply leaves them null and no
+   * update prompt is ever shown.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Latest Release Version",
+    description:
+      "Latest OneUptime version published on GitHub, for example 11.6.0, as of the last update check. Null until the first successful check.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public latestReleaseVersion?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Latest Release Published At",
+    description: "When the latest OneUptime version was published on GitHub.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public latestReleasePublishedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Latest Release Checked At",
+    description:
+      "When this installation last successfully checked GitHub for a newer OneUptime release.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public latestReleaseCheckedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [],

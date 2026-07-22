@@ -39,6 +39,10 @@ import {
   ParsedSyslogStructuredData,
   parseSyslogMessage,
 } from "../Utils/SyslogParser";
+import TelemetryFanInWriter, {
+  FanInSubmitResult,
+  pushObservedAck,
+} from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 
 class SyslogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -150,6 +154,15 @@ export default class SyslogIngestService extends OtelIngestBaseService {
 
   @CaptureSpan()
   private static async processSyslogAsync(req: ExpressRequest): Promise<void> {
+    /*
+     * Durability acks from the fan-in writer, one per submitted batch. The
+     * job only completes once every ack has resolved (ack-after-flush), so
+     * a payload whose rows never landed fails and is retried by BullMQ.
+     * Declared outside the try so the catch can settle them — an error
+     * thrown mid-processing must not leave rejected acks unobserved.
+     */
+    const pendingAcks: Array<Promise<void>> = [];
+
     try {
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
       const messages: Array<string> = this.extractMessagesFromRequest(req.body);
@@ -297,7 +310,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
           processed++;
 
           if (dbLogs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE) {
-            await this.flushLogsBuffer(dbLogs);
+            await this.submitLogsBuffer(dbLogs, pendingAcks);
           }
         } catch (processingError) {
           if (processingError instanceof SyslogStorageFlushError) {
@@ -310,7 +323,16 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         }
       }
 
-      await this.flushLogsBuffer(dbLogs, true);
+      await this.submitLogsBuffer(dbLogs, pendingAcks, true);
+
+      /*
+       * Ack-after-flush: wait for every fan-in batch containing this
+       * job's rows to durably land in ClickHouse before the job is
+       * allowed to succeed. A rejected ack (batch definitively failed
+       * after the writer's own retries) fails the job so BullMQ
+       * re-processes the payload.
+       */
+      await Promise.all(pendingAcks);
 
       if (processed === 0) {
         logger.warn("Syslog ingest: no valid messages processed");
@@ -331,6 +353,14 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
+      /*
+       * Settle all outstanding write acks before rethrowing: an error
+       * thrown mid-processing (message parse failure, lost body, ...) must
+       * not leave still-pending ack promises to reject unobserved later.
+       * The original error stays the one reported to BullMQ.
+       */
+      await Promise.allSettled(pendingAcks);
+
       logger.error(
         "Syslog ingest: critical error",
         getLogAttributesFromRequest(req as RequestLike),
@@ -476,32 +506,38 @@ export default class SyslogIngestService extends OtelIngestBaseService {
     return { number: 0, text: LogSeverity.Unspecified };
   }
 
-  private static async flushLogsBuffer(
+  /*
+   * Hand accumulated log rows to the shared fan-in writer, which batches
+   * them ACROSS jobs and inserts through a small per-pod concurrency gate
+   * (see TelemetryFanInWriter). Awaiting this method is only the writer's
+   * acceptance/backpressure gate — durability acks land in `pendingAcks`
+   * and MUST be awaited before the job completes (ack-after-flush).
+   */
+  private static async submitLogsBuffer(
     logs: Array<JSONObject>,
+    pendingAcks: Array<Promise<void>>,
     force: boolean = false,
   ): Promise<void> {
     while (
       logs.length >= TELEMETRY_LOG_FLUSH_BATCH_SIZE ||
       (force && logs.length > 0)
     ) {
-      const batchSize: number = Math.min(
-        logs.length,
-        TELEMETRY_LOG_FLUSH_BATCH_SIZE,
+      const batch: Array<JSONObject> = logs.splice(
+        0,
+        Math.min(logs.length, TELEMETRY_LOG_FLUSH_BATCH_SIZE),
       );
-
-      const batch: Array<JSONObject> = logs.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      try {
-        await LogService.insertJsonRows(batch);
-      } catch (error) {
-        throw new SyslogStorageFlushError(error);
-      }
-
-      logs.splice(0, batch.length);
+      const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
+        LogService,
+        batch,
+      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new SyslogStorageFlushError(error);
+      });
     }
   }
 

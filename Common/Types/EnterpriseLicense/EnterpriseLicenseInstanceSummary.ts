@@ -13,6 +13,12 @@ type EnterpriseLicenseInstanceSummary = {
   userCount: number | null;
   // ISO date string of the most recent usage report from this instance.
   lastReportedAt: string | null;
+  /*
+   * OneUptime version this instance last reported, for example "11.5.13".
+   * Null for instances that have not reported since upgrading to a build
+   * that sends its version, and for dev builds with no APP_VERSION baked in.
+   */
+  version: string | null;
 };
 
 export default EnterpriseLicenseInstanceSummary;

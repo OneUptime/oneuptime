@@ -7,9 +7,7 @@ import OneUptimeDate from "Common/Types/Date";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
-import NetworkDeviceDiscoveryScan, {
-  DiscoveredNetworkDevice,
-} from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
@@ -89,15 +87,19 @@ router.post(
         });
 
       for (const scan of scans) {
-        const inProgress: NetworkDeviceDiscoveryScan =
-          new NetworkDeviceDiscoveryScan();
-        inProgress.status = "In Progress";
-        inProgress.startedAt = OneUptimeDate.getCurrentDate();
-
         await NetworkDeviceDiscoveryScanService.updateOneById({
           id: scan.id!,
-          // Cast: the model's JSON column makes DeepPartial recursion blow up.
-          data: inProgress as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
+          /*
+           * Plain object, NOT a model instance: a `new
+           * NetworkDeviceDiscoveryScan()` payload carries non-column base
+           * props (isPermissionIf) that made every update here throw, so no
+           * scan ever left Pending. Cast: the model's JSON column makes
+           * DeepPartial recursion blow up.
+           */
+          data: {
+            status: "In Progress",
+            startedAt: OneUptimeDate.getCurrentDate(),
+          } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
           props: {
             isRoot: true,
           },
@@ -218,20 +220,25 @@ router.post(
 
       const success: boolean = req.body["success"] !== false;
 
-      const completed: NetworkDeviceDiscoveryScan =
-        new NetworkDeviceDiscoveryScan();
-      completed.status = success ? "Completed" : "Failed";
+      /*
+       * Plain object, NOT a model instance: a `new
+       * NetworkDeviceDiscoveryScan()` payload carries non-column base props
+       * (isPermissionIf) that made the update below throw and lose the
+       * probe's results.
+       */
+      const completed: JSONObject = {
+        // Column is a JSON array of host suggestions, stored as-is.
+        status: success ? "Completed" : "Failed",
+        discoveredDevices: discoveredDevices,
+        respondedHostCount: discoveredDevices.length,
+        completedAt: OneUptimeDate.getCurrentDate(),
+      };
       if (req.body["statusMessage"]) {
-        completed.statusMessage = req.body["statusMessage"] as string;
+        completed["statusMessage"] = req.body["statusMessage"] as string;
       }
-      // Column is a JSON array of host suggestions, stored as-is.
-      completed.discoveredDevices =
-        discoveredDevices as unknown as Array<DiscoveredNetworkDevice>;
       if (typeof req.body["scannedHostCount"] === "number") {
-        completed.scannedHostCount = req.body["scannedHostCount"] as number;
+        completed["scannedHostCount"] = req.body["scannedHostCount"] as number;
       }
-      completed.respondedHostCount = discoveredDevices.length;
-      completed.completedAt = OneUptimeDate.getCurrentDate();
 
       /*
        * Recurring scan: schedule the next run whether this one completed or
@@ -253,17 +260,20 @@ router.post(
             `Discovery scan ${scanId} rescan interval of ${scan.rescanIntervalInMinutes} minute(s) is below the ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES}-minute minimum. Clamping.`,
           );
           // Surface the clamp where the user will actually see it.
-          completed.statusMessage =
-            (completed.statusMessage ? completed.statusMessage + " " : "") +
+          const existingStatusMessage: string =
+            (completed["statusMessage"] as string | undefined) || "";
+          completed["statusMessage"] =
+            (existingStatusMessage ? existingStatusMessage + " " : "") +
             `Rescan interval is below the ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES}-minute minimum; rescanning every ${MINIMUM_RESCAN_INTERVAL_IN_MINUTES} minutes instead.`;
         }
 
-        completed.nextScanAt =
+        completed["nextScanAt"] =
           OneUptimeDate.getSomeMinutesAfter(intervalInMinutes);
       }
 
       await NetworkDeviceDiscoveryScanService.updateOneById({
         id: scan.id!,
+        // Cast: the model's JSON column makes DeepPartial recursion blow up.
         data: completed as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
         props: {
           isRoot: true,

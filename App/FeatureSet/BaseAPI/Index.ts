@@ -299,6 +299,22 @@ import MonitorLabelRuleService, {
   Service as MonitorLabelRuleServiceType,
 } from "Common/Server/Services/MonitorLabelRuleService";
 
+import DashboardOwnerRuleService, {
+  Service as DashboardOwnerRuleServiceType,
+} from "Common/Server/Services/DashboardOwnerRuleService";
+
+import DashboardLabelRuleService, {
+  Service as DashboardLabelRuleServiceType,
+} from "Common/Server/Services/DashboardLabelRuleService";
+
+import WorkflowOwnerRuleService, {
+  Service as WorkflowOwnerRuleServiceType,
+} from "Common/Server/Services/WorkflowOwnerRuleService";
+
+import WorkflowLabelRuleService, {
+  Service as WorkflowLabelRuleServiceType,
+} from "Common/Server/Services/WorkflowLabelRuleService";
+
 import StatusPageOwnerRuleService, {
   Service as StatusPageOwnerRuleServiceType,
 } from "Common/Server/Services/StatusPageOwnerRuleService";
@@ -679,6 +695,18 @@ import MonitorOwnerTeamService, {
 import MonitorOwnerUserService, {
   Service as MonitorOwnerUserServiceType,
 } from "Common/Server/Services/MonitorOwnerUserService";
+import DashboardOwnerTeamService, {
+  Service as DashboardOwnerTeamServiceType,
+} from "Common/Server/Services/DashboardOwnerTeamService";
+import DashboardOwnerUserService, {
+  Service as DashboardOwnerUserServiceType,
+} from "Common/Server/Services/DashboardOwnerUserService";
+import WorkflowOwnerTeamService, {
+  Service as WorkflowOwnerTeamServiceType,
+} from "Common/Server/Services/WorkflowOwnerTeamService";
+import WorkflowOwnerUserService, {
+  Service as WorkflowOwnerUserServiceType,
+} from "Common/Server/Services/WorkflowOwnerUserService";
 import MonitorProbeService, {
   Service as MonitorProbeServiceType,
 } from "Common/Server/Services/MonitorProbeService";
@@ -796,6 +824,9 @@ import SmsLogService, {
 import PushNotificationLogService, {
   Service as PushNotificationLogServiceType,
 } from "Common/Server/Services/PushNotificationLogService";
+import WebhookLogService, {
+  Service as WebhookLogServiceType,
+} from "Common/Server/Services/WebhookLogService";
 import SpanService, {
   SpanService as SpanServiceType,
 } from "Common/Server/Services/SpanService";
@@ -805,6 +836,9 @@ import ProfileService, {
 import ProfileSampleService, {
   ProfileSampleService as ProfileSampleServiceType,
 } from "Common/Server/Services/ProfileSampleService";
+import NetworkFlowService, {
+  NetworkFlowService as NetworkFlowServiceType,
+} from "Common/Server/Services/NetworkFlowService";
 import StatusPageAnnouncementAPI from "Common/Server/API/StatusPageAnnouncementAPI";
 import StatusPageCustomFieldService, {
   Service as StatusPageCustomFieldServiceType,
@@ -936,10 +970,12 @@ import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Profile from "Common/Models/AnalyticsModels/Profile";
 import ProfileSample from "Common/Models/AnalyticsModels/ProfileSample";
+import NetworkFlow from "Common/Models/AnalyticsModels/NetworkFlow";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
+import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
 import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNotificationLog";
 import Domain from "Common/Models/DatabaseModels/Domain";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
@@ -981,6 +1017,10 @@ import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
 
 import MonitorOwnerRule from "Common/Models/DatabaseModels/MonitorOwnerRule";
 import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
+import DashboardOwnerRule from "Common/Models/DatabaseModels/DashboardOwnerRule";
+import DashboardLabelRule from "Common/Models/DatabaseModels/DashboardLabelRule";
+import WorkflowOwnerRule from "Common/Models/DatabaseModels/WorkflowOwnerRule";
+import WorkflowLabelRule from "Common/Models/DatabaseModels/WorkflowLabelRule";
 import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRule";
 import StatusPageLabelRule from "Common/Models/DatabaseModels/StatusPageLabelRule";
 import HostOwnerRule from "Common/Models/DatabaseModels/HostOwnerRule";
@@ -1090,6 +1130,10 @@ import MonitorGroupOwnerUser from "Common/Models/DatabaseModels/MonitorGroupOwne
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
+import DashboardOwnerTeam from "Common/Models/DatabaseModels/DashboardOwnerTeam";
+import DashboardOwnerUser from "Common/Models/DatabaseModels/DashboardOwnerUser";
+import WorkflowOwnerTeam from "Common/Models/DatabaseModels/WorkflowOwnerTeam";
+import WorkflowOwnerUser from "Common/Models/DatabaseModels/WorkflowOwnerUser";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -2095,6 +2139,38 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardOwnerRule, DashboardOwnerRuleServiceType>(
+        DashboardOwnerRule,
+        DashboardOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardLabelRule, DashboardLabelRuleServiceType>(
+        DashboardLabelRule,
+        DashboardLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WorkflowOwnerRule, WorkflowOwnerRuleServiceType>(
+        WorkflowOwnerRule,
+        WorkflowOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WorkflowLabelRule, WorkflowLabelRuleServiceType>(
+        WorkflowLabelRule,
+        WorkflowLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<StatusPageOwnerRule, StatusPageOwnerRuleServiceType>(
         StatusPageOwnerRule,
         StatusPageOwnerRuleService,
@@ -2509,6 +2585,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAnalyticsAPI<ProfileSample, ProfileSampleServiceType>(
         ProfileSample,
         ProfileSampleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<NetworkFlow, NetworkFlowServiceType>(
+        NetworkFlow,
+        NetworkFlowService,
       ).getRouter(),
     );
 
@@ -3181,6 +3265,38 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardOwnerUser, DashboardOwnerUserServiceType>(
+        DashboardOwnerUser,
+        DashboardOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DashboardOwnerTeam, DashboardOwnerTeamServiceType>(
+        DashboardOwnerTeam,
+        DashboardOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WorkflowOwnerUser, WorkflowOwnerUserServiceType>(
+        WorkflowOwnerUser,
+        WorkflowOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WorkflowOwnerTeam, WorkflowOwnerTeamServiceType>(
+        WorkflowOwnerTeam,
+        WorkflowOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<
         ScheduledMaintenanceOwnerUser,
         ScheduledMaintenanceOwnerUserServiceType
@@ -3661,6 +3777,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<PushNotificationLog, PushNotificationLogServiceType>(
         PushNotificationLog,
         PushNotificationLogService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<WebhookLog, WebhookLogServiceType>(
+        WebhookLog,
+        WebhookLogService,
       ).getRouter(),
     );
 

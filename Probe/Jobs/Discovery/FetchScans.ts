@@ -106,7 +106,8 @@ const InitJob: VoidFunction = (): void => {
   });
 };
 
-async function fetchAndRunScans(): Promise<void> {
+// Exported for tests: this is the probe's half of the discovery lifecycle.
+export async function fetchAndRunScans(): Promise<void> {
   const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
     "/probe/discovery-scan/list",
   );
@@ -132,7 +133,8 @@ async function fetchAndRunScans(): Promise<void> {
   }
 }
 
-async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
+// Exported for tests: sweeps one scan and reports the outcome back.
+export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
   const resultUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
     "/probe/discovery-scan/result",
   );

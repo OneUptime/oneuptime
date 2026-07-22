@@ -35,6 +35,23 @@ Use secret variables for:
 
 Don't paste a secret directly into a block — values like `Authorization: Bearer eyJh...` end up visible in the workflow and the logs. Use `{{global.variables.MY_SECRET}}` instead.
 
+## Exporting and importing workflows
+
+You can move a workflow between projects, or between a self-hosted install and OneUptime Cloud, as a JSON file.
+
+- **Export** — open the workflow and use **Export Workflow** under **Settings**. From the workflow list you can also select several workflows and export them into a single file.
+- **Import** — on the **Workflows** list, click **Import JSON** and pick a file exported from any OneUptime project.
+
+The file holds the workflow's name, description, enabled state, and its graph. It deliberately does not hold:
+
+- **The webhook secret key.** A fresh one is generated when the workflow is created, so an imported workflow has a different webhook URL. Anything calling the original has to be repointed.
+- **Global variables.** A block that reads `{{global.variables.MY_SECRET}}` keeps that reference, but the value is not in the file. Create the variables in the destination project before you run the imported workflow.
+- **Owners and labels.** Your project's own label and owner rules run against the imported workflow, the same as if you had created it by hand.
+
+An imported workflow is always created **disabled**, even if it was enabled where it was exported from — its graph can point at monitors, on-call policies, or other workflows that don't exist in the destination project. Review it, use **Run Manually**, and then turn it on. Duplicating a workflow behaves the same way, so a copy never starts firing alongside the original before you've edited it.
+
+Because the graph travels verbatim, anything typed straight into a block travels with it. That's the practical reason to keep credentials in secret variables: exporting a workflow with a hardcoded token hands that token to whoever receives the file.
+
 ## How long a run can take
 
 Each execution attempt has a wall-clock deadline. The runner checks it before and after every component and marks an overdue run **Timeout** as soon as control returns. Components that perform network or script work also need their own timeouts because the runner cannot forcibly interrupt arbitrary component code.

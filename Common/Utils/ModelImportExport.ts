@@ -290,14 +290,29 @@ export default class ModelImportExport {
   }
 
   /*
-   * Model-specific fixups so imported items pass server-side create
-   * validation. Currently: recurring scheduled maintenance templates are
-   * rejected on create when their first-event dates are in the past (the
-   * normal case for an export taken from an established template), so the
-   * dates are advanced by the recurrence interval until they are in the
-   * future, preserving the offsets between them.
+   * Model-specific fixups so imported items are safe to create and pass
+   * server-side create validation.
+   *
+   * Workflow: an imported workflow always lands disabled, even if it was
+   * enabled where it was exported from. Its graph can reference monitors,
+   * on-call policies or other workflows that do not exist in the destination
+   * project, and a workflow starts firing the moment it is enabled - so
+   * importing must not be a way to put unreviewed automation into production.
+   * This also keeps the documented invariant that a new workflow starts
+   * disabled and is turned on deliberately.
+   *
+   * ScheduledMaintenanceTemplate: recurring templates are rejected on create
+   * when their first-event dates are in the past (the normal case for an
+   * export taken from an established template), so the dates are advanced by
+   * the recurrence interval until they are in the future, preserving the
+   * offsets between them.
    */
   private static normalizeImportItem(item: BaseModel): void {
+    if (item.tableName === "Workflow") {
+      (item as any)["isEnabled"] = false;
+      return;
+    }
+
     if (item.tableName !== "ScheduledMaintenanceTemplate") {
       return;
     }

@@ -15,6 +15,7 @@ import ComponentID from "../../../../Types/Workflow/ComponentID";
 import ScheduleComponents from "../../../../Types/Workflow/Components/Schedule";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
+import logger from "../../../Utils/Logger";
 
 export default class WebhookTrigger extends TriggerCode {
   public constructor() {
@@ -52,24 +53,37 @@ export default class WebhookTrigger extends TriggerCode {
 
     // query all workflows.
     for (const workflow of workflows) {
-      const executeWorkflow: ExecuteWorkflowType = {
-        workflowId: new ObjectID(workflow._id!),
-        returnValues: {},
-      };
+      /*
+       * Isolate each workflow: a single workflow whose schedule can't be
+       * registered (e.g. an invalid cron, or a transient queue error) must not
+       * abort the startup scan and leave every other scheduled workflow
+       * unregistered.
+       */
+      try {
+        const executeWorkflow: ExecuteWorkflowType = {
+          workflowId: new ObjectID(workflow._id!),
+          returnValues: {},
+        };
 
-      if (
-        workflow.triggerArguments &&
-        workflow.triggerArguments["schedule"] &&
-        workflow.isEnabled
-      ) {
-        await props.scheduleWorkflow(
-          executeWorkflow,
-          workflow.triggerArguments["schedule"] as string,
+        if (
+          workflow.triggerArguments &&
+          workflow.triggerArguments["schedule"] &&
+          workflow.isEnabled
+        ) {
+          await props.scheduleWorkflow(
+            executeWorkflow,
+            workflow.triggerArguments["schedule"] as string,
+          );
+        }
+
+        if (!workflow.isEnabled) {
+          await props.removeWorkflow(workflow.id!);
+        }
+      } catch (err) {
+        logger.error(
+          `Failed to register schedule for workflow ${workflow._id}`,
         );
-      }
-
-      if (!workflow.isEnabled) {
-        await props.removeWorkflow(workflow.id!);
+        logger.error(err);
       }
     }
   }
@@ -128,23 +142,34 @@ export default class WebhookTrigger extends TriggerCode {
       returnValues: {},
     };
 
-    if (
-      workflow.triggerArguments &&
-      workflow.triggerArguments["schedule"] &&
-      workflow.isEnabled
-    ) {
-      await this.scheduleWorkflow(
-        executeWorkflow,
-        workflow.triggerArguments["schedule"] as string,
-      );
-    }
+    /*
+     * Guard the (re)registration so a bad schedule can't fail the workflow
+     * save that triggered this update. Invalid crons are already surfaced as a
+     * workflow log by the queue layer; this catch is a backstop for unexpected
+     * errors (e.g. a transient queue error).
+     */
+    try {
+      if (
+        workflow.triggerArguments &&
+        workflow.triggerArguments["schedule"] &&
+        workflow.isEnabled
+      ) {
+        await this.scheduleWorkflow(
+          executeWorkflow,
+          workflow.triggerArguments["schedule"] as string,
+        );
+      }
 
-    if (!this.removeWorkflow) {
-      return;
-    }
+      if (!this.removeWorkflow) {
+        return;
+      }
 
-    if (!workflow.isEnabled) {
-      await this.removeWorkflow(workflow.id!);
+      if (!workflow.isEnabled) {
+        await this.removeWorkflow(workflow.id!);
+      }
+    } catch (err) {
+      logger.error(`Failed to update schedule for workflow ${workflow._id}`);
+      logger.error(err);
     }
   }
 }

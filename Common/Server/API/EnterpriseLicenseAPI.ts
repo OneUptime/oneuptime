@@ -5,6 +5,7 @@ import { JSONObject } from "../../Types/JSON";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import EnterpriseLicenseUsageUtil from "../../Utils/EnterpriseLicense/EnterpriseLicenseUsage";
+import VersionUtil from "../../Utils/VersionUtil";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -29,6 +30,8 @@ export interface LicenseInstanceUpsert {
   licenseId: ObjectID;
   instanceId: string;
   host: string | undefined;
+  // OneUptime version the instance is running. Absent on instances too old to report it.
+  oneuptimeVersion?: string | null | undefined;
   // Usage fields are only set on report-user-count, not on validate.
   userCount?: number | undefined;
   userEmailHashes?: Array<string> | undefined;
@@ -84,6 +87,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
                 userLimit: true,
                 currentUserCount: true,
                 userCountUpdatedAt: true,
+                isEvaluationLicense: true,
               },
               props: {
                 isRoot: true,
@@ -117,12 +121,16 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             req.body["instanceId"],
           );
           const instanceHost: string = this.parseShortText(req.body["host"]);
+          const instanceVersion: string | null | undefined = this.parseVersion(
+            req.body["version"],
+          );
 
           if (instanceId) {
             await this.upsertLicenseInstance({
               licenseId: license.id!,
               instanceId: instanceId,
               host: instanceHost || undefined,
+              oneuptimeVersion: instanceVersion,
             });
           }
 
@@ -154,6 +162,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             userCountUpdatedAt: license.userCountUpdatedAt
               ? license.userCountUpdatedAt.toISOString()
               : null,
+            isEvaluationLicense: Boolean(license.isEvaluationLicense),
             instances: this.getInstanceSummaries(instances),
             token,
           });
@@ -196,6 +205,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
               select: {
                 _id: true,
                 userLimit: true,
+                isEvaluationLicense: true,
               },
               props: {
                 isRoot: true,
@@ -212,6 +222,9 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             req.body["instanceId"],
           );
           const instanceHost: string = this.parseShortText(req.body["host"]);
+          const instanceVersion: string | null | undefined = this.parseVersion(
+            req.body["version"],
+          );
           const userEmailHashes: Array<string> =
             EnterpriseLicenseUsageUtil.sanitizeUserEmailHashes(
               req.body["userEmailHashes"],
@@ -230,6 +243,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
               licenseId: license.id!,
               instanceId: instanceId,
               host: instanceHost || undefined,
+              oneuptimeVersion: instanceVersion,
               userCount: userCount,
               userEmailHashes: userEmailHashes,
               masterAdminEmails: masterAdminEmails,
@@ -273,6 +287,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
             userCountUpdatedAt: reportedAt.toISOString(),
             userLimit:
               typeof license.userLimit === "number" ? license.userLimit : null,
+            isEvaluationLicense: Boolean(license.isEvaluationLicense),
             instances: this.getInstanceSummaries(instances),
           });
         } catch (err) {
@@ -290,6 +305,31 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
     return value.trim().substring(0, 100);
   }
 
+  /*
+   * report-user-count is unauthenticated, so the reported version is only
+   * stored when it is a version we could actually compare against a release —
+   * garbage never reaches the admin dashboard or the customer's modal.
+   *
+   * Three outcomes, and the callers depend on the distinction:
+   *   undefined — the instance sent no version at all (it predates this
+   *               field). Leave whatever is stored alone.
+   *   null      — it sent something, but not a version. Clear the stored
+   *               value, so an instance rolled back to a build with no
+   *               APP_VERSION stops advertising the version it used to run.
+   *   string    — a valid, canonical version to store.
+   */
+  private parseVersion(value: unknown): string | null | undefined {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+
+    /*
+     * Canonicalized rather than passed through, so the stored string is never
+     * something the UIs would render with a doubled "v".
+     */
+    return VersionUtil.canonicalize(value);
+  }
+
   private async findLicenseInstances(
     licenseId: ObjectID,
   ): Promise<Array<EnterpriseLicenseInstance>> {
@@ -304,6 +344,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
         userCount: true,
         userEmailHashes: true,
         lastReportedAt: true,
+        oneuptimeVersion: true,
       },
       sort: {
         createdAt: SortOrder.Ascending,
@@ -331,6 +372,7 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
           lastReportedAt: instance.lastReportedAt
             ? instance.lastReportedAt.toISOString()
             : null,
+          version: instance.oneuptimeVersion || null,
         };
       },
     );
@@ -368,6 +410,11 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 
     if (data.host !== undefined) {
       newInstance.host = data.host;
+    }
+
+    // Null means "reported something that is not a version" — nothing to store.
+    if (data.oneuptimeVersion) {
+      newInstance.oneuptimeVersion = data.oneuptimeVersion;
     }
 
     if (data.userCount !== undefined) {
@@ -432,6 +479,16 @@ export default class EnterpriseLicenseAPI extends BaseAPI<
 
     if (data.host !== undefined) {
       updateData.host = data.host;
+    }
+
+    /*
+     * Null clears the column: an instance rebuilt onto a build with no
+     * APP_VERSION must stop advertising the version it used to run, because
+     * lastReportedAt is refreshed on the same request and would otherwise
+     * read as "confirmed running v11.5.13 as of today".
+     */
+    if (data.oneuptimeVersion !== undefined) {
+      updateData.oneuptimeVersion = data.oneuptimeVersion;
     }
 
     if (data.userCount !== undefined) {

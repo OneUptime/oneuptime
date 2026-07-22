@@ -377,28 +377,57 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     }
   }
 
-  let aggregatedValue: number = 0;
-  let avgCount: number = 0;
-
+  /*
+   * Flatten the per-bucket values, discarding any non-finite entries.
+   * AggregatedModel.value is typed `number` but the model carries a
+   * JSONValue index signature, and a ClickHouse NULL / missing column
+   * arrives as null — left unchecked it poisons the reduction with NaN.
+   */
+  const numericValues: Array<number> = [];
   for (const item of allDataPoints) {
-    const value: number = item.value;
-
-    if (aggregationType === AggregationType.Avg) {
-      aggregatedValue += value;
-      avgCount += 1;
-    } else if (aggregationType === AggregationType.Sum) {
-      aggregatedValue += value;
-    } else if (aggregationType === AggregationType.Min) {
-      aggregatedValue = Math.min(aggregatedValue, value);
-    } else if (aggregationType === AggregationType.Max) {
-      aggregatedValue = Math.max(aggregatedValue, value);
-    } else if (aggregationType === AggregationType.Count) {
-      aggregatedValue += 1;
+    const value: number = item.value as number;
+    if (typeof value === "number" && Number.isFinite(value)) {
+      numericValues.push(value);
     }
   }
 
-  if (aggregationType === AggregationType.Avg && avgCount > 0) {
-    aggregatedValue = aggregatedValue / avgCount;
+  /*
+   * Reduce the per-bucket values into the single displayed number.
+   *
+   * - Percentiles (P50/P90/P95/P99) are computed per bucket server-side,
+   *   so — like Avg — we take the mean across the window. Without an
+   *   explicit branch they fell through the old if/else chain entirely
+   *   and the value stayed pinned at its 0 seed even though the query
+   *   returned real percentile data (a P95 tile read "0").
+   * - Count sums the per-bucket counts the server already returned
+   *   (`count(value) as value`); the old `+= 1` counted time buckets, not
+   *   samples.
+   * - Min/Max fold over the real values instead of a 0 seed, which
+   *   previously forced any all-positive metric's Min to exactly 0.
+   */
+  let aggregatedValue: number = 0;
+  if (numericValues.length > 0) {
+    switch (aggregationType) {
+      case AggregationType.Sum:
+      case AggregationType.Count:
+        aggregatedValue = numericValues.reduce((sum: number, value: number) => {
+          return sum + value;
+        }, 0);
+        break;
+      case AggregationType.Min:
+        aggregatedValue = Math.min(...numericValues);
+        break;
+      case AggregationType.Max:
+        aggregatedValue = Math.max(...numericValues);
+        break;
+      default:
+        // Avg and every percentile aggregation: mean of per-bucket values.
+        aggregatedValue =
+          numericValues.reduce((sum: number, value: number) => {
+            return sum + value;
+          }, 0) / numericValues.length;
+        break;
+    }
   }
 
   /*

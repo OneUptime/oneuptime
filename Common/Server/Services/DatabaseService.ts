@@ -1743,9 +1743,66 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     });
   }
 
+  /*
+   * Update `data` may arrive as a full model instance rather than a plain
+   * partial — the QueryDeepPartialEntity type structurally admits both, and
+   * callers do construct `new Model()` payloads. A model instance carries
+   * non-column own properties from DatabaseBaseModel (every column
+   * initializer plus `isPermissionIf = {}`), and _updateBy turns every data
+   * key into a select column for its internal find, so the extra keys made
+   * that find throw `TableColumnMetadata not found for isPermissionIf
+   * column` and fail the whole update. Strip a model instance down to its
+   * set table columns; plain objects pass through untouched so a typo'd
+   * column name in a literal still fails loudly instead of being silently
+   * dropped.
+   *
+   * `_id`, `createdAt`, `updatedAt` and `version` are dropped for model
+   * instances the same way BaseAPI drops them from client payloads: the row
+   * is located by the update query (spreading a foreign `_id` into the save
+   * payload would redirect the write), timestamps are database-managed, and
+   * `version` is TypeORM's optimistic-concurrency counter.
+   */
+  public sanitizeUpdateData(
+    data: UpdateBy<TBaseModel>["data"],
+  ): UpdateBy<TBaseModel>["data"] {
+    if (!(data instanceof BaseModel)) {
+      return data;
+    }
+
+    const plainData: JSONObject = {};
+
+    for (const key of Object.keys(data)) {
+      if (!this.model.isTableColumn(key)) {
+        continue;
+      }
+
+      if (
+        key === "_id" ||
+        key === "createdAt" ||
+        key === "updatedAt" ||
+        key === "version"
+      ) {
+        continue;
+      }
+
+      const value: JSONValue = (data as any)[key];
+
+      // Unset columns must not become writes (or select columns).
+      if (value === undefined) {
+        continue;
+      }
+
+      plainData[key] = value;
+    }
+
+    return plainData as UpdateBy<TBaseModel>["data"];
+  }
+
   private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
     try {
       this.setTelemetryContextFromProps(updateBy.props);
+
+      updateBy.data = this.sanitizeUpdateData(updateBy.data);
 
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
@@ -1830,9 +1887,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
 
       for (const item of items) {
+        /*
+         * _id must be set AFTER the spread: update data can carry an
+         * explicit `_id: undefined` (sanitizeUpdateData strips it from model
+         * instances, but a plain object can still hold it), and spreading it
+         * after _id would clobber the located row's id — save() then sees no
+         * primary key, INSERTs instead of updating, and dies on the first
+         * NOT NULL column.
+         */
         const updatedItem: any = {
-          _id: item._id!,
           ...data,
+          _id: item._id!,
         } as any;
 
         logger.debug("Updated Item", {

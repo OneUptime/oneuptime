@@ -5,6 +5,7 @@ import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { CustomElementProps } from "../Forms/Types/Field";
 import FormValues from "../Forms/Types/FormValues";
 import ComponentValuePickerModal from "./ComponentValuePickerModal";
+import CronScheduleField from "./CronScheduleField";
 import ModelFieldPicker from "./ModelFieldPicker";
 import { componentInputTypeToFormFieldType } from "./Utils";
 import VariableModal from "./VariableModal";
@@ -198,40 +199,75 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     arg.type === ComponentInputType.Select &&
                     Boolean(component.metadata.tableName);
 
-                  const baseField: {
+                  /*
+                   * The Schedule trigger's CronTab argument gets a dedicated
+                   * cron picker (presets, custom expression with live preview,
+                   * or a variable reference) instead of a bare dropdown.
+                   */
+                  const useCronPicker: boolean =
+                    arg.type === ComponentInputType.CronTab;
+
+                  let baseField: {
                     fieldType: import("../Forms/Types/FormFieldSchemaType").default;
                     dropdownOptions?: Array<DropdownOption> | undefined;
                     getCustomElement?: (
                       values: FormValues<JSONObject>,
                       customProps: CustomElementProps,
                     ) => ReactElement | undefined;
-                  } = useFieldPicker
-                    ? {
-                        fieldType: FormFieldSchemaType.CustomComponent,
-                        getCustomElement: (
-                          _values: FormValues<JSONObject>,
-                          customProps: CustomElementProps,
-                        ): ReactElement => {
-                          return (
-                            <ModelFieldPicker
-                              tableName={component.metadata.tableName as string}
-                              initialValue={customProps.initialValue}
-                              onChange={(value: string) => {
-                                void customProps.onChange?.(value);
-                              }}
-                              placeholder={customProps.placeholder}
-                              error={customProps.error}
-                              tabIndex={customProps.tabIndex}
-                            />
-                          );
-                        },
-                      }
-                    : componentInputTypeToFormFieldType(
-                        arg.type,
-                        component.arguments && component.arguments[arg.id]
-                          ? component.arguments[arg.id]
-                          : null,
-                      );
+                  };
+
+                  if (useFieldPicker) {
+                    baseField = {
+                      fieldType: FormFieldSchemaType.CustomComponent,
+                      getCustomElement: (
+                        _values: FormValues<JSONObject>,
+                        customProps: CustomElementProps,
+                      ): ReactElement => {
+                        return (
+                          <ModelFieldPicker
+                            tableName={component.metadata.tableName as string}
+                            initialValue={customProps.initialValue}
+                            onChange={(value: string) => {
+                              void customProps.onChange?.(value);
+                            }}
+                            placeholder={customProps.placeholder}
+                            error={customProps.error}
+                            tabIndex={customProps.tabIndex}
+                          />
+                        );
+                      },
+                    };
+                  } else if (useCronPicker) {
+                    baseField = {
+                      fieldType: FormFieldSchemaType.CustomComponent,
+                      getCustomElement: (
+                        _values: FormValues<JSONObject>,
+                        customProps: CustomElementProps,
+                      ): ReactElement => {
+                        return (
+                          <CronScheduleField
+                            workflowId={props.workflowId}
+                            initialValue={
+                              customProps.initialValue as string | null
+                            }
+                            onChange={(value: string) => {
+                              void customProps.onChange?.(value);
+                            }}
+                            placeholder={customProps.placeholder}
+                            error={customProps.error}
+                            tabIndex={customProps.tabIndex}
+                          />
+                        );
+                      },
+                    };
+                  } else {
+                    baseField = componentInputTypeToFormFieldType(
+                      arg.type,
+                      component.arguments && component.arguments[arg.id]
+                        ? component.arguments[arg.id]
+                        : null,
+                    );
+                  }
 
                   /*
                    * For WorkflowSelect, inject the dynamically fetched list
@@ -244,10 +280,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   /*
                    * The "pick from component / variable" footer doesn't
                    * apply to the field picker (it edits a structured object,
-                   * not a free-text expression) or to WorkflowSelect.
+                   * not a free-text expression), to WorkflowSelect, or to the
+                   * cron picker (which has its own built-in variable selector,
+                   * and a schedule can't reference component return values).
                    */
                   const showVariableFooter: boolean =
-                    !isWorkflowSelect && !useFieldPicker;
+                    !isWorkflowSelect && !useFieldPicker && !useCronPicker;
 
                   return {
                     title: `${arg.name}`,

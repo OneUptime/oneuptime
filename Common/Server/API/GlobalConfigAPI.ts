@@ -17,8 +17,14 @@ import API from "../../Utils/API";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import PartialEntity from "../../Types/Database/PartialEntity";
-import { EnterpriseLicenseValidationUrl, Host } from "../EnvironmentConfig";
+import {
+  AppVersion,
+  DisableUpdateCheck,
+  EnterpriseLicenseValidationUrl,
+  Host,
+} from "../EnvironmentConfig";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
+import VersionUtil from "../../Utils/VersionUtil";
 import UserMiddleware from "../Middleware/UserAuthorization";
 
 export default class GlobalConfigAPI extends BaseAPI<
@@ -67,11 +73,15 @@ export default class GlobalConfigAPI extends BaseAPI<
                 enterpriseLicenseExpiresAt: true,
                 enterpriseLicenseKey: true,
                 enterpriseLicenseToken: true,
+                enterpriseLicenseIsEvaluation: true,
                 enterpriseLicenseUserLimit: true,
                 enterpriseLicenseCurrentUserCount: true,
                 enterpriseLicenseUserCountUpdatedAt: true,
                 enterpriseLicenseInstances: true,
                 instanceId: true,
+                latestReleaseVersion: true,
+                latestReleasePublishedAt: true,
+                latestReleaseCheckedAt: true,
               },
               props: {
                 isRoot: true,
@@ -106,6 +116,12 @@ export default class GlobalConfigAPI extends BaseAPI<
               ? config?.enterpriseLicenseToken || null
               : null,
             licenseValid: licenseValid,
+            /*
+             * Whether this is an evaluation/testing license. Benign like the
+             * company name and expiry, so it is not gated behind sign-in — the
+             * edition modal shows the evaluation notice to anyone who opens it.
+             */
+            isEvaluationLicense: Boolean(config?.enterpriseLicenseIsEvaluation),
             userLimit:
               typeof config?.enterpriseLicenseUserLimit === "number"
                 ? config.enterpriseLicenseUserLimit
@@ -126,6 +142,38 @@ export default class GlobalConfigAPI extends BaseAPI<
               isAuthenticatedUser && config?.instanceId
                 ? config.instanceId.toString()
                 : null,
+            /*
+             * Which build this installation runs, and whether a newer one has
+             * been released, are gated the same way as the instance topology:
+             * telling an anonymous visitor on the login page that this server
+             * is behind on patches advertises an unpatched target.
+             */
+            currentVersion: isAuthenticatedUser ? AppVersion : null,
+            latestVersion: isAuthenticatedUser
+              ? config?.latestReleaseVersion || null
+              : null,
+            latestVersionPublishedAt:
+              isAuthenticatedUser && config?.latestReleasePublishedAt
+                ? config.latestReleasePublishedAt.toISOString()
+                : null,
+            latestVersionCheckedAt:
+              isAuthenticatedUser && config?.latestReleaseCheckedAt
+                ? config.latestReleaseCheckedAt.toISOString()
+                : null,
+            isUpdateAvailable: isAuthenticatedUser
+              ? VersionUtil.isUpdateAvailable({
+                  currentVersion: AppVersion,
+                  latestVersion: config?.latestReleaseVersion,
+                })
+              : false,
+            /*
+             * Lets the modal say "update checks are off" instead of "has not
+             * checked yet", which would be a promise the installation is never
+             * going to keep.
+             */
+            isUpdateCheckDisabled: isAuthenticatedUser
+              ? DisableUpdateCheck
+              : false,
           };
 
           return Response.sendJsonObjectResponse(req, res, responseBody);
@@ -179,6 +227,12 @@ export default class GlobalConfigAPI extends BaseAPI<
               licenseKey,
               instanceId: instanceId.toString(),
               host: Host,
+              /*
+               * Sent here as well as from the daily report job so the version
+               * lands on the license server the moment the key is validated,
+               * rather than up to 24 hours later.
+               */
+              version: AppVersion,
             },
           });
 
@@ -239,6 +293,9 @@ export default class GlobalConfigAPI extends BaseAPI<
             }
           }
 
+          const isEvaluationLicense: boolean =
+            payload["isEvaluationLicense"] === true;
+
           const instances: Array<EnterpriseLicenseInstanceSummary> =
             Array.isArray(payload["instances"])
               ? (payload[
@@ -251,6 +308,7 @@ export default class GlobalConfigAPI extends BaseAPI<
             enterpriseLicenseKey: licenseKeyRaw || null,
             enterpriseLicenseExpiresAt: licenseExpiry || null,
             enterpriseLicenseToken: licenseToken || null,
+            enterpriseLicenseIsEvaluation: isEvaluationLicense,
             enterpriseLicenseUserLimit: userLimit,
             enterpriseLicenseCurrentUserCount: currentUserCount,
             enterpriseLicenseUserCountUpdatedAt: userCountUpdatedAt,
@@ -287,6 +345,8 @@ export default class GlobalConfigAPI extends BaseAPI<
               newConfig.enterpriseLicenseToken = licenseToken;
             }
 
+            newConfig.enterpriseLicenseIsEvaluation = isEvaluationLicense;
+
             if (licenseExpiry) {
               newConfig.enterpriseLicenseExpiresAt = licenseExpiry;
             }
@@ -321,6 +381,7 @@ export default class GlobalConfigAPI extends BaseAPI<
             expiresAt: licenseExpiry ? licenseExpiry.toISOString() : null,
             licenseKey: licenseKeyRaw || null,
             token: licenseToken || null,
+            isEvaluationLicense: isEvaluationLicense,
             userLimit: userLimit,
             currentUserCount: currentUserCount,
             userCountUpdatedAt: userCountUpdatedAt

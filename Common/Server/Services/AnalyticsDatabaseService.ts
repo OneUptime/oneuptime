@@ -47,7 +47,7 @@ import {
   ResponseJSON,
   ResultSet,
 } from "@clickhouse/client";
-import { AsyncLocalStorage } from "node:async_hooks";
+import { nextInsertDedupToken } from "../Utils/AnalyticsDatabase/InsertDedupContext";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import { WorkflowRoute } from "../../ServiceRoute";
 import Protocol from "../../Types/API/Protocol";
@@ -140,40 +140,42 @@ export const MigrationExecuteOptions: ClickhouseExecuteOptions = {
   },
 };
 
-/**
- * Ambient context that makes ClickHouse inserts idempotent across queue
- * retries. The telemetry queue worker wraps each job in
- * `runWithInsertDedup(jobId, ...)`; every insertJsonRows call inside the
- * job then stamps `insert_deduplication_token =
- * "<tokenBase>:<table>:<chunkIndex>"` plus async_insert_deduplicate=1 /
- * wait_for_async_insert=1, so a stalled-job retry that re-processes the
- * same payload re-issues byte-identical tokens and ClickHouse drops the
- * duplicate blocks (on replicated tables; on plain MergeTree the token is
- * ignored unless non_replicated_deduplication_window is set — no harm
- * either way). The chunk counter is per table because one job inserts
- * into several tables (e.g. Span + ExceptionInstance) in a deterministic
- * order.
+/*
+ * The insert-dedup ambient context lives in
+ * Utils/AnalyticsDatabase/InsertDedupContext so that both this service and
+ * TelemetryFanInWriter can consume deterministic tokens without an import
+ * cycle. Re-exported here for existing callers.
  *
- * HTTP-path inserts run outside the context and keep the fire-and-forget
- * async insert (wait_for_async_insert=0) — dedup waiting is only
- * affordable off the request thread.
+ * HTTP-path inserts run outside the context and are always fire-and-forget
+ * (wait_for_async_insert=0) — flush waiting, when opted into via
+ * TELEMETRY_WAIT_FOR_ASYNC_INSERT, is only affordable off the request
+ * thread and therefore only applies to tokened (queue-job) inserts.
  */
-export interface InsertDedupContextStore {
-  tokenBase: string;
-  chunkIndexByTable: Map<string, number>;
-}
+export {
+  runWithInsertDedup,
+  nextInsertDedupToken,
+  type InsertDedupContextStore,
+} from "../Utils/AnalyticsDatabase/InsertDedupContext";
 
-const insertDedupContext: AsyncLocalStorage<InsertDedupContextStore> =
-  new AsyncLocalStorage<InsertDedupContextStore>();
-
-export function runWithInsertDedup<T>(
-  tokenBase: string,
-  fn: () => Promise<T>,
-): Promise<T> {
-  return insertDedupContext.run(
-    { tokenBase, chunkIndexByTable: new Map<string, number>() },
-    fn,
-  );
+/*
+ * Ack mode for telemetry ClickHouse inserts.
+ *
+ * Default (false): wait_for_async_insert=0 — fire-and-forget. ClickHouse
+ * acks as soon as the batch is accepted into its async-insert buffer and
+ * owns flushing from there; inserts release their query slot almost
+ * immediately. The trade: flush-time errors surface only in server logs
+ * (system.asynchronous_inserts / part log), and a ClickHouse crash between
+ * buffer-accept and flush loses that buffer even though callers were acked.
+ *
+ * Set TELEMETRY_WAIT_FOR_ASYNC_INSERT=true to make every tokened insert
+ * wait for the durable flush before acking (ack-after-flush end to end
+ * through the fan-in writer and writer tier) — at the cost of each waiting
+ * insert holding a ClickHouse query slot until its buffer flushes.
+ */
+export function shouldWaitForAsyncInsert(): boolean {
+  const raw: string | undefined =
+    process.env["TELEMETRY_WAIT_FOR_ASYNC_INSERT"];
+  return raw === "true" || raw === "1";
 }
 
 export default class AnalyticsDatabaseService<
@@ -259,30 +261,31 @@ export default class AnalyticsDatabaseService<
     let dedupToken: string | undefined = options?.dedupToken;
 
     if (!dedupToken) {
-      const dedupStore: InsertDedupContextStore | undefined =
-        insertDedupContext.getStore();
-      if (dedupStore) {
-        const chunkIndex: number =
-          dedupStore.chunkIndexByTable.get(tableName) ?? 0;
-        dedupStore.chunkIndexByTable.set(tableName, chunkIndex + 1);
-        dedupToken = `${dedupStore.tokenBase}:${tableName}:${chunkIndex}`;
-      }
+      dedupToken = nextInsertDedupToken(tableName);
     }
+
+    const waitForAsyncInsert: 0 | 1 = shouldWaitForAsyncInsert() ? 1 : 0;
 
     let clickhouseSettings: ClickHouseSettings = {
       async_insert: 1,
-      wait_for_async_insert: 0,
+      wait_for_async_insert: waitForAsyncInsert,
     };
 
     if (dedupToken) {
       /*
-       * wait_for_async_insert=1 so the worker only acks the job after
-       * the block actually landed (or was deduplicated) — otherwise a
-       * crash between buffer-write and flush loses data with no retry.
+       * Dedup settings ride along in both ack modes. For async inserts
+       * ClickHouse dedups by content hash of the insert body when
+       * async_insert_deduplicate=1 (the explicit token is not yet honored
+       * for async inserts — ClickHouse #52018), so byte-identical queue
+       * retries are still dropped. The ack mode is a separate, deliberate
+       * trade (see shouldWaitForAsyncInsert): by default ClickHouse owns
+       * flushing and an ack means "accepted into the async-insert buffer";
+       * with TELEMETRY_WAIT_FOR_ASYNC_INSERT=true the ack waits for the
+       * durable flush instead.
        */
       clickhouseSettings = {
         async_insert: 1,
-        wait_for_async_insert: 1,
+        wait_for_async_insert: waitForAsyncInsert,
         async_insert_deduplicate: 1,
         insert_deduplication_token: dedupToken,
       };
