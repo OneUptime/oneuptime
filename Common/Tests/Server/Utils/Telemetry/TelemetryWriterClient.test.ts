@@ -55,10 +55,13 @@ describe("TelemetryWriterClient", () => {
   const savedUrl: string | undefined = process.env["TELEMETRY_WRITER_URL"];
   const savedTimeout: string | undefined =
     process.env["TELEMETRY_WRITER_REQUEST_TIMEOUT_MS"];
+  const savedMaxBody: string | undefined =
+    process.env["TELEMETRY_WRITER_MAX_BODY_BYTES"];
 
   beforeEach(() => {
     process.env["TELEMETRY_WRITER_URL"] = "http://telemetry-writer:3002";
     delete process.env["TELEMETRY_WRITER_REQUEST_TIMEOUT_MS"];
+    delete process.env["TELEMETRY_WRITER_MAX_BODY_BYTES"];
   });
 
   afterEach(() => {
@@ -71,6 +74,11 @@ describe("TelemetryWriterClient", () => {
       delete process.env["TELEMETRY_WRITER_REQUEST_TIMEOUT_MS"];
     } else {
       process.env["TELEMETRY_WRITER_REQUEST_TIMEOUT_MS"] = savedTimeout;
+    }
+    if (savedMaxBody === undefined) {
+      delete process.env["TELEMETRY_WRITER_MAX_BODY_BYTES"];
+    } else {
+      process.env["TELEMETRY_WRITER_MAX_BODY_BYTES"] = savedMaxBody;
     }
   });
 
@@ -89,12 +97,12 @@ describe("TelemetryWriterClient", () => {
       expect(getTelemetryWriterUrl()).toBe("http://writer:3002");
     });
 
-    test("request timeout defaults to 120s and honors the env override", () => {
-      expect(getTelemetryWriterRequestTimeoutMs()).toBe(120_000);
+    test("request timeout defaults to 90s (under the BullMQ lock) and honors the env override", () => {
+      expect(getTelemetryWriterRequestTimeoutMs()).toBe(90_000);
       process.env["TELEMETRY_WRITER_REQUEST_TIMEOUT_MS"] = "5000";
       expect(getTelemetryWriterRequestTimeoutMs()).toBe(5000);
       process.env["TELEMETRY_WRITER_REQUEST_TIMEOUT_MS"] = "not-a-number";
-      expect(getTelemetryWriterRequestTimeoutMs()).toBe(120_000);
+      expect(getTelemetryWriterRequestTimeoutMs()).toBe(90_000);
     });
   });
 
@@ -113,7 +121,7 @@ describe("TelemetryWriterClient", () => {
       expect(calls[0]!.url).toBe(
         `http://telemetry-writer:3002${TELEMETRY_WRITER_INSERT_ROUTE}`,
       );
-      expect(calls[0]!.timeoutMs).toBe(120_000);
+      expect(calls[0]!.timeoutMs).toBe(90_000);
       expect(calls[0]!.body).toEqual({
         tableName: "LogTable",
         rows: [{ a: 1 }, { a: 2 }],
@@ -210,6 +218,96 @@ describe("TelemetryWriterClient", () => {
           clickhouseSettings: undefined,
         }),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe("byte-aware splitting", () => {
+    test("a body over TELEMETRY_WRITER_MAX_BODY_BYTES splits into sequential halves with derived tokens", async () => {
+      // The 4-row body serializes to ~98 bytes; a 90-byte cap forces one halving.
+      process.env["TELEMETRY_WRITER_MAX_BODY_BYTES"] = "90";
+      const { post, calls } = makePost([
+        { statusCode: 200 },
+        { statusCode: 200 },
+      ]);
+      const transport: FanInInsertTransport =
+        createTelemetryWriterTransport(post);
+
+      const rows: Array<JSONObject> = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }];
+      await transport(TARGET, rows, {
+        dedupToken: "job-1:LogTable:0",
+        clickhouseSettings: undefined,
+      });
+
+      expect(calls).toHaveLength(2);
+      expect(calls[0]!.body["dedupToken"]).toBe("job-1:LogTable:0#0");
+      expect(calls[0]!.body["rows"]).toEqual([{ a: 1 }, { a: 2 }]);
+      expect(calls[1]!.body["dedupToken"]).toBe("job-1:LogTable:0#1");
+      expect(calls[1]!.body["rows"]).toEqual([{ a: 3 }, { a: 4 }]);
+    });
+
+    test("splitting recurses until halves fit, keeping row order and deterministic tokens", async () => {
+      process.env["TELEMETRY_WRITER_MAX_BODY_BYTES"] = "100";
+      const results: Array<WriterPostResult> = [];
+      for (let i: number = 0; i < 8; i++) {
+        results.push({ statusCode: 200 });
+      }
+      const { post, calls } = makePost(results);
+      const transport: FanInInsertTransport =
+        createTelemetryWriterTransport(post);
+
+      const rows: Array<JSONObject> = [];
+      for (let i: number = 0; i < 8; i++) {
+        rows.push({ padded: `row-${i}-xxxxxxxxxx` });
+      }
+      await transport(TARGET, rows, {
+        dedupToken: "t",
+        clickhouseSettings: undefined,
+      });
+
+      // All rows arrive exactly once, in order, across the splits.
+      const seen: Array<JSONObject> = calls.flatMap((call: PostCall) => {
+        return call.body["rows"] as Array<JSONObject>;
+      });
+      expect(seen).toEqual(rows);
+      // Every posted body fits the cap, and tokens are unique per part.
+      const tokens: Array<string> = calls.map((call: PostCall) => {
+        return call.body["dedupToken"] as string;
+      });
+      expect(new Set(tokens).size).toBe(tokens.length);
+      for (const call of calls) {
+        expect(
+          Buffer.byteLength(JSON.stringify(call.body), "utf8"),
+        ).toBeLessThanOrEqual(100);
+      }
+    });
+
+    test("a single oversized row is posted anyway (cannot be split)", async () => {
+      process.env["TELEMETRY_WRITER_MAX_BODY_BYTES"] = "50";
+      const { post, calls } = makePost([{ statusCode: 200 }]);
+      const transport: FanInInsertTransport =
+        createTelemetryWriterTransport(post);
+
+      await transport(TARGET, [{ huge: "x".repeat(200) }], {
+        dedupToken: "t",
+        clickhouseSettings: undefined,
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]!.body["dedupToken"]).toBe("t");
+    });
+
+    test("no split below the cap — token and rows pass through untouched", async () => {
+      const { post, calls } = makePost([{ statusCode: 200 }]);
+      const transport: FanInInsertTransport =
+        createTelemetryWriterTransport(post);
+
+      await transport(TARGET, [{ a: 1 }], {
+        dedupToken: "plain-token",
+        clickhouseSettings: undefined,
+      });
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]!.body["dedupToken"]).toBe("plain-token");
     });
   });
 });

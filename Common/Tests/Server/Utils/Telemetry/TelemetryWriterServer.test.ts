@@ -196,14 +196,15 @@ describe("handleWriterInsert", () => {
     expect(outcome.statusCode).toBe(400);
   });
 
-  test("400 on unknown table", async () => {
-    const { deps } = makeDeps();
+  test("503 on unknown table (retryable — rolling-upgrade version skew must self-heal)", async () => {
+    const { deps, calls } = makeDeps();
     const outcome: WriterInsertOutcome = await handleWriterInsert(
       validBody({ tableName: "NoSuchTable" }),
       deps,
     );
-    expect(outcome.statusCode).toBe(400);
+    expect(outcome.statusCode).toBe(503);
     expect(String(outcome.body["message"])).toContain("NoSuchTable");
+    expect(calls).toHaveLength(0);
   });
 
   test("503 when this pod itself forwards to a remote writer (loop guard)", async () => {

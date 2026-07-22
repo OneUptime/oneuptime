@@ -53,11 +53,27 @@ export function getTelemetryWriterRequestTimeoutMs(): number {
     process.env["TELEMETRY_WRITER_REQUEST_TIMEOUT_MS"];
   const parsed: number = parseInt(raw || "", 10);
   /*
-   * Generous default: the writer holds the request until ClickHouse accepts
-   * the rows (durable flush when TELEMETRY_WAIT_FOR_ASYNC_INSERT=true),
-   * which under load includes its own batching wait and retry/backoff loop.
+   * Generous (the writer holds the request until ClickHouse accepts the
+   * rows, which under load includes its batching wait and retry loop) but
+   * deliberately under the BullMQ job lock: the fan-in writer makes up to
+   * 6 attempts, and 6 x 90s + ~8s backoff ≈ 9.2 min must stay inside
+   * TELEMETRY_LOCK_DURATION_MS (10 min) — otherwise a saturated writer
+   * tier stalls jobs into redelivery churn instead of failing them
+   * cleanly for retry.
    */
-  return !isNaN(parsed) && parsed > 0 ? parsed : 120_000;
+  return !isNaN(parsed) && parsed > 0 ? parsed : 90_000;
+}
+
+export function getTelemetryWriterMaxBodyBytes(): number {
+  const raw: string | undefined =
+    process.env["TELEMETRY_WRITER_MAX_BODY_BYTES"];
+  const parsed: number = parseInt(raw || "", 10);
+  /*
+   * Stay well under the writer route's 50 MB express.json limit (plus
+   * headroom for headers/encoding). Bodies above this are split before
+   * sending — a 413 would be classified permanent and drop rows.
+   */
+  return !isNaN(parsed) && parsed > 0 ? parsed : 30_000_000;
 }
 
 export interface WriterPostResult {
@@ -132,35 +148,66 @@ export function createTelemetryWriterTransport(
 ): FanInInsertTransport {
   const post: WriterPostFn = postFn ?? defaultPost;
 
-  return async (
-    target: FanInInsertTarget,
+  const postGroup: (
+    tableName: string,
     rows: Array<JSONObject>,
-    options: {
-      dedupToken: string;
-      clickhouseSettings: ClickHouseSettings | undefined;
-    },
+    dedupToken: string,
+    clickhouseSettings: ClickHouseSettings | undefined,
+    baseUrl: string,
+    maxBodyBytes: number,
+  ) => Promise<void> = async (
+    tableName: string,
+    rows: Array<JSONObject>,
+    dedupToken: string,
+    clickhouseSettings: ClickHouseSettings | undefined,
+    baseUrl: string,
+    maxBodyBytes: number,
   ): Promise<void> => {
-    const baseUrl: string | null = getTelemetryWriterUrl();
-    if (!baseUrl) {
-      /*
-       * The transport is only installed when the URL is configured; losing
-       * it mid-flight (env mutation in tests) is a permanent config error,
-       * not something a same-token retry can fix.
-       */
-      throw new Error(
-        "TelemetryWriterClient: TELEMETRY_WRITER_URL is not configured.",
-      );
-    }
-
-    const tableName: string = target.model.tableName;
     const body: JSONObject = {
       tableName: tableName,
       rows: rows,
-      dedupToken: options.dedupToken,
-      ...(options.clickhouseSettings
-        ? { clickhouseSettings: options.clickhouseSettings as JSONObject }
+      dedupToken: dedupToken,
+      ...(clickhouseSettings
+        ? { clickhouseSettings: clickhouseSettings as JSONObject }
         : {}),
     };
+
+    /*
+     * Byte-aware splitting: the writer route sits behind a 50 MB JSON
+     * parser, and a 413 is (correctly) classified permanent — so an
+     * oversized group would be dropped after retries, a failure mode the
+     * direct ClickHouse path never had. Halve deterministically instead:
+     * a BullMQ retry re-produces byte-identical rows, hence the identical
+     * split and identical derived tokens ("<token>#0"/"<token>#1"), so
+     * idempotence is preserved (async-insert dedup is a content hash per
+     * insert body, and the distinct suffixes keep tokens collision-free
+     * for any future sync-insert mode). Halves post sequentially — this
+     * all happens under one fan-in insert slot, and splitting must not
+     * multiply the pod's concurrent load.
+     */
+    if (rows.length > 1) {
+      const bodyBytes: number = Buffer.byteLength(JSON.stringify(body), "utf8");
+      if (bodyBytes > maxBodyBytes) {
+        const mid: number = Math.floor(rows.length / 2);
+        await postGroup(
+          tableName,
+          rows.slice(0, mid),
+          `${dedupToken}#0`,
+          clickhouseSettings,
+          baseUrl,
+          maxBodyBytes,
+        );
+        await postGroup(
+          tableName,
+          rows.slice(mid),
+          `${dedupToken}#1`,
+          clickhouseSettings,
+          baseUrl,
+          maxBodyBytes,
+        );
+        return;
+      }
+    }
 
     const result: WriterPostResult = await post({
       url: `${baseUrl}${TELEMETRY_WRITER_INSERT_ROUTE}`,
@@ -182,5 +229,35 @@ export function createTelemetryWriterTransport(
     }
 
     throw new Error(detail);
+  };
+
+  return async (
+    target: FanInInsertTarget,
+    rows: Array<JSONObject>,
+    options: {
+      dedupToken: string;
+      clickhouseSettings: ClickHouseSettings | undefined;
+    },
+  ): Promise<void> => {
+    const baseUrl: string | null = getTelemetryWriterUrl();
+    if (!baseUrl) {
+      /*
+       * The transport is only installed when the URL is configured; losing
+       * it mid-flight (env mutation in tests) is a permanent config error,
+       * not something a same-token retry can fix.
+       */
+      throw new Error(
+        "TelemetryWriterClient: TELEMETRY_WRITER_URL is not configured.",
+      );
+    }
+
+    await postGroup(
+      target.model.tableName,
+      rows,
+      options.dedupToken,
+      options.clickhouseSettings,
+      baseUrl,
+      getTelemetryWriterMaxBodyBytes(),
+    );
   };
 }

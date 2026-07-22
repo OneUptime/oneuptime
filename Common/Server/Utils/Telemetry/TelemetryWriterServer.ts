@@ -17,13 +17,18 @@ import { type ClickHouseSettings } from "@clickhouse/client";
  * - 200: ClickHouse accepted the rows — into its async-insert buffer by
  *   default (ClickHouse owns flushing), or durably flushed when
  *   TELEMETRY_WAIT_FOR_ASYNC_INSERT=true on the writer pods.
- * - 400: malformed request or unknown table — never retried.
+ * - 400: malformed request — never retried.
  * - 429: this pod is at its inflight-request cap — retry (load shedding is
  *   the writer tier's flow control at arbitrary worker-fleet sizes; without
  *   it, parked request bodies would grow pod memory without bound).
  * - 500: insert failed definitively after the local writer's retries.
- * - 503: insert failed on a still-transient error after the local writer
- *   exhausted its retries, or this pod is misconfigured — retry.
+ * - 503: retry — a still-transient insert failure after the local writer
+ *   exhausted its retries, a misconfigured (forwarding) pod, or an unknown
+ *   table. Unknown tables are 503 rather than 400 because of rolling
+ *   upgrades: a new-image worker can submit rows for a just-added
+ *   analytics table to an old-image writer that does not know it yet;
+ *   retries outlive the skew window and the rows land once the writer
+ *   rolls, whereas a 400 would permanently drop them.
  */
 
 export interface TelemetryWriterInsertRequest {
@@ -200,9 +205,12 @@ export async function handleWriterInsert(
     parsed.tableName,
   );
   if (!target) {
+    // 503, not 400: see the status contract — version-skew self-healing.
     return {
-      statusCode: 400,
-      body: { message: `Unknown analytics table: ${parsed.tableName}` },
+      statusCode: 503,
+      body: {
+        message: `Unknown analytics table: ${parsed.tableName}. If this writer pod is mid-rolling-upgrade, retries will succeed once it runs the newer image.`,
+      },
     };
   }
 
