@@ -1231,7 +1231,6 @@ spec:
         targetValue: {{ .threshold | quote }}
         url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}{{ if .urlPath }}{{ .urlPath }}{{ else }}/metrics/queue-size{{ end }}
         valueLocation: {{ .valueLocation | default "queueSize" | squote }}
-        method: 'GET'
       # authenticationRef:
       #   name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}
     {{- end }}
