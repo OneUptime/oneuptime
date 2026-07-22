@@ -94,7 +94,47 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD",
-        "description": "Free tier available. Paid plans start at $22/month."
+        "description": "Free tier available. Paid plans start at $22/month.",
+        "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": ["US", "GB", "CA", "AU", "DE", "FR", "NL", "IN", "SG", "JP"],
+            "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
+        },
+        "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+                "@type": "MonetaryAmount",
+                "value": 0,
+                "currency": "USD"
+            },
+            "shippingDestination": [
+                { "@type": "DefinedRegion", "addressCountry": "US" },
+                { "@type": "DefinedRegion", "addressCountry": "GB" },
+                { "@type": "DefinedRegion", "addressCountry": "CA" },
+                { "@type": "DefinedRegion", "addressCountry": "AU" },
+                { "@type": "DefinedRegion", "addressCountry": "DE" },
+                { "@type": "DefinedRegion", "addressCountry": "FR" },
+                { "@type": "DefinedRegion", "addressCountry": "NL" },
+                { "@type": "DefinedRegion", "addressCountry": "IN" },
+                { "@type": "DefinedRegion", "addressCountry": "SG" },
+                { "@type": "DefinedRegion", "addressCountry": "JP" }
+            ],
+            "deliveryTime": {
+                "@type": "ShippingDeliveryTime",
+                "handlingTime": {
+                    "@type": "QuantitativeValue",
+                    "minValue": 0,
+                    "maxValue": 0,
+                    "unitCode": "DAY"
+                },
+                "transitTime": {
+                    "@type": "QuantitativeValue",
+                    "minValue": 0,
+                    "maxValue": 0,
+                    "unitCode": "DAY"
+                }
+            }
+        }
     },
     "featureList": [
         <% softwareApp.features.forEach(function(feature, index) { %>
