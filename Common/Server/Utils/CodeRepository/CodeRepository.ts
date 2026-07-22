@@ -93,9 +93,11 @@ export default class CodeRepositoryUtil {
     repoPath: string;
   }): Promise<void> {
     await this.runGitCommand(data.repoPath, ["fetch", "--no-tags", "origin"]);
-    // "@{u}" is the current branch's upstream (e.g. origin/main), configured by
-    // git clone. Hard-resetting onto it adopts a rewritten/force-pushed history
-    // wholesale instead of failing to reconcile divergent branches.
+    /*
+     * "@{u}" is the current branch's upstream (e.g. origin/main), configured by
+     * git clone. Hard-resetting onto it adopts a rewritten/force-pushed history
+     * wholesale instead of failing to reconcile divergent branches.
+     */
     await this.runGitCommand(data.repoPath, ["reset", "--hard", "@{u}"]);
   }
 
@@ -117,7 +119,10 @@ export default class CodeRepositoryUtil {
   }): Promise<boolean> {
     try {
       const topLevel: string = (
-        await this.runGitCommand(data.repoPath, ["rev-parse", "--show-toplevel"])
+        await this.runGitCommand(data.repoPath, [
+          "rev-parse",
+          "--show-toplevel",
+        ])
       ).trim();
 
       if (path.resolve(topLevel) !== path.resolve(data.repoPath)) {
@@ -125,7 +130,11 @@ export default class CodeRepositoryUtil {
       }
 
       // Throws (exit 128) on a partial clone with no HEAD; caught below.
-      await this.runGitCommand(data.repoPath, ["rev-parse", "--verify", "HEAD"]);
+      await this.runGitCommand(data.repoPath, [
+        "rev-parse",
+        "--verify",
+        "HEAD",
+      ]);
       return true;
     } catch {
       return false;
@@ -150,10 +159,12 @@ export default class CodeRepositoryUtil {
     // git clone needs the parent to exist; ensure it (no-op if already there).
     await LocalFile.makeDirectory(path.dirname(targetPath));
 
-    // Start from a clean target so a previous partial/interrupted clone can't
-    // wedge the retry. Remove the target's CONTENTS rather than the directory
-    // itself (it may be a volume mount point); git clone accepts an existing
-    // empty directory.
+    /*
+     * Start from a clean target so a previous partial/interrupted clone can't
+     * wedge the retry. Remove the target's CONTENTS rather than the directory
+     * itself (it may be a volume mount point); git clone accepts an existing
+     * empty directory.
+     */
     try {
       for (const entry of await fs.promises.readdir(targetPath)) {
         await fs.promises.rm(path.join(targetPath, entry), {
@@ -179,8 +190,10 @@ export default class CodeRepositoryUtil {
       cwd: path.dirname(targetPath),
     });
 
-    // See getCommitAuthorsWithFiles: keep rename detection off so the contributor
-    // history walk stays fully local on a partial clone.
+    /*
+     * See getCommitAuthorsWithFiles: keep rename detection off so the contributor
+     * history walk stays fully local on a partial clone.
+     */
     await this.runGitCommand(targetPath, ["config", "diff.renames", "false"]);
   }
 

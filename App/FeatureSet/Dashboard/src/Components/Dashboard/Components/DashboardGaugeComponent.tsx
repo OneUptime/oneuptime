@@ -315,12 +315,9 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     switch (aggregationType) {
       case AggregationType.Sum:
       case AggregationType.Count:
-        aggregatedValue = numericValues.reduce(
-          (sum: number, value: number) => {
-            return sum + value;
-          },
-          0,
-        );
+        aggregatedValue = numericValues.reduce((sum: number, value: number) => {
+          return sum + value;
+        }, 0);
         break;
       case AggregationType.Min:
         aggregatedValue = Math.min(...numericValues);

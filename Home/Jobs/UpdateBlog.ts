@@ -21,9 +21,11 @@ BasicCron({
     logger.debug("UpdateBlog: Start", { service: "home", job: "UpdateBlog" });
 
     if (BlogSkipDownload) {
-      // Emergency kill-switch: do nothing (no clone, no pull). Home serves with
-      // whatever is on the volume (typically empty), and blog pages degrade
-      // gracefully. See BLOG_SKIP_DOWNLOAD in Config.
+      /*
+       * Emergency kill-switch: do nothing (no clone, no pull). Home serves with
+       * whatever is on the volume (typically empty), and blog pages degrade
+       * gracefully. See BLOG_SKIP_DOWNLOAD in Config.
+       */
       logger.debug("UpdateBlog: skipped (BLOG_SKIP_DOWNLOAD=true)", {
         service: "home",
         job: "UpdateBlog",
@@ -56,8 +58,10 @@ BasicCron({
           filter: BlogCloneFilter || undefined,
         });
       } catch (err: unknown) {
-        // Leave the repo absent; the next run retries. Blog pages degrade
-        // gracefully (empty recent-posts) until the clone succeeds.
+        /*
+         * Leave the repo absent; the next run retries. Blog pages degrade
+         * gracefully (empty recent-posts) until the clone succeeds.
+         */
         logger.debug("UpdateBlog: clone failed");
         logger.debug(err);
       }
