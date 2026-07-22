@@ -128,28 +128,15 @@ export default class BlogPostUtil {
     }
 
     const filePath: string = `${BlogRootPath}/Blogs.json`;
-    try {
-      let jsonContent: string | JSONArray = await LocalFile.read(filePath);
-      if (typeof jsonContent === "string") {
-        jsonContent = JSONFunctions.parseJSONArray(jsonContent);
-      }
-      const blogs: Array<JSONObject> = JSONFunctions.deserializeArray(
-        jsonContent as Array<JSONObject>,
-      );
-      this.blogsMetaCache = blogs;
-      return blogs;
-    } catch {
-      /*
-       * The blog now lives on a mounted volume that can be empty or absent —
-       * before the initial clone completes, in environments without the blog, or
-       * when blog.skipDownload is set. Degrade gracefully to "no posts" instead of
-       * throwing, so blog pages, the RSS feed and the sitemap index render empty
-       * while marketing/product/docs stay unaffected (mirrors getAuthorsMeta).
-       * Deliberately NOT cached, so posts are picked up once the clone lands
-       * (UpdateBlog also clears caches after it pulls).
-       */
-      return [];
+    let jsonContent: string | JSONArray = await LocalFile.read(filePath);
+    if (typeof jsonContent === "string") {
+      jsonContent = JSONFunctions.parseJSONArray(jsonContent);
     }
+    const blogs: Array<JSONObject> = JSONFunctions.deserializeArray(
+      jsonContent as Array<JSONObject>,
+    );
+    this.blogsMetaCache = blogs;
+    return blogs;
   }
 
   private static async getAuthorsMeta(): Promise<JSONObject> {
