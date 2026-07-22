@@ -1,0 +1,213 @@
+{{- if and $.Values.telemetryWriter.enabled (not $.Values.deployment.disableDeployments) }}
+# OneUptime telemetry-writer Deployment
+#
+# Runs the SAME image as `app` (App/Index.ts) but as the "telemetry writer"
+# role: a deliberately FIXED-SIZE tier that owns all high-volume ClickHouse
+# telemetry inserts. Pods that process telemetry ingest (app/worker) get
+# TELEMETRY_WRITER_URL (see oneuptime.env.telemetryWriterUrl) and ship each
+# batched insert here over HTTP instead of opening ClickHouse connections, so
+# ClickHouse insert concurrency is
+#   replicaCount x telemetryFanInMaxConcurrentInserts
+# — a constant chosen below — no matter how far the worker fleet autoscales.
+# This tier consumes no queues (DISABLE_QUEUE_WORKERS=true) and takes no
+# ingress traffic; it serves only the cluster-key-protected
+# /telemetry-writer/insert endpoint plus health probes.
+#
+# Scaling: fixed-size by default. Two OPT-IN autoscalers exist —
+# telemetryWriter.autoscaling (plain CPU/memory HPA; explicit enable only,
+# the global autoscaling block never applies to this tier) and
+# telemetryWriter.keda (KEDA on the fleet-wide shed rate: sustained 429s
+# while ClickHouse is healthy is the honest "tier too small" signal, served
+# at /metrics/telemetry-writer-shed-rate from a Redis-backed counter).
+# NEVER scale this tier on queue depth: queue growth is the WORKER fleet's
+# signal, and reacting to it here would hand ClickHouse the very burst this
+# tier exists to absorb (overload is shed with 429 and parked in BullMQ).
+# Whatever scaler is used, cap maxReplicas so replicas x
+# telemetryFanInMaxConcurrentInserts stays inside the ClickHouse budget.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "telemetry-writer"  }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "telemetry-writer"  }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+    {{- if $.Values.deployment.includeTimestampLabel }}
+    date: "{{ now | unixEpoch }}"
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name "telemetry-writer"  }}
+  {{- $twAutoscaling := $.Values.telemetryWriter.autoscaling | default dict }}
+  {{- $twKeda := $.Values.telemetryWriter.keda | default dict }}
+  {{- if not (or $twAutoscaling.enabled (and $.Values.keda.enabled $twKeda.enabled)) }}
+  replicas: {{ $.Values.telemetryWriter.replicaCount }}
+  {{- end }}
+  strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name "telemetry-writer"  }}
+        {{- if $.Values.deployment.includeTimestampLabel }}
+        date: "{{ now | unixEpoch }}"
+        {{- end }}
+        appname: oneuptime
+    spec:
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.telemetryWriter.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.telemetryWriter.podSecurityContext | nindent 8 }}
+      {{- else if $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.telemetryWriter.hostAliases }}
+      hostAliases:
+        {{- toYaml $.Values.telemetryWriter.hostAliases | nindent 8 }}
+      {{- else if $.Values.hostAliases }}
+      hostAliases:
+        {{- toYaml $.Values.hostAliases | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.affinity }}
+      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.tolerations }}
+      tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.telemetryWriter.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.telemetryWriter.nodeSelector | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "telemetry-writer" "ImageName" "app") }}
+          name: {{ printf "%s-%s" $.Release.Name "telemetry-writer"  }}
+          {{- if $.Values.startupProbe.enabled }}
+          # Startup probe
+          startupProbe:
+            httpGet:
+              path: /status/live
+              port: {{ $.Values.telemetryWriter.ports.http }}
+            periodSeconds: {{ $.Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ $.Values.startupProbe.failureThreshold }}
+          {{- end }}
+          {{- if $.Values.livenessProbe.enabled }}
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /status/live
+              port: {{ $.Values.telemetryWriter.ports.http }}
+            periodSeconds: {{ $.Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $.Values.livenessProbe.timeoutSeconds }}
+            initialDelaySeconds: {{ $.Values.livenessProbe.initialDelaySeconds }}
+          {{- end }}
+          {{- if $.Values.readinessProbe.enabled }}
+          # Readyness Probe
+          readinessProbe:
+            httpGet:
+              path: /status/ready
+              port: {{ $.Values.telemetryWriter.ports.http }}
+            periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
+            initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
+          {{- end }}
+          {{- if $.Values.telemetryWriter.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.telemetryWriter.containerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            {{- include "oneuptime.env.common" . | nindent 12 }}
+            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release "DatabaseMaxOpenConnections" ($.Values.telemetryWriter.databaseMaxOpenConnections | default $.Values.deployment.databaseMaxOpenConnections)) | nindent 12 }}
+            - name: PORT
+              value: {{ $.Values.telemetryWriter.ports.http | quote }}
+            # Writer pods never consume BullMQ queues — they only serve the
+            # insert endpoint. (TELEMETRY_WRITER_URL is deliberately absent:
+            # that is what makes this pod insert into ClickHouse directly.)
+            - name: DISABLE_QUEUE_WORKERS
+              value: "true"
+            - name: DISABLE_TELEMETRY
+              value: {{ $.Values.telemetryWriter.disableTelemetryCollection | quote }}
+            - name: ENABLE_PROFILING
+              value: {{ $.Values.telemetryWriter.enableProfiling | quote }}
+            # Admission cap for concurrently-served insert requests; beyond it
+            # the pod sheds with 429 and callers retry with the same dedup
+            # token. This — not the fan-in buffer — bounds writer-pod memory
+            # when the worker fleet is much larger than this tier.
+            - name: TELEMETRY_WRITER_MAX_INFLIGHT_REQUESTS
+              value: {{ $.Values.telemetryWriter.maxInflightRequests | default 100 | squote }}
+            # Fan-in telemetry writer knobs (defaults match the code —
+            # Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts).
+            # ClickHouse telemetry-insert concurrency for the WHOLE cluster is
+            # replicaCount x maxConcurrentInserts — keep that product under
+            # ~60% of ClickHouse max_concurrent_queries.
+            - name: TELEMETRY_FANIN_MAX_BATCH_ROWS
+              value: {{ $.Values.telemetryWriter.telemetryFanInMaxBatchRows | default 100000 | squote }}
+            - name: TELEMETRY_FANIN_MAX_WAIT_MS
+              value: {{ $.Values.telemetryWriter.telemetryFanInMaxWaitMs | default 5000 | squote }}
+            - name: TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS
+              value: {{ $.Values.telemetryWriter.telemetryFanInMaxConcurrentInserts | default 4 | squote }}
+            - name: TELEMETRY_FANIN_MAX_PENDING_ROWS
+              value: {{ $.Values.telemetryWriter.telemetryFanInMaxPendingRows | default 200000 | squote }}
+            - name: TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS
+              value: {{ $.Values.telemetryWriter.telemetryFanInRetryMaxAttempts | default 6 | squote }}
+            - name: TELEMETRY_FANIN_RETRY_BASE_DELAY_MS
+              value: {{ $.Values.telemetryWriter.telemetryFanInRetryBaseDelayMs | default 250 | squote }}
+            - name: TELEMETRY_FANIN_RETRY_MAX_DELAY_MS
+              value: {{ $.Values.telemetryWriter.telemetryFanInRetryMaxDelayMs | default 10000 | squote }}
+            # Per-pod ClickHouse pool ceilings; the ingest pool inherits the
+            # query pool size when unset (same fallback the code applies).
+            - name: CLICKHOUSE_MAX_OPEN_CONNECTIONS
+              value: {{ $.Values.telemetryWriter.clickhouseMaxOpenConnections | default 100 | squote }}
+            - name: CLICKHOUSE_INGEST_MAX_OPEN_CONNECTIONS
+              value: {{ $.Values.telemetryWriter.clickhouseIngestMaxOpenConnections | default ($.Values.telemetryWriter.clickhouseMaxOpenConnections | default 100) | squote }}
+          ports:
+            - containerPort: {{ $.Values.telemetryWriter.ports.http }}
+              protocol: TCP
+              name: http
+          {{- if $.Values.telemetryWriter.resources }}
+          resources:
+            {{- toYaml $.Values.telemetryWriter.resources | nindent 12 }}
+          {{- end }}
+      restartPolicy: {{ $.Values.image.restartPolicy }}
+
+---
+{{- end }}
+
+{{- if and $.Values.telemetryWriter.enabled (not $.Values.deployment.disableDeployments) }}
+{{- $twAutoscaling := $.Values.telemetryWriter.autoscaling | default dict }}
+{{- $twKeda := $.Values.telemetryWriter.keda | default dict }}
+{{- if and $twAutoscaling.enabled (not (and $.Values.keda.enabled $twKeda.enabled)) }}
+# OneUptime telemetry-writer autoscaler (CPU/memory HPA; skipped when the
+# KEDA shed-rate scaler manages this deployment). Explicit opt-in only —
+# the Override block always carries an `enabled` key, so the global
+# autoscaling block never applies to this tier by accident.
+{{- include "oneuptime.autoscaler" (dict "ServiceName" "telemetry-writer" "Release" $.Release "Values" $.Values "Override" $.Values.telemetryWriter.autoscaling) }}
+{{- end }}
+---
+{{- end }}
+
+{{- if and $.Values.telemetryWriter.enabled (not $.Values.deployment.disableDeployments) }}
+# OneUptime telemetry-writer Service (ClusterIP, http only — reached
+# service-to-service by app/worker pods; no external ingress).
+{{- $telemetryWriterPorts := dict "http" $.Values.telemetryWriter.ports.http -}}
+{{- $telemetryWriterServiceArgs := dict "ServiceName" "telemetry-writer" "Ports" $telemetryWriterPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $telemetryWriterServiceArgs }}
+---
+{{- end }}
+
+{{- if and $.Values.telemetryWriter.enabled (not $.Values.deployment.disableDeployments) }}
+# OneUptime telemetry-writer PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" "telemetry-writer" "Override" $.Values.telemetryWriter.podDisruptionBudget "Release" $.Release "Values" $.Values) }}
+{{- end }}

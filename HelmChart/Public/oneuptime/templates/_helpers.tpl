@@ -262,6 +262,12 @@ its userlist at startup.
   value: {{ $.Values.home.ports.http | squote }}
 - name: WORKER_CONCURRENCY
   value: {{ $.Values.app.workerConcurrency | default 100 | squote }}
+# Ack mode for telemetry ClickHouse inserts. Default false = fire-and-forget
+# async inserts (ClickHouse owns flushing; acks mean "accepted into the
+# async-insert buffer"). Set true to make acks wait for the durable flush —
+# each waiting insert then holds a ClickHouse query slot until flushed.
+- name: TELEMETRY_WAIT_FOR_ASYNC_INSERT
+  value: {{ $.Values.telemetryWaitForAsyncInsert | default false | quote }}
 - name: IP_WHITELIST
   value: {{ default "" $.Values.ipWhitelist | quote }}
 {{- include "oneuptime.env.globalLlmProvider" $ }}
@@ -1222,7 +1228,7 @@ spec:
       metadata:
         targetValue: {{ .threshold | quote }}
         url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}{{ if .urlPath }}{{ .urlPath }}{{ else }}/metrics/queue-size{{ end }}
-        valueLocation: 'queueSize'
+        valueLocation: {{ .valueLocation | default "queueSize" | squote }}
         method: 'GET'
       # authenticationRef:
       #   name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}
@@ -1264,5 +1270,22 @@ spec:
       name: {{ printf "%s-%s" .Release.Name "secrets" }}
       key: oneuptime-secret
     {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+TELEMETRY_WRITER_URL for pods that process telemetry ingest (app, worker).
+Emitted only when the dedicated telemetry-writer tier is enabled: the fan-in
+writer on these pods then ships ClickHouse inserts to that tier over HTTP, so
+ClickHouse insert concurrency is (telemetryWriter.replicaCount x
+telemetryWriter.telemetryFanInMaxConcurrentInserts) no matter how far the
+worker fleet scales. The telemetry-writer pods themselves MUST NOT get this
+var — its absence is what makes them insert directly (and they refuse to
+serve inserts when it is set, to prevent forwarding loops).
+*/}}
+{{- define "oneuptime.env.telemetryWriterUrl" }}
+{{- if $.Values.telemetryWriter.enabled }}
+- name: TELEMETRY_WRITER_URL
+  value: http://{{ $.Release.Name }}-telemetry-writer.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.telemetryWriter.ports.http }}
 {{- end }}
 {{- end }}

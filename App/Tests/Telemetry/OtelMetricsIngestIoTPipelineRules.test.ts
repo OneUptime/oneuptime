@@ -102,7 +102,7 @@ function setupIngestMocks(rules: MetricRulesForProject): {
   };
 
   jest.spyOn(service, "runBatchHostEnrichment").mockResolvedValue(undefined);
-  jest.spyOn(service, "flushMetricsBuffer").mockResolvedValue(undefined);
+  jest.spyOn(service, "submitMetricsBuffer").mockResolvedValue(undefined);
 
   for (const method of AUTO_DISCOVERY_MOCKS_RETURNING_NULL) {
     jest.spyOn(service, method).mockResolvedValue(null);
