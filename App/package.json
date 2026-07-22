@@ -33,7 +33,7 @@
     "dev": "bash ./scripts/dev.sh",
     "audit": "npm audit --audit-level=low",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
-    "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd App && rm -rf build && node node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles --passWithNoTests",
+    "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd App && rm -rf build && node --max-old-space-size=6144 node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles --passWithNoTests",
     "coverage": "jest --detectOpenHandles --coverage"
   },
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
