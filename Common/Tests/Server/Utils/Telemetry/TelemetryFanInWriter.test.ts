@@ -973,10 +973,10 @@ describe("readFanInWriterOptionsFromEnv", () => {
   test("returns documented defaults when nothing is set", () => {
     withEnv({}, () => {
       const options: FanInWriterOptions = readFanInWriterOptionsFromEnv();
-      expect(options.maxBatchRows).toBe(5000);
-      expect(options.maxWaitMs).toBe(1000);
+      expect(options.maxBatchRows).toBe(100_000);
+      expect(options.maxWaitMs).toBe(5000);
       expect(options.maxConcurrentInserts).toBe(4);
-      expect(options.maxPendingRows).toBe(100_000);
+      expect(options.maxPendingRows).toBe(200_000);
       expect(options.retryMaxAttempts).toBe(6);
       expect(options.retryBaseDelayMs).toBe(250);
       expect(options.retryMaxDelayMs).toBe(10_000);
@@ -993,7 +993,7 @@ describe("readFanInWriterOptionsFromEnv", () => {
         const options: FanInWriterOptions = readFanInWriterOptionsFromEnv();
         expect(options.maxBatchRows).toBe(123);
         expect(options.maxConcurrentInserts).toBe(2);
-        expect(options.maxWaitMs).toBe(1000); // untouched default
+        expect(options.maxWaitMs).toBe(5000); // untouched default
       },
     );
   });
@@ -1007,9 +1007,9 @@ describe("readFanInWriterOptionsFromEnv", () => {
       },
       () => {
         const options: FanInWriterOptions = readFanInWriterOptionsFromEnv();
-        expect(options.maxBatchRows).toBe(5000);
-        expect(options.maxWaitMs).toBe(1000);
-        expect(options.maxPendingRows).toBe(100_000);
+        expect(options.maxBatchRows).toBe(100_000);
+        expect(options.maxWaitMs).toBe(5000);
+        expect(options.maxPendingRows).toBe(200_000);
       },
     );
   });

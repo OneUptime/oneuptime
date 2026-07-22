@@ -139,13 +139,13 @@ spec:
             # replicaCount x maxConcurrentInserts — keep that product under
             # ~60% of ClickHouse max_concurrent_queries.
             - name: TELEMETRY_FANIN_MAX_BATCH_ROWS
-              value: {{ $.Values.telemetryWriter.telemetryFanInMaxBatchRows | default 5000 | squote }}
+              value: {{ $.Values.telemetryWriter.telemetryFanInMaxBatchRows | default 100000 | squote }}
             - name: TELEMETRY_FANIN_MAX_WAIT_MS
-              value: {{ $.Values.telemetryWriter.telemetryFanInMaxWaitMs | default 1000 | squote }}
+              value: {{ $.Values.telemetryWriter.telemetryFanInMaxWaitMs | default 5000 | squote }}
             - name: TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS
               value: {{ $.Values.telemetryWriter.telemetryFanInMaxConcurrentInserts | default 4 | squote }}
             - name: TELEMETRY_FANIN_MAX_PENDING_ROWS
-              value: {{ $.Values.telemetryWriter.telemetryFanInMaxPendingRows | default 100000 | squote }}
+              value: {{ $.Values.telemetryWriter.telemetryFanInMaxPendingRows | default 200000 | squote }}
             - name: TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS
               value: {{ $.Values.telemetryWriter.telemetryFanInRetryMaxAttempts | default 6 | squote }}
             - name: TELEMETRY_FANIN_RETRY_BASE_DELAY_MS

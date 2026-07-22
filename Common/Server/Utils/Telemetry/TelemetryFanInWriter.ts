@@ -274,15 +274,21 @@ const readPositiveInt: EnvIntReader = (
 
 export function readFanInWriterOptionsFromEnv(): FanInWriterOptions {
   return {
-    maxBatchRows: readPositiveInt("TELEMETRY_FANIN_MAX_BATCH_ROWS", 5000),
-    maxWaitMs: readPositiveInt("TELEMETRY_FANIN_MAX_WAIT_MS", 1000),
+    maxBatchRows: readPositiveInt("TELEMETRY_FANIN_MAX_BATCH_ROWS", 100_000),
+    maxWaitMs: readPositiveInt("TELEMETRY_FANIN_MAX_WAIT_MS", 5000),
     maxConcurrentInserts: readPositiveInt(
       "TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS",
       4,
     ),
+    /*
+     * Must stay comfortably above maxBatchRows: if the two are equal, the
+     * instant a full batch is cut every submitter blocks until that whole
+     * batch finishes inserting — no pipelining. 2x allows one batch in
+     * flight while the next fills.
+     */
     maxPendingRows: readPositiveInt(
       "TELEMETRY_FANIN_MAX_PENDING_ROWS",
-      100_000,
+      200_000,
     ),
     retryMaxAttempts: readPositiveInt("TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS", 6),
     retryBaseDelayMs: readPositiveInt(

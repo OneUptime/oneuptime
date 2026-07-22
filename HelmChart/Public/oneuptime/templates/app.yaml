@@ -133,13 +133,13 @@ spec:
             # Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts). Fleet-wide
             # ClickHouse insert concurrency is replicas x maxConcurrentInserts.
             - name: TELEMETRY_FANIN_MAX_BATCH_ROWS
-              value: {{ $.Values.app.telemetryFanInMaxBatchRows | default 5000 | squote }}
+              value: {{ $.Values.app.telemetryFanInMaxBatchRows | default 100000 | squote }}
             - name: TELEMETRY_FANIN_MAX_WAIT_MS
-              value: {{ $.Values.app.telemetryFanInMaxWaitMs | default 1000 | squote }}
+              value: {{ $.Values.app.telemetryFanInMaxWaitMs | default 5000 | squote }}
             - name: TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS
               value: {{ $.Values.app.telemetryFanInMaxConcurrentInserts | default 4 | squote }}
             - name: TELEMETRY_FANIN_MAX_PENDING_ROWS
-              value: {{ $.Values.app.telemetryFanInMaxPendingRows | default 100000 | squote }}
+              value: {{ $.Values.app.telemetryFanInMaxPendingRows | default 200000 | squote }}
             - name: TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS
               value: {{ $.Values.app.telemetryFanInRetryMaxAttempts | default 6 | squote }}
             - name: TELEMETRY_FANIN_RETRY_BASE_DELAY_MS
