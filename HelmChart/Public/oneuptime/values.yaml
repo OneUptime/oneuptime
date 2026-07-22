@@ -1430,10 +1430,13 @@ home:
       # home.resources, keep it >= this value so the scheduler reserves node disk.
       sizeLimit: 15Gi
     persistence:
-      # pvc and statefulset modes. Sized above the ~8GB checkout with headroom for
-      # .git growth across pulls (a persistent volume accumulates history over time).
+      # pvc and statefulset modes. A blob:none clone stores the fetched blobs in
+      # BOTH .git/objects (~8GB) and the checked-out working tree (~8GB) — roughly
+      # 2x the ~8GB checkout, plus transient index-pack temp files and .git growth
+      # across pulls (a persistent volume accumulates history over time). 20Gi was
+      # too tight and the clone died mid-checkout on ENOSPC; 50Gi leaves headroom.
       # In statefulset mode this is the size of EACH per-replica PVC.
-      size: 20Gi
+      size: 50Gi
       # "" = use global.storageClass; "-" = force the cluster default.
       storageClass: ""
       # statefulset mode only. Fate of the per-replica blog PVCs (needs Kubernetes

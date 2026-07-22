@@ -1096,7 +1096,7 @@ type MonitorTraceFunction = (data: {
   projectId: ObjectID;
 }) => Promise<TraceMonitorResponse>;
 
-const monitorTrace: MonitorTraceFunction = async (data: {
+export const monitorTrace: MonitorTraceFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -1137,7 +1137,7 @@ type MonitorMetricFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorMetric: MonitorMetricFunction = async (data: {
+export const monitorMetric: MonitorMetricFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -1326,7 +1326,7 @@ type MonitorExceptionFunction = (data: {
   projectId: ObjectID;
 }) => Promise<ExceptionMonitorResponse>;
 
-const monitorException: MonitorExceptionFunction = async (data: {
+export const monitorException: MonitorExceptionFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -3418,7 +3418,7 @@ type MonitorLogsFunction = (data: {
   projectId: ObjectID;
 }) => Promise<LogMonitorResponse>;
 
-const monitorLogs: MonitorLogsFunction = async (data: {
+export const monitorLogs: MonitorLogsFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
