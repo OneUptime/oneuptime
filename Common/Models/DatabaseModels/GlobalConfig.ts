@@ -830,6 +830,25 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Enterprise License Is Evaluation",
+    description:
+      "True when the validated enterprise license is an evaluation/testing license. Drives the evaluation notice shown in the edition modal.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public enterpriseLicenseIsEvaluation?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     type: TableColumnType.Number,
     title: "Enterprise License User Limit",
     description:

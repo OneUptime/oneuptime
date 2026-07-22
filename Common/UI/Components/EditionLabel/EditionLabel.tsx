@@ -157,6 +157,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [isUpdateCheckDisabled, setIsUpdateCheckDisabled] =
     useState<boolean>(false);
   /*
+   * True when the validated license was issued for evaluation/testing rather
+   * than production. Purely informational — it drives the evaluation notice in
+   * the modal and a small tag on the pill, and never gates any functionality.
+   */
+  const [isEvaluationLicense, setIsEvaluationLicense] =
+    useState<boolean>(false);
+  /*
    * Validity as computed by the server. The server redacts the license
    * token for signed-out visitors (e.g. on the login page), so the client
    * cannot always derive validity from the token itself.
@@ -247,6 +254,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             ? payload["licenseValid"]
             : null,
         );
+        setIsEvaluationLicense(payload["isEvaluationLicense"] === true);
 
         setCurrentVersion(
           typeof payload["currentVersion"] === "string"
@@ -278,6 +286,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         setGlobalConfig(null);
         setLicenseInstances([]);
         setServerLicenseValid(null);
+        setIsEvaluationLicense(false);
         setCurrentVersion("");
         setLatestVersion("");
         setLatestVersionPublishedAt("");
@@ -991,6 +1000,21 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const showLicenseDetails: boolean =
     IS_ENTERPRISE_EDITION && !configError && !isConfigLoading && licenseValid;
 
+  /*
+   * The evaluation notice rides along with the license details: it is only
+   * meaningful once there is a valid license to describe, and it sits at the
+   * top of the body as the first thing an evaluating customer sees.
+   */
+  const showEvaluationNotice: boolean =
+    showLicenseDetails && isEvaluationLicense;
+
+  /*
+   * The pill tag is shown whenever a valid evaluation license is active, so an
+   * admin sees "Evaluation" without opening the modal.
+   */
+  const showEvaluationTag: boolean =
+    IS_ENTERPRISE_EDITION && licenseValid && isEvaluationLicense;
+
   const showEnterpriseFeatureList: boolean =
     IS_ENTERPRISE_EDITION && !configError && !isConfigLoading && !licenseValid;
 
@@ -1204,6 +1228,61 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     </section>
   ) : null;
 
+  /*
+   * The evaluation notice. Violet rather than amber or red: this is not a
+   * warning about something wrong, it is a statement of what the license is
+   * for. Amber is spoken for by seat pressure and available updates, so a
+   * distinct hue keeps the two from being read as the same kind of message.
+   */
+  const evaluationNoticeElement: ReactElement | null = showEvaluationNotice ? (
+    <section
+      aria-labelledby="edition-evaluation-heading"
+      className="overflow-hidden rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-white"
+    >
+      <div className="flex items-start gap-3.5 p-5">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 ring-4 ring-violet-50">
+          {/*
+           * Colour comes from className only — never add a type prop here, for
+           * the reason spelled out on the seat advisory icon below.
+           */}
+          <Icon icon={IconProp.Beaker} className="h-5 w-5 text-violet-600" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4
+              id="edition-evaluation-heading"
+              className="text-sm font-semibold text-violet-900"
+            >
+              Evaluation license
+            </h4>
+            <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+              Testing only
+            </span>
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-violet-800">
+            This key was issued for evaluation and testing. It is not licensed
+            for production use — reach out whenever you are ready to go live and
+            we will get a production license sorted for you.
+          </p>
+          <div className="mt-3">
+            <a
+              href={`${SALES_MAILTO_URL}?subject=${encodeURIComponent(
+                "Moving our OneUptime evaluation to production",
+              )}`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-violet-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-violet-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2"
+            >
+              <Icon
+                icon={IconProp.Email}
+                className="h-3 w-3 shrink-0 text-white"
+              />
+              Talk to sales about production
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  ) : null;
+
   return (
     <>
       <button
@@ -1215,7 +1294,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
          * Name) so voice-control users can activate it by the words they see
          * ("{editionName}" and "{ctaLabel}", e.g. "Learn more").
          */
-        aria-label={`${editionName}, ${ctaLabel}`}
+        aria-label={`${editionName}${
+          showEvaluationTag ? ", Evaluation" : ""
+        }, ${ctaLabel}`}
       >
         {pillTone !== "normal" && (
           <Icon
@@ -1233,6 +1314,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           className={`h-2 w-2 rounded-full transition group-hover:scale-110 ${indicatorColor}`}
         ></span>
         <span className="tracking-wide">{editionName}</span>
+        {showEvaluationTag && (
+          <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
+            Evaluation
+          </span>
+        )}
         <span className={pillCtaTextClassName}>{ctaLabel}</span>
       </button>
 
@@ -1287,6 +1373,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     </div>
                   </div>
                 )}
+
+                {evaluationNoticeElement}
 
                 {showLicenseDetails && (
                   <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-2">

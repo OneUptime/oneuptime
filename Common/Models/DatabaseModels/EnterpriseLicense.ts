@@ -108,6 +108,27 @@ export default class EnterpriseLicense extends BaseModel {
     update: [],
   })
   @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Evaluation License",
+    description:
+      "When enabled, this key is for evaluation and testing only — the customer's installation shows an evaluation notice and it is not meant for production use.",
+    defaultValue: false,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isEvaluationLicense?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     required: false,
     type: TableColumnType.Number,
     title: "User Limit",

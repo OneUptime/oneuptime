@@ -301,6 +301,16 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                isEvaluationLicense: true,
+              },
+              title: "Evaluation License",
+              description:
+                "Turn on for an evaluation/testing key. The customer's installation shows an evaluation notice and it is not meant for production use.",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+            },
+            {
+              field: {
                 userLimit: true,
               },
               title: "User Limit",
@@ -374,6 +384,28 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                     {EnterpriseLicenseUsageUtil.maskLicenseKey(
                       item.licenseKey || "",
                     )}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                isEvaluationLicense: true,
+              },
+              title: "Type",
+              type: FieldType.Element,
+              getElement: (item: EnterpriseLicense): ReactElement => {
+                if (item.isEvaluationLicense) {
+                  return (
+                    <span className="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
+                      Evaluation
+                    </span>
+                  );
+                }
+
+                return (
+                  <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
+                    Production
                   </span>
                 );
               },

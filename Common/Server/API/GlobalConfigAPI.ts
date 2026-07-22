@@ -73,6 +73,7 @@ export default class GlobalConfigAPI extends BaseAPI<
                 enterpriseLicenseExpiresAt: true,
                 enterpriseLicenseKey: true,
                 enterpriseLicenseToken: true,
+                enterpriseLicenseIsEvaluation: true,
                 enterpriseLicenseUserLimit: true,
                 enterpriseLicenseCurrentUserCount: true,
                 enterpriseLicenseUserCountUpdatedAt: true,
@@ -115,6 +116,12 @@ export default class GlobalConfigAPI extends BaseAPI<
               ? config?.enterpriseLicenseToken || null
               : null,
             licenseValid: licenseValid,
+            /*
+             * Whether this is an evaluation/testing license. Benign like the
+             * company name and expiry, so it is not gated behind sign-in — the
+             * edition modal shows the evaluation notice to anyone who opens it.
+             */
+            isEvaluationLicense: Boolean(config?.enterpriseLicenseIsEvaluation),
             userLimit:
               typeof config?.enterpriseLicenseUserLimit === "number"
                 ? config.enterpriseLicenseUserLimit
@@ -286,6 +293,9 @@ export default class GlobalConfigAPI extends BaseAPI<
             }
           }
 
+          const isEvaluationLicense: boolean =
+            payload["isEvaluationLicense"] === true;
+
           const instances: Array<EnterpriseLicenseInstanceSummary> =
             Array.isArray(payload["instances"])
               ? (payload[
@@ -298,6 +308,7 @@ export default class GlobalConfigAPI extends BaseAPI<
             enterpriseLicenseKey: licenseKeyRaw || null,
             enterpriseLicenseExpiresAt: licenseExpiry || null,
             enterpriseLicenseToken: licenseToken || null,
+            enterpriseLicenseIsEvaluation: isEvaluationLicense,
             enterpriseLicenseUserLimit: userLimit,
             enterpriseLicenseCurrentUserCount: currentUserCount,
             enterpriseLicenseUserCountUpdatedAt: userCountUpdatedAt,
@@ -334,6 +345,8 @@ export default class GlobalConfigAPI extends BaseAPI<
               newConfig.enterpriseLicenseToken = licenseToken;
             }
 
+            newConfig.enterpriseLicenseIsEvaluation = isEvaluationLicense;
+
             if (licenseExpiry) {
               newConfig.enterpriseLicenseExpiresAt = licenseExpiry;
             }
@@ -368,6 +381,7 @@ export default class GlobalConfigAPI extends BaseAPI<
             expiresAt: licenseExpiry ? licenseExpiry.toISOString() : null,
             licenseKey: licenseKeyRaw || null,
             token: licenseToken || null,
+            isEvaluationLicense: isEvaluationLicense,
             userLimit: userLimit,
             currentUserCount: currentUserCount,
             userCountUpdatedAt: userCountUpdatedAt
