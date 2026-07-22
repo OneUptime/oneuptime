@@ -14,7 +14,9 @@ import { type ClickHouseSettings } from "@clickhouse/client";
  * thin shell: cluster-key auth → inflight gate → handleWriterInsert.
  *
  * Status contract (mirrored by TelemetryWriterClient's classification):
- * - 200: rows durably landed in ClickHouse (ack-after-flush end to end).
+ * - 200: ClickHouse accepted the rows — into its async-insert buffer by
+ *   default (ClickHouse owns flushing), or durably flushed when
+ *   TELEMETRY_WAIT_FOR_ASYNC_INSERT=true on the writer pods.
  * - 400: malformed request or unknown table — never retried.
  * - 429: this pod is at its inflight-request cap — retry (load shedding is
  *   the writer tier's flow control at arbitrary worker-fleet sizes; without

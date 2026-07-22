@@ -262,6 +262,12 @@ its userlist at startup.
   value: {{ $.Values.home.ports.http | squote }}
 - name: WORKER_CONCURRENCY
   value: {{ $.Values.app.workerConcurrency | default 100 | squote }}
+# Ack mode for telemetry ClickHouse inserts. Default false = fire-and-forget
+# async inserts (ClickHouse owns flushing; acks mean "accepted into the
+# async-insert buffer"). Set true to make acks wait for the durable flush —
+# each waiting insert then holds a ClickHouse query slot until flushed.
+- name: TELEMETRY_WAIT_FOR_ASYNC_INSERT
+  value: {{ $.Values.telemetryWaitForAsyncInsert | default false | quote }}
 - name: IP_WHITELIST
   value: {{ default "" $.Values.ipWhitelist | quote }}
 {{- include "oneuptime.env.globalLlmProvider" $ }}

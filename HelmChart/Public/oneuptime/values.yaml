@@ -1151,6 +1151,17 @@ dnsConfig:
 # Please do not set this to DEBUG in production. This is only for development / debugging purposes.
 logLevel: INFO
 
+# Ack mode for telemetry ClickHouse inserts (applies to every pod that
+# inserts telemetry: app, worker, telemetry-writer). Default false =
+# fire-and-forget async inserts: ClickHouse acks once a batch is accepted
+# into its async-insert buffer and owns flushing it, so insert query slots
+# free almost immediately; flush-time errors surface only in ClickHouse
+# server logs, and a ClickHouse crash between accept and flush loses that
+# buffer. Set true to make every telemetry ack wait for the durable flush
+# (end-to-end ack-after-flush) at the cost of each in-flight insert holding
+# a ClickHouse query slot until its buffer flushes.
+telemetryWaitForAsyncInsert: false
+
 # Enable cleanup cron jobs
 # Please do not enable this in production. This is only for development purposes.
 cronJobs:

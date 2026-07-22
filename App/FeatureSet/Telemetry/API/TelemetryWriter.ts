@@ -28,7 +28,9 @@ import logger from "Common/Server/Utils/Logger";
  * every fan-in token group here instead of opening ClickHouse connections,
  * so ClickHouse concurrency is (writerReplicas × per-pod insert cap) — a
  * constant — no matter how far the worker fleet scales out. The response
- * is the durability ack: 200 is only sent after rows landed in ClickHouse.
+ * is the acceptance ack: 200 means ClickHouse accepted the rows (async
+ * buffer by default; durable flush when TELEMETRY_WAIT_FOR_ASYNC_INSERT
+ * is enabled on this pod).
  */
 
 const router: ExpressRouter = Express.getRouter();

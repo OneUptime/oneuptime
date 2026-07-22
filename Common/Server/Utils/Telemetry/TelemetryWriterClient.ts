@@ -53,7 +53,8 @@ export function getTelemetryWriterRequestTimeoutMs(): number {
     process.env["TELEMETRY_WRITER_REQUEST_TIMEOUT_MS"];
   const parsed: number = parseInt(raw || "", 10);
   /*
-   * Generous default: the writer holds the request until rows durably land,
+   * Generous default: the writer holds the request until ClickHouse accepts
+   * the rows (durable flush when TELEMETRY_WAIT_FOR_ASYNC_INSERT=true),
    * which under load includes its own batching wait and retry/backoff loop.
    */
   return !isNaN(parsed) && parsed > 0 ? parsed : 120_000;

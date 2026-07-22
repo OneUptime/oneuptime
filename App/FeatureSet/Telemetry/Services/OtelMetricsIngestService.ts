@@ -313,9 +313,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       /*
-       * Metrics drive near-real-time dashboards. A successful ingest job should
-       * mean ClickHouse has flushed the async insert and the Distributed table
-       * has delivered the block to the shard-local MetricItemV3Local table.
+       * distributed_foreground_insert=1: when the async buffer flushes, the
+       * Distributed table delivers the block to the shard-local
+       * MetricItemV3Local table synchronously instead of via its own async
+       * queue. Whether the ack also waits for that flush follows the global
+       * TELEMETRY_WAIT_FOR_ASYNC_INSERT policy in insertJsonRows.
        * The writer applies the first submission's settings to each combined
        * batch — sound here because this is the only Metric-table submitter.
        */
@@ -324,8 +326,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         batch,
         {
           clickhouseSettings: {
-            async_insert: 1,
-            wait_for_async_insert: 1,
             distributed_foreground_insert: 1,
           },
         },

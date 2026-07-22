@@ -27,11 +27,16 @@ export { type ClickHouseSettings } from "@clickhouse/client";
  * large combined inserts through a small per-pod semaphore, so ClickHouse
  * sees (pods × maxConcurrentInserts) queries regardless of job concurrency.
  *
- * Delivery semantics — ack-after-flush with per-job retry idempotence:
- * - submit() resolves with a `flushed` promise that settles only when the
- *   rows have durably landed in ClickHouse (wait_for_async_insert=1) or
- *   definitively failed. Jobs await it before completing, so BullMQ retries
- *   any payload whose rows did not land.
+ * Delivery semantics — ack-after-accept with per-job retry idempotence:
+ * - submit() resolves with a `flushed` promise that settles only when
+ *   ClickHouse has ACCEPTED the rows (or the insert definitively failed).
+ *   What "accepted" means follows TELEMETRY_WAIT_FOR_ASYNC_INSERT
+ *   (AnalyticsDatabaseService.shouldWaitForAsyncInsert): by default the
+ *   rows are in ClickHouse's async-insert buffer and ClickHouse owns
+ *   flushing them (fire-and-forget — flush errors surface only server-side
+ *   and a crash before flush loses the buffer); when set to true, the ack
+ *   waits for the durable flush. Either way jobs await it before
+ *   completing, so BullMQ retries any payload ClickHouse never accepted.
  * - submit() captures a deterministic insert_deduplication_token from the
  *   ambient runWithInsertDedup context AT SUBMIT TIME (still inside the
  *   job's scope). Tokened submissions are inserted individually under that
@@ -76,7 +81,11 @@ export interface FanInInsertTarget {
 }
 
 export interface FanInSubmitResult {
-  /** Settles when the rows have durably landed in ClickHouse (or definitively failed). */
+  /**
+   * Settles when ClickHouse accepted the rows (or the insert definitively
+   * failed). "Accepted" = buffered for async flush by default; durably
+   * flushed when TELEMETRY_WAIT_FOR_ASYNC_INSERT=true.
+   */
   flushed: Promise<void>;
 }
 
@@ -351,7 +360,7 @@ export class TelemetryFanInWriter {
    * Awaiting submit() itself is the backpressure point: it resolves once the
    * rows are accepted into the buffer (immediately under normal load, later
    * when the pod is at maxPendingRows). The returned `flushed` promise is the
-   * durability ack — resolve it into the job's pending-ack list and await
+   * acceptance ack — resolve it into the job's pending-ack list and await
    * before completing the job.
    *
    * All submitters of one table must pass identical clickhouseSettings: a

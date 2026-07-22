@@ -484,10 +484,11 @@ describe("Telemetry fan-in ingest — traces + logs end to end through the write
  * mocked ClickHouse insertJsonRows on MetricService.
  * ------------------------------------------------------------------
  *
- * The metrics path additionally pins its ClickHouse insert settings
- * (async_insert + wait_for_async_insert + distributed_foreground_insert)
- * so a successful job means the Distributed table has delivered the block
- * to the shard-local table — asserted below on every insert call.
+ * The metrics path additionally pins distributed_foreground_insert so that
+ * when the async buffer flushes, the Distributed table delivers the block
+ * to the shard-local table synchronously — asserted below on every insert
+ * call. (The async-insert ack mode itself is decided centrally in
+ * insertJsonRows via TELEMETRY_WAIT_FOR_ASYNC_INSERT.)
  */
 
 /*
@@ -504,8 +505,6 @@ const METRICS_AUTO_DISCOVERY_METHODS_RETURNING_NULL: Array<string> = [
  * Metric-table submission (see OtelMetricsIngestService).
  */
 const METRICS_CLICKHOUSE_SETTINGS: JSONObject = {
-  async_insert: 1,
-  wait_for_async_insert: 1,
   distributed_foreground_insert: 1,
 };
 

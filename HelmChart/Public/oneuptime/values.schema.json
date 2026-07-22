@@ -1947,6 +1947,7 @@
                 "null"
             ]
         },
+        "telemetryWaitForAsyncInsert": { "type": "boolean" },
         "logLevel": {
             "type": "string",
             "enum": [

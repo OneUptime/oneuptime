@@ -80,13 +80,18 @@ Work through this list to make your OneUptime installation production-ready.
   `worker.telemetryFanInMaxBatchRows` / `worker.telemetryFanInMaxWaitMs`, and
   the per-pod ClickHouse pools via `worker.clickhouseMaxOpenConnections` /
   `worker.clickhouseIngestMaxOpenConnections` (the same keys exist under
-  `app:` for setups that run ingestion on the app pods).
+  `app:` for setups that run ingestion on the app pods). Telemetry inserts
+  are fire-and-forget async inserts by default (ClickHouse owns flushing;
+  a ClickHouse crash between buffer-accept and flush can lose that buffer) —
+  set `telemetryWaitForAsyncInsert: true` if you want every ack to wait for
+  the durable flush instead, and account for each in-flight insert then
+  holding a ClickHouse query slot until its buffer flushes.
 
 - [ ] **Enable the telemetry-writer tier before the worker fleet outgrows the
   sizing rule above.** With `telemetryWriter.enabled: true`, worker and app
   pods stop inserting telemetry into ClickHouse themselves and ship their
-  batched inserts (cluster-key authenticated HTTP, idempotent dedup tokens,
-  ack-after-flush end to end) to a dedicated fixed-size deployment that owns
+  batched inserts (cluster-key authenticated HTTP, idempotent retries,
+  end-to-end acks) to a dedicated fixed-size deployment that owns
   all telemetry insert concurrency. ClickHouse then sees
   `telemetryWriter.replicaCount × telemetryWriter.telemetryFanInMaxConcurrentInserts`
   concurrent inserts — a constant — so worker replicas can autoscale WITHOUT
