@@ -57,8 +57,13 @@ const MetricAlias: FunctionComponent<ComponentProps> = (
             props.isFormula) && (
             <div className="flex items-center space-x-2">
               {props.data.metricVariable ? (
-                <div className="bg-indigo-500 h-7 w-7 min-w-7 rounded flex items-center justify-center text-xs font-semibold text-white">
-                  {props.data.metricVariable}
+                <div
+                  className="bg-indigo-500 h-7 min-w-7 max-w-[12rem] rounded flex items-center justify-center px-1.5 text-xs font-semibold text-white"
+                  title={props.data.metricVariable}
+                >
+                  <span className="min-w-0 truncate">
+                    {props.data.metricVariable}
+                  </span>
                 </div>
               ) : (
                 props.isFormula && (

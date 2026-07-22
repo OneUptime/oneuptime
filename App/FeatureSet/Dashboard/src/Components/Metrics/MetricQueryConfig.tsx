@@ -296,14 +296,17 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
           {/* Variable badge, tinted with the query's lead series color */}
           {props.data?.metricAliasData?.metricVariable && (
             <div
-              className={`flex h-6 w-6 min-w-6 items-center justify-center rounded-md border text-xs font-bold ${
+              className={`flex h-6 min-w-6 max-w-[12rem] items-center justify-center rounded-md border px-1.5 text-xs font-bold ${
                 badgeTintStyle
                   ? ""
                   : "border-indigo-200 bg-indigo-50 text-indigo-700"
               }`}
               style={badgeTintStyle}
+              title={props.data.metricAliasData.metricVariable}
             >
-              {props.data.metricAliasData.metricVariable}
+              <span className="min-w-0 truncate">
+                {props.data.metricAliasData.metricVariable}
+              </span>
             </div>
           )}
           {/* Summary info */}
