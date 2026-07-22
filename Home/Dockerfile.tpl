@@ -39,7 +39,8 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 # was built. Build toolchain (.gyp virtual) is installed temporarily for
 # native npm modules and is removed after all npm installs complete (see
 # `apk del .gyp` below). --no-cache avoids retaining apk index data in the
-# image layer. `git` stays — Home clones the blog repo below.
+# image layer. `git` stays — Home runs `git clone`/`git pull`/`git log` against
+# the mounted blog volume at runtime (the blog is no longer baked in).
 RUN apk upgrade --no-cache \
     && apk add --no-cache bash curl git \
     && apk add --no-cache --virtual .gyp python3 make g++
@@ -71,13 +72,13 @@ RUN apk del .gyp
 #   - 1444: OneUptime-home
 EXPOSE 1444
 
-# The blog repo is cloned per-branch below. In production it is cloned as the
-# non-root `node` user so the runtime UpdateBlog `git pull` can write into it
-# without a costly recursive chown of its ~100k files.
+# The blog is no longer baked into the image (it added ~7GB / ~100k files). It is
+# provided at runtime from a mounted volume: on Kubernetes an initContainer runs
+# `git clone --filter=blob:none` before Home starts; in local dev the UpdateBlog
+# cron clone-if-missing populates the volume on boot. `git` (installed above) is
+# used for the runtime pull and the `git log` contributor walk.
 
 {{ if eq .Env.ENVIRONMENT "development" }}
-# Clone blog repo (dev container runs as root).
-RUN cd /usr/src && git clone https://github.com/oneuptime/blog
 #Run the app
 CMD [ "npm", "run", "dev" ]
 {{ else }}
@@ -87,13 +88,11 @@ CMD [ "npm", "run", "dev" ]
 COPY --chown=1000:1000 ./Home /usr/src/app
 # Bundle app source
 RUN npm run compile
-# Give node ownership of /usr/src itself (non-recursive — instant) so it can
-# create and own the blog clone below. Common/node_modules stay root-owned.
+# Give node ownership of /usr/src itself (non-recursive — instant) so that, if the
+# blog volume is ever absent, the runtime UpdateBlog clone-if-missing (runs as
+# node) can create /usr/src/blog. Common/node_modules stay root-owned.
 RUN chown 1000:1000 /usr/src
 USER node
-# Clone the blog as node so the runtime UpdateBlog `git pull` (runs as node) can
-# write into it — avoids a recursive chown of the blog's ~100k files.
-RUN cd /usr/src && git clone https://github.com/oneuptime/blog
 # Per-build metadata last so the heavy layers above stay cacheable across commits
 # and across the community + enterprise build passes.
 ARG GIT_SHA

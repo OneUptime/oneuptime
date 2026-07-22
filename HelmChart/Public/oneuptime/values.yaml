@@ -1317,6 +1317,64 @@ home:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # The blog (https://github.com/oneuptime/blog) is no longer baked into the Home
+  # image (it added ~7GB). Instead an initContainer clones it into a volume
+  # mounted at blog.rootPath before Home starts, and the in-app UpdateBlog cron
+  # keeps it fresh with `git pull`. Home pods therefore need network access to
+  # blog.repoUrl (github.com by default) at pod start and every few hours. For
+  # air-gapped clusters, point blog.repoUrl at an in-cluster mirror.
+  blog:
+    # Emergency kill-switch. When true, the blog is NOT downloaded: the clone
+    # initContainer is skipped and the in-app UpdateBlog job does nothing, so Home
+    # starts immediately with no blog content (blog pages render empty; marketing,
+    # product pages and docs are unaffected). Use when the blog source is
+    # unreachable or a bad clone is blocking Home from starting.
+    skipDownload: false
+    # Storage backing for the blog clone. NOTE: the on-disk clone is large — the
+    # blog is image-heavy, so a fresh checkout is roughly ~8GB (mostly current
+    # post images, not history). Size volumes and nodes accordingly.
+    #   emptyDir - (default, fully portable) a fresh per-pod ephemeral clone. No
+    #              storage class / PVC needed; safe at any replica count and under
+    #              autoscaling because each replica owns its own copy. BUT it is
+    #              re-downloaded on every pod (re)start and consumes ~8GB of node
+    #              ephemeral storage per pod. For production / large blogs prefer
+    #              'pvc' so the clone is paid once.
+    #   pvc      - a single ReadWriteOnce PersistentVolumeClaim owned by ONE
+    #              replica (clone paid once, cached across restarts). Requires a
+    #              single Home replica with the HPA disabled — a RWO volume cannot
+    #              be attached to multiple pods. Helm fails fast if misconfigured.
+    mode: emptyDir
+    # Where the blog repo is cloned to, mounted, and read from (BLOG_ROOT_PATH).
+    rootPath: /usr/src/blog
+    repoUrl: https://github.com/oneuptime/blog
+    # Partial-clone filter. "blob:none" keeps the FULL commit + tree history (so
+    # the blog contributor list, derived from `git log`, stays correct) while
+    # omitting only the HISTORICAL versions of file blobs — this shrinks the .git
+    # download but NOT the working tree (the current post images, ~several GB, are
+    # still checked out). Do NOT use a shallow clone (depth 1) — it collapses
+    # contributors to a single author. Set to "" for a full clone (downloads all
+    # history too; larger and slower — not recommended). NOTE: a mirror set as
+    # repoUrl must advertise `uploadpack.allowFilter=true`, or the filter is
+    # silently ignored and a full clone is fetched.
+    cloneFilter: "blob:none"
+    volume:
+      # emptyDir mode only. Upper bound on the per-pod clone size. Must exceed the
+      # real on-disk footprint (~8GB today) or the kubelet evicts the pod mid-clone
+      # in a crash loop. If you also set a container ephemeral-storage limit under
+      # home.resources, keep it >= this value so the scheduler reserves node disk.
+      sizeLimit: 15Gi
+    persistence:
+      # pvc mode only. Sized above the ~8GB checkout with headroom for .git growth
+      # across pulls (a persistent volume accumulates history over time).
+      size: 20Gi
+      # "" = use global.storageClass; "-" = force the cluster default.
+      storageClass: ""
+    initContainer:
+      # Bound the clone so a stalled network can't wedge the pod in Init forever
+      # (init containers are not covered by the startup/liveness probes).
+      cloneTimeoutSeconds: 600
+      cloneRetries: 5
+      resources: {}
 
 
 app:
