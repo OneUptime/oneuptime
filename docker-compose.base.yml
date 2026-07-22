@@ -93,6 +93,10 @@ x-common-runtime-variables: &common-runtime-variables
   CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}
   CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
   CLICKHOUSE_PORT: ${CLICKHOUSE_PORT}
+  # Per-container ClickHouse pool ceilings; the ingest pool (fan-in telemetry
+  # writer) inherits CLICKHOUSE_MAX_OPEN_CONNECTIONS when left empty.
+  CLICKHOUSE_MAX_OPEN_CONNECTIONS: ${CLICKHOUSE_MAX_OPEN_CONNECTIONS}
+  CLICKHOUSE_INGEST_MAX_OPEN_CONNECTIONS: ${CLICKHOUSE_INGEST_MAX_OPEN_CONNECTIONS}
 
   AVERAGE_SPAN_ROW_SIZE_IN_BYTES: ${AVERAGE_SPAN_ROW_SIZE_IN_BYTES}
   AVERAGE_LOG_ROW_SIZE_IN_BYTES: ${AVERAGE_LOG_ROW_SIZE_IN_BYTES}
@@ -107,6 +111,11 @@ x-common-runtime-variables: &common-runtime-variables
   DISABLE_AUTOMATIC_ALERT_CREATION: ${DISABLE_AUTOMATIC_ALERT_CREATION}
 
   DISABLE_TELEMETRY_INGESTION: ${DISABLE_TELEMETRY_INGESTION}
+
+  # Defaulted, unlike its siblings: this one gates outbound traffic, and an
+  # existing config.env upgraded in place will not have the key.
+  DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}
+  LATEST_RELEASE_CHECK_URL: ${LATEST_RELEASE_CHECK_URL:-}
 
   # Open Source Deployment Webhook
   OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL: ${OPEN_SOURCE_DEPLOYMENT_WEBHOOK_URL}
@@ -248,6 +257,20 @@ services:
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY}
       # Telemetry ingestion settings (merged from telemetry service)
       TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
+      # Fan-in telemetry writer knobs — see config.example.env for docs.
+      # Empty values fall back to the code defaults.
+      TELEMETRY_FANIN_MAX_BATCH_ROWS: ${TELEMETRY_FANIN_MAX_BATCH_ROWS}
+      TELEMETRY_FANIN_MAX_WAIT_MS: ${TELEMETRY_FANIN_MAX_WAIT_MS}
+      TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS: ${TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS}
+      TELEMETRY_FANIN_MAX_PENDING_ROWS: ${TELEMETRY_FANIN_MAX_PENDING_ROWS}
+      TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS: ${TELEMETRY_FANIN_RETRY_MAX_ATTEMPTS}
+      TELEMETRY_FANIN_RETRY_BASE_DELAY_MS: ${TELEMETRY_FANIN_RETRY_BASE_DELAY_MS}
+      TELEMETRY_FANIN_RETRY_MAX_DELAY_MS: ${TELEMETRY_FANIN_RETRY_MAX_DELAY_MS}
+      TELEMETRY_WAIT_FOR_ASYNC_INSERT: ${TELEMETRY_WAIT_FOR_ASYNC_INSERT}
+      TELEMETRY_WRITER_URL: ${TELEMETRY_WRITER_URL}
+      TELEMETRY_WRITER_REQUEST_TIMEOUT_MS: ${TELEMETRY_WRITER_REQUEST_TIMEOUT_MS}
+      TELEMETRY_WRITER_MAX_BODY_BYTES: ${TELEMETRY_WRITER_MAX_BODY_BYTES}
+      TELEMETRY_WRITER_MAX_INFLIGHT_REQUESTS: ${TELEMETRY_WRITER_MAX_INFLIGHT_REQUESTS}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
       # MQTT ingest for IoT devices. MQTT-over-WebSocket rides the
       # ingress at /mqtt out of the box; the raw TCP listener stays
@@ -374,6 +397,15 @@ services:
     restart: always
     networks:
       - oneuptime
+    # The ingress proxies a high volume of short-lived upstream connections to a
+    # single backend. Widen the ephemeral source-port range and allow TIME_WAIT
+    # reuse so the gateway never exhausts local ports — otherwise nginx starts
+    # returning "connect() ... (99: Address not available)" 502s for every route.
+    # These are per-container (network-namespace) sysctls; no privileged mode.
+    sysctls:
+      net.ipv4.ip_local_port_range: "1024 65535"
+      net.ipv4.tcp_tw_reuse: "1"
+      net.ipv4.tcp_fin_timeout: "15"
     environment:
       <<: *common-runtime-variables
       ONEUPTIME_HTTP_PORT: ${ONEUPTIME_HTTP_PORT}

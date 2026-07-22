@@ -3,6 +3,7 @@ import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
 import PyroscopeAPI from "./API/Pyroscope";
+import TelemetryWriterAPI from "./API/TelemetryWriter";
 // ProbeIngest routes
 import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
 import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
@@ -25,8 +26,26 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import {
+  createTelemetryWriterTransport,
+  getTelemetryWriterUrl,
+  isTelemetryWriterForwardingEnabled,
+} from "Common/Server/Utils/Telemetry/TelemetryWriterClient";
 
 const app: ExpressApplication = Express.getExpressApp();
+
+/*
+ * Install the remote insert transport at MODULE SCOPE, not in init():
+ * ProcessTelemetry registers its BullMQ consumer at module load, so jobs can
+ * start processing (and inserting) before the feature-set init() runs. The
+ * synchronous module graph finishes evaluating before the event loop can
+ * deliver any job, so installing here guarantees no insert ever bypasses the
+ * writer tier on a forwarding pod.
+ */
+if (isTelemetryWriterForwardingEnabled()) {
+  TelemetryFanInWriter.setInsertTransport(createTelemetryWriterTransport());
+}
 
 const TELEMETRY_PREFIXES: Array<string> = ["/telemetry", "/"];
 const PROBE_INGEST_PREFIXES: Array<string> = [
@@ -52,6 +71,22 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
       app.use(TELEMETRY_PREFIXES, FluentAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
+
+      /*
+       * Internal cluster-key-protected insert endpoint for the
+       * telemetry-writer tier (absolute path — reached service-to-service,
+       * never via the public ingress). Mounted on every pod; pods that
+       * forward (TELEMETRY_WRITER_URL set) refuse to serve it.
+       */
+      app.use("/", TelemetryWriterAPI);
+
+      // Transport itself is installed at module scope above (boot-race note there).
+      if (isTelemetryWriterForwardingEnabled()) {
+        logger.info(
+          `Telemetry Service - forwarding ClickHouse inserts to telemetry-writer tier at ${getTelemetryWriterUrl()}`,
+          { service: "telemetry" },
+        );
+      }
 
       /*
        * ProbeIngest routes under ["/probe-ingest", "/ingestor", "/"]

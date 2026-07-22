@@ -34,21 +34,32 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
 {
     "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": "https://oneuptime.com/#organization",
     "name": "OneUptime",
-    "url": "https://www.oneuptime.com",
+    "legalName": "HackerBay, Inc.",
+    "url": "https://oneuptime.com",
     "logo": "https://oneuptime.com/img/ou-bb.svg",
     "sameAs": [
         "https://www.facebook.com/oneuptimeinc",
         "https://twitter.com/OneUptimeInc",
+        "https://x.com/oneuptimehq",
         "https://www.linkedin.com/company/oneuptime",
         "https://github.com/oneuptime/oneuptime"
     ],
     "description": "OneUptime is an open-source complete observability platform. Monitor websites, APIs, and servers. Get alerts, manage incidents, and keep customers informed with status pages.",
     "foundingDate": "2020",
+    "email": "support@oneuptime.com",
     "contactPoint": {
         "@type": "ContactPoint",
         "email": "support@oneuptime.com",
-        "contactType": "customer service"
+        "contactType": "customer service",
+        "url": "https://oneuptime.com/support"
+    },
+    "hasMerchantReturnPolicy": {
+        "@type": "MerchantReturnPolicy",
+        "@id": "https://oneuptime.com/#return-policy",
+        "applicableCountry": ["US", "GB", "CA", "AU", "DE", "FR", "NL", "IN", "SG", "JP"],
+        "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted"
     }
 }
 </script>
@@ -87,6 +98,7 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
     "image": "<%= pageImageUrl %>",
     "author": {
         "@type": "Organization",
+        "@id": "https://oneuptime.com/#organization",
         "name": "OneUptime",
         "url": "https://oneuptime.com"
     },
@@ -94,7 +106,48 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD",
-        "description": "Free tier available. Paid plans start at $22/month."
+        "description": "Free tier available. Paid plans start at $22/month.",
+        "seller": {
+            "@id": "https://oneuptime.com/#organization"
+        },
+        "hasMerchantReturnPolicy": {
+            "@id": "https://oneuptime.com/#return-policy"
+        },
+        "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+                "@type": "MonetaryAmount",
+                "value": 0,
+                "currency": "USD"
+            },
+            "shippingDestination": [
+                { "@type": "DefinedRegion", "addressCountry": "US" },
+                { "@type": "DefinedRegion", "addressCountry": "GB" },
+                { "@type": "DefinedRegion", "addressCountry": "CA" },
+                { "@type": "DefinedRegion", "addressCountry": "AU" },
+                { "@type": "DefinedRegion", "addressCountry": "DE" },
+                { "@type": "DefinedRegion", "addressCountry": "FR" },
+                { "@type": "DefinedRegion", "addressCountry": "NL" },
+                { "@type": "DefinedRegion", "addressCountry": "IN" },
+                { "@type": "DefinedRegion", "addressCountry": "SG" },
+                { "@type": "DefinedRegion", "addressCountry": "JP" }
+            ],
+            "deliveryTime": {
+                "@type": "ShippingDeliveryTime",
+                "handlingTime": {
+                    "@type": "QuantitativeValue",
+                    "minValue": 0,
+                    "maxValue": 0,
+                    "unitCode": "DAY"
+                },
+                "transitTime": {
+                    "@type": "QuantitativeValue",
+                    "minValue": 0,
+                    "maxValue": 0,
+                    "unitCode": "DAY"
+                }
+            }
+        }
     },
     "featureList": [
         <% softwareApp.features.forEach(function(feature, index) { %>
@@ -128,6 +181,7 @@ const baseUrl = (typeof homeUrl !== 'undefined' ? homeUrl : 'https://oneuptime.c
     },
     "publisher": {
         "@type": "Organization",
+        "@id": "https://oneuptime.com/#organization",
         "name": "OneUptime",
         "logo": {
             "@type": "ImageObject",

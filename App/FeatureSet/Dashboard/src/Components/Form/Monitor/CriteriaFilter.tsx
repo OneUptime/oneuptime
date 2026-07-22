@@ -16,6 +16,7 @@ import {
   NoDataPolicy,
 } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import Button, {
@@ -163,35 +164,19 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     });
 
   /*
-   * Collect metric variables from metricMonitor, kubernetesMonitor,
-   * dockerMonitor, proxmoxMonitor, and cephMonitor configs
+   * Collect metric variables from whichever metric-shaped monitor sub-config is
+   * populated on this step (metricMonitor, hostMonitor, kubernetesMonitor,
+   * dockerMonitor, dockerSwarmMonitor, podmanMonitor, proxmoxMonitor,
+   * cephMonitor, iotMonitor). Centralized in MonitorStepMetricViewConfigUtil so
+   * a new metric-shaped monitor type can't silently leave this dropdown empty.
    */
   const metricViewConfig: MetricsViewConfig | undefined =
-    props.monitorStep.data?.metricMonitor?.metricViewConfig ||
-    props.monitorStep.data?.kubernetesMonitor?.metricViewConfig ||
-    props.monitorStep.data?.dockerMonitor?.metricViewConfig ||
-    props.monitorStep.data?.proxmoxMonitor?.metricViewConfig ||
-    props.monitorStep.data?.cephMonitor?.metricViewConfig;
+    MonitorStepMetricViewConfigUtil.getMetricViewConfig(
+      props.monitorStep?.data,
+    );
 
-  let metricVariables: Array<string> =
-    metricViewConfig?.queryConfigs?.map(
-      (queryConfig: MetricQueryConfigData) => {
-        return queryConfig.metricAliasData?.metricVariable || "";
-      },
-    ) || [];
-
-  // push formula variables as well.
-  metricViewConfig?.formulaConfigs?.forEach(
-    (formulaConfig: MetricFormulaConfigData) => {
-      metricVariables.push(formulaConfig.metricAliasData.metricVariable || "");
-    },
-  );
-
-  // remove duplicates and empty strings
-
-  metricVariables = metricVariables.filter((item: string, index: number) => {
-    return metricVariables.indexOf(item) === index && item !== "";
-  });
+  const metricVariables: Array<string> =
+    MonitorStepMetricViewConfigUtil.getMetricVariables(props.monitorStep?.data);
 
   // now make this into dropdown options.
   const metricVariableOptions: Array<DropdownOption> = metricVariables.map(

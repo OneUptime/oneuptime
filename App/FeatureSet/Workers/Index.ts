@@ -215,6 +215,9 @@ import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 import "./Jobs/EnterpriseLicense/ReportUserCount";
 import "./Jobs/EnterpriseLicense/SendLicenseNotificationEmails";
 
+// Checks GitHub for a newer OneUptime release so admins can be told to upgrade.
+import "./Jobs/InstanceUpdate/CheckForNewVersion";
+
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
 import RunStartupMigrations from "./Utils/StartupMigration";

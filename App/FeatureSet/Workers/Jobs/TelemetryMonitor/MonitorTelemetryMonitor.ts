@@ -1096,18 +1096,19 @@ type MonitorTraceFunction = (data: {
   projectId: ObjectID;
 }) => Promise<TraceMonitorResponse>;
 
-const monitorTrace: MonitorTraceFunction = async (data: {
+export const monitorTrace: MonitorTraceFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
 }): Promise<TraceMonitorResponse> => {
-  // Monitor traces
-  const traceQuery: MonitorStepTraceMonitor | undefined =
-    data.monitorStep.data?.traceMonitor;
-
-  if (!traceQuery) {
-    throw new BadDataException("Trace query is missing");
-  }
+  /*
+   * Fall back to the default config when the step was saved without a
+   * traceMonitor sub-config (see the equivalent note in monitorLogs). A
+   * missing config previously threw every cycle and left the monitor inert.
+   */
+  const traceQuery: MonitorStepTraceMonitor =
+    data.monitorStep.data?.traceMonitor ||
+    MonitorStepTraceMonitorUtil.getDefault();
 
   const query: Query<Log> = MonitorStepTraceMonitorUtil.toQuery(traceQuery);
 
@@ -1136,7 +1137,7 @@ type MonitorMetricFunction = (data: {
   projectId: ObjectID;
 }) => Promise<MetricMonitorResponse>;
 
-const monitorMetric: MonitorMetricFunction = async (data: {
+export const monitorMetric: MonitorMetricFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
@@ -1325,17 +1326,19 @@ type MonitorExceptionFunction = (data: {
   projectId: ObjectID;
 }) => Promise<ExceptionMonitorResponse>;
 
-const monitorException: MonitorExceptionFunction = async (data: {
+export const monitorException: MonitorExceptionFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
 }): Promise<ExceptionMonitorResponse> => {
-  const exceptionMonitorConfig: MonitorStepExceptionMonitor | undefined =
-    data.monitorStep.data?.exceptionMonitor;
-
-  if (!exceptionMonitorConfig) {
-    throw new BadDataException("Exception monitor config is missing");
-  }
+  /*
+   * Fall back to the default config when the step was saved without an
+   * exceptionMonitor sub-config (see the equivalent note in monitorLogs). A
+   * missing config previously threw every cycle and left the monitor inert.
+   */
+  const exceptionMonitorConfig: MonitorStepExceptionMonitor =
+    data.monitorStep.data?.exceptionMonitor ||
+    MonitorStepExceptionMonitorUtil.getDefault();
 
   const analyticsQuery: Query<ExceptionInstance> =
     MonitorStepExceptionMonitorUtil.toAnalyticsQuery(exceptionMonitorConfig);
@@ -3415,18 +3418,25 @@ type MonitorLogsFunction = (data: {
   projectId: ObjectID;
 }) => Promise<LogMonitorResponse>;
 
-const monitorLogs: MonitorLogsFunction = async (data: {
+export const monitorLogs: MonitorLogsFunction = async (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
   projectId: ObjectID;
 }): Promise<LogMonitorResponse> => {
-  // Monitor logs
-  const logQuery: MonitorStepLogMonitor | undefined =
-    data.monitorStep.data?.logMonitor;
-
-  if (!logQuery) {
-    throw new BadDataException("Log query is missing");
-  }
+  /*
+   * A telemetry monitor step created on defaults can persist its sub-config
+   * as undefined: the create form only writes `logMonitor` once the user
+   * edits the log-filter sub-form (the Formik onChange never fires on
+   * mount). Throwing here made the queue job fail on every cycle, so
+   * MonitorResourceUtil.monitorResource() never ran and the monitor's
+   * status/criteria never updated — i.e. "log monitors do not work". Fall
+   * back to the default config (the same last-60s, all-services query the
+   * UI already previews via `logMonitor || getDefault()`) so the LogCount
+   * criteria evaluates instead of erroring. This also revives monitors that
+   * were already saved with an empty config, without a data migration.
+   */
+  const logQuery: MonitorStepLogMonitor =
+    data.monitorStep.data?.logMonitor || MonitorStepLogMonitorUtil.getDefault();
 
   const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(logQuery);
   query.projectId = data.projectId;

@@ -2,10 +2,10 @@ import NotificationMethodView from "../../Components/NotificationMethods/Notific
 import NotifyAfterDropdownOptions from "../../Components/NotificationRule/NotifyAfterMinutesDropdownOptions";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import SelectEntityField from "Common/UI/Types/SelectEntityField";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -16,6 +16,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import User from "Common/UI/Utils/User";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import UserCall from "Common/Models/DatabaseModels/UserCall";
@@ -25,6 +26,7 @@ import UserPush from "Common/Models/DatabaseModels/UserPush";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
+import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import React, {
   Fragment,
   FunctionComponent,
@@ -43,6 +45,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [userSMSs, setUserSMSs] = useState<Array<UserSMS>>([]);
   const [userWhatsApps, setUserWhatsApps] = useState<Array<UserWhatsApp>>([]);
   const [userTelegrams, setUserTelegrams] = useState<Array<UserTelegram>>([]);
+  const [userWebhooks, setUserWebhooks] = useState<Array<UserWebhook>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
   const [userPush, setUserPush] = useState<Array<UserPush>>([]);
   const [
@@ -83,85 +86,19 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             model.incidentSeverityId = options.incidentSeverity?.id;
           }
 
-          if (miscDataProps["notificationMethod"]) {
-            const userEmail: UserEmail | undefined = userEmails.find(
-              (userEmail: UserEmail) => {
-                return (
-                  userEmail.id!.toString() ===
-                  miscDataProps["notificationMethod"]?.toString()
-                );
-              },
-            );
-
-            if (userEmail) {
-              model.userEmailId = userEmail.id!;
-            }
-
-            const userSMS: UserSMS | undefined = userSMSs.find(
-              (userSMS: UserSMS) => {
-                return (
-                  userSMS.id!.toString() ===
-                  miscDataProps["notificationMethod"]?.toString()
-                );
-              },
-            );
-
-            if (userSMS) {
-              model.userSmsId = userSMS.id!;
-            }
-
-            const userCall: UserCall | undefined = userCalls.find(
-              (userCall: UserCall) => {
-                return (
-                  userCall.id!.toString() ===
-                  miscDataProps["notificationMethod"]?.toString()
-                );
-              },
-            );
-
-            if (userCall) {
-              model.userCallId = userCall.id!;
-            }
-
-            const userPushDevice: UserPush | undefined = userPush.find(
-              (userPushDevice: UserPush) => {
-                return (
-                  userPushDevice.id!.toString() ===
-                  miscDataProps["notificationMethod"]?.toString()
-                );
-              },
-            );
-
-            if (userPushDevice) {
-              model.userPushId = userPushDevice.id!;
-            }
-
-            const userWhatsApp: UserWhatsApp | undefined = userWhatsApps.find(
-              (userWhatsApp: UserWhatsApp) => {
-                return (
-                  userWhatsApp.id!.toString() ===
-                  miscDataProps["notificationMethod"]?.toString()
-                );
-              },
-            );
-
-            if (userWhatsApp) {
-              model.userWhatsAppId = userWhatsApp.id!;
-            }
-
-            const userTelegram: UserTelegram | undefined = userTelegrams.find(
-              (userTelegram: UserTelegram) => {
-                return (
-                  userTelegram.id!.toString() ===
-                  miscDataProps["notificationMethod"]?.toString()
-                );
-              },
-            );
-
-            if (userTelegram) {
-              model.userTelegramId = userTelegram.id!;
-            }
-          }
+          NotificationMethodUtil.setSelectedMethodOnRule(
+            model,
+            miscDataProps["notificationMethod"],
+            {
+              userCalls: userCalls,
+              userEmails: userEmails,
+              userSMSs: userSMSs,
+              userPush: userPush,
+              userWhatsApps: userWhatsApps,
+              userTelegrams: userTelegrams,
+              userWebhooks: userWebhooks,
+            },
+          );
 
           return Promise.resolve(model);
         }}
@@ -208,50 +145,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
         showRefreshButton={true}
-        selectMoreFields={{
-          userEmail: {
-            email: true,
-          },
-          userSms: {
-            phone: true,
-          },
-          userPush: {
-            deviceName: true,
-            deviceType: true,
-          },
-          userWhatsApp: {
-            phone: true,
-          },
-          userTelegram: {
-            telegramUserHandle: true,
-            telegramChatId: true,
-          },
-        }}
+        selectMoreFields={NotificationMethodUtil.getSelectForNotificationMethods<UserNotificationRule>()}
         filters={[]}
         columns={[
           {
-            field: {
-              userCall: {
-                phone: true,
-              },
-              userEmail: {
-                email: true,
-              },
-              userSms: {
-                phone: true,
-              },
-              userPush: {
-                deviceName: true,
-                deviceType: true,
-              },
-              userWhatsApp: {
-                phone: true,
-              },
-              userTelegram: {
-                telegramUserHandle: true,
-                telegramChatId: true,
-              },
-            },
+            field:
+              NotificationMethodUtil.getSelectForNotificationMethods<UserNotificationRule>() as SelectEntityField<UserNotificationRule>,
             title: "Notification Method",
             type: FieldType.Text,
             getElement: (item: UserNotificationRule): ReactElement => {
@@ -413,64 +312,35 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       setUserTelegrams(userTelegramList.data);
 
-      setIncidentSeverities(incidentSeverities.data);
-
-      const dropdownOptions: Array<DropdownOption> = [
-        ...userCalls.data,
-        ...userEmails.data,
-        ...userSMSes.data,
-        ...userPushDevices.data,
-        ...userWhatsAppList.data,
-        ...userTelegramList.data,
-      ].map((model: BaseModel) => {
-        const isUserCall: boolean = model instanceof UserCall;
-        const isUserSms: boolean = model instanceof UserSMS;
-        const isUserPush: boolean = model instanceof UserPush;
-        const isUserWhatsApp: boolean = model instanceof UserWhatsApp;
-        const isUserTelegram: boolean = model instanceof UserTelegram;
-
-        let option: DropdownOption;
-
-        if (isUserPush) {
-          option = {
-            label:
-              "Push: " +
-              (model.getColumnValue("deviceName")?.toString() ||
-                "Unknown Device"),
-            value: model.id!.toString(),
-          };
-        } else if (isUserTelegram) {
-          option = {
-            label:
-              "Telegram: " +
-              (model.getColumnValue("telegramUserHandle")?.toString() ||
-                model.getColumnValue("telegramChatId")?.toString() ||
-                "Unknown Chat"),
-            value: model.id!.toString(),
-          };
-        } else {
-          option = {
-            label: model.getColumnValue("phone")
-              ? (model.getColumnValue("phone")?.toString() as string)
-              : (model.getColumnValue("email")?.toString() as string),
-            value: model.id!.toString(),
-          };
-
-          if (isUserCall) {
-            option.label = "Call: " + option.label;
-          } else if (isUserSms) {
-            option.label = "SMS: " + option.label;
-          } else if (isUserWhatsApp) {
-            option.label = "WhatsApp: " + option.label;
-          } else {
-            option.label = "Email: " + option.label;
-          }
-        }
-
-        return option;
+      const userWebhookList: ListResult<UserWebhook> = await ModelAPI.getList({
+        modelType: UserWebhook,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          userId: User.getUserId(),
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          name: true,
+        },
+        sort: {},
       });
 
-      setNotificationMethodsDropdownOptions(dropdownOptions);
+      setUserWebhooks(userWebhookList.data);
+
+      setIncidentSeverities(incidentSeverities.data);
+
+      setNotificationMethodsDropdownOptions(
+        NotificationMethodUtil.getDropdownOptions({
+          userCalls: userCalls.data,
+          userEmails: userEmails.data,
+          userSMSs: userSMSes.data,
+          userPush: userPushDevices.data,
+          userWhatsApps: userWhatsAppList.data,
+          userTelegrams: userTelegramList.data,
+          userWebhooks: userWebhookList.data,
+        }),
+      );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }

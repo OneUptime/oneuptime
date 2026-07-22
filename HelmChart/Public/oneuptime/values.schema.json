@@ -374,6 +374,37 @@
                 },
                 "hostAliases": {
                     "type": ["array", "null"]
+                },
+                "sysctlTuning": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "ipLocalPortRange": {
+                            "type": "string"
+                        },
+                        "tcpTwReuse": {
+                            "type": "string"
+                        },
+                        "tcpFinTimeout": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "upstreamKeepalive": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "connections": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
@@ -1557,6 +1588,21 @@
             },
             "additionalProperties": false
         },
+        "updateCheck": {
+            "type": "object",
+            "properties": {
+                "disabled": {
+                    "type": "boolean"
+                },
+                "url": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
         "queueDashboard": {
             "type": "object",
             "properties": {
@@ -1932,6 +1978,7 @@
                 "null"
             ]
         },
+        "telemetryWaitForAsyncInsert": { "type": "boolean" },
         "logLevel": {
             "type": "string",
             "enum": [
@@ -2570,6 +2617,48 @@
                 "telemetryConcurrency": {
                     "type": "integer"
                 },
+                "telemetryFanInMaxBatchRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxWaitMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxConcurrentInserts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxPendingRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxAttempts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryBaseDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "clickhouseMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "clickhouseIngestMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
                 "disableTelemetryCollection": {
                     "type": "boolean"
                 },
@@ -2717,6 +2806,48 @@
                 "telemetryConcurrency": {
                     "type": "integer"
                 },
+                "telemetryFanInMaxBatchRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxWaitMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxConcurrentInserts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInMaxPendingRows": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxAttempts": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryBaseDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "telemetryFanInRetryMaxDelayMs": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "clickhouseMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "clickhouseIngestMaxOpenConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
                 "disableTelemetryCollection": {
                     "type": "boolean"
                 },
@@ -2824,6 +2955,81 @@
                     },
                     "additionalProperties": false
                 }
+            },
+            "additionalProperties": false
+        },
+        "telemetryWriter": {
+            "type": "object",
+            "properties": {
+                "enabled": { "type": "boolean" },
+                "replicaCount": { "type": "integer", "minimum": 1 },
+                "databaseMaxOpenConnections": { "type": ["integer", "null"], "minimum": 1 },
+                "maxInflightRequests": { "type": "integer", "minimum": 1 },
+                "telemetryFanInMaxBatchRows": { "type": "integer", "minimum": 1 },
+                "telemetryFanInMaxWaitMs": { "type": "integer", "minimum": 1 },
+                "telemetryFanInMaxConcurrentInserts": { "type": "integer", "minimum": 1 },
+                "telemetryFanInMaxPendingRows": { "type": "integer", "minimum": 1 },
+                "telemetryFanInRetryMaxAttempts": { "type": "integer", "minimum": 1 },
+                "telemetryFanInRetryBaseDelayMs": { "type": "integer", "minimum": 1 },
+                "telemetryFanInRetryMaxDelayMs": { "type": "integer", "minimum": 1 },
+                "clickhouseMaxOpenConnections": { "type": ["integer", "null"], "minimum": 1 },
+                "clickhouseIngestMaxOpenConnections": { "type": ["integer", "null"], "minimum": 1 },
+                "disableTelemetryCollection": { "type": "boolean" },
+                "enableProfiling": { "type": "boolean" },
+                "autoscaling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean" },
+                        "minReplicas": { "type": "integer", "minimum": 1 },
+                        "maxReplicas": { "type": "integer", "minimum": 1 },
+                        "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 0 },
+                        "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 0 }
+                    },
+                    "additionalProperties": false
+                },
+                "keda": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean" },
+                        "minReplicas": { "type": "integer", "minimum": 1 },
+                        "maxReplicas": { "type": "integer", "minimum": 1 },
+                        "shedCountThreshold": { "type": "integer", "minimum": 1 },
+                        "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 0 },
+                        "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 0 },
+                        "pollingInterval": { "type": "integer", "minimum": 1 },
+                        "cooldownPeriod": { "type": "integer", "minimum": 0 },
+                        "fallback": {
+                            "type": "object",
+                            "properties": {
+                                "failureThreshold": { "type": "integer", "minimum": 1 },
+                                "replicas": { "type": "integer", "minimum": 0 }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "podDisruptionBudget": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean" },
+                        "minAvailable": { "type": ["integer", "string", "null"] },
+                        "maxUnavailable": { "type": ["integer", "string", "null"] }
+                    },
+                    "additionalProperties": false
+                },
+                "ports": {
+                    "type": "object",
+                    "properties": {
+                        "http": { "type": "integer" }
+                    },
+                    "additionalProperties": false
+                },
+                "resources": { "type": ["object", "null"] },
+                "nodeSelector": { "type": "object" },
+                "podSecurityContext": { "type": "object" },
+                "hostAliases": { "type": ["array", "null"] },
+                "containerSecurityContext": { "type": "object" }
             },
             "additionalProperties": false
         },

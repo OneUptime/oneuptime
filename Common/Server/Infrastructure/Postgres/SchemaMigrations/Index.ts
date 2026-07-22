@@ -462,6 +462,8 @@ import { AddEnterpriseLicenseNotificationColumns1784218257664 } from "./17842182
 import { AddAttributionColumnsToUserAndProject1784293516000 } from "./1784293516000-AddAttributionColumnsToUserAndProject";
 import { AddMarketingConversionTable1784298000000 } from "./1784298000000-AddMarketingConversionTable";
 import { AddExceptionTriageAndPrivacyColumns1784640000000 } from "./1784640000000-AddExceptionTriageAndPrivacyColumns";
+import { AddInstanceVersionAndLatestReleaseColumns1784659816363 } from "./1784659816363-AddInstanceVersionAndLatestReleaseColumns";
+import { AddEnterpriseLicenseEvaluationColumns1784705487674 } from "./1784705487674-AddEnterpriseLicenseEvaluationColumns";
 
 export default [
   InitialMigration,
@@ -928,4 +930,6 @@ export default [
   AddAttributionColumnsToUserAndProject1784293516000,
   AddMarketingConversionTable1784298000000,
   AddExceptionTriageAndPrivacyColumns1784640000000,
+  AddInstanceVersionAndLatestReleaseColumns1784659816363,
+  AddEnterpriseLicenseEvaluationColumns1784705487674,
 ];

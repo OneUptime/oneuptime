@@ -56,6 +56,10 @@ import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
   TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
 } from "../Config";
+import TelemetryFanInWriter, {
+  FanInSubmitResult,
+  pushObservedAck,
+} from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -156,59 +160,66 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     return SpanKind.Internal;
   }
 
-  private static async flushSpansBuffer(
+  /*
+   * Hand accumulated span rows to the shared fan-in writer, which batches
+   * them ACROSS jobs and inserts through a small per-pod concurrency gate
+   * (see TelemetryFanInWriter). Awaiting this method is only the writer's
+   * acceptance/backpressure gate — durability acks land in `pendingAcks`
+   * and MUST be awaited before the job completes (ack-after-flush).
+   */
+  private static async submitSpansBuffer(
     spans: Array<JSONObject>,
+    pendingAcks: Array<Promise<void>>,
     force: boolean = false,
   ): Promise<void> {
     while (
       spans.length >= TELEMETRY_TRACE_FLUSH_BATCH_SIZE ||
       (force && spans.length > 0)
     ) {
-      const batchSize: number = Math.min(
-        spans.length,
-        TELEMETRY_TRACE_FLUSH_BATCH_SIZE,
+      const batch: Array<JSONObject> = spans.splice(
+        0,
+        Math.min(spans.length, TELEMETRY_TRACE_FLUSH_BATCH_SIZE),
       );
-      const batch: Array<JSONObject> = spans.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      try {
-        await SpanService.insertJsonRows(batch);
-      } catch (error) {
-        throw new TraceStorageFlushError(error);
-      }
-
-      spans.splice(0, batch.length);
+      const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
+        SpanService,
+        batch,
+      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new TraceStorageFlushError(error);
+      });
     }
   }
 
-  private static async flushExceptionsBuffer(
+  private static async submitExceptionsBuffer(
     exceptions: Array<JSONObject>,
+    pendingAcks: Array<Promise<void>>,
     force: boolean = false,
   ): Promise<void> {
     while (
       exceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE ||
       (force && exceptions.length > 0)
     ) {
-      const batchSize: number = Math.min(
-        exceptions.length,
-        TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
+      const batch: Array<JSONObject> = exceptions.splice(
+        0,
+        Math.min(exceptions.length, TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE),
       );
-      const batch: Array<JSONObject> = exceptions.slice(0, batchSize);
 
       if (batch.length === 0) {
         continue;
       }
 
-      try {
-        await ExceptionInstanceService.insertJsonRows(batch);
-      } catch (error) {
-        throw new TraceStorageFlushError(error);
-      }
-
-      exceptions.splice(0, batch.length);
+      const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
+        ExceptionInstanceService,
+        batch,
+      );
+      pushObservedAck(pendingAcks, submission.flushed, (error: Error) => {
+        return new TraceStorageFlushError(error);
+      });
     }
   }
 
@@ -250,6 +261,15 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
 
   @CaptureSpan()
   private static async processTracesAsync(req: ExpressRequest): Promise<void> {
+    /*
+     * Durability acks from the fan-in writer, one per submitted batch. The
+     * job only completes once every ack has resolved (ack-after-flush), so
+     * a payload whose rows never landed fails and is retried by BullMQ.
+     * Declared outside the try so the catch can settle them — an error
+     * thrown mid-processing must not leave rejected acks unobserved.
+     */
+    const pendingAcks: Array<Promise<void>> = [];
+
     try {
       const resourceSpans: JSONArray = req.body["resourceSpans"] as JSONArray;
 
@@ -693,13 +713,16 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   totalSpansProcessed++;
 
                   if (dbSpans.length >= TELEMETRY_TRACE_FLUSH_BATCH_SIZE) {
-                    await this.flushSpansBuffer(dbSpans);
+                    await this.submitSpansBuffer(dbSpans, pendingAcks);
                   }
 
                   if (
                     dbExceptions.length >= TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE
                   ) {
-                    await this.flushExceptionsBuffer(dbExceptions);
+                    await this.submitExceptionsBuffer(
+                      dbExceptions,
+                      pendingAcks,
+                    );
                   }
                 } catch (spanError) {
                   if (spanError instanceof TraceStorageFlushError) {
@@ -729,9 +752,18 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         }
       }
 
+      await this.submitSpansBuffer(dbSpans, pendingAcks, true);
+      await this.submitExceptionsBuffer(dbExceptions, pendingAcks, true);
+
       await Promise.all([
-        this.flushSpansBuffer(dbSpans, true),
-        this.flushExceptionsBuffer(dbExceptions, true),
+        /*
+         * Ack-after-flush: wait for every fan-in batch containing this
+         * job's rows to durably land in ClickHouse before the job is
+         * allowed to succeed. A rejected ack (batch definitively failed
+         * after the writer's own retries) fails the job so BullMQ
+         * re-processes the payload.
+         */
+        ...pendingAcks,
         /*
          * Flush the Postgres TelemetryException upserts in one
          * batched ON CONFLICT statement (chunked internally). Wrap
@@ -775,6 +807,14 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         logger.error(cleanupError);
       }
     } catch (error) {
+      /*
+       * Settle all outstanding write acks before rethrowing: an error
+       * thrown mid-processing (span parse failure, lost body, ...) must
+       * not leave still-pending ack promises to reject unobserved later.
+       * The original error stays the one reported to BullMQ.
+       */
+      await Promise.allSettled(pendingAcks);
+
       logger.error(
         "Critical error in processTracesAsync:",
         getLogAttributesFromRequest(req as RequestLike),

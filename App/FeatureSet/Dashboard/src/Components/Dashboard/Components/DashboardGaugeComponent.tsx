@@ -119,11 +119,14 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    if (!data.queryConfigs[0].metricQueryData.filterData?.aggegationType) {
-      setIsLoading(false);
-      return;
-    }
-
+    /*
+     * Default a missing aggregation to Avg instead of bailing out
+     * silently. MetricUtil.fetchResults already sends Avg when
+     * `aggegationType` is absent, and the "Aggregate by" picker displays
+     * Avg as its default without always persisting it — so a gauge
+     * configured by picking only a metric must still fetch and render
+     * rather than sit at a blank "0" with no explanation.
+     */
     setAggregationType(
       (data.queryConfigs[0].metricQueryData.filterData
         ?.aggegationType as AggregationType) || AggregationType.Avg,
@@ -228,31 +231,108 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  // Calculate aggregated value
-  let aggregatedValue: number = 0;
-  let avgCount: number = 0;
-
+  /*
+   * Flatten the per-bucket values the server returned, discarding any
+   * non-finite entries. AggregatedModel.value is typed `number` but the
+   * model carries a JSONValue index signature, and a ClickHouse NULL /
+   * missing column arrives as null — left unchecked it poisons the whole
+   * reduction with NaN (the fetch layer tolerates this the same way, see
+   * MetricUtil.fetchResults' `Number.isFinite` rounding guard).
+   */
+  const numericValues: Array<number> = [];
   for (const result of metricResults) {
     for (const item of result.data) {
-      const value: number = item.value;
-
-      if (aggregationType === AggregationType.Avg) {
-        aggregatedValue += value;
-        avgCount += 1;
-      } else if (aggregationType === AggregationType.Sum) {
-        aggregatedValue += value;
-      } else if (aggregationType === AggregationType.Min) {
-        aggregatedValue = Math.min(aggregatedValue, value);
-      } else if (aggregationType === AggregationType.Max) {
-        aggregatedValue = Math.max(aggregatedValue, value);
-      } else if (aggregationType === AggregationType.Count) {
-        aggregatedValue += 1;
+      const value: number = item.value as number;
+      if (typeof value === "number" && Number.isFinite(value)) {
+        numericValues.push(value);
       }
     }
   }
 
-  if (aggregationType === AggregationType.Avg && avgCount > 0) {
-    aggregatedValue = aggregatedValue / avgCount;
+  const hasData: boolean = numericValues.length > 0;
+
+  /*
+   * A configured query that came back empty — or one that failed
+   * server-side / in formula evaluation and surfaced a reason via
+   * AggregatedResult.errorMessage — previously rendered as a confident
+   * "0 / Healthy" gauge, indistinguishable from a metric that is
+   * genuinely zero. Show an explicit no-data state once loading settles.
+   */
+  if (!hasData && !isLoading) {
+    const resultErrorMessage: string | undefined = metricResults.find(
+      (result: AggregatedResult) => {
+        return Boolean(result.errorMessage);
+      },
+    )?.errorMessage;
+
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
+        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
+          <svg
+            className="w-5 h-5 text-gray-300"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z"
+            />
+          </svg>
+        </div>
+        {props.component.arguments.gaugeTitle ? (
+          <p className="text-xs font-medium text-gray-500">
+            {props.component.arguments.gaugeTitle}
+          </p>
+        ) : (
+          <></>
+        )}
+        <p className="text-xs text-gray-400 text-center max-w-40">
+          {resultErrorMessage || "No data for the selected time range"}
+        </p>
+      </div>
+    );
+  }
+
+  /*
+   * Reduce the per-bucket values into the single number the gauge shows.
+   *
+   * - Percentiles (P50/P90/P95/P99) are computed per bucket server-side,
+   *   so — like Avg — we take the mean across the window. Without an
+   *   explicit branch they fell through the old if/else chain entirely
+   *   and the gauge stayed pinned at its 0 seed even though the query
+   *   returned real percentile data (a P95 latency gauge read "0").
+   * - Count sums the per-bucket counts the server already returned
+   *   (`count(value) as value`); the old `+= 1` counted time buckets, not
+   *   samples, so a Count gauge showed ~the bucket count (often 1 or 60).
+   * - Min/Max fold over the real values instead of a 0 seed, which
+   *   previously forced any all-positive metric's Min to exactly 0.
+   */
+  let aggregatedValue: number = 0;
+  if (hasData) {
+    switch (aggregationType) {
+      case AggregationType.Sum:
+      case AggregationType.Count:
+        aggregatedValue = numericValues.reduce((sum: number, value: number) => {
+          return sum + value;
+        }, 0);
+        break;
+      case AggregationType.Min:
+        aggregatedValue = Math.min(...numericValues);
+        break;
+      case AggregationType.Max:
+        aggregatedValue = Math.max(...numericValues);
+        break;
+      default:
+        // Avg and every percentile aggregation: mean of per-bucket values.
+        aggregatedValue =
+          numericValues.reduce((sum: number, value: number) => {
+            return sum + value;
+          }, 0) / numericValues.length;
+        break;
+    }
   }
 
   const metricName: string =
