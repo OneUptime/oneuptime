@@ -374,6 +374,24 @@
                 },
                 "hostAliases": {
                     "type": ["array", "null"]
+                },
+                "sysctlTuning": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "ipLocalPortRange": {
+                            "type": "string"
+                        },
+                        "tcpTwReuse": {
+                            "type": "string"
+                        },
+                        "tcpFinTimeout": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

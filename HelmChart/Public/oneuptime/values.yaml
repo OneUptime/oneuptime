@@ -124,6 +124,31 @@ nginx:
   podSecurityContext: {}
   hostAliases: []
   containerSecurityContext: {}
+  # Kernel networking tuning for the ingress gateway. The ingress proxies a very
+  # high volume of short-lived upstream connections (OTLP/telemetry ingest, API,
+  # dashboard) out to a single backend Service IP. Without tuning, a pod can
+  # exhaust its ephemeral source ports with TIME_WAIT sockets and nginx then
+  # returns "connect() ... (99: Address not available)" 502s for every route.
+  #
+  # Applied via a privileged init container: tcp_tw_reuse is an "unsafe" sysctl
+  # that kubelets do not expose through pod securityContext.sysctls. Every
+  # container in a pod shares one network namespace, so tuning these net.*
+  # sysctls in the init container tunes nginx too.
+  #
+  # OPT-IN (default false): a privileged container is rejected at ADMISSION on
+  # clusters with restricted PodSecurity, GKE Autopilot, or OpenShift SCC — that
+  # would stop the ingress from ever starting. Enable this only where privileged
+  # pods are allowed (e.g. GKE Standard, most self-managed clusters) with:
+  #   --set nginx.sysctlTuning.enabled=true
+  sysctlTuning:
+    enabled: false
+    # Widen the ephemeral source-port range (~28k -> ~64k ports).
+    ipLocalPortRange: "1024 65535"
+    # Allow new outbound connections to reuse TIME_WAIT sockets (the actual fix
+    # for source-port exhaustion). Safe for the client side of a proxy.
+    tcpTwReuse: "1"
+    # Reclaim FIN_WAIT_2 sockets faster.
+    tcpFinTimeout: "15"
 
 postgresql:
   enabled: true # Set this to false if you're using an external postgresql database.
