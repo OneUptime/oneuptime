@@ -20,6 +20,10 @@ import {
 } from "Common/Server/Utils/Telemetry/TelemetryWriterServer";
 import { JSONObject } from "Common/Types/JSON";
 import { AnalyticsServices } from "Common/Server/Services/Index";
+import {
+  getRecentShedCount,
+  recordShed,
+} from "Common/Server/Utils/Telemetry/TelemetryWriterShedMetrics";
 import logger from "Common/Server/Utils/Logger";
 
 /*
@@ -54,6 +58,13 @@ router.post(
      * the same dedup token after backoff.
      */
     if (!inflightGate.tryAcquire()) {
+      /*
+       * Fire-and-forget: the shed counter feeds the KEDA scaling signal
+       * and must never delay (or fail) the 429 itself.
+       */
+      recordShed().catch(() => {
+        // recordShed already swallows; belt and braces.
+      });
       res.status(429).json({
         message:
           "Telemetry writer is at its inflight-request cap; retry with backoff.",
@@ -86,6 +97,24 @@ router.post(
     } finally {
       inflightGate.release();
     }
+  },
+);
+
+/*
+ * KEDA autoscaling metric for the telemetry-writer tier: 429s shed across
+ * the WHOLE tier in roughly the last one-to-two minutes (Redis-backed, so
+ * whichever pod KEDA's metrics-api scaler polls reports the fleet-wide
+ * number). Unauthenticated by design, mirroring /metrics/queue-size — the
+ * chart's KEDA TriggerAuthentication is currently not attached to
+ * metrics-api triggers, and the value is a bare count on a ClusterIP-only
+ * service.
+ */
+router.get(
+  "/metrics/telemetry-writer-shed-rate",
+  async (_req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+    const shedCount: number = await getRecentShedCount();
+    res.setHeader("Content-Type", "application/json");
+    res.status(200).json({ shedCount: shedCount });
   },
 );
 

@@ -1228,7 +1228,7 @@ spec:
       metadata:
         targetValue: {{ .threshold | quote }}
         url: http://{{ printf "%s-%s" $.Release.Name $.ServiceName }}:{{ .port }}{{ if .urlPath }}{{ .urlPath }}{{ else }}/metrics/queue-size{{ end }}
-        valueLocation: 'queueSize'
+        valueLocation: {{ .valueLocation | default "queueSize" | squote }}
         method: 'GET'
       # authenticationRef:
       #   name: {{ printf "%s-%s-trigger-auth" $.Release.Name $.ServiceName }}

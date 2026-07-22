@@ -11,9 +11,19 @@
 # — a constant chosen below — no matter how far the worker fleet autoscales.
 # This tier consumes no queues (DISABLE_QUEUE_WORKERS=true) and takes no
 # ingress traffic; it serves only the cluster-key-protected
-# /telemetry-writer/insert endpoint plus health probes. Do NOT autoscale it on
-# queue depth: its size is a ClickHouse capacity decision, not a demand one
-# (overload is shed with 429 and absorbed by the BullMQ queue upstream).
+# /telemetry-writer/insert endpoint plus health probes.
+#
+# Scaling: fixed-size by default. Two OPT-IN autoscalers exist —
+# telemetryWriter.autoscaling (plain CPU/memory HPA; explicit enable only,
+# the global autoscaling block never applies to this tier) and
+# telemetryWriter.keda (KEDA on the fleet-wide shed rate: sustained 429s
+# while ClickHouse is healthy is the honest "tier too small" signal, served
+# at /metrics/telemetry-writer-shed-rate from a Redis-backed counter).
+# NEVER scale this tier on queue depth: queue growth is the WORKER fleet's
+# signal, and reacting to it here would hand ClickHouse the very burst this
+# tier exists to absorb (overload is shed with 429 and parked in BullMQ).
+# Whatever scaler is used, cap maxReplicas so replicas x
+# telemetryFanInMaxConcurrentInserts stays inside the ClickHouse budget.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -31,7 +41,11 @@ spec:
   selector:
     matchLabels:
       app: {{ printf "%s-%s" $.Release.Name "telemetry-writer"  }}
+  {{- $twAutoscaling := $.Values.telemetryWriter.autoscaling | default dict }}
+  {{- $twKeda := $.Values.telemetryWriter.keda | default dict }}
+  {{- if not (or $twAutoscaling.enabled (and $.Values.keda.enabled $twKeda.enabled)) }}
   replicas: {{ $.Values.telemetryWriter.replicaCount }}
+  {{- end }}
   strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
   template:
     metadata:
@@ -168,6 +182,19 @@ spec:
           {{- end }}
       restartPolicy: {{ $.Values.image.restartPolicy }}
 
+---
+{{- end }}
+
+{{- if and $.Values.telemetryWriter.enabled (not $.Values.deployment.disableDeployments) }}
+{{- $twAutoscaling := $.Values.telemetryWriter.autoscaling | default dict }}
+{{- $twKeda := $.Values.telemetryWriter.keda | default dict }}
+{{- if and $twAutoscaling.enabled (not (and $.Values.keda.enabled $twKeda.enabled)) }}
+# OneUptime telemetry-writer autoscaler (CPU/memory HPA; skipped when the
+# KEDA shed-rate scaler manages this deployment). Explicit opt-in only —
+# the Override block always carries an `enabled` key, so the global
+# autoscaling block never applies to this tier by accident.
+{{- include "oneuptime.autoscaler" (dict "ServiceName" "telemetry-writer" "Release" $.Release "Values" $.Values "Override" $.Values.telemetryWriter.autoscaling) }}
+{{- end }}
 ---
 {{- end }}
 

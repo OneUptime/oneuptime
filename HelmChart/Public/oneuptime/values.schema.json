@@ -2945,6 +2945,39 @@
                 "clickhouseIngestMaxOpenConnections": { "type": ["integer", "null"], "minimum": 1 },
                 "disableTelemetryCollection": { "type": "boolean" },
                 "enableProfiling": { "type": "boolean" },
+                "autoscaling": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean" },
+                        "minReplicas": { "type": "integer", "minimum": 1 },
+                        "maxReplicas": { "type": "integer", "minimum": 1 },
+                        "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 0 },
+                        "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 0 }
+                    },
+                    "additionalProperties": false
+                },
+                "keda": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": { "type": "boolean" },
+                        "minReplicas": { "type": "integer", "minimum": 1 },
+                        "maxReplicas": { "type": "integer", "minimum": 1 },
+                        "shedCountThreshold": { "type": "integer", "minimum": 1 },
+                        "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 0 },
+                        "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 0 },
+                        "pollingInterval": { "type": "integer", "minimum": 1 },
+                        "cooldownPeriod": { "type": "integer", "minimum": 0 },
+                        "fallback": {
+                            "type": "object",
+                            "properties": {
+                                "failureThreshold": { "type": "integer", "minimum": 1 },
+                                "replicas": { "type": "integer", "minimum": 0 }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "podDisruptionBudget": {
                     "type": "object",
                     "properties": {

@@ -97,10 +97,18 @@ Work through this list to make your OneUptime installation production-ready.
   concurrent inserts — a constant — so worker replicas can autoscale WITHOUT
   limit; the replicas × inserts rule above moves from the (elastic) worker
   fleet to the (fixed) writer tier. Size the writer tier against ClickHouse
-  capacity: keep its product under ~60% of `max_concurrent_queries`, and do
-  not autoscale it on queue depth — when it saturates it sheds load with 429,
-  workers back off and retry, and the backlog collects in the BullMQ queue
-  where the worker KEDA scaler (not ClickHouse) absorbs it. Writer-pod memory
+  capacity: keep its product under ~60% of `max_concurrent_queries`, and
+  never autoscale it on queue depth — when it saturates it sheds load with
+  429, workers back off and retry, and the backlog collects in the BullMQ
+  queue where the worker KEDA scaler (not ClickHouse) absorbs it. Two
+  opt-in autoscalers exist for the tier itself, both bounded by
+  `maxReplicas` (keep `maxReplicas × telemetryFanInMaxConcurrentInserts`
+  inside the ClickHouse budget): `telemetryWriter.autoscaling` (plain
+  CPU/memory HPA; requires `telemetryWriter.resources.requests`) and
+  `telemetryWriter.keda` (scales on the tier-wide shed rate — sustained
+  429s while ClickHouse is healthy are the honest "tier too small" signal,
+  exported at `/metrics/telemetry-writer-shed-rate` from a Redis-backed
+  counter). Writer-pod memory
   is bounded by `telemetryWriter.maxInflightRequests`; raise pod resources
   together with it. If individual telemetry rows are very large (multi-KB log
   bodies), lower `worker.telemetryFanInMaxBatchRows` so a shipped batch stays

@@ -1553,6 +1553,44 @@ telemetryWriter:
   clickhouseIngestMaxOpenConnections:
   disableTelemetryCollection: false
   enableProfiling: false
+  # OPT-IN CPU/memory HPA. Unlike other services, the global `autoscaling:`
+  # block never applies to this tier — only this explicit enable does.
+  # Since inserts are fire-and-forget (query slots free almost instantly),
+  # extra replicas mostly add request throughput, but STILL cap maxReplicas
+  # so maxReplicas x telemetryFanInMaxConcurrentInserts stays inside the
+  # ClickHouse max_concurrent_queries budget. CPU/memory targets need
+  # telemetryWriter.resources.requests set. Ignored when the KEDA scaler
+  # below is enabled.
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 0
+  # OPT-IN KEDA scaling on the fleet-wide shed rate — 429s rejected across
+  # all writer pods in roughly the last two minutes (Redis-backed counter,
+  # served at /metrics/telemetry-writer-shed-rate). Sustained shedding while
+  # ClickHouse is healthy is the honest "tier too small" signal; this NEVER
+  # scales on queue depth (that is the worker fleet's signal). Optional
+  # CPU/memory triggers compose (they require resources.requests). Takes
+  # precedence over the plain HPA above when both are enabled.
+  keda:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    # Scale up when tier-wide sheds in the last ~2 minutes exceed this
+    # value per replica (KEDA targets shedCount / replicas <= threshold).
+    shedCountThreshold: 100
+    # Scale on CPU/memory utilization too (0 to disable either).
+    targetCPUUtilizationPercentage: 0
+    targetMemoryUtilizationPercentage: 0
+    pollingInterval: 30
+    cooldownPeriod: 300
+    # Fallback replicas when KEDA cannot read the shed-rate endpoint (e.g.
+    # all writer pods down). Set replicas to 0 to disable.
+    fallback:
+      failureThreshold: 3
+      replicas: 2
   # Per-service Pod Disruption Budget override; falls back to the global
   # podDisruptionBudget block.
   # podDisruptionBudget:
