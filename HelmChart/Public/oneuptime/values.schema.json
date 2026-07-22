@@ -392,6 +392,19 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "upstreamKeepalive": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "connections": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

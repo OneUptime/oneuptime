@@ -175,6 +175,10 @@ spec:
               value: {{ $.Values.nginx.listenAddress | quote }}
             - name: NGINX_LISTEN_OPTIONS
               value: {{ $.Values.nginx.listenOptions | quote }}
+            - name: NGINX_UPSTREAM_KEEPALIVE
+              value: {{ (and $.Values.nginx.upstreamKeepalive $.Values.nginx.upstreamKeepalive.enabled) | default false | quote }}
+            - name: NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS
+              value: {{ (default 64 (and $.Values.nginx.upstreamKeepalive $.Values.nginx.upstreamKeepalive.connections)) | quote }}
             {{- if $.Values.nginx.serverNamesHash.bucketSize }}
             - name: SERVER_NAMES_HASH_BUCKET_SIZE
               value: {{ $.Values.nginx.serverNamesHash.bucketSize | quote }}

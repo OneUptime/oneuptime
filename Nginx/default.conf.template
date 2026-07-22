@@ -3,6 +3,28 @@
 server_names_hash_bucket_size ${SERVER_NAMES_HASH_BUCKET_SIZE};
 server_names_hash_max_size ${SERVER_NAMES_HASH_MAX_SIZE};
 
+## Upstream connection pools for the app backend. The block below is kept only
+## when NGINX_UPSTREAM_KEEPALIVE=true (Kubernetes, where the backend is a stable
+## Service ClusterIP); envsubst-on-templates.sh strips it otherwise so
+## docker-compose keeps the resolver + per-request $backend_app path that
+## tolerates the app container changing IP. proxy_pass targets follow the same
+## toggle via ${BACKEND_APP_TARGET} / ${BACKEND_APP_GRPC_TARGET}.
+# BEGIN upstream-keepalive
+upstream backend_app {
+    server ${SERVER_APP_HOSTNAME}:${APP_PORT};
+    keepalive ${NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS};
+    # Must stay BELOW the backend's keepAliveTimeout (75s, set in
+    # Common/Server/Utils/Express.ts) so nginx retires an idle pooled socket
+    # before the app does — otherwise nginx can reuse a socket the app already
+    # closed and 502 a request it cannot safely retry (e.g. a POST ingest).
+    keepalive_timeout 60s;
+    keepalive_requests 10000;
+}
+upstream backend_app_grpc {
+    server ${SERVER_APP_HOSTNAME}:4317;
+    keepalive ${NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS};
+}
+# END upstream-keepalive
 
 # Status Pages
 
@@ -44,7 +66,7 @@ server {
         }
 
         if ($billing_enabled != true) {
-            proxy_pass $backend_app;
+            proxy_pass ${BACKEND_APP_TARGET};
         }
 
     }
@@ -63,7 +85,7 @@ server {
         }
 
         if ($billing_enabled != true) {
-            proxy_pass $backend_app;
+            proxy_pass ${BACKEND_APP_TARGET};
         }
     }
 
@@ -78,10 +100,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-api/(.*)$ /api/status-page/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-sso-api/ {
@@ -95,10 +117,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-sso-api/(.*)$ /api/identity/status-page-sso/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-oidc-api/ {
@@ -112,10 +134,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-oidc-api/(.*)$ /api/identity/status-page-oidc/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-identity-api/ {
@@ -129,10 +151,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-identity-api/(.*)$ /api/identity/status-page/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /public-dashboard-api/ {
@@ -146,10 +168,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/public-dashboard-api/(.*)$ /api/dashboard/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /public-dashboard {
@@ -163,9 +185,9 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     # Acme Verification.
@@ -180,10 +202,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/\.well-known(.*)$ /api/status-page/.well-known$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
 }
@@ -227,9 +249,9 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
 
 
     }
@@ -245,10 +267,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-api/(.*)$ /api/status-page/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-sso-api/ {
@@ -262,10 +284,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-sso-api/(.*)$ /api/identity/status-page-sso/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-oidc-api/ {
@@ -279,10 +301,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-oidc-api/(.*)$ /api/identity/status-page-oidc/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-identity-api/ {
@@ -296,10 +318,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-identity-api/(.*)$ /api/identity/status-page/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /public-dashboard-api/ {
@@ -313,10 +335,10 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/public-dashboard-api/(.*)$ /api/dashboard/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page {
@@ -330,9 +352,9 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /public-dashboard {
@@ -346,9 +368,9 @@ server {
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 }
 
@@ -391,7 +413,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         # If billing_enabled is true then proxy to home otherwise to dashboard because we dont need marketing pages for on-prem install.
         if ($billing_enabled = true) {
@@ -399,7 +421,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         }
 
         if ($billing_enabled != true) {
-            proxy_pass $backend_app;
+            proxy_pass ${BACKEND_APP_TARGET};
         }
     }
 
@@ -415,10 +437,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/\.well-known/acme-challenge(.*)$ /api/acme-challenge/.well-known$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /.well-known/assetlinks.json {
@@ -432,7 +454,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         proxy_pass $backend_home;
     }
@@ -464,7 +486,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         }
 
         if ($billing_enabled != true) {
-            proxy_pass $backend_app;
+            proxy_pass ${BACKEND_APP_TARGET};
         }
     }
 
@@ -480,10 +502,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-api/(.*)$ /api/status-page/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-sso-api/ {
@@ -497,10 +519,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-sso-api/(.*)$ /api/identity/status-page-sso/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-oidc-api/ {
@@ -514,10 +536,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-oidc-api/(.*)$ /api/identity/status-page-oidc/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page-identity-api/ {
@@ -531,10 +553,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/status-page-identity-api/(.*)$ /api/identity/status-page/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /public-dashboard-api/ {
@@ -548,10 +570,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/public-dashboard-api/(.*)$ /api/dashboard/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
 
@@ -566,12 +588,12 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
 
@@ -583,7 +605,11 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass $backend_app;
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /incoming-request-ingest {
@@ -594,7 +620,11 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass $backend_app;
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
 
@@ -609,9 +639,9 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     # Pyroscope profiling ingestion endpoint
@@ -623,13 +653,17 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        proxy_pass $backend_app;
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location ~ /opentelemetry.proto.collector* {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app_grpc grpc://${SERVER_APP_HOSTNAME}:4317;
-        grpc_pass $backend_app_grpc;
+        grpc_pass ${BACKEND_APP_GRPC_TARGET};
     }
 
     location /notification {
@@ -650,9 +684,9 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
         rewrite ^/notification(.*)$ /api/notification$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /fluentd/logs {
@@ -666,10 +700,10 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         rewrite ^/fluentd/logs(.*)$ /fluentd/v1/logs$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /syslog/v1/logs {
@@ -682,9 +716,9 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /probe-ingest {
@@ -698,8 +732,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -716,8 +750,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -733,8 +767,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -750,14 +784,14 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
         add_header X-XSS-Protection "1; mode=block" always;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /admin {
@@ -771,12 +805,12 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /worker {
@@ -790,8 +824,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /status-page {
@@ -805,12 +839,12 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /public-dashboard {
@@ -824,12 +858,12 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
         add_header X-Content-Type-Options "nosniff" always;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /identity {
@@ -843,9 +877,9 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
         rewrite ^/identity(.*)$ /api/identity$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /reference {
@@ -859,8 +893,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /docs {
@@ -874,8 +908,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /file {
@@ -889,9 +923,9 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
         rewrite ^/file(.*)$ /api/file$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -907,8 +941,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -924,8 +958,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -944,8 +978,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         # MQTT keepalive (PINGREQ) intervals are device-controlled and
         # often sparse — allow idle gaps well past the 60s default so
@@ -967,8 +1001,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -985,9 +1019,9 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
         rewrite ^/heartbeat(.*)$ /incoming-request$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -1003,8 +1037,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
 
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -1021,8 +1055,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -1038,8 +1072,8 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_pass $backend_app;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -1055,9 +1089,9 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
         rewrite ^/l/(.*)$ /api/short-link/redirect-to-shortlink/$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
 
         client_max_body_size 50M;
     }
@@ -1073,9 +1107,9 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
         rewrite ^/workers(.*)$ /api/workers$1 break;
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 
     location /mcp {
@@ -1089,7 +1123,7 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         # enable WebSockets and SSE (for MCP Server-Sent Events)
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
 
         # SSE specific settings for long-lived connections
         proxy_buffering off;
@@ -1098,6 +1132,6 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_send_timeout 86400s;
         chunked_transfer_encoding on;
 
-        proxy_pass $backend_app;
+        proxy_pass ${BACKEND_APP_TARGET};
     }
 }

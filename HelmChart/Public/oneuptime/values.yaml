@@ -149,6 +149,22 @@ nginx:
     tcpTwReuse: "1"
     # Reclaim FIN_WAIT_2 sockets faster.
     tcpFinTimeout: "15"
+  # Reuse pooled (keepalive) upstream connections to the app backend instead of
+  # opening a brand-new TCP connection per request. This is the root-cause fix
+  # for the source-port / TIME_WAIT exhaustion above: with a connection pool the
+  # ingress stops churning sockets, so it never runs out of ephemeral ports.
+  #
+  # Needs NO privilege and is safe to default on in Kubernetes because the app
+  # Service ClusterIP is stable (open-source nginx resolves the upstream once at
+  # load). Trade-off of resolving at load: on a cold install the ingress can
+  # restart until the app Service object exists, and a Service delete+recreate
+  # (new ClusterIP) needs an nginx reload. The docker-compose deployment leaves
+  # this off — its app container IP can change under nginx, which the resolver +
+  # per-request path tolerates.
+  upstreamKeepalive:
+    enabled: true
+    # Idle connections kept warm per worker process, per upstream pool.
+    connections: 64
 
 postgresql:
   enabled: true # Set this to false if you're using an external postgresql database.

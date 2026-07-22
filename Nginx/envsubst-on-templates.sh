@@ -123,11 +123,35 @@ auto_envsubst() {
       sed -i '/^[[:space:]]*server_names_hash_max_size[[:space:]]/d' "$tmpfile"
     fi
 
+    # Upstream keepalive is off (docker-compose default): strip the upstream{}
+    # pool blocks so nginx uses the resolver + per-request $backend_app path.
+    if [ "${NGINX_UPSTREAM_KEEPALIVE}" != "true" ]; then
+      sed -i '/# BEGIN upstream-keepalive/,/# END upstream-keepalive/d' "$tmpfile"
+    fi
+
     echo "$ME: Running envsubst on $template to $output_path"
     envsubst "$defined_envs" < "$tmpfile" > "$output_path"
     rm -f "$tmpfile"
   done
 }
+
+# Upstream connection pooling (keepalive). When enabled, proxy_pass targets the
+# named upstream{} pools (kept in the template above); the pool pins the backend
+# to an address resolved once at load, which is only safe when that address is
+# stable for the life of the process — true for a Kubernetes Service ClusterIP,
+# not for a docker-compose container that can change IP. open-source nginx
+# cannot combine an upstream{} keepalive pool with runtime DNS re-resolution, so
+# when disabled we fall back to the resolver + per-request $backend_app variable
+# already baked into the template. These target vars are single-line and safe
+# for envsubst; the pool block itself is toggled by the sed removal above.
+if [ "${NGINX_UPSTREAM_KEEPALIVE}" = "true" ]; then
+  export BACKEND_APP_TARGET="http://backend_app"
+  export BACKEND_APP_GRPC_TARGET="grpc://backend_app_grpc"
+  export NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS="${NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS:-64}"
+else
+  export BACKEND_APP_TARGET="\$backend_app"
+  export BACKEND_APP_GRPC_TARGET="\$backend_app_grpc"
+fi
 
 auto_envsubst
 
