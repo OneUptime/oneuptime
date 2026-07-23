@@ -234,6 +234,8 @@ GROUP BY projectId, name, primaryEntityId, day, hourOfWeek`,
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "day + INTERVAL 90 DAY",
+      includeBaseColumns: false,
+      defaultSortColumn: "day",
     });
   }
 }

@@ -292,7 +292,11 @@ clickhouse:
       passwordKey:
   image:
     repository: clickhouse/clickhouse-server
-    tag: latest
+    # Pin the ClickHouse version. Do NOT use `latest`: new releases can add
+    # stricter schema validation (26.7 rejects AggregatingMergeTree dimensions
+    # outside the sort key unless they are modeled as aggregate measures).
+    # Keep this aligned with docker-compose.base.yml and production.
+    tag: "26.7"
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
@@ -497,7 +501,7 @@ clickhouseOperator:
     # ClickHouse operand image. Pin a specific version for production.
     image:
       repository: clickhouse/clickhouse-server
-      tag: latest
+      tag: "26.7"
       pullPolicy: IfNotPresent
     # Cluster topology. shardsCount distributes data; replicasCount adds copies for
     # HA. replicasCount > 1 requires a coordinator — keeper.enabled (below) provides
@@ -596,7 +600,8 @@ clickhouseOperator:
       replicas: 3
       image:
         repository: clickhouse/clickhouse-keeper
-        tag: latest-alpine
+        # Keep Keeper aligned with the ClickHouse server version pinned above.
+        tag: "26.7-alpine"
         pullPolicy: IfNotPresent
       persistence:
         size: 10Gi

@@ -252,7 +252,8 @@ clickhouse:
     password:
   image:
     repository: clickhouse/clickhouse-server
-    tag: latest
+    # Keep this aligned with docker-compose.base.yml and the operator image.
+    tag: "26.7"
     pullPolicy: IfNotPresent
   service:
     type: LoadBalancer
@@ -290,7 +291,7 @@ clickhouseOperator:
   altinity:
     enabled: true
     image:
-      tag: "25.3"        # pin a ClickHouse version for production
+      tag: "26.7"        # keep aligned with the built-in ClickHouse image
     cluster:
       shardsCount: 1
       replicasCount: 2   # 2 = HA (uses the bundled Keeper, enabled by default)

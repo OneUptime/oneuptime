@@ -78,6 +78,15 @@ export default class AnalyticsBaseModel extends CommonModel {
     enableMCP?: boolean | undefined;
     ttlExpression?: string | undefined; // e.g. "retentionDate DELETE"
     /*
+     * Generic event/entity tables carry `_id` and `createdAt`. Derived
+     * AggregatingMergeTree targets do not represent independently-addressable
+     * rows: their identity is exactly their aggregation key, and an arbitrary
+     * creation timestamp has no stable meaning after merges. Those models set
+     * this false so ClickHouse can enforce that every non-key column is an
+     * aggregate measure. Defaults true for backward compatibility.
+     */
+    includeBaseColumns?: boolean | undefined;
+    /*
      * Column that `findBy` falls back to when the caller doesn't
      * specify a `sort`. Defaults to `createdAt` (matching the legacy
      * behavior), but heavy analytics tables should override this to
@@ -100,31 +109,39 @@ export default class AnalyticsBaseModel extends CommonModel {
       this.tableEngine = data.tableEngine;
     }
 
-    columns.push(
-      new AnalyticsTableColumn({
-        key: "_id",
-        title: "ID",
-        description: "ID of this object",
-        required: true,
-        type: TableColumnType.ObjectID,
-        /*
-         * Ids are UUIDv7 (time-ordered — see ObjectID.generateTimeOrdered),
-         * so consecutive rows share their 48-bit timestamp prefix and ZSTD
-         * compresses them well; random v4 ids were incompressible.
-         */
-        codec: { codec: "ZSTD", level: 1 },
-      }),
-    );
+    if (data.includeBaseColumns !== false) {
+      columns.push(
+        new AnalyticsTableColumn({
+          key: "_id",
+          title: "ID",
+          description: "ID of this object",
+          required: true,
+          type: TableColumnType.ObjectID,
+          /*
+           * Ids are UUIDv7 (time-ordered — see ObjectID.generateTimeOrdered),
+           * so consecutive rows share their 48-bit timestamp prefix and ZSTD
+           * compresses them well; random v4 ids were incompressible.
+           */
+          codec: { codec: "ZSTD", level: 1 },
+        }),
+      );
 
-    columns.push(
-      new AnalyticsTableColumn({
-        key: "createdAt",
-        title: "Created",
-        description: "Date and Time when the object was created.",
-        required: true,
-        type: TableColumnType.Date,
-      }),
-    );
+      columns.push(
+        new AnalyticsTableColumn({
+          key: "createdAt",
+          title: "Created",
+          description: "Date and Time when the object was created.",
+          required: true,
+          type: TableColumnType.Date,
+        }),
+      );
+    }
+
+    if (data.includeBaseColumns === false && !data.defaultSortColumn) {
+      throw new BadDataException(
+        "defaultSortColumn is required when includeBaseColumns is false because createdAt is not part of the table schema",
+      );
+    }
 
     if (!data.primaryKeys || data.primaryKeys.length === 0) {
       throw new BadDataException("Primary keys are required");

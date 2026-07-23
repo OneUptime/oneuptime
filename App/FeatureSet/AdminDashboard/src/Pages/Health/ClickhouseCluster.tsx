@@ -12,6 +12,12 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import {
+  MetricInfo,
+  MetricInfoTip,
+  MetricInfoWrap,
+  MetricSectionHeading,
+} from "../../Components/HealthMetricTooltip/HealthMetricTooltip";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -70,6 +76,41 @@ const bytesToReadable: (value: number | null) => string = (
   const scaled: number = value / Math.pow(1024, exponent);
   const decimals: number = scaled >= 10 || exponent === 0 ? 0 : 1;
   return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+};
+
+/*
+ * Plain-language explanations for the cluster signals on this card. Kept in one
+ * place so the copy is easy to review; each entry drives an info tooltip next
+ * to a heading or the overall status badge.
+ */
+type MetricInfoKey =
+  | "overallStatus"
+  | "distributedDdlQueue"
+  | "shards"
+  | "keeperCoordination"
+  | "unhealthyReplicas";
+
+const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
+  overallStatus: {
+    title: "Overall status",
+    body: "A roll-up of the cluster signals below. Degraded (yellow) fires when a shard replica is still rebuilding — its estimated recovery time is above zero. Needs attention (red) fires on a hard problem: unfinished distributed-DDL tasks, an expired Keeper/ZooKeeper session, or a table that is read-only, lagging, or missing replicas.",
+  },
+  distributedDdlQueue: {
+    title: "Distributed DDL queue",
+    body: "Schema changes marked ON CLUSTER run through a shared queue that every node must complete. Unfinished tasks mean the change is stuck on at least one host — schema sync and the migrate job will hang until the queue drains.",
+  },
+  shards: {
+    title: "Shards",
+    body: "Each shard-replica node in the cluster, with its data footprint and disk headroom. 'Recovering' means the node is still rebuilding its parts from peers; 'Online' means it is serving normally.",
+  },
+  keeperCoordination: {
+    title: "Keeper coordination",
+    body: "ClickHouse Keeper (or ZooKeeper) coordinates replication and distributed DDL. An expired session means this node has lost coordination and can't replicate or run ON CLUSTER statements until it reconnects.",
+  },
+  unhealthyReplicas: {
+    title: "Unhealthy replicas",
+    body: "Replicated tables that are read-only, have an expired session, are missing active replicas, or are lagging behind (absolute delay). Any of these blocks writes or leaves replicas out of sync.",
+  },
 };
 
 const ClickhouseCluster: FunctionComponent = (): ReactElement => {
@@ -297,18 +338,23 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
             </span>{" "}
             · {shards.length} {shards.length === 1 ? "node" : "nodes"}
           </div>
-          <Statusbubble
-            text={statusText}
-            color={statusColor}
-            shouldAnimate={shouldAnimate}
-          />
+          <MetricInfoWrap info={METRIC_INFO.overallStatus}>
+            <span className="inline-flex cursor-help">
+              <Statusbubble
+                text={statusText}
+                color={statusColor}
+                shouldAnimate={shouldAnimate}
+              />
+            </span>
+          </MetricInfoWrap>
         </div>
 
         {/* Distributed DDL queue — unfinished tasks are the wedge signature. */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <div className="text-sm font-semibold text-gray-900">
+            <div className="text-sm font-semibold text-gray-900 flex items-center">
               Distributed DDL queue
+              <MetricInfoTip info={METRIC_INFO.distributedDdlQueue} />
             </div>
             <Statusbubble
               text={
@@ -352,15 +398,16 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
 
         {/* Shard / node status. */}
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">Shards</div>
+          <MetricSectionHeading text="Shards" info={METRIC_INFO.shards} />
           {renderShards(shards)}
         </div>
 
         {/* Keeper / ZooKeeper coordination. */}
         <div>
-          <div className="text-sm font-semibold text-gray-900 mb-2">
-            Keeper coordination
-          </div>
+          <MetricSectionHeading
+            text="Keeper coordination"
+            info={METRIC_INFO.keeperCoordination}
+          />
           {renderKeeper(keeper)}
         </div>
 
@@ -368,8 +415,9 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
         {unhealthyReplicas.length > 0 ? (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-semibold text-gray-900">
+              <div className="text-sm font-semibold text-gray-900 flex items-center">
                 Unhealthy replicas
+                <MetricInfoTip info={METRIC_INFO.unhealthyReplicas} />
               </div>
               <Statusbubble
                 text={`${unhealthyReplicas.length}`}

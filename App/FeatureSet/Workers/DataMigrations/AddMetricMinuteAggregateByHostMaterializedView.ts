@@ -98,7 +98,7 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
          valueCountState AggregateFunction(count, Float64),
          valueMinState AggregateFunction(min, Float64),
          valueMaxState AggregateFunction(max, Float64),
-         retentionDate DateTime
+         retentionDate SimpleAggregateFunction(max, DateTime)
        )
        ENGINE = AggregatingMergeTree
        PARTITION BY sipHash64(projectId) % 16
@@ -134,7 +134,7 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
          countState(toFloat64(coalesce(value, sum, 0))) AS valueCountState,
          minState(toFloat64(coalesce(value, sum, 0))) AS valueMinState,
          maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
-         max(retentionDate) AS retentionDate
+         maxSimpleState(retentionDate) AS retentionDate
        FROM MetricItemV2
        WHERE attributes['resource.host.name'] != ''
        GROUP BY projectId, name, hostIdentifier, bucketTime`,

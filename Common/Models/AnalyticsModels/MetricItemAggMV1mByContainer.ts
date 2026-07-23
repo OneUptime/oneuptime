@@ -111,9 +111,10 @@ export default class MetricItemAggMV1mByContainer extends AnalyticsBaseModel {
       key: "retentionDate",
       title: "Retention Date",
       description:
-        "Date after which this row is eligible for TTL deletion. Computed by the MV as max(retentionDate) per bucket — inherits from the source MetricItemV3 rows.",
+        "Latest date after which this aggregate bucket is eligible for TTL deletion. Stored as SimpleAggregateFunction(max, DateTime) so partial rows keep the maximum expiry when AggregatingMergeTree merges them.",
       required: true,
       type: TableColumnType.Date,
+      simpleAggregateFunction: "max",
     });
 
     super({
@@ -159,7 +160,7 @@ SELECT
   countState(toFloat64(coalesce(value, sum, 0))) AS valueCountState,
   minState(toFloat64(coalesce(value, sum, 0))) AS valueMinState,
   maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
-  max(retentionDate) AS retentionDate
+  maxSimpleState(retentionDate) AS retentionDate
 FROM MetricItemV3
 WHERE containerEntityKey != ''
 GROUP BY projectId, name, containerEntityKey, bucketTime`,
@@ -173,6 +174,8 @@ GROUP BY projectId, name, containerEntityKey, bucketTime`,
       tableSettings:
         "ttl_only_drop_parts = 1, non_replicated_deduplication_window = 10000",
       ttlExpression: "retentionDate DELETE",
+      includeBaseColumns: false,
+      defaultSortColumn: "bucketTime",
     });
   }
 }

@@ -1102,6 +1102,105 @@ describe("StatementGenerator", () => {
       );
     });
 
+    test("emits AggregateFunction and scalar SimpleAggregateFunction measures", () => {
+      const statement: Statement = generator.toColumnsCreateStatement([
+        new AnalyticsTableColumn({
+          key: "retentionDate",
+          title: "<title>",
+          description: "<description>",
+          required: false,
+          type: TableColumnType.Date,
+          simpleAggregateFunction: "max",
+        }),
+        new AnalyticsTableColumn({
+          key: "valueState",
+          title: "<title>",
+          description: "<description>",
+          required: true,
+          type: TableColumnType.AggregateFunction,
+          aggregateFunctionDefinition: "sum, Float64",
+        }),
+      ]);
+
+      expectStatement(
+        statement,
+        SQL`retentionDate SimpleAggregateFunction(max, DateTime), valueState AggregateFunction(sum, Float64)`,
+      );
+    });
+
+    test("supports SimpleAggregateFunction on non-DateTime scalar types and codecs", () => {
+      const statement: Statement = generator.toColumnsCreateStatement([
+        new AnalyticsTableColumn({
+          key: "sampleCount",
+          title: "<title>",
+          description: "<description>",
+          required: true,
+          type: TableColumnType.UInt64,
+          simpleAggregateFunction: "sum",
+          codec: { codec: "ZSTD", level: 1 },
+        }),
+      ]);
+
+      expectStatement(
+        statement,
+        SQL`sampleCount SimpleAggregateFunction(sum, UInt64) CODEC(ZSTD(1))`,
+      );
+    });
+
+    test("rejects a column that declares both aggregate representations", () => {
+      expect(() => {
+        return generator.toColumnsCreateStatement([
+          new AnalyticsTableColumn({
+            key: "ambiguousState",
+            title: "<title>",
+            description: "<description>",
+            required: true,
+            type: TableColumnType.AggregateFunction,
+            aggregateFunctionDefinition: "sum, Float64",
+            simpleAggregateFunction: "sum",
+          }),
+        ]);
+      }).toThrow(
+        "Column ambiguousState cannot declare both AggregateFunction and SimpleAggregateFunction",
+      );
+    });
+
+    test.each(["", " max", "max ", "max)", "max, DateTime"])(
+      "rejects unsafe SimpleAggregateFunction name %p",
+      (functionName: string) => {
+        expect(() => {
+          return generator.toColumnsCreateStatement([
+            new AnalyticsTableColumn({
+              key: "invalidMeasure",
+              title: "<title>",
+              description: "<description>",
+              required: true,
+              type: TableColumnType.Date,
+              simpleAggregateFunction: functionName,
+            }),
+          ]);
+        }).toThrow(
+          `Column invalidMeasure has invalid simpleAggregateFunction "${functionName}"`,
+        );
+      },
+    );
+
+    test("rejects AggregateFunction without its state definition", () => {
+      expect(() => {
+        return generator.toColumnsCreateStatement([
+          new AnalyticsTableColumn({
+            key: "missingStateDefinition",
+            title: "<title>",
+            description: "<description>",
+            required: true,
+            type: TableColumnType.AggregateFunction,
+          }),
+        ]);
+      }).toThrow(
+        "Column missingStateDefinition is AggregateFunction but missing aggregateFunctionDefinition",
+      );
+    });
+
     test("emits single and pipelined CODEC clauses", () => {
       const statement: Statement = generator.toColumnsCreateStatement([
         new AnalyticsTableColumn({

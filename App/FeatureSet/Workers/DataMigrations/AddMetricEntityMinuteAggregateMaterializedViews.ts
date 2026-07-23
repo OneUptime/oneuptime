@@ -364,10 +364,10 @@ export default class AddMetricEntityMinuteAggregateMaterializedViews extends Dat
 
     /*
      * Explicit column list for the INSERTs, in the model's declared order —
-     * which is the MV SELECT's output order by construction. The physical
-     * table also has the base-model `_id` / `createdAt` DEFAULT columns the
-     * SELECT does not produce (the live MV fills them the same way), so a
-     * positional INSERT without this list would mis-align.
+     * which is the MV SELECT's output order by construction. Strict aggregate
+     * models omit `_id` / `createdAt`; legacy physical targets can still carry
+     * those columns until MigrateMetricAggregatesToStrictSchema runs later in
+     * this chain. Keeping an explicit list makes both layouts safe.
      */
     const backfillColumns: Array<string> = service.model.tableColumns
       .map((column: AnalyticsTableColumn) => {

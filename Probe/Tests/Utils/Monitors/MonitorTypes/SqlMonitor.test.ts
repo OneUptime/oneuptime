@@ -7,6 +7,11 @@ import SqlMonitor, {
   buildSqlServerIntegratedConnectionString,
   loadMicrosoftSqlServerDriver,
   MicrosoftSqlServerPoolConfig,
+  parseUnixOdbcInstDrivers,
+  parseWindowsRegistryOdbcDrivers,
+  pickBestSqlServerOdbcDriver,
+  resetSqlServerOdbcDriverCache,
+  resolveSqlServerOdbcDriver,
   SQL_SERVER_ODBC_DRIVER,
   SqlQueryValidator,
 } from "../../../../Utils/Monitors/MonitorTypes/SqlMonitor";
@@ -15,6 +20,8 @@ import MonitorStepSqlMonitor from "Common/Types/Monitor/MonitorStepSqlMonitor";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import * as mssql from "mssql";
 import { describe, expect, it } from "@jest/globals";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
 const getMicrosoftSqlServerConfig: (
   overrides?: Partial<MonitorStepSqlMonitor>,
@@ -450,6 +457,300 @@ describe("buildSqlServerIntegratedConnectionString", () => {
     expect(connectionString).toContain("Encrypt=no");
     expect(connectionString).toContain("TrustServerCertificate=no");
   });
+
+  it("defaults to the bundled driver but honors an explicit driver name", () => {
+    const baseConfig: {
+      host: string;
+      port: number;
+      databaseName: string;
+      useSsl: boolean;
+      rejectUnauthorizedSsl: boolean;
+    } = {
+      host: "sql.internal",
+      port: 1433,
+      databaseName: "orders",
+      useSsl: true,
+      rejectUnauthorizedSsl: true,
+    };
+
+    expect(buildSqlServerIntegratedConnectionString(baseConfig)).toContain(
+      `Driver={${SQL_SERVER_ODBC_DRIVER}}`,
+    );
+
+    // A host that only has Driver 17 installed (the customer's environment).
+    expect(
+      buildSqlServerIntegratedConnectionString(
+        baseConfig,
+        "ODBC Driver 17 for SQL Server",
+      ),
+    ).toContain("Driver={ODBC Driver 17 for SQL Server}");
+  });
+});
+
+describe("parseUnixOdbcInstDrivers", () => {
+  it("extracts the bracketed driver section names from odbcinst output", () => {
+    const output: string = [
+      "[ODBC Driver 18 for SQL Server]",
+      "[ODBC Driver 17 for SQL Server]",
+      "[PostgreSQL Unicode]",
+      "",
+    ].join("\n");
+
+    expect(parseUnixOdbcInstDrivers(output)).toEqual([
+      "ODBC Driver 18 for SQL Server",
+      "ODBC Driver 17 for SQL Server",
+      "PostgreSQL Unicode",
+    ]);
+  });
+
+  it("tolerates leading/trailing whitespace and CRLF line endings", () => {
+    expect(
+      parseUnixOdbcInstDrivers(
+        "  [ODBC Driver 17 for SQL Server]  \r\n[MySQL]\r\n",
+      ),
+    ).toEqual(["ODBC Driver 17 for SQL Server", "MySQL"]);
+  });
+
+  it("returns an empty list for empty or non-matching output", () => {
+    expect(parseUnixOdbcInstDrivers("")).toEqual([]);
+    expect(parseUnixOdbcInstDrivers("no drivers here")).toEqual([]);
+  });
+});
+
+describe("parseWindowsRegistryOdbcDrivers", () => {
+  it("extracts value names from `reg query` output for the ODBC Drivers key", () => {
+    const output: string = [
+      "",
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers",
+      "    ODBC Driver 17 for SQL Server    REG_SZ    Installed",
+      "    ODBC Driver 18 for SQL Server    REG_SZ    Installed",
+      "    PostgreSQL Unicode(x64)    REG_SZ    Installed",
+      "",
+    ].join("\r\n");
+
+    expect(parseWindowsRegistryOdbcDrivers(output)).toEqual([
+      "ODBC Driver 17 for SQL Server",
+      "ODBC Driver 18 for SQL Server",
+      "PostgreSQL Unicode(x64)",
+    ]);
+  });
+
+  it("does not treat the key path header line as a driver", () => {
+    const output: string =
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers\r\n";
+    expect(parseWindowsRegistryOdbcDrivers(output)).toEqual([]);
+  });
+});
+
+describe("pickBestSqlServerOdbcDriver", () => {
+  it("selects the highest SQL Server driver version and ignores other drivers", () => {
+    expect(
+      pickBestSqlServerOdbcDriver([
+        "PostgreSQL Unicode",
+        "ODBC Driver 17 for SQL Server",
+        "ODBC Driver 18 for SQL Server",
+        "MySQL ODBC 8.0 Driver",
+      ]),
+    ).toBe("ODBC Driver 18 for SQL Server");
+  });
+
+  it("selects the only installed SQL Server driver when it is older than the default", () => {
+    expect(
+      pickBestSqlServerOdbcDriver([
+        "ODBC Driver 13 for SQL Server",
+        "ODBC Driver 17 for SQL Server",
+      ]),
+    ).toBe("ODBC Driver 17 for SQL Server");
+  });
+
+  it("is case-insensitive on the driver name", () => {
+    expect(pickBestSqlServerOdbcDriver(["odbc driver 18 for sql server"])).toBe(
+      "odbc driver 18 for sql server",
+    );
+  });
+
+  it("returns null when no SQL Server driver is registered", () => {
+    expect(pickBestSqlServerOdbcDriver([])).toBeNull();
+    expect(
+      pickBestSqlServerOdbcDriver(["PostgreSQL Unicode", "SQLite3"]),
+    ).toBeNull();
+  });
+});
+
+describe("resolveSqlServerOdbcDriver", () => {
+  it("prefers an explicit environment override over detection", async () => {
+    resetSqlServerOdbcDriverCache();
+    const driver: string = await resolveSqlServerOdbcDriver({
+      envValue: "ODBC Driver 99 for SQL Server",
+      lister: () => {
+        return ["ODBC Driver 17 for SQL Server"];
+      },
+      useCache: false,
+    });
+    expect(driver).toBe("ODBC Driver 99 for SQL Server");
+  });
+
+  it("reads the override from process.env when no options are passed", async () => {
+    resetSqlServerOdbcDriverCache();
+    const previous: string | undefined = process.env["SQL_SERVER_ODBC_DRIVER"];
+    process.env["SQL_SERVER_ODBC_DRIVER"] = "ODBC Driver 42 for SQL Server";
+    try {
+      /*
+       * No envValue key and no lister: exercises the real process.env branch
+       * and the "envValue" in options seam — the production code path.
+       */
+      const driver: string = await resolveSqlServerOdbcDriver({
+        useCache: false,
+      });
+      expect(driver).toBe("ODBC Driver 42 for SQL Server");
+    } finally {
+      if (previous === undefined) {
+        delete process.env["SQL_SERVER_ODBC_DRIVER"];
+      } else {
+        process.env["SQL_SERVER_ODBC_DRIVER"] = previous;
+      }
+    }
+  });
+
+  it("falls through to detection when the process.env override is absent", async () => {
+    resetSqlServerOdbcDriverCache();
+    const previous: string | undefined = process.env["SQL_SERVER_ODBC_DRIVER"];
+    delete process.env["SQL_SERVER_ODBC_DRIVER"];
+    try {
+      const driver: string = await resolveSqlServerOdbcDriver({
+        lister: () => {
+          return ["ODBC Driver 17 for SQL Server"];
+        },
+        useCache: false,
+      });
+      expect(driver).toBe("ODBC Driver 17 for SQL Server");
+    } finally {
+      if (previous !== undefined) {
+        process.env["SQL_SERVER_ODBC_DRIVER"] = previous;
+      }
+    }
+  });
+
+  it("auto-detects the newest installed driver when no override is set", async () => {
+    resetSqlServerOdbcDriverCache();
+    const driver: string = await resolveSqlServerOdbcDriver({
+      envValue: undefined,
+      lister: () => {
+        return [
+          "ODBC Driver 17 for SQL Server",
+          "ODBC Driver 18 for SQL Server",
+        ];
+      },
+      useCache: false,
+    });
+    expect(driver).toBe("ODBC Driver 18 for SQL Server");
+  });
+
+  it("awaits an async lister (real detection is asynchronous)", async () => {
+    resetSqlServerOdbcDriverCache();
+    const driver: string = await resolveSqlServerOdbcDriver({
+      envValue: undefined,
+      lister: async () => {
+        return Promise.resolve(["ODBC Driver 17 for SQL Server"]);
+      },
+      useCache: false,
+    });
+    expect(driver).toBe("ODBC Driver 17 for SQL Server");
+  });
+
+  it("detects an older-than-default driver on a host that only has it (the reported bug)", async () => {
+    resetSqlServerOdbcDriverCache();
+    const driver: string = await resolveSqlServerOdbcDriver({
+      envValue: undefined,
+      lister: () => {
+        return ["ODBC Driver 17 for SQL Server"];
+      },
+      useCache: false,
+    });
+    expect(driver).toBe("ODBC Driver 17 for SQL Server");
+  });
+
+  it("falls back to the bundled default when nothing is detected", async () => {
+    resetSqlServerOdbcDriverCache();
+    const driver: string = await resolveSqlServerOdbcDriver({
+      envValue: undefined,
+      lister: () => {
+        return [];
+      },
+      useCache: false,
+    });
+    expect(driver).toBe(SQL_SERVER_ODBC_DRIVER);
+  });
+
+  it("ignores a blank/whitespace override and falls through to detection", async () => {
+    resetSqlServerOdbcDriverCache();
+    const driver: string = await resolveSqlServerOdbcDriver({
+      envValue: "   ",
+      lister: () => {
+        return ["ODBC Driver 17 for SQL Server"];
+      },
+      useCache: false,
+    });
+    expect(driver).toBe("ODBC Driver 17 for SQL Server");
+  });
+
+  it("memoizes a positive detection and can be reset", async () => {
+    resetSqlServerOdbcDriverCache();
+    let listerCalls: number = 0;
+
+    const first: string = await resolveSqlServerOdbcDriver({
+      envValue: undefined,
+      lister: () => {
+        listerCalls++;
+        return ["ODBC Driver 18 for SQL Server"];
+      },
+    });
+
+    // Second call hits the cache; the (different) lister is never consulted.
+    const second: string = await resolveSqlServerOdbcDriver({
+      envValue: undefined,
+      lister: () => {
+        listerCalls++;
+        return ["ODBC Driver 17 for SQL Server"];
+      },
+    });
+
+    expect(first).toBe("ODBC Driver 18 for SQL Server");
+    expect(second).toBe("ODBC Driver 18 for SQL Server");
+    expect(listerCalls).toBe(1);
+
+    resetSqlServerOdbcDriverCache();
+  });
+
+  it("does NOT cache the fallback, so a transient detection failure is retried", async () => {
+    resetSqlServerOdbcDriverCache();
+    let listerCalls: number = 0;
+
+    /*
+     * First call: detection transiently fails (empty) -> falls back to default.
+     * Second call: detection recovers and reports the host's real driver.
+     */
+    const lister: () => Array<string> = () => {
+      listerCalls++;
+      return listerCalls === 1 ? [] : ["ODBC Driver 17 for SQL Server"];
+    };
+
+    const first: string = await resolveSqlServerOdbcDriver({
+      envValue: undefined,
+      lister,
+    });
+    const second: string = await resolveSqlServerOdbcDriver({
+      envValue: undefined,
+      lister,
+    });
+
+    // The fallback was not cached, so detection ran again and won.
+    expect(first).toBe(SQL_SERVER_ODBC_DRIVER);
+    expect(second).toBe("ODBC Driver 17 for SQL Server");
+    expect(listerCalls).toBe(2);
+
+    resetSqlServerOdbcDriverCache();
+  });
 });
 
 describe("buildMicrosoftSqlServerPoolConfig", () => {
@@ -517,6 +818,37 @@ describe("buildMicrosoftSqlServerPoolConfig", () => {
       expect(poolConfig.options?.appName).toBe("OneUptimeProbe-SQLMonitor");
     }
   });
+
+  it("threads a resolved ODBC driver into the integrated connection string", () => {
+    const poolConfig: MicrosoftSqlServerPoolConfig =
+      buildMicrosoftSqlServerPoolConfig({
+        config: getMicrosoftSqlServerConfig({
+          useWindowsIntegratedAuthentication: true,
+        }),
+        connectionTimeoutInMs: 7000,
+        statementTimeoutInMs: 9000,
+        odbcDriver: "ODBC Driver 17 for SQL Server",
+      });
+
+    expect(poolConfig.connectionString).toContain(
+      "Driver={ODBC Driver 17 for SQL Server}",
+    );
+  });
+
+  it("uses the bundled default driver when none is provided", () => {
+    const poolConfig: MicrosoftSqlServerPoolConfig =
+      buildMicrosoftSqlServerPoolConfig({
+        config: getMicrosoftSqlServerConfig({
+          useWindowsIntegratedAuthentication: true,
+        }),
+        connectionTimeoutInMs: 7000,
+        statementTimeoutInMs: 9000,
+      });
+
+    expect(poolConfig.connectionString).toContain(
+      `Driver={${SQL_SERVER_ODBC_DRIVER}}`,
+    );
+  });
 });
 
 describe("loadMicrosoftSqlServerDriver", () => {
@@ -562,5 +894,41 @@ describe("loadMicrosoftSqlServerDriver", () => {
         throw new Error("missing native binding");
       });
     }).toThrow(SQL_SERVER_ODBC_DRIVER);
+
+    /*
+     * The message must not overstate the requirement: after auto-detection, a
+     * different installed version (e.g. Driver 17) also works, so the error
+     * explicitly says other versions are detected automatically. Pin that so a
+     * revert to a version-specific message is caught.
+     */
+    expect(() => {
+      loadMicrosoftSqlServerDriver(true, () => {
+        throw new Error("missing native binding");
+      });
+    }).toThrow(/detected automatically/);
+  });
+});
+
+describe("ODBC driver detection stays off the synchronous path", () => {
+  /*
+   * The probe multiplexes many monitors on a single event loop, so host ODBC
+   * driver detection must use asynchronous child_process execution. Guard the
+   * source against a regression back to a blocking synchronous spawn — the
+   * behavioral tests inject a lister and cannot catch that. (Same source-text
+   * assertion idiom as Tests/Build/ProbeDockerfile.test.ts.)
+   */
+  const source: string = readFileSync(
+    resolve(__dirname, "../../../../Utils/Monitors/MonitorTypes/SqlMonitor.ts"),
+    "utf8",
+  );
+
+  it("uses promisified async execFile for driver detection", () => {
+    expect(source).toContain("promisify(execFile)");
+  });
+
+  it("does not use synchronous, event-loop-blocking child_process APIs", () => {
+    expect(source).not.toContain("execFileSync");
+    expect(source).not.toContain("execSync");
+    expect(source).not.toContain("spawnSync");
   });
 });
