@@ -97,6 +97,22 @@ const detectSingleState: DetectStateFunction = (
   if (rawValue instanceof NotNull) {
     return { operator: FilterOperator.IsNotEmpty, values: [] };
   }
+  /*
+   * The mirror image of `buildSingleValue`'s "is not" case, which encodes the
+   * operator as a single-item IncludesNone. Without this the dropdown lost the
+   * operator (and its value) on every remount — which is every Back
+   * navigation and every shared link.
+   */
+  if (rawValue instanceof IncludesNone) {
+    const values: Array<string> = (rawValue.values || []).map((v: unknown) => {
+      return v!.toString();
+    });
+
+    return {
+      operator: FilterOperator.IsNot,
+      values: values.length > 0 ? [values[0] as string] : [],
+    };
+  }
   if (typeof rawValue === "string" && rawValue) {
     return { operator: FilterOperator.Is, values: [rawValue] };
   }

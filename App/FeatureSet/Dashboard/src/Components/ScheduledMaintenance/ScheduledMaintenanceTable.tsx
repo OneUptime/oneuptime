@@ -181,6 +181,15 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     }),
   ];
 
+  /*
+   * One namespace for everything this table mirrors into the URL, so the
+   * column filters (persisted by ModelTable) and the facet chips (persisted
+   * by useResourceOwners) always travel together. Falls back to a stable
+   * per-table id for the pages that embed this table without saved views.
+   */
+  const tableUrlStateKey: string =
+    props.saveFilterProps?.tableId || "scheduled-maintenance-table";
+
   const {
     getOwnersForResource,
     isLoadingOwners,
@@ -190,7 +199,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<ScheduledMaintenance>({
-    persistKey: props.saveFilterProps?.tableId,
+    persistKey: tableUrlStateKey,
     ownerUserModelType: ScheduledMaintenanceOwnerUser,
     ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
     resourceIdField: "scheduledMaintenanceId",
@@ -432,6 +441,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         isCreateable={false}
         isViewable={true}
         saveFilterProps={props.saveFilterProps}
+        urlStateKey={tableUrlStateKey}
         showCreateForm={false}
         cardProps={{
           title: props.title || "Scheduled Maintenance Events",

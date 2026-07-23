@@ -1,5 +1,4 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
-import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
 import { API_DOCS_URL, BILLING_ENABLED, getAllEnvVars } from "../../Config";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import SelectEntityField from "../../Types/SelectEntityField";
@@ -13,6 +12,12 @@ import Select from "../../../Types/BaseDatabase/Select";
 import { Logger } from "../../Utils/Logger";
 import Navigation from "../../Utils/Navigation";
 import TableFilterUrlState from "../../Utils/TableFilterUrlState";
+import TableViewUrlState, {
+  TableViewUrlStateData,
+} from "../../Utils/TableViewUrlState";
+import buildQueryFromFilterData, {
+  sanitizeFilterData,
+} from "./FilterDataToQuery";
 import PermissionUtil from "../../Utils/Permission";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
@@ -67,8 +72,6 @@ import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
-import InBetween from "../../../Types/BaseDatabase/InBetween";
-import Search from "../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import SubscriptionPlan, {
@@ -91,7 +94,6 @@ import Permission, {
   PermissionHelper,
   UserPermission,
 } from "../../../Types/Permission";
-import Typeof from "../../../Types/Typeof";
 import React, {
   MutableRefObject,
   ReactElement,
@@ -287,6 +289,24 @@ export interface BaseTableProps<
    * If you do not provide this key, the table will not save the user preferences in local storage.
    */
   userPreferencesKey: string;
+
+  /**
+   * Namespace for this table's filter/facet/view state in the URL query
+   * string. Defaults to `saveFilterProps.tableId`, falling back to
+   * `userPreferencesKey` — both of which are already unique per table, which
+   * is what lets several tables share a page without clobbering each other.
+   *
+   * Only set this explicitly when the same table component is mounted more
+   * than once on one route and the two instances must keep separate state.
+   */
+  urlStateKey?: string | undefined;
+
+  /**
+   * Opt out of mirroring this table's filters into the URL. Use for tables
+   * inside modals/side-overs, or transient tables whose filters shouldn't
+   * outlive the page.
+   */
+  disableUrlState?: boolean | undefined;
 }
 
 export interface ComponentProps<
@@ -377,6 +397,61 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return props.initialItemsOnPage || 10;
   };
 
+  /*
+   * ---------------------------------------------------------------------
+   * URL-persisted view state
+   * ---------------------------------------------------------------------
+   *
+   * The table mirrors its filters, facets, search, sort and page into the URL
+   * query string so that (a) navigating into a row and pressing Back brings
+   * the same filtered view back, and (b) the URL can be pasted to a teammate.
+   *
+   * The snapshot is read *once, synchronously, during the first render* and
+   * fed to the `useState` initializers below. Restoring in an effect instead
+   * would fire the first fetch against the unfiltered defaults and then throw
+   * that response away — a visible flash of the wrong rows plus a wasted
+   * request.
+   */
+  const urlStateKey: string | undefined = props.disableUrlState
+    ? undefined
+    : props.urlStateKey ||
+      props.saveFilterProps?.tableId ||
+      props.userPreferencesKey ||
+      undefined;
+
+  const initialUrlState: {
+    filter: FilterData<TBaseModel> | null;
+    view: TableViewUrlStateData;
+  } = useMemo(() => {
+    const restoredFilter: JSONObject | null = TableFilterUrlState.read(
+      urlStateKey,
+      "filter",
+    );
+
+    /*
+     * Anything on the URL is user-editable, so keep only the fields this table
+     * actually offers a filter for before it reaches the outgoing query.
+     */
+    const sanitized: FilterData<TBaseModel> | null = restoredFilter
+      ? sanitizeFilterData<TBaseModel>({
+          filterData: restoredFilter as unknown as FilterData<TBaseModel>,
+          filters: props.filters,
+        })
+      : null;
+
+    return {
+      filter: sanitized && Object.keys(sanitized).length > 0 ? sanitized : null,
+      view: TableViewUrlState.fromJSON(
+        TableFilterUrlState.read(urlStateKey, "view"),
+      ),
+    };
+  }, []);
+
+  // Surfaces two tables on one page accidentally sharing a URL namespace.
+  useEffect(() => {
+    return TableFilterUrlState.claimKey(urlStateKey);
+  }, [urlStateKey]);
+
   const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
     useState<number | null>(null);
 
@@ -384,8 +459,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     TBaseModel | undefined
   >(undefined);
   const [data, setData] = useState<Array<TBaseModel>>([]);
-  const [query, setQuery] = useState<Query<TBaseModel>>({});
-  const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
+  const [query, setQuery] = useState<Query<TBaseModel>>(() => {
+    return buildQueryFromFilterData<TBaseModel>({
+      filterData: initialUrlState.filter || props.initialFilterData || {},
+      filters: props.filters,
+    });
+  });
+  const [currentPageNumber, setCurrentPageNumber] = useState<number>(
+    initialUrlState.view.page || 1,
+  );
   const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
   /*
    * Analytics endpoints (Log/Span/Metric/...) skip COUNT(*) for
@@ -399,10 +481,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [error, setError] = useState<string>("");
   const [tableFilterError, setTableFilterError] = useState<string>("");
 
-  const [searchText, setSearchText] = useState<string>("");
-  const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
+  const [searchText, setSearchText] = useState<string>(
+    initialUrlState.view.search || "",
+  );
+  const [debouncedSearchText, setDebouncedSearchText] = useState<string>(
+    initialUrlState.view.search || "",
+  );
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(
+    Boolean(
+      initialUrlState.view.search || (initialUrlState.view.labels || []).length,
+    ),
+  );
   const searchInputRef: React.RefObject<HTMLInputElement> =
     React.useRef<HTMLInputElement>(null!);
 
@@ -415,12 +505,35 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [availableLabels, setAvailableLabels] = useState<
     Array<SearchLabelOption>
   >([]);
+  /*
+   * Restored label chips start as bare IDs — the id is all the query needs, so
+   * rows are correct on the very first fetch. The human-readable name/colour
+   * are filled in by the hydration effect below once the label list loads.
+   */
   const [selectedLabels, setSelectedLabels] = useState<
     Array<SearchLabelOption>
-  >([]);
+  >(() => {
+    return (initialUrlState.view.labels || []).map((id: string) => {
+      return { id: id, name: id, color: "#94a3b8" };
+    });
+  });
   const [isLabelsLoading, setIsLabelsLoading] = useState<boolean>(false);
   const [labelsFetched, setLabelsFetched] = useState<boolean>(false);
   const [labelDropdownIndex, setLabelDropdownIndex] = useState<number>(0);
+
+  /*
+   * Only the *ids* affect the query, so effects key off this instead of the
+   * array itself. Without it, merely re-labelling a chip (which happens when
+   * URL-restored chips get their display name hydrated) would look like a
+   * filter change and trigger a refetch + a jump back to page 1.
+   */
+  const selectedLabelIds: Array<string> = useMemo(() => {
+    return selectedLabels.map((l: SearchLabelOption) => {
+      return l.id;
+    });
+  }, [selectedLabels]);
+
+  const selectedLabelIdsKey: string = selectedLabelIds.join(",");
 
   useEffect(() => {
     const handle: ReturnType<typeof setTimeout> = setTimeout(() => {
@@ -477,12 +590,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     ) {
       setIsSearchExpanded(true);
     }
-  }, [debouncedSearchText, selectedLabels]);
+  }, [debouncedSearchText, selectedLabelIdsKey]);
+
+  /*
+   * Effects run on mount too, so without this guard the very first pass would
+   * stomp a page number restored from the URL back to 1.
+   */
+  const isFirstRenderRef: MutableRefObject<boolean> = React.useRef(true);
 
   useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+
     // reset to first page whenever the active search term or labels change
     setCurrentPageNumber(1);
-  }, [debouncedSearchText, selectedLabels]);
+  }, [debouncedSearchText, selectedLabelIdsKey]);
 
   /*
    * Auto-detect label support from the existing filters array. We look for
@@ -582,14 +706,52 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     };
   }, [isSearchExpanded, labelFilterConfig, labelsFetched]);
 
+  /*
+   * Chips restored from the URL only carry an id. Once the label list lands,
+   * swap in the real name and colour so the chip reads "Production" rather
+   * than a raw ObjectID. Labels that no longer exist (deleted, or not visible
+   * to this user) keep their id — the filter still applies, it just isn't
+   * pretty, which beats silently dropping a constraint from a shared link.
+   */
+  useEffect(() => {
+    if (availableLabels.length === 0 || selectedLabels.length === 0) {
+      return;
+    }
+
+    let didHydrate: boolean = false;
+
+    const hydrated: Array<SearchLabelOption> = selectedLabels.map(
+      (selected: SearchLabelOption) => {
+        const match: SearchLabelOption | undefined = availableLabels.find(
+          (available: SearchLabelOption) => {
+            return available.id === selected.id;
+          },
+        );
+
+        if (!match || match.name === selected.name) {
+          return selected;
+        }
+
+        didHydrate = true;
+        return match;
+      },
+    );
+
+    if (didHydrate) {
+      setSelectedLabels(hydrated);
+    }
+  }, [availableLabels]);
+
   const [showModel, setShowModal] = useState<boolean>(false);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
   const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
   const [sortBy, setSortBy] = useState<keyof TBaseModel | null>(
-    props.sortBy || null,
+    (initialUrlState.view.sortBy as keyof TBaseModel | undefined) ||
+      props.sortBy ||
+      null,
   );
   const [sortOrder, setSortOrder] = useState<SortOrder>(
-    props.sortOrder || SortOrder.Ascending,
+    initialUrlState.view.sortOrder || props.sortOrder || SortOrder.Ascending,
   );
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] =
     useState<boolean>(false);
@@ -598,7 +760,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [currentDeleteableItem, setCurrentDeleteableItem] =
     useState<TBaseModel | null>(null);
 
-  const [itemsOnPage, setItemsOnPage] = useState<number>(getItemsOnPage());
+  /*
+   * A page size that came in on the URL wins over the viewer's own stored
+   * preference — a shared link should render the same slice of rows for
+   * everyone who opens it.
+   */
+  const [itemsOnPage, setItemsOnPage] = useState<number>(
+    initialUrlState.view.itemsOnPage || getItemsOnPage(),
+  );
+
+  /*
+   * Page size is a personal preference (it already lives in localStorage), so
+   * it is only put on the URL once it is explicitly part of *this* view —
+   * either it arrived on the link, or the viewer changed it here. Otherwise
+   * every table would carry a redundant `itemsOnPage` param.
+   */
+  const isItemsOnPageExplicitRef: MutableRefObject<boolean> = React.useRef(
+    Boolean(initialUrlState.view.itemsOnPage),
+  );
 
   useEffect(() => {
     // update items on page in localstorage.
@@ -624,6 +803,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     // only update if the query has changed.
     if (JSON.stringify(currentQuery) !== JSON.stringify(newQuery)) {
       propsQueryRef.current = newQuery;
+
+      /*
+       * This is how facet-bar selections reach the API, so narrowing the
+       * result set has to send the user back to page 1 — exactly like the
+       * column-filter path does in `onFilterChanged`. Without it, changing a
+       * facet while on page 5 re-queries page 5 of a now-shorter list and
+       * lands on an empty page (and, since the page number is mirrored into
+       * the URL, shares that empty page too).
+       *
+       * When the page is already 1, `setCurrentPageNumber` is a no-op and the
+       * explicit fetch below is what refreshes the list; when it isn't, the
+       * state change re-runs the main fetch effect.
+       */
+      if (currentPageNumber !== 1) {
+        setCurrentPageNumber(1);
+        return;
+      }
+
       fetchItems().catch((err: Error) => {
         setError(API.getFriendlyMessage(err));
       });
@@ -1204,6 +1401,31 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
   }, [showFilterModal, props.filters]);
 
+  /*
+   * A table restored from the URL is already filtered, so its chips have to
+   * render immediately — and entity/dropdown chips can only resolve their
+   * labels from `filterDropdownOptions`, which are otherwise fetched lazily
+   * when the filter popup opens. Without this, a shared link (or a Back
+   * navigation) showed a filtered list with no visible indication of *why*,
+   * and no "Clear Filters" button to escape it.
+   */
+  useEffect(() => {
+    if (!initialUrlState.filter) {
+      return;
+    }
+
+    /*
+     * Callers use this to render their own "filters active" affordance. It is
+     * otherwise only fired by the filter form, so a restored view would show a
+     * clean banner over a filtered table.
+     */
+    props.onFilterApplied?.(true);
+
+    getFilterDropdownItems().catch((err: Error) => {
+      setTableFilterError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
   type GetSelectFunction = () => Select<TBaseModel>;
 
   const getSelect: GetSelectFunction = (): Select<TBaseModel> => {
@@ -1284,6 +1506,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               // then set query, sort and items on the page
               setQuery(tableView.query || {});
               setFilterData(tableView.query || {});
+              // a saved view pins its own page size, so it belongs on the URL
+              isItemsOnPageExplicitRef.current = true;
               setItemsOnPage(tableView.itemsOnPage || 10);
               setSortBy((sortBy as keyof TBaseModel) || null);
               setSortOrder(sortOrder);
@@ -1300,6 +1524,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               }
             } else {
               setQuery({});
+              /*
+               * Also clear the filter chips. Leaving `filterData` behind kept
+               * the chips on screen and the `-filter` param in the URL, so the
+               * next visit re-applied the very filters the user just cleared.
+               */
+              setFilterData({});
+              props.onFilterApplied?.(false);
               setSortBy(null);
               setSortOrder(SortOrder.Descending);
               setItemsOnPage(10);
@@ -1427,7 +1658,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         buttonSize: ButtonSize.Small,
         className: "",
         onClick: () => {
-          setQuery({});
+          /*
+           * Just open the popup. This used to `setQuery({})` first, which
+           * dropped the active filters (and refetched everything) the moment
+           * the user opened the filter UI — while the chips and the URL still
+           * advertised them. Filters now change only when the form applies
+           * them.
+           */
           setShowFilterModal(true);
         },
         disabled: isFilterFetchLoading,
@@ -1449,7 +1686,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     itemsOnPage,
     query,
     debouncedSearchText,
-    selectedLabels,
+    selectedLabelIdsKey,
     props.refreshToggle,
   ]);
 
@@ -1766,7 +2003,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   };
 
   const [filterData, setFilterData] = useState<FilterData<TBaseModel>>(
-    props.initialFilterData || {},
+    initialUrlState.filter || props.initialFilterData || {},
   );
 
   type OnFilterChangedFunction = (filterData: FilterData<TBaseModel>) => void;
@@ -1774,100 +2011,56 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const onFilterChanged: OnFilterChangedFunction = (
     filterData: FilterData<TBaseModel>,
   ): void => {
-    const newQuery: Query<TBaseModel> = {};
-
     setFilterData(filterData);
     setCurrentPageNumber(1);
 
-    for (const key in filterData) {
-      if (filterData[key] && typeof filterData[key] === Typeof.String) {
-        newQuery[key as keyof TBaseModel] = (filterData[key] || "").toString();
-      }
-
-      if (typeof filterData[key] === Typeof.Boolean) {
-        newQuery[key as keyof TBaseModel] = Boolean(filterData[key]);
-      }
-
-      if (typeof filterData[key] === Typeof.Number) {
-        newQuery[key as keyof TBaseModel] = filterData[key];
-      }
-
-      if (filterData[key] instanceof Date) {
-        newQuery[key as keyof TBaseModel] = filterData[key];
-      }
-
-      if (filterData[key] instanceof Search) {
-        newQuery[key as keyof TBaseModel] = filterData[key];
-      }
-
-      if (filterData[key] instanceof InBetween) {
-        newQuery[key as keyof TBaseModel] = filterData[key];
-      }
-
-      if (
-        props.filters.find((f: Filter<TBaseModel>) => {
-          return f.field && f.field[key];
-        })?.type === FieldType.JSON &&
-        typeof filterData[key] === Typeof.Object
-      ) {
-        newQuery[key as keyof TBaseModel] = filterData[key];
-      }
-
-      if (Array.isArray(filterData[key])) {
-        newQuery[key as keyof TBaseModel] = new Includes(
-          filterData[key] as Array<string>,
-        );
-      }
-
-      /*
-       * Pass any QueryOperator instance (IncludesAll, IncludesNone, StartsWith,
-       * EndsWith, NotContains, EqualTo, NotEqual, GreaterThan, LessThan,
-       * InBetween, IsNull, NotNull, ...) through to the query as-is.
-       */
-      if (filterData[key] instanceof QueryOperator) {
-        newQuery[key as keyof TBaseModel] = filterData[key];
-      }
-    }
-
-    setQuery({ ...newQuery });
+    setQuery(
+      buildQueryFromFilterData<TBaseModel>({
+        filterData: filterData,
+        filters: props.filters,
+      }),
+    );
   };
 
   /*
-   * URL persistence for classic (column) filters, keyed by the table's
-   * `saveFilterProps.tableId`. Mirrors the facet persistence in
-   * `useResourceOwners` so filters survive navigating to a detail page and
-   * back, and so a filtered view is shareable. `hasRestoredUrlFilters` is
-   * state (not a ref) so the persist effect only runs after the restore has
-   * been applied — never clobbering the snapshot with the empty default.
+   * Mirror the table's view into the URL so Back restores it and the link can
+   * be handed to a teammate. Restoring happens in the `useState` initializers
+   * above (synchronously, before the first fetch), so there is nothing to gate
+   * here: the first write after mount already carries the restored values.
+   *
+   * `replaceState` is used under the hood, so dragging a filter around doesn't
+   * flood the back stack.
    */
-  const [hasRestoredUrlFilters, setHasRestoredUrlFilters] =
-    useState<boolean>(false);
-
   useEffect(() => {
-    const restored: JSONObject | null = TableFilterUrlState.read(
-      props.saveFilterProps?.tableId,
-      "filter",
-    );
-    if (restored) {
-      /*
-       * Re-run through onFilterChanged so the derived query is rebuilt and the
-       * first fetch uses the restored filters.
-       */
-      onFilterChanged(restored as unknown as FilterData<TBaseModel>);
-    }
-    setHasRestoredUrlFilters(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasRestoredUrlFilters) {
-      return;
-    }
-    TableFilterUrlState.write(
-      props.saveFilterProps?.tableId,
-      "filter",
-      filterData as unknown as JSONObject,
-    );
-  }, [hasRestoredUrlFilters, filterData]);
+    TableFilterUrlState.writeMany(urlStateKey, {
+      filter: filterData as unknown as JSONObject,
+      view: TableViewUrlState.toJSON(
+        {
+          search: debouncedSearchText,
+          labels: selectedLabelIds,
+          sortBy: sortBy as string | undefined,
+          sortOrder: sortOrder,
+          page: currentPageNumber,
+          itemsOnPage: isItemsOnPageExplicitRef.current
+            ? itemsOnPage
+            : undefined,
+        },
+        {
+          sortBy: props.sortBy as string | undefined,
+          sortOrder: props.sortOrder,
+        },
+      ),
+    });
+  }, [
+    urlStateKey,
+    filterData,
+    debouncedSearchText,
+    selectedLabelIdsKey,
+    sortBy,
+    sortOrder,
+    currentPageNumber,
+    itemsOnPage,
+  ]);
 
   type GetDeleteBulkActionFunction = () => BulkActionButtonSchema<TBaseModel>;
 
@@ -2161,6 +2354,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
           if (newItemsOnPage !== itemsOnPage) {
             setTableView(null);
+            isItemsOnPageExplicitRef.current = true;
           }
 
           setItemsOnPage(newItemsOnPage);
@@ -2252,6 +2446,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           await getFilterDropdownItems();
         }}
         filters={classicTableFilters}
+        filterData={filterData}
         filterError={tableFilterError}
         isFilterLoading={isFilterFetchLoading}
         showFilterModal={showFilterModal}
@@ -2294,9 +2489,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         fields={fields}
         itemsOnPage={itemsOnPage}
         disablePagination={props.disablePagination || false}
-        onNavigateToPage={async (pageNumber: number, itemsOnPage: number) => {
+        onNavigateToPage={async (
+          pageNumber: number,
+          newItemsOnPage: number,
+        ) => {
           setCurrentPageNumber(pageNumber);
-          setItemsOnPage(itemsOnPage);
+
+          if (newItemsOnPage !== itemsOnPage) {
+            isItemsOnPageExplicitRef.current = true;
+          }
+
+          setItemsOnPage(newItemsOnPage);
         }}
         noItemsMessage={props.noItemsMessage || ""}
         onRefreshClick={async () => {
