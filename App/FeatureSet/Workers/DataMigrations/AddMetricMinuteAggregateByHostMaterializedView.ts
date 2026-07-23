@@ -98,13 +98,13 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
          valueCountState AggregateFunction(count, Float64),
          valueMinState AggregateFunction(min, Float64),
          valueMaxState AggregateFunction(max, Float64),
-         retentionDate DateTime
+         retentionDate SimpleAggregateFunction(max, DateTime)
        )
        ENGINE = AggregatingMergeTree
        PARTITION BY sipHash64(projectId) % 16
        ORDER BY (projectId, name, hostIdentifier, bucketTime)
        TTL retentionDate DELETE
-       SETTINGS index_granularity = 8192, allow_dimensions_outside_sorting_key = 1`,
+       SETTINGS index_granularity = 8192`,
     );
     logger.info("Created MetricItemAggMV1mByHost table");
 
@@ -134,7 +134,7 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
          countState(toFloat64(coalesce(value, sum, 0))) AS valueCountState,
          minState(toFloat64(coalesce(value, sum, 0))) AS valueMinState,
          maxState(toFloat64(coalesce(value, sum, 0))) AS valueMaxState,
-         max(retentionDate) AS retentionDate
+         maxSimpleState(retentionDate) AS retentionDate
        FROM MetricItemV2
        WHERE attributes['resource.host.name'] != ''
        GROUP BY projectId, name, hostIdentifier, bucketTime`,

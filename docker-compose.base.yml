@@ -173,10 +173,10 @@ services:
 
   clickhouse:
     # Pinned to 26.7 to match the Helm/production ClickHouse (which tracks the
-    # newer server). ClickHouse 26.x enforces that AggregatingMergeTree
-    # dimension columns live inside the sort key (or opt out via
-    # allow_dimensions_outside_sorting_key = 1); staying on 25.7 here diverged
-    # from production and let that class of schema bug slip past the E2E stack.
+    # newer server). ClickHouse 26.7 validates that every off-key column on an
+    # AggregatingMergeTree is an aggregate measure; staying on 25.7 here
+    # diverged from production and let invalid aggregate schemas slip past the
+    # E2E stack.
     image: clickhouse/clickhouse-server:26.7
     restart: always
     environment:

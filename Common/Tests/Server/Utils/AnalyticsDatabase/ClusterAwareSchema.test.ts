@@ -7,7 +7,6 @@ import {
 import {
   adaptTableSettingsForStorage,
   applyClusterToMaterializedViewQuery,
-  ensureAggregatingMergeTreeSettings,
   getClickhouseClusterName,
   getDistributedEngine,
   getStorageEngine,
@@ -16,13 +15,21 @@ import {
 } from "../../../../Server/Utils/AnalyticsDatabase/ClusterConfig";
 import UpdateBy from "../../../../Server/Types/AnalyticsDatabase/UpdateBy";
 import "../../TestingUtils/Init";
-import AnalyticsBaseModel from "../../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AnalyticsBaseModel, {
+  AnalyticsBaseModelType,
+} from "../../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Route from "../../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn, {
   SkipIndexType,
 } from "../../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
+import MetricItemAggMV1m from "../../../../Models/AnalyticsModels/MetricItemAggMV1m";
+import MetricItemAggMV1mByHostV2 from "../../../../Models/AnalyticsModels/MetricItemAggMV1mByHostV2";
+import MetricItemAggMV1mByService from "../../../../Models/AnalyticsModels/MetricItemAggMV1mByService";
+import MetricItemAggMV1mByK8sCluster from "../../../../Models/AnalyticsModels/MetricItemAggMV1mByK8sCluster";
+import MetricItemAggMV1mByContainer from "../../../../Models/AnalyticsModels/MetricItemAggMV1mByContainer";
+import MetricBaselineHourly from "../../../../Models/AnalyticsModels/MetricBaselineHourly";
 
 const CLUSTER_ENV_KEY: string = "CLICKHOUSE_CLUSTER_NAME";
 const SHARDING_ENV_KEY: string = "CLICKHOUSE_SHARDING_KEY";
@@ -92,54 +99,6 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
       ).toBe(
         "ttl_only_drop_parts = 1, replicated_deduplication_window = 10000",
       );
-    });
-
-    test("ensureAggregatingMergeTreeSettings opts AggregatingMergeTree into allow_dimensions_outside_sorting_key", () => {
-      // Appends to existing settings for AggregatingMergeTree.
-      expect(
-        ensureAggregatingMergeTreeSettings(
-          AnalyticsTableEngine.AggregatingMergeTree,
-          "ttl_only_drop_parts = 1",
-        ),
-      ).toBe(
-        "ttl_only_drop_parts = 1, allow_dimensions_outside_sorting_key = 1",
-      );
-
-      // Produces a standalone setting when there were none.
-      expect(
-        ensureAggregatingMergeTreeSettings(
-          AnalyticsTableEngine.AggregatingMergeTree,
-          undefined,
-        ),
-      ).toBe("allow_dimensions_outside_sorting_key = 1");
-      expect(
-        ensureAggregatingMergeTreeSettings(
-          AnalyticsTableEngine.AggregatingMergeTree,
-          "   ",
-        ),
-      ).toBe("allow_dimensions_outside_sorting_key = 1");
-
-      // Idempotent — never doubled up.
-      expect(
-        ensureAggregatingMergeTreeSettings(
-          AnalyticsTableEngine.AggregatingMergeTree,
-          "allow_dimensions_outside_sorting_key = 1",
-        ),
-      ).toBe("allow_dimensions_outside_sorting_key = 1");
-
-      // No-op for non-aggregating engines.
-      expect(
-        ensureAggregatingMergeTreeSettings(
-          AnalyticsTableEngine.MergeTree,
-          "ttl_only_drop_parts = 1",
-        ),
-      ).toBe("ttl_only_drop_parts = 1");
-      expect(
-        ensureAggregatingMergeTreeSettings(
-          AnalyticsTableEngine.ReplacingMergeTree,
-          undefined,
-        ),
-      ).toBeUndefined();
     });
 
     test("distributed engine: model key, with global override winning", () => {
@@ -216,12 +175,38 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
               required: true,
               type: TableColumnType.ObjectID,
             }),
+            new AnalyticsTableColumn({
+              key: "bucketTime",
+              title: "Bucket",
+              description: "Bucket",
+              required: true,
+              type: TableColumnType.Date,
+            }),
+            new AnalyticsTableColumn({
+              key: "retentionDate",
+              title: "Retention",
+              description: "Retention",
+              required: true,
+              type: TableColumnType.Date,
+              simpleAggregateFunction: "max",
+            }),
+            new AnalyticsTableColumn({
+              key: "valueState",
+              title: "Value",
+              description: "Value",
+              required: true,
+              type: TableColumnType.AggregateFunction,
+              aggregateFunctionDefinition: "sum, Float64",
+            }),
           ],
           crudApiPath: new Route("agg"),
-          primaryKeys: ["projectId"],
-          sortKeys: ["projectId"],
+          primaryKeys: ["projectId", "bucketTime"],
+          sortKeys: ["projectId", "bucketTime"],
           partitionKey: "toYYYYMM(bucketTime)",
           tableEngine: AnalyticsTableEngine.AggregatingMergeTree,
+          ttlExpression: "retentionDate DELETE",
+          includeBaseColumns: false,
+          defaultSortColumn: "bucketTime",
         });
       }
     }
@@ -264,15 +249,126 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
       expect(fullText(stmt)).toContain("MetricItemAggMV1mLocal");
     });
 
-    test("AggregatingMergeTree CREATE opts into allow_dimensions_outside_sorting_key", () => {
-      /*
-       * ClickHouse 25.x+ rejects AggregatingMergeTree tables whose base
-       * columns (_id/createdAt/updatedAt) and retentionDate live outside the
-       * sort key unless this setting is present. The DDL must always carry it
-       * for aggregating tables.
-       */
+    test("AggregatingMergeTree CREATE uses real measures without the dimension bypass", () => {
       const stmt: Statement = aggregatingGen.toTableCreateStatement();
-      expect(stmt.query).toContain("allow_dimensions_outside_sorting_key = 1");
+      expect(stmt.query).toContain("SimpleAggregateFunction(max, DateTime)");
+      expect(stmt.query).toContain("AggregateFunction(sum, Float64)");
+      expect(fullText(stmt)).not.toContain('"_id"');
+      expect(fullText(stmt)).not.toContain('"createdAt"');
+      expect(stmt.query).not.toContain("allow_dimensions_outside_sorting_key");
+    });
+
+    test("all metric aggregate models satisfy the strict off-key measure invariant", () => {
+      const models: Array<AnalyticsBaseModel> = [
+        new MetricItemAggMV1m(),
+        new MetricItemAggMV1mByHostV2(),
+        new MetricItemAggMV1mByService(),
+        new MetricItemAggMV1mByK8sCluster(),
+        new MetricItemAggMV1mByContainer(),
+        new MetricBaselineHourly(),
+      ];
+
+      for (const model of models) {
+        expect(model.tableEngine).toBe(
+          AnalyticsTableEngine.AggregatingMergeTree,
+        );
+        expect(model.getTableColumn("_id")).toBeNull();
+        expect(model.getTableColumn("createdAt")).toBeNull();
+        expect(model.getTableColumn("updatedAt")).toBeNull();
+        expect(model.defaultSortColumn).toBeTruthy();
+        expect(model.sortKeys).toContain(model.defaultSortColumn);
+        expect(model.tableSettings).not.toContain(
+          "allow_dimensions_outside_sorting_key",
+        );
+
+        for (const column of model.tableColumns) {
+          if (model.sortKeys.includes(column.key)) {
+            continue;
+          }
+          expect(
+            column.type === TableColumnType.AggregateFunction ||
+              Boolean(column.simpleAggregateFunction),
+          ).toBe(true);
+        }
+
+        const retentionDate: AnalyticsTableColumn | null =
+          model.getTableColumn("retentionDate");
+        if (retentionDate) {
+          expect(retentionDate.simpleAggregateFunction).toBe("max");
+          expect(model.materializedViews[0]?.query).toContain(
+            "maxSimpleState(retentionDate) AS retentionDate",
+          );
+        }
+      }
+    });
+
+    test("every concrete metric aggregate model generates strict ClickHouse DDL", () => {
+      const modelTypes: Array<AnalyticsBaseModelType> = [
+        MetricItemAggMV1m,
+        MetricItemAggMV1mByHostV2,
+        MetricItemAggMV1mByService,
+        MetricItemAggMV1mByK8sCluster,
+        MetricItemAggMV1mByContainer,
+        MetricBaselineHourly,
+      ];
+
+      for (const modelType of modelTypes) {
+        const model: AnalyticsBaseModel = new modelType();
+        const generator: StatementGenerator<AnalyticsBaseModel> =
+          new StatementGenerator<AnalyticsBaseModel>({
+            modelType,
+            database: ClickhouseAppInstance,
+          });
+        const statement: Statement = generator.toTableCreateStatement();
+        const ddl: string = fullText(statement);
+
+        expect(statement.query).toContain(
+          "ENGINE = ReplicatedAggregatingMergeTree",
+        );
+        expect(ddl).toContain(`${model.tableName}Local`);
+        expect(ddl).not.toContain('"_id"');
+        expect(ddl).not.toContain('"createdAt"');
+        expect(ddl).not.toContain('"updatedAt"');
+        expect(statement.query).not.toContain(
+          "allow_dimensions_outside_sorting_key",
+        );
+
+        if (model.getTableColumn("retentionDate")) {
+          expect(statement.query).toContain(
+            "retentionDate SimpleAggregateFunction(max, DateTime)",
+          );
+          expect(statement.query).toContain("TTL retentionDate DELETE");
+        } else {
+          expect(statement.query).not.toContain("retentionDate");
+        }
+      }
+    });
+
+    test("retention materialized views emit the state type their targets declare", () => {
+      const models: Array<AnalyticsBaseModel> = [
+        new MetricItemAggMV1m(),
+        new MetricItemAggMV1mByHostV2(),
+        new MetricItemAggMV1mByService(),
+        new MetricItemAggMV1mByK8sCluster(),
+        new MetricItemAggMV1mByContainer(),
+      ];
+
+      for (const model of models) {
+        const query: string = model.materializedViews[0]?.query || "";
+        expect(query).toContain(
+          "maxSimpleState(retentionDate) AS retentionDate",
+        );
+        expect(query).not.toContain("max(retentionDate) AS retentionDate");
+        expect(
+          model.getTableColumn("retentionDate")?.simpleAggregateFunction,
+        ).toBe("max");
+      }
+
+      const baseline: MetricBaselineHourly = new MetricBaselineHourly();
+      expect(baseline.getTableColumn("retentionDate")).toBeNull();
+      expect(baseline.materializedViews[0]?.query).not.toContain(
+        "retentionDate",
+      );
     });
 
     test("plain MergeTree CREATE does NOT add the aggregating-only setting", () => {

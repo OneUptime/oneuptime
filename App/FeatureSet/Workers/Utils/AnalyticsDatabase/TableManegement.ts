@@ -554,10 +554,10 @@ export default class AnalyticsTableManagement {
 
   /**
    * Log (loudly) any column whose physical type or codec has drifted from
-   * the model. AggregateFunction state drift is logged at error level
-   * because it breaks materialized-view creation; other type/codec changes
-   * are warnings. Never mutates the table — convergence of a type change is
-   * a destructive, data-loss-aware operation owned by an explicit
+   * the model. AggregateFunction and SimpleAggregateFunction state drift is
+   * logged at error level because it breaks materialized-view creation; other
+   * type/codec changes are warnings. Never mutates the table — convergence of
+   * a type change is a data-aware operation owned by an explicit
    * DataMigration. Conservative comparison (normalized) so cosmetic
    * differences never raise a false alarm and spam boot logs.
    */
@@ -600,7 +600,10 @@ export default class AnalyticsTableManagement {
           actualType: existing.type,
         };
 
-        if (column.type === TableColumnType.AggregateFunction) {
+        if (
+          column.type === TableColumnType.AggregateFunction ||
+          column.simpleAggregateFunction
+        ) {
           // State-type drift here is what breaks CREATE MATERIALIZED VIEW.
           logger.error(detail);
         } else {
@@ -689,12 +692,12 @@ export default class AnalyticsTableManagement {
   }
 
   /**
-   * True when the service's own table has at least one AggregateFunction
-   * column whose physical state type no longer matches the model. This is
-   * the drift that would make a `CREATE MATERIALIZED VIEW … TO <table>`
-   * fail its aggregate cast, so createMaterializedViews uses it to refuse a
-   * destructive auto-drop. Returns false on any read error (never block or
-   * destroy on a transient failure).
+   * True when the service's own table has at least one AggregateFunction or
+   * SimpleAggregateFunction column whose physical state type no longer matches
+   * the model. This is the drift that would make a
+   * `CREATE MATERIALIZED VIEW … TO <table>` fail its aggregate cast, so
+   * createMaterializedViews uses it to refuse a destructive auto-drop. Returns
+   * false on any read error (never block or destroy on a transient failure).
    *
    * Assumes the MV's `TO` target is the owning service's own table, which
    * holds for every MV defined today (each `*_mv` targets its declaring
@@ -717,7 +720,10 @@ export default class AnalyticsTableManagement {
     }
 
     for (const column of service.model.tableColumns) {
-      if (column.type !== TableColumnType.AggregateFunction) {
+      if (
+        column.type !== TableColumnType.AggregateFunction &&
+        !column.simpleAggregateFunction
+      ) {
         continue;
       }
 

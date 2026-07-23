@@ -93,6 +93,7 @@ import AddMutableMetricTable from "./AddMutableMetricTable";
 import AddInstanceIdToGlobalConfig from "./AddInstanceIdToGlobalConfig";
 import AddMetricEntityMinuteAggregateMaterializedViews from "./AddMetricEntityMinuteAggregateMaterializedViews";
 import CloseOrphanedMonitorStatusTimelineRows from "./CloseOrphanedMonitorStatusTimelineRows";
+import MigrateMetricAggregatesToStrictSchema from "./MigrateMetricAggregatesToStrictSchema";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -258,6 +259,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * bound to open rows. Batched, restartable and idempotent.
    */
   new CloseOrphanedMonitorStatusTimelineRows(),
+  /*
+   * ClickHouse 26.7 enforces AggregatingMergeTree semantics at CREATE time.
+   * Remove meaningless synthetic dimensions from metric aggregate targets,
+   * turn retentionDate into a max SimpleAggregateFunction measure, and retire
+   * the temporary allow_dimensions_outside_sorting_key compatibility setting.
+   * Ordered last because it is cluster-aware and depends on the final
+   * model-owned metric target tables/materialized views.
+   */
+  new MigrateMetricAggregatesToStrictSchema(),
 ];
 
 export default DataMigrations;

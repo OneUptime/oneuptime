@@ -132,46 +132,6 @@ export function adaptTableSettingsForStorage(
 }
 
 /*
- * ClickHouse 25.x+ rejects AggregatingMergeTree / SummingMergeTree tables that
- * carry non-aggregate "dimension" columns outside the ORDER BY key with
- * `BAD_ARGUMENTS: Column(s) ... are neither part of the sorting key nor
- * aggregate measures`. During background merges those columns keep an
- * arbitrary value (same-sort-key rows collapse into one), so the newer server
- * refuses the CREATE unless the behaviour is explicitly opted into.
- *
- * OneUptime's aggregate rollup tables intentionally carry such columns — the
- * AnalyticsBaseModel base columns (`_id`, `createdAt`, `updatedAt`) and
- * `retentionDate` (referenced only by the TTL expression and functionally
- * dependent on the bucket) — none of which belong in the sort key. Opt back
- * into the previous behaviour with the table-level setting instead of forcing
- * meaningless base columns into ORDER BY (which would change the sort/primary
- * key on every existing deployment).
- *
- * Idempotent: a no-op for non-aggregating engines and when the setting is
- * already present.
- */
-export function ensureAggregatingMergeTreeSettings(
-  engine: AnalyticsTableEngine,
-  tableSettings: string | undefined,
-): string | undefined {
-  if (engine !== AnalyticsTableEngine.AggregatingMergeTree) {
-    return tableSettings;
-  }
-
-  const setting: string = "allow_dimensions_outside_sorting_key = 1";
-
-  if (!tableSettings || tableSettings.trim() === "") {
-    return setting;
-  }
-
-  if (tableSettings.includes("allow_dimensions_outside_sorting_key")) {
-    return tableSettings;
-  }
-
-  return `${tableSettings}, ${setting}`;
-}
-
-/*
  * Rewrite a model's canonical `CREATE MATERIALIZED VIEW … TO <target> AS SELECT
  * … FROM <source> …` statement for the cluster:
  *

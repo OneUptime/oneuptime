@@ -8,7 +8,6 @@ import logger from "../Logger";
 import { SQL, Statement } from "./Statement";
 import {
   adaptTableSettingsForStorage,
-  ensureAggregatingMergeTreeSettings,
   getDistributedEngine,
   getStorageEngine,
   getStorageTableName,
@@ -69,6 +68,8 @@ export interface EntityScopeQueryValue {
   attributeKey: string;
   attributeValue: string;
 }
+
+const SIMPLE_AGGREGATE_FUNCTION_NAME_REGEX: RegExp = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public model!: TBaseModel;
@@ -1362,6 +1363,32 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
    * column. Scalar types ignore the rest of the column.
    */
   public toColumnType(column: AnalyticsTableColumn): Statement {
+    const simpleAggregateFunction: string | undefined =
+      column.simpleAggregateFunction;
+
+    if (simpleAggregateFunction !== undefined) {
+      if (column.type === TableColumnType.AggregateFunction) {
+        throw new BadDataException(
+          `Column ${column.key} cannot declare both AggregateFunction and SimpleAggregateFunction.`,
+        );
+      }
+
+      /*
+       * The function name is emitted as raw ClickHouse DDL, so accept only a
+       * plain function identifier. Besides catching accidental whitespace /
+       * empty definitions, this prevents a model field from injecting another
+       * type or table clause into generated schema SQL.
+       */
+      if (
+        simpleAggregateFunction.trim() !== simpleAggregateFunction ||
+        !SIMPLE_AGGREGATE_FUNCTION_NAME_REGEX.test(simpleAggregateFunction)
+      ) {
+        throw new BadDataException(
+          `Column ${column.key} has invalid simpleAggregateFunction "${simpleAggregateFunction}".`,
+        );
+      }
+    }
+
     if (column.type === TableColumnType.AggregateFunction) {
       const def: string | undefined = column.aggregateFunctionDefinition;
       if (!def) {
@@ -1372,7 +1399,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       return SQL`AggregateFunction(`.append(def).append(SQL`)`);
     }
 
-    const statement: Statement | undefined = {
+    const scalarStatement: Statement | undefined = {
       [TableColumnType.Text]: SQL`String`,
       [TableColumnType.ObjectID]: SQL`String`,
       [TableColumnType.Boolean]: SQL`Bool`,
@@ -1395,13 +1422,21 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       [TableColumnType.UInt64]: SQL`UInt64`,
     }[column.type];
 
-    if (!statement) {
+    if (!scalarStatement) {
       throw new BadDataException(
         `Unknown column type: ${column.type}. Please add support for this column type.`,
       );
     }
 
-    return statement;
+    if (simpleAggregateFunction) {
+      return SQL`SimpleAggregateFunction(`
+        .append(simpleAggregateFunction)
+        .append(SQL`, `)
+        .append(scalarStatement)
+        .append(SQL`)`);
+    }
+
+    return scalarStatement;
   }
 
   /**
@@ -1414,7 +1449,8 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
    */
   public toFullColumnType(column: AnalyticsTableColumn): Statement {
     const isAggregateFunction: boolean =
-      column.type === TableColumnType.AggregateFunction;
+      column.type === TableColumnType.AggregateFunction ||
+      Boolean(column.simpleAggregateFunction);
 
     let typeStatement: Statement = this.toColumnType(column);
 
@@ -1646,11 +1682,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
      * cluster mode the non-replicated dedup window is rewritten to its
      * replicated equivalent so insert idempotency survives.
      */
-    const tableSettings: string | undefined =
-      ensureAggregatingMergeTreeSettings(
-        this.model.tableEngine,
-        adaptTableSettingsForStorage(this.model.tableSettings),
-      );
+    const tableSettings: string | undefined = adaptTableSettingsForStorage(
+      this.model.tableSettings,
+    );
     if (tableSettings) {
       statement.append(`\nSETTINGS ${tableSettings}`);
     }
