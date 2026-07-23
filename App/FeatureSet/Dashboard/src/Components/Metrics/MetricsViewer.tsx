@@ -63,6 +63,7 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import { APP_API_URL } from "Common/UI/Config";
+import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 
 async function postApi(
   path: string,
@@ -444,15 +445,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       params.set("pageSize", String(pageSize));
     }
 
-    const query: string = params.toString();
-    const nextSearch: string = query ? `?${query}` : "";
-    if (nextSearch !== window.location.search) {
-      window.history.replaceState(
-        null,
-        "",
-        `${window.location.pathname}${nextSearch}${window.location.hash}`,
-      );
-    }
+    writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [submittedSearch, activeFilters, timeRange, page, pageSize]);
 
   // Load services and telemetry attributes once

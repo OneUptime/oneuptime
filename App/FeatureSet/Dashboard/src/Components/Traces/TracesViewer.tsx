@@ -71,6 +71,7 @@ import TraceAggregationType from "Common/Types/Trace/TraceAggregationType";
 import TraceRecordingRuleDefinition, {
   TraceRecordingRuleAttributeFilter,
 } from "Common/Types/Trace/TraceRecordingRuleDefinition";
+import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -947,15 +948,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       params.set("rootOnly", "true");
     }
 
-    const query: string = params.toString();
-    const nextSearch: string = query ? `?${query}` : "";
-    if (nextSearch !== window.location.search) {
-      window.history.replaceState(
-        null,
-        "",
-        `${window.location.pathname}${nextSearch}${window.location.hash}`,
-      );
-    }
+    writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [
     submittedSearch,
     activeFilters,

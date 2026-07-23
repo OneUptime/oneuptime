@@ -1,4 +1,6 @@
 import CompareBase, { CompareType } from "../../../Types/Database/CompareBase";
+import EqualTo from "../../../Types/BaseDatabase/EqualTo";
+import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
@@ -6,6 +8,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, it } from "@jest/globals";
@@ -85,6 +88,36 @@ const OPERATOR_CASES: Array<OperatorCase> = [
     type: GreaterThanOrNull,
     create: (value: CompareType) => {
       return new GreaterThanOrNull(value);
+    },
+  },
+  /*
+   * The equality operators were missed when the six ordering operators above
+   * were converted, and kept serializing via toString(). That made them the
+   * only type-lossy path left: `new EqualTo(42)` came back as the string
+   * "42", and a Date came back as a locale string such as
+   * "Wed Jul 01 2026 13:34:56 GMT+0100 (British Summer Time)" — timezone
+   * dependent and missing milliseconds. Both broke as soon as a filter had to
+   * survive a round trip through the URL.
+   */
+  {
+    name: "EqualTo",
+    type: EqualTo,
+    create: (value: CompareType) => {
+      return new EqualTo(value);
+    },
+  },
+  {
+    name: "EqualToOrNull",
+    type: EqualToOrNull,
+    create: (value: CompareType) => {
+      return new EqualToOrNull(value);
+    },
+  },
+  {
+    name: "NotEqual",
+    type: NotEqual,
+    create: (value: CompareType) => {
+      return new NotEqual(value);
     },
   },
 ];

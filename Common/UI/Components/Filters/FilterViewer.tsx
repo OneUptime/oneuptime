@@ -466,10 +466,27 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         items = rawValue.values as Array<string>;
       } else if (Array.isArray(rawValue)) {
         items = rawValue as Array<string>;
-      } else if (typeof rawValue === "string") {
-        items = [rawValue];
+      } else if (
+        typeof rawValue === "string" ||
+        typeof rawValue === "number" ||
+        typeof rawValue === "boolean"
+      ) {
+        /*
+         * Not every dropdown value is a string — enum-backed and boolean
+         * dropdowns store their raw value, and those used to match none of
+         * the branches above and render no chip at all.
+         */
+        items = [rawValue.toString()];
       }
 
+      /*
+       * Resolve ids to their human label where we can. When we cannot, fall
+       * back to the raw value instead of dropping the chip: the options list
+       * is fetched lazily, so a filter restored from the URL is live on the
+       * query *before* its labels exist. Returning null there left the user
+       * looking at a filtered table with nothing to explain it and no
+       * "Clear Filters" button to escape it.
+       */
       const entityNames: string = items
         .map((item: string) => {
           const entity: DropdownOption | undefined =
@@ -481,10 +498,10 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
           if (entity) {
             return entity.label.toString();
           }
-          return null;
+          return item.toString();
         })
-        .filter((name: string | null) => {
-          return name !== null;
+        .filter((name: string) => {
+          return name !== "";
         })
         .join(", ");
 
