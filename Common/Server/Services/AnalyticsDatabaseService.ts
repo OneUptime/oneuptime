@@ -983,7 +983,19 @@ export default class AnalyticsDatabaseService<
         onBeforeFind.select = {} as any;
       }
 
-      if (!(onBeforeFind.select as any)["_id"]) {
+      /*
+       * Derived aggregate targets deliberately omit AnalyticsBaseModel's
+       * synthetic `_id`: the aggregation key is the row identity. Only force
+       * `_id` into generic reads when the model actually declares it.
+       */
+      if (
+        this.model.tableColumns.some(
+          (column: AnalyticsTableColumn): boolean => {
+            return column.key === "_id";
+          },
+        ) &&
+        !(onBeforeFind.select as any)["_id"]
+      ) {
         (onBeforeFind.select as any)["_id"] = true;
       }
 
