@@ -45,6 +45,13 @@ export interface ComponentProps<T extends GenericObject> {
   showFilterModal?: undefined | boolean;
   filterError?: string | undefined;
   onFilterChanged?: undefined | ((filterData: FilterData<T>) => void);
+  /*
+   * The active filter selections. Without this the list's FilterViewer
+   * always fell back to `{}` and rendered no chips, so a filtered list
+   * (including one restored from the URL) gave the user nothing to see or
+   * clear.
+   */
+  filterData?: FilterData<T> | undefined;
   onFilterRefreshClick?: undefined | (() => void);
   onFilterModalClose?: (() => void) | undefined;
   onFilterModalOpen?: (() => void) | undefined;
@@ -118,6 +125,7 @@ const List: ListFunction = <T extends GenericObject>(
             filterError={props.filterError}
             onFilterRefreshClick={props.onFilterRefreshClick}
             filters={props.filters || []}
+            filterData={props.filterData}
             onFilterModalClose={() => {
               props.onFilterModalClose?.();
             }}

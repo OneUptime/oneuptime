@@ -31,6 +31,10 @@ import FilterChipDropdown, {
   FilterOperator,
 } from "./FilterChipDropdown";
 import { ResourceOwnerEntry } from "./OwnerEntry";
+import {
+  FacetSelectionState,
+  parseFacetSelectionState,
+} from "./FacetSelectionState";
 
 const PICKER_PAGE_SIZE: number = 50;
 
@@ -354,20 +358,43 @@ const useResourceOwners: <TResource extends BaseModel>(
   }>({});
   const [isLoadingOwners, setIsLoadingOwners] = useState<boolean>(false);
 
-  const [selectedOwnerKeys, setSelectedOwnerKeys] = useState<Array<string>>([]);
-  const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>([]);
+  /*
+   * Selections that were on the URL when this page was opened — a Back
+   * navigation from a detail page, or a link a teammate shared. Read once,
+   * synchronously, so the very first merged query already carries them and
+   * the table never flashes the unfiltered list.
+   *
+   * Only IDs are restored, so this does not have to wait for the facets'
+   * option lists to load; the chips fill in their display names later.
+   */
+  const initialFacetState: FacetSelectionState = useMemo(() => {
+    return parseFacetSelectionState(
+      TableFilterUrlState.read(persistKey, "facets"),
+    );
+  }, []);
+
+  const [selectedOwnerKeys, setSelectedOwnerKeys] = useState<Array<string>>(
+    initialFacetState.selectedOwnerKeys,
+  );
+  const [selectedLabelIds, setSelectedLabelIds] = useState<Array<string>>(
+    initialFacetState.selectedLabelIds,
+  );
 
   // Per-facet operator (defaults to "is" when missing).
-  const [ownerOperator, setOwnerOperator] = useState<FilterOperator>("is");
-  const [labelOperator, setLabelOperator] = useState<FilterOperator>("is");
+  const [ownerOperator, setOwnerOperator] = useState<FilterOperator>(
+    initialFacetState.ownerOperator,
+  );
+  const [labelOperator, setLabelOperator] = useState<FilterOperator>(
+    initialFacetState.labelOperator,
+  );
   const [facetOperators, setFacetOperators] = useState<{
     [facetKey: string]: FilterOperator;
-  }>({});
+  }>(initialFacetState.facetOperators);
 
   // Per-facet selected values keyed by facet.key.
   const [facetSelections, setFacetSelections] = useState<{
     [facetKey: string]: Array<string>;
-  }>({});
+  }>(initialFacetState.facetSelections);
   // Per-facet dynamic option lists keyed by facet.key.
   const [facetDynamicOptions, setFacetDynamicOptions] = useState<{
     [facetKey: string]: Array<FilterChipDropdownOption>;
@@ -1635,131 +1662,37 @@ const useResourceOwners: <TResource extends BaseModel>(
   const restoreFacetState: (state: JSONObject | null) => void = (
     state: JSONObject | null,
   ): void => {
+    const parsed: FacetSelectionState = parseFacetSelectionState(state);
+
+    setSelectedOwnerKeys(parsed.selectedOwnerKeys);
+    setSelectedLabelIds(parsed.selectedLabelIds);
+    setFacetSelections(parsed.facetSelections);
+    setOwnerOperator(parsed.ownerOperator);
+    setLabelOperator(parsed.labelOperator);
+    setFacetOperators(parsed.facetOperators);
+
     if (!state) {
-      setSelectedOwnerKeys([]);
-      setSelectedLabelIds([]);
-      setFacetSelections({});
-      setOwnerOperator("is");
-      setLabelOperator("is");
-      setFacetOperators({});
       setFacetMatchingIds({});
-      return;
-    }
-
-    const isValidOperator: (v: unknown) => v is FilterOperator = (
-      v: unknown,
-    ): v is FilterOperator => {
-      return (
-        v === "is" || v === "is_not" || v === "is_empty" || v === "is_not_empty"
-      );
-    };
-
-    const rawOwners: unknown = state["selectedOwnerKeys"];
-    if (Array.isArray(rawOwners)) {
-      setSelectedOwnerKeys(
-        rawOwners.filter((v: unknown): v is string => {
-          return typeof v === "string";
-        }),
-      );
-    } else {
-      setSelectedOwnerKeys([]);
-    }
-
-    const rawLabels: unknown = state["selectedLabelIds"];
-    if (Array.isArray(rawLabels)) {
-      setSelectedLabelIds(
-        rawLabels.filter((v: unknown): v is string => {
-          return typeof v === "string";
-        }),
-      );
-    } else {
-      setSelectedLabelIds([]);
-    }
-
-    const rawSelections: unknown = state["facetSelections"];
-    if (
-      rawSelections &&
-      typeof rawSelections === "object" &&
-      !Array.isArray(rawSelections)
-    ) {
-      const next: { [k: string]: Array<string> } = {};
-      for (const [k, v] of Object.entries(
-        rawSelections as Record<string, unknown>,
-      )) {
-        if (Array.isArray(v)) {
-          next[k] = v.filter((x: unknown): x is string => {
-            return typeof x === "string";
-          });
-        }
-      }
-      setFacetSelections(next);
-    } else {
-      setFacetSelections({});
-    }
-
-    setOwnerOperator(
-      isValidOperator(state["ownerOperator"]) ? state["ownerOperator"] : "is",
-    );
-    setLabelOperator(
-      isValidOperator(state["labelOperator"]) ? state["labelOperator"] : "is",
-    );
-
-    const rawFacetOps: unknown = state["facetOperators"];
-    if (
-      rawFacetOps &&
-      typeof rawFacetOps === "object" &&
-      !Array.isArray(rawFacetOps)
-    ) {
-      const next: { [k: string]: FilterOperator } = {};
-      for (const [k, v] of Object.entries(
-        rawFacetOps as Record<string, unknown>,
-      )) {
-        if (isValidOperator(v)) {
-          next[k] = v;
-        }
-      }
-      setFacetOperators(next);
-    } else {
-      setFacetOperators({});
     }
   };
 
   /*
-   * URL persistence for facets.
+   * Mirror active facet selections into the URL whenever they change, so the
+   * chips survive a Back-navigation and the link can be shared.
    *
-   * `hasRestoredFacetUrlState` is intentionally state (not a ref): the persist
-   * effect below depends on it, so it only runs *after* the render in which the
-   * restore has been applied. That guarantees we never write the empty default
-   * back over a snapshot we're about to restore.
+   * The restore side happens in the `useState` initializers above — reading
+   * the URL synchronously on the first render means the merged query is
+   * already correct when the table fires its first fetch. Restoring in an
+   * effect instead (what this used to do) fetched the unfiltered list first
+   * and then threw it away.
    */
-  const [hasRestoredFacetUrlState, setHasRestoredFacetUrlState] =
-    useState<boolean>(false);
-
-  // On mount, restore facet selections from the URL (Back-button / shared link).
   useEffect(() => {
-    if (persistKey) {
-      const restored: JSONObject | null = TableFilterUrlState.read(
-        persistKey,
-        "facets",
-      );
-      if (restored) {
-        restoreFacetState(restored);
-      }
-    }
-    setHasRestoredFacetUrlState(true);
-  }, []);
-
-  // Mirror active facet selections into the URL whenever they change.
-  useEffect(() => {
-    if (!persistKey || !hasRestoredFacetUrlState) {
-      return;
-    }
     TableFilterUrlState.write(
       persistKey,
       "facets",
       hasActiveFilters ? facetSaveState : null,
     );
-  }, [persistKey, hasRestoredFacetUrlState, hasActiveFilters, facetSaveState]);
+  }, [persistKey, hasActiveFilters, facetSaveState]);
 
   const getOwnersForResource: (
     resource: TResource,

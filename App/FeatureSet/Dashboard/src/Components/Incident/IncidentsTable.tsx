@@ -244,6 +244,15 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     }),
   ];
 
+  /*
+   * One namespace for everything this table mirrors into the URL, so the
+   * column filters (persisted by ModelTable) and the facet chips (persisted
+   * by useResourceOwners) always travel together. Falls back to a stable
+   * per-table id for the pages that embed this table without saved views.
+   */
+  const tableUrlStateKey: string =
+    props.saveFilterProps?.tableId || "incidents-table";
+
   const {
     getOwnersForResource,
     isLoadingOwners,
@@ -253,7 +262,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<Incident>({
-    persistKey: props.saveFilterProps?.tableId,
+    persistKey: tableUrlStateKey,
     ownerUserModelType: IncidentOwnerUser,
     ownerTeamModelType: IncidentOwnerTeam,
     resourceIdField: "incidentId",
@@ -481,6 +490,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         }}
         modelType={Incident}
         saveFilterProps={props.saveFilterProps}
+        urlStateKey={tableUrlStateKey}
         id="incidents-table"
         isDeleteable={false}
         showCreateForm={false}
