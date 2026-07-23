@@ -4072,9 +4072,11 @@ export default class StatusPageAPI extends BaseAPI<
   public async getSubscriber(
     req: ExpressRequest,
   ): Promise<StatusPageSubscriber> {
-    const objectId: ObjectID = new ObjectID(
-      req.params["statusPageId"] as string,
-    );
+    const statusPageIdParam: string = req.params["statusPageId"] as string;
+
+    ObjectID.validateUUID(statusPageIdParam);
+
+    const objectId: ObjectID = new ObjectID(statusPageIdParam);
 
     await this.checkHasReadAccess({
       statusPageId: objectId,
@@ -4098,9 +4100,11 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException("Status Page not found");
     }
 
-    const subscriberId: ObjectID = new ObjectID(
-      req.params["subscriberId"] as string,
-    );
+    const subscriberIdParam: string = req.params["subscriberId"] as string;
+
+    ObjectID.validateUUID(subscriberIdParam);
+
+    const subscriberId: ObjectID = new ObjectID(subscriberIdParam);
 
     const statusPageSubscriber: StatusPageSubscriber | null =
       await StatusPageSubscriberService.findOneBy({
