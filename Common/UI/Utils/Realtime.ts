@@ -27,6 +27,7 @@ export default abstract class Realtime {
   public static init(): void {
     const socket: Socket = SocketIO(new URL(HTTP_PROTOCOL, HOST).toString(), {
       path: RealtimeRoute.toString(),
+      transports: ["websocket"],
     });
 
     this.socket = socket;
