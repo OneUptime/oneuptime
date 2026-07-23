@@ -172,7 +172,12 @@ services:
         max-size: "1000m"
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.7
+    # Pinned to 26.7 to match the Helm/production ClickHouse (which tracks the
+    # newer server). ClickHouse 26.7 validates that every off-key column on an
+    # AggregatingMergeTree is an aggregate measure; staying on 25.7 here
+    # diverged from production and let invalid aggregate schemas slip past the
+    # E2E stack.
+    image: clickhouse/clickhouse-server:26.7
     restart: always
     environment:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}

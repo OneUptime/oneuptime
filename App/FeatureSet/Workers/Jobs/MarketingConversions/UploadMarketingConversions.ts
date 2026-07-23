@@ -54,7 +54,7 @@ type GetProviderStateFunction = (
   providerKey: string,
 ) => ProviderUploadState;
 
-const getProviderState: GetProviderStateFunction = (
+export const getProviderState: GetProviderStateFunction = (
   conversion: MarketingConversion,
   providerKey: string,
 ): ProviderUploadState => {
@@ -75,7 +75,7 @@ type SetProviderStateFunction = (data: {
  * job cannot assume it is the only writer; re-reading keeps one provider's
  * write from clobbering another's.
  */
-const setProviderState: SetProviderStateFunction = async (data: {
+export const setProviderState: SetProviderStateFunction = async (data: {
   conversion: MarketingConversion;
   providerKey: string;
   state: ProviderUploadState;
@@ -117,7 +117,7 @@ type DiscoverSignUpConversionsFunction = () => Promise<void>;
  * conversionAt is the accurate signup time (user.createdAt). The unique
  * index on (conversionType, userId) makes discovery idempotent.
  */
-const discoverSignUpConversions: DiscoverSignUpConversionsFunction =
+export const discoverSignUpConversions: DiscoverSignUpConversionsFunction =
   async (): Promise<void> => {
     let skip: number = 0;
 
@@ -210,7 +210,7 @@ const discoverSignUpConversions: DiscoverSignUpConversionsFunction =
 type GetMonthlyRevenueFunction = (project: Project) => number | undefined;
 
 // MRR in cents; undefined for custom-pricing / unknown plans.
-const getMonthlyRevenueInUSDCents: GetMonthlyRevenueFunction = (
+export const getMonthlyRevenueInUSDCents: GetMonthlyRevenueFunction = (
   project: Project,
 ): number | undefined => {
   if (!project.paymentProviderPlanId) {
@@ -247,7 +247,7 @@ type DiscoverPaidConversionsFunction = () => Promise<void>;
  * one job interval after the fact), since OneUptime does not record the
  * exact payment moment.
  */
-const discoverPaidConversions: DiscoverPaidConversionsFunction =
+export const discoverPaidConversions: DiscoverPaidConversionsFunction =
   async (): Promise<void> => {
     const paidPlanTypes: Array<string> = Object.values(PlanType).filter(
       (planType: string) => {
@@ -358,7 +358,7 @@ type UploadToProviderFunction = (
  * JSON column), over a bounded scan of recent rows — anything older than
  * every platform's upload window can never be uploaded anyway.
  */
-const uploadToProvider: UploadToProviderFunction = async (
+export const uploadToProvider: UploadToProviderFunction = async (
   provider: ConversionUploadProvider,
 ): Promise<void> => {
   let skip: number = 0;

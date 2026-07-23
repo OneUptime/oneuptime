@@ -302,10 +302,30 @@ export default class MonitorStep extends DatabaseProperty {
       retryCountOnError: undefined,
       requestTimeoutInMs: undefined,
       retryCount: undefined,
-      logMonitor: undefined,
-      traceMonitor: undefined,
-      metricMonitor: undefined,
-      exceptionMonitor: undefined,
+      /*
+       * Seed the telemetry sub-config for the monitor's OWN type so a
+       * monitor saved on defaults (without the user touching the telemetry
+       * sub-form) still persists a usable query config. Without this the
+       * sub-config stayed undefined and the worker threw "<type> query/config
+       * is missing" on every evaluation, so the monitor never ran. Only the
+       * matching type is seeded; every other type stays undefined.
+       */
+      logMonitor:
+        arg.monitorType === MonitorType.Logs
+          ? MonitorStepLogMonitorUtil.getDefault()
+          : undefined,
+      traceMonitor:
+        arg.monitorType === MonitorType.Traces
+          ? MonitorStepTraceMonitorUtil.getDefault()
+          : undefined,
+      metricMonitor:
+        arg.monitorType === MonitorType.Metrics
+          ? MonitorStepMetricMonitorUtil.getDefault()
+          : undefined,
+      exceptionMonitor:
+        arg.monitorType === MonitorType.Exceptions
+          ? MonitorStepExceptionMonitorUtil.getDefault()
+          : undefined,
       profileMonitor: undefined,
       snmpMonitor: undefined,
       networkDeviceMonitor: undefined,

@@ -65,6 +65,8 @@ For Microsoft SQL Server, enable **Use Windows Integrated Authentication** to op
 - **Windows probes:** run the probe service as a domain account that has a read-only SQL Server login.
 - **Linux or macOS probes:** configure Kerberos for the SQL Server domain and give the probe process a valid ticket (for example through a keytab). The official Linux probe image includes Microsoft ODBC Driver 18, unixODBC, and the Kerberos client. Mount the Kerberos configuration and ticket cache into the container, make them readable by the probe process, and set `KRB5_CONFIG` or `KRB5CCNAME` when their locations are non-default.
 
+The probe needs a Microsoft ODBC Driver for SQL Server installed on the host running it. The official probe image bundles **ODBC Driver 18**. When you run a self-hosted or custom probe, the probe automatically detects and uses the newest `ODBC Driver N for SQL Server` registered on the host (for example Driver 17 if that is what is installed) — you do not need to have exactly Driver 18. To pin a specific driver, set the `SQL_SERVER_ODBC_DRIVER` environment variable on the probe to the exact driver name (for example `ODBC Driver 17 for SQL Server`).
+
 SQL Server must have an appropriate `MSSQLSvc` service principal name, the probe and domain controller clocks must be synchronized, and the probe must resolve/reach the SQL Server by the hostname covered by that service principal. Grant only the database permissions needed by the monitoring query to the trusted identity.
 
 ### Advanced options

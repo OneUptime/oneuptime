@@ -213,6 +213,27 @@ export default class AnalyticsTableColumn {
     this._aggregateFunctionDefinition = v;
   }
 
+  /*
+   * Optional ClickHouse SimpleAggregateFunction wrapper for scalar columns.
+   *
+   * Unlike AggregateFunction, a SimpleAggregateFunction keeps the scalar's
+   * ordinary wire/query type (for example DateTime) while teaching
+   * AggregatingMergeTree how to combine values during background merges.
+   * `max` on a DateTime retention column is the canonical use: reads and TTLs
+   * still see a DateTime, but rows sharing the sort key retain the latest
+   * expiry instead of an arbitrary one.
+   *
+   * The underlying type comes from `type`; this field contains only the
+   * function name, e.g. "max".
+   */
+  private _simpleAggregateFunction: string | undefined;
+  public get simpleAggregateFunction(): string | undefined {
+    return this._simpleAggregateFunction;
+  }
+  public set simpleAggregateFunction(v: string | undefined) {
+    this._simpleAggregateFunction = v;
+  }
+
   public constructor(data: {
     key: string;
     title: string;
@@ -232,6 +253,7 @@ export default class AnalyticsTableColumn {
     isLowCardinality?: boolean | undefined;
     mapKeysColumn?: string | undefined;
     aggregateFunctionDefinition?: string | undefined;
+    simpleAggregateFunction?: string | undefined;
   }) {
     this.accessControl = data.accessControl;
     this.key = data.key;
@@ -250,5 +272,6 @@ export default class AnalyticsTableColumn {
     this.isLowCardinality = data.isLowCardinality || false;
     this.mapKeysColumn = data.mapKeysColumn;
     this.aggregateFunctionDefinition = data.aggregateFunctionDefinition;
+    this.simpleAggregateFunction = data.simpleAggregateFunction;
   }
 }

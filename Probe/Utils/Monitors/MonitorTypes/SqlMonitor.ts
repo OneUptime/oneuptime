@@ -21,11 +21,215 @@ import {
 } from "mysql2/promise";
 import * as mssql from "mssql";
 import { createRequire } from "module";
+import { execFile } from "child_process";
+import { promisify } from "util";
 
 const loadProbeModule: ReturnType<typeof createRequire> =
   createRequire(__filename);
 
+/*
+ * Async (non-blocking) child-process runner. Detection must never run on the
+ * synchronous path: the probe multiplexes many monitors on one event loop, so
+ * a slow/wedged `odbcinst`/`reg` must not freeze unrelated checks.
+ */
+const execFileAsync: (
+  file: string,
+  args: Array<string>,
+  options: { encoding: "utf8"; timeout: number; windowsHide?: boolean },
+) => Promise<{ stdout: string; stderr: string }> = promisify(execFile);
+
+/*
+ * The Microsoft ODBC driver bundled in the official probe image and used as the
+ * fallback when the installed driver cannot be detected. Do not read this
+ * directly to build a connection string — call resolveSqlServerOdbcDriver(),
+ * which prefers an operator override or the newest driver actually registered
+ * on the host so self-hosted probes with a different version (e.g. Driver 17)
+ * work without editing source.
+ */
 export const SQL_SERVER_ODBC_DRIVER: string = "ODBC Driver 18 for SQL Server";
+
+/*
+ * Matches a Microsoft SQL Server ODBC driver registration and captures its
+ * major version, e.g. "ODBC Driver 18 for SQL Server" -> 18. Filters unrelated
+ * ODBC drivers (PostgreSQL, MySQL, ...) out of the host's list and compares
+ * versions.
+ */
+const SQL_SERVER_ODBC_DRIVER_PATTERN: RegExp =
+  /^ODBC Driver (\d+) for SQL Server$/i;
+
+/*
+ * Lists the ODBC driver names registered on the host. Injectable so the
+ * resolver can be unit-tested without a real ODBC installation. May be sync or
+ * async — the resolver awaits the result either way.
+ */
+export type OdbcDriverLister = () => Array<string> | Promise<Array<string>>;
+
+/*
+ * Parse the driver section names printed by `odbcinst -q -d` (unixODBC, used on
+ * the Linux/macOS probe). Each installed driver is a line like
+ * "[ODBC Driver 18 for SQL Server]".
+ */
+export const parseUnixOdbcInstDrivers: (output: string) => Array<string> = (
+  output: string,
+): Array<string> => {
+  const names: Array<string> = [];
+  for (const line of output.split(/\r?\n/)) {
+    const match: RegExpMatchArray | null = line.match(/^\s*\[(.+?)\]\s*$/);
+    if (match && match[1]) {
+      names.push(match[1].trim());
+    }
+  }
+  return names;
+};
+
+/*
+ * Parse the value names printed by `reg query` for the ODBC Drivers key
+ * (Windows probes). Each installed driver is a line like
+ * "    ODBC Driver 18 for SQL Server    REG_SZ    Installed".
+ */
+export const parseWindowsRegistryOdbcDrivers: (
+  output: string,
+) => Array<string> = (output: string): Array<string> => {
+  const names: Array<string> = [];
+  for (const line of output.split(/\r?\n/)) {
+    const match: RegExpMatchArray | null = line.match(/^\s+(.+?)\s+REG_\w+\s+/);
+    if (match && match[1]) {
+      names.push(match[1].trim());
+    }
+  }
+  return names;
+};
+
+/*
+ * Choose the newest "ODBC Driver N for SQL Server" from a list of registered
+ * ODBC driver names, ignoring unrelated drivers. Returns null when none match.
+ */
+export const pickBestSqlServerOdbcDriver: (
+  driverNames: Array<string>,
+) => string | null = (driverNames: Array<string>): string | null => {
+  let best: { name: string; version: number } | null = null;
+  for (const rawName of driverNames) {
+    const name: string = rawName.trim();
+    const match: RegExpMatchArray | null = name.match(
+      SQL_SERVER_ODBC_DRIVER_PATTERN,
+    );
+    const versionString: string | undefined = match?.[1];
+    if (!versionString) {
+      continue;
+    }
+    const version: number = parseInt(versionString, 10);
+    if (Number.isNaN(version)) {
+      continue;
+    }
+    if (!best || version > best.version) {
+      best = { name, version };
+    }
+  }
+  return best ? best.name : null;
+};
+
+/*
+ * List the ODBC drivers registered on this host using the platform-native
+ * mechanism (the Windows registry, or unixODBC's `odbcinst` elsewhere). Never
+ * throws — a missing tool or unreadable registry yields an empty list so
+ * resolution falls back to the default driver. Runs the child process
+ * asynchronously (never blocking the probe's event loop) and is bounded with a
+ * short timeout so a wedged tool cannot stall detection.
+ */
+const listHostOdbcDrivers: OdbcDriverLister = async (): Promise<
+  Array<string>
+> => {
+  try {
+    if (process.platform === "win32") {
+      const { stdout } = await execFileAsync(
+        "reg",
+        ["query", "HKLM\\SOFTWARE\\ODBC\\ODBCINST.INI\\ODBC Drivers"],
+        { encoding: "utf8", timeout: 3000, windowsHide: true },
+      );
+      return parseWindowsRegistryOdbcDrivers(stdout.toString());
+    }
+
+    const { stdout } = await execFileAsync("odbcinst", ["-q", "-d"], {
+      encoding: "utf8",
+      timeout: 3000,
+    });
+    return parseUnixOdbcInstDrivers(stdout.toString());
+  } catch (err) {
+    logger.debug(`Unable to list installed ODBC drivers: ${err}`);
+    return [];
+  }
+};
+
+let cachedSqlServerOdbcDriver: string | undefined;
+
+/*
+ * Resolve the ODBC driver name the probe should use for SQL Server trusted
+ * (Windows integrated) connections. Hard-coding a single version breaks on any
+ * host that ships a different Microsoft ODBC Driver, so resolution order is:
+ *   1. The SQL_SERVER_ODBC_DRIVER environment variable (explicit operator
+ *      override — an exact driver name).
+ *   2. The newest "ODBC Driver N for SQL Server" registered on the host.
+ *   3. SQL_SERVER_ODBC_DRIVER (the version bundled in the official image).
+ * A positive detection or an explicit override is memoized (the installed
+ * drivers do not change while the probe runs). The default fallback is
+ * deliberately NOT cached: an empty driver list can mean a genuinely
+ * driver-less host OR a transient failure (odbcinst/reg momentarily
+ * unavailable), and caching the default there would defeat the fix for the
+ * lifetime of the process — so the next integrated-auth query retries
+ * detection. Tests inject the lister/env and can disable the cache.
+ */
+export const resolveSqlServerOdbcDriver: (options?: {
+  envValue?: string | undefined;
+  lister?: OdbcDriverLister | undefined;
+  useCache?: boolean | undefined;
+}) => Promise<string> = async (options?: {
+  envValue?: string | undefined;
+  lister?: OdbcDriverLister | undefined;
+  useCache?: boolean | undefined;
+}): Promise<string> => {
+  const useCache: boolean = options?.useCache !== false;
+  if (useCache && cachedSqlServerOdbcDriver !== undefined) {
+    return cachedSqlServerOdbcDriver;
+  }
+
+  const envValue: string | undefined =
+    options && "envValue" in options
+      ? options.envValue
+      : process.env["SQL_SERVER_ODBC_DRIVER"];
+  const override: string = (envValue || "").trim();
+
+  let resolved: string;
+  // Only a real answer (override or detection) is safe to memoize.
+  let cacheable: boolean;
+  if (override) {
+    resolved = override;
+    cacheable = true;
+  } else {
+    const lister: OdbcDriverLister = options?.lister || listHostOdbcDrivers;
+    const detected: string | null = pickBestSqlServerOdbcDriver(await lister());
+    if (detected) {
+      logger.debug(`Using detected SQL Server ODBC driver: ${detected}`);
+      resolved = detected;
+      cacheable = true;
+    } else {
+      resolved = SQL_SERVER_ODBC_DRIVER;
+      cacheable = false;
+    }
+  }
+
+  if (useCache && cacheable) {
+    cachedSqlServerOdbcDriver = resolved;
+  }
+  return resolved;
+};
+
+/*
+ * Reset the memoized driver. Test-only seam so a test that injects a lister is
+ * not shadowed by a value cached from an earlier test.
+ */
+export const resetSqlServerOdbcDriverCache: () => void = (): void => {
+  cachedSqlServerOdbcDriver = undefined;
+};
 
 /*
  * Escape a value for an ODBC connection string. Braced values can safely
@@ -47,14 +251,16 @@ export const buildSqlServerIntegratedConnectionString: (
     MonitorStepSqlMonitor,
     "host" | "port" | "databaseName" | "useSsl" | "rejectUnauthorizedSsl"
   >,
+  odbcDriver?: string,
 ) => string = (
   config: Pick<
     MonitorStepSqlMonitor,
     "host" | "port" | "databaseName" | "useSsl" | "rejectUnauthorizedSsl"
   >,
+  odbcDriver: string = SQL_SERVER_ODBC_DRIVER,
 ): string => {
   return [
-    `Driver=${escapeOdbcConnectionStringValue(SQL_SERVER_ODBC_DRIVER)}`,
+    `Driver=${escapeOdbcConnectionStringValue(odbcDriver)}`,
     `Server=${escapeOdbcConnectionStringValue(`${config.host},${config.port}`)}`,
     `Database=${escapeOdbcConnectionStringValue(config.databaseName)}`,
     "Trusted_Connection=yes",
@@ -82,10 +288,12 @@ export const buildMicrosoftSqlServerPoolConfig: (input: {
   config: MonitorStepSqlMonitor;
   statementTimeoutInMs: number;
   connectionTimeoutInMs: number;
+  odbcDriver?: string | undefined;
 }) => MicrosoftSqlServerPoolConfig = (input: {
   config: MonitorStepSqlMonitor;
   statementTimeoutInMs: number;
   connectionTimeoutInMs: number;
+  odbcDriver?: string | undefined;
 }): MicrosoftSqlServerPoolConfig => {
   const { config, statementTimeoutInMs, connectionTimeoutInMs } = input;
 
@@ -112,7 +320,10 @@ export const buildMicrosoftSqlServerPoolConfig: (input: {
   if (config.useWindowsIntegratedAuthentication) {
     return {
       ...baseConfig,
-      connectionString: buildSqlServerIntegratedConnectionString(config),
+      connectionString: buildSqlServerIntegratedConnectionString(
+        config,
+        input.odbcDriver,
+      ),
     };
   }
 
@@ -144,7 +355,7 @@ export const loadMicrosoftSqlServerDriver: (
     return moduleLoader("mssql/msnodesqlv8") as typeof mssql;
   } catch {
     throw new Error(
-      `Windows Integrated Authentication requires ${SQL_SERVER_ODBC_DRIVER} and the msnodesqlv8 driver on the probe. Use the official probe image or install both dependencies, then run the probe under the trusted Windows account or with a valid Kerberos ticket.`,
+      `Windows Integrated Authentication requires a Microsoft ODBC Driver for SQL Server (the official probe image ships ${SQL_SERVER_ODBC_DRIVER}; other versions such as ODBC Driver 17 for SQL Server are detected automatically) and the msnodesqlv8 native driver on the probe. Use the official probe image or install both dependencies, then run the probe under the trusted Windows account or with a valid Kerberos ticket.`,
     );
   }
 };
@@ -993,11 +1204,21 @@ export default class SqlMonitor {
      */
     const teardownTimeoutInMs: number = 5000;
 
+    /*
+     * Only trusted connections use the ODBC connection string, so only resolve
+     * (and pay for host driver detection) in that mode.
+     */
+    const odbcDriver: string | undefined =
+      config.useWindowsIntegratedAuthentication
+        ? await resolveSqlServerOdbcDriver()
+        : undefined;
+
     const poolConfig: MicrosoftSqlServerPoolConfig =
       buildMicrosoftSqlServerPoolConfig({
         config,
         statementTimeoutInMs,
         connectionTimeoutInMs,
+        odbcDriver,
       });
 
     const sqlServerDriver: typeof mssql = loadMicrosoftSqlServerDriver(
