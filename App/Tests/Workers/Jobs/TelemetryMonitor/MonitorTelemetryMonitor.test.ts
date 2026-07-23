@@ -37,10 +37,16 @@ jest.mock("Common/Server/Utils/VM/VMRunner", () => {
 });
 
 jest.mock("Common/Server/Services/LogService", () => {
-  return { __esModule: true, default: { countBy: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { countBy: jest.fn(), existsBy: jest.fn() },
+  };
 });
 jest.mock("Common/Server/Services/SpanService", () => {
-  return { __esModule: true, default: { countBy: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { countBy: jest.fn(), existsBy: jest.fn() },
+  };
 });
 jest.mock("Common/Server/Services/ExceptionInstanceService", () => {
   return { __esModule: true, default: { countBy: jest.fn() } };
@@ -64,7 +70,9 @@ import {
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 const logCountBy: jest.Mock = LogService.countBy as unknown as jest.Mock;
+const logExistsBy: jest.Mock = LogService.existsBy as unknown as jest.Mock;
 const spanCountBy: jest.Mock = SpanService.countBy as unknown as jest.Mock;
+const spanExistsBy: jest.Mock = SpanService.existsBy as unknown as jest.Mock;
 const exceptionCountBy: jest.Mock =
   ExceptionInstanceService.countBy as unknown as jest.Mock;
 const resolvedFingerprints: jest.Mock =
@@ -75,7 +83,9 @@ const projectId: ObjectID = ObjectID.generate();
 
 beforeEach(() => {
   logCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
+  logExistsBy.mockReset().mockResolvedValue(false);
   spanCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
+  spanExistsBy.mockReset().mockResolvedValue(false);
   exceptionCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
   resolvedFingerprints.mockReset().mockResolvedValue([]);
 });
@@ -140,6 +150,70 @@ describe("monitorTrace", () => {
     const passedQuery: Record<string, unknown> = spanCountBy.mock.calls[0]![0]
       .query as Record<string, unknown>;
     expect(passedQuery["startTime"]).toBeInstanceOf(InBetween);
+  });
+});
+
+/*
+ * Guards the "unreliable count()" fix: a telemetry count() over a large
+ * ClickHouse table can return 0 while rows exist (e.g. an unmaterialized
+ * aggregate projection). A raw 0 would silently disable the monitor, so the
+ * worker confirms a 0 with a cheap existsBy() scan and treats a present-but-
+ * uncounted result as >=1 so existence criteria still fire.
+ */
+describe("unreliable count() guard", () => {
+  test("monitorLogs: count()==0 but logs exist -> treats as 1", async () => {
+    logCountBy.mockResolvedValue(new PositiveNumber(0));
+    logExistsBy.mockResolvedValue(true);
+
+    const response: LogMonitorResponse = await monitorLogs({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.logCount).toBe(1);
+    expect(logExistsBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("monitorLogs: count()==0 and no logs exist -> stays 0", async () => {
+    logCountBy.mockResolvedValue(new PositiveNumber(0));
+    logExistsBy.mockResolvedValue(false);
+
+    const response: LogMonitorResponse = await monitorLogs({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.logCount).toBe(0);
+    expect(logExistsBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("monitorLogs: count()>0 -> trusts count, no existsBy fallback", async () => {
+    logCountBy.mockResolvedValue(new PositiveNumber(7));
+
+    const response: LogMonitorResponse = await monitorLogs({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.logCount).toBe(7);
+    expect(logExistsBy).not.toHaveBeenCalled();
+  });
+
+  test("monitorTrace: count()==0 but spans exist -> treats as 1", async () => {
+    spanCountBy.mockResolvedValue(new PositiveNumber(0));
+    spanExistsBy.mockResolvedValue(true);
+
+    const response: TraceMonitorResponse = await monitorTrace({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.spanCount).toBe(1);
+    expect(spanExistsBy).toHaveBeenCalledTimes(1);
   });
 });
 

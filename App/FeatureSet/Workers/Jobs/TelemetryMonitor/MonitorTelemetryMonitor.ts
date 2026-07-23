@@ -1090,6 +1090,57 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
   throw new BadDataException("Monitor type is not supported");
 };
 
+/*
+ * Guard against an unreliable ClickHouse `count()` silently disabling a
+ * telemetry monitor.
+ *
+ * count() over the large telemetry tables (Log / Span) can come back 0 even
+ * while rows plainly exist — e.g. when count() is answered from an aggregate
+ * projection that was ADDed but never MATERIALIZEd on existing parts, or when
+ * a partial 'break' result is returned under load. A raw 0 makes the criteria
+ * "<metric> Count >= 1" evaluate false, so the monitor silently never fires
+ * with nothing logged anywhere — the worst failure mode for an alerting path.
+ *
+ * Before trusting a 0, confirm with existsBy() — a cheap `SELECT 1 ... LIMIT 1`
+ * base-table scan that does NOT go through the count/projection path (see the
+ * existsBy docs, which already recommend it over `countBy(...) === 0` for
+ * existence checks). If rows actually exist, the count is unreliable: log it
+ * (so the failure is observable) and treat the match count as >=1 so
+ * existence-based criteria still fire. Threshold criteria (`> N`) can still
+ * under-evaluate until the underlying count is repaired — that is inherent and
+ * now at least surfaced in the logs. The extra scan only runs on the
+ * zero-count path, so the healthy (count > 0) path is unchanged.
+ */
+const resolveReliableTelemetryMatchCount: (data: {
+  rawCount: number;
+  existsBy: () => Promise<boolean>;
+  telemetryType: string;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<number> = async (data: {
+  rawCount: number;
+  existsBy: () => Promise<boolean>;
+  telemetryType: string;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<number> => {
+  if (data.rawCount > 0) {
+    return data.rawCount;
+  }
+
+  const hasMatches: boolean = await data.existsBy();
+
+  if (!hasMatches) {
+    return 0;
+  }
+
+  logger.warn(
+    `Telemetry ${data.telemetryType} monitor ${data.monitorId.toString()} (project ${data.projectId.toString()}): count() returned 0 but matching ${data.telemetryType}s exist — the count is unreliable (e.g. an unmaterialized ClickHouse aggregate projection or a partial 'break' result). Treating the match count as >=1 so existence criteria still fire; threshold criteria may under-evaluate until the underlying count is fixed.`,
+  );
+
+  return 1;
+};
+
 type MonitorTraceFunction = (data: {
   monitorStep: MonitorStep;
   monitorId: ObjectID;
@@ -1123,9 +1174,24 @@ export const monitorTrace: MonitorTraceFunction = async (data: {
     },
   });
 
+  const spanCount: number = await resolveReliableTelemetryMatchCount({
+    rawCount: countTraces.toNumber(),
+    existsBy: () => {
+      return SpanService.existsBy({
+        query: query,
+        props: {
+          isRoot: true,
+        },
+      });
+    },
+    telemetryType: "span",
+    monitorId: data.monitorId,
+    projectId: data.projectId,
+  });
+
   return {
     projectId: data.projectId,
-    spanCount: countTraces.toNumber(),
+    spanCount: spanCount,
     spanQuery: query,
     monitorId: data.monitorId,
   };
@@ -3450,9 +3516,24 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
     },
   });
 
+  const logCount: number = await resolveReliableTelemetryMatchCount({
+    rawCount: countLogs.toNumber(),
+    existsBy: () => {
+      return LogService.existsBy({
+        query: query,
+        props: {
+          isRoot: true,
+        },
+      });
+    },
+    telemetryType: "log",
+    monitorId: data.monitorId,
+    projectId: data.projectId,
+  });
+
   return {
     projectId: data.projectId,
-    logCount: countLogs.toNumber(),
+    logCount: logCount,
     logQuery: JSONFunctions.anyObjectToJSONObject(query),
     monitorId: data.monitorId,
   };
