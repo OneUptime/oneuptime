@@ -1246,6 +1246,19 @@ export default class SnmpMonitor {
 
   private static toDisplayString(value: unknown): string | undefined {
     if (Buffer.isBuffer(value)) {
+      /*
+       * Binary OctetStrings (LLDP/CDP chassis and port IDs are usually raw
+       * MAC addresses) decode to NUL bytes and mojibake as UTF-8. Postgres
+       * cannot store a NUL inside a jsonb column, so the neighbor snapshot
+       * write fails with "unsupported Unicode escape sequence" and takes
+       * the whole NetworkDevice inventory update down with it - leaving the
+       * device stuck without sysName/lastSeenAt and with no interface rows.
+       * Render them as colon-separated hex, the same as parseVarbindValue.
+       */
+      if (!SnmpMonitor.isPrintableBuffer(value)) {
+        return SnmpMonitor.toMacAddress(value);
+      }
+
       return value.toString("utf8").trim() || undefined;
     }
 

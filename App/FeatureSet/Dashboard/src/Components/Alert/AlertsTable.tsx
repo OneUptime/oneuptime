@@ -314,6 +314,15 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     }),
   ];
 
+  /*
+   * One namespace for everything this table mirrors into the URL, so the
+   * column filters (persisted by ModelTable) and the facet chips (persisted
+   * by useResourceOwners) always travel together. Falls back to a stable
+   * per-table id for the pages that embed this table without saved views.
+   */
+  const tableUrlStateKey: string =
+    props.saveFilterProps?.tableId || "alerts-table";
+
   const {
     getOwnersForResource,
     isLoadingOwners,
@@ -323,7 +332,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<Alert>({
-    persistKey: props.saveFilterProps?.tableId,
+    persistKey: tableUrlStateKey,
     ownerUserModelType: AlertOwnerUser,
     ownerTeamModelType: AlertOwnerTeam,
     resourceIdField: "alertId",
@@ -542,6 +551,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         searchableFields={["title", "description"]}
         showViewIdButton={true}
         saveFilterProps={props.saveFilterProps}
+        urlStateKey={tableUrlStateKey}
         viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS]!)}
         filters={[
           {
