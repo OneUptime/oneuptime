@@ -97,7 +97,7 @@ export default class RebuildMetricMinuteAggregateMaterializedView extends DataMi
        PARTITION BY sipHash64(projectId) % 16
        ORDER BY (projectId, name, serviceId, bucketTime)
        TTL retentionDate DELETE
-       SETTINGS index_granularity = 8192`,
+       SETTINGS index_granularity = 8192, allow_dimensions_outside_sorting_key = 1`,
     );
 
     await MetricService.execute(

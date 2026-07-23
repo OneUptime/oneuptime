@@ -104,7 +104,7 @@ export default class AddMetricMinuteAggregateByHostMaterializedView extends Data
        PARTITION BY sipHash64(projectId) % 16
        ORDER BY (projectId, name, hostIdentifier, bucketTime)
        TTL retentionDate DELETE
-       SETTINGS index_granularity = 8192`,
+       SETTINGS index_granularity = 8192, allow_dimensions_outside_sorting_key = 1`,
     );
     logger.info("Created MetricItemAggMV1mByHost table");
 

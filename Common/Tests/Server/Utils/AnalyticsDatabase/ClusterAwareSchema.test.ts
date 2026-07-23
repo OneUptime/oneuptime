@@ -7,6 +7,7 @@ import {
 import {
   adaptTableSettingsForStorage,
   applyClusterToMaterializedViewQuery,
+  ensureAggregatingMergeTreeSettings,
   getClickhouseClusterName,
   getDistributedEngine,
   getStorageEngine,
@@ -91,6 +92,54 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
       ).toBe(
         "ttl_only_drop_parts = 1, replicated_deduplication_window = 10000",
       );
+    });
+
+    test("ensureAggregatingMergeTreeSettings opts AggregatingMergeTree into allow_dimensions_outside_sorting_key", () => {
+      // Appends to existing settings for AggregatingMergeTree.
+      expect(
+        ensureAggregatingMergeTreeSettings(
+          AnalyticsTableEngine.AggregatingMergeTree,
+          "ttl_only_drop_parts = 1",
+        ),
+      ).toBe(
+        "ttl_only_drop_parts = 1, allow_dimensions_outside_sorting_key = 1",
+      );
+
+      // Produces a standalone setting when there were none.
+      expect(
+        ensureAggregatingMergeTreeSettings(
+          AnalyticsTableEngine.AggregatingMergeTree,
+          undefined,
+        ),
+      ).toBe("allow_dimensions_outside_sorting_key = 1");
+      expect(
+        ensureAggregatingMergeTreeSettings(
+          AnalyticsTableEngine.AggregatingMergeTree,
+          "   ",
+        ),
+      ).toBe("allow_dimensions_outside_sorting_key = 1");
+
+      // Idempotent — never doubled up.
+      expect(
+        ensureAggregatingMergeTreeSettings(
+          AnalyticsTableEngine.AggregatingMergeTree,
+          "allow_dimensions_outside_sorting_key = 1",
+        ),
+      ).toBe("allow_dimensions_outside_sorting_key = 1");
+
+      // No-op for non-aggregating engines.
+      expect(
+        ensureAggregatingMergeTreeSettings(
+          AnalyticsTableEngine.MergeTree,
+          "ttl_only_drop_parts = 1",
+        ),
+      ).toBe("ttl_only_drop_parts = 1");
+      expect(
+        ensureAggregatingMergeTreeSettings(
+          AnalyticsTableEngine.ReplacingMergeTree,
+          undefined,
+        ),
+      ).toBeUndefined();
     });
 
     test("distributed engine: model key, with global override winning", () => {
@@ -213,6 +262,22 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
       const stmt: Statement = aggregatingGen.toTableCreateStatement();
       expect(stmt.query).toContain("ENGINE = ReplicatedAggregatingMergeTree");
       expect(fullText(stmt)).toContain("MetricItemAggMV1mLocal");
+    });
+
+    test("AggregatingMergeTree CREATE opts into allow_dimensions_outside_sorting_key", () => {
+      /*
+       * ClickHouse 25.x+ rejects AggregatingMergeTree tables whose base
+       * columns (_id/createdAt/updatedAt) and retentionDate live outside the
+       * sort key unless this setting is present. The DDL must always carry it
+       * for aggregating tables.
+       */
+      const stmt: Statement = aggregatingGen.toTableCreateStatement();
+      expect(stmt.query).toContain("allow_dimensions_outside_sorting_key = 1");
+    });
+
+    test("plain MergeTree CREATE does NOT add the aggregating-only setting", () => {
+      const stmt: Statement = spanGen.toTableCreateStatement();
+      expect(stmt.query).not.toContain("allow_dimensions_outside_sorting_key");
     });
 
     test("Distributed wrapper uses the model sharding key and local table", () => {

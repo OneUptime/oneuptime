@@ -8,6 +8,7 @@ import logger from "../Logger";
 import { SQL, Statement } from "./Statement";
 import {
   adaptTableSettingsForStorage,
+  ensureAggregatingMergeTreeSettings,
   getDistributedEngine,
   getStorageEngine,
   getStorageTableName,
@@ -1645,9 +1646,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
      * cluster mode the non-replicated dedup window is rewritten to its
      * replicated equivalent so insert idempotency survives.
      */
-    const tableSettings: string | undefined = adaptTableSettingsForStorage(
-      this.model.tableSettings,
-    );
+    const tableSettings: string | undefined =
+      ensureAggregatingMergeTreeSettings(
+        this.model.tableEngine,
+        adaptTableSettingsForStorage(this.model.tableSettings),
+      );
     if (tableSettings) {
       statement.append(`\nSETTINGS ${tableSettings}`);
     }
