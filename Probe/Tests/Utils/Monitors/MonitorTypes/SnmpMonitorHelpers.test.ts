@@ -45,6 +45,7 @@ type TestVarbind = {
 type SnmpMonitorHelpers = {
   parseVarbindValue: (varbind: TestVarbind) => string | number;
   toMacAddress: (value: unknown) => string | undefined;
+  toDisplayString: (value: unknown) => string | undefined;
   isPrintableBuffer: (value: Buffer) => boolean;
   toMetricNumber: (value: unknown) => number | undefined;
   walkEntityInfo: (session: unknown) => Promise<SnmpEntityInfo | undefined>;
@@ -339,6 +340,52 @@ describe("SnmpMonitor.isPrintableBuffer", () => {
 
   test("high (non-ASCII) bytes are not printable", () => {
     expect(Internal.isPrintableBuffer(Buffer.from([0x80, 0xff]))).toBe(false);
+  });
+});
+
+describe("SnmpMonitor.toDisplayString", () => {
+  test("printable text comes back trimmed", () => {
+    expect(Internal.toDisplayString(Buffer.from("  switch-a  "))).toBe(
+      "switch-a",
+    );
+    expect(Internal.toDisplayString("  core-router  ")).toBe("core-router");
+  });
+
+  /*
+   * Regression: LLDP/CDP chassis and port IDs arrive as raw MAC bytes.
+   * Decoded as UTF-8 they carry NUL bytes, and Postgres refuses a NUL
+   * inside a jsonb column - which failed the entire NetworkDevice
+   * inventory write, leaving devices with no sysName and no interfaces.
+   */
+  test("a binary MAC buffer renders as hex rather than mojibake", () => {
+    expect(
+      Internal.toDisplayString(
+        Buffer.from([0x02, 0x42, 0x00, 0x00, 0x00, 0x0b]),
+      ),
+    ).toBe("02:42:00:00:00:0b");
+  });
+
+  test("a binary value never yields a string containing NUL", () => {
+    const result: string | undefined = Internal.toDisplayString(
+      Buffer.from([0x02, 0xac, 0x00, 0x00, 0x00, 0xfe]),
+    );
+
+    expect(result).toBeDefined();
+    expect(result).not.toContain(String.fromCharCode(0));
+  });
+
+  test("empty and all-zero buffers yield undefined", () => {
+    expect(Internal.toDisplayString(Buffer.alloc(0))).toBeUndefined();
+    expect(Internal.toDisplayString(Buffer.alloc(6))).toBeUndefined();
+  });
+
+  test.each([
+    ["a number", 42],
+    ["null", null],
+    ["undefined", undefined],
+    ["an object", {}],
+  ])("%s yields undefined", (_label: string, value: unknown) => {
+    expect(Internal.toDisplayString(value)).toBeUndefined();
   });
 });
 
