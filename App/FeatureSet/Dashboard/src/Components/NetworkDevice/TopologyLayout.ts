@@ -763,8 +763,10 @@ export const computeTieredTopologyModel: (
       }
     }
 
-    // Endpoints sit one tier gap under their switch (or at the band top
-    // when the band has no tier-1 node at all).
+    /*
+     * Endpoints sit one tier gap under their switch (or at the band top
+     * when the band has no tier-1 node at all).
+     */
     const endpointsTop: number = hasAnchor
       ? anchorY + TIERED_TIER_GAP
       : anchorY;

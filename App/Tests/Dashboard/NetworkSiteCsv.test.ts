@@ -247,7 +247,11 @@ describe("parseSiteCsv", () => {
       `${HEADER}\nA,unit,,,,\nB,data center,,,,\nC,ACCOUNT TYPE,,,,\n`,
     );
     expect(result.errors).toEqual([]);
-    expect(result.rows.map((row: ParsedSiteRow) => row.siteType)).toEqual([
+    expect(
+      result.rows.map((row: ParsedSiteRow) => {
+        return row.siteType;
+      }),
+    ).toEqual([
       NetworkSiteType.Unit,
       NetworkSiteType.DataCenter,
       NetworkSiteType.AccountType,
@@ -321,10 +325,11 @@ describe("parseSiteCsv", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,Unit,,,,\n,Unit,,,,\nB,Unit,,,,\n`,
     );
-    expect(result.rows.map((row: ParsedSiteRow) => row.name)).toEqual([
-      "A",
-      "B",
-    ]);
+    expect(
+      result.rows.map((row: ParsedSiteRow) => {
+        return row.name;
+      }),
+    ).toEqual(["A", "B"]);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]!.line).toBe(3);
   });

@@ -3,6 +3,7 @@ import EndpointAttachmentUtil, {
   EndpointAttachment,
   EndpointAttachmentResult,
   EndpointExistingRowSnapshot,
+  EndpointIpBinding,
   EndpointUpsertContext,
   EndpointUpsertDecision,
   normalizeMac,
@@ -369,12 +370,12 @@ describe("EndpointAttachmentUtil.computeEndpointAttachments", () => {
 
     expect(forward).toEqual(reversed);
     expect(
-      forward.attachments.map((a) => {
+      forward.attachments.map((a: EndpointAttachment) => {
         return a.macAddress;
       }),
     ).toEqual(["aa:aa:aa:aa:aa:aa", "cc:cc:cc:cc:cc:cc"]);
     expect(
-      forward.ipBindings.map((b) => {
+      forward.ipBindings.map((b: EndpointIpBinding) => {
         return b.macAddress;
       }),
     ).toEqual(["aa:aa:aa:aa:aa:aa", "cc:cc:cc:cc:cc:cc"]);

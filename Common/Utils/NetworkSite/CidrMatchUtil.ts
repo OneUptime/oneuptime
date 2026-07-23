@@ -29,6 +29,14 @@ export class CidrMatchUtil {
   public static readonly MAX_HOSTNAME_PATTERN_LENGTH: number = 253;
 
   /*
+   * Hoisted out of the call sites so the literals are not the object of a
+   * member expression, which `wrap-regex` and Prettier cannot agree on.
+   */
+  private static readonly PREFIX_LENGTH_PATTERN: RegExp = /^\d{1,2}$/;
+
+  private static readonly OCTET_PATTERN: RegExp = /^\d{1,3}$/;
+
+  /*
    * True when the IPv4 address `ip` falls inside `cidr` ('10.0.0.0/8').
    * Prefixes /0 through /32 are supported; a bare address is treated as /32.
    * Any invalid input returns false instead of throwing.
@@ -56,7 +64,7 @@ export class CidrMatchUtil {
     let prefixLength: number = 32;
     if (parts.length === 2) {
       const prefixText: string = parts[1] || "";
-      if (!/^\d{1,2}$/.test(prefixText)) {
+      if (!CidrMatchUtil.PREFIX_LENGTH_PATTERN.test(prefixText)) {
         return false;
       }
       prefixLength = parseInt(prefixText, 10);
@@ -90,7 +98,7 @@ export class CidrMatchUtil {
     }
     if (parts.length === 2) {
       const prefixText: string = parts[1] || "";
-      if (!/^\d{1,2}$/.test(prefixText)) {
+      if (!CidrMatchUtil.PREFIX_LENGTH_PATTERN.test(prefixText)) {
         return false;
       }
       const prefixLength: number = parseInt(prefixText, 10);
@@ -271,7 +279,7 @@ export class CidrMatchUtil {
 
     let value: number = 0;
     for (const octetText of octets) {
-      if (!/^\d{1,3}$/.test(octetText)) {
+      if (!CidrMatchUtil.OCTET_PATTERN.test(octetText)) {
         return null;
       }
       const octet: number = parseInt(octetText, 10);

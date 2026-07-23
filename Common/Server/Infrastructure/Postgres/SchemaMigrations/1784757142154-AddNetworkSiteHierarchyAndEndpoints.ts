@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AddNetworkSiteHierarchyAndEndpoints1784757142154
   implements MigrationInterface
 {
-  name = "AddNetworkSiteHierarchyAndEndpoints1784757142154";
+  public name: string = "AddNetworkSiteHierarchyAndEndpoints1784757142154";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

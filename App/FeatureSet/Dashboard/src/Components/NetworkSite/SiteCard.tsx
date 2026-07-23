@@ -162,8 +162,10 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
       </div>
 
       {isAwaitingData ? (
-        /* Centered in the leftover space so an unreported site reads as a
-         * deliberately quiet card, not as one missing its bottom half. */
+        /*
+         * Centered in the leftover space so an unreported site reads as a
+         * deliberately quiet card, not as one missing its bottom half.
+         */
         <div className="flex flex-1 items-center">
           <p className="text-[11px] leading-4 text-gray-400">
             Nothing reporting yet — no units or devices attached.

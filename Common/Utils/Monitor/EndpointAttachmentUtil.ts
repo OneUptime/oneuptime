@@ -148,6 +148,12 @@ export interface EndpointUpsertDecision {
  */
 const GROUP_ADDRESS_BIT: number = 0x01;
 
+/*
+ * Hoisted out of the call site so the literal is not the object of a member
+ * expression, which `wrap-regex` and Prettier cannot agree on.
+ */
+const MAC_HEX_PATTERN: RegExp = /^[0-9a-f]{12}$/;
+
 type MacCandidate = {
   entry: FdbEntry;
   interfaceIndex: number;
@@ -169,7 +175,7 @@ export default class EndpointAttachmentUtil {
       hex = hex.substring(2);
     }
     hex = hex.replace(/[:\-.\s]/g, "");
-    if (!/^[0-9a-f]{12}$/.test(hex)) {
+    if (!MAC_HEX_PATTERN.test(hex)) {
       return undefined;
     }
     const pairs: Array<string> = [];

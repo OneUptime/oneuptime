@@ -146,11 +146,11 @@ describe("buildPins", () => {
     ];
     const first: BuildPinsResult = buildPins(sites, "us");
     const second: BuildPinsResult = buildPins(sites, "us");
-    expect(first.pins.map((pin: { id: string }) => pin.id)).toEqual([
-      "b",
-      "a",
-      "c",
-    ]);
+    expect(
+      first.pins.map((pin: { id: string }) => {
+        return pin.id;
+      }),
+    ).toEqual(["b", "a", "c"]);
     expect(second).toEqual(first);
   });
 });

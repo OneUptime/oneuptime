@@ -433,8 +433,10 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
 
   if (props.sites.length === 0) {
     return (
-      /* EmptyState ships 13rem of vertical padding for a full-page
-       * placeholder; inside this page's card that reads as a hole. */
+      /*
+       * EmptyState ships 13rem of vertical padding for a full-page
+       * placeholder; inside this page's card that reads as a hole.
+       */
       <div className="-my-28">
         <EmptyState
           id="site-container-empty"

@@ -90,8 +90,10 @@ describe("Network Map page drill transitions", () => {
     const body: string = source
       .split("const changeSite: (siteId: string | null) => void = (")[1]!
       .split("const changeRegion")[0]!;
-    // No-op on an unchanged target, or the fetch effect never re-runs and
-    // the loader is never lowered again.
+    /*
+     * No-op on an unchanged target, or the fetch effect never re-runs and
+     * the loader is never lowered again.
+     */
     expect(body).toContain(squash("if (siteId === currentSiteId) { return; }"));
     // The loader must be raised BEFORE the id, in the same synchronous batch.
     expect(body.indexOf("setIsLoading(true);")).toBeGreaterThan(-1);
@@ -158,11 +160,22 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
    */
   beforeAll(async () => {
     (globalThis as Record<string, unknown>)["window"] = browser;
-    (globalThis as Record<string, unknown>)["sessionStorage"] = {
-      getItem: (): null => {
-        return null;
+    /*
+     * Node 26 ships a real `sessionStorage` global, and plain assignment over
+     * it throws "Cannot redefine property" inside jest's vm context (Node 24,
+     * which has no such global, accepts the assignment — so this only fails on
+     * CI). Defining the property works on both, and is the same route
+     * Common/Tests/UI/Utils/Theme.test.ts already takes for localStorage.
+     */
+    Object.defineProperty(globalThis, "sessionStorage", {
+      value: {
+        getItem: (): null => {
+          return null;
+        },
       },
-    };
+      configurable: true,
+      writable: true,
+    });
 
     drillStateModule = await import(
       "../../FeatureSet/Dashboard/src/Components/NetworkSite/NetworkMapDrillState"

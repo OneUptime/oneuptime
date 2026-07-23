@@ -1,6 +1,11 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import {
+  FILTER_OPERATOR_LABELS,
+  isValueOperator,
+  type FilterOperator,
+} from "./FilterOperator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -34,26 +39,14 @@ export interface FilterChipDropdownOption {
   group?: string | undefined;
 }
 
-/**
- * Filter operator that the chip surfaces to the user.
- * - "is" / "is_not" — match against the selected options
- * - "is_empty" / "is_not_empty" — match rows with no value / any value
- *   (no option selection required)
+/*
+ * Re-exported so the many existing `from "../ResourceOwners/FilterChipDropdown"`
+ * importers keep working; the definitions live in a react-free module because
+ * FacetSelectionState needs the type without pulling React in. See
+ * ./FilterOperator.
  */
-export type FilterOperator = "is" | "is_not" | "is_empty" | "is_not_empty";
-
-export const FILTER_OPERATOR_LABELS: Record<FilterOperator, string> = {
-  is: "is",
-  is_not: "is not",
-  is_empty: "is empty",
-  is_not_empty: "is not empty",
-};
-
-export const isValueOperator: (op: FilterOperator) => boolean = (
-  op: FilterOperator,
-): boolean => {
-  return op === "is" || op === "is_not";
-};
+export { FILTER_OPERATOR_LABELS, isValueOperator };
+export type { FilterOperator };
 
 export interface ComponentProps {
   label: string;

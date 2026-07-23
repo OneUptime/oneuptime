@@ -60,8 +60,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @CrudApiEndpoint(new Route("/network-endpoint"))
 @Index(["projectId", "attachedNetworkDeviceId"])
-// A MAC address is unique per project, but only among live rows - soft-deleted
-// endpoints must not block re-discovery of the same MAC.
+/*
+ * A MAC address is unique per project, but only among live rows - soft-deleted
+ * endpoints must not block re-discovery of the same MAC.
+ */
 @Index(["projectId", "macAddress"], {
   unique: true,
   where: '"deletedAt" IS NULL',
