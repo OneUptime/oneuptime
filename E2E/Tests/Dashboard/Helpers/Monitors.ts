@@ -47,6 +47,31 @@ const monitorNameInputSelector: string =
 const submitButtonTestId: string = "Create Monitor";
 
 /*
+ * Matches a monitor id (a uuid) in the view-monitor URL.
+ *
+ * It has to be the full uuid shape rather than a loose `[a-f0-9-]+`: the form
+ * lives at /monitors/create, and "c" is a valid `[a-f0-9-]` run — so a loose
+ * pattern matches the create page too. That makes the "we navigated to the
+ * monitor" assertion pass while still on the form, and makes the extracted
+ * monitor id the string "c".
+ */
+const uuidPattern: string =
+  "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+const monitorIdInUrlRegex: RegExp = new RegExp(
+  `/monitors/(${uuidPattern})`,
+  "i",
+);
+
+type MonitorViewUrlRegexFunction = (projectId: string) => RegExp;
+
+const monitorViewUrlRegex: MonitorViewUrlRegexFunction = (
+  projectId: string,
+): RegExp => {
+  return new RegExp(`/dashboard/${projectId}/monitors/${uuidPattern}`, "i");
+};
+
+/*
  * Selects the "Every 5 Minutes" monitoring interval on the interval step.
  * 5 minutes is available for every probeable type (the every-1/2-minute
  * options are filtered out for SSL / Synthetic / Custom-code monitors).
@@ -123,14 +148,11 @@ export const createMonitor: CreateMonitorFunction = async (data: {
   }
 
   // Success: navigated to the monitor view page.
-  const monitorViewUrlRegex: RegExp = new RegExp(
-    `/dashboard/${data.projectId}/monitors/[a-f0-9-]+`,
-  );
-  await expect(page).toHaveURL(monitorViewUrlRegex, { timeout: 60000 });
+  await expect(page).toHaveURL(monitorViewUrlRegex(data.projectId), {
+    timeout: 60000,
+  });
 
-  const match: RegExpMatchArray | null = page
-    .url()
-    .match(/\/monitors\/([a-f0-9-]+)/);
+  const match: RegExpMatchArray | null = page.url().match(monitorIdInUrlRegex);
   return match ? match[1]! : "";
 };
 
@@ -337,13 +359,10 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
 
   await page.getByTestId(submitButtonTestId).click();
 
-  const monitorViewUrlRegex: RegExp = new RegExp(
-    `/dashboard/${data.projectId}/monitors/[a-f0-9-]+`,
-  );
-  await expect(page).toHaveURL(monitorViewUrlRegex, { timeout: 60000 });
+  await expect(page).toHaveURL(monitorViewUrlRegex(data.projectId), {
+    timeout: 60000,
+  });
 
-  const match: RegExpMatchArray | null = page
-    .url()
-    .match(/\/monitors\/([a-f0-9-]+)/);
+  const match: RegExpMatchArray | null = page.url().match(monitorIdInUrlRegex);
   return match ? match[1]! : "";
 };
