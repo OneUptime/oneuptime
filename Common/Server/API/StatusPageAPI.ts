@@ -4098,9 +4098,9 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException("Status Page not found");
     }
 
-    const subscriberId: ObjectID = new ObjectID(
-      req.params["subscriberId"] as string,
-    );
+    const subscriberIdParam: string = req.params["subscriberId"] as string;
+    ObjectID.validateUUID(subscriberIdParam);
+    const subscriberId: ObjectID = new ObjectID(subscriberIdParam);
 
     const statusPageSubscriber: StatusPageSubscriber | null =
       await StatusPageSubscriberService.findOneBy({
