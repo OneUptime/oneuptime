@@ -4,6 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import ProbeUtil from "../../Utils/Probe";
 import Route from "Common/Types/API/Route";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Label from "Common/Models/DatabaseModels/Label";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -137,6 +138,23 @@ const NetworkDevices: FunctionComponent<
           },
           {
             field: {
+              site: {
+                name: true,
+              },
+            },
+            title: "Site",
+            type: FieldType.Entity,
+            filterEntityType: NetworkSite,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
               labels: {
                 name: true,
                 color: true,
@@ -215,6 +233,22 @@ const NetworkDevices: FunctionComponent<
             }),
             required: true,
             placeholder: "Probe",
+          },
+          {
+            field: {
+              site: true,
+            },
+            title: "Site",
+            description:
+              "The network site this device belongs to. Site health rolls up from its devices. Assignment rules can also set this automatically.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSite,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Site (optional)",
           },
           ...getSnmpConfigFormFields(),
         ]}
@@ -321,6 +355,38 @@ const NetworkDevices: FunctionComponent<
                     </div>
                   )}
                 </div>
+              );
+            },
+          },
+          {
+            field: {
+              site: {
+                name: true,
+                _id: true,
+              },
+            },
+            title: "Site",
+            type: FieldType.Entity,
+            hideOnMobile: true,
+            getElement: (item: NetworkDevice): ReactElement => {
+              if (!item.site?.name || !item.site?._id) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+
+              const route: Route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_SITE_VIEW] as Route,
+                {
+                  modelId: new ObjectID(item.site._id.toString()),
+                },
+              );
+
+              return (
+                <AppLink
+                  to={route}
+                  className="text-sm text-gray-900 hover:underline"
+                >
+                  {item.site.name}
+                </AppLink>
               );
             },
           },

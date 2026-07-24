@@ -12,17 +12,17 @@ export interface ComponentProps {
   modelId: ObjectID;
 }
 
-const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
+const NetworkSiteViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <SideMenu>
-      <SideMenuSection title="Device">
+      <SideMenuSection title="Site">
         <SideMenuItem
           link={{
             title: "Overview",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
+              RouteMap[PageMap.NETWORK_SITE_VIEW] as Route,
               { modelId: props.modelId },
             ),
           }}
@@ -30,62 +30,52 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Interfaces",
+            title: "Devices",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_VIEW_INTERFACES] as Route,
+              RouteMap[PageMap.NETWORK_SITE_VIEW_DEVICES] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Bolt}
+          icon={IconProp.Signal}
         />
         <SideMenuItem
           link={{
-            title: "Metrics",
+            title: "Child Sites",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_VIEW_METRICS] as Route,
+              RouteMap[PageMap.NETWORK_SITE_VIEW_CHILD_SITES] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Graph}
+          icon={IconProp.SquareStack}
         />
         <SideMenuItem
           link={{
-            title: "Traffic",
+            title: "Endpoints",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_VIEW_TRAFFIC] as Route,
+              RouteMap[PageMap.NETWORK_SITE_VIEW_ENDPOINTS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.ArrowUpDown}
+          icon={IconProp.Squares}
         />
         <SideMenuItem
           link={{
-            title: "Monitors",
+            title: "Status Timeline",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_VIEW_MONITORS] as Route,
+              RouteMap[PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.AltGlobe}
+          icon={IconProp.List}
         />
       </SideMenuSection>
 
       <SideMenuSection title="Manage">
         <SideMenuItem
           link={{
-            title: "Owners",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_VIEW_OWNERS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Team}
-        />
-        <SideMenuItem
-          link={{
             title: "Settings",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_VIEW_SETTINGS] as Route,
+              RouteMap[PageMap.NETWORK_SITE_VIEW_SETTINGS] as Route,
               { modelId: props.modelId },
             ),
           }}
@@ -93,9 +83,9 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Delete Device",
+            title: "Delete Site",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_DEVICE_VIEW_DELETE] as Route,
+              RouteMap[PageMap.NETWORK_SITE_VIEW_DELETE] as Route,
               { modelId: props.modelId },
             ),
           }}
@@ -107,4 +97,4 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default NetworkDeviceSideMenu;
+export default NetworkSiteViewSideMenu;

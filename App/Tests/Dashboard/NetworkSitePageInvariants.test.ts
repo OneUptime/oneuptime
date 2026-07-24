@@ -41,7 +41,13 @@ function readSource(...relativeParts: Array<string>): string {
  * site reads "Not pinned on the map".
  */
 describe("NetworkSite View page selects every column it renders", () => {
-  const source: string = readSource("Pages", "NetworkSite", "View.tsx");
+  // The site detail page moved to View/Index.tsx when it grew sub-pages.
+  const source: string = readSource(
+    "Pages",
+    "NetworkSite",
+    "View",
+    "Index.tsx",
+  );
 
   test("asks the API for longitude", () => {
     expect(source).toContain(squash("selectMoreFields: { longitude: true, },"));
@@ -233,7 +239,16 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
    * bare route restores the dead link with the suite still green.
    */
   test("the Network Map menu entry is wired to that route, not the bare one", () => {
-    const source: string = readSource("Pages", "NetworkSite", "SideMenu.tsx");
+    /*
+     * The map entry now lives in the shared Network side menu (both the
+     * Devices and Sites sections render it), so that is where the wiring
+     * must hold.
+     */
+    const source: string = readSource(
+      "Components",
+      "Network",
+      "NetworkSideMenu.tsx",
+    );
 
     const mapEntry: RegExpMatchArray | null = source.match(
       /title: "Network Map", to: ([^,]+?),/,

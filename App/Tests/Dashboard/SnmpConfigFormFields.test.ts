@@ -454,13 +454,21 @@ describe("getSnmpConfigFormFields — switching version inside an open form", ()
  * against the SnmpConfigModelFields shape both models satisfy, so it serves
  * both. It had the same drift — a hand-rolled block offering V3 with no v3
  * fields behind it.
+ *
+ * View/Index.tsx (the device Overview) is deliberately NOT in this list
+ * anymore: SNMP credentials now live only in View/Settings.tsx, and the
+ * Overview's edit form carries no SNMP fields at all. A dedicated test
+ * below pins that instead — the drift to catch there is an SNMP field
+ * sneaking back outside the helper.
  */
 const SNMP_FORM_PAGES: Array<string> = [
   "Devices.tsx",
   "Discovery.tsx",
-  "View/Index.tsx",
   "View/Settings.tsx",
 ];
+
+// Pages that must not carry any SNMP form at all.
+const SNMP_FREE_PAGES: Array<string> = ["View/Index.tsx"];
 
 function readNetworkDevicePage(relativePath: string): string {
   return fs.readFileSync(
@@ -508,6 +516,23 @@ describe("NetworkDevice SNMP forms route through getSnmpConfigFormFields", () =>
       expect(readNetworkDevicePage(page)).not.toContain(
         "FormFieldSchemaType.Password",
       );
+    },
+  );
+});
+
+describe("NetworkDevice pages that must stay SNMP-free", () => {
+  /*
+   * The device Overview's edit form is basic identity only — SNMP
+   * credentials are edited exclusively in Settings. If an snmp field key
+   * appears here, either the form grew a hand-rolled SNMP block again or
+   * credentials are being rendered outside the one page that owns them.
+   */
+  test.each(SNMP_FREE_PAGES)(
+    "%s carries no SNMP form fields",
+    (page: string) => {
+      const source: string = readNetworkDevicePage(page);
+      expect(source).not.toContain("...getSnmpConfigFormFields(");
+      expect(source).not.toMatch(/snmp(Version|CommunityString|V3|Port)/);
     },
   );
 });

@@ -120,7 +120,12 @@ export const KubernetesRoutePath: Dictionary<string> = {
 };
 
 export const NetworkDeviceRoutePath: Dictionary<string> = {
+  [PageMap.NETWORK_OVERVIEW]: `overview`,
   [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: `${RouteParams.ModelID}/interfaces`,
+  [PageMap.NETWORK_DEVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]: `${RouteParams.ModelID}/traffic`,
+  [PageMap.NETWORK_DEVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
   [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.NETWORK_DEVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.NETWORK_DEVICE_ARCHIVED]: `archived`,
@@ -135,6 +140,12 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
 
 export const NetworkSiteRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_SITE_VIEW]: `view/${RouteParams.ModelID}`,
+  [PageMap.NETWORK_SITE_VIEW_DEVICES]: `view/${RouteParams.ModelID}/devices`,
+  [PageMap.NETWORK_SITE_VIEW_CHILD_SITES]: `view/${RouteParams.ModelID}/child-sites`,
+  [PageMap.NETWORK_SITE_VIEW_ENDPOINTS]: `view/${RouteParams.ModelID}/endpoints`,
+  [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: `view/${RouteParams.ModelID}/status-timeline`,
+  [PageMap.NETWORK_SITE_VIEW_SETTINGS]: `view/${RouteParams.ModelID}/settings`,
+  [PageMap.NETWORK_SITE_VIEW_DELETE]: `view/${RouteParams.ModelID}/delete`,
   [PageMap.NETWORK_SITE_MAP]: `map`,
   [PageMap.NETWORK_SITE_ASSIGNMENT_RULES]: `assignment-rules`,
   [PageMap.NETWORK_SITE_LINKS]: `links`,
@@ -2427,9 +2438,39 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/network-devices`,
   ),
 
+  [PageMap.NETWORK_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_OVERVIEW]
+    }`,
+  ),
+
   [PageMap.NETWORK_DEVICE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_INTERFACES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_MONITORS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_MONITORS]
     }`,
   ),
 
@@ -2506,6 +2547,42 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_SITE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-sites/${
       NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_DEVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_DEVICES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_CHILD_SITES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_CHILD_SITES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_ENDPOINTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_ENDPOINTS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_DELETE]
     }`,
   ),
 

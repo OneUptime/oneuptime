@@ -1,24 +1,27 @@
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageComponentProps from "../PageComponentProps";
-import AppLink from "../../Components/AppLink/AppLink";
-import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageComponentProps from "../../PageComponentProps";
+import SiteStatusHero from "../../../Components/NetworkSite/SiteStatusHero";
+import MonitorStatusElement from "../../../Components/MonitorStatus/MonitorStatusElement";
 import Route from "Common/Types/API/Route";
-import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import OneUptimeDate from "Common/Types/Date";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
+/*
+ * Site Overview — health hero on top (rollup status, 30-day uptime,
+ * device counts), then the site's identity and place in the hierarchy.
+ * Devices, child sites, endpoints, and status history live on their own
+ * sub-pages in the side menu.
+ */
 const NetworkSiteView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -42,6 +45,8 @@ const NetworkSiteView: FunctionComponent<
         />
       </div>
 
+      <SiteStatusHero modelId={modelId} />
+
       <CardModelDetail<NetworkSite>
         name="Network Site Details"
         cardProps={{
@@ -59,6 +64,15 @@ const NetworkSiteView: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Unit 1042 - Springfield",
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Flagship location — two switches and a firewall.",
           },
           {
             field: {
@@ -136,6 +150,16 @@ const NetworkSiteView: FunctionComponent<
               },
               title: "Name",
               fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkSite): boolean => {
+                return Boolean(item.description);
+              },
             },
             {
               field: {
@@ -225,202 +249,6 @@ const NetworkSiteView: FunctionComponent<
               },
             },
           ],
-        }}
-      />
-
-      <ModelTable<NetworkSite>
-        modelType={NetworkSite}
-        id="network-site-children-table"
-        userPreferencesKey="network-site-children-table"
-        query={{ parentSiteId: modelId }}
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={false}
-        isViewable={true}
-        showRefreshButton={true}
-        name="Child Sites"
-        cardProps={{
-          title: "Child Sites",
-          description: "Sites nested directly under this one.",
-        }}
-        noItemsMessage="This site has no child sites."
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (item: NetworkSite): ReactElement => {
-              const route: Route = RouteUtil.populateRouteParams(
-                RouteMap[PageMap.NETWORK_SITE_VIEW] as Route,
-                {
-                  modelId: new ObjectID(item._id as string),
-                },
-              );
-              return (
-                <AppLink
-                  to={route}
-                  className="text-sm font-medium text-gray-900 hover:underline"
-                >
-                  {(item.name as string) || "—"}
-                </AppLink>
-              );
-            },
-          },
-          {
-            field: {
-              siteType: true,
-            },
-            title: "Site Type",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              currentMonitorStatus: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Status",
-            type: FieldType.Entity,
-            getElement: (item: NetworkSite): ReactElement => {
-              if (!item.currentMonitorStatus) {
-                return <span className="text-sm text-gray-400">No Data</span>;
-              }
-              return (
-                <MonitorStatusElement
-                  monitorStatus={item.currentMonitorStatus}
-                  shouldAnimate={false}
-                />
-              );
-            },
-          },
-        ]}
-        onViewPage={(item: NetworkSite): Promise<Route> => {
-          return Promise.resolve(
-            new Route(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.NETWORK_SITE_VIEW] as Route,
-                {
-                  modelId: item._id,
-                },
-              ).toString(),
-            ),
-          );
-        }}
-      />
-
-      <ModelTable<NetworkDevice>
-        modelType={NetworkDevice}
-        id="network-site-devices-table"
-        userPreferencesKey="network-site-devices-table"
-        query={{ siteId: modelId }}
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={false}
-        isViewable={true}
-        showRefreshButton={true}
-        name="Devices in this Site"
-        cardProps={{
-          title: "Devices in this Site",
-          description:
-            "Network devices assigned to this site, directly or by an assignment rule.",
-        }}
-        noItemsMessage="No devices are assigned to this site yet. Assign them from the device settings, or set up assignment rules."
-        filters={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
-        ]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Element,
-            getElement: (item: NetworkDevice): ReactElement => {
-              const route: Route = RouteUtil.populateRouteParams(
-                RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
-                {
-                  modelId: new ObjectID(item._id as string),
-                },
-              );
-              return (
-                <AppLink
-                  to={route}
-                  className="text-sm font-medium text-gray-900 hover:underline"
-                >
-                  {(item.name as string) || "—"}
-                </AppLink>
-              );
-            },
-          },
-          {
-            field: {
-              hostname: true,
-            },
-            title: "Hostname",
-            type: FieldType.Text,
-            hideOnMobile: true,
-          },
-          {
-            field: {
-              vendor: true,
-            },
-            title: "Vendor",
-            type: FieldType.Text,
-            hideOnMobile: true,
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Seen",
-            type: FieldType.Element,
-            getElement: (item: NetworkDevice): ReactElement => {
-              if (!item.lastSeenAt) {
-                return <span className="text-sm text-gray-400">Never</span>;
-              }
-
-              const lastSeen: Date = OneUptimeDate.fromString(item.lastSeenAt);
-
-              return (
-                <span
-                  className="text-sm text-gray-600"
-                  title={OneUptimeDate.getDateAsLocalFormattedString(lastSeen)}
-                >
-                  {OneUptimeDate.fromNow(lastSeen)}
-                </span>
-              );
-            },
-          },
-        ]}
-        onViewPage={(item: NetworkDevice): Promise<Route> => {
-          return Promise.resolve(
-            new Route(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
-                {
-                  modelId: item._id,
-                },
-              ).toString(),
-            ),
-          );
         }}
       />
     </Fragment>
