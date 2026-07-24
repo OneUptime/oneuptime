@@ -1,7 +1,15 @@
 import fs from "fs";
 import os from "os";
 
-const UNLIMITED_CGROUP_THRESHOLD_BYTES: number = 1 << 60; // treat absurdly large cgroup limit as "unlimited"
+/*
+ * Treat an absurdly large cgroup limit as "unlimited". Must be `2 ** 60`, not
+ * `1 << 60`: JavaScript's `<<` truncates to 32 bits and takes the shift count
+ * mod 32, so `1 << 60` is `1 << 28` = 256 MiB. That made every container with
+ * a limit of 256 MiB or more look unlimited, so getCgroupAvailableMemoryInBytes
+ * returned null and the container-aware helper silently fell back to the whole
+ * host's free memory — the exact OOM-kill case it exists to prevent.
+ */
+const UNLIMITED_CGROUP_THRESHOLD_BYTES: number = 2 ** 60;
 
 export default class MemoryUtil {
   public static getHostFreeMemoryInBytes(): number {

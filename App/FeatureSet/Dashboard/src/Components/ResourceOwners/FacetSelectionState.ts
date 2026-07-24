@@ -1,4 +1,4 @@
-import { FilterOperator } from "./FilterOperator";
+import { FilterOperator } from "./FilterChipDropdownTypes";
 import { JSONObject } from "Common/Types/JSON";
 
 /**

@@ -16,10 +16,20 @@ const projectDashboardUrlRegex: RegExp =
 type RegisterAndCreateProjectFunction = (data: {
   page: Page;
   projectNamePrefix: string;
+  /*
+   * Only used when billing is enabled: selects this plan by its visible name
+   * (e.g. "Growth") instead of whichever plan happens to unlock submit first.
+   * Specs that touch plan-gated features need this.
+   */
+  preferredPlanName?: string | undefined;
 }) => Promise<string>;
 
 export const registerAndCreateProject: RegisterAndCreateProjectFunction =
-  async (data: { page: Page; projectNamePrefix: string }): Promise<string> => {
+  async (data: {
+    page: Page;
+    projectNamePrefix: string;
+    preferredPlanName?: string | undefined;
+  }): Promise<string> => {
     const page: Page = data.page;
 
     let pageResult: Response | null = await page.goto(
@@ -82,7 +92,11 @@ export const registerAndCreateProject: RegisterAndCreateProjectFunction =
     if (IS_BILLING_ENABLED) {
       await modalSubmitButton.click();
 
-      await selectProjectPlan({ page, submitButton: modalSubmitButton });
+      await selectProjectPlan({
+        page,
+        submitButton: modalSubmitButton,
+        preferredPlanName: data.preferredPlanName,
+      });
 
       await modalSubmitButton.click();
     } else {
