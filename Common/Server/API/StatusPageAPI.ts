@@ -4098,6 +4098,12 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException("Status Page not found");
     }
 
+    try {
+      ObjectID.validateUUID(req.params["subscriberId"] as string);
+    } catch (err) {
+      throw new BadDataException("Invalid subscriber ID format");
+    }
+
     const subscriberId: ObjectID = new ObjectID(
       req.params["subscriberId"] as string,
     );
