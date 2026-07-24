@@ -281,6 +281,17 @@ test.describe("Monitor Creation - All Types", () => {
     ctx.projectId = await registerAndCreateProject({
       page: ctx.page,
       projectNamePrefix: "E2E Monitors Project",
+      /*
+       * This suite creates one monitor of every type in a single project. On
+       * the Free plan, non-Manual monitors are capped
+       * (AllowedActiveMonitorCountInFreePlan), so once the suite passes that
+       * count the remaining creates fail with "reached the maximum allowed
+       * monitor limit" and the wizard stalls on /monitors/create. That cap
+       * only applies to the Free plan, so when billing is enabled land the
+       * project on a paid plan — the same reason MonitorIncidentOnCall picks
+       * Growth. With billing disabled there is no limit and no plan step.
+       */
+      preferredPlanName: IS_BILLING_ENABLED ? "Growth" : undefined,
     });
   });
 
@@ -291,20 +302,6 @@ test.describe("Monitor Creation - All Types", () => {
   for (const recipe of recipes) {
     test(`should create a ${recipe.label} monitor`, async () => {
       test.setTimeout(120000);
-      /*
-       * Port creation reliably stalls on /monitors/create in the billing job
-       * only — every other type (including the other probeable types) creates
-       * fine there, and Port itself creates fine in the self-hosted job and
-       * locally. The final "Create Monitor" submit does nothing even after a
-       * 90s retry loop, so it is not a transient timing stall. The cause needs
-       * a Stripe/billing environment to reproduce and is tracked separately;
-       * quarantining just this one case here keeps the strict success
-       * assertion honest for every other type instead of masking all of them.
-       */
-      test.skip(
-        IS_BILLING_ENABLED && recipe.label === "Port",
-        "Port monitor creation is broken in the billing environment (tracked separately); do not mask it with a loose assertion.",
-      );
       await createMonitor({
         page: ctx.page,
         projectId: ctx.projectId,
