@@ -4072,6 +4072,7 @@ export default class StatusPageAPI extends BaseAPI<
   public async getSubscriber(
     req: ExpressRequest,
   ): Promise<StatusPageSubscriber> {
+    ObjectID.validateUUID(req.params["statusPageId"] as string);
     const objectId: ObjectID = new ObjectID(
       req.params["statusPageId"] as string,
     );
@@ -4098,6 +4099,7 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException("Status Page not found");
     }
 
+    ObjectID.validateUUID(req.params["subscriberId"] as string);
     const subscriberId: ObjectID = new ObjectID(
       req.params["subscriberId"] as string,
     );
