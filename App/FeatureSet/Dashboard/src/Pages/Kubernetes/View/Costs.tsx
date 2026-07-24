@@ -238,10 +238,10 @@ const KubernetesClusterCosts: FunctionComponent<
     <div className="flex h-48 flex-col items-center justify-center gap-2 text-sm text-gray-400">
       <div>No cost data reported for the selected time range.</div>
       <div>
-        Cost data is shipped by the OneUptime Kubernetes agent&apos;s cost
-        poller — enable it with <code>cost.enabled=true</code> in the
-        kubernetes-agent Helm chart, pointed at your OpenCost or Kubecost
-        service.
+        Cost data is shipped by the OneUptime Kubernetes agent — enable it with{" "}
+        <code>cost.enabled=true</code> in the kubernetes-agent Helm chart. That
+        alone is a complete install; if you already run OpenCost or Kubecost,
+        set <code>cost.engine.url</code> to it instead.
       </div>
     </div>
   );

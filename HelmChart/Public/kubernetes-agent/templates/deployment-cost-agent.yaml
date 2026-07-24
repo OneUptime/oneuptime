@@ -1,7 +1,4 @@
 {{- if and .Values.cost.enabled .Values.cost.agent.enabled }}
-{{- if not .Values.cost.engine.url }}
-{{- fail "cost.enabled requires cost.engine.url — point it at your OpenCost or Kubecost service, e.g. http://opencost.opencost.svc.cluster.local:9003" }}
-{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -56,8 +53,10 @@ spec:
                   key: api-key
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName | quote }}
+            # The external engine when cost.engine.url is set, else the
+            # bundled OpenCost Service.
             - name: COST_ENGINE_URL
-              value: {{ .Values.cost.engine.url | quote }}
+              value: {{ include "kubernetes-agent.costEngineUrl" . | quote }}
             {{- if .Values.cost.engine.allocationPath }}
             - name: COST_ALLOCATION_PATH
               value: {{ .Values.cost.engine.allocationPath | quote }}

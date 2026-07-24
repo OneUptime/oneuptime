@@ -272,7 +272,9 @@ data:
                 - targets:
                     # Prometheus targets must be bare host:port — strip
                     # any scheme/path (metrics_path defaults to /metrics).
-                    - {{ (default .Values.cost.engine.url .Values.cost.metrics.endpoint) | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | trimSuffix "/" | quote }}
+                    # Resolution order: explicit metrics endpoint, else
+                    # the engine URL (external or bundled OpenCost).
+                    - {{ (default (include "kubernetes-agent.costEngineUrl" .) .Values.cost.metrics.endpoint) | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | trimSuffix "/" | quote }}
               metric_relabel_configs:
                 - source_labels: [__name__]
                   regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"

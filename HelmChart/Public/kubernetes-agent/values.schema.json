@@ -534,7 +534,7 @@
     },
     "cost": {
       "type": "object",
-      "description": "Kubernetes cost observability. Polls an in-cluster cost engine (OpenCost / Kubecost) for per-workload cost allocations and scrapes its cost metrics. Off by default because it needs a cost engine to talk to.",
+      "description": "Kubernetes cost observability. `cost.enabled=true` alone is a complete install: the chart bundles OpenCost plus a minimal dedicated Prometheus. Set cost.engine.url to use an existing OpenCost/Kubecost instead (nothing is bundled then).",
       "properties": {
         "enabled": { "type": "boolean" },
         "engine": {
@@ -542,11 +542,104 @@
           "properties": {
             "url": {
               "type": "string",
-              "description": "Base URL of the cost engine. Required when cost.enabled. Example: http://opencost.opencost.svc.cluster.local:9003"
+              "description": "Base URL of an EXISTING cost engine. Empty (default) bundles OpenCost + a minimal Prometheus. Example: http://opencost.opencost.svc.cluster.local:9003"
             },
             "allocationPath": {
               "type": "string",
               "description": "Explicit Allocation API path. Empty auto-detects (/model/allocation, /allocation/compute, /allocation)."
+            }
+          },
+          "additionalProperties": false
+        },
+        "opencost": {
+          "type": "object",
+          "description": "Bundled OpenCost engine. Deployed only when cost.enabled is true and cost.engine.url is empty.",
+          "properties": {
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": { "type": "string" },
+                "tag": { "type": "string" },
+                "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+              },
+              "additionalProperties": false
+            },
+            "logLevel": { "type": "string" },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object",
+                  "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+                  "additionalProperties": false
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "customPricing": {
+              "type": "object",
+              "description": "Rate card for on-prem / bare-metal clusters. All values are USD per resource-HOUR.",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "cpuPerCoreHour": { "type": "string" },
+                "spotCpuPerCoreHour": { "type": "string" },
+                "ramPerGiBHour": { "type": "string" },
+                "spotRamPerGiBHour": { "type": "string" },
+                "gpuPerHour": { "type": "string" },
+                "storagePerGBHour": { "type": "string" },
+                "zoneNetworkEgressPerGB": { "type": "string" },
+                "regionNetworkEgressPerGB": { "type": "string" },
+                "internetNetworkEgressPerGB": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "prometheus": {
+          "type": "object",
+          "description": "Minimal dedicated Prometheus for the bundled OpenCost (usage/price history). Deployed only alongside the bundled engine.",
+          "properties": {
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": { "type": "string" },
+                "tag": { "type": "string" },
+                "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+              },
+              "additionalProperties": false
+            },
+            "retention": { "type": "string" },
+            "scrapeInterval": { "type": "string" },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object",
+                  "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+                  "additionalProperties": false
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "persistence": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "size": { "type": "string" },
+                "storageClass": { "type": "string" }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false

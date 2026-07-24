@@ -1,0 +1,138 @@
+{{- if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}
+{{- if .Values.cost.opencost.customPricing.enabled }}
+# Rate card for the bundled OpenCost. OpenCost reads this ConfigMap by
+# name (PRICING_CONFIGMAP_NAME) via the Kubernetes API — flat string
+# keys, USD per resource-hour, mirroring cost-model's default.json.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-opencost-pricing
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: opencost
+data:
+  description: "Custom pricing configured via the oneuptime/kubernetes-agent chart (cost.opencost.customPricing)."
+  provider: "custom"
+  CPU: {{ .Values.cost.opencost.customPricing.cpuPerCoreHour | quote }}
+  spotCPU: {{ .Values.cost.opencost.customPricing.spotCpuPerCoreHour | quote }}
+  RAM: {{ .Values.cost.opencost.customPricing.ramPerGiBHour | quote }}
+  spotRAM: {{ .Values.cost.opencost.customPricing.spotRamPerGiBHour | quote }}
+  GPU: {{ .Values.cost.opencost.customPricing.gpuPerHour | quote }}
+  storage: {{ .Values.cost.opencost.customPricing.storagePerGBHour | quote }}
+  zoneNetworkEgress: {{ .Values.cost.opencost.customPricing.zoneNetworkEgressPerGB | quote }}
+  regionNetworkEgress: {{ .Values.cost.opencost.customPricing.regionNetworkEgressPerGB | quote }}
+  internetNetworkEgress: {{ .Values.cost.opencost.customPricing.internetNetworkEgressPerGB | quote }}
+---
+{{- end }}
+# Bundled OpenCost (https://opencost.io, Apache-2.0/CNCF) — the pricing
+# and allocation engine behind cost.enabled. It watches the cluster via
+# the agent's ServiceAccount, prices nodes/volumes from the cloud
+# provider's public list prices (or the rate card above), and serves the
+# Allocation API the cost agent polls plus the /metrics endpoint the
+# deployment collector scrapes. API-only: no UI container.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-opencost
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: opencost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "kubernetes-agent.selectorLabels" . | nindent 6 }}
+      component: opencost
+  template:
+    metadata:
+      labels:
+        {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
+        component: opencost
+    spec:
+      serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      # No privileged containers, no hostPath, no hostNetwork — GKE
+      # Autopilot compatible. OpenCost only needs API reads (RBAC) and
+      # HTTP to its Prometheus.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: opencost
+          image: "{{ .Values.cost.opencost.image.repository }}:{{ .Values.cost.opencost.image.tag }}"
+          imagePullPolicy: {{ .Values.cost.opencost.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: PROMETHEUS_SERVER_ENDPOINT
+              value: "http://{{ include "kubernetes-agent.fullname" . }}-cost-prometheus.{{ .Release.Namespace }}.svc.cluster.local:9090"
+            - name: CLUSTER_ID
+              value: {{ .Values.clusterName | quote }}
+            - name: API_PORT
+              value: "9003"
+            - name: LOG_LEVEL
+              value: {{ .Values.cost.opencost.logLevel | quote }}
+            # Cloud billing-export integration is a separate, credentialed
+            # feature — off; list-price node/PV pricing works without it.
+            - name: CLOUD_COST_ENABLED
+              value: "false"
+            {{- if .Values.cost.opencost.customPricing.enabled }}
+            - name: CONFIG_PATH
+              value: "/tmp/custom-config"
+            - name: PRICING_CONFIGMAP_NAME
+              value: {{ include "kubernetes-agent.fullname" . }}-opencost-pricing
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 9003
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          {{- if .Values.cost.opencost.customPricing.enabled }}
+          volumeMounts:
+            - name: custom-configs
+              mountPath: /tmp/custom-config
+          {{- end }}
+          resources:
+            {{- toYaml .Values.cost.opencost.resources | nindent 12 }}
+      {{- if .Values.cost.opencost.customPricing.enabled }}
+      volumes:
+        - name: custom-configs
+          emptyDir: {}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-opencost
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: opencost
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "kubernetes-agent.selectorLabels" . | nindent 4 }}
+    component: opencost
+  ports:
+    - name: http
+      port: 9003
+      targetPort: http
+      protocol: TCP
+{{- end }}

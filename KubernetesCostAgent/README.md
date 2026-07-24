@@ -33,7 +33,7 @@ OneUptime stores the allocations in ClickHouse (`KubernetesCostAllocation`) and 
 
 ## Deployment
 
-The agent ships as part of the `oneuptime/kubernetes-agent` Helm chart — set `cost.enabled=true` and point `cost.engine.url` at your OpenCost/Kubecost service (or let the chart deploy OpenCost for you). See the chart's `values.yaml` and the OneUptime docs page "Kubernetes Cost Observability".
+The agent ships as part of the `oneuptime/kubernetes-agent` Helm chart — `--set cost.enabled=true` is a complete install: the chart bundles OpenCost (plus the minimal Prometheus it needs) and wires this poller to it automatically. Already running Kubecost or OpenCost? Set `cost.engine.url` to its Service instead and nothing is bundled. See the chart's `values.yaml` and the OneUptime docs page "Kubernetes Cost Observability".
 
 ## Development
 
