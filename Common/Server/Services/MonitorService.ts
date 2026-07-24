@@ -14,6 +14,7 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorStatusService from "./MonitorStatusService";
+import NetworkSiteService from "./NetworkSiteService";
 import MonitorStatusTimelineService, {
   MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
   MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
@@ -1744,6 +1745,27 @@ ${createdItem.description?.trim() || "No description provided."}
         projectId: projectId,
         monitorId: monitorId,
       });
+    }
+
+    /*
+     * Bridge to the network-site rollup engine: stamp the NetworkDevices
+     * these monitors poll and refresh their sites' worst-of status.
+     * Resilient by contract - a rollup failure can never break a monitor
+     * status change (onMonitorStatusChanged also catches internally).
+     */
+    try {
+      await NetworkSiteService.onMonitorStatusChanged({
+        projectId: projectId,
+        monitorIds: monitorIds,
+        monitorStatusId: monitorStatusId,
+      });
+    } catch (err) {
+      logger.error(
+        `changeMonitorStatus: failed to update network site rollups: ${err}`,
+        {
+          projectId: projectId.toString(),
+        } as LogAttributes,
+      );
     }
   }
 

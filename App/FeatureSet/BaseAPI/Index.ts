@@ -107,6 +107,7 @@ import UserAPI from "Common/Server/API/UserAPI";
 import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
+import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import ApiKeyPermissionService, {
@@ -1441,6 +1442,36 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import NetworkDeviceDiscoveryScanService, {
   Service as NetworkDeviceDiscoveryScanServiceType,
 } from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
+
+// NetworkSite
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkSiteService, {
+  Service as NetworkSiteServiceType,
+} from "Common/Server/Services/NetworkSiteService";
+
+// NetworkEndpoint
+import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
+import NetworkEndpointService, {
+  Service as NetworkEndpointServiceType,
+} from "Common/Server/Services/NetworkEndpointService";
+
+// NetworkSiteStatusTimeline
+import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
+import NetworkSiteStatusTimelineService, {
+  Service as NetworkSiteStatusTimelineServiceType,
+} from "Common/Server/Services/NetworkSiteStatusTimelineService";
+
+// NetworkSiteLink
+import NetworkSiteLink from "Common/Models/DatabaseModels/NetworkSiteLink";
+import NetworkSiteLinkService, {
+  Service as NetworkSiteLinkServiceType,
+} from "Common/Server/Services/NetworkSiteLinkService";
+
+// NetworkSiteAssignmentRule
+import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteAssignmentRule";
+import NetworkSiteAssignmentRuleService, {
+  Service as NetworkSiteAssignmentRuleServiceType,
+} from "Common/Server/Services/NetworkSiteAssignmentRuleService";
 
 // Open API Spec
 import OpenAPI from "Common/Server/API/OpenAPI";
@@ -4405,9 +4436,64 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // network site
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSite, NetworkSiteServiceType>(
+        NetworkSite,
+        NetworkSiteService,
+      ).getRouter(),
+    );
+
+    // network endpoint
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkEndpoint, NetworkEndpointServiceType>(
+        NetworkEndpoint,
+        NetworkEndpointService,
+      ).getRouter(),
+    );
+
+    // network site status timeline
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkSiteStatusTimeline,
+        NetworkSiteStatusTimelineServiceType
+      >(
+        NetworkSiteStatusTimeline,
+        NetworkSiteStatusTimelineService,
+      ).getRouter(),
+    );
+
+    // network site link
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteLink, NetworkSiteLinkServiceType>(
+        NetworkSiteLink,
+        NetworkSiteLinkService,
+      ).getRouter(),
+    );
+
+    // network site assignment rule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkSiteAssignmentRule,
+        NetworkSiteAssignmentRuleServiceType
+      >(
+        NetworkSiteAssignmentRule,
+        NetworkSiteAssignmentRuleService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkDeviceTopologyAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkSiteHierarchyAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

@@ -221,6 +221,20 @@ router.post(
       const success: boolean = req.body["success"] !== false;
 
       /*
+       * The probe now reports ping-only hosts too, tagged `snmpReachable:
+       * false`, so the array length is the count of ALIVE hosts. respondedHostCount
+       * is documented (and rendered) as the count of hosts that answered
+       * SNMP — i.e. the manageable ones — so it must exclude them. Hosts
+       * from an older probe carry no `snmpReachable` key at all and were
+       * SNMP responders by construction, hence `!== false`.
+       */
+      const snmpResponderCount: number = discoveredDevices.filter(
+        (device: JSONObject) => {
+          return device["snmpReachable"] !== false;
+        },
+      ).length;
+
+      /*
        * Plain object, NOT a model instance: a `new
        * NetworkDeviceDiscoveryScan()` payload carries non-column base props
        * (isPermissionIf) that made the update below throw and lose the
@@ -230,7 +244,7 @@ router.post(
         // Column is a JSON array of host suggestions, stored as-is.
         status: success ? "Completed" : "Failed",
         discoveredDevices: discoveredDevices,
-        respondedHostCount: discoveredDevices.length,
+        respondedHostCount: snmpResponderCount,
         completedAt: OneUptimeDate.getCurrentDate(),
       };
       if (req.body["statusMessage"]) {
@@ -281,7 +295,7 @@ router.post(
       });
 
       logger.debug(
-        `Discovery scan ${scanId} completed: ${discoveredDevices.length} responding hosts.`,
+        `Discovery scan ${scanId} completed: ${discoveredDevices.length} alive host(s), ${snmpResponderCount} answered SNMP.`,
       );
 
       return Response.sendJsonObjectResponse(req, res, { result: "ok" });

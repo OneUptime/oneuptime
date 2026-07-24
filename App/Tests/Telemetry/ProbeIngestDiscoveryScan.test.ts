@@ -399,6 +399,84 @@ describe("POST /probe/discovery-scan/result", () => {
     );
   });
 
+  /*
+   * respondedHostCount is documented on the column as "Number of hosts that
+   * responded to SNMP during the sweep" and is rendered as "Responded Hosts:
+   * N of M". The probe reports ping-only hosts in the same array (tagged
+   * snmpReachable: false), so counting the whole array would overstate the
+   * manageable devices and contradict the statusMessage on the same row.
+   */
+  test("respondedHostCount counts SNMP responders only, not ping-only hosts", async () => {
+    scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
+
+    await callResultEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          scanId: scanId.toString(),
+          scannedHostCount: 254,
+          statusMessage:
+            "Swept 254 hosts: 5 answered ICMP ping, 2 answered SNMP.",
+          discoveredDevices: [
+            { ipAddress: "10.0.0.5", sysName: "sw1", snmpReachable: true },
+            { ipAddress: "10.0.0.9", sysName: "sw2", snmpReachable: true },
+            { ipAddress: "10.0.0.20", snmpReachable: false },
+            { ipAddress: "10.0.0.21", snmpReachable: false },
+            { ipAddress: "10.0.0.22", snmpReachable: false },
+          ],
+        },
+      }),
+    );
+
+    const data: JSONObject = lastUpdateData();
+    expect(data["respondedHostCount"]).toBe(2);
+    // Every alive host is still stored for the review modal — only the count is filtered.
+    expect((data["discoveredDevices"] as Array<JSONObject>).length).toBe(5);
+  });
+
+  test("a sweep that found only ping-only hosts reports zero SNMP responders", async () => {
+    scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
+
+    await callResultEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          scanId: scanId.toString(),
+          discoveredDevices: [
+            { ipAddress: "10.0.0.20", snmpReachable: false },
+            { ipAddress: "10.0.0.21", snmpReachable: false },
+          ],
+        },
+      }),
+    );
+
+    expect(lastUpdateData()["respondedHostCount"]).toBe(0);
+  });
+
+  /*
+   * An older probe omits snmpReachable entirely, and only pushed SNMP
+   * responders into the array, so a missing key must still count.
+   */
+  test("hosts from an older probe with no snmpReachable key still count as responders", async () => {
+    scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
+
+    await callResultEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          scanId: scanId.toString(),
+          discoveredDevices: [
+            { ipAddress: "10.0.0.5", sysName: "sw1" },
+            { ipAddress: "10.0.0.9", sysName: "sw2" },
+            { ipAddress: "10.0.0.11", sysName: "sw3" },
+          ],
+        },
+      }),
+    );
+
+    expect(lastUpdateData()["respondedHostCount"]).toBe(3);
+  });
+
   test("flags hosts that already exist as devices so the UI can't re-import them", async () => {
     scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
 

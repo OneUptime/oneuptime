@@ -257,6 +257,15 @@ const NetworkDeviceRoutes: React.LazyExoticComponent<
     };
   });
 });
+const NetworkSiteRoutes: React.LazyExoticComponent<
+  AllRoutesModule["NetworkSiteRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.NetworkSiteRoutes,
+    };
+  });
+});
 const PodmanRoutes: React.LazyExoticComponent<AllRoutesModule["PodmanRoutes"]> =
   lazy(() => {
     return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
@@ -748,6 +757,12 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.NETWORK_DEVICE_ROOT]?.toString() || ""}
             element={<NetworkDeviceRoutes {...commonPageProps} />}
+          />
+
+          {/* Network Sites */}
+          <PageRoute
+            path={RouteMap[PageMap.NETWORK_SITE_ROOT]?.toString() || ""}
+            element={<NetworkSiteRoutes {...commonPageProps} />}
           />
 
           {/* Podman */}

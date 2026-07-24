@@ -4,10 +4,19 @@ import NetworkTopology, {
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
+  TieredTopologyModel,
+  TopologyGroupBox,
   TopologyPoint,
   clamp,
+  computeTieredTopologyModel,
   computeTopologyLayout,
+  wrapNodeLabel,
 } from "../NetworkDevice/TopologyLayout";
+import {
+  endpointTooltipForNode,
+  isEndpointNode,
+  isFdbEdge,
+} from "../NetworkDevice/EndpointNodeUtil";
 import {
   LINK_STATE_COLORS,
   NetworkLinkState,
@@ -40,6 +49,12 @@ export interface ComponentProps {
   topology: NetworkTopology;
   /** Nodes not matching this render dimmed. Empty string shows everything. */
   searchText?: string | undefined;
+  /*
+   * "tiered" lays the graph out as routers → switches → endpoints (for
+   * unit-scale site views); "force" (the default) keeps the organic
+   * force-directed layout used by the project-wide map.
+   */
+  layoutMode?: "force" | "tiered" | undefined;
   onNodeClick?: ((node: NetworkTopologyNode) => void) | undefined;
   onEdgeClick?: ((edge: NetworkTopologyEdge) => void) | undefined;
   /**
@@ -52,7 +67,33 @@ export interface ComponentProps {
 // Layout constants. The SVG uses a fixed viewBox and scales responsively.
 const VIEW_WIDTH: number = 1000;
 const VIEW_HEIGHT: number = 700;
+/*
+ * Tiered layouts grow downward with their endpoint rows; the viewBox
+ * stretches with them up to this cap, beyond which the rest is reachable
+ * by panning (an unbounded viewBox would make the page arbitrarily tall).
+ */
+const MAX_TIERED_VIEW_HEIGHT: number = 2100;
+/*
+ * ...and shrink to fit a short one. A tiered unit graph is usually much
+ * shorter than the force layout's canvas, and padding it out to
+ * VIEW_HEIGHT would waste a third of the frame and scale every node down.
+ */
+const MIN_TIERED_VIEW_HEIGHT: number = 420;
+// Clearance under the lowest endpoint row: its group box plus its label.
+const TIERED_VIEW_BOTTOM_PADDING: number = 96;
 const NODE_RADIUS: number = 16;
+// Endpoint nodes are small rounded rects so leaf fans stay readable.
+const ENDPOINT_HALF_WIDTH: number = 9;
+const ENDPOINT_HALF_HEIGHT: number = 7;
+// Baseline-to-baseline distance for a wrapped endpoint label.
+const ENDPOINT_LABEL_LINE_HEIGHT: number = 11;
+
+/*
+ * Endpoint palette: muted violet, deliberately outside the green/red/gray
+ * status range so endpoints never read as up/down devices.
+ */
+const ENDPOINT_FILL: string = "#a78bfa"; // violet-400
+const ENDPOINT_STROKE: string = "#7c3aed"; // violet-600
 
 interface StatusColors {
   stroke: string;
@@ -88,10 +129,47 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   const nodes: Array<NetworkTopologyNode> = props.topology?.nodes || [];
   const edges: Array<NetworkTopologyEdge> = props.topology?.edges || [];
   const searchText: string = props.searchText || "";
+  const layoutMode: "force" | "tiered" = props.layoutMode || "force";
 
-  const layout: Map<string, TopologyPoint> = useMemo(() => {
-    return computeTopologyLayout(nodes, edges, VIEW_WIDTH, VIEW_HEIGHT);
-  }, [props.topology]);
+  const model: TieredTopologyModel = useMemo(() => {
+    if (layoutMode === "tiered") {
+      return computeTieredTopologyModel(nodes, edges, VIEW_WIDTH);
+    }
+    return {
+      positions: computeTopologyLayout(nodes, edges, VIEW_WIDTH, VIEW_HEIGHT),
+      // The force layout has no tiers, so it has no endpoint groups.
+      groups: [],
+    };
+  }, [props.topology, layoutMode]);
+
+  const layout: Map<string, TopologyPoint> = model.positions;
+  const groupBoxes: Array<TopologyGroupBox> = model.groups;
+
+  /*
+   * The force layout always fits the fixed viewBox; the tiered layout may
+   * be taller, so the viewBox grows (to a cap) to show it without zooming.
+   */
+  const viewHeight: number = useMemo(() => {
+    if (layoutMode !== "tiered") {
+      return VIEW_HEIGHT;
+    }
+    let maxY: number = 0;
+    for (const point of layout.values()) {
+      if (point.y > maxY) {
+        maxY = point.y;
+      }
+    }
+    return clamp(
+      maxY + TIERED_VIEW_BOTTOM_PADDING,
+      MIN_TIERED_VIEW_HEIGHT,
+      MAX_TIERED_VIEW_HEIGHT,
+    );
+  }, [layout, layoutMode]);
+
+  // The native (non-React) wheel listener below needs the current height.
+  const viewHeightRef: React.MutableRefObject<number> =
+    useRef<number>(viewHeight);
+  viewHeightRef.current = viewHeight;
 
   const dimmedNodeIds: Set<string> = useMemo(() => {
     const dimmed: Set<string> = new Set<string>();
@@ -151,7 +229,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
       const px: number =
         ((event.clientX - rect.left) / rect.width) * VIEW_WIDTH;
       const py: number =
-        ((event.clientY - rect.top) / rect.height) * VIEW_HEIGHT;
+        ((event.clientY - rect.top) / rect.height) * viewHeightRef.current;
       setView((current: ViewTransform): ViewTransform => {
         const factor: number = Math.exp(-event.deltaY * 0.0015);
         const scale: number = clamp(current.scale * factor, MIN_ZOOM, MAX_ZOOM);
@@ -172,7 +250,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
       const scale: number = clamp(current.scale * factor, MIN_ZOOM, MAX_ZOOM);
       // Zoom around the viewBox centre for button zooms.
       const cx: number = VIEW_WIDTH / 2;
-      const cy: number = VIEW_HEIGHT / 2;
+      const cy: number = viewHeightRef.current / 2;
       const wx: number = (cx - current.tx) / current.scale;
       const wy: number = (cy - current.ty) / current.scale;
       return { scale, tx: cx - scale * wx, ty: cy - scale * wy };
@@ -253,7 +331,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
       <svg
         role="img"
         aria-label="Network topology graph"
-        viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
+        viewBox={`0 0 ${VIEW_WIDTH} ${viewHeight}`}
         preserveAspectRatio="xMidYMid meet"
         style={{
           width: "100%",
@@ -300,7 +378,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           const dx: number =
             ((event.clientX - drag.x) / rect.width) * VIEW_WIDTH;
           const dy: number =
-            ((event.clientY - drag.y) / rect.height) * VIEW_HEIGHT;
+            ((event.clientY - drag.y) / rect.height) * viewHeight;
           drag.moved +=
             Math.abs(event.clientX - drag.x) + Math.abs(event.clientY - drag.y);
           drag.x = event.clientX;
@@ -332,7 +410,32 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
         }}
       >
         <g transform={`translate(${view.tx} ${view.ty}) scale(${view.scale})`}>
-          {/* Edges drawn first so nodes render on top. */}
+          {/*
+           * Tiered mode only: one soft panel behind each switch's block of
+           * endpoints. Whitespace alone does not carry "these devices hang
+           * off this switch" at density, so the block gets a visible hull.
+           */}
+          <g>
+            {groupBoxes.map((box: TopologyGroupBox): ReactElement => {
+              return (
+                <rect
+                  key={`group-${box.anchorNodeId || "unattached"}`}
+                  x={box.x}
+                  y={box.y}
+                  width={box.width}
+                  height={box.height}
+                  rx={10}
+                  fill="var(--ou-surface-secondary, #f9fafb)"
+                  fillOpacity={0.7}
+                  stroke="var(--ou-border-subtle, #f3f4f6)"
+                  strokeWidth={1}
+                  strokeDasharray={box.anchorNodeId ? undefined : "4 4"}
+                />
+              );
+            })}
+          </g>
+
+          {/* Edges drawn next so nodes render on top. */}
           <g>
             {edges.map((edge: NetworkTopologyEdge): ReactElement | null => {
               const from: TopologyPoint | undefined = layout.get(
@@ -345,6 +448,13 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
               const state: NetworkLinkState = linkStateForEdge(edge);
               const color: string = LINK_STATE_COLORS[state];
               const width: number = edgeStrokeWidthForEdge(edge);
+              /*
+               * Dash precedence: an operationally-down link keeps its long
+               * warning dash; otherwise FDB attachments (endpoint links)
+               * get a short dash so they read as learned, not cabled.
+               */
+              const dashArray: string | undefined =
+                state === "down" ? "6 4" : isFdbEdge(edge) ? "3 3" : undefined;
               const edgeTitle: string = `${describeEndpoint(
                 edge.fromInterface,
                 edge.fromPort,
@@ -386,7 +496,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                     y2={to.y}
                     stroke={color}
                     strokeWidth={width}
-                    strokeDasharray={state === "down" ? "6 4" : undefined}
+                    strokeDasharray={dashArray}
                   />
                 </g>
               );
@@ -402,6 +512,75 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
               }
               const colors: StatusColors = getStatusColors(node.status);
               const isDimmed: boolean = dimmedNodeIds.has(node.id);
+              const isClickableNode: boolean = Boolean(props.onNodeClick);
+
+              /*
+               * Endpoints render as small violet rounded rects — visually
+               * distinct from both filled managed devices and hollow
+               * unmanaged peers, and small enough that a fan of leaf nodes
+               * stays legible.
+               */
+              if (isEndpointNode(node)) {
+                return (
+                  <g
+                    key={`node-${node.id}`}
+                    style={isClickableNode ? { cursor: "pointer" } : undefined}
+                    opacity={isDimmed ? 0.25 : 1}
+                    onClick={
+                      isClickableNode
+                        ? () => {
+                            if (suppressClick.current) {
+                              return;
+                            }
+                            props.onNodeClick!(node);
+                          }
+                        : undefined
+                    }
+                  >
+                    <title>{endpointTooltipForNode(node)}</title>
+                    <rect
+                      x={point.x - ENDPOINT_HALF_WIDTH}
+                      y={point.y - ENDPOINT_HALF_HEIGHT}
+                      width={ENDPOINT_HALF_WIDTH * 2}
+                      height={ENDPOINT_HALF_HEIGHT * 2}
+                      rx={3}
+                      fill={ENDPOINT_FILL}
+                      fillOpacity={0.85}
+                      stroke={ENDPOINT_STROKE}
+                      strokeWidth={1.5}
+                    />
+                    {/*
+                     * Endpoint names are long relative to the tight
+                     * endpoint spacing, so they wrap onto a second line
+                     * (and truncate past that). The full name is always in
+                     * the <title> tooltip above.
+                     */}
+                    <text
+                      x={point.x}
+                      y={point.y + ENDPOINT_HALF_HEIGHT + 12}
+                      textAnchor="middle"
+                      fontSize={10}
+                      fill="var(--ou-text-secondary, #374151)"
+                    >
+                      {wrapNodeLabel(node.name).map(
+                        (line: string, lineIndex: number): ReactElement => {
+                          return (
+                            <tspan
+                              key={`${node.id}-label-${lineIndex}`}
+                              x={point.x}
+                              dy={
+                                lineIndex === 0 ? 0 : ENDPOINT_LABEL_LINE_HEIGHT
+                              }
+                            >
+                              {line}
+                            </tspan>
+                          );
+                        },
+                      )}
+                    </text>
+                  </g>
+                );
+              }
 
               const hasInterfaceCounts: boolean =
                 node.interfacesUp !== undefined ||

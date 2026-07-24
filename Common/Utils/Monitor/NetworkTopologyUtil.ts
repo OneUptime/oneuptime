@@ -7,6 +7,7 @@ import NetworkTopology, {
 } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
 import LldpNeighbor from "../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "../../Types/Monitor/SnmpMonitor/CdpNeighbor";
+import { normalizeMac } from "./EndpointAttachmentUtil";
 
 export interface TopologyDeviceInput {
   id: string;
@@ -40,6 +41,35 @@ export interface TopologyInterfaceInput {
 }
 
 /*
+ * One discovered endpoint row (NetworkEndpoint), reduced to what rendering
+ * needs. Endpoints attach to their switch via an "fdb" edge; rows without a
+ * resolvable attachment are dropped (and counted) rather than floated.
+ */
+export interface TopologyEndpointInput {
+  id: string;
+  macAddress: string;
+  ipAddress?: string | undefined;
+  vendor?: string | undefined;
+  classification?: string | undefined;
+  attachedNetworkDeviceId?: string | undefined;
+  attachedInterfaceIndex?: number | undefined;
+  attachedPortName?: string | undefined;
+  lastSeenAt?: Date | undefined;
+}
+
+/*
+ * buildTopology's result: the wire-format NetworkTopology plus endpoint
+ * bookkeeping. The extra fields are optional on the wire type, so older
+ * readers are unaffected.
+ */
+export interface TopologyBuildResult extends NetworkTopology {
+  // Endpoints skipped because they had no attachment in the graph.
+  droppedEndpointCount?: number | undefined;
+  // True when more attachable endpoints existed than the render cap allows.
+  endpointsTruncated?: boolean | undefined;
+}
+
+/*
  * A neighbor claim from either discovery protocol, normalized so LLDP and
  * CDP entries flow through the same match/dedupe/enrich pipeline.
  */
@@ -56,6 +86,9 @@ interface NeighborClaim {
 // A device not seen within this window is treated as not currently up.
 const FRESH_WINDOW_MS: number = 15 * 60 * 1000;
 
+// Endpoint nodes rendered per graph; the slice is deterministic (by MAC).
+const ENDPOINT_RENDER_CAP: number = 2000;
+
 export default class NetworkTopologyUtil {
   /*
    * Builds the topology graph from every device in a project. Nodes are the
@@ -66,13 +99,17 @@ export default class NetworkTopologyUtil {
    * both protocols, appears once with the union of what each report knew
    * (ports, protocols, per-end interface state). When `interfaces` rows are
    * provided, each edge end whose interface is identifiable carries its
-   * operational state (up/down, utilization, rates).
+   * operational state (up/down, utilization, rates). When `endpoints` rows
+   * are provided, each one that attaches to a device in the graph becomes an
+   * "endpoint" node linked by an "fdb" edge (capped, deterministic by MAC);
+   * the rest are dropped and counted in droppedEndpointCount.
    */
   public static buildTopology(
     devices: Array<TopologyDeviceInput>,
     now: Date,
     interfaces: Array<TopologyInterfaceInput> = [],
-  ): NetworkTopology {
+    endpoints: Array<TopologyEndpointInput> = [],
+  ): TopologyBuildResult {
     const nodes: Array<NetworkTopologyNode> = [];
 
     // Index managed devices by the identifiers neighbor entries reference.
@@ -106,6 +143,7 @@ export default class NetworkTopologyUtil {
         id: device.id,
         name: device.name,
         isManaged: true,
+        kind: "device",
         status: NetworkTopologyUtil.deviceStatus(device, now),
         interfacesUp: device.interfacesUp,
         interfacesDown: device.interfacesDown,
@@ -145,6 +183,7 @@ export default class NetworkTopologyUtil {
               id: toNodeId,
               name: claim.displayName || "Unknown device",
               isManaged: false,
+              kind: "unmanaged",
               status: "unknown",
               deviceModel: claim.remotePlatform,
             };
@@ -262,7 +301,110 @@ export default class NetworkTopologyUtil {
       }
     }
 
-    return { nodes, edges: Array.from(edgeByKey.values()) };
+    const edges: Array<NetworkTopologyEdge> = Array.from(edgeByKey.values());
+
+    // --- Endpoint nodes + fdb edges ---
+
+    const deviceNodeIds: Set<string> = new Set(
+      devices.map((device: TopologyDeviceInput) => {
+        return device.id;
+      }),
+    );
+
+    /*
+     * Deterministic render order: by normalized MAC, then id, so the capped
+     * slice is stable across rebuilds regardless of query order.
+     */
+    const sortedEndpoints: Array<TopologyEndpointInput> = [...endpoints].sort(
+      (a: TopologyEndpointInput, b: TopologyEndpointInput) => {
+        const aMac: string = normalizeMac(a.macAddress) || a.macAddress;
+        const bMac: string = normalizeMac(b.macAddress) || b.macAddress;
+        if (aMac !== bMac) {
+          return aMac < bMac ? -1 : 1;
+        }
+        return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+      },
+    );
+
+    let droppedEndpointCount: number = 0;
+    let renderedEndpointCount: number = 0;
+    let endpointsTruncated: boolean = false;
+
+    for (const endpoint of sortedEndpoints) {
+      if (
+        !endpoint.attachedNetworkDeviceId ||
+        !deviceNodeIds.has(endpoint.attachedNetworkDeviceId)
+      ) {
+        // No attachment in this graph — nothing to hang the node off.
+        droppedEndpointCount++;
+        continue;
+      }
+
+      if (renderedEndpointCount >= ENDPOINT_RENDER_CAP) {
+        endpointsTruncated = true;
+        continue;
+      }
+      renderedEndpointCount++;
+
+      const nodeId: string = `endpoint:${endpoint.id}`;
+      nodes.push({
+        id: nodeId,
+        name:
+          endpoint.classification ||
+          endpoint.vendor ||
+          endpoint.ipAddress ||
+          endpoint.macAddress,
+        isManaged: false,
+        kind: "endpoint",
+        status: NetworkTopologyUtil.statusFromLastSeen(
+          endpoint.lastSeenAt,
+          now,
+        ),
+        vendor: endpoint.vendor,
+        macAddress: endpoint.macAddress,
+        ipAddress: endpoint.ipAddress,
+        classification: endpoint.classification,
+      });
+
+      // Port label + interface state on the switch end, when identifiable.
+      let switchInterface: TopologyInterfaceInput | undefined = undefined;
+      if (endpoint.attachedInterfaceIndex !== undefined) {
+        switchInterface = interfaceByDeviceAndIndex.get(
+          `${endpoint.attachedNetworkDeviceId}::${endpoint.attachedInterfaceIndex}`,
+        );
+      }
+      let fromPort: string | undefined =
+        endpoint.attachedPortName || switchInterface?.name;
+      if (!fromPort && endpoint.attachedInterfaceIndex !== undefined) {
+        fromPort = `if${endpoint.attachedInterfaceIndex}`;
+      }
+
+      edges.push({
+        fromNodeId: endpoint.attachedNetworkDeviceId,
+        toNodeId: nodeId,
+        fromPort: fromPort,
+        protocols: ["fdb"],
+        fromInterface: switchInterface
+          ? {
+              interfaceIndex: switchInterface.interfaceIndex,
+              interfaceName: switchInterface.name,
+              isOperationallyUp: switchInterface.isOperationallyUp,
+              isAdministrativelyUp: switchInterface.isAdministrativelyUp,
+              utilizationPercent: switchInterface.utilizationPercent,
+              inRateMbps: switchInterface.inRateMbps,
+              outRateMbps: switchInterface.outRateMbps,
+              errorsPerSecond: switchInterface.errorsPerSecond,
+            }
+          : undefined,
+      });
+    }
+
+    return {
+      nodes,
+      edges,
+      droppedEndpointCount,
+      endpointsTruncated,
+    };
   }
 
   /*
@@ -359,10 +501,18 @@ export default class NetworkTopologyUtil {
     device: TopologyDeviceInput,
     now: Date,
   ): NetworkTopologyNodeStatus {
-    if (!device.lastSeenAt) {
+    return NetworkTopologyUtil.statusFromLastSeen(device.lastSeenAt, now);
+  }
+
+  // The shared freshness rule: seen within the window = up, stale = down.
+  private static statusFromLastSeen(
+    lastSeenAt: Date | undefined,
+    now: Date,
+  ): NetworkTopologyNodeStatus {
+    if (!lastSeenAt) {
       return "unknown";
     }
-    const ageMs: number = now.getTime() - new Date(device.lastSeenAt).getTime();
+    const ageMs: number = now.getTime() - new Date(lastSeenAt).getTime();
     if (ageMs > FRESH_WINDOW_MS) {
       return "down";
     }

@@ -1,16 +1,30 @@
 /*
  * A derived view of the network topology for one project, built server-side
- * from the LLDP and CDP neighbor data each device reports. Nodes are devices;
- * unmanaged neighbors (discovery-protocol peers with no matching
- * NetworkDevice) appear as lightweight nodes so the graph doesn't dead-end.
+ * from the LLDP and CDP neighbor data each device reports (and, when
+ * endpoint collection is enabled, the ARP/FDB endpoint data). Nodes are
+ * devices; unmanaged neighbors (discovery-protocol peers with no matching
+ * NetworkDevice) appear as lightweight nodes so the graph doesn't dead-end,
+ * and discovered endpoints appear as "endpoint" nodes attached via "fdb"
+ * links.
  * Edges are physical links — one per device pair even when both ends (or
  * both protocols) report it — annotated with the operational state of the
  * interface at each end when the neighbor entry identifies it.
  */
 export type NetworkTopologyNodeStatus = "up" | "down" | "unknown";
 
-// Which discovery protocol(s) reported a link.
-export type NetworkTopologyLinkProtocol = "lldp" | "cdp";
+/*
+ * Which source(s) reported a link — a discovery protocol, or the bridge
+ * forwarding database (endpoint attachment).
+ */
+export type NetworkTopologyLinkProtocol = "lldp" | "cdp" | "fdb";
+
+/*
+ * What a node represents. Older payloads carry no kind — readers should
+ * derive it from isManaged ("device" when true, "unmanaged" otherwise).
+ * "endpoint" nodes are non-network hosts (POS terminals, cameras, kiosks)
+ * discovered from ARP/FDB data.
+ */
+export type NetworkTopologyNodeKind = "device" | "unmanaged" | "endpoint";
 
 export interface NetworkTopologyNode {
   // Device id for managed nodes; a synthetic "unmanaged:<key>" id otherwise.
@@ -18,6 +32,8 @@ export interface NetworkTopologyNode {
   name: string;
   isManaged: boolean;
   status: NetworkTopologyNodeStatus;
+  // Missing on older payloads — derive from isManaged.
+  kind?: NetworkTopologyNodeKind | undefined;
   interfacesUp?: number | undefined;
   interfacesDown?: number | undefined;
   // Extra device identity for search and the detail panel (managed nodes).
@@ -25,6 +41,14 @@ export interface NetworkTopologyNode {
   vendor?: string | undefined;
   // For unmanaged CDP peers this carries the reported platform string.
   deviceModel?: string | undefined;
+  /*
+   * Endpoint identity (endpoint nodes only), all best-effort: MAC from the
+   * FDB, IP from the ARP join, classification from OUI/heuristics (e.g.
+   * "pos-terminal", "camera", "printer").
+   */
+  macAddress?: string | undefined;
+  ipAddress?: string | undefined;
+  classification?: string | undefined;
 }
 
 /*

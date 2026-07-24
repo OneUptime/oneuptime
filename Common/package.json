@@ -8,7 +8,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
+    "test": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node --max-old-space-size=6144 node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
     "test-file": "cd .. && export $(grep -v '^#' config.env | xargs) && cd Common && node node_modules/.bin/jest --runInBand $1 --detectOpenHandles",
     "coverage": "jest --detectOpenHandles --coverage",
     "compile": "tsc",

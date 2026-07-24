@@ -44,6 +44,11 @@ import NetworkDeviceOwnerRuleService from "./NetworkDeviceOwnerRuleService";
 import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
+import NetworkSiteService from "./NetworkSiteService";
+import NetworkEndpointService from "./NetworkEndpointService";
+import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
+import NetworkSiteLinkService from "./NetworkSiteLinkService";
+import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
@@ -322,6 +327,11 @@ const services: Array<BaseService> = [
   NetworkDeviceLabelRuleService,
   NetworkDeviceDiscoveryScanService,
   NetworkInterfaceService,
+  NetworkSiteService,
+  NetworkEndpointService,
+  NetworkSiteStatusTimelineService,
+  NetworkSiteLinkService,
+  NetworkSiteAssignmentRuleService,
   PodmanHostService,
   ProxmoxClusterService,
   DockerSwarmClusterService,

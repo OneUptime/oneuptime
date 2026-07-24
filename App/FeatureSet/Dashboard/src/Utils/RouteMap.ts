@@ -130,6 +130,15 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
   [PageMap.NETWORK_DEVICE_TOPOLOGY]: `topology`,
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
+  [PageMap.NETWORK_DEVICE_ENDPOINTS]: `endpoints`,
+};
+
+export const NetworkSiteRoutePath: Dictionary<string> = {
+  [PageMap.NETWORK_SITE_VIEW]: `view/${RouteParams.ModelID}`,
+  [PageMap.NETWORK_SITE_MAP]: `map`,
+  [PageMap.NETWORK_SITE_ASSIGNMENT_RULES]: `assignment-rules`,
+  [PageMap.NETWORK_SITE_LINKS]: `links`,
+  [PageMap.NETWORK_SITE_IMPORT]: `import`,
 };
 
 export const DockerRoutePath: Dictionary<string> = {
@@ -2475,6 +2484,52 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_LATENCY_MATRIX]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_ENDPOINTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_ENDPOINTS]
+    }`,
+  ),
+
+  // Network Sites
+
+  [PageMap.NETWORK_SITE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/*`,
+  ),
+
+  [PageMap.NETWORK_SITES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_MAP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_MAP]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_ASSIGNMENT_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_ASSIGNMENT_RULES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_LINKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_LINKS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_IMPORT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_IMPORT]
     }`,
   ),
 

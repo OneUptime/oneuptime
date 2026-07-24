@@ -11,6 +11,20 @@ import SnmpOid from "./SnmpMonitor/SnmpOid";
 export default interface MonitorStepNetworkDeviceMonitor {
   networkDeviceId: string | undefined;
   monitorInterfaces: boolean;
+  /*
+   * When true, the probe also walks the device's ARP cache and bridge
+   * forwarding database during the interface walk, so the server can
+   * discover endpoints (laptops, printers, POS terminals) attached to the
+   * device. Only meaningful when monitorInterfaces is on.
+   *
+   * DEFAULTS TO FALSE, and it is strictly opt-in: absent, null, and every
+   * other non-true value all mean OFF. It is deliberately not default-on
+   * and not "on unless explicitly false" — enabling it costs extra SNMP
+   * table walks on every poll plus one endpoint upsert per discovered MAC,
+   * so a step that never asked for it must never start paying for it,
+   * including every step saved before this field existed.
+   */
+  collectEndpoints?: boolean | undefined;
   oids: Array<SnmpOid>;
 }
 
@@ -19,6 +33,8 @@ export class MonitorStepNetworkDeviceMonitorUtil {
     return {
       networkDeviceId: undefined,
       monitorInterfaces: true,
+      // Off by default; the form renders it as an explicit opt-in switch.
+      collectEndpoints: false,
       oids: [],
     };
   }
@@ -27,6 +43,11 @@ export class MonitorStepNetworkDeviceMonitorUtil {
     return {
       networkDeviceId: (json["networkDeviceId"] as string) || undefined,
       monitorInterfaces: json["monitorInterfaces"] !== false,
+      /*
+       * Unlike monitorInterfaces, this is default-FALSE: only an explicit
+       * true opts in, so steps saved before the flag existed stay off.
+       */
+      collectEndpoints: json["collectEndpoints"] === true,
       oids: ((json["oids"] as Array<JSONObject>) || []).map(
         (oid: JSONObject) => {
           return {
@@ -43,6 +64,7 @@ export class MonitorStepNetworkDeviceMonitorUtil {
     return {
       networkDeviceId: monitor.networkDeviceId,
       monitorInterfaces: monitor.monitorInterfaces,
+      collectEndpoints: monitor.collectEndpoints,
       oids: monitor.oids.map((oid: SnmpOid) => {
         return {
           oid: oid.oid,

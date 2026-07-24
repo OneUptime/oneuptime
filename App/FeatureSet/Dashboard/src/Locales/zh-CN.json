@@ -79,6 +79,8 @@
       "dockerDescription": "监控 Docker 主机和容器。",
       "networkDevicesTitle": "Network Devices",
       "networkDevicesDescription": "Monitor switches, routers, and firewalls via SNMP.",
+      "networkSitesTitle": "Network Sites",
+      "networkSitesDescription": "Group devices into sites and drill down from a national map to one store.",
       "podmanTitle": "Podman",
       "podmanDescription": "Monitor Podman hosts and containers.",
       "proxmoxTitle": "Proxmox",

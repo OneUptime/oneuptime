@@ -51,7 +51,12 @@ function makeScanResult(
 ): SubnetScanResult {
   return {
     discoveredHosts: [
-      { ipAddress: "10.0.0.5", sysName: "sw1", sysDescr: "Cisco IOS" },
+      {
+        ipAddress: "10.0.0.5",
+        sysName: "sw1",
+        sysDescr: "Cisco IOS",
+        snmpReachable: true,
+      },
     ],
     scannedHostCount: 254,
     respondedToPingCount: 12,
@@ -178,6 +183,37 @@ describe("runScan — a successful sweep", () => {
     const message: string = fetchCalls()[0]!.body["statusMessage"] as string;
     expect(message).toContain("ICMP pre-sweep unavailable");
     expect(message).toContain("1 answered SNMP.");
+  });
+
+  test("ping-only hosts ride along in discoveredDevices but do not count as SNMP responders", async () => {
+    scanSpy.mockResolvedValue(
+      makeScanResult({
+        discoveredHosts: [
+          {
+            ipAddress: "10.0.0.5",
+            sysName: "sw1",
+            sysDescr: "Cisco IOS",
+            snmpReachable: true,
+          },
+          { ipAddress: "10.0.0.9", snmpReachable: false },
+        ],
+      }) as never,
+    );
+
+    await runScan(makeScan());
+
+    const body: JSONObject = fetchCalls()[0]!.body;
+    const devices: Array<JSONObject> = body[
+      "discoveredDevices"
+    ] as Array<JSONObject>;
+
+    // Both hosts are reported to the server…
+    expect(devices).toHaveLength(2);
+    expect(devices[1]).toEqual({ ipAddress: "10.0.0.9", snmpReachable: false });
+    // …but the "answered SNMP" count only covers real SNMP responders.
+    expect(body["statusMessage"]).toBe(
+      "Swept 254 hosts: 12 answered ICMP ping, 1 answered SNMP.",
+    );
   });
 
   test("builds v3 credentials from the scan's flattened snmpV3 columns", async () => {

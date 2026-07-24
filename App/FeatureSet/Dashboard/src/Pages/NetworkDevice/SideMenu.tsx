@@ -41,6 +41,15 @@ const NetworkDeviceSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Endpoints",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route,
+            ),
+          },
+          icon: IconProp.Squares,
+        },
+        {
+          link: {
             title: "Topology",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route,

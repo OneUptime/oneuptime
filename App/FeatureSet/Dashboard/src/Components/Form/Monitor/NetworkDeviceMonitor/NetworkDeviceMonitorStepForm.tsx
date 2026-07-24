@@ -77,6 +77,33 @@ const NetworkDeviceMonitorStepForm: FunctionComponent<ComponentProps> = (
 
       <div>
         <FieldLabelElement
+          title="Collect connected endpoints (ARP + FDB)"
+          description="Off by default. When on, every check also walks the device's ARP and bridge-forwarding tables and records the MAC and IP address of each attached device — POS terminals, printers, phones, laptops."
+          required={false}
+        />
+        {/*
+         * Endpoint collection is strictly opt-in: the probe walks the
+         * tables only for an explicit `true`, so anything else — a step
+         * saved before this field existed, or one saved with it off —
+         * means no collection. Rendering that as `=== true` is what keeps
+         * the switch from claiming to be off while a MAC address is
+         * written for every device in the store.
+         */}
+        <Toggle
+          value={
+            props.monitorStepNetworkDeviceMonitor.collectEndpoints === true
+          }
+          onChange={(value: boolean) => {
+            props.onChange({
+              ...props.monitorStepNetworkDeviceMonitor,
+              collectEndpoints: value,
+            });
+          }}
+        />
+      </div>
+
+      <div>
+        <FieldLabelElement
           title="Vendor Health Template"
           description="Apply a prebuilt set of CPU, memory, and temperature OIDs for your device's vendor. The OIDs are added below, where you can prune or extend them."
           required={false}

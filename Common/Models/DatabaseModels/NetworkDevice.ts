@@ -1,4 +1,6 @@
 import Label from "./Label";
+import MonitorStatus from "./MonitorStatus";
+import NetworkSite from "./NetworkSite";
 import Probe from "./Probe";
 import Project from "./Project";
 import User from "./User";
@@ -416,6 +418,171 @@ export default class NetworkDevice extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public probeId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "siteId",
+    type: TableColumnType.Entity,
+    modelType: NetworkSite,
+    title: "Network Site",
+    description: "Relation to the Network Site this network device belongs to",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkSite;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "siteId" })
+  public site?: NetworkSite = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Network Site ID",
+    description: "ID of the Network Site this network device belongs to",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public siteId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "currentMonitorStatusId",
+    type: TableColumnType.Entity,
+    modelType: MonitorStatus,
+    title: "Current Monitor Status",
+    description:
+      "Whats the current status of this network device? Stamped from the monitor that polls it.",
+  })
+  @ManyToOne(
+    () => {
+      return MonitorStatus;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "currentMonitorStatusId" })
+  public currentMonitorStatus?: MonitorStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Current Monitor Status ID",
+    description:
+      "Whats the current status ID of this network device? Stamped from the monitor that polls it.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public currentMonitorStatusId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

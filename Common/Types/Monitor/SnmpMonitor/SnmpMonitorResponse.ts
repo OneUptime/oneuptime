@@ -3,6 +3,8 @@ import SnmpDataType from "./SnmpDataType";
 import SnmpInterface from "./SnmpInterface";
 import LldpNeighbor from "./LldpNeighbor";
 import CdpNeighbor from "./CdpNeighbor";
+import ArpEntry from "./ArpEntry";
+import FdbEntry from "./FdbEntry";
 import SnmpSystemInfo from "./SnmpSystemInfo";
 import SnmpEntityInfo from "./SnmpEntityInfo";
 
@@ -49,4 +51,14 @@ export default interface SnmpMonitorResponse {
    * Undefined on older probes and non-CDP devices.
    */
   cdpNeighbors?: Array<CdpNeighbor> | undefined;
+  /*
+   * ARP / IP-to-media entries, walked when endpoint collection is enabled
+   * on the monitor step. Undefined on older probes.
+   */
+  arpEntries?: Array<ArpEntry> | undefined;
+  /*
+   * Bridge forwarding-database entries — MAC addresses learned per bridge
+   * port. Undefined on older probes and non-bridge devices.
+   */
+  fdbEntries?: Array<FdbEntry> | undefined;
 }
