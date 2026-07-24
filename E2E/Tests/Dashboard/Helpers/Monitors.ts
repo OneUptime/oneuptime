@@ -47,6 +47,91 @@ const monitorNameInputSelector: string =
 const submitButtonTestId: string = "Create Monitor";
 
 /*
+ * Matches a monitor id (a uuid) in the view-monitor URL.
+ *
+ * It has to be the full uuid shape rather than a loose `[a-f0-9-]+`: the form
+ * lives at /monitors/create, and "create" starts with "c" — a valid
+ * `[a-f0-9-]` run — so a loose pattern matches /monitors/create too. That makes
+ * the "we navigated to the monitor" assertion pass while still sitting on the
+ * form, and (worse) makes the extracted id the literal string "c", which then
+ * blows up downstream as `PUT /api/monitor/c -> Invalid ID format`. The strict
+ * pattern is what forces createMonitor to actually prove a monitor was created.
+ */
+const uuidPattern: string =
+  "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+const monitorIdInUrlRegex: RegExp = new RegExp(
+  `/monitors/(${uuidPattern})`,
+  "i",
+);
+
+type MonitorViewUrlRegexFunction = (projectId: string) => RegExp;
+
+const monitorViewUrlRegex: MonitorViewUrlRegexFunction = (
+  projectId: string,
+): RegExp => {
+  return new RegExp(`/dashboard/${projectId}/monitors/${uuidPattern}`, "i");
+};
+
+/*
+ * Clicks the final "Create Monitor" submit and waits for the wizard to land on
+ * the monitor view page, retrying the click until it does or a deadline passes.
+ *
+ * Creation intermittently stalls on /monitors/create — the final submit can
+ * fire a beat before the form is ready to accept it, so nothing happens and
+ * the wizard just sits there. That flake showed up across environments (a
+ * website monitor in MonitorIncidentOnCall, Manual/Port in the billing job).
+ * A single click plus a passive assertion turns that into a hard failure; a
+ * bounded re-click loop lets the transient heal itself. Re-clicking is safe:
+ * if the first click already created the monitor we have navigated away (the
+ * form is gone, so there is nothing to click and the URL check returns), and
+ * if it did not, no monitor exists yet so the retry creates exactly one.
+ */
+const clickCreateUntilMonitorView: (data: {
+  page: Page;
+  projectId: string;
+}) => Promise<void> = async (data: {
+  page: Page;
+  projectId: string;
+}): Promise<void> => {
+  const target: RegExp = monitorViewUrlRegex(data.projectId);
+  const deadlineMs: number = Date.now() + 90000;
+
+  while (Date.now() < deadlineMs) {
+    if (target.test(data.page.url())) {
+      return;
+    }
+
+    // Only click while the create form is still on screen (not mid-navigation).
+    const formVisible: boolean = await data.page
+      .locator(monitorCreateFormSelector)
+      .isVisible()
+      .catch(() => {
+        return false;
+      });
+
+    if (formVisible) {
+      await data.page
+        .getByTestId(submitButtonTestId)
+        .click({ timeout: 10000 })
+        .catch(() => {
+          // Button may have detached as navigation began; the URL check decides.
+        });
+    }
+
+    try {
+      await data.page.waitForURL(target, { timeout: 12000 });
+      return;
+    } catch {
+      // Still on the form — loop and try the submit again.
+    }
+  }
+
+  // One last assertion so a genuine failure reports with a clear message.
+  await expect(data.page).toHaveURL(target, { timeout: 5000 });
+};
+
+/*
  * Selects the "Every 5 Minutes" monitoring interval on the interval step.
  * 5 minutes is available for every probeable type (the every-1/2-minute
  * options are filtered out for SSL / Synthetic / Custom-code monitors).
@@ -127,33 +212,29 @@ export const createMonitor: CreateMonitorFunction = async (data: {
   await expect(card).toBeVisible({ timeout: 30000 });
   await card.click();
 
-  // First submit click: create (single-step) or advance to the criteria step.
-  await page.getByTestId(submitButtonTestId).click();
-
-  if (!data.recipe.singleStep) {
-    // Criteria step. Wait for its async defaults before submitting.
+  if (data.recipe.singleStep) {
+    // The one submit both creates the monitor and navigates to it.
+    await clickCreateUntilMonitorView({ page, projectId: data.projectId });
+  } else {
+    // Advance to the criteria step, then wait for its async defaults.
+    await page.getByTestId(submitButtonTestId).click();
     await waitForCriteriaStepReady({ page });
     if (data.recipe.fillCriteria) {
       await data.recipe.fillCriteria({ page });
     }
-    await page.getByTestId(submitButtonTestId).click();
 
     if (data.recipe.hasInterval) {
-      // Interval step.
-      await selectMonitoringInterval({ page });
+      // Advance to the interval step, choose an interval, then create.
       await page.getByTestId(submitButtonTestId).click();
+      await selectMonitoringInterval({ page });
+      await clickCreateUntilMonitorView({ page, projectId: data.projectId });
+    } else {
+      // No interval step: this submit creates the monitor.
+      await clickCreateUntilMonitorView({ page, projectId: data.projectId });
     }
   }
 
-  // Success: navigated to the monitor view page.
-  const monitorViewUrlRegex: RegExp = new RegExp(
-    `/dashboard/${data.projectId}/monitors/[a-f0-9-]+`,
-  );
-  await expect(page).toHaveURL(monitorViewUrlRegex, { timeout: 60000 });
-
-  const match: RegExpMatchArray | null = page
-    .url()
-    .match(/\/monitors\/([a-f0-9-]+)/);
+  const match: RegExpMatchArray | null = page.url().match(monitorIdInUrlRegex);
   return match ? match[1]! : "";
 };
 
@@ -358,15 +439,9 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
     .click();
   await page.waitForTimeout(1500);
 
-  await page.getByTestId(submitButtonTestId).click();
+  // This submit creates the infra monitor; retry it until it navigates.
+  await clickCreateUntilMonitorView({ page, projectId: data.projectId });
 
-  const monitorViewUrlRegex: RegExp = new RegExp(
-    `/dashboard/${data.projectId}/monitors/[a-f0-9-]+`,
-  );
-  await expect(page).toHaveURL(monitorViewUrlRegex, { timeout: 60000 });
-
-  const match: RegExpMatchArray | null = page
-    .url()
-    .match(/\/monitors\/([a-f0-9-]+)/);
+  const match: RegExpMatchArray | null = page.url().match(monitorIdInUrlRegex);
   return match ? match[1]! : "";
 };
