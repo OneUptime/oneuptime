@@ -87,6 +87,8 @@ describe("buildSiteTree", () => {
     // All three sites are reachable from the returned roots.
     expect(countTreeNodes(roots)).toBe(3);
     expect(names(roots)).toContain("Root");
+    // Promoted cycle members keep the root list name-ordered.
+    expect(names(roots)).toEqual([...names(roots)].sort());
   });
 
   test("rows without an id are skipped, not crashed on", () => {

@@ -113,12 +113,19 @@ export function buildSiteTree(
     stampDepthsAndRollups(root, 0);
   }
 
+  let hasPromotedCycleMembers: boolean = false;
   for (const node of nodesById.values()) {
     if (!seen.has(node)) {
       // Member of a parent cycle — break it by promoting to root.
       roots.push(node);
       stampDepthsAndRollups(node, 0);
+      hasPromotedCycleMembers = true;
     }
+  }
+
+  if (hasPromotedCycleMembers) {
+    // Keep the root list name-ordered even when cycle members joined late.
+    roots.sort(byName);
   }
 
   return roots;

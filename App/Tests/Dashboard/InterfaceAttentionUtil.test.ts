@@ -87,6 +87,22 @@ describe("rankInterfacesForAttention", () => {
     ]);
   });
 
+  test("a disabled port sinks last even with stale error counters", () => {
+    const disabledWithStaleErrors: RankableInterface = {
+      interfaceIndex: 9,
+      isAdministrativelyUp: false,
+      isOperationallyUp: false,
+      errorsPerSecond: 50,
+    };
+
+    const ranked: Array<RankableInterface> = rankInterfacesForAttention(
+      [disabledWithStaleErrors, idlePort],
+      2,
+    );
+
+    expect(ranked).toEqual([idlePort, disabledWithStaleErrors]);
+  });
+
   test("a saturated healthy port can never outrank a down port", () => {
     const saturated: RankableInterface = {
       interfaceIndex: 1,

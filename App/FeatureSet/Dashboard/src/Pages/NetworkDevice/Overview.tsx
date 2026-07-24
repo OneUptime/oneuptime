@@ -133,7 +133,6 @@ const NetworkOverview: FunctionComponent<
             cidr: true,
             status: true,
             respondedHostCount: true,
-            scannedHostCount: true,
             createdAt: true,
           },
           sort: {

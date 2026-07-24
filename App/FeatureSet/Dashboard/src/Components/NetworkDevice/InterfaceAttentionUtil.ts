@@ -35,16 +35,19 @@ const getAttentionScore: AttentionScoreFunction = (
     return 3_000_000;
   }
 
+  if (!row.isAdministrativelyUp) {
+    /*
+     * Deliberately disabled — least interesting, even if stale error
+     * counters linger from before the port was shut.
+     */
+    return -1;
+  }
+
   const utilization: number = row.utilizationPercent || 0;
   const errorsPerSecond: number = row.errorsPerSecond || 0;
 
   if (errorsPerSecond > 0) {
     return 2_000_000 + Math.min(999_999, errorsPerSecond * 1000);
-  }
-
-  if (!row.isAdministrativelyUp) {
-    // Deliberately disabled — least interesting.
-    return -1;
   }
 
   return utilization;
