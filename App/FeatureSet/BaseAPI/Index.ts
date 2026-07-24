@@ -962,6 +962,9 @@ import LlmLogService, {
 import ExceptionInstanceService, {
   ExceptionInstanceService as ExceptionInstanceServiceType,
 } from "Common/Server/Services/ExceptionInstanceService";
+import KubernetesCostAllocationService, {
+  KubernetesCostAllocationService as KubernetesCostAllocationServiceType,
+} from "Common/Server/Services/KubernetesCostAllocationService";
 import AcmeChallengeAPI from "Common/Server/API/AcmeChallengeAPI";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
@@ -1213,6 +1216,7 @@ import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
 } from "Common/Server/Services/WorkspaceNotificationLogService";
@@ -2480,6 +2484,14 @@ const BaseAPIFeatureSet: FeatureSet = {
         ExceptionInstance,
         ExceptionInstanceService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<
+        KubernetesCostAllocation,
+        KubernetesCostAllocationServiceType
+      >(KubernetesCostAllocation, KubernetesCostAllocationService).getRouter(),
     );
 
     app.use(

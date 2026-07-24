@@ -27,6 +27,7 @@ export enum DashboardTemplateType {
   Incident = "Incident",
   Alert = "Alert",
   Kubernetes = "Kubernetes",
+  KubernetesCost = "KubernetesCost",
   Host = "Host",
   Proxmox = "Proxmox",
   Ceph = "Ceph",
@@ -108,6 +109,14 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "Pod/node CPU and memory averages, utilization gauges, live pod and node lists, network I/O, restarts, and cluster logs.",
     icon: IconProp.Kubernetes,
+    category: DashboardTemplateCategory.Infrastructure,
+  },
+  {
+    type: DashboardTemplateType.KubernetesCost,
+    name: "Kubernetes Cost Dashboard",
+    description:
+      "Node hourly cost trends, CPU/RAM unit costs, persistent volume and load balancer spend from your in-cluster cost engine (OpenCost / Kubecost).",
+    icon: IconProp.Billing,
     category: DashboardTemplateCategory.Infrastructure,
   },
   {
@@ -1639,6 +1648,209 @@ function createKubernetesDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createKubernetesCostDashboardConfig(): DashboardViewConfig {
+  /*
+   * Built on the cost metrics the kubernetes-agent chart scrapes from an
+   * in-cluster cost engine (OpenCost / Kubecost cost-model) when
+   * `cost.metrics` is enabled — node_total_hourly_cost,
+   * node_cpu_hourly_cost, node_ram_hourly_cost, pv_hourly_cost,
+   * kubecost_load_balancer_cost. Per-workload allocation (namespace /
+   * controller spend, idle, efficiency) is NOT charted here — those come
+   * from the Allocation API poller and live on the cluster's Costs page.
+   *
+   * Layout notes:
+   *
+   * - Every cost metric here is a per-resource gauge (one series per
+   *   node / volume / load balancer) re-emitted on every scrape, so a
+   *   `Sum` aggregation would multiply by the scrape count over the
+   *   window — the same trap the Kubernetes template documents for
+   *   k8s.pod.phase. All widgets therefore use `Avg`, and the charts fan
+   *   out per resource via groupByAttributeKeys so a stacked area still
+   *   reads as the cluster total per bucket.
+   *
+   * - The engine's metric labels are plain Prometheus labels ("node",
+   *   "persistentvolume", "service_name"), not OTel resource attributes,
+   *   so group keys have no `resource.` prefix.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Kubernetes Cost Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 1: Unit-cost stat tiles. Rising cost is "worse" for all four.
+    createValueComponent({
+      title: "Node Cost $/hr (avg per node)",
+      top: 1,
+      left: 0,
+      width: 3,
+      metricConfig: {
+        metricName: "node_total_hourly_cost",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "CPU Cost $/core-hr (avg)",
+      top: 1,
+      left: 3,
+      width: 3,
+      metricConfig: {
+        metricName: "node_cpu_hourly_cost",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "RAM Cost $/GiB-hr (avg)",
+      top: 1,
+      left: 6,
+      width: 3,
+      metricConfig: {
+        metricName: "node_ram_hourly_cost",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "PV Cost $/hr (avg per volume)",
+      top: 1,
+      left: 9,
+      width: 3,
+      metricConfig: {
+        metricName: "pv_hourly_cost",
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+
+    /*
+     * Row 2-5: Hourly cost per node, stacked — the stack height is the
+     * cluster's total node $/hr per bucket.
+     */
+    createChartComponent({
+      title: "Node Hourly Cost ($/hr, stacked by node)",
+      chartType: DashboardChartType.StackedArea,
+      top: 2,
+      left: 0,
+      width: 12,
+      height: 3,
+      metricConfig: {
+        metricName: "node_total_hourly_cost",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Node",
+        legendUnit: "$/hr",
+        groupByAttributeKeys: ["node"],
+      },
+    }),
+
+    // Row 5-8: Unit-cost trends per node — catches spot/instance-type churn.
+    createChartComponent({
+      title: "CPU Cost per Core Hour by Node",
+      chartType: DashboardChartType.Line,
+      top: 5,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "node_cpu_hourly_cost",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Node",
+        legendUnit: "$/core-hr",
+        groupByAttributeKeys: ["node"],
+      },
+    }),
+    createChartComponent({
+      title: "RAM Cost per GiB Hour by Node",
+      chartType: DashboardChartType.Line,
+      top: 5,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "node_ram_hourly_cost",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Node",
+        legendUnit: "$/GiB-hr",
+        groupByAttributeKeys: ["node"],
+      },
+    }),
+
+    // Row 8-11: Storage and load balancer spend.
+    createChartComponent({
+      title: "Persistent Volume Hourly Cost (stacked by volume)",
+      chartType: DashboardChartType.StackedArea,
+      top: 8,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "pv_hourly_cost",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Volume",
+        legendUnit: "$/hr",
+        groupByAttributeKeys: ["persistentvolume"],
+      },
+    }),
+    createChartComponent({
+      title: "Load Balancer Hourly Cost (stacked by service)",
+      chartType: DashboardChartType.StackedArea,
+      top: 8,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: "kubecost_load_balancer_cost",
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Service",
+        legendUnit: "$/hr",
+        groupByAttributeKeys: ["service_name"],
+      },
+    }),
+
+    // Row 11-14: Per-node cost table for quick ranking.
+    createTableComponent({
+      title: "Cost by Node ($/hr)",
+      top: 11,
+      left: 0,
+      width: 12,
+      height: 3,
+      maxRows: 20,
+      metricConfig: {
+        metricName: "node_total_hourly_cost",
+        aggregationType: MetricsAggregationType.Avg,
+        groupByAttributeKeys: ["node"],
+      },
+    }),
+  ];
+
+  /*
+   * Cluster picker so multi-cluster projects can scope every widget from
+   * the toolbar. The deployment collector stamps k8s.cluster.name on the
+   * scraped cost metrics, so the binding key matches the other
+   * Kubernetes dashboards.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "cluster",
+      label: "Cluster",
+      attributeKey: "resource.k8s.cluster.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 14),
+  };
+}
+
 function createMetricsDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
@@ -2697,6 +2909,8 @@ export function getTemplateConfig(
       return createAlertDashboardConfig();
     case DashboardTemplateType.Kubernetes:
       return createKubernetesDashboardConfig();
+    case DashboardTemplateType.KubernetesCost:
+      return createKubernetesCostDashboardConfig();
     case DashboardTemplateType.Host:
       return createHostDashboardConfig();
     case DashboardTemplateType.Proxmox:

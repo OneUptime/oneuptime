@@ -1,4 +1,5 @@
 import OTelIngestAPI from "./API/OTelIngest";
+import KubernetesCostIngestAPI from "./API/KubernetesCostIngest";
 import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
@@ -67,6 +68,7 @@ const TelemetryFeatureSet: FeatureSet = {
        * the shared middleware stack from StartServer (body parsers, headers, etc.).
        */
       app.use(TELEMETRY_PREFIXES, OTelIngestAPI);
+      app.use(TELEMETRY_PREFIXES, KubernetesCostIngestAPI);
       app.use(TELEMETRY_PREFIXES, MetricsAPI);
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
       app.use(TELEMETRY_PREFIXES, FluentAPI);

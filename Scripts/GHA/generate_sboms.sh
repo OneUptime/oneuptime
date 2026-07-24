@@ -90,6 +90,7 @@ IMAGES=(
 	docker-agent
 	e2e
 	home
+	kubernetes-cost-agent
 	kubernetes-log-tailer
 	nginx
 	podman-agent

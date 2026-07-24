@@ -1,0 +1,99 @@
+{{- if and .Values.cost.enabled .Values.cost.agent.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-cost
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: cost-agent
+spec:
+  # The poller checkpoints windows in memory and the server dedupes
+  # re-shipped windows, but two concurrent pollers would race the
+  # already-ingested check — keep this at 1.
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "kubernetes-agent.selectorLabels" . | nindent 6 }}
+      component: cost-agent
+  template:
+    metadata:
+      labels:
+        {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
+        component: cost-agent
+    spec:
+      serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      # No privileged containers, no hostPath, no hostNetwork — GKE Autopilot
+      # compatible. The poller only talks HTTP to the cost engine's Service
+      # and to OneUptime.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cost-agent
+          image: "{{ .Values.cost.agent.image.repository }}:{{ .Values.cost.agent.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.cost.agent.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: ONEUPTIME_URL
+              value: {{ .Values.oneuptime.url | quote }}
+            - name: ONEUPTIME_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kubernetes-agent.fullname" . }}
+                  key: api-key
+            - name: CLUSTER_NAME
+              value: {{ .Values.clusterName | quote }}
+            # The external engine when cost.engine.url is set, else the
+            # bundled OpenCost Service.
+            - name: COST_ENGINE_URL
+              value: {{ include "kubernetes-agent.costEngineUrl" . | quote }}
+            {{- if .Values.cost.engine.allocationPath }}
+            - name: COST_ALLOCATION_PATH
+              value: {{ .Values.cost.engine.allocationPath | quote }}
+            {{- end }}
+            - name: WINDOW_SECONDS
+              value: {{ .Values.cost.agent.windowSeconds | default 3600 | quote }}
+            - name: POLL_INTERVAL_SECONDS
+              value: {{ .Values.cost.agent.pollIntervalSeconds | default 300 | quote }}
+            - name: ENGINE_SETTLE_SECONDS
+              value: {{ .Values.cost.agent.engineSettleSeconds | default 120 | quote }}
+            - name: LOOKBACK_WINDOWS
+              value: {{ .Values.cost.agent.lookbackWindows | default 2 | quote }}
+            - name: INCLUDE_IDLE
+              value: {{ .Values.cost.agent.includeIdle | default true | quote }}
+            - name: COST_CURRENCY
+              value: {{ .Values.cost.agent.currency | default "USD" | quote }}
+            - name: HEALTH_PORT
+              value: "13134"
+            - name: LOG_LEVEL
+              value: {{ .Values.cost.agent.logLevel | default "info" | quote }}
+          ports:
+            - name: health
+              containerPort: 13134
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.cost.agent.resources | nindent 12 }}
+{{- end }}

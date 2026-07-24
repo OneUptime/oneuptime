@@ -542,6 +542,165 @@ kubeStateMetrics:
       cpu: 200m
       memory: 256Mi
 
+# Kubernetes cost observability. Ships pre-priced workload cost
+# allocations to OneUptime, where they power the cluster "Costs" pages
+# and the Kubernetes Cost dashboard template.
+#
+# **One command**: `--set cost.enabled=true` is a complete install. The
+# chart bundles the open-source OpenCost engine (Apache-2.0, CNCF) plus
+# a minimal, dedicated Prometheus it needs for usage history — two small
+# pods, invisible plumbing. OpenCost prices nodes/volumes from your
+# cloud provider's public list prices automatically (no credentials);
+# on-prem clusters can set `cost.opencost.customPricing` rates instead.
+#
+# Already running Kubecost or OpenCost? Set `cost.engine.url` to its
+# Service and nothing is bundled — the chart just reads from it:
+#
+#   OpenCost:  http://opencost.opencost.svc.cluster.local:9003
+#   Kubecost:  http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+#
+# Two collection paths, both driven by the same engine:
+#
+#   1. `cost.agent`   — a small Deployment that polls the engine's
+#      Allocation API once per closed window (hourly by default) and
+#      POSTs per-workload cost rows (cpu/ram/gpu/pv/network/idle,
+#      efficiency) to OneUptime's /kubernetes-cost/ingest endpoint.
+#      This is the source of record for the Costs UI.
+#   2. `cost.metrics` — a Prometheus-receiver scrape of the engine's
+#      /metrics (node_total_hourly_cost, container_cpu_allocation, ...)
+#      through the existing OTLP pipeline, for charting raw cost
+#      metrics in Metric Explorer and dashboards.
+cost:
+  enabled: false
+  engine:
+    # Base URL of an EXISTING cost engine. Empty (the default) bundles
+    # OpenCost + a minimal Prometheus instead; setting it disables the
+    # bundle and reads from your engine.
+    url: ""
+    # Allocation API path. Empty auto-detects by probing, in order:
+    # /model/allocation (Kubecost), /allocation/compute (OpenCost),
+    # /allocation (older OpenCost).
+    allocationPath: ""
+  # Bundled OpenCost engine. Deployed only when `cost.enabled` is true
+  # and `cost.engine.url` is empty.
+  opencost:
+    image:
+      repository: ghcr.io/opencost/opencost
+      tag: "1.121.0"
+      pullPolicy: IfNotPresent
+    logLevel: info
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    # Rate card for clusters whose nodes have no public cloud list
+    # price (on-prem, bare metal, air-gapped). When enabled, OpenCost
+    # prices every resource from these figures instead of a provider
+    # API. All values are USD per resource-HOUR (the defaults are the
+    # cost-model's GCP-us-central1-derived defaults: $0.031611/core-hr
+    # ~= $23/core-month).
+    customPricing:
+      enabled: false
+      cpuPerCoreHour: "0.031611"
+      spotCpuPerCoreHour: "0.006655"
+      ramPerGiBHour: "0.004237"
+      spotRamPerGiBHour: "0.000892"
+      gpuPerHour: "0.95"
+      storagePerGBHour: "0.00005479452"
+      zoneNetworkEgressPerGB: "0.01"
+      regionNetworkEgressPerGB: "0.01"
+      internetNetworkEgressPerGB: "0.12"
+  # Minimal Prometheus for the bundled engine — OpenCost hard-requires a
+  # PromQL endpoint for usage/price history; this one exists solely for
+  # that. Single replica, short retention, scrapes exactly two targets
+  # (cAdvisor via the API-server node proxy, and OpenCost itself — which
+  # emits its own KSM-style request metrics, so no kube-state-metrics is
+  # needed). Deployed only alongside the bundled engine; never scraped
+  # into OneUptime and never reachable outside the cluster.
+  prometheus:
+    image:
+      repository: quay.io/prometheus/prometheus
+      tag: "v2.55.1"
+      pullPolicy: IfNotPresent
+    # The cost poller only queries recently-closed hourly windows, so a
+    # few days of history is all this TSDB ever needs to hold.
+    retention: 3d
+    scrapeInterval: 60s
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    # Off by default: data sits in an emptyDir, so a pod restart loses a
+    # few hours of usage/price history (the poller then ships smaller
+    # allocations for those windows). Enable for a small PVC if that
+    # matters to you.
+    persistence:
+      enabled: false
+      size: 10Gi
+      storageClass: ""
+  # Allocation poller Deployment (oneuptime/kubernetes-cost-agent).
+  agent:
+    enabled: true
+    image:
+      repository: oneuptime/kubernetes-cost-agent
+      tag: ""
+      pullPolicy: IfNotPresent
+    # Allocation window length. Hourly is the engines' native ETL
+    # resolution; a longer window loses granularity, a shorter one is
+    # interpolated by the engine anyway.
+    windowSeconds: 3600
+    # How often to check whether a new closed window is ready.
+    pollIntervalSeconds: 300
+    # Wait after a window closes before querying it, so the engine has
+    # finished pricing/reconciling it.
+    engineSettleSeconds: 120
+    # Closed windows to (re-)ship on startup. The server skips windows
+    # that already have rows, so restarts cannot double-count.
+    lookbackWindows: 2
+    # Ship the engine's __idle__ allocation so idle spend is queryable.
+    includeIdle: true
+    # Currency code forwarded with every payload (informational).
+    currency: USD
+    logLevel: info
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+  # Prometheus scrape of the engine's cost metrics through the
+  # deployment collector's existing OTLP export.
+  metrics:
+    enabled: true
+    # Metrics endpoint. Empty defaults to <cost.engine.url>/metrics.
+    endpoint: ""
+    scrapeInterval: 60s
+    # Exact-match allowlist — the engine exports many more series, and
+    # per-container allocation metrics multiply cardinality by the
+    # cluster's container count. Keep it tight.
+    metricsAllowlist:
+      - node_cpu_hourly_cost
+      - node_gpu_hourly_cost
+      - node_ram_hourly_cost
+      - node_total_hourly_cost
+      - container_cpu_allocation
+      - container_gpu_allocation
+      - container_memory_allocation_bytes
+      - pod_pvc_allocation
+      - pv_hourly_cost
+      - kubecost_cluster_management_cost
+      - kubecost_load_balancer_cost
+      - kubecost_network_zone_egress_cost
+      - kubecost_network_region_egress_cost
+      - kubecost_network_internet_egress_cost
+
 # Application traces & HTTP request metrics via OpenTelemetry eBPF
 # Instrumentation (OBI — the upstream OpenTelemetry project that took over
 # Grafana Beyla).

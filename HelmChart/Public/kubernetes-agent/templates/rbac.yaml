@@ -93,7 +93,21 @@ rules:
       - authorizationpolicies
     verbs: ["get", "list", "watch"]
 {{- end }}
-  # For kubeletstats receiver
+{{- if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}
+  # For the bundled OpenCost engine — it reads workload topology the
+  # rules above already grant, plus these two: storage classes (PV
+  # pricing) and pod disruption budgets (its cluster inventory).
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - storageclasses
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["get", "list", "watch"]
+{{- end }}
+  # For kubeletstats receiver (and the bundled cost Prometheus's
+  # cAdvisor scrape via the API-server node proxy, when cost is on)
   - nonResourceURLs:
       - /metrics
       - /metrics/cadvisor

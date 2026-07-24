@@ -94,9 +94,9 @@ data:
           {{- end }}
           {{- end }}
 
-      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled }}
+      {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
       # Scrape metrics via Prometheus endpoints (control plane, service
-      # mesh, CSI drivers, CoreDNS, kube-state-metrics)
+      # mesh, CSI drivers, CoreDNS, kube-state-metrics, cost engine)
       prometheus:
         config:
           scrape_configs:
@@ -257,6 +257,27 @@ data:
               metric_relabel_configs:
                 - source_labels: [__name__]
                   regex: "^({{ join "|" .Values.kubeStateMetrics.metricsAllowlist }})$"
+                  action: keep
+            {{- end }}
+            {{- if and .Values.cost.enabled .Values.cost.metrics.enabled }}
+            # Cost metrics from the in-cluster cost engine (OpenCost /
+            # Kubecost cost-model): node hourly costs, per-container
+            # resource allocation, PV and load-balancer costs. Powers
+            # the Kubernetes Cost dashboard template and Metric
+            # Explorer charts; the per-workload Costs pages are fed by
+            # the cost agent's Allocation API poller instead.
+            - job_name: cost-engine
+              scrape_interval: {{ .Values.cost.metrics.scrapeInterval }}
+              static_configs:
+                - targets:
+                    # Prometheus targets must be bare host:port — strip
+                    # any scheme/path (metrics_path defaults to /metrics).
+                    # Resolution order: explicit metrics endpoint, else
+                    # the engine URL (external or bundled OpenCost).
+                    - {{ (default (include "kubernetes-agent.costEngineUrl" .) .Values.cost.metrics.endpoint) | trimPrefix "http://" | trimPrefix "https://" | trimSuffix "/metrics" | trimSuffix "/" | quote }}
+              metric_relabel_configs:
+                - source_labels: [__name__]
+                  regex: "^({{ join "|" .Values.cost.metrics.metricsAllowlist }})$"
                   action: keep
             {{- end }}
             {{- if .Values.coreDns.enabled }}
@@ -435,7 +456,7 @@ data:
             # path to OneUptime.
             - otlp
             {{- end }}
-            {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled }}
+            {{- if or .Values.controlPlane.enabled .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
             - prometheus
             {{- end }}
           processors:

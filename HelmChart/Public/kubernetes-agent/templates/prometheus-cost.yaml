@@ -1,0 +1,184 @@
+{{- if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}
+# Minimal, dedicated Prometheus for the bundled OpenCost. OpenCost
+# hard-requires a PromQL endpoint to reconstruct usage and price history
+# when computing allocations — this instance exists solely for that.
+#
+# Deliberately tiny: single replica, {{ .Values.cost.prometheus.retention }} retention (the cost
+# poller only queries recently-closed hourly windows), no alerting, no
+# remote-write, and exactly two scrape jobs — cAdvisor via the
+# API-server node proxy (container usage) and OpenCost itself (prices +
+# its self-emitted KSM-style request metrics, which is why no
+# kube-state-metrics is involved). It is never scraped into OneUptime
+# and never reachable outside the cluster.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-cost-prometheus
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: cost-prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.cost.prometheus.scrapeInterval }}
+      evaluation_interval: {{ .Values.cost.prometheus.scrapeInterval }}
+    scrape_configs:
+      # Container CPU/memory usage from every node's cAdvisor, proxied
+      # through the API server so no hostNetwork/hostPort is needed
+      # (GKE Autopilot compatible). Uses the agent ServiceAccount's
+      # existing nodes/proxy + /metrics/cadvisor RBAC.
+      - job_name: kubernetes-nodes-cadvisor
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+      # OpenCost's own metrics: node/PV hourly prices, per-container
+      # allocation, and the KSM-style resource-request series it emits.
+      - job_name: opencost
+        honor_labels: true
+        static_configs:
+          - targets:
+              - "{{ include "kubernetes-agent.fullname" . }}-opencost.{{ .Release.Namespace }}.svc.cluster.local:9003"
+---
+{{- if .Values.cost.prometheus.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-cost-prometheus
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: cost-prometheus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.cost.prometheus.persistence.size }}
+  {{- if .Values.cost.prometheus.persistence.storageClass }}
+  storageClassName: {{ .Values.cost.prometheus.persistence.storageClass }}
+  {{- end }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-cost-prometheus
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: cost-prometheus
+spec:
+  replicas: 1
+  {{- if .Values.cost.prometheus.persistence.enabled }}
+  # A RWO volume can only mount on one pod — never surge a second one.
+  strategy:
+    type: Recreate
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kubernetes-agent.selectorLabels" . | nindent 6 }}
+      component: cost-prometheus
+  template:
+    metadata:
+      labels:
+        {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
+        component: cost-prometheus
+      annotations:
+        # Roll the pod when the scrape config's inputs change — the
+        # config volume updates in place but Prometheus only reads it
+        # at startup.
+        checksum/config: {{ toYaml .Values.cost.prometheus | sha256sum | trunc 32 }}
+    spec:
+      serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: prometheus
+          image: "{{ .Values.cost.prometheus.image.repository }}:{{ .Values.cost.prometheus.image.tag }}"
+          imagePullPolicy: {{ .Values.cost.prometheus.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time={{ .Values.cost.prometheus.retention }}
+            - --web.listen-address=:9090
+          ports:
+            - name: http
+              containerPort: 9090
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+              readOnly: true
+            - name: data
+              mountPath: /prometheus
+          resources:
+            {{- toYaml .Values.cost.prometheus.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "kubernetes-agent.fullname" . }}-cost-prometheus
+        - name: data
+          {{- if .Values.cost.prometheus.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "kubernetes-agent.fullname" . }}-cost-prometheus
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kubernetes-agent.fullname" . }}-cost-prometheus
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: cost-prometheus
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "kubernetes-agent.selectorLabels" . | nindent 4 }}
+    component: cost-prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: http
+      protocol: TCP
+{{- end }}
