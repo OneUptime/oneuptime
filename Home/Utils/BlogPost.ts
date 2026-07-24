@@ -317,6 +317,10 @@ export default class BlogPostUtil {
     const formattedPostDate: string =
       this.getFormattedPostDateFromFileName(fileName);
 
+    if (!(await LocalFile.doesFileExist(filePath))) {
+      return null;
+    }
+
     let markdownContent: string = await LocalFile.read(filePath);
 
     // Resolve author WITHOUT hitting GitHub API. Use Blogs.json to get username, Authors.json for name/bio.
