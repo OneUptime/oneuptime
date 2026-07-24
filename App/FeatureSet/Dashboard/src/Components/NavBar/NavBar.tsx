@@ -279,8 +279,9 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     {
       title: t("navbar.items.networkDevicesTitle"),
       description: t("navbar.items.networkDevicesDescription"),
+      // Land on the fleet Overview; the whole section stays highlighted.
       route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.NETWORK_DEVICES] as Route,
+        RouteMap[PageMap.NETWORK_OVERVIEW] as Route,
       ),
       activeRoute: RouteMap[PageMap.NETWORK_DEVICES],
       icon: IconProp.Signal,

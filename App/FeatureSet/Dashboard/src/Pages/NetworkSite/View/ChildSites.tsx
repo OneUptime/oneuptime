@@ -1,10 +1,8 @@
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageComponentProps from "../PageComponentProps";
-import AppLink from "../../Components/AppLink/AppLink";
-import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
-import SiteHierarchyTree from "../../Components/NetworkSite/SiteHierarchyTree";
-import SiteSummaryCards from "../../Components/NetworkSite/SiteSummaryCards";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageComponentProps from "../../PageComponentProps";
+import AppLink from "../../../Components/AppLink/AppLink";
+import MonitorStatusElement from "../../../Components/MonitorStatus/MonitorStatusElement";
 import Route from "Common/Types/API/Route";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
@@ -13,49 +11,40 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useState,
-} from "react";
+import Navigation from "Common/UI/Utils/Navigation";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
-const NetworkSites: FunctionComponent<
+/*
+ * Sites nested directly under this one. New child sites created here are
+ * automatically parented to this site.
+ */
+const NetworkSiteChildSites: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  /*
-   * Bumped when the table creates a site so the summary cards and the
-   * hierarchy tree refetch without a page reload.
-   */
-  const [refreshToggle, setRefreshToggle] = useState<string>("");
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   return (
     <Fragment>
-      <SiteSummaryCards refreshToggle={refreshToggle} />
-      <div className="mb-5">
-        <SiteHierarchyTree refreshToggle={refreshToggle} />
-      </div>
       <ModelTable<NetworkSite>
-        onCreateSuccess={(item: NetworkSite): Promise<NetworkSite> => {
-          setRefreshToggle(Date.now().toString());
+        modelType={NetworkSite}
+        id="network-site-children-table"
+        userPreferencesKey="network-site-children-table"
+        query={{ parentSiteId: modelId }}
+        onBeforeCreate={(item: NetworkSite): Promise<NetworkSite> => {
+          item.parentSiteId = modelId;
           return Promise.resolve(item);
         }}
-        modelType={NetworkSite}
-        id="network-sites-table"
-        userPreferencesKey="network-sites-table"
-        isDeleteable={true}
-        isEditable={true}
+        isDeleteable={false}
+        isEditable={false}
         isCreateable={true}
         isViewable={true}
         showRefreshButton={true}
-        name="Network Sites"
-        searchableFields={["name", "description"]}
+        name="Child Sites"
         cardProps={{
-          title: "Network Sites",
-          description:
-            "Group your network devices into a drill-down hierarchy — regions, franchisees, markets, units. Each site rolls up the health of everything below it.",
+          title: "Child Sites",
+          description: "Sites nested directly under this one.",
         }}
-        showViewIdButton={true}
+        noItemsMessage="This site has no child sites. Create one to build out the hierarchy below it."
         filters={[
           {
             field: {
@@ -73,13 +62,6 @@ const NetworkSites: FunctionComponent<
             filterDropdownOptions:
               DropdownUtil.getDropdownOptionsFromEnum(NetworkSiteType),
           },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Created",
-            type: FieldType.Date,
-          },
         ]}
         formFields={[
           {
@@ -93,15 +75,6 @@ const NetworkSites: FunctionComponent<
           },
           {
             field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Flagship location — two switches and a firewall.",
-          },
-          {
-            field: {
               siteType: true,
             },
             title: "Site Type",
@@ -112,22 +85,6 @@ const NetworkSites: FunctionComponent<
               DropdownUtil.getDropdownOptionsFromEnum(NetworkSiteType),
             required: true,
             placeholder: "Unit",
-          },
-          {
-            field: {
-              parentSite: true,
-            },
-            title: "Parent Site",
-            description:
-              "The site this one is nested under. Leave empty for a root site.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: NetworkSite,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Parent Site (optional)",
           },
           {
             field: {
@@ -194,26 +151,6 @@ const NetworkSites: FunctionComponent<
           },
           {
             field: {
-              parentSite: {
-                name: true,
-              },
-            },
-            title: "Parent Site",
-            type: FieldType.Entity,
-            hideOnMobile: true,
-            getElement: (item: NetworkSite): ReactElement => {
-              if (!item.parentSite?.name) {
-                return <span className="text-sm text-gray-400">Root</span>;
-              }
-              return (
-                <span className="text-sm text-gray-900">
-                  {item.parentSite.name}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
               currentMonitorStatus: {
                 name: true,
                 color: true,
@@ -233,43 +170,7 @@ const NetworkSites: FunctionComponent<
               );
             },
           },
-          {
-            field: {
-              latitude: true,
-            },
-            title: "Location",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: NetworkSite): ReactElement => {
-              if (
-                item.latitude === undefined ||
-                item.latitude === null ||
-                item.longitude === undefined ||
-                item.longitude === null
-              ) {
-                return (
-                  <span className="text-sm text-gray-400">Not pinned</span>
-                );
-              }
-              return (
-                <span className="text-sm text-gray-600">
-                  {item.latitude}, {item.longitude}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Created",
-            type: FieldType.DateTime,
-            hideOnMobile: true,
-          },
         ]}
-        selectMoreFields={{
-          longitude: true,
-        }}
         onViewPage={(item: NetworkSite): Promise<Route> => {
           return Promise.resolve(
             new Route(
@@ -287,4 +188,4 @@ const NetworkSites: FunctionComponent<
   );
 };
 
-export default NetworkSites;
+export default NetworkSiteChildSites;
