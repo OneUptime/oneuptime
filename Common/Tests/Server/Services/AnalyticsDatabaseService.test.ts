@@ -16,6 +16,8 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import PositiveNumber from "../../../Types/PositiveNumber";
+import ModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import {
   describe,
   expect,
@@ -616,6 +618,149 @@ describe("AnalyticsDatabaseService", () => {
       expect(() => {
         return check(model);
       }).toThrow("requiredText is required");
+    });
+  });
+
+  /*
+   * countBy parses the count() aggregate out of ClickHouse's JSON response.
+   * Whether that UInt64 arrives as a JSON string or a JSON number depends on
+   * the server's output_format_json_quote_64bit_integers setting — quoted
+   * (string) was the default until ClickHouse 25.x flipped it to numbers.
+   * A string-only typeof check silently read every count as 0 on modern
+   * servers, which made telemetry monitors (Logs / Traces / Exceptions)
+   * never meet their count-threshold criteria — monitors stuck "Operational"
+   * forever. These tests pin the parsing for both wire formats and every
+   * degraded-response shape.
+   */
+  describe("countBy result parsing", () => {
+    let checkReadPermissionMock: jest.Mock;
+
+    const mockCountResponse: (response: unknown) => void = (
+      response: unknown,
+    ): void => {
+      jest.spyOn(service, "executeQuery").mockResolvedValue({
+        json: () => {
+          return Promise.resolve(response);
+        },
+      } as never);
+    };
+
+    beforeEach(() => {
+      checkReadPermissionMock = jest
+        .spyOn(ModelPermission, "checkReadPermission")
+        .mockImplementation((_modelType: unknown, query: unknown) => {
+          return Promise.resolve({
+            query,
+            select: null,
+          } as never);
+        }) as unknown as jest.Mock;
+      jest.spyOn(logger, "debug").mockImplementation(() => {
+        return undefined!;
+      });
+      jest.spyOn(logger, "warn").mockImplementation(() => {
+        return undefined!;
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const countBy: () => Promise<number> = async (): Promise<number> => {
+      const result: PositiveNumber = await service.countBy({
+        query: {},
+        props: { isRoot: true },
+      });
+      return result.toNumber();
+    };
+
+    test("parses count returned as a JSON number (ClickHouse >= 25.x default)", async () => {
+      mockCountResponse({ data: [{ count: 42 }] });
+      expect(await countBy()).toBe(42);
+    });
+
+    test("parses count returned as a JSON string (quoted 64-bit integers)", async () => {
+      mockCountResponse({ data: [{ count: "42" }] });
+      expect(await countBy()).toBe(42);
+    });
+
+    test("parses a numeric zero count as 0", async () => {
+      mockCountResponse({ data: [{ count: 0 }] });
+      expect(await countBy()).toBe(0);
+    });
+
+    test("parses a string zero count as 0", async () => {
+      mockCountResponse({ data: [{ count: "0" }] });
+      expect(await countBy()).toBe(0);
+    });
+
+    test("parses a count of 1 — the smallest value that can cross a monitor threshold", async () => {
+      // The default log-monitor offline criteria is "Log Count >= 1".
+      mockCountResponse({ data: [{ count: 1 }] });
+      expect(await countBy()).toBe(1);
+    });
+
+    test("parses a large count", async () => {
+      mockCountResponse({ data: [{ count: "6718284" }] });
+      expect(await countBy()).toBe(6718284);
+    });
+
+    test("defaults to 0 when the response has no data field", async () => {
+      mockCountResponse({});
+      expect(await countBy()).toBe(0);
+    });
+
+    test("defaults to 0 when the data array is empty", async () => {
+      mockCountResponse({ data: [] });
+      expect(await countBy()).toBe(0);
+    });
+
+    test("defaults to 0 when the row has no count key", async () => {
+      mockCountResponse({ data: [{ other: 5 }] });
+      expect(await countBy()).toBe(0);
+    });
+
+    test("defaults to 0 when the count value is null", async () => {
+      mockCountResponse({ data: [{ count: null }] });
+      expect(await countBy()).toBe(0);
+    });
+
+    test("defaults to 0 (with a warning) when the response body is unparseable", async () => {
+      /*
+       * timeout_overflow_mode='break' can truncate a count() response —
+       * json() then rejects. countBy must degrade to 0, not throw.
+       */
+      jest.spyOn(service, "executeQuery").mockResolvedValue({
+        json: () => {
+          return Promise.reject(new Error("truncated response"));
+        },
+      } as never);
+      expect(await countBy()).toBe(0);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    test("uses the permission-checked query for the count statement", async () => {
+      mockCountResponse({ data: [{ count: 7 }] });
+
+      // Must be a real model column: the where-statement compiler rejects unknown keys.
+      const rewrittenQuery: GenericObject = { column_1: "tenant-scoped" };
+      checkReadPermissionMock.mockImplementation(() => {
+        return Promise.resolve({
+          query: rewrittenQuery,
+          select: null,
+        } as never);
+      });
+
+      const toCountStatementSpy: jest.Mock = jest.spyOn(
+        service,
+        "toCountStatement",
+      ) as unknown as jest.Mock;
+
+      await countBy();
+
+      expect(toCountStatementSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ query: rewrittenQuery }),
+      );
     });
   });
 
