@@ -131,6 +131,13 @@ export default class CriteriaFilterUtil {
         text += "on " + criteriaFilter?.serverMonitorOptions?.diskPath + " ";
       }
 
+      if (criteriaFilter?.snmpMonitorOptions?.interfaceName) {
+        text +=
+          "on interface " +
+          criteriaFilter?.snmpMonitorOptions?.interfaceName +
+          " ";
+      }
+
       // add minutes if evaluate over time is true
       if (
         criteriaFilter?.evaluateOverTime &&

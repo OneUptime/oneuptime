@@ -94,6 +94,7 @@ import AddInstanceIdToGlobalConfig from "./AddInstanceIdToGlobalConfig";
 import AddMetricEntityMinuteAggregateMaterializedViews from "./AddMetricEntityMinuteAggregateMaterializedViews";
 import CloseOrphanedMonitorStatusTimelineRows from "./CloseOrphanedMonitorStatusTimelineRows";
 import MigrateMetricAggregatesToStrictSchema from "./MigrateMetricAggregatesToStrictSchema";
+import AddInterfaceIndexColumnsToNetworkFlow from "./AddInterfaceIndexColumnsToNetworkFlow";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -268,6 +269,12 @@ const DataMigrations: Array<DataMigrationBase> = [
    * model-owned metric target tables/materialized views.
    */
   new MigrateMetricAggregatesToStrictSchema(),
+  /*
+   * Adds inputInterfaceIndex / outputInterfaceIndex to NetworkFlow so flow
+   * records can be attributed to the interfaces they crossed. Existing
+   * rows read back 0 ("unknown"). Idempotent: skips columns that exist.
+   */
+  new AddInterfaceIndexColumnsToNetworkFlow(),
 ];
 
 export default DataMigrations;

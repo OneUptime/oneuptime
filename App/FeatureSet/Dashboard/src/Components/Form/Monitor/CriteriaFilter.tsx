@@ -344,6 +344,33 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
           })()}
 
         {criteriaFilter?.checkOn &&
+          (criteriaFilter?.checkOn === CheckOn.SnmpInterfaceIsDown ||
+            criteriaFilter?.checkOn ===
+              CheckOn.SnmpInterfaceUtilizationPercent ||
+            criteriaFilter?.checkOn ===
+              CheckOn.SnmpInterfaceErrorsPerSecond) && (
+            <div className="mt-1">
+              <FieldLabelElement
+                title="Interface (Optional)"
+                description="Scope this criteria to one interface, matched by name or alias (e.g. Gi0/1 or 'Uplink to core'). Leave empty to evaluate every monitored interface on the device."
+              />
+              <Input
+                value={criteriaFilter?.snmpMonitorOptions?.interfaceName || ""}
+                placeholder="Gi0/1"
+                onChange={(value: string) => {
+                  props.onChange?.({
+                    ...criteriaFilter,
+                    snmpMonitorOptions: {
+                      ...criteriaFilter?.snmpMonitorOptions,
+                      interfaceName: value || undefined,
+                    },
+                  });
+                }}
+              />
+            </div>
+          )}
+
+        {criteriaFilter?.checkOn &&
           criteriaFilter?.checkOn === CheckOn.MetricValue && (
             <div className="mt-1">
               <FieldLabelElement

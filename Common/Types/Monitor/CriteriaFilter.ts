@@ -119,6 +119,14 @@ export interface ServerMonitorOptions {
 
 export interface SnmpMonitorOptions {
   oid?: string | undefined;
+  /*
+   * Optional interface scope for the interface CheckOns (down /
+   * utilization / errors). When set, only interfaces whose name or alias
+   * equals this value (case-insensitive) are evaluated — so "uplink Gi0/1
+   * above 80%" does not fire because an access port got busy. Empty =
+   * every monitored interface, the historical behavior.
+   */
+  interfaceName?: string | undefined;
 }
 
 export enum EvaluateOverTimeType {
@@ -429,6 +437,7 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   }).optional(),
   snmpMonitorOptions: Zod.object({
     oid: Zod.string().optional(),
+    interfaceName: Zod.string().optional(),
   }).optional(),
   filterType: Zod.string().optional(),
   value: Zod.union([Zod.string(), Zod.number()]).optional(),

@@ -16,6 +16,36 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
 
 export default class SnmpMonitorCriteria {
+  /*
+   * Interface scope for the interface CheckOns: when the criteria carries
+   * snmpMonitorOptions.interfaceName, only interfaces whose name or alias
+   * equals it (case-insensitive) are evaluated. Empty scope = every
+   * monitored interface (the historical behavior). Applies to the
+   * instantaneous values in the poll response; over-time aggregation
+   * remains device-wide.
+   */
+  private static scopeInterfaces(
+    interfaces: Array<SnmpInterface>,
+    criteriaFilter: CriteriaFilter,
+  ): Array<SnmpInterface> {
+    const scope: string = (
+      criteriaFilter.snmpMonitorOptions?.interfaceName || ""
+    )
+      .trim()
+      .toLowerCase();
+
+    if (!scope) {
+      return interfaces;
+    }
+
+    return interfaces.filter((snmpInterface: SnmpInterface) => {
+      return (
+        snmpInterface.name?.trim().toLowerCase() === scope ||
+        snmpInterface.alias?.trim().toLowerCase() === scope
+      );
+    });
+  }
+
   @CaptureSpan()
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
@@ -150,12 +180,15 @@ export default class SnmpMonitorCriteria {
       });
     }
 
-    // Check if any monitored interface is down (admin-up but oper-down)
+    // Check if any monitored interface (in scope) is down
     if (input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceIsDown) {
-      const interfaces: Array<SnmpInterface> | undefined =
-        snmpResponse?.interfaces;
+      const interfaces: Array<SnmpInterface> =
+        SnmpMonitorCriteria.scopeInterfaces(
+          snmpResponse?.interfaces || [],
+          input.criteriaFilter,
+        );
 
-      if (!interfaces || interfaces.length === 0) {
+      if (interfaces.length === 0) {
         return null;
       }
 
@@ -206,7 +239,10 @@ export default class SnmpMonitorCriteria {
         return null;
       }
 
-      const utilizations: Array<number> = (snmpResponse?.interfaces || [])
+      const utilizations: Array<number> = SnmpMonitorCriteria.scopeInterfaces(
+        snmpResponse?.interfaces || [],
+        input.criteriaFilter,
+      )
         .map((snmpInterface: SnmpInterface) => {
           return snmpInterface.utilizationPercent;
         })
@@ -233,7 +269,10 @@ export default class SnmpMonitorCriteria {
         return null;
       }
 
-      const errorRates: Array<number> = (snmpResponse?.interfaces || [])
+      const errorRates: Array<number> = SnmpMonitorCriteria.scopeInterfaces(
+        snmpResponse?.interfaces || [],
+        input.criteriaFilter,
+      )
         .map((snmpInterface: SnmpInterface) => {
           return snmpInterface.errorsPerSecond;
         })

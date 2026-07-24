@@ -12,6 +12,8 @@ import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLe
 import SnmpAuthProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import ObjectID from "../../../Types/ObjectID";
+import IP from "../../../Types/IP/IP";
+import DnsResolutionCache from "./DnsResolutionCache";
 import logger from "../Logger";
 
 /*
@@ -199,27 +201,89 @@ export default class NetworkDeviceHydrationUtil {
   }
 
   /*
-   * Resolves which NetworkDevices (polled by the given probe) match a trap
-   * source IP. Used by the trap ingest to fan traps out to device monitors.
+   * Resolves which NetworkDevices (polled by the given probe) match a
+   * datagram source IP — SNMP traps and probe-forwarded syslog both route
+   * through here. Exact hostname == source-IP match first; devices
+   * registered by DNS name are matched by resolving their hostnames
+   * through a shared positive/negative cache, so a device added as
+   * "switch-01.example.com" still receives its traps and syslog.
    */
   public static async findDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
+    // Extra columns callers need (syslog attribution wants `name`).
+    select?: { name?: boolean | undefined } | undefined;
   }): Promise<Array<NetworkDevice>> {
-    return NetworkDeviceService.findBy({
-      query: {
-        probeId: data.probeId,
-        hostname: data.sourceIpAddress,
+    const select: {
+      _id: boolean;
+      projectId: boolean;
+      name?: boolean | undefined;
+    } = {
+      _id: true,
+      projectId: true,
+      ...(data.select?.name ? { name: true } : {}),
+    };
+
+    const exactMatches: Array<NetworkDevice> =
+      await NetworkDeviceService.findBy({
+        query: {
+          probeId: data.probeId,
+          hostname: data.sourceIpAddress,
+        },
+        select: select,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (exactMatches.length > 0) {
+      return exactMatches;
+    }
+
+    /*
+     * Fallback: resolve the probe's DNS-named devices and match on their
+     * resolved addresses. Only runs when the exact match found nothing,
+     * and only resolves hostnames that are not already IP literals.
+     */
+    const candidates: Array<NetworkDevice> = await NetworkDeviceService.findBy(
+      {
+        query: {
+          probeId: data.probeId,
+        },
+        select: {
+          ...select,
+          hostname: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
       },
-      select: {
-        _id: true,
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
+
+    const dnsMatches: Array<NetworkDevice> = [];
+
+    for (const device of candidates) {
+      const hostname: string = device.hostname?.trim() || "";
+
+      if (!hostname || IP.isIP(hostname)) {
+        continue;
+      }
+
+      const addresses: Array<string> =
+        await NetworkDeviceHydrationUtil.dnsCache.resolve(hostname);
+
+      if (addresses.includes(data.sourceIpAddress)) {
+        dnsMatches.push(device);
+      }
+    }
+
+    return dnsMatches;
   }
+
+  // Shared across trap and syslog ingest; 5-minute TTL, failure-cached.
+  private static dnsCache: DnsResolutionCache = new DnsResolutionCache();
 }
