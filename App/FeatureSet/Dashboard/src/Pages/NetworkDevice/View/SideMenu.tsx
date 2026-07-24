@@ -60,6 +60,16 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Logs}
+        />
+        <SideMenuItem
+          link={{
             title: "Monitors",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_DEVICE_VIEW_MONITORS] as Route,

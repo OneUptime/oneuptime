@@ -2,6 +2,7 @@ import NetworkDeviceGraph from "./NetworkDeviceGraph";
 import NetworkDeviceDetailPanel from "./NetworkDeviceDetailPanel";
 import NetworkLinkDetailPanel from "./NetworkLinkDetailPanel";
 import { edgeKeyForEdge } from "./NetworkTopologyMeta";
+import { isEndpointNode } from "../NetworkDevice/EndpointNodeUtil";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -12,6 +13,10 @@ import NetworkTopology, {
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import Card from "Common/UI/Components/Card/Card";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
@@ -72,6 +77,9 @@ const EMPTY_TOPOLOGY: TopologyViewData = { nodes: [], edges: [] };
 
 const REFRESH_INTERVAL_MS: number = 60 * 1000;
 
+// Sentinel for the VLAN filter's default "show everything" option.
+const ALL_VLANS: string = "all";
+
 // Narrow an untyped API payload into a NetworkTopology, dropping malformed rows.
 const parseTopologyResponse: (
   data: JSONObject | undefined,
@@ -130,6 +138,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [searchText, setSearchText] = useState<string>("");
+  const [selectedVlan, setSelectedVlan] = useState<string>(ALL_VLANS);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeKey, setSelectedEdgeKey] = useState<string | null>(null);
 
@@ -216,16 +225,78 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
     };
   }, [fetchTopology]);
 
+  /*
+   * VLAN filter options: the distinct VLANs the current payload's endpoint
+   * nodes carry, plus the "All VLANs" default. Device and unmanaged nodes
+   * never contribute — only discovered endpoints know their VLAN.
+   */
+  const vlanOptions: Array<DropdownOption> = useMemo(() => {
+    const vlanIds: Set<number> = new Set<number>();
+    for (const node of topology.nodes) {
+      if (isEndpointNode(node) && typeof node.vlanId === "number") {
+        vlanIds.add(node.vlanId);
+      }
+    }
+    const sorted: Array<number> = Array.from(vlanIds).sort(
+      (a: number, b: number) => {
+        return a - b;
+      },
+    );
+    return [
+      {
+        value: ALL_VLANS,
+        label: translateString("All VLANs") || "All VLANs",
+      },
+      ...sorted.map((vlanId: number): DropdownOption => {
+        return { value: vlanId.toString(), label: `VLAN ${vlanId}` };
+      }),
+    ];
+  }, [topology, translateString]);
+
+  /*
+   * The topology the graph and panels actually see. A selected VLAN hides
+   * endpoint nodes outside it (including endpoints with no known VLAN) and
+   * the FDB edges that hang off them; device and unmanaged nodes are never
+   * hidden, so the physical fabric stays visible for context.
+   */
+  const visibleTopology: TopologyViewData = useMemo(() => {
+    if (selectedVlan === ALL_VLANS) {
+      return topology;
+    }
+    const selectedVlanId: number = Number(selectedVlan);
+    const hiddenNodeIds: Set<string> = new Set<string>();
+    for (const node of topology.nodes) {
+      if (isEndpointNode(node) && node.vlanId !== selectedVlanId) {
+        hiddenNodeIds.add(node.id);
+      }
+    }
+    if (hiddenNodeIds.size === 0) {
+      return topology;
+    }
+    return {
+      ...topology,
+      nodes: topology.nodes.filter((node: NetworkTopologyNode) => {
+        return !hiddenNodeIds.has(node.id);
+      }),
+      edges: topology.edges.filter((edge: NetworkTopologyEdge) => {
+        return (
+          !hiddenNodeIds.has(edge.fromNodeId) &&
+          !hiddenNodeIds.has(edge.toNodeId)
+        );
+      }),
+    };
+  }, [topology, selectedVlan]);
+
   const nodeById: Map<string, NetworkTopologyNode> = useMemo(() => {
     const map: Map<string, NetworkTopologyNode> = new Map<
       string,
       NetworkTopologyNode
     >();
-    for (const node of topology.nodes) {
+    for (const node of visibleTopology.nodes) {
       map.set(node.id, node);
     }
     return map;
-  }, [topology]);
+  }, [visibleTopology]);
 
   /*
    * Selection stores stable keys, not objects — after a background refresh
@@ -239,11 +310,11 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       return null;
     }
     return (
-      topology.edges.find((edge: NetworkTopologyEdge) => {
+      visibleTopology.edges.find((edge: NetworkTopologyEdge) => {
         return edgeKeyForEdge(edge) === selectedEdgeKey;
       }) || null
     );
-  }, [topology, selectedEdgeKey]);
+  }, [visibleTopology, selectedEdgeKey]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -284,6 +355,25 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
+        {vlanOptions.length > 1 ? (
+          <div className="md:w-48" data-testid="network-topology-vlan-filter">
+            <Dropdown
+              value={
+                vlanOptions.find((option: DropdownOption) => {
+                  return option.value === selectedVlan;
+                }) || vlanOptions[0]
+              }
+              options={vlanOptions}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                setSelectedVlan(value ? value.toString() : ALL_VLANS);
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
         <p className="text-xs text-gray-500 md:ml-auto">
           {translateString(
             "Updates automatically every minute. Link color shows state; width shows utilization.",
@@ -323,7 +413,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       )}
 
       <NetworkDeviceGraph
-        topology={topology}
+        topology={visibleTopology}
         searchText={searchText}
         layoutMode={props.layoutMode || "force"}
         onNodeClick={(node: NetworkTopologyNode) => {
@@ -353,7 +443,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       {selectedNode ? (
         <NetworkDeviceDetailPanel
           node={selectedNode}
-          edges={topology.edges}
+          edges={visibleTopology.edges}
           nodeById={nodeById}
           onClose={() => {
             setSelectedNodeId(null);

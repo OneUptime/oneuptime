@@ -195,6 +195,7 @@ export default class NetworkDeviceTopologyAPI {
                 ipAddress: true,
                 vendor: true,
                 classification: true,
+                vlanId: true,
                 attachedNetworkDeviceId: true,
                 attachedInterfaceIndex: true,
                 attachedPortName: true,
@@ -220,6 +221,7 @@ export default class NetworkDeviceTopologyAPI {
               ipAddress: endpoint.ipAddress,
               vendor: endpoint.vendor,
               classification: endpoint.classification,
+              vlanId: endpoint.vlanId,
               attachedNetworkDeviceId:
                 endpoint.attachedNetworkDeviceId?.toString(),
               attachedInterfaceIndex: endpoint.attachedInterfaceIndex,

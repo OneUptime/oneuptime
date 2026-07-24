@@ -1,10 +1,15 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil,
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
+import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
+import ObjectID from "../../../../Types/ObjectID";
+import OneUptimeDate from "../../../../Types/Date";
 import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
@@ -12,6 +17,10 @@ import SnmpMonitorResponse, {
 import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime from "./EvaluateOverTime";
+import MetricBaselineService, {
+  BaselineSummary,
+  MetricBaselineService as MetricBaselineServiceClass,
+} from "../../../Services/MetricBaselineService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
 
@@ -44,6 +53,104 @@ export default class SnmpMonitorCriteria {
         snmpInterface.alias?.trim().toLowerCase() === scope
       );
     });
+  }
+
+  /*
+   * Anomaly path for interface utilization: compares the busiest in-scope
+   * interface's current utilization to this monitor's same-hour-of-week
+   * baseline of the oneuptime.monitor.snmp.interface.utilization.percent
+   * metric. MonitorMetricUtil writes that metric every check with the
+   * monitorId as the metric's primaryEntityId, so the MetricBaselineHourly
+   * MV already keys a per-monitor baseline — this reuses it via
+   * MetricBaselineService exactly like MetricMonitorCriteria does.
+   *
+   * Note the baseline aggregates every interface sample the monitor
+   * emitted (interfaces are attributes, not part of the baseline key)
+   * while the observed value is the busiest in-scope interface — the same
+   * "worst interface vs device-wide history" trade-off the static
+   * threshold path already makes.
+   *
+   * Missing or unreliable baselines mean the rule is still learning —
+   * never alert from a thin baseline. Zero-variance baselines are skipped
+   * too: any deviation at all would fire.
+   */
+  private static async evaluateUtilizationAnomaly(input: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    criteriaFilter: CriteriaFilter;
+    observedUtilizationPercent: number;
+  }): Promise<string | null> {
+    const sensitivity: AnomalyDetectionSensitivity =
+      (input.criteriaFilter.metricMonitorOptions?.anomalyDetection
+        ?.sensitivity as AnomalyDetectionSensitivity | undefined) ||
+      AnomalyDetectionSensitivity.Medium;
+    const sigmaCount: number =
+      MetricBaselineServiceClass.sigmaForSensitivity(sensitivity);
+
+    let baseline: BaselineSummary | null = null;
+    try {
+      baseline = await MetricBaselineService.getBaseline({
+        projectId: input.projectId.toString(),
+        metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
+        primaryEntityId: input.monitorId.toString(),
+        hourOfWeek: MetricBaselineServiceClass.computeHourOfWeek(
+          OneUptimeDate.getCurrentDate(),
+        ),
+        windowDays:
+          input.criteriaFilter.metricMonitorOptions?.anomalyDetection
+            ?.windowDays,
+        minSamples:
+          input.criteriaFilter.metricMonitorOptions?.anomalyDetection
+            ?.minSamples,
+      });
+    } catch (err) {
+      logger.error(
+        "Error fetching SNMP interface utilization baseline for anomaly criteria",
+      );
+      logger.error(err);
+      return null;
+    }
+
+    if (!baseline || !baseline.isReliable) {
+      // Cold start: the baseline is still learning; nothing to compare to.
+      return null;
+    }
+
+    if (!Number.isFinite(baseline.stddev) || baseline.stddev === 0) {
+      // A zero-variance baseline would flag every deviation. Skip.
+      return null;
+    }
+
+    const expectedHigh: number = baseline.mean + sigmaCount * baseline.stddev;
+    const expectedLow: number = baseline.mean - sigmaCount * baseline.stddev;
+    const observed: number = input.observedUtilizationPercent;
+
+    const isHighBreach: boolean = observed > expectedHigh;
+    const isLowBreach: boolean = observed < expectedLow;
+
+    let breaches: boolean = false;
+    if (input.criteriaFilter.filterType === FilterType.AnomalouslyHigh) {
+      breaches = isHighBreach;
+    } else if (input.criteriaFilter.filterType === FilterType.AnomalouslyLow) {
+      breaches = isLowBreach;
+    } else if (input.criteriaFilter.filterType === FilterType.Anomalous) {
+      breaches = isHighBreach || isLowBreach;
+    }
+
+    if (!breaches) {
+      return null;
+    }
+
+    const observedSigma: number = (observed - baseline.mean) / baseline.stddev;
+    const direction: string = observedSigma >= 0 ? "above" : "below";
+
+    return (
+      `SNMP interface utilization ${observed.toFixed(2)}% is ` +
+      `${Math.abs(observedSigma).toFixed(2)}σ ${direction} the same-hour baseline ` +
+      `(mean ${baseline.mean.toFixed(2)}%, σ ${baseline.stddev.toFixed(2)}%, ` +
+      `${baseline.sampleCount} samples over ${baseline.windowDays} days, ` +
+      `sensitivity ${sensitivity}).`
+    );
   }
 
   @CaptureSpan()
@@ -233,12 +340,6 @@ export default class SnmpMonitorCriteria {
     if (
       input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceUtilizationPercent
     ) {
-      threshold = CompareCriteria.convertToNumber(threshold);
-
-      if (threshold === null || threshold === undefined) {
-        return null;
-      }
-
       const utilizations: Array<number> = SnmpMonitorCriteria.scopeInterfaces(
         snmpResponse?.interfaces || [],
         input.criteriaFilter,
@@ -251,6 +352,28 @@ export default class SnmpMonitorCriteria {
         });
 
       if (utilizations.length === 0) {
+        return null;
+      }
+
+      /*
+       * Anomaly filters skip the static threshold entirely: the busiest
+       * in-scope interface's utilization is compared to this monitor's
+       * same-hour-of-week utilization baseline instead.
+       */
+      if (
+        CriteriaFilterUtil.isAnomalyFilterType(input.criteriaFilter.filterType)
+      ) {
+        return await SnmpMonitorCriteria.evaluateUtilizationAnomaly({
+          projectId: dataToProcess.projectId,
+          monitorId: input.dataToProcess.monitorId!,
+          criteriaFilter: input.criteriaFilter,
+          observedUtilizationPercent: Math.max(...utilizations),
+        });
+      }
+
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      if (threshold === null || threshold === undefined) {
         return null;
       }
 

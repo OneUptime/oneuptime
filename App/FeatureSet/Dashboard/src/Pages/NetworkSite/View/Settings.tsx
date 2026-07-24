@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -160,6 +161,78 @@ const NetworkSiteSettings: FunctionComponent<
               fieldType: FieldType.Text,
               showIf: (item: NetworkSite): boolean => {
                 return Boolean(item.address);
+              },
+            },
+          ],
+        }}
+      />
+
+      <CardModelDetail<NetworkSite>
+        name="Site Alerting"
+        cardProps={{
+          title: "Alerting",
+          description:
+            "Open an alert when this site's health rollup turns non-operational. The alert auto-resolves when the site recovers.",
+        }}
+        isEditable={true}
+        editButtonText="Edit Alerting"
+        formFields={[
+          {
+            field: {
+              shouldAlertWhenUnhealthy: true,
+            },
+            title: "Alert When Unhealthy",
+            description:
+              "When enabled, an alert opens the moment this site's rollup transitions to a non-operational status, and auto-resolves on recovery.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+          {
+            field: {
+              alertSeverity: true,
+            },
+            title: "Alert Severity",
+            description:
+              "Severity for site alerts. Defaults to the project's most severe when left empty.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: AlertSeverity,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Alert Severity (optional)",
+          },
+        ]}
+        modelDetailProps={{
+          modelType: NetworkSite,
+          id: "network-site-alerting",
+          modelId: modelId,
+          fields: [
+            {
+              field: {
+                shouldAlertWhenUnhealthy: true,
+              },
+              title: "Alert When Unhealthy",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                alertSeverity: {
+                  name: true,
+                },
+              },
+              title: "Alert Severity",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkSite): ReactElement => {
+                if (!item.alertSeverity?.name) {
+                  return (
+                    <span className="text-gray-400">
+                      Project default (most severe)
+                    </span>
+                  );
+                }
+                return <span>{item.alertSeverity.name}</span>;
               },
             },
           ],

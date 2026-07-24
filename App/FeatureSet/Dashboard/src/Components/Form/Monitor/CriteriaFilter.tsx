@@ -661,7 +661,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               </div>
             ))}
 
-        {criteriaFilter?.checkOn === CheckOn.MetricValue &&
+        {(criteriaFilter?.checkOn === CheckOn.MetricValue ||
+          criteriaFilter?.checkOn ===
+            CheckOn.SnmpInterfaceUtilizationPercent) &&
           CriteriaFilterUtil.isAnomalyFilterType(
             criteriaFilter?.filterType,
           ) && (

@@ -44,11 +44,13 @@ export interface NetworkTopologyNode {
   /*
    * Endpoint identity (endpoint nodes only), all best-effort: MAC from the
    * FDB, IP from the ARP join, classification from OUI/heuristics (e.g.
-   * "pos-terminal", "camera", "printer").
+   * "pos-terminal", "camera", "printer"), VLAN from the FDB entry that
+   * learned the MAC. Optional so older payloads stay valid.
    */
   macAddress?: string | undefined;
   ipAddress?: string | undefined;
   classification?: string | undefined;
+  vlanId?: number | undefined;
 }
 
 /*

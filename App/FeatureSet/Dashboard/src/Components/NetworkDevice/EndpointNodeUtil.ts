@@ -33,7 +33,7 @@ export function isFdbEdge(edge: NetworkTopologyEdge): boolean {
 /**
  * Tooltip line for an endpoint node: name plus whatever identity the
  * ARP/FDB join produced, e.g.
- * "pos-2 (endpoint) — aa:bb:cc:dd:ee:ff · 10.0.0.12 · Zebra · printer".
+ * "pos-2 (endpoint) — aa:bb:cc:dd:ee:ff · 10.0.0.12 · Zebra · printer · VLAN 12".
  * Every field is best-effort, so absent ones are simply skipped.
  */
 export function endpointTooltipForNode(node: NetworkTopologyNode): string {
@@ -42,6 +42,7 @@ export function endpointTooltipForNode(node: NetworkTopologyNode): string {
     node.ipAddress,
     node.vendor,
     node.classification,
+    typeof node.vlanId === "number" ? `VLAN ${node.vlanId}` : undefined,
   ]
     .filter(Boolean)
     .join(" · ");

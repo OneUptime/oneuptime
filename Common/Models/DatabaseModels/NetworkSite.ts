@@ -1,3 +1,4 @@
+import AlertSeverity from "./AlertSeverity";
 import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
 import User from "./User";
@@ -742,6 +743,173 @@ export default class NetworkSite extends BaseModel {
     type: ColumnType.Date,
   })
   public lastRollupAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Alert When Unhealthy",
+    description:
+      "When enabled, an alert opens when this site's health rollup turns non-operational and auto-resolves when it recovers.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public shouldAlertWhenUnhealthy?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "alertSeverityId",
+    type: TableColumnType.Entity,
+    modelType: AlertSeverity,
+    title: "Alert Severity",
+    description:
+      "Severity for alerts opened when this site turns unhealthy. Defaults to the project's most severe when unset.",
+  })
+  @ManyToOne(
+    () => {
+      return AlertSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "alertSeverityId" })
+  public alertSeverity?: AlertSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Alert Severity ID",
+    description: "ID of the severity used for site-unhealthy alerts",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public alertSeverityId?: ObjectID = undefined;
+
+  /*
+   * Server-managed: the open site-unhealthy alert, so recovery knows what
+   * to auto-resolve. Never user-writable.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Current Active Alert ID",
+    description:
+      "ID of the currently open site-unhealthy alert, if any. Managed by the rollup engine.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public currentActiveAlertId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

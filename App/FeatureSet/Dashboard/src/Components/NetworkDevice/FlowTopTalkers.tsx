@@ -1,10 +1,17 @@
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import OneUptimeDate from "Common/Types/Date";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -20,10 +27,11 @@ import React, {
 
 /*
  * Top talkers for one network device, aggregated from NetFlow v5 records
- * the device exported to a probe: top source IPs, top destination IPs and
- * top protocol/port pairs by bytes over the last hour, plus window totals.
- * Standalone — fetches its own data from the top-talkers endpoint for the
- * given device.
+ * the device exported to a probe: top source IPs, top destination IPs,
+ * top conversations and top protocol/port pairs by bytes over a
+ * user-selectable time window (default: the past hour), plus window
+ * totals and a bandwidth-over-time chart. Standalone — fetches its own
+ * data from the top-talkers endpoint for the given device.
  */
 
 export interface ComponentProps {
@@ -43,6 +51,20 @@ interface TopProtocolPortEntry {
   packets: number;
 }
 
+interface ConversationEntry {
+  sourceIp: string;
+  destinationIp: string;
+  octets: number;
+  packets: number;
+}
+
+interface SeriesPointEntry {
+  // Bucket start, ISO string from the API.
+  time: string;
+  octets: number;
+  packets: number;
+}
+
 interface TopTalkersData {
   totalOctets: number;
   totalPackets: number;
@@ -50,6 +72,9 @@ interface TopTalkersData {
   topSources: Array<TopEntry>;
   topDestinations: Array<TopEntry>;
   topProtocolPorts: Array<TopProtocolPortEntry>;
+  topConversations: Array<ConversationEntry>;
+  series: Array<SeriesPointEntry>;
+  seriesBucketSeconds: number;
 }
 
 // Common IP protocol numbers → names; anything else shows the number.
@@ -90,6 +115,30 @@ const formatCount: (value: number) => string = (value: number): string => {
   return value.toLocaleString();
 };
 
+// 0.0123 -> "0.01", 12.3 -> "12.3", 123.4 -> "123" — Mbps at a sane precision.
+const formatMbps: (mbps: number) => string = (mbps: number): string => {
+  if (mbps >= 100) {
+    return mbps.toFixed(0);
+  }
+  if (mbps >= 10) {
+    return mbps.toFixed(1);
+  }
+  return mbps.toFixed(2);
+};
+
+/*
+ * Human label for the selected window, used in the card description and
+ * the empty state ("over the past 1 hour" / "over the selected time range").
+ */
+const windowLabel: (timeRange: RangeStartAndEndDateTime) => string = (
+  timeRange: RangeStartAndEndDateTime,
+): string => {
+  if (timeRange.range === TimeRange.CUSTOM) {
+    return "the selected time range";
+  }
+  return `the ${timeRange.range.toLowerCase()}`;
+};
+
 const parseTopEntries: (value: unknown) => Array<TopEntry> = (
   value: unknown,
 ): Array<TopEntry> => {
@@ -113,6 +162,14 @@ const parseResponse: (data: JSONObject | undefined) => TopTalkersData = (
     ? (data!["topProtocolPorts"] as JSONArray)
     : [];
 
+  const rawConversations: JSONArray = Array.isArray(data?.["topConversations"])
+    ? (data!["topConversations"] as JSONArray)
+    : [];
+
+  const rawSeries: JSONArray = Array.isArray(data?.["series"])
+    ? (data!["series"] as JSONArray)
+    : [];
+
   return {
     totalOctets: Number(data?.["totalOctets"]) || 0,
     totalPackets: Number(data?.["totalPackets"]) || 0,
@@ -130,6 +187,26 @@ const parseResponse: (data: JSONObject | undefined) => TopTalkersData = (
         };
       },
     ),
+    topConversations: rawConversations.map(
+      (row: unknown): ConversationEntry => {
+        const entry: JSONObject = (row || {}) as JSONObject;
+        return {
+          sourceIp: String(entry["sourceIp"] ?? ""),
+          destinationIp: String(entry["destinationIp"] ?? ""),
+          octets: Number(entry["octets"]) || 0,
+          packets: Number(entry["packets"]) || 0,
+        };
+      },
+    ),
+    series: rawSeries.map((row: unknown): SeriesPointEntry => {
+      const entry: JSONObject = (row || {}) as JSONObject;
+      return {
+        time: String(entry["time"] ?? ""),
+        octets: Number(entry["octets"]) || 0,
+        packets: Number(entry["packets"]) || 0,
+      };
+    }),
+    seriesBucketSeconds: Number(data?.["seriesBucketSeconds"]) || 60,
   };
 };
 
@@ -183,12 +260,145 @@ const TopEntryTable: FunctionComponent<{
   );
 };
 
+/*
+ * Bandwidth-over-time area chart, hand-rolled SVG (no chart library).
+ * Each series bucket's byte count is converted to average megabits/sec
+ * over the bucket (octets * 8 / 1e6 / bucketSeconds). Responsive via
+ * viewBox + preserveAspectRatio, with min/avg/max Mbps labels above and
+ * the window edges below.
+ */
+const BandwidthOverTimeChart: FunctionComponent<{
+  series: Array<SeriesPointEntry>;
+  bucketSeconds: number;
+}> = (props: {
+  series: Array<SeriesPointEntry>;
+  bucketSeconds: number;
+}): ReactElement => {
+  const bucketSeconds: number =
+    props.bucketSeconds > 0 ? props.bucketSeconds : 60;
+
+  const mbpsValues: Array<number> = props.series.map(
+    (point: SeriesPointEntry): number => {
+      return (point.octets * 8) / 1_000_000 / bucketSeconds;
+    },
+  );
+
+  if (mbpsValues.length === 0) {
+    return <></>;
+  }
+
+  const maxMbps: number = Math.max(...mbpsValues);
+  const minMbps: number = Math.min(...mbpsValues);
+  const avgMbps: number =
+    mbpsValues.reduce((sum: number, value: number): number => {
+      return sum + value;
+    }, 0) / mbpsValues.length;
+
+  const chartWidth: number = 600;
+  const chartHeight: number = 120;
+  const topPadding: number = 6;
+  const scaleMax: number = maxMbps > 0 ? maxMbps : 1;
+
+  const yFor: (mbps: number) => number = (mbps: number): number => {
+    return topPadding + (1 - mbps / scaleMax) * (chartHeight - topPadding);
+  };
+
+  // A single bucket still renders: draw it as a flat line across the window.
+  const points: Array<[number, number]> =
+    mbpsValues.length === 1
+      ? [
+          [0, yFor(mbpsValues[0]!)],
+          [chartWidth, yFor(mbpsValues[0]!)],
+        ]
+      : mbpsValues.map((mbps: number, index: number): [number, number] => {
+          return [(index / (mbpsValues.length - 1)) * chartWidth, yFor(mbps)];
+        });
+
+  const linePoints: string = points
+    .map((point: [number, number]): string => {
+      return `${point[0].toFixed(2)},${point[1].toFixed(2)}`;
+    })
+    .join(" ");
+
+  const areaPath: string = `M ${linePoints
+    .split(" ")
+    .join(" L ")} L ${chartWidth},${chartHeight} L 0,${chartHeight} Z`;
+
+  return (
+    <div>
+      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+        <span>
+          Min{" "}
+          <span className="font-medium text-gray-900">
+            {formatMbps(minMbps)} Mbps
+          </span>
+        </span>
+        <span>
+          Avg{" "}
+          <span className="font-medium text-gray-900">
+            {formatMbps(avgMbps)} Mbps
+          </span>
+        </span>
+        <span>
+          Max{" "}
+          <span className="font-medium text-gray-900">
+            {formatMbps(maxMbps)} Mbps
+          </span>
+        </span>
+      </div>
+      <svg
+        viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        preserveAspectRatio="none"
+        className="h-32 w-full text-indigo-500"
+        role="img"
+        aria-label="Bandwidth over time in megabits per second"
+      >
+        <path d={areaPath} fill="currentColor" fillOpacity={0.12} />
+        <polyline
+          points={linePoints}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          x1={0}
+          y1={chartHeight}
+          x2={chartWidth}
+          y2={chartHeight}
+          stroke="currentColor"
+          strokeOpacity={0.2}
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <div className="mt-1 flex justify-between text-xs text-gray-400">
+        <span>
+          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            props.series[0]!.time,
+          )}
+        </span>
+        <span>
+          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            props.series[props.series.length - 1]!.time,
+          )}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 const FlowTopTalkers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [data, setData] = useState<TopTalkersData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_HOUR,
+  });
 
   const fetchTopTalkers: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -200,10 +410,13 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
           "/network-device/flow/top-talkers",
         );
 
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
         /*
          * Project scoping is attached automatically via the tenantid header
          * that ModelAPI.getCommonHeaders() sets from the current project.
-         * The endpoint defaults the window to the last hour.
+         * The window comes from the time-range picker (default: past hour).
          */
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post<JSONObject>({
@@ -211,6 +424,8 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
             data: {
               projectId: ProjectUtil.getCurrentProjectId()?.toString(),
               networkDeviceId: props.networkDeviceId.toString(),
+              startTime: OneUptimeDate.toString(dateRange.startValue),
+              endTime: OneUptimeDate.toString(dateRange.endValue),
             },
             headers: { ...ModelAPI.getCommonHeaders() },
           });
@@ -225,7 +440,7 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
       }
 
       setIsLoading(false);
-    }, [props.networkDeviceId]);
+    }, [props.networkDeviceId, timeRange]);
 
   useEffect(() => {
     fetchTopTalkers().catch((err: Error) => {
@@ -236,7 +451,17 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Top Talkers"
-      description="Who this device saw talking over the last hour, aggregated from the NetFlow records it exported: top sources, destinations and protocol/port pairs by bytes."
+      description={`Who this device saw talking over ${windowLabel(
+        timeRange,
+      )}, aggregated from the NetFlow records it exported: top sources, destinations, conversations and protocol/port pairs by bytes.`}
+      rightElement={
+        <RangeStartAndEndDateView
+          dashboardStartAndEndDate={timeRange}
+          onChange={(newRange: RangeStartAndEndDateTime) => {
+            setTimeRange(newRange);
+          }}
+        />
+      }
     >
       {isLoading ? <ComponentLoader /> : <></>}
 
@@ -250,9 +475,9 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
             </div>
             <p className="mt-1 text-sm text-gray-500">
               Flow export is not configured for this device, or nothing has
-              arrived in the last hour. Point the device&apos;s NetFlow v5
-              export at your probe&apos;s IP on UDP port 2055 (and set
-              PROBE_NETFLOW_RECEIVER_ENABLED=true on the probe).
+              arrived in {windowLabel(timeRange)}. Point the device&apos;s
+              NetFlow v5 export at your probe&apos;s IP on UDP port 2055 (and
+              set PROBE_NETFLOW_RECEIVER_ENABLED=true on the probe).
             </p>
           </div>
         </div>
@@ -289,6 +514,20 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
             </div>
           </div>
 
+          {data.series.length > 0 ? (
+            <div className="mb-6">
+              <div className="text-sm font-medium text-gray-900 mb-2">
+                Bandwidth Over Time
+              </div>
+              <BandwidthOverTimeChart
+                series={data.series}
+                bucketSeconds={data.seriesBucketSeconds}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TopEntryTable
               title="Top Sources"
@@ -301,6 +540,52 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
               entries={data.topDestinations}
             />
           </div>
+
+          {data.topConversations.length > 0 ? (
+            <div className="mt-6">
+              <div className="text-sm font-medium text-gray-900 mb-2">
+                Top Conversations
+              </div>
+              <table className="min-w-full">
+                <thead>
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                      Source &rarr; Destination
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                      Bytes
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
+                      Packets
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.topConversations.map(
+                    (entry: ConversationEntry, index: number) => {
+                      return (
+                        <tr key={index}>
+                          <td className="px-3 py-2 text-sm text-gray-900 border-b border-gray-100 font-mono">
+                            {entry.sourceIp}{" "}
+                            <span className="text-gray-400">&rarr;</span>{" "}
+                            {entry.destinationIp}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
+                            {formatBytes(entry.octets)}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 border-b border-gray-100 text-right">
+                            {formatCount(entry.packets)}
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <></>
+          )}
 
           <div className="mt-6">
             <div className="text-sm font-medium text-gray-900 mb-2">

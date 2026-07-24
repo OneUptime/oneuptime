@@ -1761,6 +1761,7 @@ return {
         <MonitorCriteriaElement
           monitorType={props.monitorType}
           monitorStep={monitorStep}
+          offlineMonitorStatusId={props.offlineMonitorStatusId}
           monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
           incidentSeverityDropdownOptions={
             props.incidentSeverityDropdownOptions

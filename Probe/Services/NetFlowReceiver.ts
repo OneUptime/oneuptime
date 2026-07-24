@@ -80,10 +80,36 @@ export default class NetFlowReceiver {
       return;
     }
 
+    // IPv4 socket — the primary; bind failures are loud errors.
+    NetFlowReceiver.startSocket("udp4");
+
+    /*
+     * IPv6 socket — best effort, same port and handler. A host without
+     * IPv6 fails this bind; that is logged as a warning and IPv4
+     * reception continues unaffected.
+     */
+    NetFlowReceiver.startSocket("udp6");
+
+    setInterval(() => {
+      NetFlowReceiver.flush().catch((err: Error) => {
+        logger.error(`NetFlow batch forward failed: ${err}`);
+      });
+    }, FLUSH_INTERVAL_MS);
+  }
+
+  private static startSocket(socketType: "udp4" | "udp6"): void {
     let hasLoggedBindFailure: boolean = false;
 
     try {
-      const socket: dgram.Socket = dgram.createSocket("udp4");
+      const socket: dgram.Socket = dgram.createSocket({
+        type: socketType,
+        /*
+         * The udp6 socket must be v6-only: a dual-stack [::] bind collides
+         * (EADDRINUSE on Linux) with the udp4 socket already bound to
+         * 0.0.0.0 on the same port.
+         */
+        ipv6Only: socketType === "udp6",
+      });
 
       socket.on("error", (error: Error) => {
         const errorCode: string | undefined = (error as NodeJS.ErrnoException)
@@ -91,19 +117,32 @@ export default class NetFlowReceiver {
 
         /*
          * Socket-level bind failures (no privilege for ports < 1024
-         * outside Docker, or the port is taken) arrive through this
-         * event. Say clearly — once — that NetFlow is off and how to
-         * fix it; polling is unaffected either way.
+         * outside Docker, the port is taken, or — for udp6 — the host
+         * has no IPv6) arrive through this event. Say clearly — once —
+         * what is off and how to fix it; polling is unaffected either way.
          */
-        if (errorCode === "EACCES" || errorCode === "EADDRINUSE") {
+        if (
+          errorCode === "EACCES" ||
+          errorCode === "EADDRINUSE" ||
+          errorCode === "EAFNOSUPPORT" ||
+          errorCode === "EADDRNOTAVAIL"
+        ) {
           if (!hasLoggedBindFailure) {
             hasLoggedBindFailure = true;
-            logger.error(
-              `NetFlow receiver could not bind UDP port ${PROBE_NETFLOW_RECEIVER_PORT} (${errorCode}). ` +
-                `NetFlow exports will not be received; monitoring checks are unaffected. ` +
-                `Fix: free the port or set PROBE_NETFLOW_RECEIVER_PORT to another port, ` +
-                `or set PROBE_NETFLOW_RECEIVER_ENABLED=false to silence this.`,
-            );
+
+            if (socketType === "udp6") {
+              logger.warn(
+                `NetFlow receiver could not bind udp6 port ${PROBE_NETFLOW_RECEIVER_PORT} (${errorCode}); ` +
+                  `this host may not have IPv6. IPv6 NetFlow exports will not be received; IPv4 reception is unaffected.`,
+              );
+            } else {
+              logger.error(
+                `NetFlow receiver could not bind UDP port ${PROBE_NETFLOW_RECEIVER_PORT} (${errorCode}). ` +
+                  `NetFlow exports will not be received; monitoring checks are unaffected. ` +
+                  `Fix: free the port or set PROBE_NETFLOW_RECEIVER_PORT to another port, ` +
+                  `or set PROBE_NETFLOW_RECEIVER_ENABLED=false to silence this.`,
+              );
+            }
           }
           return;
         }
@@ -112,7 +151,7 @@ export default class NetFlowReceiver {
          * Per-message socket errors are routine on an open UDP port
          * (scanners, malformed senders) — log and keep listening.
          */
-        logger.debug(`NetFlow receiver socket error: ${error}`);
+        logger.debug(`NetFlow receiver socket error (${socketType}): ${error}`);
       });
 
       socket.on("message", (datagram: Buffer, remoteInfo: dgram.RemoteInfo) => {
@@ -125,21 +164,23 @@ export default class NetFlowReceiver {
 
       socket.bind(PROBE_NETFLOW_RECEIVER_PORT);
 
-      setInterval(() => {
-        NetFlowReceiver.flush().catch((err: Error) => {
-          logger.error(`NetFlow batch forward failed: ${err}`);
-        });
-      }, FLUSH_INTERVAL_MS);
-
       // Bind completes asynchronously; failures surface via the error event.
       logger.info(
-        `NetFlow receiver starting on UDP port ${PROBE_NETFLOW_RECEIVER_PORT}`,
+        `NetFlow receiver starting on ${socketType} port ${PROBE_NETFLOW_RECEIVER_PORT}`,
       );
     } catch (err) {
       /*
-       * Binding can fail (port in use, no privilege for ports < 1024).
-       * The probe's polling duties are unaffected — log loudly and move on.
+       * Binding can fail (port in use, no privilege for ports < 1024, no
+       * IPv6 on the host). The probe's polling duties are unaffected —
+       * log and move on; a udp6 failure still leaves udp4 receiving.
        */
+      if (socketType === "udp6") {
+        logger.warn(
+          `Could not start NetFlow receiver udp6 socket on port ${PROBE_NETFLOW_RECEIVER_PORT}: ${err}. Continuing with IPv4 only.`,
+        );
+        return;
+      }
+
       logger.error(
         `Could not start NetFlow receiver on port ${PROBE_NETFLOW_RECEIVER_PORT}: ${err}`,
       );
