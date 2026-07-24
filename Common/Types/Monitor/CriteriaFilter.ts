@@ -214,6 +214,13 @@ export enum EvaluateOverTimeMinutes {
 export interface EvaluateOverTimeOptions {
   timeValueInMinutes: number | undefined;
   evaluateOverTimeType: EvaluateOverTimeType | undefined;
+  /*
+   * Governs how the evaluator handles an evaluation window that has no data
+   * - or, for "All Values", not enough history to span the configured window.
+   * Defaults to Ignore (do not fire) when unset. Mirrors the metric monitor's
+   * MetricMonitorOptions.onNoDataPolicy.
+   */
+  onNoDataPolicy?: NoDataPolicy | undefined;
 }
 
 export interface CriteriaFilter {
@@ -436,5 +443,6 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
   evaluateOverTimeOptions: Zod.object({
     timeValueInMinutes: Zod.number().optional(),
     evaluateOverTimeType: Zod.string().optional(),
+    onNoDataPolicy: Zod.string().optional(),
   }).optional(),
 });
