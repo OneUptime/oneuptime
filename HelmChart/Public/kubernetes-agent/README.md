@@ -71,6 +71,7 @@ Every component the agent ships has its own `resources` block in [`values.yaml`]
 | eBPF auto-instrumentation (DaemonSet) | `ebpf.resources` | `100m` / `256Mi` | `1000m` / `1Gi` | on by default |
 | Continuous profiler (DaemonSet) | `profiling.resources` | `200m` / `512Mi` | `2000m` / `2Gi` | opt-in (`profiling.enabled=true`) |
 | Bundled kube-state-metrics (Deployment) | `kubeStateMetrics.resources` | `50m` / `128Mi` | `200m` / `256Mi` | opt-in (`kubeStateMetrics.enabled=true`) |
+| Cost allocation poller (Deployment) | `cost.agent.resources` | `50m` / `64Mi` | `200m` / `256Mi` | opt-in (`cost.enabled=true`) |
 
 CPU is in cores (`500m` = half a core). Memory is in bytes (`Mi` = mebibytes, `Gi` = gibibytes). These map straight to the standard Kubernetes [resource requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) on the underlying pods.
 
@@ -351,6 +352,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs. |
 | `cadvisor.enabled` | `true` | Scrape this node's kubelet `/metrics/cadvisor` endpoint for CFS throttling and OOM kill counters that `kubeletstats` doesn't translate. An allowlist drops everything except 3 metrics at the receiver. |
 | `kubeStateMetrics.enabled` | `false` | Pull cluster-state metrics (pod phases, scheduling status, container waiting reasons, resource quotas) from kube-state-metrics. `mode: bundled` (default) deploys a small KSM Deployment for you; `mode: external` scrapes an existing KSM via `endpoint`. |
+| `cost.enabled` | `false` | Kubernetes cost observability. Polls an in-cluster cost engine (OpenCost / Kubecost) for pre-priced per-workload cost allocations and scrapes its cost metrics. Requires `cost.engine.url` pointing at the engine's Service, e.g. `http://opencost.opencost.svc.cluster.local:9003`. Powers the Kubernetes Costs pages and the Kubernetes Cost dashboard template in OneUptime. |
 
 To stop duplicate pod logs from application teams that ship logs directly,
 while retaining their traces, service map, and metrics:

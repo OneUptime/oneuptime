@@ -542,6 +542,98 @@ kubeStateMetrics:
       cpu: 200m
       memory: 256Mi
 
+# Kubernetes cost observability. Reads pre-priced workload cost
+# allocations from an in-cluster cost engine — OpenCost or Kubecost
+# (both expose the same open-source cost-model APIs) — and ships them
+# to OneUptime, where they power the cluster "Costs" pages and the
+# Kubernetes Cost dashboard template.
+#
+# Two collection paths, both driven by the same engine:
+#
+#   1. `cost.agent`   — a small Deployment that polls the engine's
+#      Allocation API once per closed window (hourly by default) and
+#      POSTs per-workload cost rows (cpu/ram/gpu/pv/network/idle,
+#      efficiency) to OneUptime's /kubernetes-cost/ingest endpoint.
+#      This is the source of record for the Costs UI.
+#   2. `cost.metrics` — a Prometheus scrape of the engine's /metrics
+#      (node_total_hourly_cost, container_cpu_allocation, ...) through
+#      the existing OTLP pipeline, for charting raw cost metrics in
+#      Metric Explorer and dashboards.
+#
+# **Off by default** — it needs a cost engine to talk to. Point
+# `cost.engine.url` at your existing OpenCost or Kubecost service:
+#
+#   OpenCost:  http://opencost.opencost.svc.cluster.local:9003
+#   Kubecost:  http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
+#
+# The engine prices allocations from your cloud provider's public (or
+# custom) pricing — see https://opencost.io for installing OpenCost.
+cost:
+  enabled: false
+  engine:
+    # Base URL of the cost engine. Required when cost.enabled.
+    url: ""
+    # Allocation API path. Empty auto-detects by probing, in order:
+    # /model/allocation (Kubecost), /allocation/compute (OpenCost),
+    # /allocation (older OpenCost).
+    allocationPath: ""
+  # Allocation poller Deployment (oneuptime/kubernetes-cost-agent).
+  agent:
+    enabled: true
+    image:
+      repository: oneuptime/kubernetes-cost-agent
+      tag: ""
+      pullPolicy: IfNotPresent
+    # Allocation window length. Hourly is the engines' native ETL
+    # resolution; a longer window loses granularity, a shorter one is
+    # interpolated by the engine anyway.
+    windowSeconds: 3600
+    # How often to check whether a new closed window is ready.
+    pollIntervalSeconds: 300
+    # Wait after a window closes before querying it, so the engine has
+    # finished pricing/reconciling it.
+    engineSettleSeconds: 120
+    # Closed windows to (re-)ship on startup. The server skips windows
+    # that already have rows, so restarts cannot double-count.
+    lookbackWindows: 2
+    # Ship the engine's __idle__ allocation so idle spend is queryable.
+    includeIdle: true
+    # Currency code forwarded with every payload (informational).
+    currency: USD
+    logLevel: info
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+  # Prometheus scrape of the engine's cost metrics through the
+  # deployment collector's existing OTLP export.
+  metrics:
+    enabled: true
+    # Metrics endpoint. Empty defaults to <cost.engine.url>/metrics.
+    endpoint: ""
+    scrapeInterval: 60s
+    # Exact-match allowlist — the engine exports many more series, and
+    # per-container allocation metrics multiply cardinality by the
+    # cluster's container count. Keep it tight.
+    metricsAllowlist:
+      - node_cpu_hourly_cost
+      - node_gpu_hourly_cost
+      - node_ram_hourly_cost
+      - node_total_hourly_cost
+      - container_cpu_allocation
+      - container_gpu_allocation
+      - container_memory_allocation_bytes
+      - pod_pvc_allocation
+      - pv_hourly_cost
+      - kubecost_cluster_management_cost
+      - kubecost_load_balancer_cost
+      - kubecost_network_zone_egress_cost
+      - kubecost_network_region_egress_cost
+      - kubecost_network_internet_egress_cost
+
 # Application traces & HTTP request metrics via OpenTelemetry eBPF
 # Instrumentation (OBI — the upstream OpenTelemetry project that took over
 # Grafana Beyla).

@@ -23,6 +23,15 @@ const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Costs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_COSTS] as Route,
+            ),
+          },
+          icon: IconProp.Billing,
+        },
+        {
+          link: {
             title: "Archived",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.KUBERNETES_ARCHIVED] as Route,

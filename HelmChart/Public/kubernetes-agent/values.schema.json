@@ -532,6 +532,85 @@
       },
       "additionalProperties": false
     },
+    "cost": {
+      "type": "object",
+      "description": "Kubernetes cost observability. Polls an in-cluster cost engine (OpenCost / Kubecost) for per-workload cost allocations and scrapes its cost metrics. Off by default because it needs a cost engine to talk to.",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "engine": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Base URL of the cost engine. Required when cost.enabled. Example: http://opencost.opencost.svc.cluster.local:9003"
+            },
+            "allocationPath": {
+              "type": "string",
+              "description": "Explicit Allocation API path. Empty auto-detects (/model/allocation, /allocation/compute, /allocation)."
+            }
+          },
+          "additionalProperties": false
+        },
+        "agent": {
+          "type": "object",
+          "description": "Allocation poller Deployment (oneuptime/kubernetes-cost-agent).",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": { "type": "string" },
+                "tag": { "type": "string" },
+                "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+              },
+              "additionalProperties": false
+            },
+            "windowSeconds": { "type": "integer" },
+            "pollIntervalSeconds": { "type": "integer" },
+            "engineSettleSeconds": { "type": "integer" },
+            "lookbackWindows": { "type": "integer" },
+            "includeIdle": { "type": "boolean" },
+            "currency": { "type": "string" },
+            "logLevel": { "type": "string" },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object",
+                  "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+                  "additionalProperties": false
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": { "cpu": { "type": "string" }, "memory": { "type": "string" } },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "metrics": {
+          "type": "object",
+          "description": "Prometheus scrape of the engine's /metrics through the deployment collector's OTLP export.",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "endpoint": {
+              "type": "string",
+              "description": "Metrics endpoint. Empty defaults to <cost.engine.url>/metrics."
+            },
+            "scrapeInterval": { "type": "string" },
+            "metricsAllowlist": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "ebpf": {
       "type": "object",
       "description": "OpenTelemetry eBPF Instrumentation (OBI) — auto-captures HTTP/gRPC traces and request metrics from every pod on the node, no SDK required. Enabled by default. Requires Linux kernel 5.8+ and the ability to run privileged pods.",

@@ -9,6 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
 import KubernetesClusters from "../Pages/Kubernetes/Clusters";
+import KubernetesCosts from "../Pages/Kubernetes/Costs";
 import KubernetesClusterView from "../Pages/Kubernetes/View/Index";
 import KubernetesClusterViewNamespaces from "../Pages/Kubernetes/View/Namespaces";
 import KubernetesClusterViewNamespaceDetail from "../Pages/Kubernetes/View/NamespaceDetail";
@@ -38,6 +39,7 @@ import KubernetesClusterViewVPAs from "../Pages/Kubernetes/View/VPAs";
 import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
+import KubernetesClusterViewCosts from "../Pages/Kubernetes/View/Costs";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
 import KubernetesClusterViewServiceMesh from "../Pages/Kubernetes/View/ServiceMesh";
 import KubernetesClusterViewMetrics from "../Pages/Kubernetes/View/Metrics";
@@ -78,6 +80,15 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
             <KubernetesDocumentation
               {...props}
               pageRoute={RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={KubernetesRoutePath[PageMap.KUBERNETES_COSTS] || ""}
+          element={
+            <KubernetesCosts
+              {...props}
+              pageRoute={RouteMap[PageMap.KUBERNETES_COSTS] as Route}
             />
           }
         />
@@ -557,6 +568,21 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        {/* Costs */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_COSTS,
+          )}
+          element={
+            <KubernetesClusterViewCosts
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_COSTS] as Route
               }
             />
           }
