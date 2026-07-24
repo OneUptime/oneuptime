@@ -2,9 +2,9 @@
 
 ## Overview
 
-The OneUptime Kubernetes Agent is a pre-packaged Helm chart that installs an OpenTelemetry-based collector pipeline on your cluster. It ships node, pod, container, and cluster metrics; Kubernetes events; pod logs; and — with eBPF turned on by default — application traces, HTTP RED metrics, service-graph data, and pod-to-pod network flow metrics. No code changes, no SDKs, one `helm install`.
+The OneUptime Kubernetes Agent is a pre-packaged Helm chart that installs an OpenTelemetry-based collector pipeline on your cluster. It ships node, pod, container, and cluster metrics; Kubernetes events; pod logs; and — with eBPF turned on by default — application traces, HTTP RED metrics, service-graph data, and pod-to-pod network flow metrics. With `cost.enabled=true` it also ships per-workload **cost allocations** (spend by namespace/workload/pod, idle capacity, efficiency). No code changes, no SDKs, one `helm install`.
 
-This page is the **installation guide**. For configuring Kubernetes monitors and alerts on top of the data the agent collects, see [Kubernetes Agent (monitors)](/docs/monitor/kubernetes-agent).
+This page is the **installation guide**. For configuring Kubernetes monitors and alerts on top of the data the agent collects, see [Kubernetes Agent (monitors)](/docs/monitor/kubernetes-agent). For cost observability, see [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).
 
 ## Prerequisites
 
@@ -299,6 +299,21 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 > Managed Kubernetes services (EKS, GKE, AKS) typically do not expose control plane metrics. Only enable this for self-managed clusters.
 
+### Enable Cost Observability
+
+See what every namespace, workload, and pod actually costs — including idle capacity and request-vs-usage efficiency — on the cluster's **Costs** page:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set cost.enabled=true
+```
+
+That alone is a complete install: the chart bundles the open-source [OpenCost](https://opencost.io) engine (plus a minimal, dedicated Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. Two small extra pods; first data appears after the first closed hourly window. Already running Kubecost or OpenCost? Add `--set cost.engine.url=<its service URL>` instead and nothing is bundled. On-prem clusters can set a rate card via `cost.opencost.customPricing`.
+
+Full guide, including on-prem pricing and troubleshooting: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).
+
 ### Auto-tag with project labels
 
 Any resource attribute prefixed with `oneuptime.label.` is promoted to a project Label and attached to the cluster, services, and hosts emitted from this agent. Pattern: `oneuptime.label.<dimension>=<value>` becomes a label named `<dimension>:<value>`.
@@ -366,6 +381,7 @@ kubectl delete namespace oneuptime-agent
 | **Service Graph** _(via eBPF)_                     | Caller → callee request rate, latency, and error edges — drives the service map view                                                   |
 | **Network Flow Metrics** _(via eBPF)_              | Pod-to-pod TCP/UDP byte and packet counters with k8s metadata                                                                          |
 | **TCP Stats** _(via eBPF)_                         | Node-level RTT, failed-connection, and retransmit counters                                                                             |
+| **Workload Costs** _(opt-in, `cost.enabled=true`)_ | Pre-priced spend per namespace/workload/pod with idle and efficiency, plus node/PV hourly cost metrics — see [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost) |
 
 ## Application Traces & HTTP Metrics via eBPF (on by default)
 
@@ -560,6 +576,7 @@ These are **off by default** precisely because they add load — only enable one
 | `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / scheduling-reason metrics (adds a KSM Deployment + scrape) |
 | `ebpf.features.networkInterZoneMetrics`                   | Doubles network-flow metric cardinality                                            |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Extra Prometheus scrape jobs                                                       |
+| `cost.enabled`                                            | Workload cost observability (bundles OpenCost + a small Prometheus; hourly cost rows + a tightly allowlisted metrics scrape — modest ingest, two extra pods) |
 
 ### Lever 6 — Sample traces instead of dropping them
 

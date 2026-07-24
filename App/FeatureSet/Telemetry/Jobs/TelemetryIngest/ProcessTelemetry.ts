@@ -14,6 +14,7 @@ import {
   processSnmpTrapFromQueue,
 } from "../ProbeIngest/ProcessProbeIngest";
 import { processServerMonitorFromQueue } from "../ServerMonitorIngest/ProcessServerMonitorIngest";
+import KubernetesCostIngestService from "../../Services/KubernetesCostIngestService";
 import { processIncomingRequestFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
@@ -109,6 +110,7 @@ if (DisableQueueWorkers) {
         TelemetryType.Profiles,
         TelemetryType.Syslog,
         TelemetryType.FluentLogs,
+        TelemetryType.KubernetesCostIngest,
       ].includes(jobData.type);
 
       const dedupTokenBase: string = String(
@@ -261,6 +263,15 @@ if (DisableQueueWorkers) {
               logger.debug(
                 `Successfully processed telemetry monitor evaluation job`,
               );
+              break;
+
+            case TelemetryType.KubernetesCostIngest:
+              if (jobData.kubernetesCostIngest) {
+                await KubernetesCostIngestService.processFromQueue(
+                  jobData.kubernetesCostIngest,
+                );
+              }
+              logger.debug(`Successfully processed kubernetes cost ingest job`);
               break;
 
             default:

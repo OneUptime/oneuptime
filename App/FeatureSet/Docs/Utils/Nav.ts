@@ -552,6 +552,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/kubernetes-agent",
       },
       {
+        title: "Kubernetes Cost Observability",
+        url: "/docs/telemetry/kubernetes-cost",
+      },
+      {
         title: "Docker Agent",
         url: "/docs/telemetry/docker-host",
       },

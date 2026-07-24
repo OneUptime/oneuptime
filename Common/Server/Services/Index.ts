@@ -206,6 +206,7 @@ import TelemetryExceptionService from "./TelemetryExceptionService";
 import TelemetryEntityService from "./TelemetryEntityService";
 import TelemetryEntityRelationshipService from "./TelemetryEntityRelationshipService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
+import KubernetesCostAllocationService from "./KubernetesCostAllocationService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
@@ -553,6 +554,7 @@ export const AnalyticsServices: Array<
   MetricItemAggMV1mByContainerService,
   MetricBaselineService,
   ExceptionInstanceService,
+  KubernetesCostAllocationService,
   MonitorLogService,
   NetworkFlowService,
   ProfileService,

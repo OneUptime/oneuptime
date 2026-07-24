@@ -11,6 +11,7 @@ import Span from "./Span";
 import ExceptionInstance from "./ExceptionInstance";
 import MonitorLog from "./MonitorLog";
 import NetworkFlow from "./NetworkFlow";
+import KubernetesCostAllocation from "./KubernetesCostAllocation";
 import Profile from "./Profile";
 import ProfileSample from "./ProfileSample";
 import AuditLog from "./AuditLog";
@@ -42,6 +43,7 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   ExceptionInstance,
   MonitorLog,
   NetworkFlow,
+  KubernetesCostAllocation,
   Profile,
   ProfileSample,
   AuditLog,

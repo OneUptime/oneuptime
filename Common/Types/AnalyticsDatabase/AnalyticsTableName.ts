@@ -8,6 +8,7 @@ enum AnalyticsTableName {
   Profile = "ProfileItemV3",
   ProfileSample = "ProfileSampleItemV3",
   AuditLog = "AuditLogV2",
+  KubernetesCostAllocation = "KubernetesCostAllocationV1",
   /*
    * Materialized-view target tables. These hold AggregateFunction
    * states populated by attached MVs on the source `Metric` table.
