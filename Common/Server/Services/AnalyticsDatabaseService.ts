@@ -413,15 +413,23 @@ export default class AnalyticsDatabaseService<
         const resultInJSON: ResponseJSON<JSONObject> =
           await dbResult.json<JSONObject>();
 
-        if (
-          resultInJSON.data &&
-          resultInJSON.data[0] &&
-          resultInJSON.data[0]["count"] &&
-          typeof resultInJSON.data[0]["count"] === "string"
-        ) {
-          countPositive = new PositiveNumber(
-            resultInJSON.data[0]["count"] as string,
-          );
+        /*
+         * count() is a UInt64, and whether it arrives as a JSON string or a
+         * JSON number depends on the server's
+         * output_format_json_quote_64bit_integers setting: ClickHouse
+         * quoted 64-bit integers by default until 25.x flipped the default
+         * to 0 (numbers). Accept both — a string-only check silently read
+         * every count as 0 on modern servers, which (among other things)
+         * meant telemetry monitors' Log/Span/Exception counts never crossed
+         * their criteria thresholds.
+         */
+        const rawCount: unknown =
+          resultInJSON.data && resultInJSON.data[0]
+            ? resultInJSON.data[0]["count"]
+            : undefined;
+
+        if (typeof rawCount === "string" || typeof rawCount === "number") {
+          countPositive = new PositiveNumber(rawCount);
         }
       } catch {
         /*
