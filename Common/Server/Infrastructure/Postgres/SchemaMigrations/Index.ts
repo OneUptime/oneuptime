@@ -465,6 +465,7 @@ import { AddExceptionTriageAndPrivacyColumns1784640000000 } from "./178464000000
 import { AddInstanceVersionAndLatestReleaseColumns1784659816363 } from "./1784659816363-AddInstanceVersionAndLatestReleaseColumns";
 import { AddEnterpriseLicenseEvaluationColumns1784705487674 } from "./1784705487674-AddEnterpriseLicenseEvaluationColumns";
 import { AddNetworkSiteHierarchyAndEndpoints1784757142154 } from "./1784757142154-AddNetworkSiteHierarchyAndEndpoints";
+import { AddNetworkSiteAlerting1784897317860 } from "./1784897317860-AddNetworkSiteAlerting";
 
 export default [
   InitialMigration,
@@ -934,4 +935,5 @@ export default [
   AddInstanceVersionAndLatestReleaseColumns1784659816363,
   AddEnterpriseLicenseEvaluationColumns1784705487674,
   AddNetworkSiteHierarchyAndEndpoints1784757142154,
+  AddNetworkSiteAlerting1784897317860,
 ];

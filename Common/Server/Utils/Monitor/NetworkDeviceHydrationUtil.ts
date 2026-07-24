@@ -12,6 +12,9 @@ import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLe
 import SnmpAuthProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import ObjectID from "../../../Types/ObjectID";
+import IP from "../../../Types/IP/IP";
+import IpCanonicalUtil from "../../../Utils/IpCanonicalUtil";
+import DnsResolutionCache from "./DnsResolutionCache";
 import logger from "../Logger";
 
 /*
@@ -199,21 +202,63 @@ export default class NetworkDeviceHydrationUtil {
   }
 
   /*
-   * Resolves which NetworkDevices (polled by the given probe) match a trap
-   * source IP. Used by the trap ingest to fan traps out to device monitors.
+   * Resolves which NetworkDevices (polled by the given probe) match a
+   * datagram source IP — SNMP traps and probe-forwarded syslog both route
+   * through here. Exact hostname == source-IP match first; devices
+   * registered by DNS name are matched by resolving their hostnames
+   * through a shared positive/negative cache, so a device added as
+   * "switch-01.example.com" still receives its traps and syslog.
    */
   public static async findDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
+    // Extra columns callers need (syslog attribution wants `name`).
+    select?: { name?: boolean | undefined } | undefined;
   }): Promise<Array<NetworkDevice>> {
-    return NetworkDeviceService.findBy({
+    const select: {
+      _id: boolean;
+      projectId: boolean;
+      name?: boolean | undefined;
+    } = {
+      _id: true,
+      projectId: true,
+      ...(data.select?.name ? { name: true } : {}),
+    };
+
+    const exactMatches: Array<NetworkDevice> =
+      await NetworkDeviceService.findBy({
+        query: {
+          probeId: data.probeId,
+          hostname: data.sourceIpAddress,
+        },
+        select: select,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (exactMatches.length > 0) {
+      return exactMatches;
+    }
+
+    /*
+     * Fallback for the two spellings the exact match cannot see:
+     * (a) IPv6-literal hostnames written differently than the datagram's
+     *     normalized source (2001:DB8::1 vs 2001:db8::1) — compared
+     *     canonically, and
+     * (b) DNS-named devices — resolved through a shared cache and their
+     *     addresses compared canonically.
+     * Only runs when the exact match found nothing.
+     */
+    const candidates: Array<NetworkDevice> = await NetworkDeviceService.findBy({
       query: {
         probeId: data.probeId,
-        hostname: data.sourceIpAddress,
       },
       select: {
-        _id: true,
-        projectId: true,
+        ...select,
+        hostname: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -221,5 +266,71 @@ export default class NetworkDeviceHydrationUtil {
         isRoot: true,
       },
     });
+
+    const canonicalSource: string = IpCanonicalUtil.canonicalize(
+      data.sourceIpAddress,
+    );
+
+    const literalMatches: Array<NetworkDevice> = [];
+    const dnsCandidates: Array<NetworkDevice> = [];
+
+    for (const device of candidates) {
+      const hostname: string = device.hostname?.trim() || "";
+
+      if (!hostname) {
+        continue;
+      }
+
+      if (IP.isIP(hostname)) {
+        if (IpCanonicalUtil.canonicalize(hostname) === canonicalSource) {
+          literalMatches.push(device);
+        }
+        continue;
+      }
+
+      dnsCandidates.push(device);
+    }
+
+    if (literalMatches.length > 0) {
+      return literalMatches;
+    }
+
+    /*
+     * DNS resolution runs in parallel (deduplicated per hostname) so a
+     * cold cache with a slow resolver costs one lookup timeout, not one
+     * per device — this is on the trap/syslog ingest path.
+     */
+    const uniqueHostnames: Array<string> = [
+      ...new Set(
+        dnsCandidates.map((device: NetworkDevice) => {
+          return device.hostname!.trim().toLowerCase();
+        }),
+      ),
+    ];
+
+    const addressesByHostname: Map<string, Array<string>> = new Map(
+      await Promise.all(
+        uniqueHostnames.map(
+          async (hostname: string): Promise<[string, Array<string>]> => {
+            return [
+              hostname,
+              await NetworkDeviceHydrationUtil.dnsCache.resolve(hostname),
+            ];
+          },
+        ),
+      ),
+    );
+
+    return dnsCandidates.filter((device: NetworkDevice) => {
+      const addresses: Array<string> =
+        addressesByHostname.get(device.hostname!.trim().toLowerCase()) || [];
+
+      return addresses.some((address: string) => {
+        return IpCanonicalUtil.canonicalize(address) === canonicalSource;
+      });
+    });
   }
+
+  // Shared across trap and syslog ingest; 5-minute TTL, failure-cached.
+  private static dnsCache: DnsResolutionCache = new DnsResolutionCache();
 }

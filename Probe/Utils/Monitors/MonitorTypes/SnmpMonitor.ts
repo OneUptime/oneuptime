@@ -1,5 +1,6 @@
 import OnlineCheck from "../../OnlineCheck";
 import logger from "Common/Server/Utils/Logger";
+import IP from "Common/Types/IP/IP";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
@@ -480,6 +481,20 @@ export default class SnmpMonitor {
     };
   }
 
+  /*
+   * net-snmp defaults to udp4 and never falls back to the other family, so
+   * an IPv6-literal target needs an explicit udp6 transport. DNS hostnames
+   * keep the udp4 default — net-snmp resolves A records only, so a device
+   * reachable solely over AAAA must be configured by its IPv6 literal.
+   */
+  private static getTransportForHost(hostname: string): "udp4" | "udp6" {
+    if (IP.isIP(hostname) && new IP(hostname).isIPv6()) {
+      return "udp6";
+    }
+
+    return "udp4";
+  }
+
   private static createSnmpSession(
     config: MonitorStepSnmpMonitor,
     options: SnmpQueryOptions,
@@ -501,6 +516,7 @@ export default class SnmpMonitor {
         timeout: options.timeout || config.timeout || 5000,
         retries: 0, // We handle retries ourselves
         version: snmp.Version3,
+        transport: SnmpMonitor.getTransportForHost(config.hostname),
       };
       const user: snmp.User = SnmpMonitor.buildV3User(config);
       return snmp.createV3Session(config.hostname, user, sessionOptionsV3);
@@ -512,6 +528,7 @@ export default class SnmpMonitor {
       retries: 0, // We handle retries ourselves
       version:
         config.snmpVersion === SnmpVersion.V1 ? snmp.Version1 : snmp.Version2c,
+      transport: SnmpMonitor.getTransportForHost(config.hostname),
     };
     return snmp.createSession(
       config.hostname,

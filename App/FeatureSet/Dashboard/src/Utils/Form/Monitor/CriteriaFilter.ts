@@ -131,6 +131,13 @@ export default class CriteriaFilterUtil {
         text += "on " + criteriaFilter?.serverMonitorOptions?.diskPath + " ";
       }
 
+      if (criteriaFilter?.snmpMonitorOptions?.interfaceName) {
+        text +=
+          "on interface " +
+          criteriaFilter?.snmpMonitorOptions?.interfaceName +
+          " ";
+      }
+
       // add minutes if evaluate over time is true
       if (
         criteriaFilter?.evaluateOverTime &&
@@ -647,13 +654,28 @@ export default class CriteriaFilterUtil {
       checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       checkOn === CheckOn.SnmpInterfaceErrorsPerSecond
     ) {
+      /*
+       * Utilization also supports the baseline anomaly filters — the
+       * server evaluator (SnmpMonitorCriteria) compares the busiest
+       * in-scope interface to this monitor's same-hour-of-week baseline
+       * via MetricBaselineService, mirroring the Metric monitor path.
+       * Errors/sec has no baselined metric evaluation yet, so it keeps
+       * the static comparators only.
+       */
+      const allowAnomaly: boolean =
+        checkOn === CheckOn.SnmpInterfaceUtilizationPercent;
       options = options.filter((i: DropdownOption) => {
-        return (
+        const baseStatic: boolean =
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
-          i.value === FilterType.GreaterThanOrEqualTo
-        );
+          i.value === FilterType.GreaterThanOrEqualTo;
+        const baseAnomaly: boolean =
+          allowAnomaly &&
+          (i.value === FilterType.AnomalouslyHigh ||
+            i.value === FilterType.AnomalouslyLow ||
+            i.value === FilterType.Anomalous);
+        return baseStatic || baseAnomaly;
       });
     }
 

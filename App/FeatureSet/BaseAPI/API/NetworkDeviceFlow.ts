@@ -46,6 +46,31 @@ export interface FlowTopProtocolPortEntry {
   packets: number;
 }
 
+export interface FlowConversationEntry {
+  sourceIp: string;
+  destinationIp: string;
+  octets: number;
+  packets: number;
+}
+
+export interface FlowSeriesPoint {
+  // Bucket start, ISO string.
+  time: string;
+  octets: number;
+  packets: number;
+}
+
+/*
+ * Bucket width for the bandwidth-over-time series: whole minutes, sized so
+ * a window renders at most ~120 points. One hour → 1-minute buckets, a day
+ * → 12-minute buckets, the 31-day max → ~6-hour buckets.
+ */
+export function pickBucketSeconds(windowInSeconds: number): number {
+  const targetPoints: number = 120;
+  const rawSeconds: number = Math.ceil(windowInSeconds / targetPoints);
+  return Math.max(60, Math.ceil(rawSeconds / 60) * 60);
+}
+
 function escapeSql(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
@@ -222,7 +247,51 @@ export default class NetworkDeviceFlowAPI {
             ${QUERY_SETTINGS}
           `;
 
-          const [totalsRows, sourceRows, destinationRows, protocolPortRows]: [
+          /*
+           * Conversations: who talked to whom, as a pair. The independent
+           * srcIp / dstIp rollups above cannot answer this — a host can be
+           * a top source without any single peer being significant.
+           */
+          const topConversationsSql: string = `
+            SELECT
+              srcIp AS sourceIp,
+              dstIp AS destinationIp,
+              sum(octets) AS octets,
+              sum(packets) AS packets
+            FROM ${tableRef}
+            ${whereClause}
+            GROUP BY srcIp, dstIp
+            ORDER BY octets DESC
+            LIMIT ${TOP_LIMIT}
+            ${QUERY_SETTINGS}
+          `;
+
+          const bucketSeconds: number = pickBucketSeconds(
+            Math.floor((endTime.getTime() - startTime.getTime()) / 1000),
+          );
+
+          const seriesSql: string = `
+            SELECT
+              toStartOfInterval(flowStartAt, INTERVAL ${bucketSeconds} second) AS bucket,
+              sum(octets) AS octets,
+              sum(packets) AS packets
+            FROM ${tableRef}
+            ${whereClause}
+            GROUP BY bucket
+            ORDER BY bucket ASC
+            ${QUERY_SETTINGS}
+          `;
+
+          const [
+            totalsRows,
+            sourceRows,
+            destinationRows,
+            protocolPortRows,
+            conversationRows,
+            seriesRows,
+          ]: [
+            QueryRows,
+            QueryRows,
             QueryRows,
             QueryRows,
             QueryRows,
@@ -232,6 +301,8 @@ export default class NetworkDeviceFlowAPI {
             runQuery(topSourcesSql),
             runQuery(topDestinationsSql),
             runQuery(topProtocolPortsSql),
+            runQuery(topConversationsSql),
+            runQuery(seriesSql),
           ]);
 
           const toTopEntry: (row: JSONObject) => FlowTopEntry = (
@@ -256,6 +327,26 @@ export default class NetworkDeviceFlowAPI {
               },
             );
 
+          const topConversations: Array<FlowConversationEntry> =
+            conversationRows.map((row: JSONObject): FlowConversationEntry => {
+              return {
+                sourceIp: String(row["sourceIp"] ?? ""),
+                destinationIp: String(row["destinationIp"] ?? ""),
+                octets: Number(row["octets"]) || 0,
+                packets: Number(row["packets"]) || 0,
+              };
+            });
+
+          const series: Array<FlowSeriesPoint> = seriesRows.map(
+            (row: JSONObject): FlowSeriesPoint => {
+              return {
+                time: String(row["bucket"] ?? ""),
+                octets: Number(row["octets"]) || 0,
+                packets: Number(row["packets"]) || 0,
+              };
+            },
+          );
+
           return Response.sendJsonObjectResponse(req, res, {
             networkDeviceId: device.id.toString(),
             windowStartAt: OneUptimeDate.toString(startTime),
@@ -266,6 +357,9 @@ export default class NetworkDeviceFlowAPI {
             topSources: sourceRows.map(toTopEntry),
             topDestinations: destinationRows.map(toTopEntry),
             topProtocolPorts: topProtocolPorts,
+            topConversations: topConversations,
+            series: series,
+            seriesBucketSeconds: bucketSeconds,
           } as unknown as JSONObject);
         } catch (err) {
           return next(err);

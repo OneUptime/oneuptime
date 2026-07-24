@@ -8,6 +8,10 @@ import NetFlowV5Parser, {
   NetFlowV5Record,
   ParsedNetFlowV5Datagram,
 } from "../Utils/NetFlow/NetFlowV5Parser";
+import NetFlowV9Parser, {
+  NetFlowV9Record,
+  ParsedNetFlowV9Datagram,
+} from "../Utils/NetFlow/NetFlowV9Parser";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
 import ProxyConfig from "../Utils/ProxyConfig";
 import URL from "Common/Types/API/URL";
@@ -23,8 +27,10 @@ import dgram from "dgram";
  * buffered and flushed to the ingest endpoint in batches — every
  * FLUSH_INTERVAL_MS or once FLUSH_DATAGRAM_BATCH_SIZE datagrams' worth of
  * records accumulate, whichever comes first. A v5 datagram carries up to
- * 30 records, so a datagram-count trigger bounds the batch at
- * FLUSH_DATAGRAM_BATCH_SIZE * 30 records.
+ * 30 records (a v9 datagram lands in the same ballpark — the MTU caps how
+ * many template-sized records fit), so a datagram-count trigger roughly
+ * bounds the batch at FLUSH_DATAGRAM_BATCH_SIZE * 30 records; the flush
+ * loop's FLUSH_RECORD_BATCH_SIZE splice hard-caps each POST regardless.
  */
 const FLUSH_INTERVAL_MS: number = 5000;
 const FLUSH_DATAGRAM_BATCH_SIZE: number = 50;
@@ -43,6 +49,13 @@ const MAX_BUFFERED_RECORDS: number = FLUSH_RECORD_BATCH_SIZE * 10;
 // Give a stuck forward a bounded lifetime so isFlushing can never wedge.
 const FLUSH_REQUEST_TIMEOUT_MS: number = 30000;
 
+/*
+ * Both NetFlow versions put the version number in the first two bytes of
+ * the datagram, so it can be peeked before choosing a parser.
+ */
+const NETFLOW_V5_VERSION: number = 5;
+const NETFLOW_V9_VERSION: number = 9;
+
 export default class NetFlowReceiver {
   private static acceptedThisMinute: number = 0;
   private static minuteWindowStartedAt: number = 0;
@@ -52,6 +65,13 @@ export default class NetFlowReceiver {
   private static bufferedDatagramCount: number = 0;
   private static isFlushing: boolean = false;
 
+  /*
+   * v9 parsing is stateful — data FlowSets are decoded with templates
+   * learned from earlier datagrams — so the receiver keeps one parser
+   * instance whose template cache persists for the life of the process.
+   */
+  private static netFlowV9Parser: NetFlowV9Parser = new NetFlowV9Parser();
+
   public static start(): void {
     if (!PROBE_NETFLOW_RECEIVER_ENABLED) {
       logger.debug(
@@ -60,10 +80,36 @@ export default class NetFlowReceiver {
       return;
     }
 
+    // IPv4 socket — the primary; bind failures are loud errors.
+    NetFlowReceiver.startSocket("udp4");
+
+    /*
+     * IPv6 socket — best effort, same port and handler. A host without
+     * IPv6 fails this bind; that is logged as a warning and IPv4
+     * reception continues unaffected.
+     */
+    NetFlowReceiver.startSocket("udp6");
+
+    setInterval(() => {
+      NetFlowReceiver.flush().catch((err: Error) => {
+        logger.error(`NetFlow batch forward failed: ${err}`);
+      });
+    }, FLUSH_INTERVAL_MS);
+  }
+
+  private static startSocket(socketType: "udp4" | "udp6"): void {
     let hasLoggedBindFailure: boolean = false;
 
     try {
-      const socket: dgram.Socket = dgram.createSocket("udp4");
+      const socket: dgram.Socket = dgram.createSocket({
+        type: socketType,
+        /*
+         * The udp6 socket must be v6-only: a dual-stack [::] bind collides
+         * (EADDRINUSE on Linux) with the udp4 socket already bound to
+         * 0.0.0.0 on the same port.
+         */
+        ipv6Only: socketType === "udp6",
+      });
 
       socket.on("error", (error: Error) => {
         const errorCode: string | undefined = (error as NodeJS.ErrnoException)
@@ -71,19 +117,32 @@ export default class NetFlowReceiver {
 
         /*
          * Socket-level bind failures (no privilege for ports < 1024
-         * outside Docker, or the port is taken) arrive through this
-         * event. Say clearly — once — that NetFlow is off and how to
-         * fix it; polling is unaffected either way.
+         * outside Docker, the port is taken, or — for udp6 — the host
+         * has no IPv6) arrive through this event. Say clearly — once —
+         * what is off and how to fix it; polling is unaffected either way.
          */
-        if (errorCode === "EACCES" || errorCode === "EADDRINUSE") {
+        if (
+          errorCode === "EACCES" ||
+          errorCode === "EADDRINUSE" ||
+          errorCode === "EAFNOSUPPORT" ||
+          errorCode === "EADDRNOTAVAIL"
+        ) {
           if (!hasLoggedBindFailure) {
             hasLoggedBindFailure = true;
-            logger.error(
-              `NetFlow receiver could not bind UDP port ${PROBE_NETFLOW_RECEIVER_PORT} (${errorCode}). ` +
-                `NetFlow exports will not be received; monitoring checks are unaffected. ` +
-                `Fix: free the port or set PROBE_NETFLOW_RECEIVER_PORT to another port, ` +
-                `or set PROBE_NETFLOW_RECEIVER_ENABLED=false to silence this.`,
-            );
+
+            if (socketType === "udp6") {
+              logger.warn(
+                `NetFlow receiver could not bind udp6 port ${PROBE_NETFLOW_RECEIVER_PORT} (${errorCode}); ` +
+                  `this host may not have IPv6. IPv6 NetFlow exports will not be received; IPv4 reception is unaffected.`,
+              );
+            } else {
+              logger.error(
+                `NetFlow receiver could not bind UDP port ${PROBE_NETFLOW_RECEIVER_PORT} (${errorCode}). ` +
+                  `NetFlow exports will not be received; monitoring checks are unaffected. ` +
+                  `Fix: free the port or set PROBE_NETFLOW_RECEIVER_PORT to another port, ` +
+                  `or set PROBE_NETFLOW_RECEIVER_ENABLED=false to silence this.`,
+              );
+            }
           }
           return;
         }
@@ -92,7 +151,7 @@ export default class NetFlowReceiver {
          * Per-message socket errors are routine on an open UDP port
          * (scanners, malformed senders) — log and keep listening.
          */
-        logger.debug(`NetFlow receiver socket error: ${error}`);
+        logger.debug(`NetFlow receiver socket error (${socketType}): ${error}`);
       });
 
       socket.on("message", (datagram: Buffer, remoteInfo: dgram.RemoteInfo) => {
@@ -105,21 +164,23 @@ export default class NetFlowReceiver {
 
       socket.bind(PROBE_NETFLOW_RECEIVER_PORT);
 
-      setInterval(() => {
-        NetFlowReceiver.flush().catch((err: Error) => {
-          logger.error(`NetFlow batch forward failed: ${err}`);
-        });
-      }, FLUSH_INTERVAL_MS);
-
       // Bind completes asynchronously; failures surface via the error event.
       logger.info(
-        `NetFlow receiver starting on UDP port ${PROBE_NETFLOW_RECEIVER_PORT}`,
+        `NetFlow receiver starting on ${socketType} port ${PROBE_NETFLOW_RECEIVER_PORT}`,
       );
     } catch (err) {
       /*
-       * Binding can fail (port in use, no privilege for ports < 1024).
-       * The probe's polling duties are unaffected — log loudly and move on.
+       * Binding can fail (port in use, no privilege for ports < 1024, no
+       * IPv6 on the host). The probe's polling duties are unaffected —
+       * log and move on; a udp6 failure still leaves udp4 receiving.
        */
+      if (socketType === "udp6") {
+        logger.warn(
+          `Could not start NetFlow receiver udp6 socket on port ${PROBE_NETFLOW_RECEIVER_PORT}: ${err}. Continuing with IPv4 only.`,
+        );
+        return;
+      }
+
       logger.error(
         `Could not start NetFlow receiver on port ${PROBE_NETFLOW_RECEIVER_PORT}: ${err}`,
       );
@@ -130,12 +191,61 @@ export default class NetFlowReceiver {
     datagram: Buffer,
     exporterIpAddress: string,
   ): void {
-    const parsed: ParsedNetFlowV5Datagram | null =
-      NetFlowV5Parser.parse(datagram);
-
-    if (!parsed) {
+    // Both versions carry the version number in the first two bytes.
+    if (datagram.length < 2) {
       logger.debug(
         `NetFlow receiver skipped malformed datagram from ${exporterIpAddress}`,
+      );
+      return;
+    }
+
+    const version: number = datagram.readUInt16BE(0);
+
+    let records: Array<NetworkFlowRecord>;
+
+    if (version === NETFLOW_V5_VERSION) {
+      const parsed: ParsedNetFlowV5Datagram | null =
+        NetFlowV5Parser.parse(datagram);
+
+      if (!parsed) {
+        logger.debug(
+          `NetFlow receiver skipped malformed v5 datagram from ${exporterIpAddress}`,
+        );
+        return;
+      }
+
+      records = parsed.records.map((record: NetFlowV5Record) => {
+        return NetFlowReceiver.toNetworkFlowRecord(record, exporterIpAddress);
+      });
+    } else if (version === NETFLOW_V9_VERSION) {
+      const parsed: ParsedNetFlowV9Datagram | null =
+        NetFlowReceiver.netFlowV9Parser.parse(datagram, exporterIpAddress);
+
+      if (!parsed) {
+        logger.debug(
+          `NetFlow receiver skipped malformed v9 datagram from ${exporterIpAddress}`,
+        );
+        return;
+      }
+
+      /*
+       * Routine right after an exporter (or this probe) restarts: data
+       * arrives before the exporter's periodic template refresh. The
+       * records are unrecoverable, but templates in THIS datagram were
+       * still learned above, so subsequent data decodes.
+       */
+      if (parsed.dataFlowSetsSkippedForUnknownTemplate > 0) {
+        logger.debug(
+          `NetFlow receiver skipped ${parsed.dataFlowSetsSkippedForUnknownTemplate} v9 data FlowSet(s) from ${exporterIpAddress} (template not yet received)`,
+        );
+      }
+
+      records = parsed.records.map((record: NetFlowV9Record) => {
+        return NetFlowReceiver.toNetworkFlowRecord(record, exporterIpAddress);
+      });
+    } else {
+      logger.debug(
+        `NetFlow receiver skipped unsupported NetFlow version ${version} datagram from ${exporterIpAddress}`,
       );
       return;
     }
@@ -145,10 +255,8 @@ export default class NetFlowReceiver {
       return;
     }
 
-    for (const record of parsed.records) {
-      NetFlowReceiver.buffer.push(
-        NetFlowReceiver.toNetworkFlowRecord(record, exporterIpAddress),
-      );
+    for (const record of records) {
+      NetFlowReceiver.buffer.push(record);
     }
 
     /*
@@ -174,8 +282,13 @@ export default class NetFlowReceiver {
     }
   }
 
+  /*
+   * v5 and v9 records share the field names NetworkFlowRecord needs (the
+   * v9 parser mirrors the v5 record shape on purpose), so one mapping
+   * covers both.
+   */
   private static toNetworkFlowRecord(
-    record: NetFlowV5Record,
+    record: NetFlowV5Record | NetFlowV9Record,
     exporterIpAddress: string,
   ): NetworkFlowRecord {
     return {

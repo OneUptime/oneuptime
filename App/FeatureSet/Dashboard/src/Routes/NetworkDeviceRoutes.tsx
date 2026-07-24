@@ -20,6 +20,7 @@ import NetworkDeviceInterfaces from "../Pages/NetworkDevice/View/Interfaces";
 import NetworkDeviceMetrics from "../Pages/NetworkDevice/View/Metrics";
 import NetworkDeviceTraffic from "../Pages/NetworkDevice/View/Traffic";
 import NetworkDeviceMonitors from "../Pages/NetworkDevice/View/Monitors";
+import NetworkDeviceLogs from "../Pages/NetworkDevice/View/Logs";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
 import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/OwnerRules";
 import NetworkDeviceSettingsLabelRules from "../Pages/NetworkDevice/Settings/LabelRules";
@@ -193,6 +194,16 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.NETWORK_DEVICE_VIEW_MONITORS] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_LOGS)}
+          element={
+            <NetworkDeviceLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_LOGS] as Route}
             />
           }
         />

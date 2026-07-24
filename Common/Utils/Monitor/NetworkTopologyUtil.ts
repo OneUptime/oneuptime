@@ -51,6 +51,7 @@ export interface TopologyEndpointInput {
   ipAddress?: string | undefined;
   vendor?: string | undefined;
   classification?: string | undefined;
+  vlanId?: number | undefined;
   attachedNetworkDeviceId?: string | undefined;
   attachedInterfaceIndex?: number | undefined;
   attachedPortName?: string | undefined;
@@ -364,6 +365,7 @@ export default class NetworkTopologyUtil {
         macAddress: endpoint.macAddress,
         ipAddress: endpoint.ipAddress,
         classification: endpoint.classification,
+        vlanId: endpoint.vlanId,
       });
 
       // Port label + interface state on the switch end, when identifiable.

@@ -74,6 +74,12 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
       value: node.classification,
     });
   }
+  if (typeof node.vlanId === "number") {
+    detailRows.push({
+      label: translateString("VLAN") || "VLAN",
+      value: `VLAN ${node.vlanId}`,
+    });
+  }
   if (node.sysName) {
     detailRows.push({
       label: translateString("System name") || "System name",

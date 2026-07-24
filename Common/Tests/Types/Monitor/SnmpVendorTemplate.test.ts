@@ -18,6 +18,15 @@ const CISCO_SYS_OBJECT_ID: string = "1.3.6.1.4.1.9.1.1208"; // Catalyst 2960X
 const MIKROTIK_SYS_OBJECT_ID: string = "1.3.6.1.4.1.14988.1";
 const UBIQUITI_SYS_OBJECT_ID: string = "1.3.6.1.4.1.41112.1.4";
 const JUNIPER_SYS_OBJECT_ID: string = "1.3.6.1.4.1.2636.1.1.1.2.29"; // EX2200
+const ARISTA_SYS_OBJECT_ID: string = "1.3.6.1.4.1.30065.1.3011.7048";
+const HPE_SYS_OBJECT_ID: string = "1.3.6.1.4.1.11.2.3.7.11.87"; // ProCurve
+const FORTINET_SYS_OBJECT_ID: string = "1.3.6.1.4.1.12356.101.1.60";
+const PALO_ALTO_SYS_OBJECT_ID: string = "1.3.6.1.4.1.25461.2.3.36";
+const HUAWEI_SYS_OBJECT_ID: string = "1.3.6.1.4.1.2011.2.23.92";
+const FORCE10_SYS_OBJECT_ID: string = "1.3.6.1.4.1.6027.1.3.4"; // S-series
+// Ubiquiti EdgeSwitch firmware reports Broadcom's FASTPATH arc, not 41112.
+const EDGESWITCH_SYS_OBJECT_ID: string = "1.3.6.1.4.1.4413";
+const DELL_SYS_OBJECT_ID: string = "1.3.6.1.4.1.674.10895.3031"; // PowerConnect
 
 describe("SnmpVendorTemplateUtil.getEnterpriseNumber", () => {
   test("extracts the enterprise number from a Cisco sysObjectID", () => {
@@ -82,6 +91,14 @@ describe("SnmpVendorTemplateUtil.getVendorNameBySysObjectId", () => {
     [MIKROTIK_SYS_OBJECT_ID, "MikroTik"],
     [UBIQUITI_SYS_OBJECT_ID, "Ubiquiti"],
     [JUNIPER_SYS_OBJECT_ID, "Juniper"],
+    [ARISTA_SYS_OBJECT_ID, "Arista"],
+    [HPE_SYS_OBJECT_ID, "HPE"],
+    [FORTINET_SYS_OBJECT_ID, "Fortinet"],
+    [PALO_ALTO_SYS_OBJECT_ID, "Palo Alto Networks"],
+    [HUAWEI_SYS_OBJECT_ID, "Huawei"],
+    [FORCE10_SYS_OBJECT_ID, "Force10"],
+    [EDGESWITCH_SYS_OBJECT_ID, "Broadcom"],
+    [DELL_SYS_OBJECT_ID, "Dell"],
   ])("%s resolves to vendor %s", (sysObjectId: string, vendor: string) => {
     expect(SnmpVendorTemplateUtil.getVendorNameBySysObjectId(sysObjectId)).toBe(
       vendor,
@@ -130,17 +147,42 @@ describe("SnmpVendorTemplateUtil.matchBySysObjectId", () => {
     ).toBe("ubiquiti-edgeos");
   });
 
+  test.each([
+    [JUNIPER_SYS_OBJECT_ID, "juniper-junos"],
+    [ARISTA_SYS_OBJECT_ID, "arista-eos"],
+    [HPE_SYS_OBJECT_ID, "hpe-procurve"],
+    [FORTINET_SYS_OBJECT_ID, "fortinet-fortigate"],
+    [PALO_ALTO_SYS_OBJECT_ID, "paloalto-panos"],
+    [HUAWEI_SYS_OBJECT_ID, "huawei-vrp"],
+    [FORCE10_SYS_OBJECT_ID, "dell-force10"],
+    /*
+     * EdgeSwitch reports Broadcom's FASTPATH arc but still gets the
+     * standard-MIB Ubiquiti template.
+     */
+    [EDGESWITCH_SYS_OBJECT_ID, "ubiquiti-edgeos"],
+  ])(
+    "%s is routed to the %s template",
+    (sysObjectId: string, templateId: string) => {
+      const template: SnmpVendorTemplate | undefined =
+        SnmpVendorTemplateUtil.matchBySysObjectId(sysObjectId);
+
+      expect(template?.id).toBe(templateId);
+      expect(template).toBe(SnmpVendorTemplateUtil.getById(templateId));
+    },
+  );
+
   /*
-   * Juniper has a vendor name in the enterprise map but no vendor-specific
-   * template — the match must come back empty so callers fall back to the
+   * Dell enterprise 674 (PowerConnect and friends) has a vendor name in the
+   * enterprise map but no vendor-specific template — only Force10 (6027) is
+   * routed. The match must come back empty so callers fall back to the
    * generic Host Resources template rather than mislabeling the device.
    */
-  test("a Juniper device has a vendor name but no template", () => {
+  test("a Dell PowerConnect device has a vendor name but no template", () => {
     expect(
-      SnmpVendorTemplateUtil.getVendorNameBySysObjectId(JUNIPER_SYS_OBJECT_ID),
-    ).toBe("Juniper");
+      SnmpVendorTemplateUtil.getVendorNameBySysObjectId(DELL_SYS_OBJECT_ID),
+    ).toBe("Dell");
     expect(
-      SnmpVendorTemplateUtil.matchBySysObjectId(JUNIPER_SYS_OBJECT_ID),
+      SnmpVendorTemplateUtil.matchBySysObjectId(DELL_SYS_OBJECT_ID),
     ).toBeUndefined();
   });
 
@@ -166,6 +208,68 @@ describe("SnmpVendorTemplateUtil.getAll / getById", () => {
 
   test("an unknown template id returns undefined", () => {
     expect(SnmpVendorTemplateUtil.getById("no-such-template")).toBeUndefined();
+  });
+});
+
+/*
+ * Catalog hygiene: every shipped template must contain OIDs a poller can
+ * actually GET (dotted-numeric instance OIDs, no symbolic names or trailing
+ * dots) and enough metadata for the dashboard to render a useful row.
+ */
+describe("SnmpVendorTemplates catalog", () => {
+  // Absolute numeric OID: digits separated by single dots, at least two arcs.
+  const OID_REGEX: RegExp = /^[0-9]+(\.[0-9]+)+$/;
+
+  test("template ids are unique", () => {
+    const ids: Array<string> = SnmpVendorTemplates.map(
+      (template: SnmpVendorTemplate) => {
+        return template.id;
+      },
+    );
+
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  test.each(
+    SnmpVendorTemplates.map((template: SnmpVendorTemplate) => {
+      return [template.id, template] as [string, SnmpVendorTemplate];
+    }),
+  )(
+    "%s has valid OIDs and non-empty metadata",
+    (_id: string, template: SnmpVendorTemplate) => {
+      expect(template.label.trim()).not.toHaveLength(0);
+      expect(template.description.trim()).not.toHaveLength(0);
+      expect(template.oids.length).toBeGreaterThan(0);
+
+      for (const oid of template.oids) {
+        expect(oid.oid).toMatch(OID_REGEX);
+        expect(oid.name?.trim()).toBeTruthy();
+        expect(oid.description?.trim()).toBeTruthy();
+      }
+
+      // No template should list the same OID twice.
+      const values: Array<string> = template.oids.map((oid: SnmpOid) => {
+        return oid.oid;
+      });
+      expect(new Set(values).size).toBe(values.length);
+    },
+  );
+
+  /*
+   * The Cisco env-mon states are enums where 1 = normal — users build
+   * "not equal to 1" alert criteria on them, so the template must keep
+   * shipping these exact instance OIDs.
+   */
+  test("the Cisco template includes fan and PSU state OIDs", () => {
+    const cisco: SnmpVendorTemplate | undefined =
+      SnmpVendorTemplateUtil.getById("cisco-ios");
+
+    const oidValues: Array<string> = (cisco?.oids || []).map((oid: SnmpOid) => {
+      return oid.oid;
+    });
+
+    expect(oidValues).toContain("1.3.6.1.4.1.9.9.13.1.4.1.3.1"); // fan state
+    expect(oidValues).toContain("1.3.6.1.4.1.9.9.13.1.5.1.3.1"); // PSU state
   });
 });
 

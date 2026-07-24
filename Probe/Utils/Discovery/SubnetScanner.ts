@@ -293,6 +293,7 @@ export default class SubnetScanner {
    * and shorter, the network and broadcast addresses are excluded.
    */
   public static expandCidr(cidr: string): Array<string> {
+    // IPv4-only by design: IPv6 subnets are too sparse to sweep; IPv6 discovery will be ND-based (roadmap), not a CIDR sweep.
     const match: RegExpMatchArray | null = cidr
       .trim()
       .match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/);

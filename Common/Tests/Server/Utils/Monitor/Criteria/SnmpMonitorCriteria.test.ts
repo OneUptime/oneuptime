@@ -1,10 +1,16 @@
 import SnmpMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/SnmpMonitorCriteria";
+import MetricBaselineService, {
+  BaselineSummary,
+} from "../../../../../Server/Services/MetricBaselineService";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
   FilterType,
 } from "../../../../../Types/Monitor/CriteriaFilter";
+import MonitorMetricType from "../../../../../Types/Monitor/MonitorMetricType";
 import SnmpDataType from "../../../../../Types/Monitor/SnmpMonitor/SnmpDataType";
+import SnmpInterface from "../../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
 } from "../../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
@@ -15,6 +21,7 @@ const PSU_OID: string = "1.3.6.1.4.1.674.10892.5.4.600.12.1.5.1.2";
 
 function buildDataToProcess(input: {
   oidResponses: Array<SnmpOidResponse>;
+  interfaces?: Array<SnmpInterface>;
   isOnline?: boolean;
   responseTimeInMs?: number;
 }): ProbeMonitorResponse {
@@ -23,6 +30,7 @@ function buildDataToProcess(input: {
     responseTimeInMs: input.responseTimeInMs ?? 42,
     failureCause: "",
     oidResponses: input.oidResponses,
+    ...(input.interfaces ? { interfaces: input.interfaces } : {}),
   };
 
   return {
@@ -33,6 +41,41 @@ function buildDataToProcess(input: {
     failureCause: "",
     snmpResponse,
     monitoredAt: new Date(),
+  };
+}
+
+function buildInterface(input: {
+  name: string;
+  utilizationPercent?: number | undefined;
+  alias?: string | undefined;
+}): SnmpInterface {
+  return {
+    interfaceIndex: 1,
+    name: input.name,
+    alias: input.alias,
+    isOperationallyUp: true,
+    isAdministrativelyUp: true,
+    utilizationPercent: input.utilizationPercent,
+  };
+}
+
+function buildBaseline(input: {
+  mean: number;
+  stddev: number;
+  sampleCount?: number;
+  isReliable?: boolean;
+}): BaselineSummary {
+  return {
+    sampleCount: input.sampleCount ?? 100,
+    mean: input.mean,
+    stddev: input.stddev,
+    median: input.mean,
+    p95: input.mean + 2 * input.stddev,
+    minObserved: input.mean - 2 * input.stddev,
+    maxObserved: input.mean + 2 * input.stddev,
+    isReliable: input.isReliable ?? true,
+    windowDays: 14,
+    hourOfWeek: 10,
   };
 }
 
@@ -372,6 +415,348 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
       expect(result).toBeTruthy();
       expect(result).toContain("does not exist");
+    });
+  });
+
+  describe("SnmpInterfaceUtilizationPercent anomaly filters", () => {
+    let getBaselineSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      getBaselineSpy = jest.spyOn(MetricBaselineService, "getBaseline");
+    });
+
+    afterEach(() => {
+      getBaselineSpy.mockRestore();
+    });
+
+    test("AnomalouslyHigh fires when utilization exceeds mean + 3σ (Medium default)", async () => {
+      // mean 20, σ 5 → 3σ band is [5, 35]; observed 90 breaches high.
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [buildInterface({ name: "Gi0/1", utilizationPercent: 90 })],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("above the same-hour baseline");
+      expect(result).toContain("90.00%");
+    });
+
+    test("baseline lookup is keyed by monitorId and the utilization metric name", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [buildInterface({ name: "Gi0/1", utilizationPercent: 90 })],
+      });
+
+      await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess,
+        criteriaFilter,
+      });
+
+      expect(getBaselineSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId: dataToProcess.projectId.toString(),
+          primaryEntityId: dataToProcess.monitorId.toString(),
+          metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
+        }),
+      );
+    });
+
+    test("no fire when utilization is inside the expected band", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [buildInterface({ name: "Gi0/1", utilizationPercent: 25 })],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeNull();
+    });
+
+    test("AnomalouslyLow fires when utilization drops below mean - 3σ", async () => {
+      // mean 50, σ 10 → 3σ band is [20, 80]; observed 2 breaches low.
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 50, stddev: 10 }));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyLow,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [buildInterface({ name: "Gi0/1", utilizationPercent: 2 })],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("below the same-hour baseline");
+    });
+
+    test("Anomalous (either direction) fires on a high breach", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.Anomalous,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [buildInterface({ name: "Gi0/1", utilizationPercent: 99 })],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeTruthy();
+    });
+
+    test("High sensitivity (2σ) fires where Medium (3σ) would not", async () => {
+      // mean 20, σ 5 → 2σ band tops out at 30; observed 32 breaches at 2σ only.
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+        metricMonitorOptions: {
+          anomalyDetection: {
+            sensitivity: AnomalyDetectionSensitivity.High,
+          },
+        },
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [buildInterface({ name: "Gi0/1", utilizationPercent: 32 })],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("sensitivity High");
+    });
+
+    test("no baseline yet (learning) → never fires", async () => {
+      getBaselineSpy.mockResolvedValue(null);
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [
+          buildInterface({ name: "Gi0/1", utilizationPercent: 100 }),
+        ],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeNull();
+    });
+
+    test("unreliable (thin) baseline → never fires", async () => {
+      getBaselineSpy.mockResolvedValue(
+        buildBaseline({ mean: 20, stddev: 5, isReliable: false }),
+      );
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [
+          buildInterface({ name: "Gi0/1", utilizationPercent: 100 }),
+        ],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeNull();
+    });
+
+    test("zero-variance baseline → never fires", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 0 }));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [
+          buildInterface({ name: "Gi0/1", utilizationPercent: 100 }),
+        ],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeNull();
+    });
+
+    test("interface scope applies: only the scoped interface's utilization is observed", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+        snmpMonitorOptions: { interfaceName: "Gi0/2" },
+      };
+
+      // Out-of-scope Gi0/1 is anomalous; in-scope Gi0/2 is normal.
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [
+          buildInterface({ name: "Gi0/1", utilizationPercent: 99 }),
+          buildInterface({ name: "Gi0/2", utilizationPercent: 22 }),
+        ],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeNull();
+    });
+
+    test("no interfaces in the response → no baseline lookup, no fire", async () => {
+      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeNull();
+      expect(getBaselineSpy).not.toHaveBeenCalled();
+    });
+
+    test("baseline lookup failure is swallowed (no fire, no throw)", async () => {
+      getBaselineSpy.mockRejectedValue(new Error("clickhouse down"));
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [
+          buildInterface({ name: "Gi0/1", utilizationPercent: 100 }),
+        ],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeNull();
+    });
+
+    test("static threshold path is untouched: GreaterThan still compares numerically", async () => {
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.GreaterThan,
+        value: 80,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [buildInterface({ name: "Gi0/1", utilizationPercent: 90 })],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toBeTruthy();
+      expect(getBaselineSpy).not.toHaveBeenCalled();
     });
   });
 });

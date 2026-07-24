@@ -157,6 +157,42 @@ export default class NetworkFlow extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * SNMP ifIndex of the interfaces the flow entered/left through — the
+     * key that ties flow records to NetworkInterface rows for
+     * per-interface traffic attribution. 0 when the exporter did not
+     * report one (and on rows ingested before these columns existed).
+     */
+    const inputInterfaceIndexColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "inputInterfaceIndex",
+        title: "Input Interface Index",
+        description:
+          "SNMP ifIndex of the interface the flow entered through (0 when unknown)",
+        required: true,
+        type: TableColumnType.Number,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
+    const outputInterfaceIndexColumn: AnalyticsTableColumn =
+      new AnalyticsTableColumn({
+        key: "outputInterfaceIndex",
+        title: "Output Interface Index",
+        description:
+          "SNMP ifIndex of the interface the flow left through (0 when unknown)",
+        required: true,
+        type: TableColumnType.Number,
+        accessControl: {
+          read: readPermissions,
+          create: createPermissions,
+          update: [],
+        },
+      });
+
     const octetsColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "octets",
       title: "Octets",
@@ -260,6 +296,8 @@ export default class NetworkFlow extends AnalyticsBaseModel {
         srcPortColumn,
         dstPortColumn,
         protocolColumn,
+        inputInterfaceIndexColumn,
+        outputInterfaceIndexColumn,
         octetsColumn,
         packetsColumn,
         flowStartAtColumn,
@@ -364,6 +402,22 @@ export default class NetworkFlow extends AnalyticsBaseModel {
 
   public set protocol(v: number | undefined) {
     this.setColumnValue("protocol", v);
+  }
+
+  public get inputInterfaceIndex(): number | undefined {
+    return this.getColumnValue("inputInterfaceIndex") as number | undefined;
+  }
+
+  public set inputInterfaceIndex(v: number | undefined) {
+    this.setColumnValue("inputInterfaceIndex", v);
+  }
+
+  public get outputInterfaceIndex(): number | undefined {
+    return this.getColumnValue("outputInterfaceIndex") as number | undefined;
+  }
+
+  public set outputInterfaceIndex(v: number | undefined) {
+    this.setColumnValue("outputInterfaceIndex", v);
   }
 
   public get octets(): number | undefined {

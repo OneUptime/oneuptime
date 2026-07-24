@@ -1,13 +1,21 @@
+import AlertService from "./AlertService";
+import AlertSeverityService from "./AlertSeverityService";
+import AlertStateTimelineService from "./AlertStateTimelineService";
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
 import Model from "../../Models/DatabaseModels/NetworkSite";
+import Alert from "../../Models/DatabaseModels/Alert";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
+import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../Models/DatabaseModels/NetworkDevice";
 import NetworkSiteStatusTimeline from "../../Models/DatabaseModels/NetworkSiteStatusTimeline";
+import { DisableAutomaticAlertCreation } from "../EnvironmentConfig";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -789,6 +797,10 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         projectId: true,
         currentMonitorStatusId: true,
+        name: true,
+        shouldAlertWhenUnhealthy: true,
+        alertSeverityId: true,
+        currentActiveAlertId: true,
       },
       props: {
         isRoot: true,
@@ -835,6 +847,7 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         _id: true,
+        name: true,
         priority: true,
         isOperationalState: true,
         isOfflineState: true,
@@ -936,6 +949,184 @@ export class Service extends DatabaseService<Model> {
 
     await NetworkSiteStatusTimelineService.create({
       data: timeline,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * Site alerting rides the same transition the timeline records. Alert
+     * bookkeeping must never break the rollup itself.
+     */
+    try {
+      await this.syncSiteAlertForStatusTransition({
+        site: site,
+        newStatus:
+          statuses.find((status: MonitorStatus) => {
+            return status.id?.toString() === worstStatusId;
+          }) || null,
+      });
+    } catch (err) {
+      logger.error(
+        `Network site rollup: error syncing alert for site ${site.id.toString()}:`,
+      );
+      logger.error(err);
+    }
+  }
+
+  /*
+   * Opens an alert when a site's rollup TRANSITIONS to a non-operational
+   * status (and alerting is enabled on the site), and auto-resolves that
+   * alert when the site transitions back to operational. Transition-only
+   * by design: enabling alerting on an already-unhealthy site arms the
+   * next transition instead of retro-alerting, and a manually resolved
+   * alert is not reopened until the site recovers and degrades again
+   * (a transition clears the tracked id).
+   */
+  @CaptureSpan()
+  private async syncSiteAlertForStatusTransition(data: {
+    site: Model;
+    newStatus: MonitorStatus | null;
+  }): Promise<void> {
+    const site: Model = data.site;
+
+    if (!site.id || !site.projectId || !data.newStatus) {
+      return;
+    }
+
+    const isNowOperational: boolean = Boolean(
+      data.newStatus.isOperationalState,
+    );
+
+    // Recovery: resolve the open site alert, if one is tracked.
+    if (isNowOperational) {
+      if (!site.currentActiveAlertId) {
+        return;
+      }
+
+      await this.resolveSiteAlert({
+        projectId: site.projectId,
+        alertId: site.currentActiveAlertId,
+        rootCause: `**Recovered:** Network site **${site.name || "site"}** rolled back up to ${data.newStatus.name || "an operational status"}.`,
+      });
+
+      await this.updateColumnsByIdWithoutHooks({
+        id: site.id,
+        data: {
+          currentActiveAlertId: null,
+        },
+      });
+
+      return;
+    }
+
+    // Degradation between two unhealthy statuses keeps the existing alert.
+    if (
+      !site.shouldAlertWhenUnhealthy ||
+      site.currentActiveAlertId ||
+      DisableAutomaticAlertCreation
+    ) {
+      return;
+    }
+
+    let alertSeverityId: ObjectID | undefined = site.alertSeverityId;
+
+    if (!alertSeverityId) {
+      // Same default the monitor alert path uses: the most severe first.
+      const severity: AlertSeverity | null =
+        await AlertSeverityService.findOneBy({
+          query: {
+            projectId: site.projectId,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+          select: {
+            _id: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!severity || !severity.id) {
+        logger.warn(
+          `Network site alerting: project ${site.projectId.toString()} has no alert severity; skipping site alert.`,
+        );
+        return;
+      }
+
+      alertSeverityId = severity.id;
+    }
+
+    const statusName: string = data.newStatus.name || "Unhealthy";
+
+    const alert: Alert = new Alert();
+    alert.projectId = site.projectId;
+    alert.title = `Network site ${site.name || site.id.toString()} is ${statusName}`;
+    alert.description = `The health rollup of network site **${
+      site.name || site.id.toString()
+    }** changed to **${statusName}** — the worst status of the devices at this site and every site below it. This alert auto-resolves when the site rolls back up to an operational status.`;
+    alert.alertSeverityId = alertSeverityId;
+    alert.rootCause = `Network site **${site.name || site.id.toString()}** rolled up to **${statusName}**.`;
+
+    const createdAlert: Alert = await AlertService.create({
+      data: alert,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (createdAlert.id) {
+      await this.updateColumnsByIdWithoutHooks({
+        id: site.id,
+        data: {
+          currentActiveAlertId: createdAlert.id,
+        },
+      });
+    }
+  }
+
+  // Moves a site alert to the project's resolved state, if not already there.
+  private async resolveSiteAlert(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+    rootCause: string;
+  }): Promise<void> {
+    const alert: Alert | null = await AlertService.findOneById({
+      id: data.alertId,
+      select: {
+        _id: true,
+        currentAlertStateId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!alert || !alert.id) {
+      // Deleted by hand — nothing to resolve.
+      return;
+    }
+
+    const resolvedStateId: ObjectID =
+      await AlertStateTimelineService.getResolvedStateIdForProject(
+        data.projectId,
+      );
+
+    if (alert.currentAlertStateId?.toString() === resolvedStateId.toString()) {
+      // Already resolved manually.
+      return;
+    }
+
+    const alertStateTimeline: AlertStateTimeline = new AlertStateTimeline();
+    alertStateTimeline.alertId = alert.id;
+    alertStateTimeline.alertStateId = resolvedStateId;
+    alertStateTimeline.projectId = data.projectId;
+    alertStateTimeline.rootCause = data.rootCause;
+
+    await AlertStateTimelineService.create({
+      data: alertStateTimeline,
       props: {
         isRoot: true,
       },

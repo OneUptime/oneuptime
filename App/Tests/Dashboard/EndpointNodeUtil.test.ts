@@ -101,4 +101,37 @@ describe("endpointTooltipForNode", () => {
   test("name-only endpoints get no dangling dash", () => {
     expect(endpointTooltipForNode(base)).toBe("pos-1 (endpoint)");
   });
+
+  test("appends 'VLAN <n>' when the endpoint carries a vlanId", () => {
+    expect(
+      endpointTooltipForNode({
+        ...base,
+        macAddress: "aa:bb:cc:dd:ee:ff",
+        ipAddress: "10.0.0.12",
+        vendor: "Zebra",
+        classification: "printer",
+        vlanId: 12,
+      }),
+    ).toBe(
+      "pos-1 (endpoint) — aa:bb:cc:dd:ee:ff · 10.0.0.12 · Zebra · printer · VLAN 12",
+    );
+  });
+
+  test("VLAN 0 still renders (0 is a valid VLAN id, not 'absent')", () => {
+    expect(
+      endpointTooltipForNode({
+        ...base,
+        vlanId: 0,
+      }),
+    ).toBe("pos-1 (endpoint) — VLAN 0");
+  });
+
+  test("VLAN-only identity gets no leading separator", () => {
+    expect(
+      endpointTooltipForNode({
+        ...base,
+        vlanId: 42,
+      }),
+    ).toBe("pos-1 (endpoint) — VLAN 42");
+  });
 });

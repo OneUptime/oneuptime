@@ -46,6 +46,12 @@ export function getNetworkDeviceBreadcrumbs(
       "View Device",
       "Monitors",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_LOGS, [
+      "Project",
+      "Network",
+      "View Device",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_DEVICE_VIEW_OWNERS, [
       "Project",
       "Network",
