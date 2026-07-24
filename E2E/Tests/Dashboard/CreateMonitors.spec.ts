@@ -35,16 +35,18 @@ const recipes: Array<MonitorTypeRecipe> = [
     singleStep: true,
   },
   {
+    /*
+     * Inbound types have a criteria step (e.g. "incident if no request in X
+     * minutes"); only Manual truly skips criteria. They have no interval step.
+     */
     label: "Incoming Request",
     cardValue: "Incoming Request",
     hasInterval: false,
-    singleStep: true,
   },
   {
     label: "Incoming Email",
     cardValue: "Incoming Email",
     hasInterval: false,
-    singleStep: true,
   },
 
   // Telemetry types: criteria defaults are enough, no interval step.

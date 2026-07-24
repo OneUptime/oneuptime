@@ -90,6 +90,30 @@ const selectMonitoringInterval: (data: {
 };
 
 /*
+ * Waits for the criteria step to finish loading before it is submitted.
+ *
+ * The criteria step's MonitorSteps component fetches monitor statuses,
+ * severities, incident roles and probes and only then populates the default
+ * monitorSteps. Until that resolves the form value is empty and submitting
+ * fails validation ("Monitor Steps is required"), leaving the wizard on the
+ * criteria step so the create never happens. A fixed sleep raced this load and
+ * made the whole suite flaky under CI load.
+ *
+ * The "Monitor Criteria" card is rendered by MonitorStep only after the
+ * defaults have loaded, and for every monitor type, so its visibility is an
+ * unambiguous ready signal — unlike the async loader, which briefly is absent
+ * on the very first render before the fetch flips it on.
+ */
+const waitForCriteriaStepReady: (data: {
+  page: Page;
+}) => Promise<void> = async (data: { page: Page }): Promise<void> => {
+  await data.page
+    .getByText("Monitor Criteria", { exact: true })
+    .first()
+    .waitFor({ state: "visible", timeout: 60000 });
+};
+
+/*
  * Navigates to the create-monitor page and creates a monitor following the
  * recipe, then asserts we land on the monitor view page. Returns the created
  * monitor id.
@@ -132,8 +156,8 @@ export const createMonitor: CreateMonitorFunction = async (data: {
   await page.getByTestId(submitButtonTestId).click();
 
   if (!data.recipe.singleStep) {
-    // Criteria step.
-    await page.waitForTimeout(1500);
+    // Criteria step. Wait for its async defaults before submitting.
+    await waitForCriteriaStepReady({ page });
     if (data.recipe.fillCriteria) {
       await data.recipe.fillCriteria({ page });
     }
@@ -141,7 +165,6 @@ export const createMonitor: CreateMonitorFunction = async (data: {
 
     if (data.recipe.hasInterval) {
       // Interval step.
-      await page.waitForTimeout(1500);
       await selectMonitoringInterval({ page });
       await page.getByTestId(submitButtonTestId).click();
     }
