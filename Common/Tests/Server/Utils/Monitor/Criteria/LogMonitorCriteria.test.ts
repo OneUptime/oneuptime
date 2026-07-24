@@ -130,6 +130,36 @@ describe("LogMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
   });
 
+  /*
+   * The exact production shape of a "log presence" alert: criteria
+   * "Log Count >= 1" flips the monitor Offline the moment a matching log
+   * line is ingested. Documents the comparator behavior downstream of
+   * countBy — the countBy parsing regression itself (ClickHouse >= 25.x
+   * returning count() as a JSON number) is pinned in
+   * AnalyticsDatabaseService.test.ts.
+   */
+  describe("log-presence offline criteria (Log Count >= 1)", () => {
+    const offlineCriteria: CriteriaFilter = {
+      checkOn: CheckOn.LogCount,
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 1,
+    };
+
+    test("one matching log → met (monitor goes offline)", async () => {
+      const result: string | null = await evaluate(1, offlineCriteria);
+      expect(result).toBeTruthy();
+      expect(result).toContain("Log Count");
+    });
+
+    test("many matching logs → met", async () => {
+      expect(await evaluate(6718284, offlineCriteria)).toBeTruthy();
+    });
+
+    test("zero matching logs → not met (monitor stays operational)", async () => {
+      expect(await evaluate(0, offlineCriteria)).toBeNull();
+    });
+  });
+
   describe("edge cases", () => {
     test("a missing logCount is treated as 0", async () => {
       // undefined logCount → 0; "equal to 0" is therefore met.
