@@ -59,15 +59,13 @@ export default class SnmpTrapLogWriter {
           continue;
         }
 
-        const row: JSONObject | null = await SnmpTrapLogWriter.buildTrapLogRow(
-          {
-            snmpTrap: data.snmpTrap,
-            probeId: data.probeId,
-            projectId: device.projectId,
-            device: device,
-            serviceCache: serviceCache,
-          },
-        );
+        const row: JSONObject | null = await SnmpTrapLogWriter.buildTrapLogRow({
+          snmpTrap: data.snmpTrap,
+          probeId: data.probeId,
+          projectId: device.projectId,
+          device: device,
+          serviceCache: serviceCache,
+        });
 
         if (row) {
           dbLogs.push(row);

@@ -254,6 +254,23 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   }, [topology, translateString]);
 
   /*
+   * If the selected VLAN disappears from a refresh (its endpoints aged
+   * out), fall back to All VLANs — otherwise the filter would keep hiding
+   * every endpoint while the dropdown claims "All VLANs", with no way to
+   * clear it once the dropdown unmounts.
+   */
+  useEffect(() => {
+    if (
+      selectedVlan !== ALL_VLANS &&
+      !vlanOptions.some((option: DropdownOption) => {
+        return option.value === selectedVlan;
+      })
+    ) {
+      setSelectedVlan(ALL_VLANS);
+    }
+  }, [vlanOptions, selectedVlan]);
+
+  /*
    * The topology the graph and panels actually see. A selected VLAN hides
    * endpoint nodes outside it (including endpoints with no known VLAN) and
    * the FDB edges that hang off them; device and unmanaged nodes are never

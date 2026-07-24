@@ -13,6 +13,7 @@ import SnmpAuthProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpAuthProtoco
 import SnmpPrivProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import ObjectID from "../../../Types/ObjectID";
 import IP from "../../../Types/IP/IP";
+import IpCanonicalUtil from "../../../Utils/IpCanonicalUtil";
 import DnsResolutionCache from "./DnsResolutionCache";
 import logger from "../Logger";
 
@@ -243,45 +244,91 @@ export default class NetworkDeviceHydrationUtil {
     }
 
     /*
-     * Fallback: resolve the probe's DNS-named devices and match on their
-     * resolved addresses. Only runs when the exact match found nothing,
-     * and only resolves hostnames that are not already IP literals.
+     * Fallback for the two spellings the exact match cannot see:
+     * (a) IPv6-literal hostnames written differently than the datagram's
+     *     normalized source (2001:DB8::1 vs 2001:db8::1) — compared
+     *     canonically, and
+     * (b) DNS-named devices — resolved through a shared cache and their
+     *     addresses compared canonically.
+     * Only runs when the exact match found nothing.
      */
-    const candidates: Array<NetworkDevice> = await NetworkDeviceService.findBy(
-      {
-        query: {
-          probeId: data.probeId,
-        },
-        select: {
-          ...select,
-          hostname: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+    const candidates: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+      query: {
+        probeId: data.probeId,
       },
+      select: {
+        ...select,
+        hostname: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const canonicalSource: string = IpCanonicalUtil.canonicalize(
+      data.sourceIpAddress,
     );
 
-    const dnsMatches: Array<NetworkDevice> = [];
+    const literalMatches: Array<NetworkDevice> = [];
+    const dnsCandidates: Array<NetworkDevice> = [];
 
     for (const device of candidates) {
       const hostname: string = device.hostname?.trim() || "";
 
-      if (!hostname || IP.isIP(hostname)) {
+      if (!hostname) {
         continue;
       }
 
-      const addresses: Array<string> =
-        await NetworkDeviceHydrationUtil.dnsCache.resolve(hostname);
-
-      if (addresses.includes(data.sourceIpAddress)) {
-        dnsMatches.push(device);
+      if (IP.isIP(hostname)) {
+        if (IpCanonicalUtil.canonicalize(hostname) === canonicalSource) {
+          literalMatches.push(device);
+        }
+        continue;
       }
+
+      dnsCandidates.push(device);
     }
 
-    return dnsMatches;
+    if (literalMatches.length > 0) {
+      return literalMatches;
+    }
+
+    /*
+     * DNS resolution runs in parallel (deduplicated per hostname) so a
+     * cold cache with a slow resolver costs one lookup timeout, not one
+     * per device — this is on the trap/syslog ingest path.
+     */
+    const uniqueHostnames: Array<string> = [
+      ...new Set(
+        dnsCandidates.map((device: NetworkDevice) => {
+          return device.hostname!.trim().toLowerCase();
+        }),
+      ),
+    ];
+
+    const addressesByHostname: Map<string, Array<string>> = new Map(
+      await Promise.all(
+        uniqueHostnames.map(
+          async (hostname: string): Promise<[string, Array<string>]> => {
+            return [
+              hostname,
+              await NetworkDeviceHydrationUtil.dnsCache.resolve(hostname),
+            ];
+          },
+        ),
+      ),
+    );
+
+    return dnsCandidates.filter((device: NetworkDevice) => {
+      const addresses: Array<string> =
+        addressesByHostname.get(device.hostname!.trim().toLowerCase()) || [];
+
+      return addresses.some((address: string) => {
+        return IpCanonicalUtil.canonicalize(address) === canonicalSource;
+      });
+    });
   }
 
   // Shared across trap and syslog ingest; 5-minute TTL, failure-cached.

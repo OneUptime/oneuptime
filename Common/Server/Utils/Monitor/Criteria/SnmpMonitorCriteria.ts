@@ -47,12 +47,28 @@ export default class SnmpMonitorCriteria {
       return interfaces;
     }
 
-    return interfaces.filter((snmpInterface: SnmpInterface) => {
-      return (
-        snmpInterface.name?.trim().toLowerCase() === scope ||
-        snmpInterface.alias?.trim().toLowerCase() === scope
+    const scoped: Array<SnmpInterface> = interfaces.filter(
+      (snmpInterface: SnmpInterface) => {
+        return (
+          snmpInterface.name?.trim().toLowerCase() === scope ||
+          snmpInterface.alias?.trim().toLowerCase() === scope
+        );
+      },
+    );
+
+    /*
+     * A configured scope that matches nothing (typo, ifName change after
+     * a firmware upgrade, module removed) silently disarms this criteria
+     * — including "Interface Is Down = False" recovery rules. Surface it
+     * in the logs so a dead criteria is diagnosable.
+     */
+    if (scoped.length === 0 && interfaces.length > 0) {
+      logger.warn(
+        `SNMP criteria interface scope "${criteriaFilter.snmpMonitorOptions?.interfaceName}" matched none of the ${interfaces.length} interface(s) in the poll response. This criteria will not evaluate until the scope matches an interface name or alias.`,
       );
-    });
+    }
+
+    return scoped;
   }
 
   /*

@@ -14,6 +14,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import API from "Common/UI/Utils/API/API";
+import fillFlowSeriesGaps from "./FlowSeriesUtil";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { APP_API_URL } from "Common/UI/Config";
@@ -75,6 +76,8 @@ interface TopTalkersData {
   topConversations: Array<ConversationEntry>;
   series: Array<SeriesPointEntry>;
   seriesBucketSeconds: number;
+  windowStartAt: string;
+  windowEndAt: string;
 }
 
 // Common IP protocol numbers → names; anything else shows the number.
@@ -207,6 +210,8 @@ const parseResponse: (data: JSONObject | undefined) => TopTalkersData = (
       };
     }),
     seriesBucketSeconds: Number(data?.["seriesBucketSeconds"]) || 60,
+    windowStartAt: String(data?.["windowStartAt"] ?? ""),
+    windowEndAt: String(data?.["windowEndAt"] ?? ""),
   };
 };
 
@@ -520,7 +525,12 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
                 Bandwidth Over Time
               </div>
               <BandwidthOverTimeChart
-                series={data.series}
+                series={fillFlowSeriesGaps(
+                  data.series,
+                  data.seriesBucketSeconds,
+                  data.windowStartAt,
+                  data.windowEndAt,
+                )}
                 bucketSeconds={data.seriesBucketSeconds}
               />
             </div>

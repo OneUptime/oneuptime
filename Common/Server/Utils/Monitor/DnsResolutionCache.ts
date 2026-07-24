@@ -24,16 +24,39 @@ export type ResolveHostnameFunction = (
 
 export type NowFunction = () => number;
 
+/*
+ * dns.lookup has no timeout of its own and runs on the shared libuv
+ * threadpool, so a wedged resolver would otherwise stall the trap/syslog
+ * ingest path. The race rejects after this budget; the failure is then
+ * negative-cached like any other resolution error.
+ */
+const DEFAULT_RESOLVE_TIMEOUT_MS: number = 2000;
+
 const defaultResolver: ResolveHostnameFunction = async (
   hostname: string,
 ): Promise<Array<string>> => {
-  const results: Array<dns.LookupAddress> = await dns.promises.lookup(
+  const lookup: Promise<Array<dns.LookupAddress>> = dns.promises.lookup(
     hostname,
     {
       all: true,
       verbatim: true,
     },
   );
+
+  const timeout: Promise<never> = new Promise<never>(
+    (_resolve: (value: never) => void, reject: (reason: Error) => void) => {
+      const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+        reject(new Error(`DNS lookup for ${hostname} timed out`));
+      }, DEFAULT_RESOLVE_TIMEOUT_MS);
+      // Never keep the process alive just for this timer.
+      timer.unref?.();
+    },
+  );
+
+  const results: Array<dns.LookupAddress> = await Promise.race([
+    lookup,
+    timeout,
+  ]);
 
   return results.map((result: dns.LookupAddress) => {
     return result.address;
