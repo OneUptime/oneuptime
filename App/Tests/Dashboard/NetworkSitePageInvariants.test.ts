@@ -336,13 +336,21 @@ describe("SiteGeoMap", () => {
 });
 
 /*
- * The probe collects endpoints only for an explicit `true`, so a step saved
- * before the field existed (undefined) must paint OFF — and must keep
- * painting OFF for every other non-true value. `=== true` is what keeps the
- * switch showing exactly what the probe will do, for every monitor ever
- * saved, rather than a default the two sides could drift apart on.
+ * The monitor step form is the alerting layer and nothing else: it picks a
+ * device, and the criteria below it decide what to alert on. Every collection
+ * knob — polling schedule, interface walks, endpoint discovery, health OIDs —
+ * belongs to the NetworkDevice, which its probe walks on its own schedule
+ * whether or not a monitor exists. If a collection control ever reappears
+ * here, the same setting exists in two places and the two silently disagree:
+ * the device keeps polling to its own configuration and the monitor form
+ * shows something else.
+ *
+ * (The endpoint-collection toggle this file used to pin lived on this form
+ * until devices took ownership of polling. It now lives in
+ * Pages/NetworkDevice/DevicePollingFormFields.ts, pinned by
+ * Tests/Dashboard/DevicePollingFormFields.test.ts.)
  */
-describe("NetworkDeviceMonitorStepForm endpoint collection toggle", () => {
+describe("NetworkDeviceMonitorStepForm carries no data-collection controls", () => {
   const source: string = readSource(
     "Components",
     "Form",
@@ -351,21 +359,17 @@ describe("NetworkDeviceMonitorStepForm endpoint collection toggle", () => {
     "NetworkDeviceMonitorStepForm.tsx",
   );
 
-  test("renders the probe's own strictly-opt-in predicate", () => {
-    expect(source).toContain(
-      squash(
-        "value={ props.monitorStepNetworkDeviceMonitor.collectEndpoints === true }",
-      ),
-    );
+  test("picks a device", () => {
+    expect(source).toContain("modelType={NetworkDevice}");
   });
 
-  test("does not pass the raw optional value", () => {
-    expect(source).not.toContain(
-      "value={props.monitorStepNetworkDeviceMonitor.collectEndpoints}",
-    );
-  });
-
-  test("tells the operator it is off by default", () => {
-    expect(source).toContain("Off by default.");
+  test.each([
+    ["collectEndpoints"],
+    ["walkInterfaces"],
+    ["isPollingEnabled"],
+    ["pollingIntervalInMinutes"],
+    ["snmpOids"],
+  ])("does not configure %s", (collectionField: string) => {
+    expect(source).not.toContain(collectionField);
   });
 });

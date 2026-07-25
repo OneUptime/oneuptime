@@ -1,5 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import {
+  NetworkSiteTypeOption,
   ParsedSiteRow,
   SITE_CSV_COLUMNS,
   SiteCsvError,
@@ -12,12 +13,15 @@ import {
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import { ToastType } from "Common/UI/Components/Toast/Toast";
 import { ShowToastNotification } from "Common/UI/Components/Toast/ToastInit";
@@ -28,6 +32,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -38,6 +43,14 @@ import React, {
  * dependency planning live in the react-free Utils/NetworkSiteCsv module;
  * this page only wires them to a textarea/file input and a sequential
  * ModelAPI.create loop that creates parents before their children.
+ *
+ * Site types are per-project NetworkSiteType rows, so the parser cannot
+ * know the valid siteType values by itself: the project's types are
+ * fetched once on mount and handed to every parse, which resolves each
+ * cell to a networkSiteTypeId. Parsing is synchronous (it runs on a
+ * keystroke-free button press and on file load), so the fetch has to
+ * finish before the page is usable at all — hence the page-level loader
+ * rather than a lazy fetch inside the parse path.
  */
 
 interface RowResult {
@@ -47,12 +60,19 @@ interface RowResult {
   message: string;
 }
 
+/*
+ * The example uses the default seeded type names. A project that renamed
+ * them still gets the right list from the card description below, which is
+ * built from its own configured types.
+ */
 const EXAMPLE_CSV: string = [
   "name,siteType,parentName,address,latitude,longitude",
   "Franchise East,Region,,,,",
   '"Springfield Market",Market,Franchise East,,,',
   '"Unit 1042","Unit","Springfield Market","742 Evergreen Terrace, Springfield, IL",39.7817,-89.6501',
 ].join("\n");
+
+const CARD_TITLE: string = "Import Sites from CSV";
 
 const NetworkSiteImport: FunctionComponent<
   PageComponentProps
@@ -67,8 +87,62 @@ const NetworkSiteImport: FunctionComponent<
   const [rowResults, setRowResults] = useState<Array<RowResult>>([]);
   const [importError, setImportError] = useState<string>("");
 
+  const [siteTypes, setSiteTypes] = useState<Array<NetworkSiteTypeOption>>([]);
+  const [isLoadingSiteTypes, setIsLoadingSiteTypes] = useState<boolean>(true);
+  const [siteTypesError, setSiteTypesError] = useState<string>("");
+
   const fileInputRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
+
+  /*
+   * The project's configured site types, in hierarchy order — the order the
+   * "Valid values" list in a parse error reads best in, and the order the
+   * settings page shows them in.
+   */
+  const fetchSiteTypes: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoadingSiteTypes(true);
+    try {
+      const result: ListResult<NetworkSiteType> =
+        await ModelAPI.getList<NetworkSiteType>({
+          modelType: NetworkSiteType,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            _id: true,
+            name: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+            name: SortOrder.Ascending,
+          },
+        });
+
+      setSiteTypes(
+        result.data
+          .filter((siteType: NetworkSiteType) => {
+            return Boolean(siteType._id && siteType.name);
+          })
+          .map((siteType: NetworkSiteType): NetworkSiteTypeOption => {
+            return {
+              id: siteType._id!.toString(),
+              name: siteType.name!,
+            };
+          }),
+      );
+      setSiteTypesError("");
+    } catch (err) {
+      setSiteTypesError(API.getFriendlyMessage(err));
+    }
+    setIsLoadingSiteTypes(false);
+  };
+
+  useEffect(() => {
+    fetchSiteTypes().catch((err: Error) => {
+      setSiteTypesError(API.getFriendlyMessage(err));
+      setIsLoadingSiteTypes(false);
+    });
+  }, []);
 
   type HandleFileChangeFunction = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -85,7 +159,7 @@ const NetworkSiteImport: FunctionComponent<
     reader.onload = () => {
       const text: string = (reader.result as string) || "";
       setCsvText(text);
-      setParseResult(parseSiteCsv(text));
+      setParseResult(parseSiteCsv(text, siteTypes));
       setRowResults([]);
       setImportError("");
     };
@@ -95,7 +169,7 @@ const NetworkSiteImport: FunctionComponent<
   };
 
   const previewCsv: VoidFunction = (): void => {
-    setParseResult(parseSiteCsv(csvText));
+    setParseResult(parseSiteCsv(csvText, siteTypes));
     setRowResults([]);
     setImportError("");
   };
@@ -174,7 +248,13 @@ const NetworkSiteImport: FunctionComponent<
             const site: NetworkSite = new NetworkSite();
             site.projectId = ProjectUtil.getCurrentProjectId()!;
             site.name = row.name;
-            site.siteType = row.siteType;
+            /*
+             * The parser already resolved the CSV cell against the project's
+             * configured types, so this id is always a real NetworkSiteType
+             * row. The deprecated inline siteType string is deliberately not
+             * written — new sites carry their type only by relation.
+             */
+            site.networkSiteTypeId = new ObjectID(row.networkSiteTypeId);
 
             if (row.parentName !== "") {
               const parentId: string | undefined = siteIdByName.get(
@@ -268,13 +348,41 @@ const NetworkSiteImport: FunctionComponent<
   const rows: Array<ParsedSiteRow> = parseResult?.rows || [];
   const parseErrors: Array<SiteCsvError> = parseResult?.errors || [];
 
+  /*
+   * Nothing on this page can be parsed before the project's site types are
+   * known, so the whole page waits on them rather than letting the user
+   * paste a file only to have every row fail validation.
+   */
+  if (isLoadingSiteTypes) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (siteTypesError) {
+    return (
+      <Card
+        title={CARD_TITLE}
+        description="Bulk-create your site hierarchy from a CSV file."
+      >
+        <ErrorMessage message={siteTypesError} />
+      </Card>
+    );
+  }
+
+  const siteTypeNames: string = siteTypes
+    .map((siteType: NetworkSiteTypeOption) => {
+      return siteType.name;
+    })
+    .join(", ");
+
   return (
     <Fragment>
       <Card
-        title="Import Sites from CSV"
+        title={CARD_TITLE}
         description={`Bulk-create your site hierarchy. Columns: ${SITE_CSV_COLUMNS.join(
           ", ",
-        )}. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.`}
+        )}. siteType must be one of this project's configured site types${
+          siteTypeNames ? ` (${siteTypeNames})` : ""
+        }. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.`}
       >
         <div className="space-y-4">
           <TextArea

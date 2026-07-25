@@ -32,12 +32,23 @@ const NetworkDeviceSettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Settings"
+        formSteps={[
+          {
+            title: "Device Details",
+            id: "device-details",
+          },
+          {
+            title: "SNMP Credentials",
+            id: "snmp",
+          },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "core-switch-01",
@@ -47,6 +58,7 @@ const NetworkDeviceSettings: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Core switch in the US East datacenter",
@@ -56,12 +68,13 @@ const NetworkDeviceSettings: FunctionComponent<
               hostname: true,
             },
             title: "Hostname",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
             description: "IP address or hostname the probe will poll via SNMP.",
           },
-          ...getSnmpConfigFormFields(),
+          ...getSnmpConfigFormFields({ stepId: "snmp" }),
         ]}
         modelDetailProps={{
           modelType: NetworkDevice,
@@ -101,13 +114,24 @@ const NetworkDeviceSettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Polling"
+        formSteps={[
+          {
+            title: "Polling",
+            id: "polling",
+          },
+          {
+            title: "Health OIDs",
+            id: "health-oids",
+          },
+        ]}
         formFields={[
-          ...getDevicePollingFormFields(),
+          ...getDevicePollingFormFields({ stepId: "polling" }),
           {
             field: {
               snmpOids: true,
             },
             title: "Health OIDs",
+            stepId: "health-oids",
             description:
               "SNMP OIDs (CPU, memory, temperature, or any custom OID) collected on each poll. Values are recorded as device metrics and can be alerted on through monitor criteria.",
             fieldType: FormFieldSchemaType.CustomComponent,

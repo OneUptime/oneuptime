@@ -13,6 +13,11 @@ import {
  * malformed rows drop instead of throwing, and missing scalars fall back
  * to safe defaults — the map page must render whatever a partially
  * broken (or future) server sends.
+ *
+ * isUnitLevel gets its own attention below: it is the flag NetworkMap
+ * branches on to open a device topology instead of a child-site graph, so
+ * it must be strictly boolean and default to false. A truthy-but-not-true
+ * value drilling a container into an empty topology would be a real bug.
  */
 
 describe("parseSiteChildrenResponse", () => {
@@ -38,14 +43,20 @@ describe("parseSiteChildrenResponse", () => {
   test("a full well-formed payload narrows faithfully", () => {
     const parsed: SiteChildrenResponse = parseSiteChildrenResponse({
       breadcrumb: [
-        { id: "root", name: "East", siteType: "Region" },
-        { id: "f1", name: "Acme Franchising", siteType: "Franchisee" },
+        { id: "root", name: "East", siteType: "Region", isUnitLevel: false },
+        {
+          id: "f1",
+          name: "Acme Franchising",
+          siteType: "Franchisee",
+          isUnitLevel: false,
+        },
       ],
       children: [
         {
           id: "m1",
           name: "Kansas City Market",
           siteType: "Market",
+          isUnitLevel: false,
           currentMonitorStatus: {
             id: "s1",
             name: "Operational",
@@ -73,14 +84,20 @@ describe("parseSiteChildrenResponse", () => {
     } as unknown as JSONObject);
 
     expect(parsed.breadcrumb).toEqual([
-      { id: "root", name: "East", siteType: "Region" },
-      { id: "f1", name: "Acme Franchising", siteType: "Franchisee" },
+      { id: "root", name: "East", siteType: "Region", isUnitLevel: false },
+      {
+        id: "f1",
+        name: "Acme Franchising",
+        siteType: "Franchisee",
+        isUnitLevel: false,
+      },
     ]);
     expect(parsed.children).toHaveLength(1);
     expect(parsed.children[0]).toEqual({
       id: "m1",
       name: "Kansas City Market",
       siteType: "Market",
+      isUnitLevel: false,
       currentMonitorStatus: {
         id: "s1",
         name: "Operational",
@@ -126,6 +143,7 @@ describe("parseSiteChildrenResponse", () => {
       id: "c1",
       name: "Unnamed site",
       siteType: "Other",
+      isUnitLevel: false,
       currentMonitorStatus: undefined,
       childSiteCount: 0,
       deviceCount: 0,
@@ -180,6 +198,30 @@ describe("parseSiteChildrenResponse", () => {
     } as unknown as JSONObject);
     expect(parsed.children[0]!.uptimePercent).toBe(0);
   });
+
+  test("isUnitLevel is strictly boolean on breadcrumbs and children", () => {
+    const parsed: SiteChildrenResponse = parseSiteChildrenResponse({
+      breadcrumb: [
+        { id: "b1", isUnitLevel: true },
+        { id: "b2", isUnitLevel: "true" },
+      ],
+      children: [
+        { id: "c1", isUnitLevel: true },
+        { id: "c2", isUnitLevel: 1 },
+        { id: "c3" },
+      ],
+    } as unknown as JSONObject);
+    expect(
+      parsed.breadcrumb.map((entry: { isUnitLevel: boolean }) => {
+        return entry.isUnitLevel;
+      }),
+    ).toEqual([true, false]);
+    expect(
+      parsed.children.map((child: { isUnitLevel: boolean }) => {
+        return child.isUnitLevel;
+      }),
+    ).toEqual([true, false, false]);
+  });
 });
 
 describe("parseSiteMapResponse", () => {
@@ -196,6 +238,7 @@ describe("parseSiteMapResponse", () => {
           id: "u1",
           name: "Store #42",
           siteType: "Unit",
+          isUnitLevel: true,
           latitude: 39.1,
           longitude: -94.58,
           statusPriority: 3,
@@ -211,6 +254,7 @@ describe("parseSiteMapResponse", () => {
         id: "u1",
         name: "Store #42",
         siteType: "Unit",
+        isUnitLevel: true,
         latitude: 39.1,
         longitude: -94.58,
         statusPriority: 3,
@@ -242,6 +286,7 @@ describe("parseSiteMapResponse", () => {
       id: "u1",
       name: "Unnamed site",
       siteType: "Other",
+      isUnitLevel: false,
       latitude: 10,
       longitude: 20,
       statusPriority: 0,

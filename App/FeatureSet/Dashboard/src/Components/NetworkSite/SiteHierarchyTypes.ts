@@ -11,6 +11,14 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
  * NetworkTopologyLiveView's parseTopologyResponse is: malformed rows are
  * dropped, missing scalars fall back to safe defaults, and nothing here
  * ever throws on bad data.
+ *
+ * Every row that carries a siteType also carries isUnitLevel. siteType is
+ * only ever DISPLAYED — it is the name of a per-project NetworkSiteType row,
+ * which a customer can rename to "Store" or "Restaurant" at will — so no
+ * consumer may branch on it. isUnitLevel is the flag the leaf-level logic
+ * keys off (NetworkMap opens a unit's device topology instead of a child-site
+ * graph). It defaults to false: an unflagged or legacy row is a container,
+ * which degrades to the drill-down view rather than to a topology of nothing.
  */
 
 // Reduced MonitorStatus row attached to a child site.
@@ -26,6 +34,7 @@ export interface SiteBreadcrumbEntry {
   id: string;
   name: string;
   siteType: string;
+  isUnitLevel: boolean;
 }
 
 export interface SiteUnitStats {
@@ -38,6 +47,7 @@ export interface SiteChildView {
   id: string;
   name: string;
   siteType: string;
+  isUnitLevel: boolean;
   currentMonitorStatus: SiteStatusInfo | undefined;
   childSiteCount: number;
   deviceCount: number;
@@ -74,6 +84,7 @@ export interface MapSiteView {
   id: string;
   name: string;
   siteType: string;
+  isUnitLevel: boolean;
   latitude: number;
   longitude: number;
   statusPriority: number;
@@ -142,6 +153,7 @@ const parseBreadcrumbEntry: (value: unknown) => SiteBreadcrumbEntry | null = (
     id: id,
     name: asString(row["name"], "Unnamed site"),
     siteType: asString(row["siteType"], "Other"),
+    isUnitLevel: row["isUnitLevel"] === true,
   };
 };
 
@@ -159,6 +171,7 @@ const parseChildRow: (value: unknown) => SiteChildView | null = (
     id: id,
     name: asString(row["name"], "Unnamed site"),
     siteType: asString(row["siteType"], "Other"),
+    isUnitLevel: row["isUnitLevel"] === true,
     currentMonitorStatus: parseStatusInfo(row["currentMonitorStatus"]),
     childSiteCount: asFiniteNumber(row["childSiteCount"], 0),
     deviceCount: asFiniteNumber(row["deviceCount"], 0),
@@ -264,6 +277,7 @@ export const parseSiteMapResponse: (
         id: id,
         name: asString(row["name"], "Unnamed site"),
         siteType: asString(row["siteType"], "Other"),
+        isUnitLevel: row["isUnitLevel"] === true,
         latitude: latitude,
         longitude: longitude,
         statusPriority: asFiniteNumber(row["statusPriority"], 0),

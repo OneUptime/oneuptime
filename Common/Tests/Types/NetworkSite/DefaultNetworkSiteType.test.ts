@@ -1,22 +1,29 @@
-import NetworkSiteType from "../../../Types/NetworkSite/NetworkSiteType";
+import DefaultNetworkSiteType from "../../../Types/NetworkSite/DefaultNetworkSiteType";
 import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
 
-describe("NetworkSiteType", () => {
+describe("DefaultNetworkSiteType", () => {
+  /*
+   * These values are the names seeded into every project's NetworkSiteType
+   * table (and the names the backfill migration matches legacy site type
+   * strings against), so they are data, not just labels - renaming a member
+   * value here would leave existing sites pointing at a type that no longer
+   * gets seeded.
+   */
   test("contains every hierarchy level with its display value", () => {
-    expect(NetworkSiteType.AccountType).toBe("Account Type");
-    expect(NetworkSiteType.Region).toBe("Region");
-    expect(NetworkSiteType.Franchisee).toBe("Franchisee");
-    expect(NetworkSiteType.Market).toBe("Market");
-    expect(NetworkSiteType.Unit).toBe("Unit");
-    expect(NetworkSiteType.DataCenter).toBe("Data Center");
-    expect(NetworkSiteType.Other).toBe("Other");
+    expect(DefaultNetworkSiteType.AccountType).toBe("Account Type");
+    expect(DefaultNetworkSiteType.Region).toBe("Region");
+    expect(DefaultNetworkSiteType.Franchisee).toBe("Franchisee");
+    expect(DefaultNetworkSiteType.Market).toBe("Market");
+    expect(DefaultNetworkSiteType.Unit).toBe("Unit");
+    expect(DefaultNetworkSiteType.DataCenter).toBe("Data Center");
+    expect(DefaultNetworkSiteType.Other).toBe("Other");
   });
 
   test("has exactly the expected members", () => {
-    expect(Object.keys(NetworkSiteType).sort()).toEqual(
+    expect(Object.keys(DefaultNetworkSiteType).sort()).toEqual(
       [
         "AccountType",
         "DataCenter",
@@ -59,6 +66,10 @@ describe("NetworkSite permissions", () => {
     DeleteNetworkSiteAssignmentRule: Permission.DeleteNetworkSiteAssignmentRule,
     EditNetworkSiteAssignmentRule: Permission.EditNetworkSiteAssignmentRule,
     ReadNetworkSiteAssignmentRule: Permission.ReadNetworkSiteAssignmentRule,
+    CreateNetworkSiteType: Permission.CreateNetworkSiteType,
+    DeleteNetworkSiteType: Permission.DeleteNetworkSiteType,
+    EditNetworkSiteType: Permission.EditNetworkSiteType,
+    ReadNetworkSiteType: Permission.ReadNetworkSiteType,
   };
 
   const permissions: Array<Permission> = Object.values(permissionsByName);
@@ -70,7 +81,7 @@ describe("NetworkSite permissions", () => {
     },
   );
 
-  test("the enum values are exactly the twenty expected strings", () => {
+  test("the enum values are exactly the twenty four expected strings", () => {
     expect(permissions).toEqual([
       "CreateNetworkSite",
       "DeleteNetworkSite",
@@ -92,6 +103,10 @@ describe("NetworkSite permissions", () => {
       "DeleteNetworkSiteAssignmentRule",
       "EditNetworkSiteAssignmentRule",
       "ReadNetworkSiteAssignmentRule",
+      "CreateNetworkSiteType",
+      "DeleteNetworkSiteType",
+      "EditNetworkSiteType",
+      "ReadNetworkSiteType",
     ]);
   });
 

@@ -15,6 +15,12 @@ import NetworkSiteHierarchyUtil, {
  * rollups, both-endpoints link filtering and uptime-window clamping.
  * These are the exact behaviors the API endpoint delegates to, tested
  * without a database.
+ *
+ * Site types are per-project rows a customer may rename, so the fixtures
+ * below deliberately use type NAMES that would break any name-based unit
+ * check ("Store" rather than "Unit") while flagging the leaf level through
+ * isUnitLevel. If a rollup ever regresses to comparing siteType strings,
+ * these tests fail.
  */
 
 describe("clampUptimeWindowDays", () => {
@@ -105,9 +111,28 @@ describe("buildBreadcrumb", () => {
     string,
     BreadcrumbEntry
   >([
-    ["root", { id: "root", name: "Acme Corp", siteType: "Account Type" }],
-    ["region", { id: "region", name: "Midwest", siteType: "Region" }],
-    ["market", { id: "market", name: "Springfield", siteType: "Market" }],
+    [
+      "root",
+      {
+        id: "root",
+        name: "Acme Corp",
+        siteType: "Account Type",
+        isUnitLevel: false,
+      },
+    ],
+    [
+      "region",
+      { id: "region", name: "Midwest", siteType: "Region", isUnitLevel: false },
+    ],
+    [
+      "market",
+      {
+        id: "market",
+        name: "Springfield",
+        siteType: "Market",
+        isUnitLevel: false,
+      },
+    ],
   ]);
 
   test("orders crumbs root-first and ends with the requested site", () => {
@@ -115,8 +140,9 @@ describe("buildBreadcrumb", () => {
       NetworkSiteHierarchyUtil.buildBreadcrumb(
         {
           id: "me",
-          name: "Unit 1042",
-          siteType: "Unit",
+          name: "Store 1042",
+          siteType: "Store",
+          isUnitLevel: true,
           materializedPath: "/root/region/market/",
         },
         ancestorsById,
@@ -130,22 +156,45 @@ describe("buildBreadcrumb", () => {
       id: "root",
       name: "Acme Corp",
       siteType: "Account Type",
+      isUnitLevel: false,
     });
     expect(breadcrumb[3]).toEqual({
       id: "me",
-      name: "Unit 1042",
-      siteType: "Unit",
+      name: "Store 1042",
+      siteType: "Store",
+      isUnitLevel: true,
     });
+  });
+
+  test("carries the leaf-level flag, not a guess from the type name", () => {
+    /*
+     * The map view drills the last crumb into a device topology when it is
+     * the leaf level. A project that renamed its leaf type to "Store" must
+     * still drill in, and one that named a mid-level type "Unit" must not.
+     */
+    const leaf: Array<BreadcrumbEntry> =
+      NetworkSiteHierarchyUtil.buildBreadcrumb(
+        { id: "me", name: "Store 7", siteType: "Store", isUnitLevel: true },
+        new Map<string, BreadcrumbEntry>(),
+      );
+    expect(leaf[0]!.isUnitLevel).toBe(true);
+
+    const notLeaf: Array<BreadcrumbEntry> =
+      NetworkSiteHierarchyUtil.buildBreadcrumb(
+        { id: "me", name: "Midwest", siteType: "Unit", isUnitLevel: false },
+        new Map<string, BreadcrumbEntry>(),
+      );
+    expect(notLeaf[0]!.isUnitLevel).toBe(false);
   });
 
   test("a site without ancestors is its own single crumb", () => {
     const breadcrumb: Array<BreadcrumbEntry> =
       NetworkSiteHierarchyUtil.buildBreadcrumb(
-        { id: "me", name: "Root Site", siteType: "Region" },
+        { id: "me", name: "Root Site", siteType: "Region", isUnitLevel: false },
         new Map<string, BreadcrumbEntry>(),
       );
     expect(breadcrumb).toEqual([
-      { id: "me", name: "Root Site", siteType: "Region" },
+      { id: "me", name: "Root Site", siteType: "Region", isUnitLevel: false },
     ]);
   });
 
@@ -154,8 +203,9 @@ describe("buildBreadcrumb", () => {
       NetworkSiteHierarchyUtil.buildBreadcrumb(
         {
           id: "me",
-          name: "Unit 1042",
-          siteType: "Unit",
+          name: "Store 1042",
+          siteType: "Store",
+          isUnitLevel: true,
           materializedPath: "/root/deleted/market/",
         },
         ancestorsById,
@@ -207,15 +257,17 @@ describe("buildParentBreadcrumbString", () => {
 
 describe("aggregateChildStats", () => {
   /*
-   * Fixture hierarchy under the requested site "parent":
+   * Fixture hierarchy under the requested site "parent". The project in this
+   * fixture renamed its leaf type to "Store", so every unit rollup below is
+   * driven purely by isUnitLevel:
    *
-   *   marketA (Market)          — child
-   *     unit1 (Unit, operational)
-   *     unit2 (Unit, down)
+   *   marketA (Market)                    — child
+   *     unit1 (Store, leaf, operational)
+   *     unit2 (Store, leaf, down)
    *     closet (Other)
-   *       unit3 (Unit, operational)
-   *   unitB (Unit, operational) — child that IS a unit
-   *   emptyC (Market)           — child with nothing below it
+   *       unit3 (Store, leaf, operational)
+   *   unitB (Store, leaf, operational)    — child that IS the leaf level
+   *   emptyC (Market)                     — child with nothing below it
    */
   const OPERATIONAL: string = "status-op";
   const DOWN: string = "status-down";
@@ -224,11 +276,27 @@ describe("aggregateChildStats", () => {
   const children: Array<{
     id: string;
     siteType: string;
+    isUnitLevel: boolean;
     currentMonitorStatusId?: string | undefined;
   }> = [
-    { id: "marketA", siteType: "Market", currentMonitorStatusId: DOWN },
-    { id: "unitB", siteType: "Unit", currentMonitorStatusId: OPERATIONAL },
-    { id: "emptyC", siteType: "Market", currentMonitorStatusId: undefined },
+    {
+      id: "marketA",
+      siteType: "Market",
+      isUnitLevel: false,
+      currentMonitorStatusId: DOWN,
+    },
+    {
+      id: "unitB",
+      siteType: "Store",
+      isUnitLevel: true,
+      currentMonitorStatusId: OPERATIONAL,
+    },
+    {
+      id: "emptyC",
+      siteType: "Market",
+      isUnitLevel: false,
+      currentMonitorStatusId: undefined,
+    },
   ];
 
   const descendants: Array<SubtreeSiteRow> = [
@@ -236,13 +304,15 @@ describe("aggregateChildStats", () => {
     {
       id: "marketA",
       siteType: "Market",
+      isUnitLevel: false,
       parentSiteId: "parent",
       materializedPath: "/parent/",
       currentMonitorStatusId: DOWN,
     },
     {
       id: "unitB",
-      siteType: "Unit",
+      siteType: "Store",
+      isUnitLevel: true,
       parentSiteId: "parent",
       materializedPath: "/parent/",
       currentMonitorStatusId: OPERATIONAL,
@@ -250,19 +320,22 @@ describe("aggregateChildStats", () => {
     {
       id: "emptyC",
       siteType: "Market",
+      isUnitLevel: false,
       parentSiteId: "parent",
       materializedPath: "/parent/",
     },
     {
       id: "unit1",
-      siteType: "Unit",
+      siteType: "Store",
+      isUnitLevel: true,
       parentSiteId: "marketA",
       materializedPath: "/parent/marketA/",
       currentMonitorStatusId: OPERATIONAL,
     },
     {
       id: "unit2",
-      siteType: "Unit",
+      siteType: "Store",
+      isUnitLevel: true,
       parentSiteId: "marketA",
       materializedPath: "/parent/marketA/",
       currentMonitorStatusId: DOWN,
@@ -270,12 +343,14 @@ describe("aggregateChildStats", () => {
     {
       id: "closet",
       siteType: "Other",
+      isUnitLevel: false,
       parentSiteId: "marketA",
       materializedPath: "/parent/marketA/",
     },
     {
       id: "unit3",
-      siteType: "Unit",
+      siteType: "Store",
+      isUnitLevel: true,
       parentSiteId: "closet",
       materializedPath: "/parent/marketA/closet/",
       currentMonitorStatusId: OPERATIONAL,
@@ -301,7 +376,7 @@ describe("aggregateChildStats", () => {
     expect(result.get("emptyC")!.childSiteCount).toBe(0);
   });
 
-  test("unit stats count Unit-type descendants across the whole subtree", () => {
+  test("unit stats count unit-level descendants across the whole subtree", () => {
     const result: Map<string, ChildAggregate> = aggregate();
     // unit1 + unit2 + unit3 (nested under closet) — closet itself excluded.
     expect(result.get("marketA")!.unitStats).toEqual({
@@ -310,7 +385,7 @@ describe("aggregateChildStats", () => {
     });
   });
 
-  test("non-Unit descendants never count as units", () => {
+  test("descendants that are not unit-level never count as units", () => {
     const result: Map<string, ChildAggregate> = aggregate();
     expect(result.get("emptyC")!.unitStats).toEqual({
       totalUnits: 0,
@@ -318,7 +393,7 @@ describe("aggregateChildStats", () => {
     });
   });
 
-  test("a Unit-type child reports exactly itself: 1/1 when operational", () => {
+  test("a unit-level child reports exactly itself: 1/1 when operational", () => {
     const result: Map<string, ChildAggregate> = aggregate();
     expect(result.get("unitB")!.unitStats).toEqual({
       totalUnits: 1,
@@ -326,11 +401,16 @@ describe("aggregateChildStats", () => {
     });
   });
 
-  test("a Unit-type child reports 1/0 when not operational", () => {
+  test("a unit-level child reports 1/0 when not operational", () => {
     const result: Map<string, ChildAggregate> =
       NetworkSiteHierarchyUtil.aggregateChildStats({
         children: [
-          { id: "unitB", siteType: "Unit", currentMonitorStatusId: DOWN },
+          {
+            id: "unitB",
+            siteType: "Store",
+            isUnitLevel: true,
+            currentMonitorStatusId: DOWN,
+          },
         ],
         descendants: [],
         deviceSiteIds: [],
@@ -342,15 +422,59 @@ describe("aggregateChildStats", () => {
     });
   });
 
-  test("a Unit-type child with no status at all reports 1/0", () => {
+  test("a unit-level child with no status at all reports 1/0", () => {
     const result: Map<string, ChildAggregate> =
       NetworkSiteHierarchyUtil.aggregateChildStats({
-        children: [{ id: "unitB", siteType: "Unit" }],
+        children: [{ id: "unitB", siteType: "Store", isUnitLevel: true }],
         descendants: [],
         deviceSiteIds: [],
         operationalStatusIds: operationalStatusIds,
       });
     expect(result.get("unitB")!.unitStats).toEqual({
+      totalUnits: 1,
+      operationalUnits: 0,
+    });
+  });
+
+  /*
+   * The regression guard for the whole rename: a project may call any level
+   * "Unit" without it being the leaf, and may call its leaf anything at all.
+   * Only the flag decides.
+   */
+  test("a type NAMED Unit does not count when it is not unit-level", () => {
+    const result: Map<string, ChildAggregate> =
+      NetworkSiteHierarchyUtil.aggregateChildStats({
+        children: [
+          { id: "regionA", siteType: "Unit", isUnitLevel: false },
+          { id: "storeB", siteType: "Store", isUnitLevel: true },
+        ],
+        descendants: [
+          {
+            id: "misnamed",
+            siteType: "Unit",
+            isUnitLevel: false,
+            parentSiteId: "regionA",
+            materializedPath: "/parent/regionA/",
+            currentMonitorStatusId: OPERATIONAL,
+          },
+          {
+            id: "realLeaf",
+            siteType: "Branch Office",
+            isUnitLevel: true,
+            parentSiteId: "regionA",
+            materializedPath: "/parent/regionA/",
+            currentMonitorStatusId: OPERATIONAL,
+          },
+        ],
+        deviceSiteIds: [],
+        operationalStatusIds: operationalStatusIds,
+      });
+    // Only "realLeaf" is unit-level, despite "misnamed" being typed "Unit".
+    expect(result.get("regionA")!.unitStats).toEqual({
+      totalUnits: 1,
+      operationalUnits: 1,
+    });
+    expect(result.get("storeB")!.unitStats).toEqual({
       totalUnits: 1,
       operationalUnits: 0,
     });
@@ -373,11 +497,12 @@ describe("aggregateChildStats", () => {
   test("falls back to parentSiteId when a row has no materialized path", () => {
     const result: Map<string, ChildAggregate> =
       NetworkSiteHierarchyUtil.aggregateChildStats({
-        children: [{ id: "marketA", siteType: "Market" }],
+        children: [{ id: "marketA", siteType: "Market", isUnitLevel: false }],
         descendants: [
           {
             id: "unit1",
-            siteType: "Unit",
+            siteType: "Store",
+            isUnitLevel: true,
             parentSiteId: "marketA",
             currentMonitorStatusId: OPERATIONAL,
           },

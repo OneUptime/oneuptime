@@ -1,11 +1,16 @@
-import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
-
 /*
  * Pure aggregation logic behind the /network-site/children endpoint.
  * Everything here is plain data-in/data-out so the breadcrumb ordering,
  * unit rollups, device counting and link filtering are unit-testable
  * without a database. The API layer fetches rows (one batch query per
  * model) and hands them to these helpers.
+ *
+ * siteType is carried through as a plain display string (the configured
+ * NetworkSiteType's name) — every consumer of these DTOs only renders it.
+ * isUnitLevel is the load-bearing half: site types are per-project rows a
+ * customer can rename at will, so no logic here may compare siteType to a
+ * literal like "Unit". The leaf-level decision always keys off the flag
+ * the type row carries.
  */
 
 // One crumb of the root-first ancestor chain shown above the drill-down.
@@ -13,12 +18,14 @@ export interface BreadcrumbEntry {
   id: string;
   name: string;
   siteType: string;
+  isUnitLevel: boolean;
 }
 
 // A directly-returned child of the requested site.
 export interface ChildSiteRow {
   id: string;
   siteType: string;
+  isUnitLevel: boolean;
   currentMonitorStatusId?: string | undefined;
 }
 
@@ -31,6 +38,7 @@ export interface ChildSiteRow {
 export interface SubtreeSiteRow {
   id: string;
   siteType: string;
+  isUnitLevel: boolean;
   parentSiteId?: string | undefined;
   materializedPath?: string | undefined;
   currentMonitorStatusId?: string | undefined;
@@ -116,6 +124,7 @@ export default class NetworkSiteHierarchyUtil {
       id: string;
       name: string;
       siteType: string;
+      isUnitLevel: boolean;
       materializedPath?: string | undefined;
     },
     ancestorsById: Map<string, BreadcrumbEntry>,
@@ -135,6 +144,7 @@ export default class NetworkSiteHierarchyUtil {
       id: site.id,
       name: site.name,
       siteType: site.siteType,
+      isUnitLevel: site.isUnitLevel,
     });
     return breadcrumb;
   }
@@ -164,10 +174,11 @@ export default class NetworkSiteHierarchyUtil {
    *
    * - childSiteCount: direct children of the child (rows whose
    *   parentSiteId is the child).
-   * - unitStats: Unit-type descendants in the child's subtree, counted
-   *   operational when their status id is in operationalStatusIds. A child
-   *   that IS a Unit reports exactly itself (1/1 or 1/0) — its own
-   *   descendants, if any, don't add.
+   * - unitStats: unit-level descendants in the child's subtree — rows whose
+   *   site type is flagged isUnitLevel, never rows whose type happens to be
+   *   named "Unit" — counted operational when their status id is in
+   *   operationalStatusIds. A child that IS unit-level reports exactly
+   *   itself (1/1 or 1/0); its own descendants, if any, don't add.
    * - deviceCount: devices attached to the child itself or to any site in
    *   its subtree.
    *
@@ -182,7 +193,10 @@ export default class NetworkSiteHierarchyUtil {
     operationalStatusIds: Set<string>;
   }): Map<string, ChildAggregate> {
     const childIds: Set<string> = new Set<string>();
-    const childTypeById: Map<string, string> = new Map<string, string>();
+    const childIsUnitLevelById: Map<string, boolean> = new Map<
+      string,
+      boolean
+    >();
     const result: Map<string, ChildAggregate> = new Map<
       string,
       ChildAggregate
@@ -190,8 +204,8 @@ export default class NetworkSiteHierarchyUtil {
 
     for (const child of data.children) {
       childIds.add(child.id);
-      childTypeById.set(child.id, child.siteType);
-      const isUnit: boolean = child.siteType === NetworkSiteType.Unit;
+      childIsUnitLevelById.set(child.id, child.isUnitLevel);
+      const isUnit: boolean = child.isUnitLevel;
       const isOperational: boolean = Boolean(
         child.currentMonitorStatusId &&
           data.operationalStatusIds.has(child.currentMonitorStatusId),
@@ -245,8 +259,8 @@ export default class NetworkSiteHierarchyUtil {
 
       if (
         subtreeRoot &&
-        row.siteType === NetworkSiteType.Unit &&
-        childTypeById.get(subtreeRoot) !== NetworkSiteType.Unit
+        row.isUnitLevel &&
+        !childIsUnitLevelById.get(subtreeRoot)
       ) {
         const aggregate: ChildAggregate = result.get(subtreeRoot)!;
         aggregate.unitStats.totalUnits += 1;

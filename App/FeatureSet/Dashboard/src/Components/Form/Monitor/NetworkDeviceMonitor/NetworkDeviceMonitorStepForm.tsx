@@ -4,7 +4,6 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import { DropdownValue } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 
 export interface ComponentProps {
   monitorStepNetworkDeviceMonitor: MonitorStepNetworkDeviceMonitor;
@@ -44,12 +43,6 @@ const NetworkDeviceMonitorStepForm: FunctionComponent<ComponentProps> = (
           }}
         />
       </div>
-
-      <Alert
-        type={AlertType.INFO}
-        strongTitle="Data collection is configured on the device"
-        title="Polling schedule, interface walks, endpoint discovery, and health OIDs (CPU, memory, temperature) are set in the device's Settings. Use the criteria below to choose what to alert on — reachability, interface status, bandwidth, OID thresholds, or traps."
-      />
     </div>
   );
 };

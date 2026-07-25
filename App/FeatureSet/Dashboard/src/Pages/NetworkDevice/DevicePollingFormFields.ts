@@ -11,8 +11,19 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
  * alert on what these walks (and traps) report, which is why none of this
  * lives on the monitor form anymore.
  */
-export function getDevicePollingFormFields(): Array<Field<NetworkDevice>> {
-  return [
+export interface DevicePollingFormFieldOptions {
+  /*
+   * Form step these fields belong to. The four knobs are one decision — what
+   * the probe collects, and how often — so they always share a step. Callers
+   * that render the form without steps omit this.
+   */
+  stepId?: string | undefined;
+}
+
+export function getDevicePollingFormFields(
+  options?: DevicePollingFormFieldOptions,
+): Array<Field<NetworkDevice>> {
+  const fields: Array<Field<NetworkDevice>> = [
     {
       field: {
         isPollingEnabled: true,
@@ -55,4 +66,17 @@ export function getDevicePollingFormFields(): Array<Field<NetworkDevice>> {
       required: false,
     },
   ];
+
+  if (!options?.stepId) {
+    return fields;
+  }
+
+  const stepId: string = options.stepId;
+
+  return fields.map((field: Field<NetworkDevice>) => {
+    return {
+      ...field,
+      stepId: stepId,
+    };
+  });
 }

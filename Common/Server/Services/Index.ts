@@ -45,6 +45,7 @@ import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
 import NetworkSiteService from "./NetworkSiteService";
+import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NetworkEndpointService from "./NetworkEndpointService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
 import NetworkSiteLinkService from "./NetworkSiteLinkService";
@@ -329,6 +330,7 @@ const services: Array<BaseService> = [
   NetworkDeviceDiscoveryScanService,
   NetworkInterfaceService,
   NetworkSiteService,
+  NetworkSiteTypeService,
   NetworkEndpointService,
   NetworkSiteStatusTimelineService,
   NetworkSiteLinkService,

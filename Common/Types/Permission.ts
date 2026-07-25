@@ -1193,6 +1193,11 @@ enum Permission {
   EditNetworkSite = "EditNetworkSite",
   ReadNetworkSite = "ReadNetworkSite",
 
+  CreateNetworkSiteType = "CreateNetworkSiteType",
+  DeleteNetworkSiteType = "DeleteNetworkSiteType",
+  EditNetworkSiteType = "EditNetworkSiteType",
+  ReadNetworkSiteType = "ReadNetworkSiteType",
+
   CreateNetworkEndpoint = "CreateNetworkEndpoint",
   DeleteNetworkEndpoint = "DeleteNetworkEndpoint",
   EditNetworkEndpoint = "EditNetworkEndpoint",
@@ -7629,6 +7634,46 @@ export class PermissionHelper {
         permission: Permission.ReadNetworkSite,
         title: "Read Network Site",
         description: "This permission can read Network Site of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSiteType,
+        title: "Create Network Site Type",
+        description:
+          "This permission can create Network Site Type in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSiteType,
+        title: "Delete Network Site Type",
+        description:
+          "This permission can delete Network Site Type of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSiteType,
+        title: "Edit Network Site Type",
+        description:
+          "This permission can edit Network Site Type of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSiteType,
+        title: "Read Network Site Type",
+        description:
+          "This permission can read Network Site Type of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

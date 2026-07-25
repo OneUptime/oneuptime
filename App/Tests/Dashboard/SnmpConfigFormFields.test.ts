@@ -1,5 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
-import { getSnmpConfigFormFields } from "../../FeatureSet/Dashboard/src/Pages/NetworkDevice/SnmpConfigFormFields";
+import {
+  getSnmpConfigFormFields,
+  SnmpConfigFormFieldOptions,
+} from "../../FeatureSet/Dashboard/src/Pages/NetworkDevice/SnmpConfigFormFields";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Field from "Common/UI/Components/Forms/Types/Field";
@@ -434,6 +437,258 @@ describe("getSnmpConfigFormFields — switching version inside an open form", ()
     for (const key of PRIV_FIELDS) {
       expect(isFieldVisible(key, values)).toBe(true);
     }
+  });
+});
+
+/*
+ * The Create Device, Device Settings and Discovery Scan forms are multi-step
+ * wizards now, and BasicForm decides which step a field lands on purely from
+ * its `stepId`: a field carrying no stepId renders on EVERY step, and a stepId
+ * naming no declared step renders on NONE. So the helper has to stamp the
+ * caller's step onto every field it hands back — including the v3 credentials
+ * that are still hidden when the form first paints — while continuing to hand
+ * back unstamped fields to any caller that renders a single-page form.
+ *
+ * Stamping must also be non-destructive: the step is the ONLY thing that may
+ * change. If it reordered fields, dropped a showIf, or leaked into the next
+ * caller's fields, the SNMP reveal contract pinned above would quietly stop
+ * holding on exactly the forms real users see.
+ */
+describe("getSnmpConfigFormFields — form step assignment", () => {
+  const STEP_ID: string = "snmp";
+
+  function fieldsOf(
+    options?: SnmpConfigFormFieldOptions,
+  ): Array<Field<NetworkDevice>> {
+    return getSnmpConfigFormFields(options);
+  }
+
+  function fieldKeysOf(options?: SnmpConfigFormFieldOptions): Array<string> {
+    return fieldsOf(options).map((field: Field<NetworkDevice>) => {
+      return getFieldKey(field);
+    });
+  }
+
+  function stepIdsOf(
+    options?: SnmpConfigFormFieldOptions,
+  ): Array<string | undefined> {
+    return fieldsOf(options).map((field: Field<NetworkDevice>) => {
+      return field.stepId;
+    });
+  }
+
+  function steppedField(key: string): Field<NetworkDevice> {
+    const field: Field<NetworkDevice> | undefined = fieldsOf({
+      stepId: STEP_ID,
+    }).find((item: Field<NetworkDevice>) => {
+      return getFieldKey(item) === key;
+    });
+
+    if (!field) {
+      throw new Error(`SNMP form field "${key}" not found on step ${STEP_ID}`);
+    }
+
+    return field;
+  }
+
+  function steppedVisibleFieldKeys(
+    values: FormValues<NetworkDevice>,
+  ): Array<string> {
+    return fieldsOf({ stepId: STEP_ID })
+      .filter((field: Field<NetworkDevice>) => {
+        return !field.showIf || field.showIf(values);
+      })
+      .map((field: Field<NetworkDevice>) => {
+        return getFieldKey(field);
+      });
+  }
+
+  test("with no options no field carries a stepId, so a single-page form is unaffected", () => {
+    const stepIds: Array<string | undefined> = stepIdsOf();
+
+    // Guards against a vacuous pass if the helper ever returns nothing.
+    expect(stepIds.length).toBeGreaterThan(0);
+
+    for (const stepId of stepIds) {
+      expect(stepId).toBeUndefined();
+    }
+  });
+
+  test.each([
+    ["an empty options object", {}],
+    ["an explicitly undefined stepId", { stepId: undefined }],
+    [
+      "only a community string description",
+      { communityStringDescription: "Tried against every host in the subnet." },
+    ],
+  ])(
+    "%s leaves every field unstepped",
+    (_label: string, options: SnmpConfigFormFieldOptions) => {
+      for (const stepId of stepIdsOf(options)) {
+        expect(stepId).toBeUndefined();
+      }
+    },
+  );
+
+  test('with { stepId: "snmp" } every returned field carries that step', () => {
+    const stepIds: Array<string | undefined> = stepIdsOf({ stepId: STEP_ID });
+
+    expect(stepIds.length).toBe(fieldKeysOf().length);
+    expect(stepIds.length).toBeGreaterThan(0);
+
+    for (const stepId of stepIds) {
+      expect(stepId).toBe(STEP_ID);
+    }
+  });
+
+  /*
+   * The fields the operator cannot see yet are the ones a partial stamp would
+   * strand: an unstamped v3 key field would render on every step of the
+   * wizard, including "Device Details".
+   */
+  test.each([
+    [FIELD_KEY_SECURITY_LEVEL],
+    [FIELD_KEY_USERNAME],
+    [FIELD_KEY_AUTH_PROTOCOL],
+    [FIELD_KEY_AUTH_KEY],
+    [FIELD_KEY_PRIV_PROTOCOL],
+    [FIELD_KEY_PRIV_KEY],
+  ])(
+    "%s is on the step too, even though it is hidden when the form first paints",
+    (key: string) => {
+      expect(steppedField(key).stepId).toBe(STEP_ID);
+    },
+  );
+
+  test("the step does not change the field keys or their order", () => {
+    expect(fieldKeysOf({ stepId: STEP_ID })).toEqual(fieldKeysOf());
+  });
+
+  test("the step is the only property that changes", () => {
+    const plain: Array<Field<NetworkDevice>> = fieldsOf();
+    const stepped: Array<Field<NetworkDevice>> = fieldsOf({ stepId: STEP_ID });
+
+    expect(stepped).toHaveLength(plain.length);
+
+    plain.forEach((field: Field<NetworkDevice>, index: number) => {
+      const other: Field<NetworkDevice> = stepped[index]!;
+
+      expect(getFieldKey(other)).toBe(getFieldKey(field));
+      expect(other.title).toBe(field.title);
+      expect(other.fieldType).toBe(field.fieldType);
+      expect(other.required).toBe(field.required);
+      expect(other.placeholder).toBe(field.placeholder);
+      expect(other.description).toBe(field.description);
+      expect(other.dropdownOptions).toEqual(field.dropdownOptions);
+      // A showIf must not be gained or lost — only the step may differ.
+      expect(typeof other.showIf).toBe(typeof field.showIf);
+    });
+  });
+
+  test("a stepped form reveals exactly what the unstepped one reveals", () => {
+    const scenarios: Array<FormValues<NetworkDevice>> = [
+      buildEditFormValues({ snmpVersion: undefined }),
+      buildEditFormValues({ snmpVersion: "V1" }),
+      buildEditFormValues({ snmpVersion: "V2c" }),
+      buildEditFormValues({
+        snmpVersion: "V3",
+        snmpV3SecurityLevel: SnmpSecurityLevel.NoAuthNoPriv,
+      }),
+      buildEditFormValues({
+        snmpVersion: "V3",
+        snmpV3SecurityLevel: SnmpSecurityLevel.AuthNoPriv,
+      }),
+      buildEditFormValues({
+        snmpVersion: SnmpVersion.V3,
+        snmpV3SecurityLevel: SnmpSecurityLevel.AuthPriv,
+      }),
+    ];
+
+    for (const values of scenarios) {
+      expect(steppedVisibleFieldKeys(values)).toEqual(visibleFieldKeys(values));
+    }
+  });
+
+  /*
+   * Stated absolutely as well as relatively, so this cannot pass by both
+   * sides being broken in the same way.
+   */
+  test("a stepped v2c form still shows version, community and port only", () => {
+    expect(
+      steppedVisibleFieldKeys(buildEditFormValues({ snmpVersion: "V2c" })),
+    ).toEqual([FIELD_KEY_SNMP_VERSION, FIELD_KEY_COMMUNITY, FIELD_KEY_PORT]);
+  });
+
+  test("a stepped authPriv v3 form still shows the whole v3 section", () => {
+    expect(
+      steppedVisibleFieldKeys(
+        buildEditFormValues({
+          snmpVersion: "V3",
+          snmpV3SecurityLevel: SnmpSecurityLevel.AuthPriv,
+        }),
+      ),
+    ).toEqual([
+      FIELD_KEY_SNMP_VERSION,
+      FIELD_KEY_SECURITY_LEVEL,
+      FIELD_KEY_USERNAME,
+      FIELD_KEY_AUTH_PROTOCOL,
+      FIELD_KEY_AUTH_KEY,
+      FIELD_KEY_PRIV_PROTOCOL,
+      FIELD_KEY_PRIV_KEY,
+      FIELD_KEY_PORT,
+    ]);
+  });
+
+  /*
+   * Discovery.tsx passes both at once — the scan's own community caption and
+   * its "SNMP Credentials" step. Neither option may swallow the other.
+   */
+  test("stepId composes with communityStringDescription", () => {
+    const description: string =
+      "Tried against every host in the subnet. Required for SNMP V1 and V2c. Not used for V3.";
+
+    const fields: Array<Field<NetworkDevice>> = fieldsOf({
+      communityStringDescription: description,
+      stepId: STEP_ID,
+    });
+
+    for (const field of fields) {
+      expect(field.stepId).toBe(STEP_ID);
+    }
+
+    const community: Field<NetworkDevice> | undefined = fields.find(
+      (field: Field<NetworkDevice>) => {
+        return getFieldKey(field) === FIELD_KEY_COMMUNITY;
+      },
+    );
+
+    expect(community?.description).toBe(description);
+    // And the default caption is genuinely different, so this asserts something.
+    expect(steppedField(FIELD_KEY_COMMUNITY).description).not.toBe(description);
+  });
+
+  /*
+   * Both device forms and the scan form call the helper on the same page load.
+   * Stamping has to build new field objects rather than mutate the shared
+   * literals, or the first stepped caller would put its step on everyone else.
+   */
+  test("stamping a step does not leak into a later unstepped call", () => {
+    fieldsOf({ stepId: STEP_ID });
+
+    for (const stepId of stepIdsOf()) {
+      expect(stepId).toBeUndefined();
+    }
+  });
+
+  test("two stepped calls do not share field objects", () => {
+    const first: Array<Field<NetworkDevice>> = fieldsOf({ stepId: STEP_ID });
+    const second: Array<Field<NetworkDevice>> = fieldsOf({
+      stepId: "somewhere-else",
+    });
+
+    expect(first[0]).not.toBe(second[0]);
+    expect(first[0]!.stepId).toBe(STEP_ID);
+    expect(second[0]!.stepId).toBe("somewhere-else");
   });
 });
 

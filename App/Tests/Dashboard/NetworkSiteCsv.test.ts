@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
-import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
+import DefaultNetworkSiteType from "Common/Types/NetworkSite/DefaultNetworkSiteType";
 import {
+  NetworkSiteTypeOption,
   ParsedSiteRow,
   SiteCsvParseResult,
   SiteImportPlan,
@@ -14,9 +15,35 @@ import {
  * and siteType validation, duplicate flagging, and the dependency-order
  * batching that lets parents in the same file be created before their
  * children.
+ *
+ * Site types are per-project rows now, so every parse is handed the
+ * project's type list. The suite feeds it the default seeded names (the
+ * ones every project starts with) so the CSV fixtures below stay readable,
+ * plus a project that renamed and replaced them — which is the whole point
+ * of the configurable model.
  */
 
 const HEADER: string = "name,siteType,parentName,address,latitude,longitude";
+
+/*
+ * The default seeded types. Ids are opaque to the parser — it only echoes
+ * back the one it matched — so readable stand-ins are enough.
+ */
+const DEFAULT_SITE_TYPES: Array<NetworkSiteTypeOption> = Object.values(
+  DefaultNetworkSiteType,
+).map((name: DefaultNetworkSiteType, index: number): NetworkSiteTypeOption => {
+  return { id: `type-${index}`, name: name };
+});
+
+type SiteTypeIdOfFunction = (name: DefaultNetworkSiteType) => string;
+
+const siteTypeIdOf: SiteTypeIdOfFunction = (
+  name: DefaultNetworkSiteType,
+): string => {
+  return DEFAULT_SITE_TYPES.find((siteType: NetworkSiteTypeOption) => {
+    return siteType.name === name;
+  })!.id;
+};
 
 type MakeRowFunction = (overrides: Partial<ParsedSiteRow>) => ParsedSiteRow;
 
@@ -26,7 +53,8 @@ const makeRow: MakeRowFunction = (
   return {
     line: 2,
     name: "Site",
-    siteType: NetworkSiteType.Unit,
+    networkSiteTypeId: siteTypeIdOf(DefaultNetworkSiteType.Unit),
+    siteType: DefaultNetworkSiteType.Unit,
     parentName: "",
     address: "",
     latitude: undefined,
@@ -37,19 +65,25 @@ const makeRow: MakeRowFunction = (
 
 describe("parseSiteCsv", () => {
   test("empty file returns a file-level error and no rows", () => {
-    const result: SiteCsvParseResult = parseSiteCsv("");
+    const result: SiteCsvParseResult = parseSiteCsv("", DEFAULT_SITE_TYPES);
     expect(result.rows).toEqual([]);
     expect(result.errors).toEqual([{ line: 0, message: "The CSV is empty." }]);
   });
 
   test("whitespace-only file is treated as empty", () => {
-    const result: SiteCsvParseResult = parseSiteCsv("\n\n   \n");
+    const result: SiteCsvParseResult = parseSiteCsv(
+      "\n\n   \n",
+      DEFAULT_SITE_TYPES,
+    );
     expect(result.rows).toEqual([]);
     expect(result.errors).toEqual([{ line: 0, message: "The CSV is empty." }]);
   });
 
   test("header-only file errors: no data rows", () => {
-    const result: SiteCsvParseResult = parseSiteCsv(`${HEADER}\n`);
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\n`,
+      DEFAULT_SITE_TYPES,
+    );
     expect(result.rows).toEqual([]);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]!.message).toContain("no data rows");
@@ -58,13 +92,15 @@ describe("parseSiteCsv", () => {
   test("parses a plain row with every column populated", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nUnit 1042,Unit,Springfield Market,742 Evergreen Terrace,39.7817,-89.6501\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows).toEqual([
       {
         line: 2,
         name: "Unit 1042",
-        siteType: NetworkSiteType.Unit,
+        networkSiteTypeId: siteTypeIdOf(DefaultNetworkSiteType.Unit),
+        siteType: DefaultNetworkSiteType.Unit,
         parentName: "Springfield Market",
         address: "742 Evergreen Terrace",
         latitude: 39.7817,
@@ -76,13 +112,15 @@ describe("parseSiteCsv", () => {
   test("optional columns may be omitted from the header entirely", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       "name,siteType\nHQ,Data Center\n",
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows).toEqual([
       {
         line: 2,
         name: "HQ",
-        siteType: NetworkSiteType.DataCenter,
+        networkSiteTypeId: siteTypeIdOf(DefaultNetworkSiteType.DataCenter),
+        siteType: DefaultNetworkSiteType.DataCenter,
         parentName: "",
         address: "",
         latitude: undefined,
@@ -94,14 +132,18 @@ describe("parseSiteCsv", () => {
   test("header columns match case-insensitively and in any order", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       "SITETYPE,NAME,parentname\nRegion,West,\n",
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows[0]!.name).toBe("West");
-    expect(result.rows[0]!.siteType).toBe(NetworkSiteType.Region);
+    expect(result.rows[0]!.siteType).toBe(DefaultNetworkSiteType.Region);
   });
 
   test("missing required header column is a fatal error", () => {
-    const result: SiteCsvParseResult = parseSiteCsv("name,parentName\nA,\n");
+    const result: SiteCsvParseResult = parseSiteCsv(
+      "name,parentName\nA,\n",
+      DEFAULT_SITE_TYPES,
+    );
     expect(result.rows).toEqual([]);
     expect(
       result.errors.some((error: { message: string }) => {
@@ -113,6 +155,7 @@ describe("parseSiteCsv", () => {
   test("unknown header column is a fatal error naming the column", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       "name,siteType,lattitude\nA,Unit,1\n",
+      DEFAULT_SITE_TYPES,
     );
     expect(result.rows).toEqual([]);
     expect(
@@ -125,6 +168,7 @@ describe("parseSiteCsv", () => {
   test("duplicate header column is a fatal error", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       "name,siteType,name\nA,Unit,B\n",
+      DEFAULT_SITE_TYPES,
     );
     expect(result.rows).toEqual([]);
     expect(
@@ -137,6 +181,7 @@ describe("parseSiteCsv", () => {
   test("quoted fields keep commas", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\n"Springfield, IL Market",Market,,"742 Evergreen Terrace, Springfield, IL",,\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows[0]!.name).toBe("Springfield, IL Market");
@@ -148,6 +193,7 @@ describe("parseSiteCsv", () => {
   test("escaped quotes inside quoted fields become literal quotes", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\n"The ""Best"" Unit",Unit,,,,\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows[0]!.name).toBe('The "Best" Unit');
@@ -156,6 +202,7 @@ describe("parseSiteCsv", () => {
   test("newlines inside quoted fields stay inside the cell", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nHQ,Data Center,,"Line one\nLine two",,\nBranch,Unit,,,,\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows).toHaveLength(2);
@@ -167,6 +214,7 @@ describe("parseSiteCsv", () => {
   test("unterminated quote is a fatal error", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\n"Broken,Unit,,,,\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.rows).toEqual([]);
     expect(
@@ -179,6 +227,7 @@ describe("parseSiteCsv", () => {
   test("CRLF line endings parse identically to LF", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\r\nA,Unit,,,,\r\nB,Market,A,,,\r\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows).toHaveLength(2);
@@ -190,6 +239,7 @@ describe("parseSiteCsv", () => {
   test("blank lines are skipped without shifting line numbers", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\n\nA,Unit,,,,\n\n\nB,Unit,,,,\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows).toHaveLength(2);
@@ -198,13 +248,19 @@ describe("parseSiteCsv", () => {
   });
 
   test("file without trailing newline still parses the last row", () => {
-    const result: SiteCsvParseResult = parseSiteCsv(`${HEADER}\nA,Unit,,,,`);
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nA,Unit,,,,`,
+      DEFAULT_SITE_TYPES,
+    );
     expect(result.errors).toEqual([]);
     expect(result.rows).toHaveLength(1);
   });
 
   test("missing trailing cells are padded as empty", () => {
-    const result: SiteCsvParseResult = parseSiteCsv(`${HEADER}\nA,Unit\n`);
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nA,Unit\n`,
+      DEFAULT_SITE_TYPES,
+    );
     expect(result.errors).toEqual([]);
     expect(result.rows[0]!.parentName).toBe("");
     expect(result.rows[0]!.address).toBe("");
@@ -213,6 +269,7 @@ describe("parseSiteCsv", () => {
   test("row with more values than header columns is rejected", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,Unit,,,,,extra\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.rows).toEqual([]);
     expect(result.errors).toHaveLength(1);
@@ -221,13 +278,19 @@ describe("parseSiteCsv", () => {
   });
 
   test("empty name is a row error", () => {
-    const result: SiteCsvParseResult = parseSiteCsv(`${HEADER}\n,Unit,,,,\n`);
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\n,Unit,,,,\n`,
+      DEFAULT_SITE_TYPES,
+    );
     expect(result.rows).toEqual([]);
     expect(result.errors).toEqual([{ line: 2, message: "name is required." }]);
   });
 
   test("unknown siteType is a row error listing valid values", () => {
-    const result: SiteCsvParseResult = parseSiteCsv(`${HEADER}\nA,Store,,,,\n`);
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nA,Store,,,,\n`,
+      DEFAULT_SITE_TYPES,
+    );
     expect(result.rows).toEqual([]);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]!.message).toContain('Unknown siteType "Store"');
@@ -235,7 +298,10 @@ describe("parseSiteCsv", () => {
   });
 
   test("empty siteType is a row error", () => {
-    const result: SiteCsvParseResult = parseSiteCsv(`${HEADER}\nA,,,,,\n`);
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nA,,,,,\n`,
+      DEFAULT_SITE_TYPES,
+    );
     expect(result.rows).toEqual([]);
     expect(result.errors).toEqual([
       { line: 2, message: "siteType is required." },
@@ -245,6 +311,7 @@ describe("parseSiteCsv", () => {
   test("siteType matches case-insensitively, incl. multi-word values", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,unit,,,,\nB,data center,,,,\nC,ACCOUNT TYPE,,,,\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(
@@ -252,15 +319,65 @@ describe("parseSiteCsv", () => {
         return row.siteType;
       }),
     ).toEqual([
-      NetworkSiteType.Unit,
-      NetworkSiteType.DataCenter,
-      NetworkSiteType.AccountType,
+      DefaultNetworkSiteType.Unit,
+      DefaultNetworkSiteType.DataCenter,
+      DefaultNetworkSiteType.AccountType,
     ]);
+    // The configured type's own spelling wins over the cell's casing.
+    expect(
+      result.rows.map((row: ParsedSiteRow) => {
+        return row.networkSiteTypeId;
+      }),
+    ).toEqual([
+      siteTypeIdOf(DefaultNetworkSiteType.Unit),
+      siteTypeIdOf(DefaultNetworkSiteType.DataCenter),
+      siteTypeIdOf(DefaultNetworkSiteType.AccountType),
+    ]);
+  });
+
+  test("cells resolve against THIS project's types, not the defaults", () => {
+    /*
+     * The point of the configurable model: a project that renamed "Unit" to
+     * "Store" imports Stores, and the default names it deleted are now
+     * invalid — the parser must never fall back to the seeded list.
+     */
+    const customTypes: Array<NetworkSiteTypeOption> = [
+      { id: "brand-1", name: "Brand" },
+      { id: "store-1", name: "Store" },
+    ];
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nAcme,Brand,,,,\nAcme Downtown,store,Acme,,,\nOld,Unit,,,,\n`,
+      customTypes,
+    );
+    expect(
+      result.rows.map((row: ParsedSiteRow) => {
+        return [row.name, row.siteType, row.networkSiteTypeId];
+      }),
+    ).toEqual([
+      ["Acme", "Brand", "brand-1"],
+      ["Acme Downtown", "Store", "store-1"],
+    ]);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.message).toContain('Unknown siteType "Unit"');
+    // The list names the project's own types, not the seeded defaults.
+    expect(result.errors[0]!.message).toContain("Valid values: Brand, Store.");
+  });
+
+  test("a project with no configured types cannot import at all", () => {
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nA,Unit,,,,\n`,
+      [],
+    );
+    expect(result.rows).toEqual([]);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]!.line).toBe(0);
+    expect(result.errors[0]!.message).toContain("no site types configured");
   });
 
   test("non-numeric latitude is a row error", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,Unit,,,abc,-89.65\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.rows).toEqual([]);
     expect(result.errors).toHaveLength(1);
@@ -270,6 +387,7 @@ describe("parseSiteCsv", () => {
   test("out-of-range coordinates are row errors", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,Unit,,,91,0\nB,Unit,,,0,-181\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.rows).toEqual([]);
     expect(result.errors).toHaveLength(2);
@@ -282,6 +400,7 @@ describe("parseSiteCsv", () => {
   test("latitude without longitude (and vice versa) is a row error", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,Unit,,,39.78,\nB,Unit,,,,-89.65\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.rows).toEqual([]);
     expect(result.errors).toHaveLength(2);
@@ -293,6 +412,7 @@ describe("parseSiteCsv", () => {
   test("boundary coordinates are accepted", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,Unit,,,-90,180\nB,Unit,,,90,-180\nC,Unit,,,0,0\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows).toHaveLength(3);
@@ -303,6 +423,7 @@ describe("parseSiteCsv", () => {
   test("duplicate names within the file flag the later row", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,Unit,,,,\nB,Unit,,,,\nA,Market,,,,\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.rows).toHaveLength(2);
     expect(result.errors).toEqual([
@@ -314,7 +435,10 @@ describe("parseSiteCsv", () => {
   });
 
   test("a site cannot be its own parent", () => {
-    const result: SiteCsvParseResult = parseSiteCsv(`${HEADER}\nA,Unit,A,,,\n`);
+    const result: SiteCsvParseResult = parseSiteCsv(
+      `${HEADER}\nA,Unit,A,,,\n`,
+      DEFAULT_SITE_TYPES,
+    );
     expect(result.rows).toEqual([]);
     expect(result.errors).toEqual([
       { line: 2, message: "A site cannot be its own parent." },
@@ -324,6 +448,7 @@ describe("parseSiteCsv", () => {
   test("a bad row does not poison surrounding good rows", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\nA,Unit,,,,\n,Unit,,,,\nB,Unit,,,,\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(
       result.rows.map((row: ParsedSiteRow) => {
@@ -337,6 +462,7 @@ describe("parseSiteCsv", () => {
   test("cells are trimmed; quoted cells keep interior spacing", () => {
     const result: SiteCsvParseResult = parseSiteCsv(
       `${HEADER}\n  A  , Unit ,,"  spaced address  ",,\n`,
+      DEFAULT_SITE_TYPES,
     );
     expect(result.errors).toEqual([]);
     expect(result.rows[0]!.name).toBe("A");
