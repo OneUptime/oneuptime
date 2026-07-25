@@ -21,6 +21,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
+import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
@@ -52,12 +53,22 @@ import SloUtil, {
   TimeSliResult,
 } from "Common/Utils/Slo/SloUtil";
 import { UptimeWindow } from "Common/Utils/Uptime/UptimeUtil";
+import {
+  SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
+  SLO_EVALUATION_CADENCE_MINUTES,
+} from "Common/Utils/Slo/SloEvaluation";
+import { isBurnRateRuleFiring } from "Common/Utils/Slo/SloBurnRateRuleState";
 
-// How far in the future the next full evaluation is scheduled.
-const EVALUATION_CADENCE_MINUTES: number = 5;
+/*
+ * How far in the future the next full evaluation is scheduled, and the
+ * lookback for the "current burn rate" state column. Both live in
+ * Common/Utils/Slo/SloEvaluation so the dashboard copy that describes them
+ * cannot drift away from what this worker actually does.
+ */
+const EVALUATION_CADENCE_MINUTES: number = SLO_EVALUATION_CADENCE_MINUTES;
 
-// Lookback for the "current burn rate" state column shown on the SLO overview.
-const CURRENT_BURN_RATE_WINDOW_MINUTES: number = 60;
+const CURRENT_BURN_RATE_WINDOW_MINUTES: number =
+  SLO_CURRENT_BURN_RATE_WINDOW_MINUTES;
 
 // Minimum interval between status-change owner notifications for one SLO.
 const STATUS_NOTIFICATION_MIN_INTERVAL_MINUTES: number = 60;
@@ -371,7 +382,14 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
         burnRateThreshold: true,
         longWindowInMinutes: true,
         shortWindowInMinutes: true,
-        minimumSampleCount: true,
+        /*
+         * minimumSampleCount is deliberately NOT selected: it only has
+         * meaning for event-based (Metric) SLIs, which this worker does not
+         * evaluate yet — every SLO it can reach is time-based, where every
+         * second is a sample. The column and its server-side validation
+         * stay for that later phase; selecting it here would imply a guard
+         * that does not run.
+         */
         refireSuppressionMinutes: true,
         alertSeverityId: true,
         onCallDutyPolicies: {
@@ -1123,11 +1141,7 @@ async function evaluateBurnRateRule(data: {
    * has recovered, or because it is no longer measurable at all — in both cases
    * nothing here can justify keeping a page open.
    */
-  const hasUnresolvedFiringState: boolean = Boolean(
-    rule.lastAlertCreatedAt &&
-      (!rule.lastAlertResolvedAt ||
-        rule.lastAlertResolvedAt.getTime() < rule.lastAlertCreatedAt.getTime()),
-  );
+  const hasUnresolvedFiringState: boolean = isBurnRateRuleFiring(rule);
 
   if (!hasUnresolvedFiringState) {
     return;
@@ -1407,7 +1421,7 @@ async function sendStatusChangeNotification(data: {
       };
 
       const sms: SMSMessage = {
-        message: `SLO ${newStatus}: "${sloName}" in ${projectName}. Error budget remaining: ${errorBudgetRemainingPercentage}% (${errorBudgetRemainingMinutes} minutes). View the SLO in the OneUptime Dashboard.`,
+        message: `SLO ${newStatus}: "${sloName}" in ${projectName}. Error budget remaining: ${errorBudgetRemainingPercentage}% (${errorBudgetRemainingMinutes} minutes). View: ${sloViewLink}`,
       };
 
       const callMessage: CallRequestMessage = {
@@ -1418,10 +1432,20 @@ async function sendStatusChangeNotification(data: {
         ],
       };
 
-      const pushMessage: PushNotificationMessage = {
-        title: `SLO ${newStatus}`,
-        body: `SLO "${sloName}" is now ${newStatus}. Error budget remaining: ${errorBudgetRemainingPercentage}%.`,
-      };
+      /*
+       * Built through PushNotificationUtil rather than as a bare literal so
+       * the notification carries a clickAction: a push that names a burning
+       * error budget but cannot be tapped through to the SLO makes the
+       * recipient go hunting for it. Mirrors SloOwners/SendOwnerAddedNotification.
+       */
+      const pushMessage: PushNotificationMessage =
+        PushNotificationUtil.createGenericNotification({
+          title: `SLO ${newStatus}`,
+          body: `SLO "${sloName}" is now ${newStatus}. Error budget remaining: ${errorBudgetRemainingPercentage}%. Click to view details.`,
+          clickAction: sloViewLink,
+          tag: "slo-status-changed",
+          requireInteraction: false,
+        });
 
       const whatsAppMessage: WhatsAppMessagePayload = {
         body: sms.message,

@@ -23,6 +23,18 @@ export function getSloBreadcrumbs(path: string): Array<Link> | undefined {
       "View SLO",
       "Burn Rate Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW_ALERTS, [
+      "Project",
+      "SLOs",
+      "View SLO",
+      "Alerts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW_AUDIT_LOGS, [
+      "Project",
+      "SLOs",
+      "View SLO",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SLO_VIEW_OWNERS, [
       "Project",
       "SLOs",

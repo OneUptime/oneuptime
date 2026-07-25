@@ -1,4 +1,5 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
+import SloImpactWarning from "../../../Components/Monitor/SloImpactWarning";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
@@ -17,6 +18,7 @@ const MonitorDelete: FunctionComponent<
   return (
     <Fragment>
       <DisabledWarning monitorId={modelId} />
+      <SloImpactWarning monitorId={modelId} />
       <ModelDelete
         modelType={Monitor}
         modelId={modelId}
