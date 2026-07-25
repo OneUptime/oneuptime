@@ -288,6 +288,9 @@ app.get(
         basePath: `/blog`,
         allTags: allTags,
         enableGoogleTagManager: IsBillingEnabled,
+        seo: {
+          fullCanonicalUrl: "https://oneuptime.com/blog",
+        },
       });
     } catch (e) {
       logger.error(e);
