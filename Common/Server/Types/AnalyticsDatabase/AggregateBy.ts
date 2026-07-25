@@ -82,6 +82,15 @@ export class AggregateUtil {
    *   - normal interval → buildBucketTimestampExpression(...) `as col`
    *   - Total           → `min(col) as col` (one row per group; the
    *     earliest sample timestamp in the window is the bucket label)
+   *
+   * IMPORTANT: because the alias shadows the real column, ClickHouse
+   * substitutes it into any same-level unqualified `WHERE col ...`
+   * reference — for Total that injects an aggregate into WHERE
+   * (ILLEGAL_AGGREGATION), and for bucketed intervals it silently
+   * filters on the truncated bucket. Every builder that embeds this
+   * fragment at the same level as its WHERE clause must table-qualify
+   * the WHERE column references (see
+   * StatementGenerator.toWhereStatement's tableAlias option).
    */
   public static buildBucketTimestampSelect(
     resolvedInterval: AggregationInterval,
