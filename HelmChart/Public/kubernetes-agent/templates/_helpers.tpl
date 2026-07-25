@@ -615,3 +615,27 @@ Usage: {{- if eq (include "kubernetes-agent.traceSamplingEnabled" .) "true" }}
 {{- $pct := float64 (include "kubernetes-agent.traceSamplingPercentage" .) -}}
 {{- and (.Values.ebpf.enabled | default false) (lt $pct 100.0) -}}
 {{- end -}}
+
+{{/*
+Whether the chart bundles its own cost engine (OpenCost + a minimal
+Prometheus). Bundling is the default when cost is enabled; providing
+`cost.engine.url` means "use my existing OpenCost / Kubecost" and turns
+the bundle off. Usage:
+  {{- if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.costEngineBundled" -}}
+{{- and .Values.cost.enabled (not .Values.cost.engine.url) -}}
+{{- end -}}
+
+{{/*
+Resolved base URL of the cost engine the poller and the metrics scrape
+talk to: the operator-provided external engine when `cost.engine.url` is
+set, else the bundled OpenCost Service.
+*/}}
+{{- define "kubernetes-agent.costEngineUrl" -}}
+{{- if .Values.cost.engine.url -}}
+{{- .Values.cost.engine.url -}}
+{{- else -}}
+http://{{ include "kubernetes-agent.fullname" . }}-opencost.{{ .Release.Namespace }}.svc.cluster.local:9003
+{{- end -}}
+{{- end -}}

@@ -581,6 +581,24 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addAlertEpisodeNotificationSettings(userId, projectId);
     await this.addIncidentEpisodeNotificationSettings(userId, projectId);
     await this.addScheduledMaintenanceNotificationSettings(userId, projectId);
+    await this.addSloNotificationSettings(userId, projectId);
+  }
+
+  private async addSloNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
+    );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION,
+    );
   }
 
   private async addScheduledMaintenanceNotificationSettings(
@@ -758,6 +776,25 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       userId,
       projectId,
       NotificationSettingEventType.SEND_INCIDENT_ADDED_TO_EPISODE_OWNER_NOTIFICATION,
+    );
+  }
+
+  /*
+   * Ensures a UserNotificationSetting row exists for the given user, project
+   * and event type. If no row exists, a default-enabled (email) row is
+   * created. This is useful for event types added after a user joined a
+   * project, since sendUserNotification no-ops when no row exists.
+   */
+  @CaptureSpan()
+  public async ensureSettingExistsForUser(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    eventType: NotificationSettingEventType;
+  }): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      data.userId,
+      data.projectId,
+      data.eventType,
     );
   }
 

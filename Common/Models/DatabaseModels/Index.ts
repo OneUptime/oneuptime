@@ -13,6 +13,12 @@ import NetworkDeviceOwnerRule from "./NetworkDeviceOwnerRule";
 import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkInterface from "./NetworkInterface";
+import NetworkSite from "./NetworkSite";
+import NetworkSiteType from "./NetworkSiteType";
+import NetworkEndpoint from "./NetworkEndpoint";
+import NetworkSiteStatusTimeline from "./NetworkSiteStatusTimeline";
+import NetworkSiteLink from "./NetworkSiteLink";
+import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
@@ -348,6 +354,10 @@ import IncidentEpisodePrivacyRule from "./IncidentEpisodePrivacyRule";
 import IncidentEpisodeLabelRule from "./IncidentEpisodeLabelRule";
 import IncidentSlaRule from "./IncidentSlaRule";
 import IncidentSla from "./IncidentSla";
+import ServiceLevelObjective from "./ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "./ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveOwnerUser from "./ServiceLevelObjectiveOwnerUser";
+import ServiceLevelObjectiveOwnerTeam from "./ServiceLevelObjectiveOwnerTeam";
 import IncidentReminderRule from "./IncidentReminderRule";
 import AlertReminderRule from "./AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "./ScheduledMaintenanceReminderRule";
@@ -527,6 +537,10 @@ const AllModelTypes: Array<{
   IncidentEpisodeLabelRule,
   IncidentSlaRule,
   IncidentSla,
+  ServiceLevelObjective,
+  ServiceLevelObjectiveBurnRateRule,
+  ServiceLevelObjectiveOwnerUser,
+  ServiceLevelObjectiveOwnerTeam,
   IncidentReminderRule,
   AlertReminderRule,
   ScheduledMaintenanceReminderRule,
@@ -780,6 +794,12 @@ const AllModelTypes: Array<{
   NetworkDeviceLabelRule,
   NetworkDeviceDiscoveryScan,
   NetworkInterface,
+  NetworkSite,
+  NetworkSiteType,
+  NetworkEndpoint,
+  NetworkSiteStatusTimeline,
+  NetworkSiteLink,
+  NetworkSiteAssignmentRule,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,

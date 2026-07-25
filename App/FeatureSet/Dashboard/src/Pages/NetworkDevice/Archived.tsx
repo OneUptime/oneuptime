@@ -6,7 +6,6 @@ import PageComponentProps from "../PageComponentProps";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -46,7 +45,24 @@ const NetworkDeviceArchivedPage: FunctionComponent<
         showViewIdButton={true}
         noItemsMessage={"No archived devices."}
         showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        /*
+         * View has to resolve to the device page, not to this list. Falling
+         * back on viewPageRoute here would append the id to the archived
+         * route ("/network-devices/archived/<id>"), which no route matches
+         * — the user lands on a blank page.
+         */
+        onViewPage={(item: NetworkDevice): Promise<Route> => {
+          return Promise.resolve(
+            new Route(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route,
+                {
+                  modelId: item._id,
+                },
+              ).toString(),
+            ),
+          );
+        }}
         searchableFields={["name", "description"]}
         filters={[]}
         columns={[

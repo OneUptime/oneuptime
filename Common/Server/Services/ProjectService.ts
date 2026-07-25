@@ -24,6 +24,7 @@ import IncidentStateService from "./IncidentStateService";
 import IncidentRoleService from "./IncidentRoleService";
 import MailService from "./MailService";
 import MonitorStatusService from "./MonitorStatusService";
+import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import NotificationService from "./NotificationService";
 import PromoCodeService from "./PromoCodeService";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
@@ -63,6 +64,8 @@ import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
+import DefaultNetworkSiteType from "../../Types/NetworkSite/DefaultNetworkSiteType";
 import Model from "../../Models/DatabaseModels/Project";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PromoCode from "../../Models/DatabaseModels/PromoCode";
@@ -963,8 +966,8 @@ export class ProjectService extends DatabaseService<Model> {
     /*
      * Each addDefault* method only reads `createdItem.id` and writes rows to a
      * distinct table; none of them mutate `createdItem`. Running them in
-     * parallel cuts the onCreate hook latency from sum-of-8 sequential DB
-     * round-trips to max-of-8, which removes ~hundreds of ms on project
+     * parallel cuts the onCreate hook latency from sum-of-9 sequential DB
+     * round-trips to max-of-9, which removes ~hundreds of ms on project
      * create.
      */
     await Promise.all([
@@ -976,6 +979,7 @@ export class ProjectService extends DatabaseService<Model> {
       this.addDefaultScheduledMaintenanceState(createdItem),
       this.addDefaultAlertState(createdItem),
       this.addDefaultIncidentRoles(createdItem),
+      this.addDefaultNetworkSiteTypes(createdItem),
     ]);
 
     if (createdItem.createdOwnerEmail) {
@@ -1416,6 +1420,122 @@ export class ProjectService extends DatabaseService<Model> {
 
       await MonitorStatusService.create({
         data: downStatus,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return createdItem;
+  }
+
+  /**
+   * Seeds the per-project network site type lookup table.
+   *
+   * Site types used to be a hardcoded enum. They are now a configurable
+   * per-project lookup table so a project can rename "Unit" to "Store" or add
+   * hierarchy levels of its own — which means every project needs its own
+   * seeded copy of the defaults.
+   *
+   * Public (unlike the sibling seeders above) because the
+   * BackfillNetworkSiteTypes data migration calls it to seed types into
+   * projects that existed before the table did — same precedent as
+   * addDefaultAlertSeverity / addDefaultAlertState.
+   */
+  @CaptureSpan()
+  public async addDefaultNetworkSiteTypes(createdItem: Model): Promise<Model> {
+    const projectId: ObjectID = createdItem.id!;
+
+    // Idempotent — see getExistingProjectScopedNames.
+    const existingNames: Set<string | undefined> =
+      await this.getExistingProjectScopedNames(
+        NetworkSiteTypeService,
+        projectId,
+      );
+
+    /*
+     * Listed broadest-first: the array position is the hierarchy level, so the
+     * index drives `order` (1..7, lower = higher in the hierarchy). Names come
+     * from DefaultNetworkSiteType so that enum stays the single source of
+     * truth for the defaults, shared with the backfill data migration.
+     *
+     * isUnitLevel is true for "Unit" only. It is load-bearing, not a label:
+     * the network map drills sites of a unit-level type into their device
+     * topology instead of a child-site map, and the health rollup counts them
+     * as units. Downstream code keys off this flag rather than the name,
+     * because the name is user-editable once seeded.
+     */
+    const defaultNetworkSiteTypes: Array<{
+      name: DefaultNetworkSiteType;
+      description: string;
+      isUnitLevel: boolean;
+    }> = [
+      {
+        name: DefaultNetworkSiteType.AccountType,
+        description:
+          "Top level grouping - the kind of account the sites underneath it belong to.",
+        isUnitLevel: false,
+      },
+      {
+        name: DefaultNetworkSiteType.Region,
+        description:
+          "A broad geographic region that groups markets and the sites within them.",
+        isUnitLevel: false,
+      },
+      {
+        name: DefaultNetworkSiteType.Franchisee,
+        description:
+          "An operator or franchise partner responsible for a group of sites.",
+        isUnitLevel: false,
+      },
+      {
+        name: DefaultNetworkSiteType.Market,
+        description: "A metro or trade area that groups the sites within it.",
+        isUnitLevel: false,
+      },
+      {
+        name: DefaultNetworkSiteType.Unit,
+        description:
+          "An individual location with network devices. This is the leaf level of the hierarchy.",
+        isUnitLevel: true,
+      },
+      {
+        name: DefaultNetworkSiteType.DataCenter,
+        description:
+          "A data center or core facility that hosts shared infrastructure.",
+        isUnitLevel: false,
+      },
+      {
+        name: DefaultNetworkSiteType.Other,
+        description: "Any site that does not fit the other levels.",
+        isUnitLevel: false,
+      },
+    ];
+
+    for (
+      let index: number = 0;
+      index < defaultNetworkSiteTypes.length;
+      index++
+    ) {
+      const defaultNetworkSiteType: {
+        name: DefaultNetworkSiteType;
+        description: string;
+        isUnitLevel: boolean;
+      } = defaultNetworkSiteTypes[index]!;
+
+      if (existingNames.has(defaultNetworkSiteType.name)) {
+        continue;
+      }
+
+      const networkSiteType: NetworkSiteType = new NetworkSiteType();
+      networkSiteType.name = defaultNetworkSiteType.name;
+      networkSiteType.description = defaultNetworkSiteType.description;
+      networkSiteType.isUnitLevel = defaultNetworkSiteType.isUnitLevel;
+      networkSiteType.projectId = projectId;
+      networkSiteType.order = index + 1;
+
+      await NetworkSiteTypeService.create({
+        data: networkSiteType,
         props: {
           isRoot: true,
         },

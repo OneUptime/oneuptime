@@ -5,7 +5,7 @@ import Select from "../../Types/AnalyticsDatabase/Select";
 import Sort from "../../Types/AnalyticsDatabase/Sort";
 import UpdateBy from "../../Types/AnalyticsDatabase/UpdateBy";
 import logger from "../Logger";
-import { SQL, Statement } from "./Statement";
+import { QualifiedColumn, SQL, Statement } from "./Statement";
 import {
   adaptTableSettingsForStorage,
   getDistributedEngine,
@@ -90,6 +90,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     mapColumn: AnalyticsTableColumn;
     mapKey: string;
     skip?: boolean;
+    tableAlias?: string | undefined;
   }): void {
     const mapKeysColumnName: string | undefined = input.mapColumn.mapKeysColumn;
 
@@ -104,13 +105,17 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       return;
     }
 
+    const keysColumnRef: string | QualifiedColumn = input.tableAlias
+      ? new QualifiedColumn(input.tableAlias, mapKeysColumn.key)
+      : mapKeysColumn.key;
+
     /*
      * Keep empty key-array rows eligible so data written before the
      * denormalized column existed, or by a lagging ingest path, is still
      * checked by the canonical map['key'] predicate that follows.
      */
     input.whereStatement.append(
-      SQL`AND (empty(${mapKeysColumn.key}) OR hasAny(${mapKeysColumn.key}, ${{
+      SQL`AND (empty(${keysColumnRef}) OR hasAny(${keysColumnRef}, ${{
         value: [input.mapKey],
         type: TableColumnType.ArrayText,
       }})) `,
@@ -428,10 +433,34 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   }
 
   /**
-   * Conditions to append to "WHERE TRUE"
+   * Conditions to append to "WHERE TRUE".
+   *
+   * Compiles a Query into an `AND col <op> ...` chain. When
+   * `options.tableAlias` is set, every column reference is emitted
+   * table-qualified (`alias.col`). Builders whose SELECT aliases an
+   * expression to a real column name (aggregate statements — see
+   * AggregateUtil.buildBucketTimestampSelect) MUST pass the alias of the
+   * table the WHERE executes against: ClickHouse substitutes SELECT
+   * aliases into same-level unqualified WHERE references, which turns a
+   * `Total` aggregation's `min(col) as col` into an ILLEGAL_AGGREGATION
+   * error and silently snaps bucketed time filters to bucket boundaries.
+   * Statements that embed this WHERE against a different table (MV
+   * paths, cascade deletes) must stay unqualified.
    */
-  public toWhereStatement(query: Query<TBaseModel>): Statement {
+  public toWhereStatement(
+    query: Query<TBaseModel>,
+    options?: { tableAlias?: string | undefined },
+  ): Statement {
     const whereStatement: Statement = new Statement();
+
+    type ColumnRefFunction = (columnName: string) => string | QualifiedColumn;
+    const columnRef: ColumnRefFunction = (
+      columnName: string,
+    ): string | QualifiedColumn => {
+      return options?.tableAlias
+        ? new QualifiedColumn(options.tableAlias, columnName)
+        : columnName;
+    };
 
     let first: boolean = true;
     for (const key in query) {
@@ -476,7 +505,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             whereStatement.append(SQL` OR `);
           }
           whereStatement.append(
-            SQL`${col.key} ILIKE ${{
+            SQL`${columnRef(col.key)} ILIKE ${{
               value: new Search<string>(ms.value),
               type: col.type,
             }}`,
@@ -536,10 +565,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
         if (scopeEntityKeys.length > 0 && hasAttributeFallback) {
           whereStatement.append(
-            SQL`AND (hasAny(${entityKeysColumn.key}, ${{
+            SQL`AND (hasAny(${columnRef(entityKeysColumn.key)}, ${{
               value: scopeEntityKeys,
               type: TableColumnType.ArrayText,
-            }}) OR ${attributesColumn!.key}[${{
+            }}) OR ${columnRef(attributesColumn!.key)}[${{
               value: scope.attributeKey,
               type: TableColumnType.Text,
             }}] = ${{
@@ -549,14 +578,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           );
         } else if (scopeEntityKeys.length > 0) {
           whereStatement.append(
-            SQL`AND hasAny(${entityKeysColumn.key}, ${{
+            SQL`AND hasAny(${columnRef(entityKeysColumn.key)}, ${{
               value: scopeEntityKeys,
               type: TableColumnType.ArrayText,
             }})`,
           );
         } else {
           whereStatement.append(
-            SQL`AND ${attributesColumn!.key}[${{
+            SQL`AND ${columnRef(attributesColumn!.key)}[${{
               value: scope.attributeKey,
               type: TableColumnType.Text,
             }}] = ${{
@@ -584,66 +613,66 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
       if (value instanceof Search) {
         whereStatement.append(
-          SQL`AND ${key} ILIKE ${{
+          SQL`AND ${columnRef(key)} ILIKE ${{
             value: value,
             type: tableColumn.type,
           }}`,
         );
       } else if (value instanceof NotEqual) {
         whereStatement.append(
-          SQL`AND ${key} != ${{
+          SQL`AND ${columnRef(key)} != ${{
             value: value,
             type: tableColumn.type,
           }}`,
         );
       } else if (value instanceof GreaterThan) {
         whereStatement.append(
-          SQL`AND ${key} > ${{
+          SQL`AND ${columnRef(key)} > ${{
             value: value,
             type: tableColumn.type,
           }}`,
         );
       } else if (value instanceof LessThan) {
         whereStatement.append(
-          SQL`AND ${key} < ${{
+          SQL`AND ${columnRef(key)} < ${{
             value: value,
             type: tableColumn.type,
           }}`,
         );
       } else if (value instanceof LessThanOrEqual) {
         whereStatement.append(
-          SQL`AND ${key} <= ${{
+          SQL`AND ${columnRef(key)} <= ${{
             value: value,
             type: tableColumn.type,
           }}`,
         );
       } else if (value instanceof LessThanOrNull) {
         whereStatement.append(
-          SQL`AND (${key} <= ${{
+          SQL`AND (${columnRef(key)} <= ${{
             value: value,
             type: tableColumn.type,
-          }} OR ${key} IS NULL)`,
+          }} OR ${columnRef(key)} IS NULL)`,
         );
       } else if (value instanceof GreaterThanOrNull) {
         whereStatement.append(
-          SQL`AND (${key} >= ${{
+          SQL`AND (${columnRef(key)} >= ${{
             value: value,
             type: tableColumn.type,
-          }} OR ${key} IS NULL)`,
+          }} OR ${columnRef(key)} IS NULL)`,
         );
       } else if (value instanceof GreaterThanOrEqual) {
         whereStatement.append(
-          SQL`AND ${key} >= ${{
+          SQL`AND ${columnRef(key)} >= ${{
             value: value,
             type: tableColumn.type,
           }}`,
         );
       } else if (value instanceof InBetween) {
         whereStatement.append(
-          SQL`AND ${key} >= ${{
+          SQL`AND ${columnRef(key)} >= ${{
             value: value.startValue,
             type: tableColumn.type,
-          }} AND ${key} <= ${{
+          }} AND ${columnRef(key)} <= ${{
             value: value.endValue,
             type: tableColumn.type,
           }}`,
@@ -665,7 +694,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           ((value as Includes).values as Array<string>) || [];
         if (arrayIncludeValues.length > 0) {
           whereStatement.append(
-            SQL`AND hasAny(${key}, ${{
+            SQL`AND hasAny(${columnRef(key)}, ${{
               value: arrayIncludeValues,
               type: TableColumnType.ArrayText,
             }})`,
@@ -673,7 +702,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
       } else if (value instanceof Includes) {
         whereStatement.append(
-          SQL`AND ${key} IN ${{
+          SQL`AND ${columnRef(key)} IN ${{
             value: value,
             type: tableColumn.type,
           }}`,
@@ -691,7 +720,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           ((value as IncludesNone).values as Array<string>) || [];
         if (arrayExcludeValues.length > 0) {
           whereStatement.append(
-            SQL`AND NOT hasAny(${key}, ${{
+            SQL`AND NOT hasAny(${columnRef(key)}, ${{
               value: arrayExcludeValues,
               type: TableColumnType.ArrayText,
             }})`,
@@ -707,7 +736,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
           ((value as IncludesNone).values as Array<string | ObjectID>) || [];
         if (excludeValues.length > 0) {
           whereStatement.append(
-            SQL`AND ${key} NOT IN ${{
+            SQL`AND ${columnRef(key)} NOT IN ${{
               value: value,
               type: tableColumn.type,
             }}`,
@@ -715,9 +744,11 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
       } else if (value instanceof IsNull) {
         if (tableColumn.type === TableColumnType.Text) {
-          whereStatement.append(SQL`AND (${key} IS NULL OR ${key} = '')`);
+          whereStatement.append(
+            SQL`AND (${columnRef(key)} IS NULL OR ${columnRef(key)} = '')`,
+          );
         } else {
-          whereStatement.append(SQL`AND ${key} IS NULL`);
+          whereStatement.append(SQL`AND ${columnRef(key)} IS NULL`);
         }
       } else if (
         tableColumn.type === TableColumnType.MapStringString &&
@@ -766,10 +797,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
            */
           if (mapEntry instanceof IsNull) {
             whereStatement.append(
-              SQL`AND ((NOT mapContains(${key}, ${{
+              SQL`AND ((NOT mapContains(${columnRef(key)}, ${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }})) OR ${key}[${{
+              }})) OR ${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}] = '')`,
@@ -782,12 +813,13 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               whereStatement,
               mapColumn: tableColumn,
               mapKey,
+              tableAlias: options?.tableAlias,
             });
             whereStatement.append(
-              SQL`AND mapContains(${key}, ${{
+              SQL`AND mapContains(${columnRef(key)}, ${{
                 value: mapKey,
                 type: TableColumnType.Text,
-              }}) AND ${key}[${{
+              }}) AND ${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}] != ''`,
@@ -803,7 +835,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) AND v ILIKE ${{
                 value: mapEntry as Search<string>,
                 type: TableColumnType.Text,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}, mapKeys(${columnRef(key)}), mapValues(${columnRef(key)}))`,
             );
             continue;
           }
@@ -817,7 +849,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) AND v ILIKE ${{
                 value: literalValue,
                 type: TableColumnType.Text,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}, mapKeys(${columnRef(key)}), mapValues(${columnRef(key)}))`,
             );
             continue;
           }
@@ -831,7 +863,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) AND v ILIKE ${{
                 value: literalValue,
                 type: TableColumnType.Text,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}, mapKeys(${columnRef(key)}), mapValues(${columnRef(key)}))`,
             );
             continue;
           }
@@ -845,14 +877,14 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               }}) AND v ILIKE ${{
                 value: literalValue,
                 type: TableColumnType.Text,
-              }}, mapKeys(${key}), mapValues(${key}))`,
+              }}, mapKeys(${columnRef(key)}), mapValues(${columnRef(key)}))`,
             );
             continue;
           }
 
           if (mapEntry instanceof NotEqual) {
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND ${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}] != ${{
@@ -872,9 +904,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               mapColumn: tableColumn,
               mapKey,
               skip: equalityValue === "",
+              tableAlias: options?.tableAlias,
             });
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND ${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}] = ${{
@@ -897,9 +930,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               whereStatement,
               mapColumn: tableColumn,
               mapKey,
+              tableAlias: options?.tableAlias,
             });
             whereStatement.append(
-              SQL`AND toFloat64OrNull(${key}[${{
+              SQL`AND toFloat64OrNull(${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}]) > ${{
@@ -915,9 +949,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               whereStatement,
               mapColumn: tableColumn,
               mapKey,
+              tableAlias: options?.tableAlias,
             });
             whereStatement.append(
-              SQL`AND toFloat64OrNull(${key}[${{
+              SQL`AND toFloat64OrNull(${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}]) >= ${{
@@ -933,9 +968,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               whereStatement,
               mapColumn: tableColumn,
               mapKey,
+              tableAlias: options?.tableAlias,
             });
             whereStatement.append(
-              SQL`AND toFloat64OrNull(${key}[${{
+              SQL`AND toFloat64OrNull(${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}]) < ${{
@@ -951,9 +987,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               whereStatement,
               mapColumn: tableColumn,
               mapKey,
+              tableAlias: options?.tableAlias,
             });
             whereStatement.append(
-              SQL`AND toFloat64OrNull(${key}[${{
+              SQL`AND toFloat64OrNull(${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}]) <= ${{
@@ -985,9 +1022,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               mapColumn: tableColumn,
               mapKey,
               skip: includesValues.includes(""),
+              tableAlias: options?.tableAlias,
             });
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND ${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}] IN ${{
@@ -1017,7 +1055,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               continue;
             }
             whereStatement.append(
-              SQL`AND ${key}[${{
+              SQL`AND ${columnRef(key)}[${{
                 value: mapKey,
                 type: TableColumnType.Text,
               }}] NOT IN ${{
@@ -1035,9 +1073,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             mapColumn: tableColumn,
             mapKey,
             skip: equalityValue === "",
+            tableAlias: options?.tableAlias,
           });
           whereStatement.append(
-            SQL`AND ${key}[${{
+            SQL`AND ${columnRef(key)}[${{
               value: mapKey,
               type: TableColumnType.Text,
             }}] = ${{
@@ -1060,7 +1099,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
           if (flatValue[objKey] && typeof flatValue[objKey] === "string") {
             whereStatement.append(
-              SQL`AND JSONExtractString(${key}, ${{
+              SQL`AND JSONExtractString(${columnRef(key)}, ${{
                 value: objKey,
                 type: TableColumnType.Text,
               }}) = ${{
@@ -1073,7 +1112,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
           if (flatValue[objKey] && typeof flatValue[objKey] === "number") {
             whereStatement.append(
-              SQL`AND JSONExtractInt(${key}, ${{
+              SQL`AND JSONExtractInt(${columnRef(key)}, ${{
                 value: objKey,
                 type: TableColumnType.Text,
               }}) = ${{
@@ -1086,7 +1125,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
 
           if (flatValue[objKey] && typeof flatValue[objKey] === "boolean") {
             whereStatement.append(
-              SQL`AND JSONExtractBool(${key}, ${{
+              SQL`AND JSONExtractBool(${columnRef(key)}, ${{
                 value: objKey,
                 type: TableColumnType.Text,
               }}) = ${{
@@ -1099,7 +1138,7 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         }
       } else {
         whereStatement.append(
-          SQL`AND ${key} = ${{ value, type: tableColumn.type }}`,
+          SQL`AND ${columnRef(key)} = ${{ value, type: tableColumn.type }}`,
         );
       }
     }

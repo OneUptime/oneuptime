@@ -99,6 +99,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL]: `${RouteParams.ModelID}/vpas/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_COSTS]: `${RouteParams.ModelID}/costs`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH]: `${RouteParams.ModelID}/service-mesh`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
@@ -114,13 +115,20 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.KUBERNETES_DOCUMENTATION]: `documentation`,
+  [PageMap.KUBERNETES_COSTS]: `costs`,
   [PageMap.KUBERNETES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.KUBERNETES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.KUBERNETES_ARCHIVED]: `archived`,
 };
 
 export const NetworkDeviceRoutePath: Dictionary<string> = {
+  [PageMap.NETWORK_OVERVIEW]: `overview`,
   [PageMap.NETWORK_DEVICE_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: `${RouteParams.ModelID}/interfaces`,
+  [PageMap.NETWORK_DEVICE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]: `${RouteParams.ModelID}/traffic`,
+  [PageMap.NETWORK_DEVICE_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
+  [PageMap.NETWORK_DEVICE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.NETWORK_DEVICE_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.NETWORK_DEVICE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.NETWORK_DEVICE_ARCHIVED]: `archived`,
@@ -130,6 +138,30 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_DISCOVERY]: `discovery`,
   [PageMap.NETWORK_DEVICE_TOPOLOGY]: `topology`,
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: `latency-matrix`,
+  [PageMap.NETWORK_DEVICE_ENDPOINTS]: `endpoints`,
+};
+
+export const SloRoutePath: Dictionary<string> = {
+  [PageMap.SLO_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.SLO_VIEW_CHARTS]: `${RouteParams.ModelID}/charts`,
+  [PageMap.SLO_VIEW_BURN_RATE_RULES]: `${RouteParams.ModelID}/burn-rate-rules`,
+  [PageMap.SLO_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.SLO_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
+export const NetworkSiteRoutePath: Dictionary<string> = {
+  [PageMap.NETWORK_SITE_VIEW]: `view/${RouteParams.ModelID}`,
+  [PageMap.NETWORK_SITE_VIEW_DEVICES]: `view/${RouteParams.ModelID}/devices`,
+  [PageMap.NETWORK_SITE_VIEW_CHILD_SITES]: `view/${RouteParams.ModelID}/child-sites`,
+  [PageMap.NETWORK_SITE_VIEW_ENDPOINTS]: `view/${RouteParams.ModelID}/endpoints`,
+  [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: `view/${RouteParams.ModelID}/status-timeline`,
+  [PageMap.NETWORK_SITE_VIEW_SETTINGS]: `view/${RouteParams.ModelID}/settings`,
+  [PageMap.NETWORK_SITE_VIEW_DELETE]: `view/${RouteParams.ModelID}/delete`,
+  [PageMap.NETWORK_SITE_MAP]: `map`,
+  [PageMap.NETWORK_SITE_ASSIGNMENT_RULES]: `assignment-rules`,
+  [PageMap.NETWORK_SITE_LINKS]: `links`,
+  [PageMap.NETWORK_SITE_IMPORT]: `import`,
+  [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES]: `settings/site-types`,
 };
 
 export const DockerRoutePath: Dictionary<string> = {
@@ -2127,6 +2159,12 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/kubernetes`,
   ),
 
+  [PageMap.KUBERNETES_COSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_COSTS]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW]
@@ -2301,6 +2339,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_CLUSTER_VIEW_COSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_COSTS]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]
@@ -2418,9 +2462,45 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/network-devices`,
   ),
 
+  [PageMap.NETWORK_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_OVERVIEW]
+    }`,
+  ),
+
   [PageMap.NETWORK_DEVICE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_INTERFACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_INTERFACES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_TRAFFIC]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_MONITORS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_MONITORS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_VIEW_LOGS]
     }`,
   ),
 
@@ -2475,6 +2555,130 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_LATENCY_MATRIX]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_LATENCY_MATRIX]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_ENDPOINTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_ENDPOINTS]
+    }`,
+  ),
+
+  // Network Sites
+
+  [PageMap.NETWORK_SITE_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/*`,
+  ),
+
+  [PageMap.NETWORK_SITES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_DEVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_DEVICES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_CHILD_SITES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_CHILD_SITES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_ENDPOINTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_ENDPOINTS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_STATUS_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_MAP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_MAP]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_ASSIGNMENT_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_ASSIGNMENT_RULES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_LINKS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_LINKS]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_IMPORT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_IMPORT]
+    }`,
+  ),
+
+  [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-sites/${
+      NetworkSiteRoutePath[PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES]
+    }`,
+  ),
+
+  // SLOs (Service Level Objectives)
+
+  [PageMap.SLOS_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/slos/*`),
+
+  [PageMap.SLOS]: new Route(`/dashboard/${RouteParams.ProjectID}/slos`),
+
+  [PageMap.SLO_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_CHARTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_CHARTS]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_BURN_RATE_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_BURN_RATE_RULES]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_DELETE]
     }`,
   ),
 

@@ -1,0 +1,26 @@
+{
+  "name": "@oneuptime/kubernetes-cost-agent",
+  "version": "11.6.2",
+  "description": "OneUptime Kubernetes cost agent — polls an in-cluster cost engine's Allocation API (OpenCost / Kubecost cost-model) and ships pre-priced workload cost allocations to OneUptime.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
+  "main": "Index.ts",
+  "scripts": {
+    "start": "node --require ts-node/register Index.ts",
+    "compile": "tsc",
+    "dev": "npx nodemon",
+    "test": "npm run compile && node --test \"build/dist/Tests/*.test.js\""
+  },
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "ts-node": "^10.9.1",
+    "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "nodemon": "^3.0.0"
+  }
+}

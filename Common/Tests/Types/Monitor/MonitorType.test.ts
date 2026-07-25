@@ -120,7 +120,6 @@ describe("MonitorTypeHelper", () => {
       MonitorType.SSLCertificate,
       MonitorType.SyntheticMonitor,
       MonitorType.CustomJavaScriptCode,
-      MonitorType.NetworkDevice,
       MonitorType.DNS,
       MonitorType.DNSSEC,
       MonitorType.Domain,
@@ -134,6 +133,8 @@ describe("MonitorTypeHelper", () => {
       MonitorType.Logs,
       MonitorType.Server,
       MonitorType.IncomingRequest,
+      // Device-owned polling: the NetworkDevice resource polls itself.
+      MonitorType.NetworkDevice,
     ])("returns false for %s", (monitorType: MonitorType) => {
       expect(MonitorTypeHelper.isProbableMonitor(monitorType)).toBe(false);
     });
@@ -192,6 +193,63 @@ describe("MonitorTypeHelper", () => {
       expect(
         MonitorTypeHelper.doesMonitorTypeHaveCriteria(MonitorType.API),
       ).toBe(true);
+    });
+  });
+
+  /*
+   * NetworkDevice is a pure alerting layer under device-owned polling: the
+   * NetworkDevice resource's assigned probe walks it on the device's own
+   * schedule, and the monitor is evaluated server-side against each walk.
+   * It must therefore never appear probeable (no MonitorProbe rows, no
+   * interval) while keeping its full monitor surface: criteria, graphs,
+   * documentation, creatability, and its place in the Network category.
+   */
+  describe("NetworkDevice under device-owned polling", () => {
+    test("is not probeable and has no interval", () => {
+      expect(
+        MonitorTypeHelper.isProbableMonitor(MonitorType.NetworkDevice),
+      ).toBe(false);
+      expect(
+        MonitorTypeHelper.doesMonitorTypeHaveInterval(
+          MonitorType.NetworkDevice,
+        ),
+      ).toBe(false);
+    });
+
+    test("still has criteria, graphs, and documentation", () => {
+      expect(
+        MonitorTypeHelper.doesMonitorTypeHaveCriteria(
+          MonitorType.NetworkDevice,
+        ),
+      ).toBe(true);
+      expect(
+        MonitorTypeHelper.doesMonitorTypeHaveGraphs(MonitorType.NetworkDevice),
+      ).toBe(true);
+      expect(
+        MonitorTypeHelper.doesMonitorTypeHaveDocumentation(
+          MonitorType.NetworkDevice,
+        ),
+      ).toBe(true);
+    });
+
+    test("is still an active (creatable) monitor type", () => {
+      expect(MonitorTypeHelper.getActiveMonitorTypes()).toContain(
+        MonitorType.NetworkDevice,
+      );
+    });
+
+    test("is still listed under the Network category", () => {
+      const networkCategory: MonitorTypeCategory | undefined =
+        MonitorTypeHelper.getMonitorTypeCategories().find(
+          (category: MonitorTypeCategory) => {
+            return category.label === "Network";
+          },
+        );
+
+      expect(networkCategory).toBeDefined();
+      expect(networkCategory?.monitorTypes).toContain(
+        MonitorType.NetworkDevice,
+      );
     });
   });
 

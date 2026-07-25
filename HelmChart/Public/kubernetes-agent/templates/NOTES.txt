@@ -52,6 +52,14 @@ The agent is now collecting:
 {{- if .Values.coreDns.enabled }}
   - CoreDNS metrics (query rate, latency, cache hits, errors)
 {{- end }}
+{{- if .Values.cost.enabled }}
+{{- if .Values.cost.agent.enabled }}
+  - Per-workload cost allocations (cpu/ram/gpu/pv/network/idle spend and efficiency) from {{ if eq (include "kubernetes-agent.costEngineBundled" .) "true" }}the bundled OpenCost engine{{ else }}the cost engine at {{ .Values.cost.engine.url }}{{ end }} — the first closed hourly window lands within the hour
+{{- end }}
+{{- if .Values.cost.metrics.enabled }}
+  - Raw cost metrics (node hourly cost, container allocation, PV and load balancer cost) for Metric Explorer and the Kubernetes Cost dashboard
+{{- end }}
+{{- end }}
 {{- if .Values.preset }}
 
 Preset: {{ .Values.preset }}

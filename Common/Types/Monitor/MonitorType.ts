@@ -37,9 +37,11 @@ enum MonitorType {
 
   /*
    * Network device monitoring (SNMP-based). Replaced the retired SNMP
-   * monitor type: instead of inline SNMP config, the monitor references a
-   * NetworkDevice resource that owns the credentials and interface
-   * inventory.
+   * monitor type. The referenced NetworkDevice resource owns everything
+   * about data collection — credentials, polling schedule, interface
+   * walks, endpoint discovery, and health OIDs. The monitor is purely the
+   * alerting layer: it picks a device and evaluates criteria against the
+   * device's walk results and traps, server-side.
    */
   NetworkDevice = "Network Device",
 
@@ -354,7 +356,7 @@ export class MonitorTypeHelper {
         monitorType: MonitorType.NetworkDevice,
         title: "Network Device",
         description:
-          "This monitor type lets you monitor a registered Network Device (switch, router, firewall, or access point) via SNMP — availability, interface status, bandwidth, and traps.",
+          "This monitor type alerts on a registered Network Device (switch, router, firewall, or access point) — availability, interface status, bandwidth, health OIDs, and traps. The device itself is polled by its assigned probe; the monitor chooses what to alert on.",
         icon: IconProp.Signal,
       },
       {
@@ -420,6 +422,15 @@ export class MonitorTypeHelper {
     return monitorTypeProps[0].title;
   }
 
+  /*
+   * Monitor types the probe executes on a schedule via MonitorProbe rows.
+   *
+   * NetworkDevice is deliberately NOT probeable: the NetworkDevice resource
+   * owns its own polling (the device's assigned probe walks it on the
+   * device's schedule), and Network Device monitors are evaluated
+   * server-side against each walk result and incoming trap — like
+   * IncomingRequest monitors, they never appear in a probe's work list.
+   */
   public static isProbableMonitor(monitorType: MonitorType): boolean {
     const isProbeableMonitor: boolean =
       monitorType === MonitorType.API ||
@@ -430,7 +441,6 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.SSLCertificate ||
       monitorType === MonitorType.SyntheticMonitor ||
       monitorType === MonitorType.CustomJavaScriptCode ||
-      monitorType === MonitorType.NetworkDevice ||
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||

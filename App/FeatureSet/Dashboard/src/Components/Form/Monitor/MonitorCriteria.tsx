@@ -7,6 +7,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -37,6 +38,13 @@ export interface ComponentProps {
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType: MonitorType;
   monitorStep: MonitorStep;
+  /*
+   * The project's offline (worst, non-operational) monitor status.
+   * Pack-generated criteria that change monitor status use it as the
+   * status to move to, so applying a pack yields working criteria
+   * instead of "change status to <nothing>".
+   */
+  offlineMonitorStatusId?: ObjectID | undefined;
 }
 
 interface CriteriaCollapsedState {
@@ -410,7 +418,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
             onClick={() => {
               const newMonitorCriterias: Array<MonitorCriteriaInstance> = [
                 ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
-                ...NetworkDeviceAlertPackUtil.buildCriteriaInstances(),
+                ...NetworkDeviceAlertPackUtil.buildCriteriaInstances({
+                  downMonitorStatusId: props.offlineMonitorStatusId,
+                }),
               ];
               props.onChange?.(
                 MonitorCriteria.fromJSON({

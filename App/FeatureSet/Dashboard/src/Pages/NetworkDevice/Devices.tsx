@@ -4,6 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import ProbeUtil from "../../Utils/Probe";
 import Route from "Common/Types/API/Route";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Label from "Common/Models/DatabaseModels/Label";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -137,6 +138,23 @@ const NetworkDevices: FunctionComponent<
           },
           {
             field: {
+              site: {
+                name: true,
+              },
+            },
+            title: "Site",
+            type: FieldType.Entity,
+            filterEntityType: NetworkSite,
+            filterQuery: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
+          },
+          {
+            field: {
               labels: {
                 name: true,
                 color: true,
@@ -167,12 +185,27 @@ const NetworkDevices: FunctionComponent<
             "Switches, routers, and firewalls monitored via SNMP in this project. Devices are polled by the probe you assign.",
         }}
         showViewIdButton={true}
+        formSteps={[
+          {
+            title: "Device Details",
+            id: "device-details",
+          },
+          {
+            title: "Probe & Site",
+            id: "probe-and-site",
+          },
+          {
+            title: "SNMP Credentials",
+            id: "snmp",
+          },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "core-switch-01",
@@ -182,6 +215,7 @@ const NetworkDevices: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Core switch in the US East datacenter",
@@ -191,6 +225,7 @@ const NetworkDevices: FunctionComponent<
               hostname: true,
             },
             title: "Hostname",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
@@ -201,7 +236,21 @@ const NetworkDevices: FunctionComponent<
               probe: true,
             },
             title: "Probe",
-            description: "Which probe should poll this device?",
+            stepId: "probe-and-site",
+            /*
+             * Same constraint as the discovery scan: the probe has to be able
+             * to reach the device, so the operator needs to know how to get a
+             * probe onto that network from here.
+             */
+            description:
+              "The probe that polls this device on its schedule, and receives its SNMP traps, syslog, and NetFlow. It has to be able to reach the device directly, so pick one deployed on the device's network — if you have none there yet, create a custom probe and run it there. Polling starts as soon as the device is created — no monitor needed.",
+            sideLink: {
+              text: "Create a custom probe",
+              url: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
+              ),
+              openLinkInNewTab: true,
+            },
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: probes.map((probe: Probe) => {
               if (!probe.name || !probe._id) {
@@ -216,7 +265,24 @@ const NetworkDevices: FunctionComponent<
             required: true,
             placeholder: "Probe",
           },
-          ...getSnmpConfigFormFields(),
+          {
+            field: {
+              site: true,
+            },
+            title: "Site",
+            stepId: "probe-and-site",
+            description:
+              "The network site this device belongs to. Site health rolls up from its devices. Assignment rules can also set this automatically.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: NetworkSite,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select Site (optional)",
+          },
+          ...getSnmpConfigFormFields({ stepId: "snmp" }),
         ]}
         columns={[
           {
@@ -321,6 +387,38 @@ const NetworkDevices: FunctionComponent<
                     </div>
                   )}
                 </div>
+              );
+            },
+          },
+          {
+            field: {
+              site: {
+                name: true,
+                _id: true,
+              },
+            },
+            title: "Site",
+            type: FieldType.Entity,
+            hideOnMobile: true,
+            getElement: (item: NetworkDevice): ReactElement => {
+              if (!item.site?.name || !item.site?._id) {
+                return <span className="text-sm text-gray-400">—</span>;
+              }
+
+              const route: Route = RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_SITE_VIEW] as Route,
+                {
+                  modelId: new ObjectID(item.site._id.toString()),
+                },
+              );
+
+              return (
+                <AppLink
+                  to={route}
+                  className="text-sm text-gray-900 hover:underline"
+                >
+                  {item.site.name}
+                </AppLink>
               );
             },
           },

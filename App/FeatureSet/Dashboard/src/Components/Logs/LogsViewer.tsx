@@ -60,6 +60,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 
 export interface ComponentProps {
   id: string;
@@ -477,15 +478,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       params.set("pageSize", String(pageSize));
     }
 
-    const query: string = params.toString();
-    const nextSearch: string = query ? `?${query}` : "";
-    if (nextSearch !== window.location.search) {
-      window.history.replaceState(
-        null,
-        "",
-        `${window.location.pathname}${nextSearch}${window.location.hash}`,
-      );
-    }
+    writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [
     props.syncUrlState,
     appliedFacetFilters,

@@ -1,15 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInventoryUtil";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
+import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
 import NetworkInterfaceService from "../../../../Server/Services/NetworkInterfaceService";
-import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "../../../../Models/DatabaseModels/NetworkInterface";
-import MonitorStep from "../../../../Types/Monitor/MonitorStep";
-import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
-import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import LldpNeighbor from "../../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
@@ -18,14 +15,17 @@ import CdpNeighbor from "../../../../Types/Monitor/SnmpMonitor/CdpNeighbor";
 /*
  * NetworkInventoryUtil.updateFromWalk is the single writer that keeps the
  * NetworkDevice / NetworkInterface inventory in sync with each SNMP
- * interface walk. These tests mock the two services it writes through and
- * pin the enrichment contract: which walked fields land on the device row
- * (and at what column-limit truncation), how uptime becomes lastRebootedAt,
- * how the vendor is chosen, the LLDP/CDP snapshot semantics (store-even-
- * when-empty, capped), and what flows into the interface upsert on both the
- * update and create paths.
+ * interface walk. Under device-owned polling it is called straight from the
+ * device polling pipeline with the device's own identity — no Monitor in
+ * between. These tests mock the services it writes through and pin the
+ * enrichment contract: which walked fields land on the device row (and at
+ * what column-limit truncation), how uptime becomes lastRebootedAt, how the
+ * vendor is chosen, the LLDP/CDP snapshot semantics (store-even-when-empty,
+ * capped), what flows into the interface upsert on both the update and
+ * create paths, and when endpoint discovery runs.
  */
 
+const PROJECT_ID: string = "1c9d4a7b-0000-4000-8000-000000000011";
 const DEVICE_ID: string = "8f2c1f0e-0000-4000-8000-0000000000aa";
 const NOW: Date = new Date("2026-07-16T12:00:00.000Z");
 
@@ -38,12 +38,13 @@ let deviceUpdateSpy: jest.SpyInstance;
 let interfaceFindSpy: jest.SpyInstance;
 let interfaceUpdateSpy: jest.SpyInstance;
 let interfaceCreateSpy: jest.SpyInstance;
+let endpointUpsertSpy: jest.SpyInstance;
 
 function mockServices(existingInterfaces: Array<NetworkInterface> = []): void {
   /*
-   * The project-membership guard resolves the device (scoped to the
-   * monitor's project) before any write; return a matching device so the
-   * write path runs. The cross-project-refusal case overrides this to null.
+   * The project-membership guard resolves the device (scoped to the given
+   * project) before any write; return a matching device so the write path
+   * runs. The cross-project-refusal case overrides this to null.
    */
   const ownedDevice: NetworkDevice = new NetworkDevice();
   ownedDevice.id = new ObjectID(DEVICE_ID);
@@ -62,6 +63,9 @@ function mockServices(existingInterfaces: Array<NetworkInterface> = []): void {
   interfaceCreateSpy = jest
     .spyOn(NetworkInterfaceService, "create")
     .mockResolvedValue(new NetworkInterface());
+  endpointUpsertSpy = jest
+    .spyOn(NetworkEndpointService, "upsertDiscoveredEndpoints")
+    .mockResolvedValue(undefined as never);
 }
 
 function deviceUpdatePayload(): DeviceUpdatePayload {
@@ -69,56 +73,16 @@ function deviceUpdatePayload(): DeviceUpdatePayload {
   return deviceUpdateSpy.mock.calls[0][0].data as DeviceUpdatePayload;
 }
 
-function buildMonitor(options?: { networkDeviceId?: string | undefined }): {
-  monitor: Monitor;
-  stepId: ObjectID;
-} {
-  const step: MonitorStep = new MonitorStep();
-  step.data = {
-    ...step.data,
-    networkDeviceMonitor: {
-      networkDeviceId:
-        options && "networkDeviceId" in options
-          ? options.networkDeviceId
-          : DEVICE_ID,
-      monitorInterfaces: true,
-    },
-  } as MonitorStep["data"];
-
-  const monitorSteps: MonitorSteps = new MonitorSteps();
-  monitorSteps.data = {
-    monitorStepsInstanceArray: [step],
-    defaultMonitorStatusId: undefined,
-  };
-
-  const monitor: Monitor = new Monitor();
-  monitor.projectId = ObjectID.generate();
-  monitor.monitorSteps = monitorSteps;
-
-  return { monitor: monitor, stepId: step.id };
-}
-
-function buildResponse(
-  stepId: ObjectID,
+function buildSnmpResponse(
   snmpFields?: Partial<SnmpMonitorResponse>,
-): ProbeMonitorResponse {
-  const snmpResponse: SnmpMonitorResponse = {
+): SnmpMonitorResponse {
+  return {
     isOnline: true,
     responseTimeInMs: 12,
     failureCause: "",
     oidResponses: [],
     ...snmpFields,
   };
-
-  return {
-    projectId: ObjectID.generate(),
-    monitorStepId: stepId,
-    monitorId: ObjectID.generate(),
-    probeId: ObjectID.generate(),
-    failureCause: "",
-    monitoredAt: NOW,
-    snmpResponse: snmpResponse,
-  } as ProbeMonitorResponse;
 }
 
 function walkedInterface(overrides?: Partial<SnmpInterface>): SnmpInterface {
@@ -141,16 +105,18 @@ function existingInterface(interfaceIndex: number): NetworkInterface {
 
 async function runWalk(
   snmpFields?: Partial<SnmpMonitorResponse>,
-): Promise<ProbeMonitorResponse> {
-  const { monitor, stepId } = buildMonitor();
-  const response: ProbeMonitorResponse = buildResponse(stepId, snmpFields);
+  options?: { isOnline?: boolean | undefined },
+): Promise<SnmpMonitorResponse> {
+  const snmpResponse: SnmpMonitorResponse = buildSnmpResponse(snmpFields);
 
   await NetworkInventoryUtil.updateFromWalk({
-    monitor: monitor,
-    dataToProcess: response,
+    projectId: new ObjectID(PROJECT_ID),
+    deviceId: new ObjectID(DEVICE_ID),
+    snmpResponse: snmpResponse,
+    isOnline: options && "isOnline" in options ? options.isOnline : true,
   });
 
-  return response;
+  return snmpResponse;
 }
 
 beforeEach(() => {
@@ -243,7 +209,7 @@ describe("NetworkInventoryUtil.updateFromWalk — system group enrichment", () =
 });
 
 describe("NetworkInventoryUtil.updateFromWalk — project-membership guard", () => {
-  test("refuses to write when the step's device is not in the monitor's project", async () => {
+  test("refuses to write when the device is not in the given project", async () => {
     mockServices();
     // The scoped lookup finds no device → the id belongs to another project.
     deviceFindSpy.mockResolvedValue(null);
@@ -257,36 +223,59 @@ describe("NetworkInventoryUtil.updateFromWalk — project-membership guard", () 
     expect(interfaceCreateSpy).not.toHaveBeenCalled();
     expect(interfaceUpdateSpy).not.toHaveBeenCalled();
   });
+
+  test("the ownership lookup is scoped to both the device id and the project id", async () => {
+    mockServices();
+
+    await runWalk();
+
+    const query: Record<string, unknown> = deviceFindSpy.mock.calls[0][0].query;
+
+    expect(query["_id"]?.toString()).toBe(DEVICE_ID);
+    expect(query["projectId"]?.toString()).toBe(PROJECT_ID);
+  });
 });
 
 describe("NetworkInventoryUtil.updateFromWalk — reachability gating", () => {
   test("an unreachable poll with no walk data writes nothing (no phantom lastSeenAt)", async () => {
     mockServices();
 
-    const { monitor, stepId } = buildMonitor();
-    const response: ProbeMonitorResponse = {
-      projectId: ObjectID.generate(),
-      monitorStepId: stepId,
-      monitorId: ObjectID.generate(),
-      probeId: ObjectID.generate(),
-      failureCause: "Device did not respond",
-      monitoredAt: NOW,
-      isOnline: false,
-      snmpResponse: {
+    await runWalk(
+      {
         isOnline: false,
         responseTimeInMs: 0,
         failureCause: "Device did not respond",
-        oidResponses: [],
       },
-    } as ProbeMonitorResponse;
-
-    await NetworkInventoryUtil.updateFromWalk({
-      monitor: monitor,
-      dataToProcess: response,
-    });
+      { isOnline: false },
+    );
 
     // lastSeenAt drives the up/down pill; a failed poll must not bump it.
     expect(deviceUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  test("an unreachable poll with walk data still enriches but never stamps lastSeenAt", async () => {
+    mockServices();
+
+    await runWalk(
+      {
+        isOnline: false,
+        systemInfo: { sysName: "core-sw-01" },
+      },
+      { isOnline: false },
+    );
+
+    const update: DeviceUpdatePayload = deviceUpdatePayload();
+
+    expect(update["sysName"]).toBe("core-sw-01");
+    expect(update).not.toHaveProperty("lastSeenAt");
+  });
+
+  test("a walk that reports no reachability at all is treated as seen", async () => {
+    mockServices();
+
+    await runWalk(undefined, { isOnline: undefined });
+
+    expect(deviceUpdatePayload()["lastSeenAt"]).toEqual(NOW);
   });
 });
 
@@ -592,19 +581,15 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
 
   test("the create path passes macAddress and interfaceType through", async () => {
     mockServices([]);
-    const { monitor, stepId } = buildMonitor();
 
-    await NetworkInventoryUtil.updateFromWalk({
-      monitor: monitor,
-      dataToProcess: buildResponse(stepId, {
-        interfaces: [
-          walkedInterface({
-            interfaceIndex: 7,
-            macAddress: "aa:bb:cc:dd:ee:ff",
-            interfaceType: 6,
-          }),
-        ],
-      }),
+    await runWalk({
+      interfaces: [
+        walkedInterface({
+          interfaceIndex: 7,
+          macAddress: "aa:bb:cc:dd:ee:ff",
+          interfaceType: 6,
+        }),
+      ],
     });
 
     expect(interfaceCreateSpy).toHaveBeenCalledTimes(1);
@@ -618,7 +603,7 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
     expect(created.name).toBe("GigabitEthernet0/1");
     expect(created.isMonitored).toBe(true);
     expect(created.networkDeviceId?.toString()).toBe(DEVICE_ID);
-    expect(created.projectId?.toString()).toBe(monitor.projectId?.toString());
+    expect(created.projectId?.toString()).toBe(PROJECT_ID);
   });
 
   test("the create path leaves macAddress and interfaceType unset when the walk has none", async () => {
@@ -667,7 +652,7 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
     muted.isMonitored = false;
     mockServices([muted]);
 
-    const response: ProbeMonitorResponse = await runWalk({
+    const snmpResponse: SnmpMonitorResponse = await runWalk({
       interfaces: [
         walkedInterface({ interfaceIndex: 1 }),
         walkedInterface({ interfaceIndex: 2, name: "GigabitEthernet0/2" }),
@@ -679,8 +664,8 @@ describe("NetworkInventoryUtil.updateFromWalk — interface upsert", () => {
     expect(interfaceCreateSpy).toHaveBeenCalledTimes(1);
 
     // The in-flight response only keeps the monitored interface.
-    expect(response.snmpResponse?.interfaces).toHaveLength(1);
-    expect(response.snmpResponse?.interfaces?.[0]?.interfaceIndex).toBe(2);
+    expect(snmpResponse.interfaces).toHaveLength(1);
+    expect(snmpResponse.interfaces?.[0]?.interfaceIndex).toBe(2);
   });
 });
 
@@ -707,14 +692,12 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
 
   test("a walk with no snmpResponse at all still stamps lastSeenAt", async () => {
     mockServices();
-    const { monitor, stepId } = buildMonitor();
-
-    const response: ProbeMonitorResponse = buildResponse(stepId);
-    delete (response as { snmpResponse?: unknown }).snmpResponse;
 
     await NetworkInventoryUtil.updateFromWalk({
-      monitor: monitor,
-      dataToProcess: response,
+      projectId: new ObjectID(PROJECT_ID),
+      deviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: undefined,
+      isOnline: true,
     });
 
     expect(deviceUpdatePayload()).toEqual({ lastSeenAt: NOW });
@@ -722,43 +705,87 @@ describe("NetworkInventoryUtil.updateFromWalk — walks without interfaces", () 
   });
 });
 
-describe("NetworkInventoryUtil.updateFromWalk — guards", () => {
-  test("a response for a step that does not reference a device performs no writes", async () => {
+describe("NetworkInventoryUtil.updateFromWalk — endpoint discovery", () => {
+  test("a walk without ARP/FDB arrays (collection off) never touches endpoints", async () => {
     mockServices();
-    const { monitor } = buildMonitor({ networkDeviceId: undefined });
 
-    await NetworkInventoryUtil.updateFromWalk({
-      monitor: monitor,
-      dataToProcess: buildResponse(ObjectID.generate()),
+    await runWalk({
+      interfaces: [walkedInterface()],
     });
 
-    expect(deviceUpdateSpy).not.toHaveBeenCalled();
-    expect(interfaceFindSpy).not.toHaveBeenCalled();
+    expect(endpointUpsertSpy).not.toHaveBeenCalled();
   });
 
-  test("a response whose step id matches no step performs no writes", async () => {
+  test("ARP/FDB arrays that yield no endpoints skip the upsert", async () => {
     mockServices();
-    const { monitor } = buildMonitor();
 
-    await NetworkInventoryUtil.updateFromWalk({
-      monitor: monitor,
-      dataToProcess: buildResponse(ObjectID.generate()),
+    // Arrays present (collection ran) but nothing qualified as an endpoint.
+    await runWalk({
+      arpEntries: [],
+      fdbEntries: [],
     });
 
-    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(endpointUpsertSpy).not.toHaveBeenCalled();
   });
 
-  test("a monitor without a projectId performs no writes", async () => {
+  test("a learned FDB entry is upserted as an attachment for the device's project", async () => {
     mockServices();
-    const { monitor, stepId } = buildMonitor();
-    // exactOptionalPropertyTypes forbids assigning undefined directly.
-    (monitor as { projectId?: ObjectID | undefined }).projectId = undefined;
 
-    await NetworkInventoryUtil.updateFromWalk({
-      monitor: monitor,
-      dataToProcess: buildResponse(stepId),
+    await runWalk({
+      interfaces: [walkedInterface({ interfaceIndex: 5, name: "Gi0/5" })],
+      fdbEntries: [
+        {
+          macAddress: "AA-BB-CC-00-11-22",
+          bridgePort: 5,
+          interfaceIndex: 5,
+          status: "learned",
+        },
+      ],
     });
 
-    expect(deviceUpdateSpy).not.toHaveBeenCalled();
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+
+    const upsert: Record<string, unknown> = endpointUpsertSpy.mock.calls[0][0];
+
+    expect((upsert["projectId"] as ObjectID).toString()).toBe(PROJECT_ID);
+    expect((upsert["deviceId"] as ObjectID).toString()).toBe(DEVICE_ID);
+    expect(upsert["now"]).toEqual(NOW);
+    expect(upsert["attachments"]).toEqual([
+      {
+        macAddress: "aa:bb:cc:00:11:22",
+        attachedInterfaceIndex: 5,
+        attachedPortName: "Gi0/5",
+        vlanId: undefined,
+      },
+    ]);
+    expect(upsert["ipBindings"]).toEqual([]);
+  });
+
+  test("an ARP entry is upserted as an IP binding", async () => {
+    mockServices();
+
+    await runWalk({
+      arpEntries: [
+        {
+          ipAddress: "10.0.0.5",
+          macAddress: "aa:bb:cc:00:11:22",
+          interfaceIndex: 3,
+          entryType: "dynamic",
+        },
+      ],
+    });
+
+    expect(endpointUpsertSpy).toHaveBeenCalledTimes(1);
+
+    const upsert: Record<string, unknown> = endpointUpsertSpy.mock.calls[0][0];
+
+    expect(upsert["attachments"]).toEqual([]);
+    expect(upsert["ipBindings"]).toEqual([
+      {
+        macAddress: "aa:bb:cc:00:11:22",
+        ipAddress: "10.0.0.5",
+        routerInterfaceIndex: 3,
+      },
+    ]);
   });
 });

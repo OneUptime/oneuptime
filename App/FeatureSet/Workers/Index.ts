@@ -20,6 +20,8 @@ import "./Jobs/IncidentMembers/SendMemberAddedNotification";
 // Incident SLA
 import "./Jobs/IncidentSla/CheckSlaBreaches";
 import "./Jobs/IncidentSla/SendNoteReminders";
+import "./Jobs/Slo/EvaluateSlos";
+import "./Jobs/SloOwners/SendOwnerAddedNotification";
 
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
@@ -78,6 +80,9 @@ import "./Jobs/NetworkDeviceOwners/SendOwnerAddedNotification";
 
 // Network Device Discovery
 import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
+
+// Network Sites
+import "./Jobs/NetworkSite/RecomputeStaleRollups";
 
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";

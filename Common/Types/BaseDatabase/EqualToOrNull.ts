@@ -17,7 +17,15 @@ export default class EqualToOrNull<
   public override toJSON(): JSONObject {
     return {
       _type: ObjectType.EqualToOrNull,
-      value: (this as EqualToOrNull<T>).toString(),
+      /*
+       * The RAW value is serialized (like GreaterThan / InBetween), not
+       * toString(): toString() stringifies a Date into a locale- and
+       * timezone-dependent form that loses milliseconds, and coerces a number
+       * into a string. JSON.stringify emits a raw Date as its full ISO
+       * timestamp, which the server binds at full precision — and which is
+       * what lets an equality filter survive a round trip through the URL.
+       */
+      value: (this as EqualToOrNull<T>).value,
     };
   }
 

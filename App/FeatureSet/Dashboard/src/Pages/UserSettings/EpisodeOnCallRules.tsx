@@ -68,7 +68,18 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (
       <ModelTable<UserNotificationRule>
         modelType={UserNotificationRule}
-        userPreferencesKey={`user-notification-rules-table-${options.ruleType}`}
+        /*
+         * One of these tables is rendered per severity, so the severity has to
+         * be part of the key: it namespaces both the stored page-size
+         * preference and this table's slice of the URL state. Without it every
+         * table on the page would share one namespace and paging one would
+         * repaginate the rest.
+         */
+        userPreferencesKey={`user-notification-rules-table-${options.ruleType}${
+          options.alertSeverity?.id
+            ? `-${options.alertSeverity.id.toString()}`
+            : ""
+        }`}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           userId: User.getUserId()!,

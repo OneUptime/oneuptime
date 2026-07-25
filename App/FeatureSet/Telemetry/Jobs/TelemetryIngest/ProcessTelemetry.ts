@@ -12,8 +12,10 @@ import {
   processProbeFromQueue,
   processIncomingEmailFromQueue,
   processSnmpTrapFromQueue,
+  processNetworkDeviceWalkFromQueue,
 } from "../ProbeIngest/ProcessProbeIngest";
 import { processServerMonitorFromQueue } from "../ServerMonitorIngest/ProcessServerMonitorIngest";
+import KubernetesCostIngestService from "../../Services/KubernetesCostIngestService";
 import { processIncomingRequestFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
@@ -109,6 +111,7 @@ if (DisableQueueWorkers) {
         TelemetryType.Profiles,
         TelemetryType.Syslog,
         TelemetryType.FluentLogs,
+        TelemetryType.KubernetesCostIngest,
       ].includes(jobData.type);
 
       const dedupTokenBase: string = String(
@@ -225,6 +228,10 @@ if (DisableQueueWorkers) {
                   await processIncomingEmailFromQueue(jobData.probeIngest);
                 } else if (jobData.probeIngest.jobType === "snmp-trap") {
                   await processSnmpTrapFromQueue(jobData.probeIngest);
+                } else if (
+                  jobData.probeIngest.jobType === "network-device-walk"
+                ) {
+                  await processNetworkDeviceWalkFromQueue(jobData.probeIngest);
                 } else {
                   await processProbeFromQueue(jobData.probeIngest);
                 }
@@ -261,6 +268,15 @@ if (DisableQueueWorkers) {
               logger.debug(
                 `Successfully processed telemetry monitor evaluation job`,
               );
+              break;
+
+            case TelemetryType.KubernetesCostIngest:
+              if (jobData.kubernetesCostIngest) {
+                await KubernetesCostIngestService.processFromQueue(
+                  jobData.kubernetesCostIngest,
+                );
+              }
+              logger.debug(`Successfully processed kubernetes cost ingest job`);
               break;
 
             default:

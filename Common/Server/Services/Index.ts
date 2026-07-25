@@ -44,6 +44,12 @@ import NetworkDeviceOwnerRuleService from "./NetworkDeviceOwnerRuleService";
 import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
 import NetworkDeviceDiscoveryScanService from "./NetworkDeviceDiscoveryScanService";
 import NetworkInterfaceService from "./NetworkInterfaceService";
+import NetworkSiteService from "./NetworkSiteService";
+import NetworkSiteTypeService from "./NetworkSiteTypeService";
+import NetworkEndpointService from "./NetworkEndpointService";
+import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
+import NetworkSiteLinkService from "./NetworkSiteLinkService";
+import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
 import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
@@ -201,6 +207,7 @@ import TelemetryExceptionService from "./TelemetryExceptionService";
 import TelemetryEntityService from "./TelemetryEntityService";
 import TelemetryEntityRelationshipService from "./TelemetryEntityRelationshipService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
+import KubernetesCostAllocationService from "./KubernetesCostAllocationService";
 import ScheduledMaintenanceTemplateService from "./ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerTeamService from "./ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenanceTemplateOwnerUserService";
@@ -238,6 +245,11 @@ import IncidentEpisodePublicNoteService from "./IncidentEpisodePublicNoteService
 import AlertGroupingRuleService from "./AlertGroupingRuleService";
 import IncidentSlaRuleService from "./IncidentSlaRuleService";
 import IncidentSlaService from "./IncidentSlaService";
+import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
+import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
+import SloHistoryService from "./SloHistoryService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import AlertReminderRuleService from "./AlertReminderRuleService";
 import ScheduledMaintenanceReminderRuleService from "./ScheduledMaintenanceReminderRuleService";
@@ -322,6 +334,12 @@ const services: Array<BaseService> = [
   NetworkDeviceLabelRuleService,
   NetworkDeviceDiscoveryScanService,
   NetworkInterfaceService,
+  NetworkSiteService,
+  NetworkSiteTypeService,
+  NetworkEndpointService,
+  NetworkSiteStatusTimelineService,
+  NetworkSiteLinkService,
+  NetworkSiteAssignmentRuleService,
   PodmanHostService,
   ProxmoxClusterService,
   DockerSwarmClusterService,
@@ -506,6 +524,10 @@ const services: Array<BaseService> = [
   AlertGroupingRuleService,
   IncidentSlaRuleService,
   IncidentSlaService,
+  ServiceLevelObjectiveService,
+  ServiceLevelObjectiveBurnRateRuleService,
+  ServiceLevelObjectiveOwnerUserService,
+  ServiceLevelObjectiveOwnerTeamService,
   IncidentReminderRuleService,
   AlertReminderRuleService,
   ScheduledMaintenanceReminderRuleService,
@@ -531,6 +553,7 @@ export const AnalyticsServices: Array<
   SpanService,
   MetricService,
   MutableMetricService,
+  SloHistoryService,
   /*
    * Materialized-view target tables. The auto-create flow runs
    * `CREATE TABLE IF NOT EXISTS` for these, idempotent with the legacy
@@ -543,6 +566,7 @@ export const AnalyticsServices: Array<
   MetricItemAggMV1mByContainerService,
   MetricBaselineService,
   ExceptionInstanceService,
+  KubernetesCostAllocationService,
   MonitorLogService,
   NetworkFlowService,
   ProfileService,

@@ -16,14 +16,14 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorProbe, {
-  MonitorStepProbeResponse,
-} from "Common/Models/DatabaseModels/MonitorProbe";
-import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import NetworkDeviceWalkUtil from "Common/Server/Utils/Monitor/NetworkDeviceWalkUtil";
+import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeService from "Common/Server/Services/ProbeService";
+import SnmpTrapLogWriter from "../../Services/SnmpTrapLogWriter";
 import { JSONObject } from "Common/Types/JSON";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
@@ -74,14 +74,16 @@ export async function processProbeFromQueue(
 /*
  * Fans an SNMP trap out to the SNMP monitors it belongs to: monitors that
  * are (a) assigned to the probe that received the trap and (b) configured
- * with a hostname equal to the trap's source IP address. Each match gets an
- * event-driven ProbeMonitorResponse carrying only snmpTrapResponse —
- * MonitorResource evaluates it against trap criteria without touching the
- * monitor's check state.
+ * with a hostname matching the trap's source IP address (exact match, or
+ * via the cached-DNS fallback for devices registered by name). Each match
+ * gets an event-driven ProbeMonitorResponse carrying only snmpTrapResponse
+ * — MonitorResource evaluates it against trap criteria without touching
+ * the monitor's check state.
  *
- * Note: matching is by exact string comparison between the monitor's
- * configured hostname and the trap source IP. Monitors configured with a
- * DNS name will not match traps; configure the device's IP to use traps.
+ * Every trap is also persisted to the telemetry Log table (one row per
+ * matched device; unmatched traps land in the probe's project when the
+ * probe is project-scoped) so trap history is queryable — see
+ * SnmpTrapLogWriter.
  */
 export async function processSnmpTrapFromQueue(
   jobData: ProbeIngestJobData,
@@ -110,46 +112,47 @@ export async function processSnmpTrapFromQueue(
 
   const probeId: ObjectID = new ObjectID(probeIdAsString);
 
-  // Monitors this probe is assigned to.
-  const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy({
-    query: {
-      probeId: probeId,
-    },
-    select: {
-      monitorId: true,
-    },
-    limit: LIMIT_MAX,
-    skip: 0,
-    props: {
-      isRoot: true,
-    },
-  });
-
-  const monitorIds: Array<ObjectID> = monitorProbes
-    .map((monitorProbe: MonitorProbe) => {
-      return monitorProbe.monitorId;
-    })
-    .filter((monitorId: ObjectID | undefined): monitorId is ObjectID => {
-      return Boolean(monitorId);
-    });
-
-  if (monitorIds.length === 0) {
-    logger.debug(
-      `SNMP trap from ${snmpTrap.sourceIpAddress}: probe ${probeId.toString()} has no monitors. Dropping.`,
-    );
-    return;
-  }
-
   /*
    * Traps are matched through the NetworkDevice inventory: devices polled
-   * by this probe whose hostname equals the trap source IP. Monitors then
-   * match by referencing one of those devices.
+   * by this probe whose hostname matches the trap source IP. Monitors then
+   * match by referencing one of those devices. Resolved before the monitor
+   * lookup so trap persistence happens even when the probe has no monitors.
    */
   const matchingDevices: Array<NetworkDevice> =
     await NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
       probeId: probeId,
       sourceIpAddress: snmpTrap.sourceIpAddress,
+      select: {
+        name: true,
+      },
     });
+
+  // Persist trap history first — it must not depend on monitor matching.
+  if (matchingDevices.length > 0) {
+    await SnmpTrapLogWriter.writeTrapLogRows({
+      snmpTrap: snmpTrap,
+      probeId: probeId,
+      devices: matchingDevices,
+    });
+  } else {
+    const probe: Probe | null = await ProbeService.findOneById({
+      id: probeId,
+      select: {
+        projectId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (probe?.projectId) {
+      await SnmpTrapLogWriter.writeUnmatchedTrapLogRow({
+        snmpTrap: snmpTrap,
+        probeId: probeId,
+        projectId: probe.projectId,
+      });
+    }
+  }
 
   const matchingDeviceIds: Set<string> = new Set(
     matchingDevices
@@ -161,34 +164,42 @@ export async function processSnmpTrapFromQueue(
 
   if (matchingDeviceIds.size === 0) {
     logger.debug(
-      `SNMP trap from ${snmpTrap.sourceIpAddress}: no NetworkDevice on probe ${probeId.toString()} matches this source. Dropping.`,
+      `SNMP trap from ${snmpTrap.sourceIpAddress}: no NetworkDevice on probe ${probeId.toString()} matches this source. Trap logged as unmatched where possible.`,
     );
     return;
   }
 
-  const monitors: Array<Monitor> = await MonitorService.findBy({
-    query: {
-      _id: QueryHelper.any(
-        monitorIds.map((monitorId: ObjectID) => {
-          return monitorId.toString();
-        }),
-      ),
-      monitorType: MonitorType.NetworkDevice,
-    },
-    select: {
-      _id: true,
-      projectId: true,
-      monitorSteps: true,
-      disableActiveMonitoring: true,
-      disableActiveMonitoringBecauseOfManualIncident: true,
-      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
-    },
-    limit: LIMIT_MAX,
-    skip: 0,
-    props: {
-      isRoot: true,
-    },
-  });
+  /*
+   * Network Device monitors are not probe-executed (no MonitorProbe rows) —
+   * they are the alerting layer over device walks and traps. Match monitors
+   * the same way the walk fan-out does: every Network Device monitor in the
+   * matched devices' projects whose steps reference a matched device.
+   */
+  const projectIds: Set<string> = new Set(
+    matchingDevices
+      .map((device: NetworkDevice) => {
+        return device.projectId?.toString() || "";
+      })
+      .filter(Boolean),
+  );
+
+  const monitors: Array<Monitor> = [];
+
+  for (const projectIdAsString of projectIds) {
+    monitors.push(
+      ...(await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
+        projectId: new ObjectID(projectIdAsString),
+        deviceIds: Array.from(matchingDeviceIds),
+      })),
+    );
+  }
+
+  if (monitors.length === 0) {
+    logger.debug(
+      `SNMP trap from ${snmpTrap.sourceIpAddress}: no Network Device monitor references the matched device(s). Trap logged; skipping criteria evaluation.`,
+    );
+    return;
+  }
 
   let matchedSteps: number = 0;
 
@@ -243,6 +254,61 @@ export async function processSnmpTrapFromQueue(
   logger.debug(
     `SNMP trap ${snmpTrap.trapOid} from ${snmpTrap.sourceIpAddress}: matched ${matchedSteps} monitor step(s) across ${monitors.length} SNMP monitor(s) on probe ${probeId.toString()}.`,
   );
+}
+
+/*
+ * Processes one device walk reported by the device's assigned probe: rates,
+ * inventory, device metrics, and fan-out to the monitors alerting on the
+ * device. See NetworkDeviceWalkUtil for the pipeline itself.
+ */
+export async function processNetworkDeviceWalkFromQueue(
+  jobData: ProbeIngestJobData,
+): Promise<void> {
+  const requestBody: JSONObject | undefined = jobData.networkDeviceWalk;
+
+  if (!requestBody) {
+    throw new BadDataException("Network device walk data not found");
+  }
+
+  const probeIdAsString: string | undefined = requestBody["probeId"] as
+    | string
+    | undefined;
+  const networkDeviceIdAsString: string | undefined = requestBody[
+    "networkDeviceId"
+  ] as string | undefined;
+
+  if (!probeIdAsString || !networkDeviceIdAsString) {
+    throw new BadDataException(
+      "Network device walk is missing probeId or networkDeviceId",
+    );
+  }
+
+  /*
+   * Validate the RAW value: JSONFunctions.deserialize(undefined) returns
+   * {}, which is truthy — checking the deserialized result would make this
+   * guard dead code.
+   */
+  if (!requestBody["snmpResponse"]) {
+    throw new BadDataException("Network device walk has no snmpResponse");
+  }
+
+  const snmpResponse: SnmpMonitorResponse = JSONFunctions.deserialize(
+    requestBody["snmpResponse"] as JSONObject,
+  ) as unknown as SnmpMonitorResponse;
+
+  const monitoredAtValue: unknown = requestBody["monitoredAt"];
+  const monitoredAt: Date = monitoredAtValue
+    ? new Date(monitoredAtValue as string)
+    : OneUptimeDate.getCurrentDate();
+
+  await NetworkDeviceWalkUtil.processWalkResult({
+    probeId: new ObjectID(probeIdAsString),
+    networkDeviceId: new ObjectID(networkDeviceIdAsString),
+    snmpResponse: snmpResponse,
+    monitoredAt: isNaN(monitoredAt.getTime())
+      ? OneUptimeDate.getCurrentDate()
+      : monitoredAt,
+  });
 }
 
 export async function processIncomingEmailFromQueue(

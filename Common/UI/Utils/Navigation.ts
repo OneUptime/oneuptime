@@ -52,6 +52,16 @@ abstract class Navigation {
     return pathes?.[0]?.route.path || "";
   }
 
+  /**
+   * The raw query string of the current URL, including the leading "?" when
+   * non-empty (i.e. exactly `window.location.search`). Reading it through
+   * Navigation keeps callers testable and consistent with
+   * {@link setQueryString}, which also works off `window.location`.
+   */
+  public static getQueryString(): string {
+    return window.location.search;
+  }
+
   public static getQueryStringByName(paramName: string): string | null {
     const urlSearchParams: URLSearchParams = new URLSearchParams(
       window.location.search,

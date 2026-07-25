@@ -2,6 +2,7 @@ import NetworkDeviceGraph from "./NetworkDeviceGraph";
 import NetworkDeviceDetailPanel from "./NetworkDeviceDetailPanel";
 import NetworkLinkDetailPanel from "./NetworkLinkDetailPanel";
 import { edgeKeyForEdge } from "./NetworkTopologyMeta";
+import { isEndpointNode } from "../NetworkDevice/EndpointNodeUtil";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -12,6 +13,10 @@ import NetworkTopology, {
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import Card from "Common/UI/Components/Card/Card";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Input from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
@@ -46,14 +51,39 @@ import React, {
  * it.
  */
 
-const EMPTY_TOPOLOGY: NetworkTopology = { nodes: [], edges: [] };
+export interface ComponentProps {
+  /*
+   * Scope the topology to one network site's devices. Omitted, the whole
+   * project's map is shown.
+   */
+  siteId?: string | undefined;
+  /*
+   * "tiered" renders routers → switches → endpoints in layers (the unit
+   * site view); "force" (the default) keeps the organic layout.
+   */
+  layoutMode?: "force" | "tiered" | undefined;
+}
+
+/*
+ * NetworkTopology plus the endpoint-loss indicators the topology endpoint
+ * reports alongside the graph.
+ */
+interface TopologyViewData extends NetworkTopology {
+  endpointsTruncated?: boolean | undefined;
+  droppedEndpointCount?: number | undefined;
+}
+
+const EMPTY_TOPOLOGY: TopologyViewData = { nodes: [], edges: [] };
 
 const REFRESH_INTERVAL_MS: number = 60 * 1000;
+
+// Sentinel for the VLAN filter's default "show everything" option.
+const ALL_VLANS: string = "all";
 
 // Narrow an untyped API payload into a NetworkTopology, dropping malformed rows.
 const parseTopologyResponse: (
   data: JSONObject | undefined,
-) => NetworkTopology = (data: JSONObject | undefined): NetworkTopology => {
+) => TopologyViewData = (data: JSONObject | undefined): TopologyViewData => {
   const rawNodes: JSONArray = Array.isArray(data?.["nodes"])
     ? (data!["nodes"] as JSONArray)
     : [];
@@ -85,15 +115,30 @@ const parseTopologyResponse: (
       return e !== null;
     });
 
-  return { nodes, edges, isTruncated: Boolean(data?.["isTruncated"]) };
+  const droppedEndpointCountRaw: unknown = data?.["droppedEndpointCount"];
+
+  return {
+    nodes,
+    edges,
+    isTruncated: Boolean(data?.["isTruncated"]),
+    endpointsTruncated: Boolean(data?.["endpointsTruncated"]),
+    droppedEndpointCount:
+      typeof droppedEndpointCountRaw === "number" &&
+      Number.isFinite(droppedEndpointCountRaw)
+        ? droppedEndpointCountRaw
+        : undefined,
+  };
 };
 
-const NetworkTopologyLiveView: FunctionComponent = (): ReactElement => {
+const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const { translateString } = useTranslateValue();
-  const [topology, setTopology] = useState<NetworkTopology>(EMPTY_TOPOLOGY);
+  const [topology, setTopology] = useState<TopologyViewData>(EMPTY_TOPOLOGY);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [searchText, setSearchText] = useState<string>("");
+  const [selectedVlan, setSelectedVlan] = useState<string>(ALL_VLANS);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeKey, setSelectedEdgeKey] = useState<string | null>(null);
 
@@ -107,52 +152,61 @@ const NetworkTopologyLiveView: FunctionComponent = (): ReactElement => {
   }, []);
 
   const fetchTopology: (isBackgroundRefresh: boolean) => Promise<void> =
-    useCallback(async (isBackgroundRefresh: boolean): Promise<void> => {
-      if (!isBackgroundRefresh) {
-        setIsLoading(true);
-        setError("");
-      }
-
-      try {
-        const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
-          "/network-device/topology",
-        );
-
-        /*
-         * Project scoping is attached automatically via the tenantid header
-         * that ModelAPI.getCommonHeaders() sets from the current project.
-         */
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post<JSONObject>({
-            url,
-            data: {
-              projectId: ProjectUtil.getCurrentProjectId()?.toString(),
-            },
-            headers: { ...ModelAPI.getCommonHeaders() },
-          });
-
-        if (response instanceof HTTPErrorResponse) {
-          throw response;
-        }
-
-        if (isMounted.current) {
-          setTopology(parseTopologyResponse(response.data));
+    useCallback(
+      async (isBackgroundRefresh: boolean): Promise<void> => {
+        if (!isBackgroundRefresh) {
+          setIsLoading(true);
           setError("");
         }
-      } catch (err) {
-        /*
-         * A failed background poll keeps showing the last good graph —
-         * only a foreground load surfaces the error state.
-         */
-        if (isMounted.current && !isBackgroundRefresh) {
-          setError(API.getFriendlyMessage(err));
-        }
-      }
 
-      if (isMounted.current && !isBackgroundRefresh) {
-        setIsLoading(false);
-      }
-    }, []);
+        try {
+          const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+            "/network-device/topology",
+          );
+
+          /*
+           * Project scoping is attached automatically via the tenantid header
+           * that ModelAPI.getCommonHeaders() sets from the current project.
+           */
+          const requestBody: JSONObject = {
+            projectId: ProjectUtil.getCurrentProjectId()?.toString(),
+          };
+          if (props.siteId) {
+            // Scope the graph to one site's devices (plus their endpoints).
+            requestBody["siteId"] = props.siteId;
+          }
+
+          const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await API.post<JSONObject>({
+              url,
+              data: requestBody,
+              headers: { ...ModelAPI.getCommonHeaders() },
+            });
+
+          if (response instanceof HTTPErrorResponse) {
+            throw response;
+          }
+
+          if (isMounted.current) {
+            setTopology(parseTopologyResponse(response.data));
+            setError("");
+          }
+        } catch (err) {
+          /*
+           * A failed background poll keeps showing the last good graph —
+           * only a foreground load surfaces the error state.
+           */
+          if (isMounted.current && !isBackgroundRefresh) {
+            setError(API.getFriendlyMessage(err));
+          }
+        }
+
+        if (isMounted.current && !isBackgroundRefresh) {
+          setIsLoading(false);
+        }
+      },
+      [props.siteId],
+    );
 
   useEffect(() => {
     fetchTopology(false).catch((err: Error) => {
@@ -171,16 +225,95 @@ const NetworkTopologyLiveView: FunctionComponent = (): ReactElement => {
     };
   }, [fetchTopology]);
 
+  /*
+   * VLAN filter options: the distinct VLANs the current payload's endpoint
+   * nodes carry, plus the "All VLANs" default. Device and unmanaged nodes
+   * never contribute — only discovered endpoints know their VLAN.
+   */
+  const vlanOptions: Array<DropdownOption> = useMemo(() => {
+    const vlanIds: Set<number> = new Set<number>();
+    for (const node of topology.nodes) {
+      if (isEndpointNode(node) && typeof node.vlanId === "number") {
+        vlanIds.add(node.vlanId);
+      }
+    }
+    const sorted: Array<number> = Array.from(vlanIds).sort(
+      (a: number, b: number) => {
+        return a - b;
+      },
+    );
+    return [
+      {
+        value: ALL_VLANS,
+        label: translateString("All VLANs") || "All VLANs",
+      },
+      ...sorted.map((vlanId: number): DropdownOption => {
+        return { value: vlanId.toString(), label: `VLAN ${vlanId}` };
+      }),
+    ];
+  }, [topology, translateString]);
+
+  /*
+   * If the selected VLAN disappears from a refresh (its endpoints aged
+   * out), fall back to All VLANs — otherwise the filter would keep hiding
+   * every endpoint while the dropdown claims "All VLANs", with no way to
+   * clear it once the dropdown unmounts.
+   */
+  useEffect(() => {
+    if (
+      selectedVlan !== ALL_VLANS &&
+      !vlanOptions.some((option: DropdownOption) => {
+        return option.value === selectedVlan;
+      })
+    ) {
+      setSelectedVlan(ALL_VLANS);
+    }
+  }, [vlanOptions, selectedVlan]);
+
+  /*
+   * The topology the graph and panels actually see. A selected VLAN hides
+   * endpoint nodes outside it (including endpoints with no known VLAN) and
+   * the FDB edges that hang off them; device and unmanaged nodes are never
+   * hidden, so the physical fabric stays visible for context.
+   */
+  const visibleTopology: TopologyViewData = useMemo(() => {
+    if (selectedVlan === ALL_VLANS) {
+      return topology;
+    }
+    const selectedVlanId: number = Number(selectedVlan);
+    const hiddenNodeIds: Set<string> = new Set<string>();
+    for (const node of topology.nodes) {
+      if (isEndpointNode(node) && node.vlanId !== selectedVlanId) {
+        hiddenNodeIds.add(node.id);
+      }
+    }
+    if (hiddenNodeIds.size === 0) {
+      return topology;
+    }
+    return {
+      ...topology,
+      nodes: topology.nodes.filter((node: NetworkTopologyNode) => {
+        return !hiddenNodeIds.has(node.id);
+      }),
+      edges: topology.edges.filter((edge: NetworkTopologyEdge) => {
+        return (
+          !hiddenNodeIds.has(edge.fromNodeId) &&
+          !hiddenNodeIds.has(edge.toNodeId)
+        );
+      }),
+    };
+  }, [topology, selectedVlan]);
+
   const nodeById: Map<string, NetworkTopologyNode> = useMemo(() => {
     const map: Map<string, NetworkTopologyNode> = new Map<
       string,
       NetworkTopologyNode
     >();
-    for (const node of topology.nodes) {
+    for (const node of visibleTopology.nodes) {
       map.set(node.id, node);
     }
     return map;
-  }, [topology]);
+  }, [visibleTopology]);
 
   /*
    * Selection stores stable keys, not objects — after a background refresh
@@ -194,11 +327,11 @@ const NetworkTopologyLiveView: FunctionComponent = (): ReactElement => {
       return null;
     }
     return (
-      topology.edges.find((edge: NetworkTopologyEdge) => {
+      visibleTopology.edges.find((edge: NetworkTopologyEdge) => {
         return edgeKeyForEdge(edge) === selectedEdgeKey;
       }) || null
     );
-  }, [topology, selectedEdgeKey]);
+  }, [visibleTopology, selectedEdgeKey]);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -211,7 +344,7 @@ const NetworkTopologyLiveView: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Network Topology"
-      description="A live map of your network built from LLDP and CDP neighbor data. Managed devices are filled; unmanaged peers are hollow. Red links have an interface down, amber links are running hot. Click a device or link for details."
+      description="A live map of your network built from LLDP and CDP neighbor data. Managed devices are filled; unmanaged peers are hollow; endpoints discovered from ARP/FDB are small violet squares on dashed links. Red links have an interface down, amber links are running hot. Click a device or link for details."
       buttons={[
         {
           title: "Refresh",
@@ -239,6 +372,25 @@ const NetworkTopologyLiveView: FunctionComponent = (): ReactElement => {
             }}
           />
         </div>
+        {vlanOptions.length > 1 ? (
+          <div className="md:w-48" data-testid="network-topology-vlan-filter">
+            <Dropdown
+              value={
+                vlanOptions.find((option: DropdownOption) => {
+                  return option.value === selectedVlan;
+                }) || vlanOptions[0]
+              }
+              options={vlanOptions}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                setSelectedVlan(value ? value.toString() : ALL_VLANS);
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
         <p className="text-xs text-gray-500 md:ml-auto">
           {translateString(
             "Updates automatically every minute. Link color shows state; width shows utilization.",
@@ -258,9 +410,29 @@ const NetworkTopologyLiveView: FunctionComponent = (): ReactElement => {
         <></>
       )}
 
+      {topology.endpointsTruncated ? (
+        <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-800">
+          {translateString("Endpoint list truncated — showing first 2000") ||
+            "Endpoint list truncated — showing first 2000"}
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {topology.droppedEndpointCount && topology.droppedEndpointCount > 0 ? (
+        <p className="mb-3 text-xs text-gray-500">
+          {`${topology.droppedEndpointCount} ${
+            topology.droppedEndpointCount === 1 ? "endpoint" : "endpoints"
+          } not shown (no attached switch in view)`}
+        </p>
+      ) : (
+        <></>
+      )}
+
       <NetworkDeviceGraph
-        topology={topology}
+        topology={visibleTopology}
         searchText={searchText}
+        layoutMode={props.layoutMode || "force"}
         onNodeClick={(node: NetworkTopologyNode) => {
           /*
            * Panels are exclusive — SideOver has no backdrop, so two would
@@ -288,7 +460,7 @@ const NetworkTopologyLiveView: FunctionComponent = (): ReactElement => {
       {selectedNode ? (
         <NetworkDeviceDetailPanel
           node={selectedNode}
-          edges={topology.edges}
+          edges={visibleTopology.edges}
           nodeById={nodeById}
           onClose={() => {
             setSelectedNodeId(null);

@@ -14,6 +14,8 @@ import ScheduledMaintenanceOwnerTeamService from "../../../Services/ScheduledMai
 import ScheduledMaintenanceOwnerUserService from "../../../Services/ScheduledMaintenanceOwnerUserService";
 import ServiceOwnerTeamService from "../../../Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../Services/ServiceOwnerUserService";
+import ServiceLevelObjectiveOwnerTeamService from "../../../Services/ServiceLevelObjectiveOwnerTeamService";
+import ServiceLevelObjectiveOwnerUserService from "../../../Services/ServiceLevelObjectiveOwnerUserService";
 import HostOwnerTeamService from "../../../Services/HostOwnerTeamService";
 import HostOwnerUserService from "../../../Services/HostOwnerUserService";
 import DockerHostOwnerTeamService from "../../../Services/DockerHostOwnerTeamService";
@@ -142,6 +144,19 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       ownerUserService: RunbookOwnerUserService,
       ownerTeamService: RunbookOwnerTeamService,
       fkColumn: "runbookId",
+    },
+  ],
+  [
+    /*
+     * Burn-rate rules are @OwnedThrough their SLO, so this entry is what
+     * lets an Owned-scoped user reach both the SLO and its rules. A missing
+     * entry resolves to "owns nothing" silently (see OwnedScopePermission).
+     */
+    "ServiceLevelObjective",
+    {
+      ownerUserService: ServiceLevelObjectiveOwnerUserService,
+      ownerTeamService: ServiceLevelObjectiveOwnerTeamService,
+      fkColumn: "serviceLevelObjectiveId",
     },
   ],
   [

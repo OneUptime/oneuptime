@@ -464,6 +464,11 @@ import { AddMarketingConversionTable1784298000000 } from "./1784298000000-AddMar
 import { AddExceptionTriageAndPrivacyColumns1784640000000 } from "./1784640000000-AddExceptionTriageAndPrivacyColumns";
 import { AddInstanceVersionAndLatestReleaseColumns1784659816363 } from "./1784659816363-AddInstanceVersionAndLatestReleaseColumns";
 import { AddEnterpriseLicenseEvaluationColumns1784705487674 } from "./1784705487674-AddEnterpriseLicenseEvaluationColumns";
+import { AddNetworkSiteHierarchyAndEndpoints1784757142154 } from "./1784757142154-AddNetworkSiteHierarchyAndEndpoints";
+import { AddNetworkSiteAlerting1784897317860 } from "./1784897317860-AddNetworkSiteAlerting";
+import { AddNetworkDevicePollingColumns1784970388777 } from "./1784970388777-AddNetworkDevicePollingColumns";
+import { AddNetworkSiteTypeTable1784986826214 } from "./1784986826214-AddNetworkSiteTypeTable";
+import { AddServiceLevelObjective1784987015619 } from "./1784987015619-AddServiceLevelObjective";
 
 export default [
   InitialMigration,
@@ -932,4 +937,9 @@ export default [
   AddExceptionTriageAndPrivacyColumns1784640000000,
   AddInstanceVersionAndLatestReleaseColumns1784659816363,
   AddEnterpriseLicenseEvaluationColumns1784705487674,
+  AddNetworkSiteHierarchyAndEndpoints1784757142154,
+  AddNetworkSiteAlerting1784897317860,
+  AddNetworkDevicePollingColumns1784970388777,
+  AddNetworkSiteTypeTable1784986826214,
+  AddServiceLevelObjective1784987015619,
 ];

@@ -49,6 +49,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import ExceptionRow from "./ExceptionRow";
+import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 
@@ -342,15 +343,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       params.set("status", status);
     }
 
-    const query: string = params.toString();
-    const nextSearch: string = query ? `?${query}` : "";
-    if (nextSearch !== window.location.search) {
-      window.history.replaceState(
-        null,
-        "",
-        `${window.location.pathname}${nextSearch}${window.location.hash}`,
-      );
-    }
+    writeTelemetryViewerUrlState(Object.fromEntries(params.entries()));
   }, [
     submittedSearch,
     activeFilters,

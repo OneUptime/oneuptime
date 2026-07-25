@@ -33,6 +33,21 @@ export interface MoreMenuItem {
   iconColor?: string; // Tailwind color name like "blue", "purple", "amber"
   category?: string; // Category for grouping items (e.g., "Essentials", "Observability")
   activeRoute?: Route | undefined; // Route to check for active state
+  additionalActiveRoutes?: Array<Route> | undefined; // Extra routes that also mark this item active
+}
+
+/*
+ * One menu item can own several route prefixes (e.g. a merged "Network" item
+ * spanning /network-devices and /network-sites) — check them all.
+ */
+export function isMoreMenuItemActive(item: MoreMenuItem): boolean {
+  const routesToCheck: Array<Route> = [
+    item.activeRoute || item.route,
+    ...(item.additionalActiveRoutes || []),
+  ];
+  return routesToCheck.some((route: Route) => {
+    return Navigation.isStartWith(route);
+  });
 }
 
 export interface ComponentProps {
@@ -254,8 +269,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   // Find active item in more menu items (needed for breadcrumb)
   const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems?.find(
     (item: MoreMenuItem) => {
-      const routeToCheck: Route = item.activeRoute || item.route;
-      return Navigation.isStartWith(routeToCheck);
+      return isMoreMenuItemActive(item);
     },
   );
 

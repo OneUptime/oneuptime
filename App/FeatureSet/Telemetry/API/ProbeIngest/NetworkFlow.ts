@@ -142,6 +142,8 @@ async function processFlowRecords(
           srcPort: flowRecord.sourcePort,
           dstPort: flowRecord.destinationPort,
           protocol: flowRecord.protocolNumber,
+          inputInterfaceIndex: flowRecord.inputInterfaceIndex ?? 0,
+          outputInterfaceIndex: flowRecord.outputInterfaceIndex ?? 0,
           octets: flowRecord.octets,
           packets: flowRecord.packets,
           flowStartAt: OneUptimeDate.toClickhouseDateTime64(

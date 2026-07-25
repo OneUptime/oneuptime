@@ -1,6 +1,18 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+/*
+ * The option and operator types live in a React-free module so plain
+ * TypeScript consumers — FacetSelectionState, and the jest tests under
+ * App/Tests that import it — don't drag React into App's own compile, where
+ * React is not a dependency. They are re-exported below so existing
+ * `from "./FilterChipDropdown"` imports keep working.
+ */
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+  FILTER_OPERATOR_LABELS,
+} from "./FilterChipDropdownTypes";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -10,50 +22,14 @@ import React, {
   useState,
 } from "react";
 
-export interface FilterChipDropdownOption {
-  value: string;
-  label: string;
-  /** Optional sub-label shown smaller below the main label. */
-  sublabel?: string | undefined;
-  /** Optional icon shown as a fallback to the left of the label. */
-  icon?: IconProp | undefined;
-  /**
-   * Initials shown in a colored circle as the option avatar. Takes precedence
-   * over `icon`. The background color is hashed from `value` unless `color`
-   * is also provided.
-   */
-  initials?: string | undefined;
-  /**
-   * Explicit color for the avatar dot (CSS color string — hex, rgb, named).
-   * When provided without `initials`, renders as a small solid circle
-   * (the right call for labels / status colors). With `initials`, the dot
-   * gets the color as its background.
-   */
-  color?: string | undefined;
-  /** Optional group key for sectioning options under a heading. */
-  group?: string | undefined;
-}
-
-/**
- * Filter operator that the chip surfaces to the user.
- * - "is" / "is_not" — match against the selected options
- * - "is_empty" / "is_not_empty" — match rows with no value / any value
- *   (no option selection required)
- */
-export type FilterOperator = "is" | "is_not" | "is_empty" | "is_not_empty";
-
-export const FILTER_OPERATOR_LABELS: Record<FilterOperator, string> = {
-  is: "is",
-  is_not: "is not",
-  is_empty: "is empty",
-  is_not_empty: "is not empty",
-};
-
-export const isValueOperator: (op: FilterOperator) => boolean = (
-  op: FilterOperator,
-): boolean => {
-  return op === "is" || op === "is_not";
-};
+export {
+  FILTER_OPERATOR_LABELS,
+  isValueOperator,
+} from "./FilterChipDropdownTypes";
+export type {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "./FilterChipDropdownTypes";
 
 export interface ComponentProps {
   label: string;
