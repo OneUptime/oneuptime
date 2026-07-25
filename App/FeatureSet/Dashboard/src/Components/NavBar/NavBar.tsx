@@ -277,25 +277,18 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: resourcesCategory,
     },
     {
-      title: t("navbar.items.networkDevicesTitle"),
-      description: t("navbar.items.networkDevicesDescription"),
-      // Land on the fleet Overview; the whole section stays highlighted.
+      title: t("navbar.items.networkTitle", "Network"),
+      description: t(
+        "navbar.items.networkDescription",
+        "Monitor network devices via SNMP and group them into sites.",
+      ),
+      // Land on the fleet Overview; devices and sites both keep this highlighted.
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.NETWORK_OVERVIEW] as Route,
       ),
       activeRoute: RouteMap[PageMap.NETWORK_DEVICES],
+      additionalActiveRoutes: [RouteMap[PageMap.NETWORK_SITES] as Route],
       icon: IconProp.Signal,
-      iconColor: "indigo",
-      category: resourcesCategory,
-    },
-    {
-      title: t("navbar.items.networkSitesTitle"),
-      description: t("navbar.items.networkSitesDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.NETWORK_SITES] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.NETWORK_SITES],
-      icon: IconProp.Map,
       iconColor: "indigo",
       category: resourcesCategory,
     },
