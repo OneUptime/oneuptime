@@ -56,6 +56,18 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: essentialsCategory,
     },
     {
+      title: t("navbar.items.slosTitle", "SLOs"),
+      description: t(
+        "navbar.items.slosDescription",
+        "Service level objectives and error budgets.",
+      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SLOS] as Route),
+      activeRoute: RouteMap[PageMap.SLOS],
+      icon: IconProp.Gauge,
+      iconColor: "violet",
+      category: essentialsCategory,
+    },
+    {
       title: t("navbar.items.statusPagesTitle"),
       description: t("navbar.items.statusPagesDescription"),
       route: RouteUtil.populateRouteParams(

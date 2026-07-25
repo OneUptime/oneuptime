@@ -32,6 +32,8 @@ enum EmailTemplateType {
   MonitorProbesStatus = "MonitorProbesStatus.hbs",
   MonitorOwnerStatusChanged = "MonitorOwnerStatusChanged.hbs",
 
+  SloOwnerStatusChanged = "SloOwnerStatusChanged.hbs",
+
   IncidentOwnerAdded = "IncidentOwnerAdded.hbs",
   IncidentOwnerStateChanged = "IncidentOwnerStateChanged.hbs",
   IncidentOwnerNotePosted = "IncidentOwnerNotePosted.hbs",

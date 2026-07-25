@@ -20,6 +20,8 @@ import "./Jobs/IncidentMembers/SendMemberAddedNotification";
 // Incident SLA
 import "./Jobs/IncidentSla/CheckSlaBreaches";
 import "./Jobs/IncidentSla/SendNoteReminders";
+import "./Jobs/Slo/EvaluateSlos";
+import "./Jobs/SloOwners/SendOwnerAddedNotification";
 
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";

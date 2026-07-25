@@ -68,9 +68,13 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.VerificationCode]: "dashboard_link",
 };
 
-const templateIdByEventType: Record<
-  NotificationSettingEventType,
-  WhatsAppTemplateId
+/*
+ * Partial: not every notification event type has a WhatsApp template (e.g.
+ * SLO status changes). getWhatsAppTemplateIdForEventType throws for event
+ * types without a registered template.
+ */
+const templateIdByEventType: Partial<
+  Record<NotificationSettingEventType, WhatsAppTemplateId>
 > = {
   [NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION]:
     WhatsAppTemplateIds.IncidentCreatedOwnerNotification,

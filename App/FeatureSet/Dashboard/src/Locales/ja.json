@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "モニター",
       "monitorsDescription": "あらゆるリソースを監視。",
+      "slosTitle": "SLOs",
+      "slosDescription": "サービスレベル目標とエラーバジェット。",
       "statusPagesTitle": "ステータスページ",
       "statusPagesDescription": "リアルタイムのステータス更新。",
       "incidentsTitle": "インシデント",

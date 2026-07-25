@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "Moniteurs",
       "monitorsDescription": "Surveillez n'importe quelle ressource.",
+      "slosTitle": "SLOs",
+      "slosDescription": "Objectifs de niveau de service et budgets d'erreur.",
       "statusPagesTitle": "Pages de statut",
       "statusPagesDescription": "Mises à jour de statut en temps réel.",
       "incidentsTitle": "Incidents",

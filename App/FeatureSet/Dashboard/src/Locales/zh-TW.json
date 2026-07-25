@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "監測",
       "monitorsDescription": "監測任何資源。",
+      "slosTitle": "SLOs",
+      "slosDescription": "服務水準目標與錯誤預算。",
       "statusPagesTitle": "狀態頁面",
       "statusPagesDescription": "即時狀態更新。",
       "incidentsTitle": "事件",

@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "监控",
       "monitorsDescription": "监控任何资源。",
+      "slosTitle": "SLOs",
+      "slosDescription": "服务级别目标和错误预算。",
       "statusPagesTitle": "状态页面",
       "statusPagesDescription": "实时状态更新。",
       "incidentsTitle": "事件",

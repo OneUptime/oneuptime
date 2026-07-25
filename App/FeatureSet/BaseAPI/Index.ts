@@ -431,6 +431,21 @@ import IncidentSlaService, {
 import IncidentSlaRuleService, {
   Service as IncidentSlaRuleServiceType,
 } from "Common/Server/Services/IncidentSlaRuleService";
+import ServiceLevelObjectiveService, {
+  Service as ServiceLevelObjectiveServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveService";
+import ServiceLevelObjectiveBurnRateRuleService, {
+  Service as ServiceLevelObjectiveBurnRateRuleServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveOwnerUserService, {
+  Service as ServiceLevelObjectiveOwnerUserServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveOwnerUserService";
+import ServiceLevelObjectiveOwnerTeamService, {
+  Service as ServiceLevelObjectiveOwnerTeamServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveOwnerTeamService";
+import SloHistoryService, {
+  SloHistoryService as SloHistoryServiceType,
+} from "Common/Server/Services/SloHistoryService";
 
 import IncidentReminderRuleService, {
   Service as IncidentReminderRuleServiceType,
@@ -1055,6 +1070,11 @@ import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpi
 import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
+import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
@@ -2451,6 +2471,60 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<IncidentSlaRule, IncidentSlaRuleServiceType>(
         IncidentSlaRule,
         IncidentSlaRuleService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjective
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceLevelObjective, ServiceLevelObjectiveServiceType>(
+        ServiceLevelObjective,
+        ServiceLevelObjectiveService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveBurnRateRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveBurnRateRule,
+        ServiceLevelObjectiveBurnRateRuleServiceType
+      >(
+        ServiceLevelObjectiveBurnRateRule,
+        ServiceLevelObjectiveBurnRateRuleService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveOwnerUser
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveOwnerUser,
+        ServiceLevelObjectiveOwnerUserServiceType
+      >(
+        ServiceLevelObjectiveOwnerUser,
+        ServiceLevelObjectiveOwnerUserService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveOwnerTeam
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveOwnerTeam,
+        ServiceLevelObjectiveOwnerTeamServiceType
+      >(
+        ServiceLevelObjectiveOwnerTeam,
+        ServiceLevelObjectiveOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // SloHistory (ClickHouse — SLO evaluation history for charts)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<SloHistory, SloHistoryServiceType>(
+        SloHistory,
+        SloHistoryService,
       ).getRouter(),
     );
 

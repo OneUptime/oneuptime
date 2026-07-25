@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "Monitoren",
       "monitorsDescription": "Bewaak elke resource.",
+      "slosTitle": "SLOs",
+      "slosDescription": "Serviceniveaudoelstellingen en foutbudgetten.",
       "statusPagesTitle": "Statuspagina's",
       "statusPagesDescription": "Statusupdates in realtime.",
       "incidentsTitle": "Incidenten",

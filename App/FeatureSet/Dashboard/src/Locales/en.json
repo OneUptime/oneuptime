@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "Monitors",
       "monitorsDescription": "Monitor any resource.",
+      "slosTitle": "SLOs",
+      "slosDescription": "Service level objectives and error budgets.",
       "statusPagesTitle": "Status Pages",
       "statusPagesDescription": "Real-time status updates.",
       "incidentsTitle": "Incidents",
