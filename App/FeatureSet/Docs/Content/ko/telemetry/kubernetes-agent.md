@@ -2,9 +2,9 @@
 
 ## 개요
 
-OneUptime Kubernetes 에이전트는 클러스터에 OpenTelemetry 기반 컬렉터 파이프라인을 설치하는 사전 패키지화된 Helm 차트입니다. 노드, 파드, 컨테이너 및 클러스터 메트릭, Kubernetes 이벤트, 파드 로그를 제공하며, 기본적으로 활성화된 eBPF를 통해 애플리케이션 트레이스, HTTP RED 메트릭, 서비스 그래프 데이터 및 파드 간 네트워크 흐름 메트릭도 제공합니다. 코드 변경이나 SDK 없이 단 한 번의 `helm install`로 끝납니다.
+OneUptime Kubernetes 에이전트는 클러스터에 OpenTelemetry 기반 컬렉터 파이프라인을 설치하는 사전 패키지화된 Helm 차트입니다. 노드, 파드, 컨테이너 및 클러스터 메트릭, Kubernetes 이벤트, 파드 로그를 제공하며, 기본적으로 활성화된 eBPF를 통해 애플리케이션 트레이스, HTTP RED 메트릭, 서비스 그래프 데이터 및 파드 간 네트워크 흐름 메트릭도 제공합니다. `cost.enabled=true`를 설정하면 워크로드별 **비용 할당**(네임스페이스/워크로드/파드별 지출, 유휴 용량, 효율)도 전송합니다. 코드 변경이나 SDK 없이 단 한 번의 `helm install`로 끝납니다.
 
-이 페이지는 **설치 가이드**입니다. 에이전트가 수집한 데이터를 기반으로 Kubernetes 모니터와 알림을 구성하려면 [Kubernetes 에이전트 (모니터)](/docs/monitor/kubernetes-agent)를 참조하세요.
+이 페이지는 **설치 가이드**입니다. 에이전트가 수집한 데이터를 기반으로 Kubernetes 모니터와 알림을 구성하려면 [Kubernetes 에이전트 (모니터)](/docs/monitor/kubernetes-agent)를 참조하세요. 비용 관측 가능성에 대해서는 [Kubernetes 비용 관측 가능성](/docs/telemetry/kubernetes-cost)을 참조하세요.
 
 ## 사전 요구 사항
 
@@ -297,6 +297,21 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 > 관리형 Kubernetes 서비스(EKS, GKE, AKS)는 일반적으로 컨트롤 플레인 메트릭을 노출하지 않습니다. 자체 관리형 클러스터에 대해서만 이를 활성화하세요.
 
+### 비용 관측 가능성 활성화
+
+모든 네임스페이스, 워크로드, 파드에 실제로 얼마나 비용이 드는지 — 유휴 용량과 요청 대비 사용량 효율을 포함하여 — 클러스터의 **Costs** 페이지에서 확인하세요:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set cost.enabled=true
+```
+
+이것만으로 설치가 완료됩니다: 차트는 오픈 소스 [OpenCost](https://opencost.io) 엔진(그리고 OpenCost가 필요로 하는 최소한의 전용 Prometheus)을 번들로 제공하며, 클라우드 공급자의 공개 정가로 노드와 볼륨의 가격을 책정합니다 — 자격 증명이 필요 없습니다. 작은 파드 두 개가 추가되며, 첫 데이터는 첫 번째로 닫힌 시간 단위 윈도우 이후에 나타납니다. 이미 Kubecost나 OpenCost를 실행 중이신가요? 대신 `--set cost.engine.url=<해당 서비스 URL>`을 추가하면 아무것도 번들되지 않습니다. 온프레미스 클러스터는 `cost.opencost.customPricing`으로 요금표를 설정할 수 있습니다.
+
+온프레미스 가격 책정과 문제 해결을 포함한 전체 가이드: [Kubernetes 비용 관측 가능성](/docs/telemetry/kubernetes-cost).
+
 ### 프로젝트 레이블로 자동 태그 지정
 
 `oneuptime.label.` 접두사가 붙은 모든 리소스 속성은 프로젝트 Label로 승격되어 이 에이전트에서 방출되는 클러스터, 서비스 및 호스트에 연결됩니다. 패턴: `oneuptime.label.<dimension>=<value>`는 `<dimension>:<value>`라는 이름의 레이블이 됩니다.
@@ -364,6 +379,7 @@ kubectl delete namespace oneuptime-agent
 | **서비스 그래프** _(eBPF를 통해)_                      | 호출자 → 피호출자 요청 속도, 지연 시간 및 오류 엣지 — 서비스 맵 뷰를 구동                                                           |
 | **네트워크 흐름 메트릭** _(eBPF를 통해)_               | k8s 메타데이터와 함께 파드 간 TCP/UDP 바이트 및 패킷 카운터                                                                         |
 | **TCP 통계** _(eBPF를 통해)_                           | 노드 수준 RTT, 실패한 연결 및 재전송 카운터                                                                                         |
+| **워크로드 비용** _(옵트인, `cost.enabled=true`)_      | 네임스페이스/워크로드/파드별로 사전에 가격이 책정된 지출과 유휴 및 효율, 그리고 노드/PV 시간당 비용 메트릭 — [Kubernetes 비용 관측 가능성](/docs/telemetry/kubernetes-cost) 참조 |
 
 ## eBPF를 통한 애플리케이션 트레이스 및 HTTP 메트릭 (기본 활성화)
 
@@ -558,6 +574,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / 스케줄링 사유 메트릭 (KSM Deployment + 스크레이프 추가) |
 | `ebpf.features.networkInterZoneMetrics`                   | 네트워크 흐름 메트릭 카디널리티가 두 배가 됨                                    |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 추가 Prometheus 스크레이프 작업                                                 |
+| `cost.enabled`                                            | 워크로드 비용 관측 가능성 (OpenCost + 소형 Prometheus 번들, 시간 단위 비용 행 + 엄격하게 허용 목록 처리된 메트릭 스크레이프 — 적당한 수집량, 파드 두 개 추가) |
 
 ### 레버 6 — 트레이스를 삭제하는 대신 샘플링하기
 
