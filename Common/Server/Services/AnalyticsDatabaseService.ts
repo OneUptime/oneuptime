@@ -1304,8 +1304,16 @@ export default class AnalyticsDatabaseService<
     const select: { statement: Statement; columns: Array<string> } =
       this.statementGenerator.toAggregateSelectStatement(aggregateBy);
 
+    /*
+     * The aggregate SELECT aliases expressions to real column names
+     * (`sum(col) as col`, and `min(ts) as ts` under Total), so the WHERE
+     * must table-qualify its column references — unqualified ones would
+     * resolve to those aliases (ILLEGAL_AGGREGATION under Total; bucket-
+     * snapped time filters otherwise). See toWhereStatement.
+     */
     const whereStatement: Statement = this.statementGenerator.toWhereStatement(
       aggregateBy.query,
+      { tableAlias: this.model.tableName },
     );
 
     const sortStatement: Statement = this.statementGenerator.toSortStatement(
