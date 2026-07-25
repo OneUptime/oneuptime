@@ -21,8 +21,16 @@ const sleep: (ms: number) => Promise<void> = (ms: number): Promise<void> => {
 };
 
 export class Shipper {
+  /*
+   * The server mounts this route under both "/telemetry" and "/". Post to
+   * the "/telemetry" prefix: it is the one every OneUptime ingress has
+   * routed to the app since the OTLP endpoints shipped, so the agent
+   * reaches instances whose reverse proxy has no /kubernetes-cost location
+   * yet (on a billing-enabled deployment the catch-all serves the
+   * marketing site, and a root-path POST 404s there).
+   */
   private readonly endpoint: URL = new URL(
-    `${ONEUPTIME_URL}/kubernetes-cost/ingest`,
+    `${ONEUPTIME_URL}/telemetry/kubernetes-cost/ingest`,
   );
 
   private lastShipOk: number = 0;

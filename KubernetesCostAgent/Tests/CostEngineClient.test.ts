@@ -124,9 +124,13 @@ test("sends window, accumulate and includeIdle query params", async (): Promise<
   await client.fetchAllocations(WINDOW);
 
   const url: URL = new URL(`http://x${capturedUrl}`);
+  /*
+   * Second precision, not Date.toISOString()'s millisecond form — the
+   * engines answer HTTP 400 "illegal window" for a fractional bound.
+   */
   assert.strictEqual(
     url.searchParams.get("window"),
-    "2026-07-24T10:00:00.000Z,2026-07-24T11:00:00.000Z",
+    "2026-07-24T10:00:00Z,2026-07-24T11:00:00Z",
   );
   assert.strictEqual(url.searchParams.get("accumulate"), "true");
   assert.strictEqual(url.searchParams.get("includeIdle"), "true");

@@ -9,7 +9,8 @@ import {
 } from "../Types";
 
 /*
- * Local HTTP stub playing OneUptime's /kubernetes-cost/ingest endpoint.
+ * Local HTTP stub playing OneUptime's /telemetry/kubernetes-cost/ingest
+ * endpoint.
  * TestEnv pins SHIP_BATCH_SIZE=2 and EXPORT_MAX_RETRIES=2 so chunking and
  * retry exhaustion are testable with tiny inputs and sub-second backoffs.
  */
@@ -94,7 +95,7 @@ test("ships rows chunked at SHIP_BATCH_SIZE with cluster, currency and token", a
   );
 
   for (const request of recorded) {
-    assert.strictEqual(request.path, "/kubernetes-cost/ingest");
+    assert.strictEqual(request.path, "/telemetry/kubernetes-cost/ingest");
     assert.strictEqual(request.token, "test-ingestion-key");
     assert.strictEqual(request.payload.clusterName, "test-cluster");
     assert.strictEqual(request.payload.currency, "USD");
