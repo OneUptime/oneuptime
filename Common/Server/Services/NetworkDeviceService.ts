@@ -440,8 +440,19 @@ export class Service extends DatabaseService<Model> {
           );
 
           ids.push(row._id);
+          /*
+           * ::timestamptz, not ::timestamp. node-postgres serialises a Date
+           * parameter as local wall-clock digits plus an explicit offset; a
+           * ::timestamp cast throws the offset away and the timestamptz
+           * column then re-reads those digits in the Postgres session's
+           * timezone. The claim query above compares nextPollAt without a
+           * cast (correctly, as timestamptz), so writing it as timestamp
+           * skews every schedule by the difference between the app's UTC
+           * offset and the database session timezone — devices then get
+           * re-polled on every cron tick, or not for hours.
+           */
           caseFragments.push(
-            `WHEN $${parameterIndex} THEN $${parameterIndex + 1}::timestamp`,
+            `WHEN $${parameterIndex} THEN $${parameterIndex + 1}::timestamptz`,
           );
           parameters.push(row._id, nextPollAt);
           parameterIndex += 2;

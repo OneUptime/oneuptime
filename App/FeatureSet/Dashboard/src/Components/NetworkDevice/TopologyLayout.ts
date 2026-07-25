@@ -23,6 +23,24 @@ export interface TopologyPoint {
 const LAYOUT_MARGIN: number = 48;
 const DEFAULT_ITERATIONS: number = 300;
 
+/*
+ * Fruchterman-Reingold's ideal edge length is C * sqrt(area / nodeCount).
+ * With C = 1 that length is a large fraction of the frame itself for the
+ * node counts a real network map has (a handful to a few dozen), so the
+ * all-pairs repulsion drives every node past the frame and the clamp below
+ * parks it on the margin — a ring of nodes around an empty middle. C well
+ * under 1 keeps the equilibrium inside the frame; the fit pass afterwards
+ * scales whatever shape it settles into back up to fill the frame.
+ */
+const IDEAL_EDGE_LENGTH_SCALE: number = 0.15;
+
+/*
+ * Pull toward the centre, as a fraction of a node's distance from it. Keeps
+ * disconnected components (a device with no LLDP/CDP neighbors) from
+ * drifting off on repulsion alone.
+ */
+const CENTERING_STRENGTH: number = 0.03;
+
 interface MutablePoint {
   x: number;
   y: number;
@@ -134,7 +152,7 @@ export const computeTopologyLayout: (
   const nodeCount: number = nodes.length;
   const area: number = Math.max(1, (maxX - minX) * (maxY - minY));
   // Ideal edge length (Fruchterman-Reingold constant k).
-  const k: number = Math.sqrt(area / nodeCount);
+  const k: number = IDEAL_EDGE_LENGTH_SCALE * Math.sqrt(area / nodeCount);
   const epsilon: number = 0.01;
 
   // Only consider edges whose endpoints both exist as nodes.
@@ -207,8 +225,8 @@ export const computeTopologyLayout: (
     for (const id of nodeIds) {
       const p: MutablePoint = positions.get(id)!;
       const d: MutablePoint = disp.get(id)!;
-      d.x += (centerX - p.x) * 0.01;
-      d.y += (centerY - p.y) * 0.01;
+      d.x += (centerX - p.x) * CENTERING_STRENGTH;
+      d.y += (centerY - p.y) * CENTERING_STRENGTH;
     }
 
     // Apply displacement, capped by the current temperature, then clamp.
@@ -224,11 +242,44 @@ export const computeTopologyLayout: (
     temperature = Math.max(0, temperature - cooling);
   }
 
+  /*
+   * Fit the settled shape to the frame: translate and uniformly scale its
+   * bounding box to fill [minX, maxX] x [minY, maxY]. The simulation above
+   * settles well inside the frame (by design — see IDEAL_EDGE_LENGTH_SCALE),
+   * which would otherwise leave a small graph huddled in the middle of a
+   * mostly empty canvas. Scaling is uniform on both axes so the layout is
+   * never stretched out of shape, and a degenerate span (one node, or every
+   * node on one line) falls back to centring rather than dividing by zero.
+   */
+  let boundsMinX: number = Infinity;
+  let boundsMaxX: number = -Infinity;
+  let boundsMinY: number = Infinity;
+  let boundsMaxY: number = -Infinity;
+
+  for (const id of nodeIds) {
+    const p: MutablePoint = positions.get(id)!;
+    boundsMinX = Math.min(boundsMinX, p.x);
+    boundsMaxX = Math.max(boundsMaxX, p.x);
+    boundsMinY = Math.min(boundsMinY, p.y);
+    boundsMaxY = Math.max(boundsMaxY, p.y);
+  }
+
+  const spanX: number = boundsMaxX - boundsMinX;
+  const spanY: number = boundsMaxY - boundsMinY;
+  const scaleX: number = spanX > epsilon ? (maxX - minX) / spanX : 1;
+  const scaleY: number = spanY > epsilon ? (maxY - minY) / spanY : 1;
+  const scale: number = Math.min(scaleX, scaleY);
+
+  const offsetX: number =
+    (minX + maxX) / 2 - ((boundsMinX + boundsMaxX) / 2) * scale;
+  const offsetY: number =
+    (minY + maxY) / 2 - ((boundsMinY + boundsMaxY) / 2) * scale;
+
   for (const id of nodeIds) {
     const p: MutablePoint = positions.get(id)!;
     result.set(id, {
-      x: clamp(p.x, minX, maxX),
-      y: clamp(p.y, minY, maxY),
+      x: clamp(p.x * scale + offsetX, minX, maxX),
+      y: clamp(p.y * scale + offsetY, minY, maxY),
     });
   }
 

@@ -104,7 +104,14 @@ export function getSnmpConfigFormFields(
         { label: "V3", value: "V3" },
       ],
       required: true,
-      placeholder: "V2c",
+      /*
+       * Default it, do not just hint it. A required Dropdown whose
+       * placeholder reads "V2c" is indistinguishable from one already set
+       * to V2c, so submitting the form straight through failed with
+       * "SNMP Version is required" on a field the user could see filled in.
+       * V2c matches the column default on both models.
+       */
+      defaultValue: "V2c",
     },
     {
       field: {

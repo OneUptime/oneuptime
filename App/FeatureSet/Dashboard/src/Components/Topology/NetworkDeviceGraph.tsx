@@ -337,6 +337,14 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
           width: "100%",
           height: "auto",
           minWidth: "480px",
+          /*
+           * height:auto ties the rendered height to the container width via
+           * the viewBox aspect ratio, so on a wide screen the map grows
+           * taller than the viewport and half the graph ends up below the
+           * fold. Cap it against the viewport; preserveAspectRatio keeps the
+           * graph centred and undistorted inside whatever box results.
+           */
+          maxHeight: "75vh",
           cursor: isDragging ? "grabbing" : "grab",
         }}
         onPointerDown={(event: React.PointerEvent<SVGSVGElement>) => {
