@@ -5,6 +5,10 @@
  * `/model/allocation`). One request carries one cluster's allocation rows
  * for one or more closed time windows.
  *
+ * The route is mounted under both "/telemetry" and "/" (TELEMETRY_PREFIXES).
+ * The agent posts to the "/telemetry" prefix — see the note in
+ * KubernetesCostAgent/Shipper.ts for why.
+ *
  * The agent projects are standalone (no dependency on Common), so the
  * poller carries its own mirror of these interfaces
  * (KubernetesCostAgent/Types.ts) — keep the two in sync.
