@@ -1,10 +1,10 @@
 import AlertSeverity from "./AlertSeverity";
 import MonitorStatus from "./MonitorStatus";
+import NetworkSiteType from "./NetworkSiteType";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
-import NetworkSiteType from "../../Types/NetworkSite/NetworkSiteType";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -329,21 +329,122 @@ export default class NetworkSite extends BaseModel {
       Permission.EditNetworkSite,
     ],
   })
+  /*
+   * DEPRECATED. Site types used to be a hardcoded enum stored inline as a
+   * string; they are now the per-project NetworkSiteType lookup table below.
+   * This column is retained ONLY so the BackfillNetworkSiteTypes data
+   * migration can read the old value and point networkSiteTypeId at the
+   * matching type row. It is dropped in a follow-up PR - do not read or write
+   * it from new code, and do not branch on its contents.
+   */
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "Site Type",
+    title: "Site Type (Deprecated)",
     description:
-      "Level of this site in the hierarchy: Account Type, Region, Franchisee, Market, Unit, Data Center, or Other",
+      "Deprecated legacy site type string. Use the Network Site Type relation instead; this column exists only for the backfill migration and will be removed.",
     example: "Unit",
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public siteType?: NetworkSiteType = undefined;
+  public siteType?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "networkSiteTypeId",
+    type: TableColumnType.Entity,
+    modelType: NetworkSiteType,
+    title: "Site Type",
+    description:
+      "Relation to the Network Site Type that says where this site sits in the hierarchy (Region, Market, Unit and so on)",
+  })
+  @ManyToOne(
+    () => {
+      return NetworkSiteType;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "networkSiteTypeId" })
+  public networkSiteType?: NetworkSiteType = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Site Type ID",
+    description: "ID of the Network Site Type this site belongs to",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public networkSiteTypeId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

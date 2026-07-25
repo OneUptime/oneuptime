@@ -13,6 +13,7 @@ import NetworkSiteMap from "../Pages/NetworkSite/NetworkMap";
 import NetworkSiteAssignmentRules from "../Pages/NetworkSite/AssignmentRules";
 import NetworkSiteLinks from "../Pages/NetworkSite/Links";
 import NetworkSiteImport from "../Pages/NetworkSite/Import";
+import NetworkSiteSettingsSiteTypes from "../Pages/NetworkSite/Settings/SiteTypes";
 import NetworkSiteView from "../Pages/NetworkSite/View/Index";
 import NetworkSiteViewDevices from "../Pages/NetworkSite/View/Devices";
 import NetworkSiteViewChildSites from "../Pages/NetworkSite/View/ChildSites";
@@ -73,6 +74,19 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
             <NetworkSiteImport
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_SITE_IMPORT] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            NetworkSiteRoutePath[PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES] || ""
+          }
+          element={
+            <NetworkSiteSettingsSiteTypes
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES] as Route
+              }
             />
           }
         />

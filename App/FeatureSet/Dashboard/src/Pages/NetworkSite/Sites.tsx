@@ -7,12 +7,11 @@ import SiteHierarchyTree from "../../Components/NetworkSite/SiteHierarchyTree";
 import SiteSummaryCards from "../../Components/NetworkSite/SiteSummaryCards";
 import Route from "Common/Types/API/Route";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
-import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import ObjectID from "Common/Types/ObjectID";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import React, {
   Fragment,
   FunctionComponent,
@@ -66,12 +65,17 @@ const NetworkSites: FunctionComponent<
           },
           {
             field: {
-              siteType: true,
+              networkSiteType: {
+                name: true,
+              },
             },
             title: "Site Type",
-            type: FieldType.Dropdown,
-            filterDropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(NetworkSiteType),
+            type: FieldType.Entity,
+            filterEntityType: NetworkSiteType,
+            filterDropdownField: {
+              label: "name",
+              value: "_id",
+            },
           },
           {
             field: {
@@ -81,12 +85,17 @@ const NetworkSites: FunctionComponent<
             type: FieldType.Date,
           },
         ]}
+        formSteps={[
+          { title: "Site Details", id: "site-details" },
+          { title: "Location", id: "location" },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "site-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Unit 1042 - Springfield",
@@ -96,28 +105,34 @@ const NetworkSites: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "site-details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Flagship location — two switches and a firewall.",
           },
           {
             field: {
-              siteType: true,
+              networkSiteType: true,
             },
             title: "Site Type",
+            stepId: "site-details",
             description:
-              "Level of this site in the hierarchy. Units are leaf sites — the network map opens their device topology.",
+              "Level of this site in the hierarchy. Unit-level types are leaf sites — the network map opens their device topology. Manage the list in Network Settings.",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(NetworkSiteType),
+            dropdownModal: {
+              type: NetworkSiteType,
+              labelField: "name",
+              valueField: "_id",
+            },
             required: true,
-            placeholder: "Unit",
+            placeholder: "Select Site Type",
           },
           {
             field: {
               parentSite: true,
             },
             title: "Parent Site",
+            stepId: "site-details",
             description:
               "The site this one is nested under. Leave empty for a root site.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -134,6 +149,7 @@ const NetworkSites: FunctionComponent<
               address: true,
             },
             title: "Address",
+            stepId: "location",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "742 Evergreen Terrace, Springfield, IL",
@@ -143,6 +159,7 @@ const NetworkSites: FunctionComponent<
               latitude: true,
             },
             title: "Latitude",
+            stepId: "location",
             description:
               "Between -90 and 90. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -154,6 +171,7 @@ const NetworkSites: FunctionComponent<
               longitude: true,
             },
             title: "Longitude",
+            stepId: "location",
             description:
               "Between -180 and 180. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -187,10 +205,22 @@ const NetworkSites: FunctionComponent<
           },
           {
             field: {
-              siteType: true,
+              networkSiteType: {
+                name: true,
+              },
             },
             title: "Site Type",
-            type: FieldType.Text,
+            type: FieldType.Entity,
+            getElement: (item: NetworkSite): ReactElement => {
+              if (!item.networkSiteType?.name) {
+                return <span className="text-sm text-gray-400">Not set</span>;
+              }
+              return (
+                <span className="text-sm text-gray-900">
+                  {item.networkSiteType.name}
+                </span>
+              );
+            },
           },
           {
             field: {

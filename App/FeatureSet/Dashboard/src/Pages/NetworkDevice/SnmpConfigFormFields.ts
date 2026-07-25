@@ -1,3 +1,4 @@
+import Field from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -53,6 +54,14 @@ export interface SnmpConfigFormFieldOptions {
    * a discovery scan tries the community against every host in the subnet.
    */
   communityStringDescription?: string | undefined;
+
+  /*
+   * Form step these fields belong to. Every SNMP field lands on the same step
+   * — credentials are one decision, and splitting the v3 reveal chain across
+   * steps would strand the auth/priv fields on a step the user has already
+   * walked past. Callers that render the form without steps omit this.
+   */
+  stepId?: string | undefined;
 }
 
 const isV3: (item: FormValues<SnmpConfigModelFields>) => boolean = (
@@ -82,7 +91,7 @@ const isV3WithPriv: (item: FormValues<SnmpConfigModelFields>) => boolean = (
 export function getSnmpConfigFormFields(
   options?: SnmpConfigFormFieldOptions,
 ): Fields<SnmpConfigModelFields> {
-  return [
+  const fields: Fields<SnmpConfigModelFields> = [
     {
       field: {
         snmpVersion: true,
@@ -216,4 +225,17 @@ export function getSnmpConfigFormFields(
       placeholder: "161",
     },
   ];
+
+  if (!options?.stepId) {
+    return fields;
+  }
+
+  const stepId: string = options.stepId;
+
+  return fields.map((field: Field<SnmpConfigModelFields>) => {
+    return {
+      ...field,
+      stepId: stepId,
+    };
+  });
 }

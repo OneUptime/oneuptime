@@ -96,6 +96,7 @@ import CloseOrphanedMonitorStatusTimelineRows from "./CloseOrphanedMonitorStatus
 import MigrateMetricAggregatesToStrictSchema from "./MigrateMetricAggregatesToStrictSchema";
 import AddInterfaceIndexColumnsToNetworkFlow from "./AddInterfaceIndexColumnsToNetworkFlow";
 import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
+import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -284,6 +285,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * already-deleted rows are no-ops on re-run.
    */
   new MoveNetworkDeviceMonitorCollectionToDevices(),
+  /*
+   * Site types became a per-project lookup table (NetworkSiteType) instead of a
+   * hardcoded enum. Seeds the default types into every existing project and
+   * points each site's networkSiteTypeId at the type matching its legacy
+   * siteType string (creating a type for any string the project has no match
+   * for). This is the only code that reads the deprecated NetworkSite.siteType
+   * column, which a follow-up PR drops. Idempotent: only sites still missing a
+   * networkSiteTypeId are touched.
+   */
+  new BackfillNetworkSiteTypes(),
 ];
 
 export default DataMigrations;

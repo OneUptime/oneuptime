@@ -185,12 +185,27 @@ const NetworkDevices: FunctionComponent<
             "Switches, routers, and firewalls monitored via SNMP in this project. Devices are polled by the probe you assign.",
         }}
         showViewIdButton={true}
+        formSteps={[
+          {
+            title: "Device Details",
+            id: "device-details",
+          },
+          {
+            title: "Probe & Site",
+            id: "probe-and-site",
+          },
+          {
+            title: "SNMP Credentials",
+            id: "snmp",
+          },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "core-switch-01",
@@ -200,6 +215,7 @@ const NetworkDevices: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Core switch in the US East datacenter",
@@ -209,6 +225,7 @@ const NetworkDevices: FunctionComponent<
               hostname: true,
             },
             title: "Hostname",
+            stepId: "device-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "10.0.0.1 or switch-01.example.com",
@@ -219,8 +236,21 @@ const NetworkDevices: FunctionComponent<
               probe: true,
             },
             title: "Probe",
+            stepId: "probe-and-site",
+            /*
+             * Same constraint as the discovery scan: the probe has to be able
+             * to reach the device, so the operator needs to know how to get a
+             * probe onto that network from here.
+             */
             description:
-              "The probe that polls this device on its schedule, and receives its SNMP traps, syslog, and NetFlow. Polling starts as soon as the device is created — no monitor needed.",
+              "The probe that polls this device on its schedule, and receives its SNMP traps, syslog, and NetFlow. It has to be able to reach the device directly, so pick one deployed on the device's network — if you have none there yet, create a custom probe and run it there. Polling starts as soon as the device is created — no monitor needed.",
+            sideLink: {
+              text: "Create a custom probe",
+              url: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
+              ),
+              openLinkInNewTab: true,
+            },
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: probes.map((probe: Probe) => {
               if (!probe.name || !probe._id) {
@@ -240,6 +270,7 @@ const NetworkDevices: FunctionComponent<
               site: true,
             },
             title: "Site",
+            stepId: "probe-and-site",
             description:
               "The network site this device belongs to. Site health rolls up from its devices. Assignment rules can also set this automatically.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -251,7 +282,7 @@ const NetworkDevices: FunctionComponent<
             required: false,
             placeholder: "Select Site (optional)",
           },
-          ...getSnmpConfigFormFields(),
+          ...getSnmpConfigFormFields({ stepId: "snmp" }),
         ]}
         columns={[
           {

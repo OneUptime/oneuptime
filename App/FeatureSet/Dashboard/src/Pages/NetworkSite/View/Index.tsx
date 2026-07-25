@@ -5,14 +5,13 @@ import SiteStatusHero from "../../../Components/NetworkSite/SiteStatusHero";
 import MonitorStatusElement from "../../../Components/MonitorStatus/MonitorStatusElement";
 import Route from "Common/Types/API/Route";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
-import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -55,12 +54,23 @@ const NetworkSiteView: FunctionComponent<
             "Where this site sits in the hierarchy, and where it is on the map.",
         }}
         isEditable={true}
+        formSteps={[
+          {
+            title: "Site Details",
+            id: "site-details",
+          },
+          {
+            title: "Location",
+            id: "location",
+          },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "site-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Unit 1042 - Springfield",
@@ -70,26 +80,32 @@ const NetworkSiteView: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "site-details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Flagship location — two switches and a firewall.",
           },
           {
             field: {
-              siteType: true,
+              networkSiteType: true,
             },
             title: "Site Type",
+            stepId: "site-details",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(NetworkSiteType),
+            dropdownModal: {
+              type: NetworkSiteType,
+              labelField: "name",
+              valueField: "_id",
+            },
             required: true,
-            placeholder: "Unit",
+            placeholder: "Select Site Type",
           },
           {
             field: {
               parentSite: true,
             },
             title: "Parent Site",
+            stepId: "site-details",
             description:
               "The site this one is nested under. Leave empty for a root site.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -106,6 +122,7 @@ const NetworkSiteView: FunctionComponent<
               address: true,
             },
             title: "Address",
+            stepId: "location",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "742 Evergreen Terrace, Springfield, IL",
@@ -115,6 +132,7 @@ const NetworkSiteView: FunctionComponent<
               latitude: true,
             },
             title: "Latitude",
+            stepId: "location",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "39.7817",
@@ -124,6 +142,7 @@ const NetworkSiteView: FunctionComponent<
               longitude: true,
             },
             title: "Longitude",
+            stepId: "location",
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "-89.6501",
@@ -163,10 +182,18 @@ const NetworkSiteView: FunctionComponent<
             },
             {
               field: {
-                siteType: true,
+                networkSiteType: {
+                  name: true,
+                },
               },
               title: "Site Type",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkSite): ReactElement => {
+                if (!item.networkSiteType?.name) {
+                  return <span className="text-gray-400">Not set</span>;
+                }
+                return <span>{item.networkSiteType.name}</span>;
+              },
             },
             {
               field: {

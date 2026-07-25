@@ -1,5 +1,4 @@
 import { VoidFunction } from "Common/Types/FunctionTypes";
-import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
 
 /*
  * Pure CSV parsing + import planning for the Network Sites bulk import
@@ -9,13 +8,34 @@ import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
  *
  * Expected CSV columns (header row required, any order, case-insensitive):
  *   name,siteType,parentName,address,latitude,longitude
+ *
+ * The siteType cell is validated against the PROJECT's configured site
+ * types, which the caller passes in — they are NetworkSiteType rows now,
+ * not a fixed enum, so this module cannot know the valid values on its own
+ * and must never hardcode them.
  */
+
+/*
+ * A project's configured site type, reduced to what resolution needs: the
+ * id every imported site is pointed at, and the name the CSV cell is
+ * matched against (case-insensitively).
+ */
+export interface NetworkSiteTypeOption {
+  id: string;
+  name: string;
+}
 
 export interface ParsedSiteRow {
   // 1-based line number in the CSV where this row starts.
   line: number;
   name: string;
-  siteType: NetworkSiteType;
+  /*
+   * The resolved NetworkSiteType — the id is what gets written to the site,
+   * the name is the configured type's canonical spelling (not the cell's
+   * casing) and exists only so the preview table can show it.
+   */
+  networkSiteTypeId: string;
+  siteType: string;
   // Empty string for root sites.
   parentName: string;
   address: string;
@@ -143,15 +163,28 @@ function lexCsv(text: string): CsvLexResult {
   return { records: records, errors: errors };
 }
 
-// Canonical siteType values, matched case-insensitively against cells.
-const SITE_TYPE_BY_LOWERCASE: Map<string, NetworkSiteType> = new Map<
-  string,
-  NetworkSiteType
->(
-  Object.values(NetworkSiteType).map((value: NetworkSiteType) => {
-    return [value.toLowerCase(), value];
-  }),
-);
+/*
+ * Index the project's configured types by lowercased name so cells match
+ * case-insensitively. First definition wins on a case-only collision — the
+ * name column is unique per project, so that is a degenerate case anyway,
+ * and either row is an equally correct answer.
+ */
+function indexSiteTypesByLowercaseName(
+  siteTypes: Array<NetworkSiteTypeOption>,
+): Map<string, NetworkSiteTypeOption> {
+  const byLowercaseName: Map<string, NetworkSiteTypeOption> = new Map<
+    string,
+    NetworkSiteTypeOption
+  >();
+  for (const siteType of siteTypes) {
+    const key: string = siteType.name.trim().toLowerCase();
+    if (key === "" || byLowercaseName.has(key)) {
+      continue;
+    }
+    byLowercaseName.set(key, siteType);
+  }
+  return byLowercaseName;
+}
 
 type HeaderIndex = Map<string, number>;
 
@@ -246,9 +279,35 @@ function parseCoordinate(
   return { value: parsed, error: null };
 }
 
-export function parseSiteCsv(text: string): SiteCsvParseResult {
+/*
+ * Parse a Network Sites CSV against the project's configured site types.
+ * Every siteType cell must resolve to one of `siteTypes`; a project with
+ * none configured cannot import at all, which is reported once as a
+ * file-level error rather than repeated on every row.
+ */
+export function parseSiteCsv(
+  text: string,
+  siteTypes: Array<NetworkSiteTypeOption>,
+): SiteCsvParseResult {
   const errors: Array<SiteCsvError> = [];
   const rows: Array<ParsedSiteRow> = [];
+
+  const siteTypeByLowercaseName: Map<string, NetworkSiteTypeOption> =
+    indexSiteTypesByLowercaseName(siteTypes);
+  const siteTypeNames: Array<string> = Array.from(
+    siteTypeByLowercaseName.values(),
+  ).map((siteType: NetworkSiteTypeOption) => {
+    return siteType.name;
+  });
+
+  if (siteTypeNames.length === 0) {
+    errors.push({
+      line: 0,
+      message:
+        "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.",
+    });
+    return { rows: [], errors: errors };
+  }
 
   const { records, errors: lexErrors } = lexCsv(text);
   errors.push(...lexErrors);
@@ -296,16 +355,15 @@ export function parseSiteCsv(text: string): SiteCsvParseResult {
     }
 
     const siteTypeRaw: string = cellAt(record, headerIndex, "siteType");
-    const siteType: NetworkSiteType | undefined = SITE_TYPE_BY_LOWERCASE.get(
-      siteTypeRaw.toLowerCase(),
-    );
+    const siteType: NetworkSiteTypeOption | undefined =
+      siteTypeByLowercaseName.get(siteTypeRaw.trim().toLowerCase());
     if (!siteType) {
       rowErrors.push(
         siteTypeRaw === ""
           ? "siteType is required."
-          : `Unknown siteType "${siteTypeRaw}". Valid values: ${Object.values(
-              NetworkSiteType,
-            ).join(", ")}.`,
+          : `Unknown siteType "${siteTypeRaw}". Valid values: ${siteTypeNames.join(
+              ", ",
+            )}.`,
       );
     }
 
@@ -366,7 +424,8 @@ export function parseSiteCsv(text: string): SiteCsvParseResult {
     rows.push({
       line: record.line,
       name: name,
-      siteType: siteType!,
+      networkSiteTypeId: siteType!.id,
+      siteType: siteType!.name,
       parentName: parentName,
       address: address,
       latitude: latitudeResult.value,

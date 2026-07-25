@@ -174,6 +174,21 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
         },
       ],
     },
+    {
+      title: "Settings",
+      defaultCollapsed: true,
+      items: [
+        {
+          link: {
+            title: "Site Types",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES] as Route,
+            ),
+          },
+          icon: IconProp.Layers,
+        },
+      ],
+    },
   ];
 
   return <SideMenu sections={sections} />;

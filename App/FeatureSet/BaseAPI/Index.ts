@@ -1459,6 +1459,12 @@ import NetworkEndpointService, {
   Service as NetworkEndpointServiceType,
 } from "Common/Server/Services/NetworkEndpointService";
 
+// NetworkSiteType
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
+import NetworkSiteTypeService, {
+  Service as NetworkSiteTypeServiceType,
+} from "Common/Server/Services/NetworkSiteTypeService";
+
 // NetworkSiteStatusTimeline
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import NetworkSiteStatusTimelineService, {
@@ -4463,6 +4469,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkEndpoint, NetworkEndpointServiceType>(
         NetworkEndpoint,
         NetworkEndpointService,
+      ).getRouter(),
+    );
+
+    // network site type
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteType, NetworkSiteTypeServiceType>(
+        NetworkSiteType,
+        NetworkSiteTypeService,
       ).getRouter(),
     );
 

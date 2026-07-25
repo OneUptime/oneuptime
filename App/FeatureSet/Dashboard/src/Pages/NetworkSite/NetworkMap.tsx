@@ -26,7 +26,6 @@ import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
@@ -283,9 +282,15 @@ const NetworkSiteMap: FunctionComponent<
     currentSiteId && childrenData && childrenData.breadcrumb.length > 0
       ? childrenData.breadcrumb[childrenData.breadcrumb.length - 1]!
       : null;
-  const isUnitView: boolean = Boolean(
-    currentSite && currentSite.siteType === NetworkSiteType.Unit,
-  );
+  /*
+   * Which view a drill level opens is decided by the site type row's
+   * isUnitLevel flag, never by its name: site types are per-project rows a
+   * customer can rename ("Unit" → "Store", "Restaurant", "Tower"), so a
+   * string comparison would silently stop opening device topologies the
+   * moment somebody edited the label. The flag travels on every breadcrumb
+   * entry and defaults to false, so an untyped site reads as a container.
+   */
+  const isUnitView: boolean = Boolean(currentSite && currentSite.isUnitLevel);
 
   // The unit view's embedded topology polls itself — skip our poll there.
   const isUnitViewRef: React.MutableRefObject<boolean> =

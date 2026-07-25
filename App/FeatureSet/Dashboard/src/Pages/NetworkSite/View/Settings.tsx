@@ -2,11 +2,10 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
-import NetworkSiteType from "Common/Types/NetworkSite/NetworkSiteType";
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -31,12 +30,23 @@ const NetworkSiteSettings: FunctionComponent<
         }}
         isEditable={true}
         editButtonText="Edit Settings"
+        formSteps={[
+          {
+            title: "Site Details",
+            id: "site-details",
+          },
+          {
+            title: "Location",
+            id: "location",
+          },
+        ]}
         formFields={[
           {
             field: {
               name: true,
             },
             title: "Name",
+            stepId: "site-details",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Unit 1042 - Springfield",
@@ -46,26 +56,32 @@ const NetworkSiteSettings: FunctionComponent<
               description: true,
             },
             title: "Description",
+            stepId: "site-details",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Flagship location — two switches and a firewall.",
           },
           {
             field: {
-              siteType: true,
+              networkSiteType: true,
             },
             title: "Site Type",
+            stepId: "site-details",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(NetworkSiteType),
+            dropdownModal: {
+              type: NetworkSiteType,
+              labelField: "name",
+              valueField: "_id",
+            },
             required: true,
-            placeholder: "Unit",
+            placeholder: "Select Site Type",
           },
           {
             field: {
               parentSite: true,
             },
             title: "Parent Site",
+            stepId: "site-details",
             description:
               "The site this one is nested under. Leave empty for a root site.",
             fieldType: FormFieldSchemaType.Dropdown,
@@ -82,6 +98,7 @@ const NetworkSiteSettings: FunctionComponent<
               address: true,
             },
             title: "Address",
+            stepId: "location",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "742 Evergreen Terrace, Springfield, IL",
@@ -91,6 +108,7 @@ const NetworkSiteSettings: FunctionComponent<
               latitude: true,
             },
             title: "Latitude",
+            stepId: "location",
             description:
               "Between -90 and 90. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -102,6 +120,7 @@ const NetworkSiteSettings: FunctionComponent<
               longitude: true,
             },
             title: "Longitude",
+            stepId: "location",
             description:
               "Between -180 and 180. Needed to pin this site on the network map.",
             fieldType: FormFieldSchemaType.Number,
@@ -133,10 +152,18 @@ const NetworkSiteSettings: FunctionComponent<
             },
             {
               field: {
-                siteType: true,
+                networkSiteType: {
+                  name: true,
+                },
               },
               title: "Site Type",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkSite): ReactElement => {
+                if (!item.networkSiteType?.name) {
+                  return <span className="text-gray-400">Not set</span>;
+                }
+                return <span>{item.networkSiteType.name}</span>;
+              },
             },
             {
               field: {

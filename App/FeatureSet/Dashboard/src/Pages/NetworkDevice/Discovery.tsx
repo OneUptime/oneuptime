@@ -1,5 +1,8 @@
 import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import ProbeUtil from "../../Utils/Probe";
+import Route from "Common/Types/API/Route";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
@@ -284,12 +287,18 @@ const NetworkDeviceDiscovery: FunctionComponent<
         noItemsMessage={
           "No discovery scans yet. Start one to sweep a subnet for SNMP devices."
         }
+        formSteps={[
+          { title: "Scan Target", id: "scan-target" },
+          { title: "SNMP Credentials", id: "snmp" },
+          { title: "Schedule", id: "schedule" },
+        ]}
         formFields={[
           {
             field: {
               cidr: true,
             },
             title: "Subnet (CIDR)",
+            stepId: "scan-target",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "192.168.1.0/24",
@@ -300,7 +309,22 @@ const NetworkDeviceDiscovery: FunctionComponent<
               probe: true,
             },
             title: "Probe",
-            description: "Which probe should scan this subnet?",
+            stepId: "scan-target",
+            /*
+             * A probe can only sweep a subnet it can actually route to, so
+             * this list is the real constraint on what you can discover — not
+             * a preference. Say so here rather than letting the operator pick
+             * a probe in another network and wait for an empty result.
+             */
+            description:
+              "The probe that sweeps this subnet. It has to be able to reach the subnet directly — a probe in another network, or outside the firewall, will scan and find nothing. If you have no probe deployed on this network yet, create a custom probe and run it there; it appears in this list once it connects.",
+            sideLink: {
+              text: "Create a custom probe",
+              url: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.MONITORS_SETTINGS_PROBES] as Route,
+              ),
+              openLinkInNewTab: true,
+            },
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: probes.map((probe: Probe) => {
               if (!probe.name || !probe._id) {
@@ -324,12 +348,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
           ...getSnmpConfigFormFields({
             communityStringDescription:
               "Tried against every host in the subnet. Required for SNMP V1 and V2c. Not used for V3.",
+            stepId: "snmp",
           }),
           {
             field: {
               isRecurring: true,
             },
             title: "Repeat this scan",
+            stepId: "schedule",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
@@ -345,6 +371,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
               rescanIntervalInMinutes: true,
             },
             title: "Rescan Interval (Minutes)",
+            stepId: "schedule",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "60",

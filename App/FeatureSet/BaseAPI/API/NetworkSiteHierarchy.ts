@@ -15,8 +15,10 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
 import NetworkSiteService from "Common/Server/Services/NetworkSiteService";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import NetworkSiteLinkService from "Common/Server/Services/NetworkSiteLinkService";
 import NetworkSiteLink from "Common/Models/DatabaseModels/NetworkSiteLink";
 import NetworkSiteStatusTimelineService from "Common/Server/Services/NetworkSiteStatusTimelineService";
@@ -38,14 +40,16 @@ import NetworkSiteHierarchyUtil, {
  * Drill-down and map endpoints for the Network Site hierarchy. Both are
  * read-only and permission-scoped through the standard props helper, so a
  * user only sees sites they can read. Every lookup is a batch query — one
- * per model — with the per-child rollups (direct-child counts, Unit
+ * per model — with the per-child rollups (direct-child counts, unit-level
  * health, device counts, links) computed in memory by the pure
  * NetworkSiteHierarchyUtil helpers.
  *
  * MonitorStatus rows are deliberately fetched by id in a separate query
  * instead of being selected through relations: relation-selected columns
  * silently require canReadOnRelationQuery, and a direct fetch sidesteps
- * that trap entirely.
+ * that trap entirely. NetworkSiteType is the exception — its name and
+ * isUnitLevel columns are declared canReadOnRelationQuery, so every site
+ * query pulls them inline rather than paying for another round trip.
  */
 
 // Reduced MonitorStatus row shared by both endpoints' responses.
@@ -56,6 +60,43 @@ interface StatusInfo {
   priority: number;
   isOperationalState: boolean;
 }
+
+/*
+ * What a site row reports about its type: the label the UI prints, and the
+ * flag every piece of leaf-level logic branches on.
+ */
+interface SiteTypeInfo {
+  siteType: string;
+  isUnitLevel: boolean;
+}
+
+/*
+ * Site types are per-project rows now, so the wire DTO's siteType string is
+ * just the configured type's name. The deprecated inline siteType column is
+ * only a fallback for rows the backfill migration has not reached yet, and
+ * "Other" the last resort so the UI never renders a blank type.
+ *
+ * isUnitLevel deliberately has NO legacy fallback: a site whose type row is
+ * missing is not the leaf level, and inferring it from the old string would
+ * reintroduce exactly the name-based logic this model replaced.
+ */
+function getSiteTypeInfo(site: NetworkSite): SiteTypeInfo {
+  return {
+    siteType:
+      site.networkSiteType?.name || site.siteType?.toString() || "Other",
+    isUnitLevel: Boolean(site.networkSiteType?.isUnitLevel),
+  };
+}
+
+/*
+ * Selected on every site query that carries a type to the client. Both
+ * columns are canReadOnRelationQuery on NetworkSiteType, so this needs no
+ * extra permission beyond reading the site itself.
+ */
+const NETWORK_SITE_TYPE_SELECT: Select<NetworkSiteType> = {
+  name: true,
+  isUnitLevel: true,
+};
 
 type StatusMap = Map<string, StatusInfo>;
 
@@ -157,6 +198,7 @@ export default class NetworkSiteHierarchyAPI {
                 _id: true,
                 name: true,
                 siteType: true,
+                networkSiteType: NETWORK_SITE_TYPE_SELECT,
                 materializedPath: true,
               },
               props: props,
@@ -196,6 +238,7 @@ export default class NetworkSiteHierarchyAPI {
                 _id: true,
                 name: true,
                 siteType: true,
+                networkSiteType: NETWORK_SITE_TYPE_SELECT,
                 address: true,
                 latitude: true,
                 longitude: true,
@@ -226,6 +269,7 @@ export default class NetworkSiteHierarchyAPI {
               select: {
                 _id: true,
                 siteType: true,
+                networkSiteType: NETWORK_SITE_TYPE_SELECT,
                 parentSiteId: true,
                 materializedPath: true,
                 currentMonitorStatusId: true,
@@ -273,6 +317,7 @@ export default class NetworkSiteHierarchyAPI {
                     _id: true,
                     name: true,
                     siteType: true,
+                    networkSiteType: NETWORK_SITE_TYPE_SELECT,
                   },
                   limit: LIMIT_PER_PROJECT,
                   skip: 0,
@@ -286,7 +331,7 @@ export default class NetworkSiteHierarchyAPI {
                 {
                   id: siteId as string,
                   name: requestedSite.name || "Unnamed site",
-                  siteType: requestedSite.siteType?.toString() || "Other",
+                  ...getSiteTypeInfo(requestedSite),
                   materializedPath: requestedSite.materializedPath,
                 },
                 new Map<string, BreadcrumbEntry>(
@@ -300,7 +345,7 @@ export default class NetworkSiteHierarchyAPI {
                         {
                           id: ancestor._id!.toString(),
                           name: ancestor.name || "Unnamed site",
-                          siteType: ancestor.siteType?.toString() || "Other",
+                          ...getSiteTypeInfo(ancestor),
                         },
                       ];
                     }),
@@ -454,7 +499,7 @@ export default class NetworkSiteHierarchyAPI {
               children: childRows.map((child: NetworkSite) => {
                 return {
                   id: child._id!.toString(),
-                  siteType: child.siteType?.toString() || "Other",
+                  ...getSiteTypeInfo(child),
                   currentMonitorStatusId:
                     child.currentMonitorStatusId?.toString(),
                 };
@@ -466,7 +511,7 @@ export default class NetworkSiteHierarchyAPI {
                 .map((row: NetworkSite) => {
                   return {
                     id: row._id!.toString(),
-                    siteType: row.siteType?.toString() || "Other",
+                    ...getSiteTypeInfo(row),
                     parentSiteId: row.parentSiteId?.toString(),
                     materializedPath: row.materializedPath,
                     currentMonitorStatusId:
@@ -562,7 +607,7 @@ export default class NetworkSiteHierarchyAPI {
               return {
                 id: childId,
                 name: child.name || "Unnamed site",
-                siteType: child.siteType?.toString() || "Other",
+                ...getSiteTypeInfo(child),
                 address: child.address,
                 latitude: child.latitude,
                 longitude: child.longitude,
@@ -660,6 +705,7 @@ export default class NetworkSiteHierarchyAPI {
               _id: true,
               name: true,
               siteType: true,
+              networkSiteType: NETWORK_SITE_TYPE_SELECT,
               latitude: true,
               longitude: true,
               currentMonitorStatusId: true,
@@ -713,7 +759,7 @@ export default class NetworkSiteHierarchyAPI {
               return {
                 id: pinSiteId,
                 name: site.name || "Unnamed site",
-                siteType: site.siteType?.toString() || "Other",
+                ...getSiteTypeInfo(site),
                 latitude: site.latitude,
                 longitude: site.longitude,
                 statusPriority: status ? status.priority : 0,

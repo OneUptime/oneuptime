@@ -14,6 +14,7 @@ import NetworkDeviceLabelRule from "./NetworkDeviceLabelRule";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
+import NetworkSiteType from "./NetworkSiteType";
 import NetworkEndpoint from "./NetworkEndpoint";
 import NetworkSiteStatusTimeline from "./NetworkSiteStatusTimeline";
 import NetworkSiteLink from "./NetworkSiteLink";
@@ -786,6 +787,7 @@ const AllModelTypes: Array<{
   NetworkDeviceDiscoveryScan,
   NetworkInterface,
   NetworkSite,
+  NetworkSiteType,
   NetworkEndpoint,
   NetworkSiteStatusTimeline,
   NetworkSiteLink,
