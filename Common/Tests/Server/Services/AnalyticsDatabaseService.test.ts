@@ -11,7 +11,9 @@ import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTabl
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { AggregateUtil } from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import ObjectID from "../../../Types/ObjectID";
@@ -362,6 +364,23 @@ describe("AnalyticsDatabaseService", () => {
       };
     };
 
+    /*
+     * Sort keys are parameter-bound identifiers, so the column ORDER BY
+     * actually names lives in query_params rather than in the SQL text.
+     */
+    const orderByIdentifierParameter: RegExp = /ORDER BY \{p(\d+):Identifier\}/;
+
+    const getOrderByColumn: (statement: Statement) => unknown = (
+      statement: Statement,
+    ): unknown => {
+      const match: RegExpExecArray | null = orderByIdentifierParameter.exec(
+        statement.query,
+      );
+      return (statement.query_params as Record<string, unknown>)[
+        `p${match![1]}`
+      ];
+    };
+
     test("derives the window bucket and groups by time when interval is omitted", () => {
       const query: string = service.toAggregateStatement(makeBaseAggregateBy())
         .statement.query;
@@ -398,7 +417,9 @@ describe("AnalyticsDatabaseService", () => {
         makeBaseAggregateBy({ aggregationInterval: "Total" }),
       ).statement.query;
 
-      expect(query).toContain("min(column_ObjectID) as column_ObjectID");
+      expect(query).toContain(
+        `min(column_ObjectID) as ${AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS}`,
+      );
       expect(query).not.toContain("date_trunc");
       expect(query).not.toContain("GROUP BY");
       expect(query).toContain("HAVING count() > 0");
@@ -412,12 +433,95 @@ describe("AnalyticsDatabaseService", () => {
         }),
       ).statement.query;
 
-      expect(query).toContain("min(column_ObjectID) as column_ObjectID");
+      expect(query).toContain(
+        `min(column_ObjectID) as ${AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS}`,
+      );
       expect(query).toContain("GROUP BY");
       // The time column must not be a grouping key under Total.
       expect(query).not.toContain("GROUP BY column_ObjectID");
       // A grouped query never needs the empty-window guard.
       expect(query).not.toContain("HAVING count() > 0");
+    });
+
+    /*
+     * Regression: ClickHouse resolves SELECT aliases inside WHERE, so a
+     * Total aggregation that aliased `min(col)` back onto `col` made the
+     * window filter reference the aggregate and the server rejected the
+     * whole statement with ILLEGAL_AGGREGATION (error 184) — every
+     * grouped whole-window query (the Kubernetes cost pages) 500'd.
+     */
+    test("Total keeps the window filter on the raw timestamp column, not on the aggregate", () => {
+      const statement: Statement = service.toAggregateStatement(
+        makeBaseAggregateBy({
+          aggregationInterval: "Total",
+          groupBy: { column_1: true },
+          query: {
+            column_ObjectID: new InBetween<Date>(
+              new Date("2024-01-01"),
+              new Date("2024-01-02"),
+            ),
+          },
+        }),
+      ).statement;
+
+      const bucketAlias: string = AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS;
+
+      // The aggregate is aliased away from the column it aggregates...
+      expect(statement.query).toContain(
+        `min(column_ObjectID) as ${bucketAlias}`,
+      );
+
+      /*
+       * ...so the alias can never be substituted into the WHERE clause.
+       * Identifiers are parameter-bound, so the filter's reference to the
+       * raw column shows up as a bound `column_ObjectID` parameter, and
+       * the alias appears nowhere among the identifier parameters except
+       * in ORDER BY (asserted below).
+       */
+      const parameters: Array<unknown> = Object.values(
+        statement.query_params as Record<string, unknown>,
+      );
+      expect(parameters).toContain("column_ObjectID");
+      expect(statement.query).toContain(`WHERE TRUE`);
+      expect(statement.query).not.toContain(`WHERE TRUE AND ${bucketAlias}`);
+    });
+
+    test("Total orders by the bucket alias, never by the raw timestamp column", () => {
+      const statement: Statement = service.toAggregateStatement(
+        makeBaseAggregateBy({
+          aggregationInterval: "Total",
+          groupBy: { column_1: true },
+        }),
+      ).statement;
+
+      /*
+       * `ORDER BY column_ObjectID` under Total would be a reference to a
+       * column that is neither grouped nor aggregated — ClickHouse
+       * rejects it. The sort key has to name the alias the SELECT emits.
+       */
+      expect(getOrderByColumn(statement)).toBe(
+        AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS,
+      );
+    });
+
+    test("bucketed intervals still alias the bucket onto the timestamp column and order by it", () => {
+      const statement: Statement = service.toAggregateStatement(
+        makeBaseAggregateBy({ aggregationInterval: "Hour" }),
+      ).statement;
+
+      /*
+       * The bucketed shape is deliberately unchanged: its expression is
+       * not an aggregate, and GROUP BY resolving to the alias is what
+       * makes the bucketing work.
+       */
+      expect(statement.query).toContain(
+        "toStartOfInterval(column_ObjectID, INTERVAL 1 hour)) as column_ObjectID",
+      );
+      expect(statement.query).not.toContain(
+        AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS,
+      );
+
+      expect(getOrderByColumn(statement)).toBe("column_ObjectID");
     });
   });
 

@@ -46,6 +46,7 @@ import EndsWith from "../../../Types/BaseDatabase/EndsWith";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import AggregateBy, {
@@ -1127,7 +1128,18 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
     return groupByStatement;
   }
 
-  public toSortStatement(sort: Sort<TBaseModel>): Statement {
+  /**
+   * `columnAliases` remaps a sort key onto the name the statement
+   * actually SELECTs it as. Aggregate statements need this for the
+   * whole-window (`Total`) bucket timestamp: the SELECT emits
+   * `min(col) as <alias>`, so `ORDER BY col` would reference the raw
+   * column — neither grouped nor aggregated, which ClickHouse rejects.
+   * The key is still validated as a real model column either way.
+   */
+  public toSortStatement(
+    sort: Sort<TBaseModel>,
+    columnAliases?: Dictionary<string> | undefined,
+  ): Statement {
     const sortStatement: Statement = new Statement();
 
     for (const key in sort) {
@@ -1135,8 +1147,10 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         throw new BadDataException(`Unknown column: ${key}`);
       }
 
+      const sortColumn: string = columnAliases?.[key] || key;
+
       const value: SortOrder = sort[key]!;
-      sortStatement.append(SQL`${key} `).append(
+      sortStatement.append(SQL`${sortColumn} `).append(
         {
           [SortOrder.Ascending]: SQL`ASC`,
           [SortOrder.Descending]: SQL`DESC`,
@@ -1220,9 +1234,17 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
       `${aggregationExpression} as ${aggregationColumn}, ${AggregateUtil.buildBucketTimestampSelect(aggregationInterval, aggregationTimestampColumn)}`,
     );
 
+    /*
+     * The bucket timestamp is not always returned under the timestamp
+     * column's own name — a `Total` aggregation aliases it away from the
+     * column so the WHERE clause is not shadowed by the aggregate.
+     */
     const columns: Array<string> = [
       aggregateBy.aggregateColumnName.toString(),
-      aggregateBy.aggregationTimestampColumnName.toString(),
+      AggregateUtil.getBucketTimestampAlias(
+        aggregationInterval,
+        aggregationTimestampColumn,
+      ),
     ];
 
     if (aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0) {

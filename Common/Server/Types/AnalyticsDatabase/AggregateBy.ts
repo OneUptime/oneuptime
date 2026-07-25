@@ -39,6 +39,61 @@ export class AggregateUtil {
   }
 
   /**
+   * Output-column name the whole-window (`Total`) bucket timestamp is
+   * returned under.
+   *
+   * It deliberately does NOT reuse the timestamp column's own name.
+   * `Total` compiles the bucket to `min(col)`, and ClickHouse resolves
+   * SELECT aliases inside WHERE — so `min(col) as col` sitting next to
+   * the window filter `col >= ... AND col <= ...` makes that filter
+   * reference the aggregate, and the entire statement fails with
+   * `ILLEGAL_AGGREGATION` (error 184: "Aggregate function min(col) AS
+   * col is found in WHERE in query"). Every bucketed interval keeps the
+   * column-name alias: its expression is not an aggregate, so it is
+   * legal in WHERE, and GROUP BY resolving to it is load-bearing.
+   */
+  public static readonly TOTAL_BUCKET_TIMESTAMP_ALIAS: string =
+    "__oneuptime_total_bucket_timestamp";
+
+  /**
+   * The name the bucket timestamp is actually SELECTed as for a given
+   * interval. Both the ORDER BY clause and the read-side row parsing
+   * must go through this rather than using the timestamp column name
+   * directly: in a `Total` statement the raw column is neither grouped
+   * nor aggregated (ordering by it fails), and rows come back keyed by
+   * the alias (reading them by column name silently drops every row).
+   */
+  public static getBucketTimestampAlias(
+    resolvedInterval: AggregationInterval,
+    timestampColumn: string,
+  ): string {
+    if (AggregateUtil.isTotalAggregation(resolvedInterval)) {
+      return AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS;
+    }
+
+    return timestampColumn;
+  }
+
+  /**
+   * getBucketTimestampAlias for a whole AggregateBy — resolves the
+   * interval the same way the statement builders do, so the statement
+   * side and the row-parsing side can never disagree about which
+   * column the bucket timestamp arrives in.
+   */
+  public static getBucketTimestampAliasForAggregate<
+    TBaseModel extends AnalyticsBaseModel,
+  >(aggregateBy: CommonAggregateBy<TBaseModel>): string {
+    return AggregateUtil.getBucketTimestampAlias(
+      AggregateUtil.getAggregationInterval({
+        startDate: aggregateBy.startTimestamp!,
+        endDate: aggregateBy.endTimestamp!,
+        aggregationInterval: aggregateBy.aggregationInterval,
+      }),
+      aggregateBy.aggregationTimestampColumnName.toString(),
+    );
+  }
+
+  /**
    * The single source of truth for "which ClickHouse expression buckets
    * a timestamp at this interval". Every aggregate SQL builder (raw
    * table, minute MV, per-host MV, span projections) must go through
@@ -80,17 +135,24 @@ export class AggregateUtil {
    * paths:
    *
    *   - normal interval → buildBucketTimestampExpression(...) `as col`
-   *   - Total           → `min(col) as col` (one row per group; the
-   *     earliest sample timestamp in the window is the bucket label)
+   *   - Total           → `min(col) as TOTAL_BUCKET_TIMESTAMP_ALIAS`
+   *     (one row per group; the earliest sample timestamp in the window
+   *     is the bucket label. The alias must not be `col` — see
+   *     TOTAL_BUCKET_TIMESTAMP_ALIAS.)
    */
   public static buildBucketTimestampSelect(
     resolvedInterval: AggregationInterval,
     timestampColumn: string,
   ): string {
+    const alias: string = AggregateUtil.getBucketTimestampAlias(
+      resolvedInterval,
+      timestampColumn,
+    );
+
     if (AggregateUtil.isTotalAggregation(resolvedInterval)) {
-      return `min(${timestampColumn}) as ${timestampColumn}`;
+      return `min(${timestampColumn}) as ${alias}`;
     }
 
-    return `${AggregateUtil.buildBucketTimestampExpression(resolvedInterval, timestampColumn)} as ${timestampColumn}`;
+    return `${AggregateUtil.buildBucketTimestampExpression(resolvedInterval, timestampColumn)} as ${alias}`;
   }
 }

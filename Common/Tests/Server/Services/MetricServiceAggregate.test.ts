@@ -3,7 +3,9 @@ import fs from "fs";
 import path from "path";
 import { MetricService } from "../../../Server/Services/MetricService";
 import Metric from "../../../Models/AnalyticsModels/Metric";
-import AggregateBy from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
+import AggregateBy, {
+  AggregateUtil,
+} from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
@@ -273,7 +275,9 @@ describe("MetricService aggregate statement generation", () => {
         "date_trunc('minute', toStartOfInterval(time, INTERVAL 1 minute))",
       );
       expect(query).toContain("GROUP BY time");
-      expect(query).not.toContain("min(time) as time");
+      expect(query).not.toContain(
+        `min(time) as ${AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS}`,
+      );
       expect(query).not.toContain("HAVING count() > 0");
     });
   });
@@ -293,7 +297,9 @@ describe("MetricService aggregate statement generation", () => {
 
       const query: string = getQuery(aggregateBy);
 
-      expect(query).toContain("min(time) as time");
+      expect(query).toContain(
+        `min(time) as ${AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS}`,
+      );
       expect(query).not.toContain("date_trunc");
       expect(query).toContain("GROUP BY __attr_grp_0");
       expect(query).not.toContain("GROUP BY time");
@@ -317,7 +323,9 @@ describe("MetricService aggregate statement generation", () => {
       const query: string = getQuery(aggregateBy);
 
       expect(query).not.toContain("MetricItemAggMV1m");
-      expect(query).toContain("min(time) as time");
+      expect(query).toContain(
+        `min(time) as ${AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS}`,
+      );
       expect(query).not.toContain("GROUP BY");
       // The phantom row an empty window would return is suppressed.
       expect(query).toContain("HAVING count() > 0");
@@ -332,7 +340,9 @@ describe("MetricService aggregate statement generation", () => {
 
       // The time-bucketed MV cannot serve a whole-window aggregation.
       expect(query).not.toContain("MetricItemAggMV1m");
-      expect(query).toContain("min(time) as time");
+      expect(query).toContain(
+        `min(time) as ${AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS}`,
+      );
       expect(query).not.toContain("GROUP BY");
       expect(query).toContain("HAVING count() > 0");
     });
@@ -345,7 +355,9 @@ describe("MetricService aggregate statement generation", () => {
 
       const query: string = getQuery(aggregateBy);
 
-      expect(query).toContain("min(time) as time");
+      expect(query).toContain(
+        `min(time) as ${AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS}`,
+      );
       // The model column survives as the sole grouping key...
       expect(query).toContain("GROUP BY metricPointType");
       // ...and the time bucket is gone (it is now an aggregate).
@@ -365,7 +377,9 @@ describe("MetricService aggregate statement generation", () => {
       const query: string = getQuery(aggregateBy);
 
       expect(query).toContain("quantileExactWeighted(0.9)");
-      expect(query).toContain("min(time) as time");
+      expect(query).toContain(
+        `min(time) as ${AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS}`,
+      );
       expect(query).toContain("GROUP BY __attr_grp_0");
       expect(query).not.toContain("date_trunc");
     });
@@ -1499,7 +1513,9 @@ describe("MetricService aggregate statement generation", () => {
         );
 
         expect(query).not.toContain("MetricItemAggMV1mByK8sCluster");
-        expect(query).toContain("min(time) as time");
+        expect(query).toContain(
+          `min(time) as ${AggregateUtil.TOTAL_BUCKET_TIMESTAMP_ALIAS}`,
+        );
       });
 
       it("bails without a projectId (entity keys are tenant-scoped)", () => {

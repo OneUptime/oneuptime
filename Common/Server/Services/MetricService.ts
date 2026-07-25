@@ -1096,6 +1096,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
     const sortStatement: Statement = this.statementGenerator.toSortStatement(
       aggregateBy.sort!,
+      this.getAggregateSortColumnAliases(aggregateBy, resolvedInterval),
     );
 
     /*
@@ -1434,6 +1435,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
     const sortStatement: Statement = this.statementGenerator.toSortStatement(
       aggregateBy.sort!,
+      this.getAggregateSortColumnAliases(aggregateBy, resolvedInterval),
     );
 
     const aggregationExpression: string =
@@ -1638,8 +1640,27 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       );
     const outerWhereStatement: Statement =
       this.statementGenerator.toWhereStatement(aggregateBy.query);
+
+    /*
+     * Mirror the base builder's Total handling: the SELECT above (shared
+     * toAggregateSelectStatement) emits `min(time)` for a `Total`
+     * interval, so the time column must NOT appear in GROUP BY (grouping
+     * by an aggregate is a ClickHouse error) and ORDER BY has to name the
+     * alias the aggregate was given rather than the raw column.
+     */
+    const mutableResolvedInterval: AggregationInterval =
+      AggregateUtil.getAggregationInterval({
+        startDate: aggregateBy.startTimestamp!,
+        endDate: aggregateBy.endTimestamp!,
+        aggregationInterval: aggregateBy.aggregationInterval,
+      });
+    const mutableBucketByTime: boolean = !AggregateUtil.isTotalAggregation(
+      mutableResolvedInterval,
+    );
+
     const sortStatement: Statement = this.statementGenerator.toSortStatement(
       aggregateBy.sort!,
+      this.getAggregateSortColumnAliases(aggregateBy, mutableResolvedInterval),
     );
 
     /*
@@ -1740,21 +1761,9 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     /*
-     * Mirror the base builder's Total handling: the SELECT above (shared
-     * toAggregateSelectStatement) already emits `min(time)` for a `Total`
-     * interval, so the time column must NOT appear in GROUP BY — grouping
-     * by an aggregate alias is a ClickHouse error. Omit the clause
-     * entirely when nothing else is grouped.
+     * Omit the GROUP BY clause entirely for a group-less Total (see the
+     * interval resolution above the WHERE statements).
      */
-    const mutableResolvedInterval: AggregationInterval =
-      AggregateUtil.getAggregationInterval({
-        startDate: aggregateBy.startTimestamp!,
-        endDate: aggregateBy.endTimestamp!,
-        aggregationInterval: aggregateBy.aggregationInterval,
-      });
-    const mutableBucketByTime: boolean = !AggregateUtil.isTotalAggregation(
-      mutableResolvedInterval,
-    );
     const mutableHasGroupBy: boolean = Boolean(
       aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0,
     );

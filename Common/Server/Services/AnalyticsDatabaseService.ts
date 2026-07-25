@@ -57,6 +57,7 @@ import AnalyticsTableColumn from "../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
+import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import ExceptionCode from "../../Types/Exception/ExceptionCode";
@@ -854,12 +855,18 @@ export default class AnalyticsDatabaseService<
         groupByColumnNames.push("attributes");
       }
 
+      /*
+       * The bucket timestamp does not always come back under the
+       * timestamp column's own name — a `Total` (whole-window)
+       * aggregation aliases it away from the column so the aggregate
+       * cannot shadow the window filter in WHERE. Reading rows by the
+       * column name in that case would drop every one of them.
+       */
+      const bucketTimestampColumn: string =
+        AggregateUtil.getBucketTimestampAliasForAggregate(aggregateBy);
+
       for (const item of items) {
-        if (
-          !(item as JSONObject)[
-            aggregateBy.aggregationTimestampColumnName as string
-          ]
-        ) {
+        if (!(item as JSONObject)[bucketTimestampColumn]) {
           continue;
         }
 
@@ -888,9 +895,7 @@ export default class AnalyticsDatabaseService<
          */
         const aggregatedModel: AggregatedModel = {
           timestamp: OneUptimeDate.fromString(
-            (item as JSONObject)[
-              aggregateBy.aggregationTimestampColumnName as string
-            ] as string,
+            (item as JSONObject)[bucketTimestampColumn] as string,
           ),
           value: (item as JSONObject)[
             aggregateBy.aggregateColumnName as string
@@ -1277,6 +1282,36 @@ export default class AnalyticsDatabaseService<
     return aggregateBy.timeoutOverflowMode === "throw" ? "throw" : "break";
   }
 
+  /**
+   * Sort-key → SELECT-alias remapping for an aggregate statement's ORDER
+   * BY. Only the aggregation timestamp column ever needs remapping, and
+   * only for a `Total` (whole-window) aggregation, where the bucket is
+   * `min(col) as <alias>`: ordering by `col` there would reference the
+   * raw column, which is neither grouped nor aggregated. Every bucketed
+   * interval aliases the bucket back onto the column name, so this is an
+   * empty map and ORDER BY is unchanged.
+   *
+   * Shared with the MetricService statement builders so every aggregate
+   * path orders by the same identifier its SELECT actually emits.
+   */
+  protected getAggregateSortColumnAliases(
+    aggregateBy: AggregateBy<TBaseModel>,
+    resolvedInterval: AggregationInterval,
+  ): Dictionary<string> {
+    const timestampColumn: string =
+      aggregateBy.aggregationTimestampColumnName.toString();
+    const bucketAlias: string = AggregateUtil.getBucketTimestampAlias(
+      resolvedInterval,
+      timestampColumn,
+    );
+
+    if (bucketAlias === timestampColumn) {
+      return {};
+    }
+
+    return { [timestampColumn]: bucketAlias };
+  }
+
   public toAggregateStatement(aggregateBy: AggregateBy<TBaseModel>): {
     statement: Statement;
     columns: Array<string>;
@@ -1308,19 +1343,6 @@ export default class AnalyticsDatabaseService<
       aggregateBy.query,
     );
 
-    const sortStatement: Statement = this.statementGenerator.toSortStatement(
-      aggregateBy.sort!,
-    );
-
-    const statement: Statement = SQL``;
-
-    statement.append(SQL`SELECT `.append(select.statement));
-    statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
-    statement
-      .append(SQL` WHERE TRUE `)
-      .append(whereStatement)
-      .append(this.getRetentionReadFilter());
-
     /*
      * The time bucket is a grouping key only when we ARE bucketing by
      * time. For a `Total` (whole-window) aggregation the timestamp is
@@ -1339,6 +1361,20 @@ export default class AnalyticsDatabaseService<
     const hasGroupBy: boolean = Boolean(
       aggregateBy.groupBy && Object.keys(aggregateBy.groupBy).length > 0,
     );
+
+    const sortStatement: Statement = this.statementGenerator.toSortStatement(
+      aggregateBy.sort!,
+      this.getAggregateSortColumnAliases(aggregateBy, resolvedInterval),
+    );
+
+    const statement: Statement = SQL``;
+
+    statement.append(SQL`SELECT `.append(select.statement));
+    statement.append(SQL` FROM ${databaseName}.${this.model.tableName}`);
+    statement
+      .append(SQL` WHERE TRUE `)
+      .append(whereStatement)
+      .append(this.getRetentionReadFilter());
 
     if (bucketByTime) {
       statement
