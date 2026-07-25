@@ -15,12 +15,61 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { getSnmpConfigFormFields } from "../SnmpConfigFormFields";
 import { getDevicePollingFormFields } from "../DevicePollingFormFields";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ProbeUtil from "../../../Utils/Probe";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeElement from "Common/UI/Components/Probe/Probe";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import API from "Common/UI/Utils/API/API";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 const NetworkDeviceSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * The probe list is fetched rather than pulled in through a dropdownModal:
+   * global probes are not project rows and only come back from the dedicated
+   * /probe/global-probes endpoint, which ProbeUtil merges in. A plain model
+   * dropdown would silently offer an empty list on any install whose probes
+   * are all global.
+   */
+  const [probes, setProbes] = useState<Array<Probe>>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  const fetchProbes: PromiseVoidFunction = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      setProbes(await ProbeUtil.getAllProbes());
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchProbes().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  }, []);
+
+  if (isLoading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
 
   return (
     <Fragment>
@@ -125,6 +174,28 @@ const NetworkDeviceSettings: FunctionComponent<
           },
         ]}
         formFields={[
+          {
+            field: {
+              probe: true,
+            },
+            title: "Probe",
+            stepId: "polling",
+            description:
+              "The probe that polls this device, and the one whose SNMP trap, syslog and NetFlow receivers this device's records are matched against. It has to be able to reach the device directly.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: probes.map((probe: Probe) => {
+              if (!probe.name || !probe._id) {
+                throw new BadDataException(`Probe name or id is missing`);
+              }
+
+              return {
+                label: probe.name,
+                value: probe._id,
+              };
+            }),
+            required: true,
+            placeholder: "Probe",
+          },
           ...getDevicePollingFormFields({ stepId: "polling" }),
           {
             field: {
@@ -156,6 +227,22 @@ const NetworkDeviceSettings: FunctionComponent<
           id: "network-device-polling-settings",
           modelId: modelId,
           fields: [
+            {
+              field: {
+                probe: {
+                  name: true,
+                  iconFileId: true,
+                },
+              },
+              title: "Probe",
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                if (!item.probe) {
+                  return <p>No probe assigned.</p>;
+                }
+                return <ProbeElement probe={item.probe} />;
+              },
+            },
             {
               field: {
                 isPollingEnabled: true,

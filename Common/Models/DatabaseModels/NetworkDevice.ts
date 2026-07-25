@@ -642,10 +642,8 @@ export default class NetworkDevice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.SettingsViewer,
       Permission.ReadNetworkDevice,
     ],
     update: [
@@ -894,10 +892,8 @@ export default class NetworkDevice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.SettingsViewer,
       Permission.ReadNetworkDevice,
     ],
     update: [
@@ -976,10 +972,8 @@ export default class NetworkDevice extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.SettingsViewer,
       Permission.ReadNetworkDevice,
     ],
     update: [
