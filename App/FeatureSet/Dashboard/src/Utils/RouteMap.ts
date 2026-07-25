@@ -141,6 +141,14 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_ENDPOINTS]: `endpoints`,
 };
 
+export const SloRoutePath: Dictionary<string> = {
+  [PageMap.SLO_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.SLO_VIEW_CHARTS]: `${RouteParams.ModelID}/charts`,
+  [PageMap.SLO_VIEW_BURN_RATE_RULES]: `${RouteParams.ModelID}/burn-rate-rules`,
+  [PageMap.SLO_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.SLO_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+};
+
 export const NetworkSiteRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_SITE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.NETWORK_SITE_VIEW_DEVICES]: `view/${RouteParams.ModelID}/devices`,
@@ -2635,6 +2643,42 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-sites/${
       NetworkSiteRoutePath[PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES]
+    }`,
+  ),
+
+  // SLOs (Service Level Objectives)
+
+  [PageMap.SLOS_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/slos/*`),
+
+  [PageMap.SLOS]: new Route(`/dashboard/${RouteParams.ProjectID}/slos`),
+
+  [PageMap.SLO_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_CHARTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_CHARTS]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_BURN_RATE_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_BURN_RATE_RULES]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_DELETE]
     }`,
   ),
 

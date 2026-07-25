@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "मॉनिटर",
       "monitorsDescription": "किसी भी संसाधन की निगरानी करें।",
+      "slosTitle": "SLOs",
+      "slosDescription": "सेवा स्तर उद्देश्य और त्रुटि बजट।",
       "statusPagesTitle": "स्थिति पृष्ठ",
       "statusPagesDescription": "वास्तविक समय स्थिति अपडेट।",
       "incidentsTitle": "घटनाएं",

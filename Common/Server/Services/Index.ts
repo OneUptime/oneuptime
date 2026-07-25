@@ -245,6 +245,11 @@ import IncidentEpisodePublicNoteService from "./IncidentEpisodePublicNoteService
 import AlertGroupingRuleService from "./AlertGroupingRuleService";
 import IncidentSlaRuleService from "./IncidentSlaRuleService";
 import IncidentSlaService from "./IncidentSlaService";
+import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
+import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
+import SloHistoryService from "./SloHistoryService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import AlertReminderRuleService from "./AlertReminderRuleService";
 import ScheduledMaintenanceReminderRuleService from "./ScheduledMaintenanceReminderRuleService";
@@ -519,6 +524,10 @@ const services: Array<BaseService> = [
   AlertGroupingRuleService,
   IncidentSlaRuleService,
   IncidentSlaService,
+  ServiceLevelObjectiveService,
+  ServiceLevelObjectiveBurnRateRuleService,
+  ServiceLevelObjectiveOwnerUserService,
+  ServiceLevelObjectiveOwnerTeamService,
   IncidentReminderRuleService,
   AlertReminderRuleService,
   ScheduledMaintenanceReminderRuleService,
@@ -544,6 +553,7 @@ export const AnalyticsServices: Array<
   SpanService,
   MetricService,
   MutableMetricService,
+  SloHistoryService,
   /*
    * Materialized-view target tables. The auto-create flow runs
    * `CREATE TABLE IF NOT EXISTS` for these, idempotent with the legacy

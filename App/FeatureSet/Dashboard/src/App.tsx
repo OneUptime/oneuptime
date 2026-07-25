@@ -266,6 +266,15 @@ const NetworkSiteRoutes: React.LazyExoticComponent<
     };
   });
 });
+const SloRoutes: React.LazyExoticComponent<AllRoutesModule["SloRoutes"]> = lazy(
+  () => {
+    return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+      return {
+        default: m.SloRoutes,
+      };
+    });
+  },
+);
 const PodmanRoutes: React.LazyExoticComponent<AllRoutesModule["PodmanRoutes"]> =
   lazy(() => {
     return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
@@ -763,6 +772,12 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.NETWORK_SITE_ROOT]?.toString() || ""}
             element={<NetworkSiteRoutes {...commonPageProps} />}
+          />
+
+          {/* SLOs */}
+          <PageRoute
+            path={RouteMap[PageMap.SLOS_ROOT]?.toString() || ""}
+            element={<SloRoutes {...commonPageProps} />}
           />
 
           {/* Podman */}

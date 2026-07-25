@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "Мониторы",
       "monitorsDescription": "Отслеживайте любые ресурсы.",
+      "slosTitle": "SLOs",
+      "slosDescription": "Цели уровня обслуживания и бюджеты ошибок.",
       "statusPagesTitle": "Страницы статуса",
       "statusPagesDescription": "Обновления статуса в реальном времени.",
       "incidentsTitle": "Инциденты",

@@ -10,6 +10,7 @@ export enum PermissionGroup {
   Incident = "Incident",
   Alert = "Alert",
   Monitor = "Monitor",
+  SLO = "SLO",
   StatusPage = "Status Page",
   ScheduledMaintenance = "Scheduled Maintenance",
   OnCallDutyPolicy = "On-Call Duty Policy",
@@ -1671,6 +1672,30 @@ enum Permission {
   DeleteIncidentSla = "DeleteIncidentSla",
   EditIncidentSla = "EditIncidentSla",
   ReadIncidentSla = "ReadIncidentSla",
+
+  // Service Level Objective Permissions
+  CreateServiceLevelObjective = "CreateServiceLevelObjective",
+  DeleteServiceLevelObjective = "DeleteServiceLevelObjective",
+  EditServiceLevelObjective = "EditServiceLevelObjective",
+  ReadServiceLevelObjective = "ReadServiceLevelObjective",
+
+  // Service Level Objective Burn Rate Rule Permissions
+  CreateServiceLevelObjectiveBurnRateRule = "CreateServiceLevelObjectiveBurnRateRule",
+  DeleteServiceLevelObjectiveBurnRateRule = "DeleteServiceLevelObjectiveBurnRateRule",
+  EditServiceLevelObjectiveBurnRateRule = "EditServiceLevelObjectiveBurnRateRule",
+  ReadServiceLevelObjectiveBurnRateRule = "ReadServiceLevelObjectiveBurnRateRule",
+
+  // Service Level Objective Owner User Permissions
+  CreateServiceLevelObjectiveOwnerUser = "CreateServiceLevelObjectiveOwnerUser",
+  DeleteServiceLevelObjectiveOwnerUser = "DeleteServiceLevelObjectiveOwnerUser",
+  EditServiceLevelObjectiveOwnerUser = "EditServiceLevelObjectiveOwnerUser",
+  ReadServiceLevelObjectiveOwnerUser = "ReadServiceLevelObjectiveOwnerUser",
+
+  // Service Level Objective Owner Team Permissions
+  CreateServiceLevelObjectiveOwnerTeam = "CreateServiceLevelObjectiveOwnerTeam",
+  DeleteServiceLevelObjectiveOwnerTeam = "DeleteServiceLevelObjectiveOwnerTeam",
+  EditServiceLevelObjectiveOwnerTeam = "EditServiceLevelObjectiveOwnerTeam",
+  ReadServiceLevelObjectiveOwnerTeam = "ReadServiceLevelObjectiveOwnerTeam",
 
   /*
    * Wildcard permissions covering all models marked @OperationalResource().
@@ -14082,6 +14107,164 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Incident,
+      },
+
+      // Service Level Objective Permissions
+      {
+        permission: Permission.CreateServiceLevelObjective,
+        title: "Create Service Level Objective",
+        description:
+          "Permission to create Service Level Objectives (SLOs) in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjective,
+        title: "Delete Service Level Objective",
+        description:
+          "Permission to delete Service Level Objectives (SLOs) of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjective,
+        title: "Edit Service Level Objective",
+        description:
+          "Permission to edit Service Level Objectives (SLOs) of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjective,
+        title: "Read Service Level Objective",
+        description:
+          "Permission to read Service Level Objectives (SLOs) of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Burn Rate Rule Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveBurnRateRule,
+        title: "Create SLO Burn Rate Rule",
+        description:
+          "Permission to create SLO Burn Rate Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveBurnRateRule,
+        title: "Delete SLO Burn Rate Rule",
+        description:
+          "Permission to delete SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveBurnRateRule,
+        title: "Edit SLO Burn Rate Rule",
+        description: "Permission to edit SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveBurnRateRule,
+        title: "Read SLO Burn Rate Rule",
+        description: "Permission to read SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Owner User Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveOwnerUser,
+        title: "Create SLO User Owner",
+        description: "Permission to create SLO User Owners in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveOwnerUser,
+        title: "Delete SLO User Owner",
+        description: "Permission to delete SLO User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveOwnerUser,
+        title: "Edit SLO User Owner",
+        description: "Permission to edit SLO User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveOwnerUser,
+        title: "Read SLO User Owner",
+        description: "Permission to read SLO User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Owner Team Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveOwnerTeam,
+        title: "Create SLO Team Owner",
+        description: "Permission to create SLO Team Owners in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveOwnerTeam,
+        title: "Delete SLO Team Owner",
+        description: "Permission to delete SLO Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveOwnerTeam,
+        title: "Edit SLO Team Owner",
+        description: "Permission to edit SLO Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveOwnerTeam,
+        title: "Read SLO Team Owner",
+        description: "Permission to read SLO Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
       },
 
       // Operational Resource Wildcard Permissions

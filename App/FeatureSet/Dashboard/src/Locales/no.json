@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "Overvåkere",
       "monitorsDescription": "Overvåk enhver ressurs.",
+      "slosTitle": "SLOs",
+      "slosDescription": "Tjenestenivåmål og feilbudsjetter.",
       "statusPagesTitle": "Statussider",
       "statusPagesDescription": "Statusoppdateringer i sanntid.",
       "incidentsTitle": "Hendelser",

@@ -335,6 +335,23 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "SLOs",
+    links: [
+      {
+        title: "SLOs Overview",
+        url: "/docs/slo/introduction",
+      },
+      {
+        title: "Error Budgets",
+        url: "/docs/slo/error-budget",
+      },
+      {
+        title: "Burn Rate Alerts",
+        url: "/docs/slo/burn-rate-alerts",
+      },
+    ],
+  },
+  {
     title: "On Call",
     links: [
       {

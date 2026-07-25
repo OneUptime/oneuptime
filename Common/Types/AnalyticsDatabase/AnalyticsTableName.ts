@@ -34,6 +34,15 @@ enum AnalyticsTableName {
   MetricItemAggMV1mByContainer = "MetricItemAggMV1mByContainer",
   MetricBaselineHourly = "MetricBaselineHourly",
   MutableMetric = "MutableMetricItem",
+  /*
+   * SLO / Error Budget history rollup. ReplacingMergeTree keyed by
+   * (projectId, sloId, metricName, bucketStart) with a `version` column
+   * so at-least-once evaluator writes and trailing re-writes dedupe to
+   * the latest value. Deliberately NOT MetricItemV3: its own monthly
+   * partitions + 400-day TTL keep long-lived SLO rows from pinning the
+   * daily raw-telemetry partitions (ttl_only_drop_parts hazard).
+   */
+  SloHistory = "SloHistory",
 }
 
 export default AnalyticsTableName;

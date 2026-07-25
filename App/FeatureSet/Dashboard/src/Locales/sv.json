@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "Övervakare",
       "monitorsDescription": "Övervaka vilken resurs som helst.",
+      "slosTitle": "SLOs",
+      "slosDescription": "Servicenivåmål och felbudgetar.",
       "statusPagesTitle": "Statussidor",
       "statusPagesDescription": "Statusuppdateringar i realtid.",
       "incidentsTitle": "Incidenter",

@@ -45,6 +45,8 @@
     "items": {
       "monitorsTitle": "모니터",
       "monitorsDescription": "모든 리소스를 모니터링하세요.",
+      "slosTitle": "SLOs",
+      "slosDescription": "서비스 수준 목표와 오류 예산.",
       "statusPagesTitle": "상태 페이지",
       "statusPagesDescription": "실시간 상태 업데이트.",
       "incidentsTitle": "인시던트",

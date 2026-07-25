@@ -17,6 +17,7 @@ export { default as OnCallDutyRoutes } from "./OnCallDutyRoutes";
 // Monitoring
 export { default as MonitorsRoutes } from "./MonitorsRoutes";
 export { default as MonitorGroupRoutes } from "./MonitorGroupRoutes";
+export { default as SloRoutes } from "./SloRoutes";
 
 // Platform
 export { default as WorkflowRoutes } from "./WorkflowRoutes";

@@ -205,6 +205,11 @@ const EVENT_LIBRARY: Record<
     label: "Added as monitor owner",
     description: "You are added as an owner of a monitor.",
   },
+  [NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION]: {
+    label: "SLO status changed",
+    description:
+      "An SLO you own changes status (e.g. becomes At Risk or exhausts its error budget).",
+  },
   [NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES]:
     {
       label: "Probe status changed for your monitor",
@@ -691,6 +696,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
       NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
       NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+    ]),
+    buildSection("SLOs", "Notify me about SLOs I own.", [
+      NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
     ]),
     buildSection("Probes", "Notify me about custom probes I own.", [
       NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,

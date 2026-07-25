@@ -468,6 +468,7 @@ import { AddNetworkSiteHierarchyAndEndpoints1784757142154 } from "./178475714215
 import { AddNetworkSiteAlerting1784897317860 } from "./1784897317860-AddNetworkSiteAlerting";
 import { AddNetworkDevicePollingColumns1784970388777 } from "./1784970388777-AddNetworkDevicePollingColumns";
 import { AddNetworkSiteTypeTable1784986826214 } from "./1784986826214-AddNetworkSiteTypeTable";
+import { AddServiceLevelObjective1784987015619 } from "./1784987015619-AddServiceLevelObjective";
 
 export default [
   InitialMigration,
@@ -940,4 +941,5 @@ export default [
   AddNetworkSiteAlerting1784897317860,
   AddNetworkDevicePollingColumns1784970388777,
   AddNetworkSiteTypeTable1784986826214,
+  AddServiceLevelObjective1784987015619,
 ];

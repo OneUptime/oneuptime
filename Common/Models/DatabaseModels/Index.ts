@@ -354,6 +354,10 @@ import IncidentEpisodePrivacyRule from "./IncidentEpisodePrivacyRule";
 import IncidentEpisodeLabelRule from "./IncidentEpisodeLabelRule";
 import IncidentSlaRule from "./IncidentSlaRule";
 import IncidentSla from "./IncidentSla";
+import ServiceLevelObjective from "./ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "./ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveOwnerUser from "./ServiceLevelObjectiveOwnerUser";
+import ServiceLevelObjectiveOwnerTeam from "./ServiceLevelObjectiveOwnerTeam";
 import IncidentReminderRule from "./IncidentReminderRule";
 import AlertReminderRule from "./AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "./ScheduledMaintenanceReminderRule";
@@ -533,6 +537,10 @@ const AllModelTypes: Array<{
   IncidentEpisodeLabelRule,
   IncidentSlaRule,
   IncidentSla,
+  ServiceLevelObjective,
+  ServiceLevelObjectiveBurnRateRule,
+  ServiceLevelObjectiveOwnerUser,
+  ServiceLevelObjectiveOwnerTeam,
   IncidentReminderRule,
   AlertReminderRule,
   ScheduledMaintenanceReminderRule,
