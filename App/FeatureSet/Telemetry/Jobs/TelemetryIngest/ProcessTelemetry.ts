@@ -12,6 +12,7 @@ import {
   processProbeFromQueue,
   processIncomingEmailFromQueue,
   processSnmpTrapFromQueue,
+  processNetworkDeviceWalkFromQueue,
 } from "../ProbeIngest/ProcessProbeIngest";
 import { processServerMonitorFromQueue } from "../ServerMonitorIngest/ProcessServerMonitorIngest";
 import KubernetesCostIngestService from "../../Services/KubernetesCostIngestService";
@@ -227,6 +228,10 @@ if (DisableQueueWorkers) {
                   await processIncomingEmailFromQueue(jobData.probeIngest);
                 } else if (jobData.probeIngest.jobType === "snmp-trap") {
                   await processSnmpTrapFromQueue(jobData.probeIngest);
+                } else if (
+                  jobData.probeIngest.jobType === "network-device-walk"
+                ) {
+                  await processNetworkDeviceWalkFromQueue(jobData.probeIngest);
                 } else {
                   await processProbeFromQueue(jobData.probeIngest);
                 }

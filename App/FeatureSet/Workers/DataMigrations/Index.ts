@@ -95,6 +95,7 @@ import AddMetricEntityMinuteAggregateMaterializedViews from "./AddMetricEntityMi
 import CloseOrphanedMonitorStatusTimelineRows from "./CloseOrphanedMonitorStatusTimelineRows";
 import MigrateMetricAggregatesToStrictSchema from "./MigrateMetricAggregatesToStrictSchema";
 import AddInterfaceIndexColumnsToNetworkFlow from "./AddInterfaceIndexColumnsToNetworkFlow";
+import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -275,6 +276,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * rows read back 0 ("unknown"). Idempotent: skips columns that exist.
    */
   new AddInterfaceIndexColumnsToNetworkFlow(),
+  /*
+   * Device-owned polling: copies collection options (interface walks,
+   * endpoint collection, health OIDs) from Network Device monitor steps
+   * onto the referenced devices, and deletes those monitors' MonitorProbe
+   * rows so probes stop executing them. Idempotent: union/merge writes and
+   * already-deleted rows are no-ops on re-run.
+   */
+  new MoveNetworkDeviceMonitorCollectionToDevices(),
 ];
 
 export default DataMigrations;

@@ -1,35 +1,39 @@
 import { JSONObject } from "../../../Types/JSON";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
-import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import OneUptimeDate from "../../../Types/Date";
 import logger from "../Logger";
 
 /*
  * Computes per-interface rates (bandwidth, utilization, errors) for SNMP
- * monitors by comparing the cumulative IF-MIB counters of the current check
- * against the previous check stored in MonitorProbe.lastMonitoringLog.
+ * walks by comparing the cumulative IF-MIB counters of the current walk
+ * against the previous walk stored in NetworkDevice.lastWalkLog.
  *
  * Probes stay stateless — the delta is computed here, on ingest, before the
- * response is persisted. Negative deltas (counter wrap or device reboot) are
- * skipped for that interface; rates resume on the following check.
+ * walk is persisted. Negative deltas (counter wrap or device reboot) are
+ * skipped for that interface; rates resume on the following walk.
  */
 export default class SnmpInterfaceRateUtil {
   public static attachInterfaceRates(data: {
-    probeMonitorResponse: ProbeMonitorResponse;
-    previousStepLog: JSONObject | undefined;
+    snmpResponse: SnmpMonitorResponse | undefined;
+    /*
+     * The device's previous walk: `{ snmpResponse, monitoredAt }` as stored
+     * in NetworkDevice.lastWalkLog. Undefined on a device's first walk.
+     */
+    previousWalkLog: JSONObject | undefined;
   }): void {
     const interfaces: Array<SnmpInterface> | undefined =
-      data.probeMonitorResponse.snmpResponse?.interfaces;
+      data.snmpResponse?.interfaces;
 
     if (!interfaces || interfaces.length === 0) {
       return;
     }
 
-    if (!data.previousStepLog) {
+    if (!data.previousWalkLog) {
       return;
     }
 
-    const previousSnmpResponse: JSONObject | undefined = data.previousStepLog[
+    const previousSnmpResponse: JSONObject | undefined = data.previousWalkLog[
       "snmpResponse"
     ] as JSONObject | undefined;
 
@@ -37,7 +41,7 @@ export default class SnmpInterfaceRateUtil {
       previousSnmpResponse?.["interfaces"] as Array<JSONObject> | undefined;
 
     const previousMonitoredAtValue: unknown =
-      data.previousStepLog["monitoredAt"];
+      data.previousWalkLog["monitoredAt"];
 
     if (
       !previousInterfaces ||
@@ -56,7 +60,7 @@ export default class SnmpInterfaceRateUtil {
     }
 
     /*
-     * lastMonitoringLog stores server receipt time as monitoredAt, so the
+     * lastWalkLog stores server receipt time as monitoredAt, so the
      * current side of the delta uses server time too.
      */
     const elapsedSeconds: number =
@@ -163,7 +167,7 @@ export default class SnmpInterfaceRateUtil {
     }
 
     logger.debug(
-      `Attached SNMP interface rates for monitor ${data.probeMonitorResponse.monitorId.toString()} over ${round(elapsedSeconds)}s window`,
+      `Attached SNMP interface rates over ${round(elapsedSeconds)}s window`,
     );
   }
 }

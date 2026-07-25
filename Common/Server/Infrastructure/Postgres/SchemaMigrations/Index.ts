@@ -466,6 +466,7 @@ import { AddInstanceVersionAndLatestReleaseColumns1784659816363 } from "./178465
 import { AddEnterpriseLicenseEvaluationColumns1784705487674 } from "./1784705487674-AddEnterpriseLicenseEvaluationColumns";
 import { AddNetworkSiteHierarchyAndEndpoints1784757142154 } from "./1784757142154-AddNetworkSiteHierarchyAndEndpoints";
 import { AddNetworkSiteAlerting1784897317860 } from "./1784897317860-AddNetworkSiteAlerting";
+import { AddNetworkDevicePollingColumns1784970388777 } from "./1784970388777-AddNetworkDevicePollingColumns";
 
 export default [
   InitialMigration,
@@ -936,4 +937,5 @@ export default [
   AddEnterpriseLicenseEvaluationColumns1784705487674,
   AddNetworkSiteHierarchyAndEndpoints1784757142154,
   AddNetworkSiteAlerting1784897317860,
+  AddNetworkDevicePollingColumns1784970388777,
 ];

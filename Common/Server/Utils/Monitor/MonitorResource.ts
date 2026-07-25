@@ -9,13 +9,10 @@ import logger from "../Logger";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
 import MonitorLogUtil from "./MonitorLogUtil";
 import MonitorMetricUtil from "./MonitorMetricUtil";
-import NetworkInventoryUtil from "./NetworkInventoryUtil";
-import SnmpInterfaceRateUtil from "./SnmpInterfaceRateUtil";
 import DataToProcess from "./DataToProcess";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { JSONObject } from "../../../Types/JSON";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
@@ -293,34 +290,11 @@ export default class MonitorResourceUtil {
           probeName = monitorProbe.probe?.name || undefined;
 
           /*
-           * SNMP interface rates (bandwidth, utilization, errors/sec) are
-           * deltas against the previous check's counters — computed here,
-           * while the previous log is still available, so the computed
-           * values flow into metrics, criteria, and the stored log below.
+           * Network Device monitors no longer flow through here: they are
+           * not probeable — the NetworkDevice resource owns its own polling
+           * and NetworkDeviceWalkUtil computes interface rates, syncs
+           * inventory, and evaluates watching monitors on each device walk.
            */
-          if (monitor.monitorType === MonitorType.NetworkDevice) {
-            SnmpInterfaceRateUtil.attachInterfaceRates({
-              probeMonitorResponse: dataToProcess as ProbeMonitorResponse,
-              previousStepLog: (
-                monitorProbe.lastMonitoringLog as JSONObject | undefined
-              )?.[
-                (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
-              ] as JSONObject | undefined,
-            });
-
-            /*
-             * Sync the NetworkDevice/NetworkInterface inventory from the
-             * walk, then prune the response to monitored interfaces so
-             * criteria and metrics ignore muted ports. Trap events carry
-             * no walk data — nothing to sync.
-             */
-            if (!isSnmpTrapEvent) {
-              await NetworkInventoryUtil.updateFromWalk({
-                monitor: monitor,
-                dataToProcess: dataToProcess as ProbeMonitorResponse,
-              });
-            }
-          }
 
           if (!isSnmpTrapEvent) {
             await MonitorProbeService.updateOneBy({

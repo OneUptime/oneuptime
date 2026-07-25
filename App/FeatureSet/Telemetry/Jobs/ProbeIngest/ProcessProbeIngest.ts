@@ -16,17 +16,14 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorProbe, {
-  MonitorStepProbeResponse,
-} from "Common/Models/DatabaseModels/MonitorProbe";
-import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
+import NetworkDeviceWalkUtil from "Common/Server/Utils/Monitor/NetworkDeviceWalkUtil";
+import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeService from "Common/Server/Services/ProbeService";
 import SnmpTrapLogWriter from "../../Services/SnmpTrapLogWriter";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 
@@ -157,36 +154,6 @@ export async function processSnmpTrapFromQueue(
     }
   }
 
-  // Monitors this probe is assigned to.
-  const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy({
-    query: {
-      probeId: probeId,
-    },
-    select: {
-      monitorId: true,
-    },
-    limit: LIMIT_MAX,
-    skip: 0,
-    props: {
-      isRoot: true,
-    },
-  });
-
-  const monitorIds: Array<ObjectID> = monitorProbes
-    .map((monitorProbe: MonitorProbe) => {
-      return monitorProbe.monitorId;
-    })
-    .filter((monitorId: ObjectID | undefined): monitorId is ObjectID => {
-      return Boolean(monitorId);
-    });
-
-  if (monitorIds.length === 0) {
-    logger.debug(
-      `SNMP trap from ${snmpTrap.sourceIpAddress}: probe ${probeId.toString()} has no monitors. Trap logged; skipping criteria evaluation.`,
-    );
-    return;
-  }
-
   const matchingDeviceIds: Set<string> = new Set(
     matchingDevices
       .map((device: NetworkDevice) => {
@@ -202,29 +169,37 @@ export async function processSnmpTrapFromQueue(
     return;
   }
 
-  const monitors: Array<Monitor> = await MonitorService.findBy({
-    query: {
-      _id: QueryHelper.any(
-        monitorIds.map((monitorId: ObjectID) => {
-          return monitorId.toString();
-        }),
-      ),
-      monitorType: MonitorType.NetworkDevice,
-    },
-    select: {
-      _id: true,
-      projectId: true,
-      monitorSteps: true,
-      disableActiveMonitoring: true,
-      disableActiveMonitoringBecauseOfManualIncident: true,
-      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
-    },
-    limit: LIMIT_MAX,
-    skip: 0,
-    props: {
-      isRoot: true,
-    },
-  });
+  /*
+   * Network Device monitors are not probe-executed (no MonitorProbe rows) —
+   * they are the alerting layer over device walks and traps. Match monitors
+   * the same way the walk fan-out does: every Network Device monitor in the
+   * matched devices' projects whose steps reference a matched device.
+   */
+  const projectIds: Set<string> = new Set(
+    matchingDevices
+      .map((device: NetworkDevice) => {
+        return device.projectId?.toString() || "";
+      })
+      .filter(Boolean),
+  );
+
+  const monitors: Array<Monitor> = [];
+
+  for (const projectIdAsString of projectIds) {
+    monitors.push(
+      ...(await NetworkDeviceWalkUtil.findMonitorsWatchingDevices({
+        projectId: new ObjectID(projectIdAsString),
+        deviceIds: Array.from(matchingDeviceIds),
+      })),
+    );
+  }
+
+  if (monitors.length === 0) {
+    logger.debug(
+      `SNMP trap from ${snmpTrap.sourceIpAddress}: no Network Device monitor references the matched device(s). Trap logged; skipping criteria evaluation.`,
+    );
+    return;
+  }
 
   let matchedSteps: number = 0;
 
@@ -279,6 +254,61 @@ export async function processSnmpTrapFromQueue(
   logger.debug(
     `SNMP trap ${snmpTrap.trapOid} from ${snmpTrap.sourceIpAddress}: matched ${matchedSteps} monitor step(s) across ${monitors.length} SNMP monitor(s) on probe ${probeId.toString()}.`,
   );
+}
+
+/*
+ * Processes one device walk reported by the device's assigned probe: rates,
+ * inventory, device metrics, and fan-out to the monitors alerting on the
+ * device. See NetworkDeviceWalkUtil for the pipeline itself.
+ */
+export async function processNetworkDeviceWalkFromQueue(
+  jobData: ProbeIngestJobData,
+): Promise<void> {
+  const requestBody: JSONObject | undefined = jobData.networkDeviceWalk;
+
+  if (!requestBody) {
+    throw new BadDataException("Network device walk data not found");
+  }
+
+  const probeIdAsString: string | undefined = requestBody["probeId"] as
+    | string
+    | undefined;
+  const networkDeviceIdAsString: string | undefined = requestBody[
+    "networkDeviceId"
+  ] as string | undefined;
+
+  if (!probeIdAsString || !networkDeviceIdAsString) {
+    throw new BadDataException(
+      "Network device walk is missing probeId or networkDeviceId",
+    );
+  }
+
+  /*
+   * Validate the RAW value: JSONFunctions.deserialize(undefined) returns
+   * {}, which is truthy — checking the deserialized result would make this
+   * guard dead code.
+   */
+  if (!requestBody["snmpResponse"]) {
+    throw new BadDataException("Network device walk has no snmpResponse");
+  }
+
+  const snmpResponse: SnmpMonitorResponse = JSONFunctions.deserialize(
+    requestBody["snmpResponse"] as JSONObject,
+  ) as unknown as SnmpMonitorResponse;
+
+  const monitoredAtValue: unknown = requestBody["monitoredAt"];
+  const monitoredAt: Date = monitoredAtValue
+    ? new Date(monitoredAtValue as string)
+    : OneUptimeDate.getCurrentDate();
+
+  await NetworkDeviceWalkUtil.processWalkResult({
+    probeId: new ObjectID(probeIdAsString),
+    networkDeviceId: new ObjectID(networkDeviceIdAsString),
+    snmpResponse: snmpResponse,
+    monitoredAt: isNaN(monitoredAt.getTime())
+      ? OneUptimeDate.getCurrentDate()
+      : monitoredAt,
+  });
 }
 
 export async function processIncomingEmailFromQueue(

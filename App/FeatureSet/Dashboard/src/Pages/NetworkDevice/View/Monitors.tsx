@@ -53,6 +53,7 @@ const NetworkDeviceMonitors: FunctionComponent<
         monitors={monitors}
         isLoading={isLoading}
         error={error}
+        networkDeviceId={modelId.toString()}
       />
     </Fragment>
   );

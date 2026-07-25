@@ -734,17 +734,14 @@ export default class MonitorStep extends DatabaseProperty {
       return "Port is required";
     }
 
+    /*
+     * A Network Device monitor only needs to know WHICH device to alert
+     * on. What gets collected (interface walks, endpoint discovery, health
+     * OIDs) is configured on the NetworkDevice resource itself, not here.
+     */
     if (monitorType === MonitorType.NetworkDevice) {
       if (!value.data.networkDeviceMonitor?.networkDeviceId) {
         return "Network Device is required";
-      }
-
-      if (
-        !value.data.networkDeviceMonitor.monitorInterfaces &&
-        (!value.data.networkDeviceMonitor.oids ||
-          value.data.networkDeviceMonitor.oids.length === 0)
-      ) {
-        return "Enable interface monitoring or configure at least one OID";
       }
     }
 

@@ -219,7 +219,8 @@ const NetworkDevices: FunctionComponent<
               probe: true,
             },
             title: "Probe",
-            description: "Which probe should poll this device?",
+            description:
+              "The probe that polls this device on its schedule, and receives its SNMP traps, syslog, and NetFlow. Polling starts as soon as the device is created — no monitor needed.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: probes.map((probe: Probe) => {
               if (!probe.name || !probe._id) {
