@@ -35,7 +35,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: cost-agent
-          image: "{{ .Values.cost.agent.image.repository }}:{{ .Values.cost.agent.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.cost.agent.image.repository }}:{{ .Values.cost.agent.image.tag | default "release" }}"
           imagePullPolicy: {{ .Values.cost.agent.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false

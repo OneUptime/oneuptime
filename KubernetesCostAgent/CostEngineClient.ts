@@ -17,6 +17,22 @@ const CANDIDATE_PATHS: Array<string> = [
   "/allocation",
 ];
 
+/*
+ * RFC3339 to the SECOND — no fractional part. Both engines parse the
+ * `window` bound with a fixed set of layouts and none of them accept
+ * milliseconds, so a raw Date.toISOString() (which always emits `.sssZ`)
+ * is rejected outright:
+ *
+ *   HTTP 400 Invalid 'window' parameter: illegal window:
+ *     2026-07-25T16:00:00.000Z,2026-07-25T17:00:00.000Z
+ *
+ * Windows are floored to the window grid by the poller, so truncating the
+ * millisecond field never loses information.
+ */
+const toEngineTimestamp: (date: Date) => string = (date: Date): string => {
+  return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+};
+
 export class CostEngineClient {
   /** Detected (or configured) allocation path; null until first success. */
   private allocationPath: string | null = COST_ALLOCATION_PATH || null;
@@ -34,7 +50,7 @@ export class CostEngineClient {
     windowStart: Date;
     windowEnd: Date;
   }): Promise<Array<EngineAllocation>> {
-    const window: string = `${data.windowStart.toISOString()},${data.windowEnd.toISOString()}`;
+    const window: string = `${toEngineTimestamp(data.windowStart)},${toEngineTimestamp(data.windowEnd)}`;
 
     const paths: Array<string> = this.allocationPath
       ? [this.allocationPath]

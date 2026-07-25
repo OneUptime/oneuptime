@@ -386,9 +386,11 @@ logs:
   api:
     image:
       repository: oneuptime/kubernetes-log-tailer
-      # Leave empty to track the chart's appVersion — set at release time to
-      # the OneUptime product version (the release pipeline publishes
-      # oneuptime/kubernetes-log-tailer with the same tag). Override to pin.
+      # Leave empty to track `release` — the moving tag the release pipeline
+      # republishes for every OneUptime version. Set this to a version
+      # (e.g. "11.6.1") to pin. Do NOT expect the chart's appVersion to work
+      # as a tag: nothing bumps it at release time, so it names no
+      # published image.
       tag: ""
       pullPolicy: IfNotPresent
     replicas: 1
@@ -649,6 +651,9 @@ cost:
     enabled: true
     image:
       repository: oneuptime/kubernetes-cost-agent
+      # Leave empty to track `release` — the moving tag the release pipeline
+      # republishes for every OneUptime version. Set this to a version
+      # (e.g. "11.6.1") to pin.
       tag: ""
       pullPolicy: IfNotPresent
     # Allocation window length. Hourly is the engines' native ETL
