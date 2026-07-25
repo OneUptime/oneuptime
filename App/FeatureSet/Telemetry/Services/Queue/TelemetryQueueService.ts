@@ -32,7 +32,8 @@ export type ProbeIngestJobType =
   | "probe-response"
   | "monitor-test"
   | "incoming-email"
-  | "snmp-trap";
+  | "snmp-trap"
+  | "network-device-walk";
 
 export interface IncomingEmailJobData {
   secretKey: string;
@@ -61,6 +62,11 @@ export interface ProbeIngestJobData {
   incomingEmail?: IncomingEmailJobData | undefined;
   // For snmp-trap: the raw request body ({ probeId, probeKey, snmpTrap })
   snmpTrap?: JSONObject | undefined;
+  /*
+   * For network-device-walk: the raw request body
+   * ({ probeId, networkDeviceId, snmpResponse, monitoredAt })
+   */
+  networkDeviceWalk?: JSONObject | undefined;
 }
 
 export interface ServerMonitorIngestJobData {
@@ -428,6 +434,42 @@ export default class TelemetryQueueService {
       logger.debug(`Added SNMP trap ingestion job: ${jobId}`);
     } catch (error) {
       logger.error(`Error adding SNMP trap ingestion job:`);
+      logger.error(error);
+      throw error;
+    }
+  }
+
+  public static async addNetworkDeviceWalkJob(data: {
+    walkRequestBody: JSONObject;
+  }): Promise<void> {
+    try {
+      const probeData: ProbeIngestJobData = {
+        jobType: "network-device-walk",
+        networkDeviceWalk: data.walkRequestBody,
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+      };
+
+      const jobData: TelemetryIngestJobData = {
+        type: TelemetryType.ProbeIngest,
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        probeIngest: probeData,
+      };
+
+      const jobId: string = `probe-network-device-walk-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
+
+      await Queue.addJob(
+        QueueName.Telemetry,
+        jobId,
+        "ProcessTelemetry",
+        jobData as unknown as JSONObject,
+        {
+          skipExistenceCheck: true,
+        },
+      );
+
+      logger.debug(`Added network device walk ingestion job: ${jobId}`);
+    } catch (error) {
+      logger.error(`Error adding network device walk ingestion job:`);
       logger.error(error);
       throw error;
     }

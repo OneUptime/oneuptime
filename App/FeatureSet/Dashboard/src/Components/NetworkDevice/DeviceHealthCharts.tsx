@@ -4,11 +4,11 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import ObjectID from "Common/Types/ObjectID";
 import MetricQueryConfigData, {
   ChartSeries,
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -26,15 +26,18 @@ import React, {
 } from "react";
 
 export interface ComponentProps {
-  monitors: Array<Monitor>;
+  networkDeviceId: ObjectID;
 }
 
 /*
- * Health card for the device Overview: charts the per-interface utilization
- * series and the polled OID value series (CPU / memory / temperature from
- * vendor templates and custom OIDs) for every monitor watching this device.
- * Metrics are stored per-monitor (attributes.monitorId), so the queries fan
- * out over the monitors resolved by DeviceMonitorLookupUtil.
+ * Health card for the device Overview and Metrics pages: charts the
+ * per-interface utilization series and the polled health-OID series (CPU /
+ * memory / temperature from vendor templates and the device's custom
+ * OIDs).
+ *
+ * Metrics are DEVICE-scoped (attributes.networkDeviceId), written by the
+ * device's own polling pipeline — so these charts work for every
+ * registered device, monitors or not.
  */
 
 /*
@@ -83,19 +86,15 @@ const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
   });
 
   const queryConfigs: Array<MetricQueryConfigData> = useMemo(() => {
-    const configs: Array<MetricQueryConfigData> = [];
     const projectId: string =
       ProjectUtil.getCurrentProjectId()?.toString() || "";
-    const hasManyMonitors: boolean = props.monitors.length > 1;
+    const networkDeviceId: string = props.networkDeviceId.toString();
 
-    props.monitors.forEach((monitor: Monitor, index: number) => {
-      const monitorId: string = monitor._id?.toString() || "";
-      const titlePrefix: string = hasManyMonitors ? `${monitor.name} — ` : "";
-
-      configs.push({
+    return [
+      {
         metricAliasData: {
-          metricVariable: `interface_utilization_${index}`,
-          title: `${titlePrefix}Interface Utilization`,
+          metricVariable: "interface_utilization",
+          title: "Interface Utilization",
           description:
             "Per-interface bandwidth utilization. One series per interface.",
           legend: "Utilization",
@@ -105,7 +104,7 @@ const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
           filterData: {
             metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
             attributes: {
-              monitorId: monitorId,
+              networkDeviceId: networkDeviceId,
               projectId: projectId,
             },
             aggegationType: AggregationType.Max,
@@ -121,12 +120,11 @@ const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
             "Interface Utilization",
           );
         },
-      });
-
-      configs.push({
+      },
+      {
         metricAliasData: {
-          metricVariable: `oid_values_${index}`,
-          title: `${titlePrefix}Device Health (Polled OIDs)`,
+          metricVariable: "oid_values",
+          title: "Device Health (Polled OIDs)",
           description:
             "CPU, memory, temperature, and other polled OID values from vendor templates and custom OIDs. One series per OID.",
           legend: "Value",
@@ -136,7 +134,7 @@ const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
           filterData: {
             metricName: MonitorMetricType.SnmpOidValue,
             attributes: {
-              monitorId: monitorId,
+              networkDeviceId: networkDeviceId,
               projectId: projectId,
             },
             /*
@@ -158,11 +156,9 @@ const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
             "OID Value",
           );
         },
-      });
-    });
-
-    return configs;
-  }, [props.monitors]);
+      },
+    ];
+  }, [props.networkDeviceId]);
 
   const [viewData, setViewData] = useState<MetricViewData>(() => {
     return {
@@ -173,7 +169,7 @@ const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
     };
   });
 
-  // Keep the charts in sync when the time range or monitor list changes.
+  // Keep the charts in sync when the time range or device changes.
   useEffect(() => {
     setViewData((prev: MetricViewData) => {
       const dateRange: InBetween<Date> =
@@ -186,14 +182,10 @@ const DeviceHealthCharts: FunctionComponent<ComponentProps> = (
     });
   }, [timeRange, queryConfigs]);
 
-  if (props.monitors.length === 0) {
-    return <></>;
-  }
-
   return (
     <Card
       title="Health"
-      description="Interface utilization and polled health metrics collected by monitors watching this device."
+      description="Interface utilization and polled health metrics collected by this device's polls."
       rightElement={
         <RangeStartAndEndDateView
           dashboardStartAndEndDate={timeRange}

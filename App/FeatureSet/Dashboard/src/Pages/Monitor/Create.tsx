@@ -61,6 +61,8 @@ import {
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
 import Card from "Common/UI/Components/Card/Card";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
 
 /*
  * Candidate rolling windows for "create monitor from this explorer view" —
@@ -331,9 +333,116 @@ const MonitorCreate: FunctionComponent<
     });
   };
 
+  /*
+   * "Create monitor for this device" deep link from the Network Device
+   * pages: pre-select the Network Device type, reference the device in the
+   * step, and seed the Recommended Alert Pack criteria (device unreachable
+   * → incident, interface down → incident, utilization / errors → alerts)
+   * so alerting on a device is one review-and-save instead of assembling
+   * the monitor by hand.
+   */
+  const preSeedFromNetworkDeviceLink: (
+    networkDeviceId: string,
+  ) => Promise<void> = async (networkDeviceId: string): Promise<void> => {
+    const monitorSteps: MonitorStepsType = new MonitorStepsType();
+    const monitorStep: MonitorStep | undefined =
+      monitorSteps.data?.monitorStepsInstanceArray[0];
+
+    if (!monitorStep || !monitorStep.data) {
+      return;
+    }
+
+    monitorStep.data.networkDeviceMonitor = {
+      networkDeviceId: networkDeviceId,
+      // Deprecated collection fields — kept for step-shape compatibility.
+      monitorInterfaces: true,
+      collectEndpoints: false,
+      oids: [],
+    };
+
+    let deviceName: string = "";
+
+    try {
+      const device: NetworkDevice | null = await ModelAPI.getItem({
+        modelType: NetworkDevice,
+        id: new ObjectID(networkDeviceId),
+        select: {
+          name: true,
+        },
+      });
+      deviceName = device?.name || "";
+    } catch {
+      // Recoverable: the monitor name just falls back to a generic one.
+    }
+
+    try {
+      const monitorStatusList: ListResult<MonitorStatus> =
+        await ModelAPI.getList({
+          modelType: MonitorStatus,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            isOperationalState: true,
+            isOfflineState: true,
+          },
+          sort: {},
+        });
+
+      const operationalStatus: MonitorStatus | undefined =
+        monitorStatusList.data.find((status: MonitorStatus) => {
+          return status.isOperationalState;
+        });
+
+      if (operationalStatus?.id) {
+        monitorSteps.setDefaultMonitorStatusId(operationalStatus.id);
+      }
+
+      const offlineStatus: MonitorStatus | undefined =
+        monitorStatusList.data.find((status: MonitorStatus) => {
+          return status.isOfflineState;
+        });
+
+      const recommendedCriteria: Array<MonitorCriteriaInstance> =
+        NetworkDeviceAlertPackUtil.buildCriteriaInstances({
+          downMonitorStatusId: offlineStatus?.id || undefined,
+        });
+
+      if (recommendedCriteria.length > 0) {
+        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+        monitorCriteria.data = {
+          monitorCriteriaInstanceArray: recommendedCriteria,
+        };
+        monitorStep.data.monitorCriteria = monitorCriteria;
+      }
+    } catch {
+      // Recoverable: the user can still pick statuses / criteria manually.
+    }
+
+    setInitialValues({
+      name: deviceName ? `${deviceName} Monitor` : "Network Device Monitor",
+      description: deviceName
+        ? `Alerts on the ${deviceName} network device.`
+        : "Alerts on a registered network device.",
+      monitorType: MonitorType.NetworkDevice,
+      monitorSteps: monitorSteps.toJSON(),
+    });
+  };
+
   useEffect(() => {
     if (monitorTemplateId) {
       fetchMonitorTemplate(new ObjectID(monitorTemplateId));
+      return;
+    }
+
+    const networkDeviceId: string | null =
+      Navigation.getQueryStringByName("networkDeviceId");
+
+    if (networkDeviceId) {
+      setIsLoading(true);
+      preSeedFromNetworkDeviceLink(networkDeviceId).finally(() => {
+        setIsLoading(false);
+      });
       return;
     }
 

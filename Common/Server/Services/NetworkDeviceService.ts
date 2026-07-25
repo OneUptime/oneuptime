@@ -16,7 +16,9 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import OneUptimeDate from "../../Types/Date";
 import CidrMatchUtil from "../../Utils/NetworkSite/CidrMatchUtil";
+import { EntityManager } from "typeorm";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -362,6 +364,111 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
+
+  /*
+   * Atomically claims the devices this probe should poll now and advances
+   * each device's nextPollAt by its own polling interval — the device-owned
+   * twin of MonitorProbeService.claimMonitorProbesForProbing. FOR UPDATE
+   * SKIP LOCKED keeps horizontally-scaled probe ingest instances from
+   * handing the same device to two pollers.
+   *
+   * Suspended projects are skipped for the same reason monitor claiming
+   * skips them; archived devices keep polling on purpose ("archived devices
+   * keep collecting telemetry").
+   */
+  @CaptureSpan()
+  public async claimDevicesForPolling(data: {
+    probeId: ObjectID;
+    limit: number;
+  }): Promise<Array<ObjectID>> {
+    const currentDate: Date = OneUptimeDate.getCurrentDate();
+
+    const claimedIds: Array<ObjectID> = await this.executeTransaction(
+      async (transactionalEntityManager: EntityManager) => {
+        const selectQuery: string = `
+        SELECT nd."_id", nd."pollingIntervalInMinutes"
+        FROM "NetworkDevice" nd
+        INNER JOIN "Project" p ON nd."projectId" = p."_id"
+        WHERE nd."probeId" = $1
+          AND nd."isPollingEnabled" = true
+          AND nd."deletedAt" IS NULL
+          AND nd."hostname" IS NOT NULL
+          AND (nd."nextPollAt" IS NULL OR nd."nextPollAt" <= $2)
+          AND p."deletedAt" IS NULL
+          AND (p."paymentProviderSubscriptionStatus" IS NULL
+               OR p."paymentProviderSubscriptionStatus" IN ('active', 'trialing'))
+          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
+               OR p."paymentProviderMeteredSubscriptionStatus" IN ('active', 'trialing'))
+        ORDER BY nd."nextPollAt" ASC NULLS FIRST
+        LIMIT $3
+        FOR UPDATE OF nd SKIP LOCKED
+      `;
+
+        const selectedRows: Array<{
+          _id: string;
+          pollingIntervalInMinutes: number | null;
+        }> = await transactionalEntityManager.query(selectQuery, [
+          data.probeId.toString(),
+          currentDate,
+          data.limit,
+        ]);
+
+        if (selectedRows.length === 0) {
+          return [];
+        }
+
+        const ids: Array<string> = [];
+        const caseFragments: Array<string> = [];
+        const parameters: Array<string | Date> = [];
+        let parameterIndex: number = 1;
+
+        for (const row of selectedRows) {
+          /*
+           * Guard the interval: NULL falls back to the 5-minute default,
+           * and anything below 1 minute is clamped — a walk can take tens
+           * of seconds, so sub-minute schedules would only stack up.
+           */
+          const intervalInMinutes: number = Math.max(
+            row.pollingIntervalInMinutes || 5,
+            1,
+          );
+
+          const nextPollAt: Date = OneUptimeDate.addRemoveMinutes(
+            currentDate,
+            intervalInMinutes,
+          );
+
+          ids.push(row._id);
+          caseFragments.push(
+            `WHEN $${parameterIndex} THEN $${parameterIndex + 1}::timestamp`,
+          );
+          parameters.push(row._id, nextPollAt);
+          parameterIndex += 2;
+        }
+
+        const idPlaceholders: Array<string> = ids.map(
+          (_id: string, index: number) => {
+            return `$${parameterIndex + index}`;
+          },
+        );
+        parameters.push(...ids);
+
+        const updateQuery: string = `
+        UPDATE "NetworkDevice"
+        SET "nextPollAt" = CASE "_id" ${caseFragments.join(" ")} END
+        WHERE "_id" IN (${idPlaceholders.join(", ")})
+      `;
+
+        await transactionalEntityManager.query(updateQuery, parameters);
+
+        return ids.map((id: string) => {
+          return new ObjectID(id);
+        });
+      },
+    );
+
+    return claimedIds;
   }
 }
 

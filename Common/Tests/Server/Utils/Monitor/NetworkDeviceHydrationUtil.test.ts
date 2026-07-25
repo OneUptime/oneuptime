@@ -13,6 +13,7 @@ import SnmpV3Auth from "../../../../Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import SnmpSecurityLevel from "../../../../Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import SnmpAuthProtocol from "../../../../Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "../../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
+import SnmpOid from "../../../../Types/Monitor/SnmpMonitor/SnmpOid";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -498,5 +499,159 @@ describe("NetworkDeviceHydrationUtil.hydrateNetworkDeviceMonitors", () => {
         expect(hydratedStep(monitor)?.snmpV3Auth?.username).toBe("monitoring");
       }
     });
+  });
+});
+
+/*
+ * Under device-owned polling the device polling pipeline calls
+ * buildSnmpMonitorConfig directly (the device row supplies WHAT to collect;
+ * this assembles HOW to connect). It is the same assembly the legacy
+ * hydration path above uses internally, so its credential rules must match:
+ * flattened v3 columns first, legacy snmpV3Auth JSON as fallback, community
+ * string for v1/v2c, port defaulting to 161.
+ */
+describe("NetworkDeviceHydrationUtil.buildSnmpMonitorConfig", () => {
+  test("a v2c device produces a community config with no v3 auth", () => {
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildDevice({
+          snmpVersion: "V2c",
+          snmpCommunityString: "s3cret",
+        }),
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(config.snmpVersion).toBe(SnmpVersion.V2c);
+    expect(config.hostname).toBe("10.0.0.1");
+    expect(config.communityString).toBe("s3cret");
+    expect(config.snmpV3Auth).toBeUndefined();
+  });
+
+  test("a v2c device with no community string leaves it unset for the probe to default", () => {
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildDevice({ snmpVersion: "V2c" }),
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(config.communityString).toBeUndefined();
+  });
+
+  test("a v3 device's flattened columns become a complete authPriv SnmpV3Auth", () => {
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildV3Device(),
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(config.snmpVersion).toBe(SnmpVersion.V3);
+    expect(config.snmpV3Auth).toEqual({
+      securityLevel: SnmpSecurityLevel.AuthPriv,
+      username: "monitoring",
+      authProtocol: SnmpAuthProtocol.SHA,
+      authKey: "auth-passphrase",
+      privProtocol: SnmpPrivProtocol.AES,
+      privKey: "priv-passphrase",
+    } as SnmpV3Auth);
+  });
+
+  test("a device predating the flattened columns falls back to the legacy snmpV3Auth JSON", () => {
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildDevice({
+          snmpVersion: "V3",
+          snmpV3Auth: {
+            securityLevel: SnmpSecurityLevel.AuthPriv,
+            username: "legacy-user",
+            authProtocol: SnmpAuthProtocol.MD5,
+            authKey: "legacy-auth",
+            privProtocol: SnmpPrivProtocol.DES,
+            privKey: "legacy-priv",
+          },
+        }),
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(config.snmpVersion).toBe(SnmpVersion.V3);
+    expect(config.snmpV3Auth?.username).toBe("legacy-user");
+    expect(config.snmpV3Auth?.authProtocol).toBe(SnmpAuthProtocol.MD5);
+  });
+
+  test("the flattened columns win over a stale legacy blob", () => {
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildV3Device({
+          snmpV3Auth: {
+            securityLevel: SnmpSecurityLevel.NoAuthNoPriv,
+            username: "stale-legacy-user",
+          },
+        }),
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(config.snmpV3Auth?.username).toBe("monitoring");
+  });
+
+  test("a v3 device with no credentials anywhere yields no auth at all", () => {
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildDevice({ snmpVersion: "V3" }),
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(config.snmpV3Auth).toBeUndefined();
+  });
+
+  test("a device with no port falls back to 161, and a stored port passes through", () => {
+    const defaulted: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildDevice({ snmpPort: undefined }),
+        oids: [],
+        monitorInterfaces: true,
+      });
+    const explicit: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildDevice({ snmpPort: 1610 }),
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(defaulted.port).toBe(161);
+    expect(explicit.port).toBe(1610);
+  });
+
+  test("oids and monitorInterfaces are passed through from the caller", () => {
+    const oids: Array<SnmpOid> = [
+      { oid: "1.3.6.1.2.1.1.1.0", name: "sysDescr" },
+      { oid: "1.3.6.1.2.1.1.3.0", name: "sysUpTime" },
+    ];
+
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildDevice({ snmpVersion: "V2c" }),
+        oids: oids,
+        monitorInterfaces: false,
+      });
+
+    expect(config.oids).toEqual(oids);
+    expect(config.monitorInterfaces).toBe(false);
+  });
+
+  test("every config carries the fixed probe timeout and retry policy", () => {
+    const config: MonitorStepSnmpMonitor =
+      NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+        device: buildDevice({}),
+        oids: [],
+        monitorInterfaces: true,
+      });
+
+    expect(config.timeout).toBe(5000);
+    expect(config.retries).toBe(3);
   });
 });

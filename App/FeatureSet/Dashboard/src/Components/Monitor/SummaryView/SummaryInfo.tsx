@@ -209,6 +209,26 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * Network Device monitors are evaluated server-side from the device's
+   * own polls and traps — there is no per-probe check log to summarize
+   * here. The device page owns the live data (reachability, interfaces,
+   * inventory, health charts); this monitor only carries the alerting
+   * criteria.
+   */
+  if (
+    props.monitorType === MonitorType.NetworkDevice &&
+    (!props.probeMonitorResponses || props.probeMonitorResponses.length === 0)
+  ) {
+    return (
+      <ErrorMessage
+        message={
+          "This monitor alerts on a registered Network Device. Live polling data — reachability, interfaces, inventory, and health charts — lives on the device's page under Network Devices. Criteria on this monitor are evaluated every time the device is polled and every time it sends a matching trap."
+        }
+      />
+    );
+  }
+
   if (
     !props.incomingMonitorRequest &&
     props.monitorType === MonitorType.IncomingRequest

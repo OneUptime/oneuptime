@@ -9,6 +9,7 @@
 enum ServiceType {
   OpenTelemetry = "OpenTelemetry",
   Monitor = "Monitor",
+  NetworkDevice = "NetworkDevice",
   Alert = "Alert",
   Incident = "Incident",
   Host = "Host",

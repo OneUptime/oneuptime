@@ -1499,7 +1499,7 @@ return {
       {props.monitorType === MonitorType.NetworkDevice && (
         <Card
           title="Network Device Monitor Configuration"
-          description="Pick a registered network device and choose what to monitor on it"
+          description="Pick the registered network device this monitor alerts on"
         >
           <NetworkDeviceMonitorStepForm
             monitorStepNetworkDeviceMonitor={

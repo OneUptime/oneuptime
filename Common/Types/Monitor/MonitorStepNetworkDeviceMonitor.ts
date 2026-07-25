@@ -2,29 +2,29 @@ import { JSONObject } from "../JSON";
 import SnmpOid from "./SnmpMonitor/SnmpOid";
 
 /*
- * Step configuration for Network Device monitors. Unlike the retired SNMP
- * monitor type, the step carries no connection details — it references a
- * NetworkDevice resource which owns the hostname, credentials, and
- * interface inventory. The server hydrates the device's SNMP config into
- * the step (as `snmpMonitor`) when handing work to probes.
+ * Step configuration for Network Device monitors. The step is purely a
+ * device reference: the NetworkDevice resource owns the hostname,
+ * credentials, polling schedule, interface walks, endpoint discovery, and
+ * health OIDs. The monitor is the alerting layer — it is evaluated
+ * server-side against the device's walk results and traps.
  */
 export default interface MonitorStepNetworkDeviceMonitor {
   networkDeviceId: string | undefined;
+  /*
+   * DEPRECATED: interface walking is now configured on the NetworkDevice
+   * (walkInterfaces). Retained so steps saved before the move still parse;
+   * never written by the dashboard anymore.
+   */
   monitorInterfaces: boolean;
   /*
-   * When true, the probe also walks the device's ARP cache and bridge
-   * forwarding database during the interface walk, so the server can
-   * discover endpoints (laptops, printers, POS terminals) attached to the
-   * device. Only meaningful when monitorInterfaces is on.
-   *
-   * DEFAULTS TO FALSE, and it is strictly opt-in: absent, null, and every
-   * other non-true value all mean OFF. It is deliberately not default-on
-   * and not "on unless explicitly false" — enabling it costs extra SNMP
-   * table walks on every poll plus one endpoint upsert per discovered MAC,
-   * so a step that never asked for it must never start paying for it,
-   * including every step saved before this field existed.
+   * DEPRECATED: endpoint collection is now configured on the NetworkDevice
+   * (collectEndpoints). Retained for parsing legacy steps only.
    */
   collectEndpoints?: boolean | undefined;
+  /*
+   * DEPRECATED: health OIDs are now configured on the NetworkDevice
+   * (snmpOids). Retained for parsing legacy steps only.
+   */
   oids: Array<SnmpOid>;
 }
 

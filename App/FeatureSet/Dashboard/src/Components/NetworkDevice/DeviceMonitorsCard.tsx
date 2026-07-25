@@ -17,13 +17,22 @@ export interface ComponentProps {
   monitors: Array<Monitor>;
   isLoading: boolean;
   error: string;
+  /*
+   * When provided, the empty-state "Create Monitor" button deep-links the
+   * monitor create page with the type and device pre-selected.
+   */
+  networkDeviceId?: string | undefined;
 }
 
 /*
- * "Monitors watching this device" card for the device Overview. The monitor
- * list is resolved by DeviceMonitorLookupUtil (client-side filter over the
- * project's Network Device monitors) and passed in by the page so the Health
- * charts can share the same fetch.
+ * "Monitors alerting on this device" card for the device Overview. The
+ * monitor list is resolved by DeviceMonitorLookupUtil (client-side filter
+ * over the project's Network Device monitors) and passed in by the page so
+ * the Health charts can share the same fetch.
+ *
+ * The device is polled by its assigned probe regardless of monitors —
+ * monitors only decide what to alert on, which is what the empty-state copy
+ * says.
  */
 const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -43,9 +52,10 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
       return (
         <div className="text-center py-10">
           <p className="text-sm text-gray-500">
-            No monitors are watching this device yet. Create a Network Device
-            monitor to poll it via SNMP, collect interface and health metrics,
-            and alert on problems.
+            No monitors are alerting on this device yet. The device is still
+            polled and inventoried by its assigned probe — create a Network
+            Device monitor to get incidents and alerts for reachability,
+            interface problems, health-OID thresholds, and traps.
           </p>
           <div className="mt-4 flex justify-center">
             <Button
@@ -53,10 +63,16 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
               icon={IconProp.Add}
               buttonStyle={ButtonStyleType.NORMAL}
               onClick={() => {
+                const createRoute: Route = RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.MONITOR_CREATE] as Route,
+                );
+
                 Navigation.navigate(
-                  RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.MONITOR_CREATE] as Route,
-                  ),
+                  props.networkDeviceId
+                    ? Route.fromString(
+                        `${createRoute.toString()}?networkDeviceId=${props.networkDeviceId}`,
+                      )
+                    : createRoute,
                 );
               }}
             />
@@ -92,8 +108,8 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title="Monitors watching this device"
-      description="Network Device monitors that poll this device via SNMP."
+      title="Monitors alerting on this device"
+      description="Network Device monitors that evaluate this device's polls and traps and open incidents or alerts."
     >
       {getCardContent()}
     </Card>

@@ -1,8 +1,33 @@
 import { JSONObject } from "../../../Types/JSON";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepNetworkDeviceMonitor, {
   MonitorStepNetworkDeviceMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepNetworkDeviceMonitor";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import SnmpOid from "../../../Types/Monitor/SnmpMonitor/SnmpOid";
+import ObjectID from "../../../Types/ObjectID";
+
+const getNetworkDeviceMonitorStep: (
+  overrides?: Partial<MonitorStepNetworkDeviceMonitor>,
+) => MonitorStep = (
+  overrides: Partial<MonitorStepNetworkDeviceMonitor> = {},
+): MonitorStep => {
+  const id: ObjectID = ObjectID.generate();
+  const monitorStep: MonitorStep = MonitorStep.getDefaultMonitorStep({
+    monitorName: "Network device monitor",
+    monitorType: MonitorType.NetworkDevice,
+    onlineMonitorStatusId: id,
+    offlineMonitorStatusId: id,
+    defaultIncidentSeverityId: id,
+    defaultAlertSeverityId: id,
+  });
+
+  return monitorStep.setNetworkDeviceMonitor({
+    ...MonitorStepNetworkDeviceMonitorUtil.getDefault(),
+    networkDeviceId: "device-1",
+    ...overrides,
+  });
+};
 
 describe("MonitorStepNetworkDeviceMonitorUtil", () => {
   describe("getDefault", () => {
@@ -219,6 +244,52 @@ describe("MonitorStepNetworkDeviceMonitorUtil", () => {
       expect(oid.oid).toBe("1.2.3");
       expect(oid.name).toBeUndefined();
       expect(oid.description).toBeUndefined();
+    });
+  });
+
+  /*
+   * Under device-owned polling a Network Device monitor is a pure alerting
+   * layer: WHAT to collect (interface walks, endpoint discovery, OIDs) lives
+   * on the NetworkDevice resource itself. Step validation therefore only
+   * requires the device reference — the old "enable interface monitoring or
+   * configure at least one OID" rule is gone.
+   */
+  describe("MonitorStep validation", () => {
+    test("accepts a step with only a device reference (interfaces off, zero oids)", () => {
+      const monitorStep: MonitorStep = getNetworkDeviceMonitorStep({
+        monitorInterfaces: false,
+        oids: [],
+      });
+
+      expect(
+        MonitorStep.getValidationError(monitorStep, MonitorType.NetworkDevice),
+      ).toBeNull();
+    });
+
+    test("still rejects a step with no device reference", () => {
+      const monitorStep: MonitorStep = getNetworkDeviceMonitorStep({
+        networkDeviceId: undefined,
+      });
+
+      expect(
+        MonitorStep.getValidationError(monitorStep, MonitorType.NetworkDevice),
+      ).toBe("Network Device is required");
+    });
+
+    test("rejects a step that has no networkDeviceMonitor block at all", () => {
+      const id: ObjectID = ObjectID.generate();
+      const monitorStep: MonitorStep = MonitorStep.getDefaultMonitorStep({
+        monitorName: "Network device monitor",
+        monitorType: MonitorType.NetworkDevice,
+        onlineMonitorStatusId: id,
+        offlineMonitorStatusId: id,
+        defaultIncidentSeverityId: id,
+        defaultAlertSeverityId: id,
+      });
+
+      expect(
+        MonitorStep.getValidationError(monitorStep, MonitorType.NetworkDevice),
+      ).toBe("Network Device is required");
     });
   });
 });

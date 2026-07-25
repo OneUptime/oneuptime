@@ -1,5 +1,7 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import MonitorStepSnmpMonitor from "../../../Types/Monitor/MonitorStepSnmpMonitor";
+import SnmpOid from "../../../Types/Monitor/SnmpMonitor/SnmpOid";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -30,6 +32,66 @@ export interface HydratableMonitor {
 }
 
 export default class NetworkDeviceHydrationUtil {
+  /*
+   * The device columns needed to assemble a probe-executable SNMP config.
+   * Shared by monitor hydration below and the device polling claim
+   * endpoint, so the two can never drift apart on which credentials they
+   * load.
+   */
+  public static readonly snmpConfigSelect: {
+    _id: true;
+    hostname: true;
+    snmpVersion: true;
+    snmpCommunityString: true;
+    snmpPort: true;
+    snmpV3Auth: true;
+    snmpV3SecurityLevel: true;
+    snmpV3Username: true;
+    snmpV3AuthProtocol: true;
+    snmpV3AuthKey: true;
+    snmpV3PrivProtocol: true;
+    snmpV3PrivKey: true;
+  } = {
+    _id: true,
+    hostname: true,
+    snmpVersion: true,
+    snmpCommunityString: true,
+    snmpPort: true,
+    snmpV3Auth: true,
+    snmpV3SecurityLevel: true,
+    snmpV3Username: true,
+    snmpV3AuthProtocol: true,
+    snmpV3AuthKey: true,
+    snmpV3PrivProtocol: true,
+    snmpV3PrivKey: true,
+  };
+
+  /*
+   * Assembles the concrete SNMP config a stateless probe can execute from a
+   * device's stored connection identity. The caller chooses what to collect
+   * (OIDs / interface walk) — for device polling those come from the
+   * device's own snmpOids/walkInterfaces columns.
+   */
+  public static buildSnmpMonitorConfig(data: {
+    device: NetworkDevice;
+    oids: Array<SnmpOid>;
+    monitorInterfaces: boolean;
+  }): MonitorStepSnmpMonitor {
+    return {
+      snmpVersion: NetworkDeviceHydrationUtil.parseSnmpVersion(
+        data.device.snmpVersion,
+      ),
+      hostname: data.device.hostname || "",
+      port: data.device.snmpPort || 161,
+      communityString: data.device.snmpCommunityString || undefined,
+      snmpV3Auth: NetworkDeviceHydrationUtil.buildSnmpV3Auth(data.device),
+      oids: data.oids,
+      timeout: 5000,
+      retries: 3,
+      monitorInterfaces: data.monitorInterfaces,
+    };
+  }
+
   /*
    * Parses which NetworkDevice IDs a batch of Network Device monitors
    * reference in their steps (step.data.networkDeviceMonitor.networkDeviceId).
@@ -75,20 +137,7 @@ export default class NetworkDeviceHydrationUtil {
       query: {
         _id: QueryHelper.any(deviceIds),
       },
-      select: {
-        _id: true,
-        hostname: true,
-        snmpVersion: true,
-        snmpCommunityString: true,
-        snmpPort: true,
-        snmpV3Auth: true,
-        snmpV3SecurityLevel: true,
-        snmpV3Username: true,
-        snmpV3AuthProtocol: true,
-        snmpV3AuthKey: true,
-        snmpV3PrivProtocol: true,
-        snmpV3PrivKey: true,
-      },
+      select: NetworkDeviceHydrationUtil.snmpConfigSelect,
       limit: LIMIT_MAX,
       skip: 0,
       props: {
@@ -126,20 +175,19 @@ export default class NetworkDeviceHydrationUtil {
           continue;
         }
 
-        step.data.snmpMonitor = {
-          snmpVersion: NetworkDeviceHydrationUtil.parseSnmpVersion(
-            device.snmpVersion,
-          ),
-          hostname: device.hostname,
-          port: device.snmpPort || 161,
-          communityString: device.snmpCommunityString || undefined,
-          snmpV3Auth: NetworkDeviceHydrationUtil.buildSnmpV3Auth(device),
-          oids: step.data.networkDeviceMonitor?.oids || [],
-          timeout: 5000,
-          retries: 3,
-          monitorInterfaces:
-            step.data.networkDeviceMonitor?.monitorInterfaces !== false,
-        };
+        /*
+         * Legacy path: reads the step's own (deprecated) oids and
+         * monitorInterfaces. Only monitor TESTS still flow through here —
+         * regular Network Device monitors are no longer probe-executed
+         * (the device polls itself; see NetworkDevicePollUtil).
+         */
+        step.data.snmpMonitor =
+          NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+            device: device,
+            oids: step.data.networkDeviceMonitor?.oids || [],
+            monitorInterfaces:
+              step.data.networkDeviceMonitor?.monitorInterfaces !== false,
+          });
       }
     }
   }

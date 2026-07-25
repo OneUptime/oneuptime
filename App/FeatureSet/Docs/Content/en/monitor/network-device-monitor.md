@@ -1,14 +1,19 @@
 # Network Device Monitor
 
-Network Device monitoring lets you monitor switches, routers, firewalls, access points, and other SNMP-capable network infrastructure. Devices are registered once in a device inventory (hostname plus SNMP credentials), and monitors then reference a registered device — so credentials live in one place and are never repeated across monitors.
+Network Device monitoring lets you monitor switches, routers, firewalls, access points, and other SNMP-capable network infrastructure.
+
+The split of responsibilities is simple:
+
+- **The device collects.** A registered Network Device is polled by its assigned probe on the device's own schedule — no monitor required. Each poll fills in the device's identity and inventory, walks its interfaces, collects topology neighbors and (optionally) attached endpoints, and records health metrics.
+- **The monitor alerts.** A Network Device monitor references a registered device and evaluates criteria against every poll result and incoming trap — reachability, interface problems, OID thresholds, trap OIDs. Create one when you want incidents and alerts; skip it if you only want inventory, charts, and the topology map.
 
 ## Overview
 
 The Network Devices product is made up of:
 
-- **Device inventory** — register each device once with its hostname and SNMP credentials. OneUptime enriches the record with the device's system identity (name, description, location, vendor, model, serial number) from the first poll.
-- **Subnet discovery** — sweep a subnet (CIDR) for SNMP devices from a probe and import the responders in bulk.
-- **Network Device monitors** — poll a registered device on a schedule: availability, response time, custom OIDs, and per-interface status, bandwidth, utilization, and errors.
+- **Device inventory** — register each device once with its hostname, SNMP credentials, and polling settings. The assigned probe polls it on schedule and OneUptime enriches the record with the device's system identity (name, description, location, vendor, model, serial number), interfaces, and health metrics.
+- **Subnet discovery** — sweep a subnet (CIDR) for SNMP devices from a probe and import the responders in bulk. Imported devices start getting polled immediately.
+- **Network Device monitors** — the alerting layer: evaluate each device poll and trap against criteria and open incidents or alerts.
 - **SNMP traps** — probes run a trap receiver, so link-down events raise incidents in seconds instead of waiting for the next poll.
 - **Topology view** — a live network map built from LLDP neighbor data, complemented by CDP on Cisco estates.
 
@@ -18,13 +23,15 @@ The Network Devices product is made up of:
 2. Click **Create Network Device**
 3. Configure the device as described below
 
+Once registered, the device is polled by the probe you assigned — within a couple of minutes its Overview page fills in with system identity, interfaces, and health data.
+
 ### Basic Settings
 
 | Field    | Description                                                | Required |
 | -------- | ---------------------------------------------------------- | -------- |
 | Name     | A friendly name for the device (e.g., core-switch-01)      | Yes      |
 | Hostname | IP address or hostname the probe will poll via SNMP        | Yes      |
-| Probe    | Which probe should poll this device                        | Yes      |
+| Probe    | Which probe polls this device (also receives its traps, syslog, and NetFlow) | Yes      |
 | SNMP Version | Protocol version: V1, V2c, or V3                       | Yes      |
 | SNMP Port    | UDP port for SNMP queries (default: 161)               | No       |
 
@@ -51,6 +58,51 @@ SNMPv3 provides authentication and encryption:
 | SNMP v3 Privacy Protocol    | DES, AES, or AES-256                   | If Auth Priv              |
 | SNMP v3 Privacy Key         | Privacy/encryption password (stored encrypted) | If Auth Priv      |
 
+## Polling & Data Collection
+
+Polling settings live on the device (Device → **Settings** → **Polling & Data Collection**). Defaults are sensible, so a freshly registered device needs no tuning:
+
+| Setting | Description | Default |
+| ------- | ----------- | ------- |
+| Polling Enabled | The assigned probe polls this device on the schedule below. Disable to pause polling without deleting the device. | On |
+| Polling Interval (Minutes) | How often the probe polls the device. Minimum 1 minute. | 5 |
+| Walk Interfaces | Walk the interface tables (IF-MIB) on each poll — per-interface status, bandwidth, utilization, and errors — plus LLDP/CDP neighbors for the topology map. | On |
+| Collect Connected Endpoints | Also walk the device's ARP and bridge-forwarding tables to discover endpoints attached to it (POS terminals, printers, phones, laptops). Costs extra SNMP walks per poll. | Off |
+| Health OIDs | SNMP OIDs (CPU, memory, temperature, or any custom OID) collected on each poll and recorded as device metrics. | None |
+
+### Interface Walking
+
+With **Walk Interfaces** on (the default), every poll tracks per interface:
+
+- Operational and administrative status
+- Bandwidth in/out and link utilization
+- Errors and discards per second
+
+Individual interfaces can be muted from the device's **Interfaces** tab — useful for lab ports or intentionally unplugged links. Muted interfaces stay in the inventory but are excluded from alerting and metrics. Interface walking is also what collects LLDP/CDP neighbor data for the topology view.
+
+### Vendor Health Templates
+
+In the **Health OIDs** editor, the **Vendor Health Template** dropdown applies a prebuilt set of CPU, memory, and temperature OIDs for your device's vendor:
+
+- Cisco IOS / IOS-XE
+- MikroTik RouterOS
+- Ubiquiti EdgeOS / UniFi
+- Generic (Host Resources MIB)
+
+The template's OIDs are added to the OID list below the dropdown, where you can prune or extend them. After the first poll identifies the device's vendor, the device page suggests the matching template.
+
+### Custom OIDs
+
+Add any OIDs you want collected on every poll. For each OID you can specify:
+
+| Field       | Description                                  | Required |
+| ----------- | -------------------------------------------- | -------- |
+| OID         | The numeric OID (e.g., 1.3.6.1.2.1.1.1.0)    | Yes      |
+| Name        | A friendly name for the OID (e.g., sysDescr) | No       |
+| Description | A description of what this OID represents    | No       |
+
+Collected values are charted on the device's **Metrics** tab and can be alerted on through monitor criteria (**SNMP OID Value**).
+
 ### Device Identity
 
 After the first successful poll, OneUptime reads the SNMPv2 system group and (where supported) the ENTITY-MIB, and fills in the device record automatically: system name, description, location, contact, uptime, vendor, model, serial number, and firmware version. The vendor's registered enterprise OID (`sysObjectId`) is used as the device fingerprint to derive the vendor name and suggest a matching vendor OID template.
@@ -72,49 +124,26 @@ Instead of registering devices one at a time, you can sweep a subnet:
 4. The scan runs from the selected probe and reports how many hosts were scanned and how many responded to SNMP
 5. Click **Review Results** on a completed scan, select the devices you want, and click **Import Selected**
 
-Imported devices are created with the responding IP as the hostname, the device's reported system name as the display name, and the scan's probe and SNMP credentials — so a v3 scan imports ready-to-poll v3 devices. Devices that are already registered are flagged and skipped.
+Imported devices are created with the responding IP as the hostname, the device's reported system name as the display name, and the scan's probe and SNMP credentials — so a v3 scan imports ready-to-poll v3 devices that start getting polled immediately. Devices that are already registered are flagged and skipped.
 
 ## Creating a Network Device Monitor
+
+A monitor is only needed for alerting — the device is already being polled and inventoried without one.
+
+The quickest path: open the device's page and click **Create Monitor** on the "Monitors alerting on this device" card. The monitor create form opens with the Network Device type and the device pre-selected, and the [Recommended Alert Pack](#recommended-alert-pack) criteria pre-filled — review, adjust severities and on-call policies, and save.
+
+Or by hand:
 
 1. Go to **Monitors** in the OneUptime Dashboard
 2. Click **Create Monitor**
 3. Select **Network Device** as the monitor type
-4. Pick the registered **Network Device** to monitor — connection details (hostname, credentials, polling probe) come from the device, the monitor only chooses what to watch
+4. Pick the registered **Network Device** to alert on — everything about data collection (hostname, credentials, polling schedule, interface walks, health OIDs) comes from the device; the monitor only chooses what to alert on via its criteria
 
-### Interface Monitoring
-
-Turn on the **Monitor Network Interfaces** toggle to walk the device's interface tables (IF-MIB) on every check. This tracks, per interface:
-
-- Operational and administrative status
-- Bandwidth in/out and link utilization
-- Errors and discards per second
-
-Individual interfaces can be muted on the device's page — useful for lab ports or intentionally unplugged links. Interface monitoring is also what collects LLDP/CDP neighbor data for the topology view.
-
-### Vendor Health Templates
-
-The **Vendor Health Template** dropdown applies a prebuilt set of CPU, memory, and temperature OIDs for your device's vendor:
-
-- Cisco IOS / IOS-XE
-- MikroTik RouterOS
-- Ubiquiti EdgeOS / UniFi
-- Generic (Host Resources MIB)
-
-The template's OIDs are added to the OID list below the dropdown, where you can prune or extend them.
-
-### Custom OIDs
-
-Add any OIDs you want to query on every check. For each OID you can specify:
-
-| Field       | Description                                  | Required |
-| ----------- | -------------------------------------------- | -------- |
-| OID         | The numeric OID (e.g., 1.3.6.1.2.1.1.1.0)    | Yes      |
-| Name        | A friendly name for the OID (e.g., sysDescr) | No       |
-| Description | A description of what this OID represents    | No       |
+Network Device monitors have no polling interval of their own: they are evaluated server-side every time the device's poll results arrive, and every time a matching trap arrives.
 
 ## Monitoring Criteria
 
-You can set up criteria to check SNMP responses and trigger alerts or incidents.
+You can set up criteria to check poll results and trigger alerts or incidents.
 
 ### Available Check Types
 
@@ -129,11 +158,11 @@ You can set up criteria to check SNMP responses and trigger alerts or incidents.
 | SNMP Interface Errors (per second)  | Check the worst interface's error rate                            |
 | SNMP Trap Received (Trap OID)       | Matches when a trap with the given OID arrives from the device    |
 
-The interface checks require the **Monitor Network Interfaces** toggle. Administratively disabled interfaces are intentionally down and never count as failures.
+The interface checks require **Walk Interfaces** to be on in the device's polling settings (it is by default). The OID checks evaluate the device's configured **Health OIDs**. Administratively disabled interfaces are intentionally down and never count as failures.
 
 ### Recommended Alert Pack
 
-Click **Add Recommended Alerts** on the criteria form to append a prebuilt set of criteria — the alerts most network operators want, without hand-building them each time:
+Click **Add Recommended Alerts** on the criteria form to append a prebuilt set of criteria — the alerts most network operators want, without hand-building them each time (these are pre-filled automatically when you create the monitor from the device's page):
 
 | Criteria             | Fires when                                                        | Creates  |
 | -------------------- | ----------------------------------------------------------------- | -------- |
@@ -146,7 +175,7 @@ After applying the pack, pick severities and on-call policies for each criteria 
 
 ## SNMP Traps
 
-Polling catches problems on the next check; traps catch them in seconds. Every probe runs an SNMP trap receiver that listens for v1 and v2c traps/informs and forwards them to your OneUptime instance.
+Polling catches problems on the next poll; traps catch them in seconds. Every probe runs an SNMP trap receiver that listens for v1 and v2c traps/informs and forwards them to your OneUptime instance.
 
 ### Enabling the Trap Receiver
 
@@ -177,8 +206,8 @@ snmp-server host <probe-ip> traps version 2c <community>
 Traps are matched through the device inventory:
 
 1. A trap arrives at a probe's receiver and is forwarded to OneUptime
-2. OneUptime looks up registered Network Devices polled by that probe whose **hostname equals the trap's source IP address**
-3. Every Network Device monitor that references a matching device evaluates the trap against its criteria — typically an **SNMP Trap Received (Trap OID)** filter
+2. OneUptime looks up registered Network Devices assigned to that probe whose **hostname equals the trap's source IP address**
+3. The trap is logged to the device's trap history, and every Network Device monitor that references a matching device evaluates the trap against its criteria — typically an **SNMP Trap Received (Trap OID)** filter
 
 For matching to work, register the device with the IP address it sends traps from. SNMPv1 generic traps (coldStart, linkDown, linkUp, ...) are normalized to their standard SNMPv2 notification OIDs — for example, linkDown matches trap OID `1.3.6.1.6.3.1.1.5.3` regardless of SNMP version.
 
@@ -214,7 +243,7 @@ When creating incident or alert templates, you can use the following variables:
 | `{{trapSourceIp}}`         | Source IP the trap came from — set on trap-triggered checks only        |
 | `{{trapVarbinds}}`         | Array of {oid, value} varbinds carried by the trap                      |
 
-The interface and system variables require interface monitoring to be enabled; the trap variables are only set when the check was triggered by a trap. So an incident title like:
+The interface and system variables require interface walking to be enabled on the device; the trap variables are only set when the check was triggered by a trap. So an incident title like:
 
 ```
 {{downInterfaces.0.name}} on {{sysName}} is down
@@ -228,7 +257,7 @@ Go to **Network Devices** -> **Topology** for a live map of your network, built 
 
 For the map to populate:
 
-- Enable **Monitor Network Interfaces** on the device's monitor — the neighbor tables are walked alongside the interfaces
+- Keep **Walk Interfaces** on in the device's polling settings — the neighbor tables are walked alongside the interfaces
 - Enable LLDP (or CDP on Cisco devices) on the devices themselves
 
 ## Troubleshooting
@@ -239,6 +268,7 @@ For the map to populate:
 - Check that SNMP is enabled on the device
 - Verify firewall rules allow UDP port 161 from the probe
 - Confirm the community string is correct
+- Confirm **Polling Enabled** is on in the device's settings and the assigned probe is connected
 
 ### Authentication failures (v3)
 
@@ -248,7 +278,7 @@ For the map to populate:
 
 ### Interfaces not showing
 
-- Confirm the **Monitor Network Interfaces** toggle is on for the monitor step
+- Confirm **Walk Interfaces** is on in the device's polling settings
 - Check the `{{interfaceWalkFailure}}` template variable / monitor logs — the device may restrict the IF-MIB subtree for your credentials
 
 ### Traps not arriving
@@ -274,6 +304,6 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 1. **Use SNMPv3 when possible** - It provides authentication and encryption for better security
 2. **Discover, then import** - A subnet scan is faster and less error-prone than registering devices by hand
 3. **Register devices by the IP they send traps from** - Trap-to-monitor matching is by source IP
-4. **Start from the recommended alert pack** - Then tune thresholds to your network
-5. **Enable interface monitoring on switches and routers** - It powers interface alerts, utilization data, and the topology map
+4. **Create monitors from the device page** - The type, device, and recommended alert pack come pre-filled
+5. **Keep interface walking on for switches and routers** - It powers interface alerts, utilization data, and the topology map
 6. **Use descriptive OID names** - Makes alert messages and template variables easier to read
