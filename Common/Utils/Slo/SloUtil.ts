@@ -125,6 +125,47 @@ export default class SloUtil {
   }
 
   /**
+   * The EARLIEST event start across the attached monitors inside `window`, or
+   * null when no monitor has an event that overlaps the window at all.
+   *
+   * Uses the SAME UptimeUtil.getMonitorEventsForId clipping path the SLI
+   * denominator uses, so the answer has identical semantics to the clamp inside
+   * computeTimeSli: because events are clipped to the window, the returned date
+   * is always >= window.startDate, i.e. it is "how far back this window can
+   * actually see data".
+   *
+   * This exists for callers that must distinguish "the metric is fine" from
+   * "we have not observed enough history to judge it yet" - most importantly the
+   * burn-rate evaluator, whose FIXED-LENGTH long window would otherwise silently
+   * collapse to the data age (see EvaluateSlos.evaluateBurnRateRule).
+   */
+  public static getEarliestEventStartDate(
+    perMonitorTimelines: Array<MonitorTimelineSet>,
+    window: UptimeWindow,
+  ): Date | null {
+    let earliestEventStart: Date | null = null;
+
+    for (const monitor of perMonitorTimelines) {
+      const events: Array<MonitorEvent> = UptimeUtil.getMonitorEventsForId(
+        monitor.monitorId,
+        monitor.timelines,
+        window,
+      );
+
+      for (const event of events) {
+        if (
+          !earliestEventStart ||
+          event.startDate.getTime() < earliestEventStart.getTime()
+        ) {
+          earliestEventStart = event.startDate;
+        }
+      }
+    }
+
+    return earliestEventStart;
+  }
+
+  /**
    * Merges overlapping and adjacent intervals into a disjoint, sorted set.
    * Millisecond-precise (raw timestamps, not second-granularity moment
    * comparisons) so the merged length agrees with
@@ -288,24 +329,10 @@ export default class SloUtil {
      * already clipped to the window, so every start is >= window.startDate: the
      * clamp can only move the window start FORWARD (young SLO), never backward.
      */
-    let earliestEventStart: Date | null = null;
-
-    for (const monitor of perMonitorTimelines) {
-      const events: Array<MonitorEvent> = UptimeUtil.getMonitorEventsForId(
-        monitor.monitorId,
-        monitor.timelines,
-        window,
-      );
-
-      for (const event of events) {
-        if (
-          !earliestEventStart ||
-          event.startDate.getTime() < earliestEventStart.getTime()
-        ) {
-          earliestEventStart = event.startDate;
-        }
-      }
-    }
+    const earliestEventStart: Date | null = this.getEarliestEventStartDate(
+      perMonitorTimelines,
+      window,
+    );
 
     /*
      * Rows exist but none clip into the window: as far as the window can tell the

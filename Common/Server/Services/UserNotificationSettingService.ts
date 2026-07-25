@@ -593,6 +593,12 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       projectId,
       NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
     );
+
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION,
+    );
   }
 
   private async addScheduledMaintenanceNotificationSettings(

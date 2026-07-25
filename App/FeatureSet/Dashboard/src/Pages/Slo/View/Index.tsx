@@ -385,7 +385,13 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             description:
               "The SLO becomes At Risk when less than this percentage of the error budget remains. Default is 20.",
             fieldType: FormFieldSchemaType.Number,
-            required: false,
+            /*
+             * Required because the column is NOT NULL with a DB default, so
+             * the box is always prefilled: clearing a field the UI called
+             * optional would otherwise submit "" into an integer column and
+             * fail the whole save with an opaque server error.
+             */
+            required: true,
             placeholder: "20",
           },
           {

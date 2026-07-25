@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 export class AddServiceLevelObjective1784987015619
   implements MigrationInterface
 {
-  name = "AddServiceLevelObjective1784987015619";
+  public name = "AddServiceLevelObjective1784987015619";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

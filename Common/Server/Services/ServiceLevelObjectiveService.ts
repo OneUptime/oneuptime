@@ -42,17 +42,44 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("projectId is required");
     }
 
-    this.validateTargetPercentage(createBy.data.targetPercentage);
+    /*
+     * Numeric columns arrive as strings from the dashboard: the "Target (%)"
+     * form field is a `<input type="number">`, whose onChange hands Formik
+     * `e.target.value` (a string), ModelForm copies it verbatim and
+     * BaseModel.fromJSON does not coerce Number/Decimal columns. So every
+     * validator here coerces first and writes the coerced number back onto the
+     * payload, which also keeps Postgres from ever receiving a string.
+     */
+    createBy.data.targetPercentage = this.validateTargetPercentage(
+      createBy.data.targetPercentage,
+    );
 
-    const windowType: SloWindowType =
-      createBy.data.windowType || SloWindowType.Rolling;
-
+    /*
+     * Validate windowDays whenever it is supplied, regardless of windowType.
+     * A CalendarMonth SLO ignores the column today, but it is persisted, and
+     * switching that SLO to Rolling later (in an update that does not carry
+     * windowDays) would otherwise start evaluating against an out-of-range
+     * window. Validating on the way in also keeps create and update symmetric
+     * — onBeforeUpdate validates unconditionally, so a value accepted here
+     * but rejected there would make the column permanently un-updatable.
+     */
     if (
-      windowType === SloWindowType.Rolling &&
       createBy.data.windowDays !== undefined &&
       createBy.data.windowDays !== null
     ) {
-      this.validateWindowDays(createBy.data.windowDays);
+      createBy.data.windowDays = this.validateWindowDays(
+        createBy.data.windowDays,
+      );
+    }
+
+    if (
+      createBy.data.atRiskThresholdPercentage !== undefined &&
+      createBy.data.atRiskThresholdPercentage !== null
+    ) {
+      createBy.data.atRiskThresholdPercentage =
+        this.validateAtRiskThresholdPercentage(
+          createBy.data.atRiskThresholdPercentage,
+        );
     }
 
     /*
@@ -136,19 +163,33 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const newTargetPercentage: number | undefined = updateBy.data
-      .targetPercentage as number | undefined;
+    /*
+     * Same string-arrival path as onBeforeCreate — coerce, validate, and write
+     * the number back onto the update payload.
+     */
+    const newTargetPercentage: unknown = updateBy.data
+      .targetPercentage as unknown;
 
     if (newTargetPercentage !== undefined && newTargetPercentage !== null) {
-      this.validateTargetPercentage(newTargetPercentage);
+      updateBy.data.targetPercentage =
+        this.validateTargetPercentage(newTargetPercentage);
     }
 
-    const newWindowDays: number | undefined = updateBy.data.windowDays as
-      | number
-      | undefined;
+    const newWindowDays: unknown = updateBy.data.windowDays as unknown;
 
     if (newWindowDays !== undefined && newWindowDays !== null) {
-      this.validateWindowDays(newWindowDays);
+      updateBy.data.windowDays = this.validateWindowDays(newWindowDays);
+    }
+
+    const newAtRiskThresholdPercentage: unknown = updateBy.data
+      .atRiskThresholdPercentage as unknown;
+
+    if (
+      newAtRiskThresholdPercentage !== undefined &&
+      newAtRiskThresholdPercentage !== null
+    ) {
+      updateBy.data.atRiskThresholdPercentage =
+        this.validateAtRiskThresholdPercentage(newAtRiskThresholdPercentage);
     }
 
     return {
@@ -483,9 +524,17 @@ export class Service extends DatabaseService<Model> {
         ? 720
         : (createdItem.windowDays || 30) * 24;
 
-    // Default severity: the project's lowest-order (most severe) severity.
-    const severity: AlertSeverity | null = await AlertSeverityService.findOneBy(
-      {
+    /*
+     * Default severity: the project's lowest-order (most severe) severity.
+     * A failure here must not cost the SLO its burn-rate rules — the rules are
+     * still useful without a severity (the worker falls back to the lowest
+     * order severity when it creates the alert), so a transient lookup error
+     * degrades to "no default severity" rather than "no rules at all".
+     */
+    let severity: AlertSeverity | null = null;
+
+    try {
+      severity = await AlertSeverityService.findOneBy({
         query: {
           projectId: createdItem.projectId,
         },
@@ -498,8 +547,13 @@ export class Service extends DatabaseService<Model> {
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
+    } catch (error) {
+      logger.error(
+        `Could not look up the default alert severity for SLO ${createdItem.id.toString()}. Seeding burn rate rules without one.`,
+      );
+      logger.error(error);
+    }
 
     const defaultRules: Array<{
       name: string;
@@ -556,11 +610,31 @@ export class Service extends DatabaseService<Model> {
     return Math.round(value * 100) / 100;
   }
 
-  private validateTargetPercentage(targetPercentage: number | undefined): void {
+  /*
+   * Coerce an API-supplied numeric column to a number. HTML number inputs hand
+   * Formik strings, and neither ModelForm nor BaseModel.fromJSON coerces
+   * Number/Decimal columns, so a perfectly valid "99.9" reaches these hooks as
+   * a string. Anything that is not a finite numeric string or number becomes
+   * NaN, which every caller below rejects. Mirrors
+   * GlobalConfigService.normalizePercent.
+   */
+  private normalizeNumericInput(value: unknown): number {
+    if (typeof value === "string") {
+      const trimmed: string = value.trim();
+      return trimmed === "" ? Number.NaN : Number(trimmed);
+    }
+
+    if (typeof value === "number") {
+      return value;
+    }
+
+    return Number.NaN;
+  }
+
+  private validateTargetPercentage(value: unknown): number {
+    const targetPercentage: number = this.normalizeNumericInput(value);
+
     if (
-      targetPercentage === undefined ||
-      targetPercentage === null ||
-      typeof targetPercentage !== "number" ||
       !Number.isFinite(targetPercentage) ||
       targetPercentage <= 0 ||
       targetPercentage > 99.999
@@ -569,17 +643,34 @@ export class Service extends DatabaseService<Model> {
         "SLO target must be greater than 0 and at most 99.999. A 100% target leaves no error budget.",
       );
     }
+
+    return targetPercentage;
   }
 
-  private validateWindowDays(windowDays: number): void {
-    if (
-      typeof windowDays !== "number" ||
-      !Number.isFinite(windowDays) ||
-      windowDays < 1 ||
-      windowDays > 366
-    ) {
+  private validateWindowDays(value: unknown): number {
+    const windowDays: number = this.normalizeNumericInput(value);
+
+    if (!Number.isFinite(windowDays) || windowDays < 1 || windowDays > 366) {
       throw new BadDataException("SLO window must be between 1 and 366 days.");
     }
+
+    return windowDays;
+  }
+
+  private validateAtRiskThresholdPercentage(value: unknown): number {
+    const atRiskThresholdPercentage: number = this.normalizeNumericInput(value);
+
+    if (
+      !Number.isFinite(atRiskThresholdPercentage) ||
+      atRiskThresholdPercentage < 0 ||
+      atRiskThresholdPercentage > 100
+    ) {
+      throw new BadDataException(
+        "SLO at-risk threshold must be a percentage between 0 and 100.",
+      );
+    }
+
+    return atRiskThresholdPercentage;
   }
 }
 

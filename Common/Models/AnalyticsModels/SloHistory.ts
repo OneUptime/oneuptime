@@ -20,14 +20,27 @@ import Permission from "../../Types/Permission";
  * with telemetry retention — and SLO rows stay out of telemetry usage
  * billing entirely.
  *
- * Why ReplacingMergeTree + `version` (MutableMetric precedent): the
- * evaluator writes at-least-once and re-writes the trailing K hours of
- * buckets on every run (self-healing restatement after retroactive
- * timeline edits). Rows sharing the dedupe identity
- * (projectId, sloId, metricName, bucketStart) collapse to the highest
- * `version` at merge time; reads must still dedupe explicitly via
- * `argMax(value, version) ... GROUP BY <identity>` because merges are
- * asynchronous.
+ * History is POINT-IN-TIME: the evaluator writes exactly one
+ * minute-floored bucket per series per run, once, holding the numbers as
+ * computed at that moment. Retroactive edits to the underlying
+ * MonitorStatusTimeline are NOT restated into already-written buckets —
+ * the SLO overview page recomputes its current numbers from Postgres and
+ * so self-heals, while these rows remain a record of what was reported
+ * at the time. (Possible future work: restate a trailing window of
+ * buckets on every run so retroactive edits propagate into charts; the
+ * version column below already supports it, but nothing writes such
+ * rewrites today.)
+ *
+ * Why ReplacingMergeTree + `version` (MutableMetric precedent): writes
+ * are at-least-once, so the same dedupe identity
+ * (projectId, sloId, metricName, bucketStart) can rarely be written
+ * twice — a retried job, or two runs landing in the same minute. Those
+ * rows collapse to the highest `version` at merge time rather than
+ * double-counting. Merges are asynchronous, so a naive reader can
+ * transiently see both rows: read through `/aggregate` (its GROUP BY on
+ * the bucketed timestamp collapses duplicates, which is what the
+ * dashboard charts do) or dedupe explicitly via
+ * `argMax(value, version) ... GROUP BY <identity>`.
  *
  * `metricName` values: "sli.percent", "error.budget.remaining.percent",
  * "burn.rate", "good.count", "total.count".

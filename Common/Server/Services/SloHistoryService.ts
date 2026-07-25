@@ -23,13 +23,30 @@ export interface SloHistoryRow {
  * Service for the `SloHistory` ReplacingMergeTree table.
  *
  * Writes come from the SLO evaluation worker via
- * {@link insertHistoryRows}; the worker re-writes the trailing K hours
- * of buckets on every run, and the per-batch `version` stamp (unix
- * millis) makes those re-writes idempotent upserts — ReplacingMergeTree
- * keeps the highest version per
- * (projectId, sloId, metricName, bucketStart) identity at merge time,
- * and readers dedupe un-merged duplicates with
- * `argMax(value, version) ... GROUP BY` (MutableMetric precedent).
+ * {@link insertHistoryRows}. History is POINT-IN-TIME: each evaluation
+ * writes exactly one minute-floored bucket per series, once, with the
+ * numbers as computed at that moment. Retroactive edits to the
+ * underlying MonitorStatusTimeline are NOT restated into already-written
+ * buckets — the SLO overview page always recomputes its current numbers
+ * from Postgres and therefore self-heals, while the charts stay a
+ * historical record of what was reported at the time.
+ *
+ * ReplacingMergeTree + the per-batch `version` stamp (unix millis)
+ * therefore guard exactly one thing: a rare double write of the same
+ * (projectId, sloId, metricName, bucketStart) identity — a retried job,
+ * or two runs landing in the same minute — collapses to the highest
+ * version at merge time instead of double-counting. Merges are
+ * asynchronous, so a naive reader can transiently see both rows; that is
+ * why the chart layer reads through `/aggregate` (its GROUP BY on the
+ * bucketed timestamp collapses duplicates) and why a raw reader would
+ * need `argMax(value, version) ... GROUP BY <identity>` (MutableMetric
+ * precedent).
+ *
+ * Possible future work: restating a trailing window of buckets on every
+ * run so retroactive timeline edits propagate into history. The version
+ * machinery already supports it (a later run's rewrite carries a
+ * strictly larger version and wins), but nothing writes those rewrites
+ * today.
  */
 export class SloHistoryService extends AnalyticsDatabaseService<SloHistory> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
@@ -37,12 +54,13 @@ export class SloHistoryService extends AnalyticsDatabaseService<SloHistory> {
   }
 
   /*
-   * Insert (or restate) history rows. All rows in one call share a
-   * single `version` stamp — evaluations run minutes apart, so a later
-   * evaluation's restatement of the same bucket always carries a
-   * strictly larger version and wins the ReplacingMergeTree dedupe.
-   * Rows with a missing/non-finite value are skipped (same discipline
-   * as MonitorMetricUtil's metric-row builder).
+   * Insert history rows. All rows in one call share a single `version`
+   * stamp (unix millis at write time), so if the same bucket is ever
+   * written twice — a retried job, or a re-run landing in the same
+   * minute — the later write carries a strictly larger version and wins
+   * the ReplacingMergeTree dedupe instead of double-counting. Rows with
+   * a missing/non-finite value are skipped (same discipline as
+   * MonitorMetricUtil's metric-row builder).
    */
   public async insertHistoryRows(rows: Array<SloHistoryRow>): Promise<void> {
     if (!rows || rows.length === 0) {

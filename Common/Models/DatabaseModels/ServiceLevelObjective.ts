@@ -6,6 +6,7 @@ import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OperationalResource from "../../Types/Database/AccessControl/OperationalResource";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -61,6 +62,16 @@ const decimalTransformer: ValueTransformer = {
   },
 };
 
+/*
+ * @OperationalResource marks this as a top-level product resource that has
+ * ServiceLevelObjectiveOwnerUser / ServiceLevelObjectiveOwnerTeam tables. Two
+ * behaviors key off it and silently no-op without it:
+ * OwnedScopePermission.addOwnedScopeToQuery (so PermissionScope.Owned would
+ * degrade to Owned == All, a permission leak) and
+ * DatabaseService.autoOwnerOnCreate (so the creating user would never become
+ * an owner of the SLO they just created).
+ */
+@OperationalResource()
 @EnableDocumentation()
 @AccessControlColumn("labels")
 @TenantColumn("projectId")

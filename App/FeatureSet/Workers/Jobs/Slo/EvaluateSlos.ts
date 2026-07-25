@@ -28,6 +28,9 @@ import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import { DisableAutomaticAlertCreation } from "Common/Server/EnvironmentConfig";
+import Semaphore, {
+  SemaphoreMutex,
+} from "Common/Server/Infrastructure/Semaphore";
 import AlertService from "Common/Server/Services/AlertService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import MonitorService from "Common/Server/Services/MonitorService";
@@ -63,6 +66,38 @@ const DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE: number = 20;
 
 const DEFAULT_ROLLING_WINDOW_DAYS: number = 30;
 
+// Wall-clock budget of one sweep, mirrored by the job's own timeoutInMS.
+const SWEEP_TIMEOUT_MINUTES: number = 10;
+
+/*
+ * Redis mutex that serializes the whole sweep across every worker replica.
+ *
+ * The per-SLO cadence columns are NOT an overlap guard: getDueSlos() snapshots
+ * the entire due set up front and each SLO is only stamped once the loop
+ * reaches it, so a sweep that takes longer than the one-minute schedule (a few
+ * hundred SLOs is enough) still has hundreds of unstamped SLOs in flight when
+ * the next tick starts — and that next tick re-selects every one of them.
+ * runJobWithTimeout is a Promise.race with no cancellation, and the worker
+ * concurrency defaults to 100, so the overlapping sweeps really do run the same
+ * SLOs side by side: duplicate owner notifications and duplicate burn-rate
+ * alerts (both dedupes are read-then-write, so they interleave).
+ *
+ * An affected-row count on an `updateBy` cannot be used instead:
+ * DatabaseService._updateBy is a _findBy followed by a per-row
+ * repository.save() and returns the SELECT count, so two interleaved sweeps
+ * both see 1 and both proceed.
+ *
+ * The lock timeout deliberately outlives the job's own 10-minute timeout, so a
+ * sweep that overruns (Promise.race does not stop the body) keeps holding the
+ * lock rather than letting a second sweep in behind it. redis-semaphore's Mutex
+ * auto-refreshes while it is held, so this value only bounds how long a CRASHED
+ * worker's lock lingers before another replica may take over.
+ */
+const SWEEP_LOCK_KEY: string = "Slo:EvaluateSlos";
+const SWEEP_LOCK_NAMESPACE: string = "Workers.Cron";
+const SWEEP_LOCK_TIMEOUT_MS: number =
+  OneUptimeDate.convertMinutesToMilliseconds(SWEEP_TIMEOUT_MINUTES + 1);
+
 /**
  * Evaluates every due Service Level Objective:
  * - recomputes the time-based SLI and error budget over the SLO's window,
@@ -76,23 +111,62 @@ RunCron(
   {
     schedule: EVERY_MINUTE,
     runOnStartup: false,
-    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(10),
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(
+      SWEEP_TIMEOUT_MINUTES,
+    ),
   },
   async () => {
-    const dueSlos: Array<ServiceLevelObjective> =
-      await ServiceLevelObjectiveService.getDueSlos();
+    /*
+     * acquireAttemptsLimit: 1 — never queue behind the in-flight sweep. This
+     * job re-runs every minute anyway, so waiting would only stack ticks up
+     * behind a slow sweep; skipping is the correct backpressure.
+     */
+    let mutex: SemaphoreMutex | null = null;
 
-    for (const slo of dueSlos) {
+    try {
+      mutex = await Semaphore.lock({
+        key: SWEEP_LOCK_KEY,
+        namespace: SWEEP_LOCK_NAMESPACE,
+        lockTimeout: SWEEP_LOCK_TIMEOUT_MS,
+        acquireAttemptsLimit: 1,
+      });
+    } catch (err) {
+      logger.debug(
+        `Slo:EvaluateSlos - Could not acquire the sweep lock; a sweep is already in flight (or Redis is unavailable). Skipping this tick: ${err}`,
+      );
+      return;
+    }
+
+    /*
+     * Everything below runs under the lock, and the lock is released in
+     * `finally` so a throw anywhere in the sweep still frees it for the next
+     * tick instead of wedging the job until the lock times out.
+     */
+    try {
+      const dueSlos: Array<ServiceLevelObjective> =
+        await ServiceLevelObjectiveService.getDueSlos();
+
+      for (const slo of dueSlos) {
+        try {
+          await evaluateSlo(slo);
+        } catch (err) {
+          // one bad SLO must never abort the whole sweep.
+          logger.error(
+            `Slo:EvaluateSlos - Error evaluating SLO ${slo.id?.toString()}: ${err}`,
+            {
+              projectId: slo.projectId?.toString(),
+              sloId: slo.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      }
+    } finally {
       try {
-        await evaluateSlo(slo);
+        await Semaphore.release(mutex);
       } catch (err) {
-        // one bad SLO must never abort the whole sweep.
+        // a release failure only means the lock expires on its own timeout.
         logger.error(
-          `Slo:EvaluateSlos - Error evaluating SLO ${slo.id?.toString()}: ${err}`,
-          {
-            projectId: slo.projectId?.toString(),
-            sloId: slo.id?.toString(),
-          } as LogAttributes,
+          `Slo:EvaluateSlos - Error releasing the sweep lock: ${err}`,
         );
       }
     }
@@ -109,6 +183,14 @@ interface SloEvaluationContext {
   targetPercentage: number;
   budget: ErrorBudgetResult;
   now: Date;
+  /*
+   * Earliest event start across this SLO's monitors over the WHOLE fetched
+   * window — i.e. how far back the burn-rate math can actually see data.
+   * Computed once per evaluation (not per rule) and null when there is no data
+   * at all. Burn rate rules use it to refuse to judge a long window they do not
+   * have the history for.
+   */
+  earliestEventStart: Date | null;
   /*
    * Lazily resolved (and memoized) "is any of this SLO's monitors inside an
    * ongoing scheduled maintenance window?" — queried at most once per SLO,
@@ -127,11 +209,19 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   const now: Date = OneUptimeDate.getCurrentDate();
 
   /*
-   * Stamp the cadence columns FIRST — this is the overlap guard: even if this
-   * evaluation throws below, the SLO is not retried every minute, and two
-   * worker ticks never evaluate the same SLO concurrently.
+   * Stamp the cadence columns FIRST so that even if this evaluation throws
+   * below, the SLO is not retried on every one-minute tick. (Concurrency
+   * between two overlapping sweeps is handled by the sweep-wide Redis mutex,
+   * NOT by these columns — see SWEEP_LOCK_KEY above.)
+   *
+   * These two columns are pure worker bookkeeping: nothing user-facing reads
+   * them and no workflow can meaningfully trigger on them, so they go through
+   * the hookless fast path. `updateOneById` would fire this model's
+   * @EnableWorkflow({update:true}) HTTP POST and a realtime broadcast for every
+   * SLO on every tick (~400 POSTs/minute at 2,000 SLOs) purely to record when
+   * the worker last looked at the row.
    */
-  await ServiceLevelObjectiveService.updateOneById({
+  await ServiceLevelObjectiveService.updateColumnsByIdWithoutHooks({
     id: sloId,
     data: {
       lastEvaluatedAt: now,
@@ -139,9 +229,6 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
         now,
         EVALUATION_CADENCE_MINUTES,
       ),
-    },
-    props: {
-      isRoot: true,
     },
   });
 
@@ -167,7 +254,12 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     targetPercentage <= 0 ||
     targetPercentage >= 100
   ) {
-    await setSloStatusIfChanged(slo, SloStatus.Misconfigured);
+    await setGuardStatusAndResolveOpenAlerts({
+      slo: slo,
+      sloId: sloId,
+      projectId: projectId,
+      status: SloStatus.Misconfigured,
+    });
     return;
   }
 
@@ -196,7 +288,12 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   });
 
   if (monitors.length === 0) {
-    await setSloStatusIfChanged(slo, SloStatus.Misconfigured);
+    await setGuardStatusAndResolveOpenAlerts({
+      slo: slo,
+      sloId: sloId,
+      projectId: projectId,
+      status: SloStatus.Misconfigured,
+    });
     return;
   }
 
@@ -209,7 +306,12 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   });
 
   if (areAllMonitorsDisabled) {
-    await setSloStatusIfChanged(slo, SloStatus.Paused);
+    await setGuardStatusAndResolveOpenAlerts({
+      slo: slo,
+      sloId: sloId,
+      projectId: projectId,
+      status: SloStatus.Paused,
+    });
     return;
   }
 
@@ -334,6 +436,41 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     mode: multiMonitorMode,
   });
 
+  /*
+   * Zero-data guard. computeTimeSli's contract is explicit that totalSeconds
+   * === 0 means "no data at all", NOT "perfect service", and that callers must
+   * never treat it as a healthy 100%: without this guard an enabled SLO whose
+   * monitor has not written a single MonitorStatusTimeline row yet is persisted
+   * as Healthy with currentSliPercentage 100, a full error budget, and
+   * sli.percent = 100 history rows — a green SLO that measures nothing.
+   *
+   * Misconfigured is the same signal the "no monitors" guard uses: there is no
+   * usable measurement. The cadence columns were already stamped at the top of
+   * this function, so the SLO is simply re-evaluated on its normal cadence and
+   * self-heals into a real status on the first tick that has data.
+   *
+   * Benign edge: for a CalendarMonth window evaluated in the very first second
+   * of a new month the elapsed window is 0 seconds long, so an SLO WITH data can
+   * read as zero-data for a single tick and flip back on the next one.
+   */
+  if (sli.totalSeconds === 0) {
+    logger.debug(
+      `Slo:EvaluateSlos - SLO ${sloId.toString()} has no timeline data in its window; marking Misconfigured instead of a healthy 100% SLI.`,
+      {
+        projectId: projectId.toString(),
+        sloId: sloId.toString(),
+      } as LogAttributes,
+    );
+
+    await setGuardStatusAndResolveOpenAlerts({
+      slo: slo,
+      sloId: sloId,
+      projectId: projectId,
+      status: SloStatus.Misconfigured,
+    });
+    return;
+  }
+
   const budget: ErrorBudgetResult = SloUtil.getErrorBudget({
     badSeconds: sli.badSeconds,
     totalSeconds:
@@ -376,17 +513,56 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
    * Owner notification on a transition INTO AtRisk / BudgetExhausted, rate
    * limited so a rolling window re-crossing a boundary as bad seconds age
    * out does not spam owners.
+   *
+   * The rate limit must NEVER swallow an escalation into BudgetExhausted.
+   * Healthy -> AtRisk notifies and stamps the timer; if the budget then hits 0
+   * ten minutes later, the BudgetExhausted transition would be suppressed —
+   * and because sloStatus is still persisted as BudgetExhausted, every later
+   * tick sees no transition at all, so the notification is never retried. The
+   * single most severe event in the system would be dropped permanently. An
+   * escalation into BudgetExhausted therefore ignores the interval (it can
+   * happen at most once per entry into the state, so it cannot spam).
    */
+  const isEscalationToExhausted: boolean =
+    newStatus === SloStatus.BudgetExhausted &&
+    previousStatus !== SloStatus.BudgetExhausted;
+
+  const isNotificationRateLimitCleared: boolean =
+    !slo.statusChangeNotificationSentAt ||
+    OneUptimeDate.getDifferenceInMinutes(
+      now,
+      slo.statusChangeNotificationSentAt,
+    ) >= STATUS_NOTIFICATION_MIN_INTERVAL_MINUTES;
+
   const shouldNotifyOwners: boolean =
     newStatus !== previousStatus &&
     (newStatus === SloStatus.AtRisk ||
       newStatus === SloStatus.BudgetExhausted) &&
-    (!slo.statusChangeNotificationSentAt ||
-      OneUptimeDate.getDifferenceInMinutes(
-        now,
-        slo.statusChangeNotificationSentAt,
-      ) >= STATUS_NOTIFICATION_MIN_INTERVAL_MINUTES);
+    (isEscalationToExhausted || isNotificationRateLimitCleared);
 
+  /*
+   * statusChangeNotificationSentAt is deliberately NOT part of this update: it
+   * records that owners WERE notified, so it is stamped only after the send
+   * actually dispatched something (see below). Stamping it up-front means a
+   * failed send silences the next 60 minutes of notifications.
+   *
+   * INTEGER COLUMNS. errorBudgetRemainingSeconds / errorBudgetTotalSeconds are
+   * ColumnType.Number === Postgres `integer`, and the budget seconds are almost
+   * never integral: `1 - 99.9/100` is 0.0009999999999998899 in IEEE-754, so a
+   * 30-day 99.9% SLO computes a total budget of 2591.9999999997144 seconds and
+   * Postgres rejects the whole UPDATE with
+   * `invalid input syntax for type integer`. That throw is swallowed by the
+   * per-SLO try/catch in the sweep, so it silently took out EVERYTHING
+   * downstream of this write — state columns, history rows (empty charts
+   * forever), owner notifications and every burn-rate rule — leaving the
+   * feature inert with one error log per SLO per minute.
+   *
+   * Whole seconds is the right resolution for these two display columns, and
+   * Math.round keeps the sign of a negative (over-budget) remainder. Only the
+   * values persisted here are rounded: the status/threshold decisions above,
+   * the history rows and the notification/alert bodies below all keep the full
+   * precision of the budget result.
+   */
   const stateUpdate: {
     currentSliPercentage: number;
     errorBudgetRemainingPercentage: number;
@@ -394,20 +570,27 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     errorBudgetTotalSeconds: number;
     currentBurnRate: number;
     sloStatus: SloStatus;
-    statusChangeNotificationSentAt?: Date;
   } = {
+    // Decimal columns — persisted unrounded.
     currentSliPercentage: sli.sliPercentage,
     errorBudgetRemainingPercentage: budget.budgetRemainingPercentage,
-    errorBudgetRemainingSeconds: budget.budgetRemainingSeconds, // signed.
-    errorBudgetTotalSeconds: budget.budgetTotalSeconds,
     currentBurnRate: currentBurnRate,
+    // Integer columns — must be whole numbers.
+    errorBudgetRemainingSeconds: Math.round(budget.budgetRemainingSeconds), // signed.
+    errorBudgetTotalSeconds: Math.round(budget.budgetTotalSeconds),
     sloStatus: newStatus,
   };
 
-  if (shouldNotifyOwners) {
-    stateUpdate.statusChangeNotificationSentAt = now;
-  }
-
+  /*
+   * This one write stays on the HOOKED path on purpose. Unlike the cadence and
+   * notification stamps it carries user-facing state — above all the sloStatus
+   * transition, the one event in this job with real semantic meaning, which
+   * customer workflows subscribe to — and the model's
+   * enableRealtimeEventsOn.update is what refreshes an open SLO page with the
+   * new SLI / budget numbers. Routing it hookless would silently break both.
+   * Dropping the other two writes already takes this job from 2-3 hooked
+   * updates per evaluation down to exactly one.
+   */
   await ServiceLevelObjectiveService.updateOneById({
     id: sloId,
     data: stateUpdate,
@@ -458,17 +641,51 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
   }
 
   if (shouldNotifyOwners) {
-    await sendStatusChangeNotification({
+    const wasNotificationSent: boolean = await sendStatusChangeNotification({
       slo: slo,
       newStatus: newStatus,
       sli: sli,
       budget: budget,
       targetPercentage: targetPercentage,
     });
+
+    /*
+     * Stamp the rate-limit timer only on a send that actually dispatched at
+     * least one owner notification. On failure the timer stays where it was, so
+     * the next transition is free to notify instead of being silenced for an
+     * hour by a notification nobody received.
+     *
+     * Hookless: this column is the worker's own rate-limit bookkeeping. The
+     * notification it records has already gone out through the notification
+     * pipeline, and the status change it belongs to was already broadcast by the
+     * hooked state write above — a second workflow POST and realtime event for
+     * the timestamp would be pure duplication.
+     */
+    if (wasNotificationSent) {
+      await ServiceLevelObjectiveService.updateColumnsByIdWithoutHooks({
+        id: sloId,
+        data: {
+          statusChangeNotificationSentAt: now,
+        },
+      });
+    }
   }
 
   // Burn rate rules.
   let maintenanceCheckPromise: Promise<boolean> | null = null;
+
+  /*
+   * Data age of this SLO, computed ONCE for all rules over the full fetched
+   * window (which already covers the longest rule lookback). Each rule then
+   * compares it against its own long window.
+   */
+  const earliestEventStart: Date | null = SloUtil.getEarliestEventStartDate(
+    perMonitorTimelines,
+    {
+      startDate: fetchWindowStart,
+      endDate: fetchWindowEnd,
+    },
+  );
 
   const context: SloEvaluationContext = {
     slo: slo,
@@ -480,6 +697,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
     targetPercentage: targetPercentage,
     budget: budget,
     now: now,
+    earliestEventStart: earliestEventStart,
     isAnyMonitorUnderOngoingMaintenance: (): Promise<boolean> => {
       if (!maintenanceCheckPromise) {
         maintenanceCheckPromise = isAnySloMonitorUnderOngoingMaintenance({
@@ -510,8 +728,11 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
 }
 
 /*
- * Sets sloStatus only when it actually changed — used by the Misconfigured /
- * Paused guards, which skip evaluation entirely.
+ * Commits sloStatus, and only when it actually changed — used by the
+ * Misconfigured / Paused guards, which skip evaluation entirely.
+ *
+ * Stays on the HOOKED update path: a status transition is exactly the event
+ * customer workflows and the realtime dashboard care about.
  */
 async function setSloStatusIfChanged(
   slo: ServiceLevelObjective,
@@ -530,6 +751,60 @@ async function setSloStatusIfChanged(
       isRoot: true,
     },
   });
+
+  // keep the in-memory copy consistent for the rest of this evaluation.
+  slo.sloStatus = newStatus;
+}
+
+/*
+ * Guard exit path (Paused / Misconfigured): set the status and, ON THE
+ * TRANSITION ONLY, resolve every open burn-rate alert of this SLO.
+ *
+ * Why: the guards return before the burn-rate rule loop, so an alert that is
+ * already open (possibly with an on-call escalation attached) would otherwise
+ * never be resolved while the SLO sits Paused/Misconfigured — the rule loop
+ * that owns resolution is simply not reached. Resolving here is safe because
+ * no NEW burn-rate alert can be created while the SLO is in one of these
+ * states, and doing it only on the transition keeps it from re-resolving the
+ * same alerts every tick.
+ *
+ * lastAlertResolvedAt is deliberately NOT stamped: that column drives the
+ * re-fire suppression window of a live rule, and this is a state change of the
+ * SLO, not a burn rate that recovered.
+ *
+ * ORDER MATTERS: resolve FIRST, commit the status LAST. The status write is what
+ * makes this a one-shot ("only on the transition"), so committing it before the
+ * resolve turns any resolve failure into a permanent one — the next tick sees no
+ * transition, returns early, and never retries, stranding the alert and its
+ * on-call escalation forever. resolveOpenBurnRateAlertsForSlo loads its rules
+ * with a findBy that is not internally guarded, so this is not hypothetical.
+ * Resolving first means a failure simply leaves the status where it was and the
+ * next tick tries the whole thing again; the resolve itself is idempotent, so
+ * the retry is harmless, and the status guard still keeps it to once per
+ * transition in the happy path.
+ */
+async function setGuardStatusAndResolveOpenAlerts(data: {
+  slo: ServiceLevelObjective;
+  sloId: ObjectID;
+  projectId: ObjectID;
+  status: SloStatus;
+}): Promise<void> {
+  if (data.slo.sloStatus === data.status) {
+    // already committed: this transition was handled by an earlier tick.
+    return;
+  }
+
+  /*
+   * resolveOpenBurnRateAlertsForSlo takes no rootCause override (it applies its
+   * own "SLO was disabled or deleted" default) — left untouched on purpose, the
+   * service is shared with the SLO lifecycle hooks.
+   */
+  await ServiceLevelObjectiveService.resolveOpenBurnRateAlertsForSlo({
+    sloId: data.sloId,
+    projectId: data.projectId,
+  });
+
+  await setSloStatusIfChanged(data.slo, data.status);
 }
 
 /*
@@ -645,6 +920,14 @@ async function getDowntimeStatuses(data: {
  * Burn rate over the trailing lookback window, computed from the already
  * fetched timelines. No data in the lookback => burn 0 (computeBurnRate's
  * contract) — no evidence of burn.
+ *
+ * CAVEAT: computeTimeSli clamps its denominator forward to the first observed
+ * event, so on an SLO younger than `lookbackInMinutes` this measures the data
+ * age, not the requested window, and reads high. Alerting callers must gate on
+ * having a full window of history first (see the gate in evaluateBurnRateRule).
+ * The currentBurnRate state column accepts that caveat: it is a display value,
+ * it never pages, and reading the observed burn of a young SLO is what the
+ * overview is supposed to show.
  */
 function computeBurnRateForLookback(data: {
   perMonitorTimelines: Array<MonitorTimelineSet>;
@@ -748,48 +1031,98 @@ async function evaluateBurnRateRule(data: {
 
   const threshold: number = rule.burnRateThreshold;
 
-  const burnRateLong: number = computeBurnRateForLookback({
-    perMonitorTimelines: context.perMonitorTimelines,
-    downtimeStatuses: context.downtimeStatuses,
-    mode: context.multiMonitorMode,
-    targetPercentage: context.targetPercentage,
-    lookbackInMinutes: rule.longWindowInMinutes,
-    now: context.now,
-  });
+  /*
+   * Full-long-window gate — it gates FIRING ONLY.
+   *
+   * computeTimeSli clamps its denominator forward to the earliest observed event
+   * (AnyDown directly; MonitorSecondsAverage through
+   * UptimeUtil.getTotalDowntimeInSeconds). That is correct for a compliance
+   * window, but inside a FIXED-LENGTH burn window it silently turns the
+   * denominator into the DATA AGE: a monitor whose first event is 5 minutes old
+   * with 20 seconds of downtime computes 66.7x over a "60-minute" long window
+   * instead of 5.6x. Both windows then measure the same few minutes, both
+   * breach, and the multi-window rule — whose whole purpose is to require
+   * SUSTAINED evidence before paging — pages on seconds of data. Every freshly
+   * created SLO + monitor pair would page on its first blip.
+   *
+   * So a rule may only FIRE once the SLO has at least a full long window of
+   * history. RESOLUTION, though, is the one decision that is safe without a
+   * fresh long-window measurement, and gating it too was its own bug: a rule
+   * that can no longer justify a page must not keep one open. Swap an SLO's
+   * monitor for a 10-minute-old one while its "slow burn" (360-minute) rule is
+   * firing and every subsequent tick used to return here — leaving the alert and
+   * its on-call escalation open forever, with nothing in the product able to
+   * close it. So when the window is short we skip the firing decision (and the
+   * long-window hold state, which is equally unmeasurable) and fall through to
+   * the resolution branch below.
+   */
+  const longWindowStart: Date = OneUptimeDate.addRemoveMinutes(
+    context.now,
+    -1 * rule.longWindowInMinutes,
+  );
 
-  const burnRateShort: number = computeBurnRateForLookback({
-    perMonitorTimelines: context.perMonitorTimelines,
-    downtimeStatuses: context.downtimeStatuses,
-    mode: context.multiMonitorMode,
-    targetPercentage: context.targetPercentage,
-    lookbackInMinutes: rule.shortWindowInMinutes,
-    now: context.now,
-  });
+  const hasFullLongWindow: boolean = Boolean(
+    context.earliestEventStart &&
+      context.earliestEventStart.getTime() <= longWindowStart.getTime(),
+  );
 
-  // Multi-window firing: both windows must breach (Google SRE Workbook).
-  const isFiring: boolean =
-    burnRateLong >= threshold && burnRateShort >= threshold;
-
-  if (isFiring) {
-    await fireBurnRateAlert({
-      context: context,
-      rule: rule,
-      burnRateLong: burnRateLong,
-      burnRateShort: burnRateShort,
+  if (hasFullLongWindow) {
+    const burnRateLong: number = computeBurnRateForLookback({
+      perMonitorTimelines: context.perMonitorTimelines,
+      downtimeStatuses: context.downtimeStatuses,
+      mode: context.multiMonitorMode,
+      targetPercentage: context.targetPercentage,
+      lookbackInMinutes: rule.longWindowInMinutes,
+      now: context.now,
     });
-    return;
+
+    const burnRateShort: number = computeBurnRateForLookback({
+      perMonitorTimelines: context.perMonitorTimelines,
+      downtimeStatuses: context.downtimeStatuses,
+      mode: context.multiMonitorMode,
+      targetPercentage: context.targetPercentage,
+      lookbackInMinutes: rule.shortWindowInMinutes,
+      now: context.now,
+    });
+
+    // Multi-window firing: both windows must breach (Google SRE Workbook).
+    const isFiring: boolean =
+      burnRateLong >= threshold && burnRateShort >= threshold;
+
+    if (isFiring) {
+      await fireBurnRateAlert({
+        context: context,
+        rule: rule,
+        burnRateLong: burnRateLong,
+        burnRateShort: burnRateShort,
+      });
+      return;
+    }
+
+    /*
+     * Resolve ONLY when the long window drops below the threshold — resolving
+     * on the short window guarantees paging flap on recurring outages (fires,
+     * recovers 5 minutes, refires all night). A long-window breach with a
+     * recovered short window is neither firing nor resolved: hold state.
+     */
+    if (burnRateLong >= threshold) {
+      return;
+    }
+  } else {
+    logger.debug(
+      `Slo:EvaluateSlos - Not firing burn rate rule ${rule.id.toString()} for SLO ${context.sloId.toString()}: not enough history to evaluate a ${rule.longWindowInMinutes}-minute burn window (earliest observed data: ${context.earliestEventStart?.toISOString() || "none"}). An already-open alert for this rule is still resolved.`,
+      {
+        projectId: context.projectId.toString(),
+        sloId: context.sloId.toString(),
+      } as LogAttributes,
+    );
   }
 
   /*
-   * Resolve ONLY when the long window drops below the threshold — resolving
-   * on the short window guarantees paging flap on recurring outages (fires,
-   * recovers 5 minutes, refires all night). A long-window breach with a
-   * recovered short window is neither firing nor resolved: hold state.
+   * Resolution branch. Reached either because the long window is measurable and
+   * has recovered, or because it is no longer measurable at all — in both cases
+   * nothing here can justify keeping a page open.
    */
-  if (burnRateLong >= threshold) {
-    return;
-  }
-
   const hasUnresolvedFiringState: boolean = Boolean(
     rule.lastAlertCreatedAt &&
       (!rule.lastAlertResolvedAt ||
@@ -804,7 +1137,9 @@ async function evaluateBurnRateRule(data: {
     serviceLevelObjectiveId: context.sloId,
     burnRateRuleId: rule.id,
     projectId: context.projectId,
-    rootCause: "Burn rate dropped below threshold.",
+    rootCause: hasFullLongWindow
+      ? "Burn rate dropped below threshold."
+      : `The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert.`,
   });
 
   await ServiceLevelObjectiveBurnRateRuleService.updateOneById({
@@ -978,6 +1313,11 @@ async function fireBurnRateAlert(data: {
  * registered SLO WhatsApp template (createWhatsAppMessageFromTemplate would
  * throw for this event type), so a plain-body payload is sent instead — the
  * send path only attaches templateKey when present.
+ *
+ * Returns TRUE when at least one owner notification was dispatched without
+ * throwing. Errors are still swallowed (a failed notification must never abort
+ * the evaluation), but the caller needs to know whether anything got out before
+ * it stamps the rate-limit timer.
  */
 async function sendStatusChangeNotification(data: {
   slo: ServiceLevelObjective;
@@ -985,12 +1325,14 @@ async function sendStatusChangeNotification(data: {
   sli: TimeSliResult;
   budget: ErrorBudgetResult;
   targetPercentage: number;
-}): Promise<void> {
+}): Promise<boolean> {
   const { slo, newStatus, sli, budget } = data;
 
   if (!slo.id || !slo.projectId) {
-    return;
+    return false;
   }
+
+  let didDispatchAnyNotification: boolean = false;
 
   try {
     let owners: Array<User> = await ServiceLevelObjectiveService.findOwners(
@@ -1002,7 +1344,7 @@ async function sendStatusChangeNotification(data: {
     }
 
     if (owners.length === 0) {
-      return;
+      return false;
     }
 
     const project: Project | null = await ProjectService.findOneById({
@@ -1085,31 +1427,50 @@ async function sendStatusChangeNotification(data: {
         body: sms.message,
       };
 
-      await UserNotificationSettingService.ensureSettingExistsForUser({
-        userId: user.id,
-        projectId: slo.projectId,
-        eventType: eventType,
-      });
+      /*
+       * Per-owner isolation: one owner with a broken notification setting must
+       * not cost the remaining owners their notification, and only an owner that
+       * was actually reached counts towards "the notification was sent".
+       */
+      try {
+        await UserNotificationSettingService.ensureSettingExistsForUser({
+          userId: user.id,
+          projectId: slo.projectId,
+          eventType: eventType,
+        });
 
-      await UserNotificationSettingService.sendUserNotification({
-        userId: user.id,
-        projectId: slo.projectId,
-        emailEnvelope: emailMessage,
-        smsMessage: sms,
-        callRequestMessage: callMessage,
-        pushNotificationMessage: pushMessage,
-        whatsAppMessage: whatsAppMessage,
-        eventType: eventType,
-      });
+        await UserNotificationSettingService.sendUserNotification({
+          userId: user.id,
+          projectId: slo.projectId,
+          emailEnvelope: emailMessage,
+          smsMessage: sms,
+          callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
+          whatsAppMessage: whatsAppMessage,
+          eventType: eventType,
+        });
+
+        didDispatchAnyNotification = true;
+      } catch (err) {
+        logger.error(
+          `Slo:EvaluateSlos - Error notifying owner ${user.id.toString()} of SLO ${slo.id.toString()} status change: ${err}`,
+          {
+            projectId: slo.projectId.toString(),
+            sloId: slo.id.toString(),
+          } as LogAttributes,
+        );
+      }
     }
 
-    logger.info(
-      `Slo:EvaluateSlos - Sent SLO status change notification for SLO ${slo.id.toString()} (now ${newStatus}).`,
-      {
-        projectId: slo.projectId.toString(),
-        sloId: slo.id.toString(),
-      } as LogAttributes,
-    );
+    if (didDispatchAnyNotification) {
+      logger.info(
+        `Slo:EvaluateSlos - Sent SLO status change notification for SLO ${slo.id.toString()} (now ${newStatus}).`,
+        {
+          projectId: slo.projectId.toString(),
+          sloId: slo.id.toString(),
+        } as LogAttributes,
+      );
+    }
   } catch (err) {
     logger.error(
       `Slo:EvaluateSlos - Error sending status change notification for SLO ${slo.id?.toString()}: ${err}`,
@@ -1119,6 +1480,8 @@ async function sendStatusChangeNotification(data: {
       } as LogAttributes,
     );
   }
+
+  return didDispatchAnyNotification;
 }
 
 /*

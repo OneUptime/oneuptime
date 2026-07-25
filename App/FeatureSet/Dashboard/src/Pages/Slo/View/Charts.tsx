@@ -5,11 +5,12 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -42,32 +43,45 @@ const SLI_METRIC_NAME: string = "sli.percent";
 const BUDGET_METRIC_NAME: string = "error.budget.remaining.percent";
 const BURN_RATE_METRIC_NAME: string = "burn.rate";
 
-/* Rows are 1/min — cap what we hand to the chart for long ranges. */
-const MAX_CHART_POINTS: number = 2000;
-
 const EMPTY_MESSAGE: string =
   "No history yet — the SLO is evaluated every few minutes.";
 
-type DownsampleFunction = (points: Array<DataPoint>) => Array<DataPoint>;
+/*
+ * Series are read through SloHistory's `/aggregate` endpoint rather
+ * than `getList`.
+ *
+ * The evaluation worker writes one row per metric per SLO every 5
+ * minutes (288 rows/day/series), so a 90-day window holds ~26k rows per
+ * series. `AnalyticsModelAPI.getList` does not paginate: a single page
+ * capped at LIMIT_PER_PROJECT (10k) returned only the OLDEST ~35 days
+ * while the x-axis stayed pinned to [now - 90d, now], so the line
+ * stopped a third of the way across and read as "history stopped being
+ * written". Aggregating server-side bounds the response by the WINDOW
+ * instead of by the row count.
+ *
+ * Bucket sizes are pinned per range (rather than left to the
+ * window-derived default) so the point count is bounded regardless of
+ * how often the worker writes:
+ *   7d  → 5-minute buckets (≤ 2,016 points — the native write cadence)
+ *   30d → hourly buckets   (≤ 720 points)
+ *   90d → hourly buckets   (≤ 2,160 points)
+ *
+ * The aggregation's GROUP BY on the bucketed timestamp also collapses
+ * duplicate rows for one bucket, so the rare un-merged double write
+ * that a ReplacingMergeTree can expose to readers before a merge
+ * cannot render as two points at the same x.
+ */
+type GetAggregationIntervalFunction = (
+  rangeDays: number,
+) => AggregationInterval;
 
-const downsample: DownsampleFunction = (
-  points: Array<DataPoint>,
-): Array<DataPoint> => {
-  if (points.length <= MAX_CHART_POINTS) {
-    return points;
+const getAggregationInterval: GetAggregationIntervalFunction = (
+  rangeDays: number,
+): AggregationInterval => {
+  if (rangeDays <= 7) {
+    return AggregationInterval.FiveMinutes;
   }
-  const step: number = Math.ceil(points.length / MAX_CHART_POINTS);
-  const sampled: Array<DataPoint> = points.filter(
-    (_point: DataPoint, index: number) => {
-      return index % step === 0;
-    },
-  );
-  /* Always keep the newest point so the chart ends at "now". */
-  const lastPoint: DataPoint | undefined = points[points.length - 1];
-  if (lastPoint && sampled[sampled.length - 1] !== lastPoint) {
-    sampled.push(lastPoint);
-  }
-  return sampled;
+  return AggregationInterval.Hour;
 };
 
 const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -85,49 +99,69 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     metricName: string,
     startDate: Date,
     endDate: Date,
+    aggregationInterval: AggregationInterval,
   ) => Promise<Array<DataPoint>>;
 
   const fetchSeries: FetchSeriesFunction = async (
     metricName: string,
     startDate: Date,
     endDate: Date,
+    aggregationInterval: AggregationInterval,
   ): Promise<Array<DataPoint>> => {
-    const result: ListResult<SloHistory> =
-      await AnalyticsModelAPI.getList<SloHistory>({
+    const result: AggregatedResult =
+      await AnalyticsModelAPI.aggregate<SloHistory>({
         modelType: SloHistory,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          sloId: modelId,
-          metricName: metricName,
-          bucketStart: new InBetween(startDate, endDate),
+        aggregateBy: {
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            sloId: modelId,
+            metricName: metricName,
+            bucketStart: new InBetween(startDate, endDate),
+          },
+          /*
+           * SLI %, remaining budget % and burn rate are all
+           * instantaneous gauges, so averaging the buckets that fall
+           * inside one chart point is the right roll-up.
+           */
+          aggregationType: AggregationType.Avg,
+          aggregateColumnName: "value",
+          aggregationTimestampColumnName: "bucketStart",
+          aggregationInterval: aggregationInterval,
+          startTimestamp: startDate,
+          endTimestamp: endDate,
+          /*
+           * Oldest → newest so the line renders left to right; the
+           * server defaults this sort to DESCENDING when omitted.
+           */
+          sort: {
+            bucketStart: SortOrder.Ascending,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
         },
-        select: {
-          bucketStart: true,
-          value: true,
-        },
-        sort: {
-          bucketStart: SortOrder.Ascending,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
       });
 
     const points: Array<DataPoint> = [];
 
+    /*
+     * One row per non-empty bucket, already ordered oldest → newest.
+     * `value` can arrive as a string because `SloHistory.value` is a
+     * ClickHouse Decimal, so coerce before charting.
+     */
     for (const row of result.data) {
-      const bucketStart: Date | undefined = row.bucketStart;
-      const value: number | undefined | null = row.value;
+      const value: number = Number(row.value);
 
-      if (bucketStart === undefined || value === undefined || value === null) {
+      if (!row.timestamp || !isFinite(value)) {
         continue;
       }
+
       points.push({
-        x: OneUptimeDate.fromString(bucketStart),
+        x: OneUptimeDate.fromString(row.timestamp),
         y: value,
       });
     }
 
-    return downsample(points);
+    return points;
   };
 
   useEffect(() => {
@@ -140,6 +174,8 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       try {
         const endDate: Date = OneUptimeDate.getCurrentDate();
         const startDate: Date = OneUptimeDate.getSomeDaysAgo(rangeDays);
+        const aggregationInterval: AggregationInterval =
+          getAggregationInterval(rangeDays);
 
         const [slo, sli, budget, burnRate]: [
           ServiceLevelObjective | null,
@@ -154,9 +190,19 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               targetPercentage: true,
             },
           }),
-          fetchSeries(SLI_METRIC_NAME, startDate, endDate),
-          fetchSeries(BUDGET_METRIC_NAME, startDate, endDate),
-          fetchSeries(BURN_RATE_METRIC_NAME, startDate, endDate),
+          fetchSeries(SLI_METRIC_NAME, startDate, endDate, aggregationInterval),
+          fetchSeries(
+            BUDGET_METRIC_NAME,
+            startDate,
+            endDate,
+            aggregationInterval,
+          ),
+          fetchSeries(
+            BURN_RATE_METRIC_NAME,
+            startDate,
+            endDate,
+            aggregationInterval,
+          ),
         ]);
 
         if (cancelled) {
