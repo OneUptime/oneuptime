@@ -222,10 +222,6 @@ const ScheduledMaintenanceView: FunctionComponent<
                 },
                 stepId: "event-info",
                 title: "Event Starts At",
-                description:
-                  "Shown in your local timezone (" +
-                  OneUptimeDate.getCurrentTimezoneString() +
-                  ").",
                 fieldType: FormFieldSchemaType.DateTime,
                 required: true,
                 placeholder: "Pick Date and Time",
@@ -236,10 +232,6 @@ const ScheduledMaintenanceView: FunctionComponent<
                 },
                 title: "Ends At",
                 stepId: "event-info",
-                description:
-                  "Shown in your local timezone (" +
-                  OneUptimeDate.getCurrentTimezoneString() +
-                  ").",
                 fieldType: FormFieldSchemaType.DateTime,
                 required: true,
                 placeholder: "Pick Date and Time",

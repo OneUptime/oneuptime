@@ -11,6 +11,13 @@ import { BrowserRouter } from "react-router-dom";
 
 ThemeUtil.initialize();
 
+/*
+ * Resolve every date the app renders / accepts in the timezone the user picked
+ * in User Settings, not the one the browser happens to report. Runs before the
+ * first render so no date is ever painted in the wrong zone.
+ */
+UserUtil.initializeUserTimezone();
+
 Telemetry.init({
   serviceName: "dashboard",
 });
