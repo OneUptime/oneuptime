@@ -204,7 +204,34 @@ postgresql:
       # supports a small/medium fleet directly, or a pgbouncer defaultPoolSize of
       # 400 in front. Raise it (and pod memory) for larger deployments.
       max_connections = 500
+      # NOTE: the StatefulSet launches postgres with `-c config_file=...`, which
+      # REPLACES postgresql.conf wholesale. Every GUC not listed here falls back
+      # to the compiled-in default, NOT the image default — so anything worth
+      # tuning must be spelled out below.
+      #
+      # Memory. shared_buffers is a real allocation; postgresql.primary.resources
+      # is empty by default, so this stays conservative. On a dedicated node,
+      # raise shared_buffers to ~25% of pod memory and effective_cache_size to
+      # ~50-75% (the latter is only a planner hint and allocates nothing).
       shared_buffers = 128MB
+      effective_cache_size = 1GB
+      # Per sort/hash node, per connection — with max_connections = 500 this is
+      # the GUC to raise carefully. 4MB (the compiled-in default) spills common
+      # dashboard sorts to disk.
+      work_mem = 8MB
+      maintenance_work_mem = 256MB
+      # The single highest-leverage setting here. The compiled-in default of 4.0
+      # models a spinning disk and biases the planner toward sequential scans,
+      # which on SSD/NVMe-backed PVCs means the ~2100 indexes this schema
+      # maintains go unused on medium-selectivity predicates.
+      random_page_cost = 1.1
+      # High-churn tables (MonitorProbe, TelemetryException, the *Log tables)
+      # accumulate dead tuples faster than the stock 20% scale factor reclaims.
+      autovacuum_vacuum_scale_factor = 0.05
+      autovacuum_analyze_scale_factor = 0.02
+      autovacuum_naptime = 15s
+      # Fewer checkpoints under write-heavy ingest. Costs disk in the PVC.
+      max_wal_size = 4GB
     # pg_hba.conf rules. These enable password auth (md5) from any host/IP.
     # Tighten these for production to your pod/service/network CIDRs.
     hbaConfiguration: |-
@@ -254,7 +281,18 @@ postgresOperator:
     # small/medium fleet (default per-pod pool 50) directly or behind pgbouncer.
     parameters:
       max_connections: "500"
-      shared_buffers: "128MB"
+      # shared_buffers is deliberately NOT set here — CloudNativePG derives it
+      # from the pod's memory request, which is better than a flat override.
+      # Same rationale as the StatefulSet path: the compiled-in random_page_cost
+      # of 4.0 models a spinning disk and keeps the planner off this schema's
+      # indexes on SSD-backed storage.
+      random_page_cost: "1.1"
+      work_mem: "8MB"
+      maintenance_work_mem: "256MB"
+      autovacuum_vacuum_scale_factor: "0.05"
+      autovacuum_analyze_scale_factor: "0.02"
+      autovacuum_naptime: "15s"
+      max_wal_size: "4GB"
     resources: {}
     nodeSelector: {}
     tolerations: []

@@ -156,6 +156,17 @@ export class Service extends DatabaseService<MonitorProbe> {
          * FOR UPDATE SKIP LOCKED ensures that:
          * 1. Rows are locked for this transaction
          * 2. Rows already locked by other transactions are skipped
+         *
+         * Keep the nextPingAt predicate a plain `<=` and the sort a plain
+         * ASC (i.e. NULLS LAST). Both are required for the
+         * ("probeId", "isEnabled", "nextPingAt") index to serve the range
+         * bound *and* the ordering, so LIMIT stops the scan after $3 rows
+         * instead of sorting every monitor assigned to this probe. An
+         * `IS NULL OR ...` predicate cannot be a range bound, and
+         * ASC NULLS FIRST matches neither a forward nor a backward btree
+         * walk. nextPingAt is never NULL: onBeforeCreate defaults it and the
+         * AddMonitoringDatesToMonitors data migration backfilled existing
+         * rows.
          */
         const selectQuery: string = `
         SELECT mp."_id", m."monitoringInterval"
@@ -165,7 +176,7 @@ export class Service extends DatabaseService<MonitorProbe> {
         WHERE mp."probeId" = $1
           AND mp."isEnabled" = true
           AND mp."deletedAt" IS NULL
-          AND (mp."nextPingAt" IS NULL OR mp."nextPingAt" <= $2)
+          AND mp."nextPingAt" <= $2
           AND m."disableActiveMonitoring" = false
           AND m."disableActiveMonitoringBecauseOfManualIncident" = false
           AND m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false
@@ -175,7 +186,7 @@ export class Service extends DatabaseService<MonitorProbe> {
                OR p."paymentProviderSubscriptionStatus" IN ('active', 'trialing'))
           AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
                OR p."paymentProviderMeteredSubscriptionStatus" IN ('active', 'trialing'))
-        ORDER BY mp."nextPingAt" ASC NULLS FIRST
+        ORDER BY mp."nextPingAt" ASC
         LIMIT $3
         FOR UPDATE OF mp SKIP LOCKED
       `;

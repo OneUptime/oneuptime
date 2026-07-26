@@ -56,14 +56,23 @@ export default class TelemetryUtil {
 
         let isSame: boolean = true;
 
-        // check if description is same
-        if (metricType.description !== metricTypeInMap.description) {
+        /*
+         * Compare the same normalized form we persist. Both columns are
+         * nullable and we always write `|| ""`, but OTLP omits protobuf
+         * defaults so the incoming value arrives as undefined. Comparing raw
+         * values made `"" !== undefined` true on every batch for every metric
+         * without a description/unit, so `isSame` was permanently false and
+         * each metric name paid two redundant SELECTs per batch.
+         */
+        if (
+          (metricType.description || "") !== (metricTypeInMap.description || "")
+        ) {
           isSame = false;
           metricType.description = metricTypeInMap.description || "";
         }
 
         // check if unit is same
-        if (metricType.unit !== metricTypeInMap.unit) {
+        if ((metricType.unit || "") !== (metricTypeInMap.unit || "")) {
           isSame = false;
           metricType.unit = metricTypeInMap.unit || "";
         }

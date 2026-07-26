@@ -42,9 +42,13 @@ const getMonitorFetchQuery: GetMonitorFetchQueryFunction = (
   const monitorFetchQuery: Query<MonitorProbe> = {
     probeId: probeId,
     isEnabled: true,
-    nextPingAt: QueryHelper.lessThanEqualToOrNull(
-      OneUptimeDate.getCurrentDate(),
-    ),
+    /*
+     * Plain <= (not ...OrNull): nextPingAt is never NULL — onBeforeCreate
+     * defaults it and the AddMonitoringDatesToMonitors data migration
+     * backfilled existing rows. The OR IS NULL variant cannot be a range
+     * bound, so it defeats the ("probeId", "isEnabled", "nextPingAt") index.
+     */
+    nextPingAt: QueryHelper.lessThanEqualTo(OneUptimeDate.getCurrentDate()),
     monitor: {
       ...MonitorService.getEnabledMonitorQuery(),
     },
@@ -78,7 +82,7 @@ router.get(
         await MonitorProbeService.findBy({
           query: {
             ...getMonitorFetchQuery(new ObjectID(req.params["probeId"])),
-            nextPingAt: QueryHelper.lessThanEqualToOrNull(
+            nextPingAt: QueryHelper.lessThanEqualTo(
               OneUptimeDate.addRemoveMinutes(
                 OneUptimeDate.getCurrentDate(),
                 -3,
@@ -240,7 +244,7 @@ router.get(
         await MonitorProbeService.findOneBy({
           query: {
             ...getMonitorFetchQuery(new ObjectID(req.params["probeId"])),
-            nextPingAt: QueryHelper.lessThanEqualToOrNull(
+            nextPingAt: QueryHelper.lessThanEqualTo(
               OneUptimeDate.addRemoveMinutes(
                 OneUptimeDate.getCurrentDate(),
                 -3,

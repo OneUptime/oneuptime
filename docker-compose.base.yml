@@ -69,6 +69,22 @@ x-common-runtime-variables: &common-runtime-variables
   DATABASE_SSL_KEY: ${DATABASE_SSL_KEY}
   DATABASE_SSL_CERT: ${DATABASE_SSL_CERT}
   DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED}
+
+  # Postgres pool + timeout tuning. EnvironmentConfig.ts exposes these, but
+  # without them enumerated here they never reach the containers (there is no
+  # env_file in any compose file). Every consumer is `env || "<default>"`, and
+  # Compose substitutes an unset variable as empty string, so leaving these
+  # blank in config.env preserves the built-in defaults exactly.
+  DATABASE_MAX_OPEN_CONNECTIONS: ${DATABASE_MAX_OPEN_CONNECTIONS}
+  DATABASE_STATEMENT_TIMEOUT_MS: ${DATABASE_STATEMENT_TIMEOUT_MS}
+  DATABASE_QUERY_TIMEOUT_MS: ${DATABASE_QUERY_TIMEOUT_MS}
+  DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS: ${DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS}
+  DATABASE_CONNECTION_TIMEOUT_MS: ${DATABASE_CONNECTION_TIMEOUT_MS}
+  DATABASE_IDLE_TIMEOUT_MS: ${DATABASE_IDLE_TIMEOUT_MS}
+  DATABASE_IDLE_SESSION_TIMEOUT_MS: ${DATABASE_IDLE_SESSION_TIMEOUT_MS}
+  DATABASE_KEEPALIVE_INITIAL_DELAY_MS: ${DATABASE_KEEPALIVE_INITIAL_DELAY_MS}
+  DATABASE_SLOW_QUERY_LOG_THRESHOLD_MS: ${DATABASE_SLOW_QUERY_LOG_THRESHOLD_MS}
+  RUN_DATABASE_MIGRATIONS_ON_BOOT: ${RUN_DATABASE_MIGRATIONS_ON_BOOT}
   LETS_ENCRYPT_NOTIFICATION_EMAIL: ${LETS_ENCRYPT_NOTIFICATION_EMAIL}
   LETS_ENCRYPT_ACCOUNT_KEY: ${LETS_ENCRYPT_ACCOUNT_KEY}
 
@@ -212,6 +228,30 @@ services:
   postgres:
     image: postgres:15
     restart: always
+    # Stock postgres defaults are sized for a spinning disk and a single small
+    # client. Two containers connect here (app, ingress) at a default pool of
+    # 50 each, which exactly saturates the stock max_connections of 100 and
+    # leaves nothing for superuser_reserved_connections or the pg_dump backup
+    # path. random_page_cost is the important one: at the stock 4.0 the planner
+    # prefers sequential scans and largely ignores this schema's indexes.
+    # These -c flags override individual settings on top of the image's
+    # postgresql.conf; they do not replace it.
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - autovacuum_vacuum_scale_factor=0.05
+      - -c
+      - autovacuum_analyze_scale_factor=0.02
+      - -c
+      - autovacuum_naptime=15s
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}

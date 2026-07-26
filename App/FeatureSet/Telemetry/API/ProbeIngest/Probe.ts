@@ -464,7 +464,7 @@ router.post(
         query: {
           probeId: probeId,
           isEnabled: true,
-          nextPingAt: QueryHelper.lessThanEqualToOrNull(
+          nextPingAt: QueryHelper.lessThanEqualTo(
             OneUptimeDate.getSomeMinutesAgo(2),
           ),
           monitor: {
