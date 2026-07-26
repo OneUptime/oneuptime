@@ -44,6 +44,15 @@ export class AddCronSweepAndRetentionIndexes1785093542859
       `CREATE INDEX "IDX_718982a53686ac0baabeb57c98" ON "WorkflowLog" ("workflowStatus", "resumeAt") `,
     );
 
+    /*
+     * Telemetry ingest catalog lookup. MetricType had only two separate
+     * single-column indexes ("projectId", "name"); the ingest path always
+     * queries on both together.
+     */
+    await queryRunner.query(
+      `CREATE INDEX "IDX_ec9ab273ef86103f8d59c2aad7" ON "MetricType" ("projectId", "name") `,
+    );
+
     // Retention scans.
     await queryRunner.query(
       `CREATE INDEX "IDX_1d38d4d8bd49564b6f89457932" ON "CallLog" ("createdAt") `,
@@ -155,6 +164,9 @@ export class AddCronSweepAndRetentionIndexes1785093542859
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_1d38d4d8bd49564b6f89457932"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_ec9ab273ef86103f8d59c2aad7"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_718982a53686ac0baabeb57c98"`,

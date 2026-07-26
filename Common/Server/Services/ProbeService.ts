@@ -1,6 +1,7 @@
 import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
 import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
@@ -33,12 +34,88 @@ import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import { createHash } from "crypto";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 
+/*
+ * 60s is the worst-case staleness on any single ingest node after a probe is
+ * deleted or re-keyed. We invalidate in-process immediately on delete/update;
+ * this TTL is the upper bound for *other* processes. Keep it short — this is a
+ * credential-revocation window, not a plain data cache.
+ */
+const PROBE_AUTH_POSITIVE_TTL_MS: number = 60 * 1000;
+/*
+ * Short TTL on misses so a bad-credential flood can't pin entries in the
+ * bounded cache for long while still absorbing repeat hits.
+ */
+const PROBE_AUTH_NEGATIVE_TTL_MS: number = 10 * 1000;
+
 export class Service extends DatabaseService<Model> {
+  /*
+   * (probeId, key) -> probe id, for the probe-auth middleware. That middleware
+   * guards every probe ingest route, and /probe/response/ingest does no other
+   * Postgres work (it enqueues to Redis), so this lookup was the only
+   * synchronous Postgres coupling on the highest-volume endpoint in the
+   * product. The pair is immutable in practice, so it caches cleanly.
+   */
+  private probeAuthCache: InMemoryTTLCache<string | null> =
+    new InMemoryTTLCache(10_000);
+
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * Resolve a (probeId, probeKey) pair to the probe's id, with a short-lived
+   * in-process cache to keep the probe ingest path off Postgres. Returns null
+   * for unknown, mismatched, or deleted probes (also cached, for a shorter
+   * TTL).
+   */
+  @CaptureSpan()
+  public async getProbeIdByKey(
+    probeId: ObjectID,
+    probeKey: string,
+  ): Promise<ObjectID | null> {
+    /*
+     * Hash the pair so a raw probe key never sits in process memory as a map
+     * key (same reasoning as TelemetryIngestionKeyService).
+     */
+    const cacheKey: string = createHash("sha256")
+      .update(`${probeId.toString()}:${probeKey}`)
+      .digest("hex");
+
+    const cached: string | null | undefined = this.probeAuthCache.get(cacheKey);
+    if (cached !== undefined) {
+      return cached === null ? null : new ObjectID(cached);
+    }
+
+    const probe: Model | null = await this.findOneBy({
+      query: {
+        _id: probeId.toString(),
+        key: probeKey,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!probe?.id) {
+      this.probeAuthCache.set(cacheKey, null, PROBE_AUTH_NEGATIVE_TTL_MS);
+      return null;
+    }
+
+    this.probeAuthCache.set(
+      cacheKey,
+      probe.id.toString(),
+      PROBE_AUTH_POSITIVE_TTL_MS,
+    );
+
+    return probe.id;
   }
 
   public async saveLastAliveInCache(
@@ -227,9 +304,36 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    /*
+     * _findBy passes withDeleted: false, so a soft-deleted probe stops
+     * authenticating the moment it is deleted. The auth cache would otherwise
+     * keep honouring it for the remaining TTL — so this hook is what makes
+     * caching that lookup safe, not an optimisation. We don't know which
+     * (probeId, key) pairs are affected without an extra query; probe deletes
+     * are rare, so clear the whole cache.
+     */
+    this.probeAuthCache.clear();
+    return { deleteBy, carryForward: null };
+  }
+
+  @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    /*
+     * `key` is re-generatable from the dashboard, so a rotated key must stop
+     * authenticating immediately on this process. Cheap to clear: the only
+     * update call sites are probe registration and a connection-status flip
+     * that is itself guarded on an actual status change. The per-request
+     * heartbeat (updateLastAlive) deliberately bypasses hooks via
+     * updateColumnsByIdWithoutHooks, so it does not land here and does not
+     * thrash this cache.
+     */
+    this.probeAuthCache.clear();
+
     const carryForward: any = {
       probesToNotifyOwners: [],
     };

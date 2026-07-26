@@ -83,6 +83,7 @@ import { AggregationTemporality } from "../AnalyticsModels/Metric";
 @Entity({
   name: "MetricType",
 })
+@Index(["projectId", "name"]) // Telemetry ingest: catalog lookup by (project, metric name)
 export default class MetricType extends BaseModel {
   @ColumnAccessControl({
     create: [

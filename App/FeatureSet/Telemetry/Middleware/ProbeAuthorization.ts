@@ -27,20 +27,17 @@ export default class ProbeAuthorization {
 
     const probeKey: string = data["probeKey"] as string;
 
-    const probe: Probe | null = await ProbeService.findOneBy({
-      query: {
-        _id: probeId.toString(),
-        key: probeKey,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    /*
+     * Cached in-process (60s positive / 10s negative), invalidated on probe
+     * update and delete. This runs on every probe ingest request, and
+     * /probe/response/ingest does no other Postgres work — it enqueues to
+     * Redis — so resolving this from cache takes the highest-volume endpoint
+     * in the product off Postgres entirely.
+     */
+    const authorizedProbeId: ObjectID | null =
+      await ProbeService.getProbeIdByKey(probeId, probeKey);
 
-    if (!probe) {
+    if (!authorizedProbeId) {
       return Response.sendErrorResponse(
         req,
         res,
@@ -48,7 +45,14 @@ export default class ProbeAuthorization {
       );
     }
 
-    await ProbeService.updateLastAlive(probeId);
+    await ProbeService.updateLastAlive(authorizedProbeId);
+
+    /*
+     * The previous lookup selected only _id, so every downstream consumer
+     * already reads nothing but `.id` off this object.
+     */
+    const probe: Probe = new Probe();
+    probe.id = authorizedProbeId;
 
     req.probe = probe;
 

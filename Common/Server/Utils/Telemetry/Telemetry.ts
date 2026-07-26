@@ -5,21 +5,82 @@ import MetricType from "../../../Models/DatabaseModels/MetricType";
 import MetricTypeService from "../../Services/MetricTypeService";
 import Service from "../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../Types/Dictionary";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 
 export type AttributeType = string | number | boolean | null;
 
 export default class TelemetryUtil {
+  /**
+   * The shape a batch wants persisted for one metric name. Two batches with
+   * the same fingerprint need identical rows, so once we have confirmed a
+   * fingerprint is in Postgres we can skip the read on every later batch.
+   *
+   * Services are sorted because the incoming order is not stable, and only
+   * ever grow (the merge below pushes, never removes) — so a fingerprint we
+   * confirmed earlier stays satisfied even after other services are added to
+   * the same metric.
+   */
+  private static getMetricTypeShapeFingerprint(
+    metricTypeInMap: MetricType,
+  ): string {
+    const serviceIds: Array<string> = (metricTypeInMap?.services || [])
+      .map((service: Service) => {
+        return service.id?.toString() || "";
+      })
+      .sort();
+
+    return JSON.stringify([
+      metricTypeInMap.description || "",
+      metricTypeInMap.unit || "",
+      metricTypeInMap.isMonotonic ?? null,
+      metricTypeInMap.aggregationTemporality ?? null,
+      serviceIds,
+    ]);
+  }
+
   @CaptureSpan()
   public static async indexMetricNameServiceNameMap(data: {
     projectId: ObjectID;
     metricNameServiceNameMap: Dictionary<MetricType>;
   }): Promise<void> {
+    const fingerprints: Dictionary<string> = {};
+    const metricNamesToCheck: Array<string> = [];
+
     for (const metricName of Object.keys(data.metricNameServiceNameMap)) {
-      // fetch metric
-      const metricType: MetricType | null = await MetricTypeService.findOneBy({
+      const fingerprint: string = this.getMetricTypeShapeFingerprint(
+        data.metricNameServiceNameMap[metricName]!,
+      );
+      fingerprints[metricName] = fingerprint;
+
+      if (
+        !MetricTypeService.isShapeKnownCurrent(
+          data.projectId,
+          metricName,
+          fingerprint,
+        )
+      ) {
+        metricNamesToCheck.push(metricName);
+      }
+    }
+
+    /*
+     * Steady state: every metric in this batch looks exactly as it did last
+     * time, so the whole catalog sync costs zero Postgres queries.
+     */
+    if (metricNamesToCheck.length === 0) {
+      return;
+    }
+
+    /*
+     * One query for every unconfirmed name, instead of one serially-awaited
+     * joined SELECT per name.
+     */
+    const existingMetricTypes: Array<MetricType> =
+      await MetricTypeService.findBy({
         query: {
           projectId: data.projectId,
-          name: metricName,
+          name: QueryHelper.any(metricNamesToCheck),
         },
         select: {
           services: true,
@@ -29,10 +90,24 @@ export default class TelemetryUtil {
           isMonotonic: true,
           aggregationTemporality: true,
         },
+        limit: LIMIT_MAX,
+        skip: 0,
         props: {
           isRoot: true,
         },
       });
+
+    const existingMetricTypeByName: Dictionary<MetricType> = {};
+
+    for (const existingMetricType of existingMetricTypes) {
+      if (existingMetricType.name) {
+        existingMetricTypeByName[existingMetricType.name] = existingMetricType;
+      }
+    }
+
+    for (const metricName of metricNamesToCheck) {
+      const metricType: MetricType | undefined =
+        existingMetricTypeByName[metricName];
 
       const metricTypeInMap: MetricType =
         data.metricNameServiceNameMap[metricName]!;
@@ -169,6 +244,18 @@ export default class TelemetryUtil {
           },
         });
       }
+
+      /*
+       * Only reached once the row is confirmed present with this shape —
+       * either it already matched, we just updated it, or we just created it.
+       * Marking earlier would cache a shape that never reached Postgres if a
+       * write threw.
+       */
+      MetricTypeService.markShapeCurrent(
+        data.projectId,
+        metricName,
+        fingerprints[metricName]!,
+      );
     }
   }
 
