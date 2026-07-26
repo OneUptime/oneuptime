@@ -62,9 +62,9 @@ const RESOLVED_STATE_ID: ObjectID = new ObjectID(
 const TARGET_PERCENTAGE_ERROR_MESSAGE: string =
   "SLO target must be greater than 0 and at most 99.999. A 100% target leaves no error budget.";
 const WINDOW_DAYS_ERROR_MESSAGE: string =
-  "SLO window must be between 1 and 366 days.";
+  "SLO window must be a whole number of days between 1 and 366.";
 const AT_RISK_THRESHOLD_ERROR_MESSAGE: string =
-  "SLO at-risk threshold must be a percentage between 0 and 100.";
+  "SLO at-risk threshold must be a whole percentage between 0 and 100.";
 
 /*
  * Every column getDueSlos must hand to the evaluation worker. Enumerated here
