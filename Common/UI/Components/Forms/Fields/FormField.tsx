@@ -291,9 +291,19 @@ const FormField: <T extends GenericObject>(
         fieldDescription = "";
       }
 
-      fieldDescription +=
-        " This is in your local timezone - " +
-        OneUptimeDate.getCurrentTimezoneString();
+      /*
+       * Name the zone in full. The abbreviation on its own ("EDT") is not
+       * enough to tell whether the field is following the timezone picked in
+       * User Settings or the one the browser reports.
+       */
+      fieldDescription = (
+        fieldDescription +
+        " This is in your timezone - " +
+        OneUptimeDate.getCurrentTimezoneString() +
+        " (" +
+        OneUptimeDate.getCurrentTimezone().toString() +
+        ")."
+      ).trim();
     }
 
     type GetFieldDescriptionFunction = () => ReactElement | string;
