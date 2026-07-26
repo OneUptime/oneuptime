@@ -64,6 +64,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @Index(["projectId", "createdAt"]) // Notification logs table: time-range filter per project
 @Index(["projectId", "status"]) // Notification logs table: status filter per project
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class EmailLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

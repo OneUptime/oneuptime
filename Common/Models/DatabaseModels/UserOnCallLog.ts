@@ -61,6 +61,7 @@ import Alert from "./Alert";
   icon: IconProp.Logs,
   tableDescription: "Log events for user notifications",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class UserOnCallLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

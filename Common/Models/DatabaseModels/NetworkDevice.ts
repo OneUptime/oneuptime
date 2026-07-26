@@ -89,6 +89,7 @@ import {
 @Entity({
   name: "NetworkDevice",
 })
+@Index(["probeId", "nextPollAt"]) // Probe device-claim hot path: pick due devices per probeId
 export default class NetworkDevice extends BaseModel {
   @ColumnAccessControl({
     create: [

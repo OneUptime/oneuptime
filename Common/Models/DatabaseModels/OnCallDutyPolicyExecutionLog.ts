@@ -80,6 +80,8 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   icon: IconProp.Call,
   tableDescription: "Logs for on-call duty policy execution.",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
+@Index(["status", "createdAt"]) // Worker sweeps: ExecutePendingExecutions + TimeoutStuckExecutions, every minute
 export default class OnCallDutyPolicyExecutionLog extends BaseModel {
   @ColumnAccessControl({
     create: [

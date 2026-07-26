@@ -60,6 +60,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Logs of all the outbound Webhook requests sent for this project.",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class WebhookLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

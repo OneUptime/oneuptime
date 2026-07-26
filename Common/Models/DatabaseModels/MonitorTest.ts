@@ -83,6 +83,7 @@ import Monitor from "./Monitor";
   tableDescription:
     "Monitor Test allows you to test monitor configurations before you save them.",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class MonitorTest extends BaseModel {
   @ColumnAccessControl({
     create: [

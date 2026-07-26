@@ -64,6 +64,7 @@ import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNoti
   tableDescription:
     "Logs of all workspace activities including messages, channel creation, user invitations, and button interactions for Slack and Microsoft Teams.",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class WorkspaceNotificationLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

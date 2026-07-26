@@ -45,6 +45,7 @@ export const DEFAULT_RETENTION_IN_DAYS: number = 15;
 @Entity({
   name: "TelemetryUsageBilling",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class TelemetryUsageBilling extends BaseModel {
   @ColumnAccessControl({
     create: [],

@@ -50,6 +50,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Logs of all SCIM provisioning operations for status pages.",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class StatusPageSCIMLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

@@ -32,6 +32,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Short links are used to redirect users to a specific long link in OneUptime.",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class ShortLink extends BaseModel {
   @ColumnAccessControl({
     create: [],

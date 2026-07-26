@@ -82,6 +82,7 @@ export interface DiscoveredNetworkDevice {
 @Entity({
   name: "NetworkDeviceDiscoveryScan",
 })
+@Index(["isRecurring", "nextScanAt"]) // Worker sweep: RequeueRecurringScans, every minute
 export default class NetworkDeviceDiscoveryScan extends BaseModel {
   @ColumnAccessControl({
     create: [

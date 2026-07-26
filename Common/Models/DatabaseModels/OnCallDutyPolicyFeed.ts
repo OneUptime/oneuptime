@@ -83,6 +83,7 @@ export enum OnCallDutyPolicyFeedEventType {
   tableDescription:
     "Log of the entire onCallDutyPolicy state change. This is a log of all the on call duty policy changes.",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class OnCallDutyPolicyFeed extends BaseModel {
   @ColumnAccessControl({
     create: [

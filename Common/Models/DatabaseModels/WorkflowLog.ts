@@ -64,6 +64,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription: "Logs of the workflows executed",
 })
 @Index(["workflowStatus", "createdAt"]) // Worker sweep for scheduled/timed-out runs
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
+@Index(["workflowStatus", "resumeAt"]) // Worker sweep: TimeoutJobs reaps stuck Waiting runs, every minute
 export default class WorkflowLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

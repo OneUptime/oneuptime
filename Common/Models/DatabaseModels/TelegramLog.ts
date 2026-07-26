@@ -60,6 +60,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Logs of all the Telegram messages sent out to all users and subscribers for this project.",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class TelegramLog extends BaseModel {
   @ColumnAccessControl({
     create: [],

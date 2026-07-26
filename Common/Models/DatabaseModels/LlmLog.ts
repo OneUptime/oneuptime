@@ -49,6 +49,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Logs of all the LLM API calls for AI features in this project.",
 })
+@Index(["createdAt"]) // Retention sweep: hardDeleteBy scans createdAt < cutoff
 export default class LlmLog extends BaseModel {
   @ColumnAccessControl({
     create: [],
