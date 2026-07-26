@@ -42,8 +42,11 @@ import Permission from "../../Types/Permission";
  * dashboard charts do) or dedupe explicitly via
  * `argMax(value, version) ... GROUP BY <identity>`.
  *
- * `metricName` values: "sli.percent", "error.budget.remaining.percent",
- * "burn.rate", "good.count", "total.count".
+ * `metricName` values written today: "sli.percent",
+ * "error.budget.remaining.percent" and "burn.rate" — the three gauges the
+ * evaluation worker persists per run. "good.count" / "total.count" are
+ * reserved for event-based (Metric) SLIs, which the worker does not
+ * evaluate yet; nothing writes or reads them.
  */
 export default class SloHistory extends AnalyticsBaseModel {
   public constructor() {
@@ -87,7 +90,7 @@ export default class SloHistory extends AnalyticsBaseModel {
       isLowCardinality: true,
       title: "Metric Name",
       description:
-        "Which SLO series this row belongs to: sli.percent, error.budget.remaining.percent, burn.rate, good.count, or total.count.",
+        "Which SLO series this row belongs to: sli.percent, error.budget.remaining.percent, or burn.rate.",
       required: true,
       type: TableColumnType.Text,
       accessControl: {

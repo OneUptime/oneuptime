@@ -30,6 +30,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITOR_VIEW_INTERVAL]: `${RouteParams.ModelID}/interval`,
   [PageMap.MONITOR_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: `${RouteParams.ModelID}/status-timeline`,
+  [PageMap.MONITOR_VIEW_SLOS]: `${RouteParams.ModelID}/slos`,
   [PageMap.MONITOR_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.MONITOR_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.MONITOR_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
@@ -145,6 +146,8 @@ export const SloRoutePath: Dictionary<string> = {
   [PageMap.SLO_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SLO_VIEW_CHARTS]: `${RouteParams.ModelID}/charts`,
   [PageMap.SLO_VIEW_BURN_RATE_RULES]: `${RouteParams.ModelID}/burn-rate-rules`,
+  [PageMap.SLO_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.SLO_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.SLO_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.SLO_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
 };
@@ -966,6 +969,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITOR_VIEW_STATUS_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.MONITOR_VIEW_SLOS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITOR_VIEW_SLOS]
     }`,
   ),
 
@@ -2667,6 +2676,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SLO_VIEW_BURN_RATE_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLO_VIEW_BURN_RATE_RULES]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.SLO_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLO_VIEW_AUDIT_LOGS]
     }`,
   ),
 

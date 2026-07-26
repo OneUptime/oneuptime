@@ -22,13 +22,21 @@ Some common combinations:
 | 99.95% | 5m 2s        | 20m 10s       | 21m 36s       | 1h 4m 48s     |
 | 99.99% | 1m 0s        | 4m 2s         | 4m 19s        | 12m 58s       |
 
+### Multi-monitor SLOs
+
+In **Any Monitor Down** mode the budget is the plain `(100% − target) × window` above — the window is one timeline no matter how many monitors feed it.
+
+In **Monitor Seconds Average** mode the denominator is the sum of monitored seconds *across all attached monitors*, so the total budget in minutes scales with the monitor count: a three-monitor 99.9% / 30-day SLO has roughly 129 minutes of budget rather than 43. The percentages — SLI, remaining budget, burn rate — are unaffected; only the absolute minutes change.
+
+### Calendar-month windows
+
 For calendar-month windows the budget is calculated over the **full month** from day one — a 99.9% SLO in a 31-day month has its whole 44m 38s available on the 1st. It is not prorated by how much of the month has elapsed, so a one-minute blip on the morning of the 1st consumes one minute of the month's budget, exactly as it should.
 
 ## Remaining budget
 
 As downtime accumulates, OneUptime tracks:
 
-- **Remaining minutes** — `total budget − downtime consumed`, shown alongside the total (e.g., "31m of 43m 12s remaining").
+- **Remaining time** — `total budget − downtime consumed`, shown alongside the total (e.g., "31m 4s left of 43m 12s").
 - **Remaining percent** — remaining budget as a percentage of the total, which drives the budget bar and the [SLO status](/docs/slo/introduction).
 
 The remaining budget is a **signed** value. If you blow through the budget, OneUptime keeps counting — an SLO can show "−40 minutes" to tell you exactly how far over you are, which is far more useful during a bad month than a bar pinned at zero. The budget bar itself clamps at empty; the signed number is shown next to it.

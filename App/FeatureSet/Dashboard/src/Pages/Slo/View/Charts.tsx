@@ -1,6 +1,8 @@
 import PageComponentProps from "../../PageComponentProps";
+import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -8,15 +10,27 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
+import { DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE } from "Common/Utils/Slo/SloHealth";
+import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
+import { getSloChartAggregationInterval } from "Common/Utils/Slo/SloWidgetFormat";
+import { formatDurationCompact } from "Common/Utils/Slo/SloDuration";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Card from "Common/UI/Components/Card/Card";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
@@ -36,6 +50,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -43,8 +58,13 @@ const SLI_METRIC_NAME: string = "sli.percent";
 const BUDGET_METRIC_NAME: string = "error.budget.remaining.percent";
 const BURN_RATE_METRIC_NAME: string = "burn.rate";
 
-const EMPTY_MESSAGE: string =
-  "No history yet — the SLO is evaluated every few minutes.";
+/** Keep the charts in step with the worker's evaluation cadence. */
+const AUTO_REFRESH_MS: number = 60 * 1000;
+
+const TARGET_LINE_COLOR: string = "#f59e0b";
+const AT_RISK_LINE_COLOR: string = "#f59e0b";
+const EXHAUSTED_LINE_COLOR: string = "#ef4444";
+const BURN_RULE_LINE_COLOR: string = "#ef4444";
 
 /*
  * Series are read through SloHistory's `/aggregate` endpoint rather
@@ -59,38 +79,31 @@ const EMPTY_MESSAGE: string =
  * written". Aggregating server-side bounds the response by the WINDOW
  * instead of by the row count.
  *
- * Bucket sizes are pinned per range (rather than left to the
- * window-derived default) so the point count is bounded regardless of
- * how often the worker writes:
- *   7d  → 5-minute buckets (≤ 2,016 points — the native write cadence)
- *   30d → hourly buckets   (≤ 720 points)
- *   90d → hourly buckets   (≤ 2,160 points)
- *
- * The aggregation's GROUP BY on the bucketed timestamp also collapses
- * duplicate rows for one bucket, so the rare un-merged double write
- * that a ReplacingMergeTree can expose to readers before a merge
- * cannot render as two points at the same x.
+ * Bucket size comes from the shared getSloChartAggregationInterval, which
+ * the dashboard SLO widget already uses and which is unit-tested for
+ * arbitrary spans — the range picker below can produce any span, so the
+ * page can no longer pin a bucket size per hardcoded range. The
+ * aggregation's GROUP BY on the bucketed timestamp also collapses
+ * duplicate rows for one bucket, so the rare un-merged double write that
+ * a ReplacingMergeTree can expose to readers before a merge cannot render
+ * as two points at the same x.
  */
-type GetAggregationIntervalFunction = (
-  rangeDays: number,
-) => AggregationInterval;
-
-const getAggregationInterval: GetAggregationIntervalFunction = (
-  rangeDays: number,
-): AggregationInterval => {
-  if (rangeDays <= 7) {
-    return AggregationInterval.FiveMinutes;
-  }
-  return AggregationInterval.Hour;
-};
-
 const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [rangeDays, setRangeDays] = useState<number>(30);
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
+    range: TimeRange.PAST_ONE_MONTH,
+  });
+  const [refreshTick, setRefreshTick] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [targetPercentage, setTargetPercentage] = useState<number | null>(null);
+  const [atRiskThresholdPercentage, setAtRiskThresholdPercentage] = useState<
+    number | null
+  >(null);
+  const [burnRateRules, setBurnRateRules] = useState<
+    Array<ServiceLevelObjectiveBurnRateRule>
+  >([]);
   const [sliPoints, setSliPoints] = useState<Array<DataPoint>>([]);
   const [budgetPoints, setBudgetPoints] = useState<Array<DataPoint>>([]);
   const [burnRatePoints, setBurnRatePoints] = useState<Array<DataPoint>>([]);
@@ -164,21 +177,70 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return points;
   };
 
+  /*
+   * The window MUST be memoised. A relative range ("Past 1 Month") resolves
+   * against `now`, so recomputing it inline on every render would hand the
+   * load effect two new timestamps each time it set state — an unbounded
+   * render/fetch loop. It is recomputed only when the user picks a
+   * different range, or when the refresh tick fires and the window should
+   * genuinely slide forward.
+   */
+  const { startDate, endDate } = useMemo((): {
+    startDate: Date;
+    endDate: Date;
+  } => {
+    const range: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+    return {
+      startDate: range.startValue as Date,
+      endDate: range.endValue as Date,
+    };
+  }, [timeRange, refreshTick]);
+
+  const startTime: number = startDate.getTime();
+  const endTime: number = endDate.getTime();
+
+  /*
+   * The worker writes a new bucket every few minutes, so a chart left open
+   * during an incident should grow rather than freeze. Bumping the tick
+   * slides the window, which re-runs the load effect below.
+   */
+  useEffect(() => {
+    const intervalId: ReturnType<typeof setInterval> = setInterval(() => {
+      setRefreshTick((tick: number) => {
+        return tick + 1;
+      });
+    }, AUTO_REFRESH_MS);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  /*
+   * Keyed on the SAME inputs the window memo is keyed on, never on the
+   * resolved timestamps. A custom range resolves to the exact dates the
+   * user picked, so re-applying it — or hitting Refresh on an error —
+   * produces identical timestamps and would silently skip the reload,
+   * stranding whatever loading or error state is on screen. Keying on the
+   * memo's own inputs costs at most one redundant refetch and can never
+   * strand the page.
+   */
   useEffect(() => {
     let cancelled: boolean = false;
 
     const load: PromiseVoidFunction = async (): Promise<void> => {
-      setIsLoading(true);
       setError("");
 
       try {
-        const endDate: Date = OneUptimeDate.getCurrentDate();
-        const startDate: Date = OneUptimeDate.getSomeDaysAgo(rangeDays);
+        const spanInMinutes: number = (endTime - startTime) / (60 * 1000);
         const aggregationInterval: AggregationInterval =
-          getAggregationInterval(rangeDays);
+          getSloChartAggregationInterval(spanInMinutes);
 
-        const [slo, sli, budget, burnRate]: [
+        const [slo, rules, sli, budget, burnRate]: [
           ServiceLevelObjective | null,
+          ListResult<ServiceLevelObjectiveBurnRateRule>,
           Array<DataPoint>,
           Array<DataPoint>,
           Array<DataPoint>,
@@ -188,6 +250,28 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             id: modelId,
             select: {
               targetPercentage: true,
+              atRiskThresholdPercentage: true,
+            },
+          }),
+          /*
+           * Enabled rules only: a disabled rule's threshold is not a line
+           * anyone is being measured against.
+           */
+          ModelAPI.getList<ServiceLevelObjectiveBurnRateRule>({
+            modelType: ServiceLevelObjectiveBurnRateRule,
+            query: {
+              serviceLevelObjectiveId: modelId,
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              isEnabled: true,
+            },
+            select: {
+              name: true,
+              burnRateThreshold: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            sort: {
+              burnRateThreshold: SortOrder.Ascending,
             },
           }),
           fetchSeries(SLI_METRIC_NAME, startDate, endDate, aggregationInterval),
@@ -213,6 +297,14 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         setTargetPercentage(
           target === undefined || target === null ? null : target,
         );
+
+        const atRisk: number | undefined | null =
+          slo?.atRiskThresholdPercentage;
+        setAtRiskThresholdPercentage(
+          atRisk === undefined || atRisk === null ? null : atRisk,
+        );
+
+        setBurnRateRules(rules.data);
         setSliPoints(sli);
         setBudgetPoints(budget);
         setBurnRatePoints(burnRate);
@@ -227,6 +319,8 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
       }
     };
 
+    setIsLoading(true);
+
     load().catch((err: Error) => {
       if (!cancelled) {
         setError(API.getFriendlyMessage(err));
@@ -237,7 +331,7 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return () => {
       cancelled = true;
     };
-  }, [rangeDays]);
+  }, [timeRange, refreshTick]);
 
   type GetChartFunction = (options: {
     points: Array<DataPoint>;
@@ -260,20 +354,33 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     referenceLines?: Array<ChartReferenceLineProps> | undefined;
     syncId: string;
   }): ReactElement => {
-    if (isLoading) {
-      return <div className="h-48 animate-pulse rounded-md bg-gray-50" />;
+    /*
+     * The loader replaces the chart only when there is nothing else to
+     * show. A background refresh — or a range change while data from the
+     * previous range is still on screen — keeps the existing lines up
+     * instead of flashing a spinner every minute.
+     */
+    if (isLoading && options.points.length === 0) {
+      return <ComponentLoader />;
     }
 
     if (options.points.length === 0) {
+      /*
+       * The negative margin is the established way to fit EmptyState
+       * inside a Card without the card growing to the empty state's own
+       * generous padding.
+       */
       return (
-        <div className="flex h-48 items-center justify-center text-sm text-gray-400">
-          {EMPTY_MESSAGE}
+        <div className="-my-16">
+          <EmptyState
+            id={`slo-chart-empty-${options.seriesName}`}
+            icon={IconProp.Graph}
+            title="No history in this range"
+            description="SLOs are evaluated every few minutes. Widen the time range, or wait for the next evaluation if this SLO was created recently."
+          />
         </div>
       );
     }
-
-    const endDate: Date = OneUptimeDate.getCurrentDate();
-    const startDate: Date = OneUptimeDate.getSomeDaysAgo(rangeDays);
 
     const xAxis: ChartXAxis = {
       legend: "Time",
@@ -318,7 +425,6 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
-  const rangeOptions: Array<number> = [7, 30, 90];
   const syncId: string = `slo-charts-${modelId.toString()}`;
 
   const sliReferenceLines: Array<ChartReferenceLineProps> | undefined =
@@ -327,94 +433,134 @@ const SloCharts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             value: targetPercentage,
             label: `Target ${targetPercentage}%`,
-            color: "#f59e0b",
+            color: TARGET_LINE_COLOR,
             strokeDasharray: "4 4",
           },
         ]
       : undefined;
 
+  /*
+   * The two boundaries the SLO's own status is computed against, so a dip
+   * on the chart can be read as "that is when it went At Risk" instead of
+   * requiring the reader to remember the threshold.
+   */
+  const budgetReferenceLines: Array<ChartReferenceLineProps> = [
+    {
+      value: 0,
+      label: "Budget exhausted",
+      color: EXHAUSTED_LINE_COLOR,
+    },
+    {
+      value: atRiskThresholdPercentage ?? DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+      label: "At risk",
+      color: AT_RISK_LINE_COLOR,
+      strokeDasharray: "4 4",
+    },
+  ];
+
+  const burnRateReferenceLines: Array<ChartReferenceLineProps> = burnRateRules
+    .filter((rule: ServiceLevelObjectiveBurnRateRule) => {
+      return (
+        rule.burnRateThreshold !== undefined &&
+        rule.burnRateThreshold !== null &&
+        isFinite(rule.burnRateThreshold)
+      );
+    })
+    .map((rule: ServiceLevelObjectiveBurnRateRule) => {
+      return {
+        value: rule.burnRateThreshold!,
+        label: `${rule.name || "Rule"} ${rule.burnRateThreshold}×`,
+        color: BURN_RULE_LINE_COLOR,
+        strokeDasharray: "4 4",
+      };
+    });
+
+  const burnRateWindowText: string = formatDurationCompact(
+    SLO_CURRENT_BURN_RATE_WINDOW_MINUTES * 60,
+  );
+
   return (
     <Fragment>
-      <div className="mb-4 flex justify-end">
-        <div className="inline-flex rounded-md shadow-sm" role="group">
-          {rangeOptions.map((days: number) => {
-            return (
-              <button
-                key={days}
-                type="button"
-                onClick={() => {
-                  setRangeDays(days);
-                }}
-                className={`border border-gray-200 px-3 py-1.5 text-sm font-medium first:rounded-l-md last:rounded-r-md ${
-                  rangeDays === days
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {days}d
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <SloNoticeBanner sloId={modelId} />
 
-      {error && <ErrorMessage message={error} />}
-
-      {!error && (
-        <Fragment>
-          <Card
-            title="SLI"
-            description="Service Level Indicator over time, with the SLO target as a reference line."
-          >
-            {getChart({
-              points: sliPoints,
-              seriesName: "SLI %",
-              yAxisLegend: "%",
-              yAxisMin: "auto",
-              yAxisMax: 100,
-              formatter: (value: number): string => {
-                return `${Math.round(value * 1000) / 1000}%`;
-              },
-              referenceLines: sliReferenceLines,
-              syncId: syncId,
-            })}
-          </Card>
-
-          <Card
-            title="Error Budget Remaining"
-            description="Percentage of the error budget that remains. Negative values mean the budget is overspent."
-          >
-            {getChart({
-              points: budgetPoints,
-              seriesName: "Budget Remaining %",
-              yAxisLegend: "%",
-              yAxisMin: "auto",
-              yAxisMax: 100,
-              formatter: (value: number): string => {
-                return `${Math.round(value * 100) / 100}%`;
-              },
-              syncId: syncId,
-            })}
-          </Card>
-
-          <Card
-            title="Burn Rate"
-            description="How fast the error budget is being spent. A burn rate of 1 spends the budget exactly over the window."
-          >
-            {getChart({
-              points: burnRatePoints,
-              seriesName: "Burn Rate",
-              yAxisLegend: "×",
-              yAxisMin: 0,
-              yAxisMax: "auto",
-              formatter: (value: number): string => {
-                return `${Math.round(value * 100) / 100}×`;
-              },
-              syncId: syncId,
-            })}
-          </Card>
-        </Fragment>
+      {/*
+       * The error sits ABOVE the cards rather than replacing them: the
+       * range picker lives on the first card, and hiding it on a transient
+       * fetch failure would strand the user — with a fixed custom range
+       * nothing else would ever retrigger the load.
+       */}
+      {error && (
+        <ErrorMessage
+          message={error}
+          onRefreshClick={() => {
+            setRefreshTick((tick: number) => {
+              return tick + 1;
+            });
+          }}
+        />
       )}
+
+      <Card
+        title="SLI"
+        description="Service Level Indicator over time, with the SLO target as a reference line."
+        rightElement={
+          <RangeStartAndEndDateView
+            dashboardStartAndEndDate={timeRange}
+            onChange={(newRange: RangeStartAndEndDateTime) => {
+              setTimeRange(newRange);
+            }}
+          />
+        }
+      >
+        {getChart({
+          points: sliPoints,
+          seriesName: "SLI %",
+          yAxisLegend: "%",
+          yAxisMin: "auto",
+          yAxisMax: 100,
+          formatter: (value: number): string => {
+            return `${Math.round(value * 1000) / 1000}%`;
+          },
+          referenceLines: sliReferenceLines,
+          syncId: syncId,
+        })}
+      </Card>
+
+      <Card
+        title="Error Budget Remaining"
+        description="Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent."
+      >
+        {getChart({
+          points: budgetPoints,
+          seriesName: "Budget Remaining %",
+          yAxisLegend: "%",
+          yAxisMin: "auto",
+          yAxisMax: 100,
+          formatter: (value: number): string => {
+            return `${Math.round(value * 100) / 100}%`;
+          },
+          referenceLines: budgetReferenceLines,
+          syncId: syncId,
+        })}
+      </Card>
+
+      <Card
+        title="Burn Rate"
+        description={`Error-budget burn measured over the trailing ${burnRateWindowText}. A burn rate of 1 spends the budget exactly over the compliance window. Dashed lines are the thresholds of this SLO's enabled burn rate rules.`}
+      >
+        {getChart({
+          points: burnRatePoints,
+          seriesName: "Burn Rate",
+          yAxisLegend: "×",
+          yAxisMin: 0,
+          yAxisMax: "auto",
+          formatter: (value: number): string => {
+            return `${Math.round(value * 100) / 100}×`;
+          },
+          referenceLines: burnRateReferenceLines,
+          syncId: syncId,
+        })}
+      </Card>
     </Fragment>
   );
 };

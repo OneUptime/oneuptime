@@ -2,7 +2,13 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
-import Card from "Common/UI/Components/Card/Card";
+import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import Table from "Common/UI/Components/Table/Table";
+import Column from "Common/UI/Components/Table/Types/Column";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
@@ -11,6 +17,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -33,6 +40,7 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import {
+  COST_ROWS_PER_PAGE,
   CostTrendPoint,
   NamespaceCostRow,
   WorkloadCostRow,
@@ -42,17 +50,18 @@ import {
   fetchNamespaceBreakdown,
   fetchWorkloadBreakdown,
   formatCost,
-  formatEfficiency,
   isSentinelNamespace,
+  pageCostRows,
+  sortCostRows,
 } from "../Utils/KubernetesCostUtils";
-
-const TOP_ROWS_LIMIT: number = 25;
-
-interface StatTile {
-  title: string;
-  value: string;
-  description: string;
-}
+import {
+  getControllerKindElement,
+  getCostElement,
+  getEfficiencyElement,
+  getNamespaceElement,
+  getTotalCostElement,
+  noCostDataMessage,
+} from "../Utils/KubernetesCostTableCells";
 
 function getSectionTitle(icon: IconProp, title: string): ReactElement {
   return (
@@ -65,12 +74,33 @@ function getSectionTitle(icon: IconProp, title: string): ReactElement {
 
 function sentinelDisplayName(namespace: string): string {
   if (namespace === IDLE_NAMESPACE) {
-    return "Idle (unused capacity)";
+    return "Idle capacity";
   }
   if (namespace === UNALLOCATED_NAMESPACE) {
     return "Unallocated";
   }
   return namespace;
+}
+
+/*
+ * The namespace column carries two kinds of row: real namespaces, which get
+ * the same blue pill as everywhere else in the Kubernetes section, and the
+ * engine's non-workload sentinels (idle / unallocated capacity), which are
+ * labelled as such so nobody goes hunting for a namespace called `__idle__`.
+ */
+function getNamespaceCellElement(namespace: string): ReactElement {
+  if (!isSentinelNamespace(namespace)) {
+    return getNamespaceElement(namespace);
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 text-gray-500">
+      <span className="inline-flex rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+        {sentinelDisplayName(namespace)}
+      </span>
+      <span className="text-xs text-gray-400">not a workload</span>
+    </span>
+  );
 }
 
 const KubernetesClusterCosts: FunctionComponent<
@@ -87,6 +117,22 @@ const KubernetesClusterCosts: FunctionComponent<
   );
   const [workloadRows, setWorkloadRows] = useState<Array<WorkloadCostRow>>([]);
 
+  const [namespacePage, setNamespacePage] = useState<number>(1);
+  const [namespaceSortBy, setNamespaceSortBy] = useState<
+    keyof NamespaceCostRow | null
+  >("totalCost");
+  const [namespaceSortOrder, setNamespaceSortOrder] = useState<SortOrder>(
+    SortOrder.Descending,
+  );
+
+  const [workloadPage, setWorkloadPage] = useState<number>(1);
+  const [workloadSortBy, setWorkloadSortBy] = useState<
+    keyof WorkloadCostRow | null
+  >("totalCost");
+  const [workloadSortOrder, setWorkloadSortOrder] = useState<SortOrder>(
+    SortOrder.Descending,
+  );
+
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
     range: TimeRange.PAST_ONE_WEEK,
   });
@@ -96,6 +142,9 @@ const KubernetesClusterCosts: FunctionComponent<
       range: TimeRange.PAST_ONE_WEEK,
     }),
   );
+
+  // Bumped by the tables' Refresh buttons to re-run the load effect.
+  const [refreshToggle, setRefreshToggle] = useState<number>(0);
 
   const handleTimeRangeChange: (
     newTimeRange: RangeStartAndEndDateTime,
@@ -139,6 +188,8 @@ const KubernetesClusterCosts: FunctionComponent<
         setTrend(trendPoints);
         setNamespaceRows(namespaces);
         setWorkloadRows(workloads);
+        setNamespacePage(1);
+        setWorkloadPage(1);
       } catch (err) {
         if (!cancelled) {
           setError(API.getFriendlyMessage(err));
@@ -158,11 +209,7 @@ const KubernetesClusterCosts: FunctionComponent<
     return () => {
       cancelled = true;
     };
-  }, [modelId.toString(), startMs, endMs]);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
+  }, [modelId.toString(), startMs, endMs, refreshToggle]);
 
   const totalSpend: number = namespaceRows.reduce(
     (sum: number, row: NamespaceCostRow): number => {
@@ -178,31 +225,166 @@ const KubernetesClusterCosts: FunctionComponent<
       return sum + row.totalCost;
     }, 0);
   const workloadSpend: number = totalSpend - idleSpend;
-  const idlePercent: string =
-    totalSpend > 0 ? `${Math.round((idleSpend / totalSpend) * 100)}%` : "-";
+  const idlePercent: number | null =
+    totalSpend > 0 ? (idleSpend / totalSpend) * 100 : null;
 
-  const tiles: Array<StatTile> = [
-    {
-      title: "Total Spend",
-      value: formatCost(totalSpend),
-      description: "All cost allocated to this cluster in the window.",
+  const sortedNamespaceRows: Array<NamespaceCostRow> = useMemo(() => {
+    return sortCostRows<NamespaceCostRow>(
+      namespaceRows,
+      namespaceSortBy,
+      namespaceSortOrder,
+    );
+  }, [namespaceRows, namespaceSortBy, namespaceSortOrder]);
+
+  const pagedNamespaceRows: Array<NamespaceCostRow> = useMemo(() => {
+    return pageCostRows<NamespaceCostRow>(sortedNamespaceRows, namespacePage);
+  }, [sortedNamespaceRows, namespacePage]);
+
+  const sortedWorkloadRows: Array<WorkloadCostRow> = useMemo(() => {
+    return sortCostRows<WorkloadCostRow>(
+      workloadRows,
+      workloadSortBy,
+      workloadSortOrder,
+    );
+  }, [workloadRows, workloadSortBy, workloadSortOrder]);
+
+  const pagedWorkloadRows: Array<WorkloadCostRow> = useMemo(() => {
+    return pageCostRows<WorkloadCostRow>(sortedWorkloadRows, workloadPage);
+  }, [sortedWorkloadRows, workloadPage]);
+
+  const namespaceColumns: Array<Column<NamespaceCostRow>> = useMemo(() => {
+    return [
+      {
+        title: "Namespace",
+        type: FieldType.Element,
+        key: "namespace",
+        getElement: (row: NamespaceCostRow): ReactElement => {
+          return getNamespaceCellElement(row.namespace);
+        },
+      },
+      {
+        title: "CPU",
+        type: FieldType.Element,
+        key: "cpuCost",
+        getElement: (row: NamespaceCostRow): ReactElement => {
+          return getCostElement(row.cpuCost);
+        },
+      },
+      {
+        title: "Memory",
+        type: FieldType.Element,
+        key: "ramCost",
+        getElement: (row: NamespaceCostRow): ReactElement => {
+          return getCostElement(row.ramCost);
+        },
+      },
+      {
+        title: "Storage",
+        type: FieldType.Element,
+        key: "pvCost",
+        getElement: (row: NamespaceCostRow): ReactElement => {
+          return getCostElement(row.pvCost);
+        },
+      },
+      {
+        title: "Other",
+        type: FieldType.Element,
+        key: "otherCost",
+        hideOnMobile: true,
+        getElement: (row: NamespaceCostRow): ReactElement => {
+          return getCostElement(row.otherCost);
+        },
+      },
+      {
+        title: "Total",
+        type: FieldType.Element,
+        key: "totalCost",
+        getElement: (row: NamespaceCostRow): ReactElement => {
+          return getTotalCostElement(row.totalCost, totalSpend);
+        },
+      },
+      {
+        title: "Efficiency",
+        type: FieldType.Element,
+        key: "efficiency",
+        getElement: (row: NamespaceCostRow): ReactElement => {
+          // Idle / unallocated capacity has no requests to compare against.
+          if (isSentinelNamespace(row.namespace)) {
+            return <span className="text-gray-400">-</span>;
+          }
+          return getEfficiencyElement(row.efficiency);
+        },
+      },
+    ];
+  }, [totalSpend]);
+
+  const workloadColumns: Array<Column<WorkloadCostRow>> = useMemo(() => {
+    return [
+      {
+        title: "Workload",
+        type: FieldType.Element,
+        key: "controllerName",
+        getElement: (row: WorkloadCostRow): ReactElement => {
+          if (!row.controllerName) {
+            return <span className="text-gray-400">-</span>;
+          }
+          return (
+            <span className="font-medium text-gray-900">
+              {row.controllerName}
+            </span>
+          );
+        },
+      },
+      {
+        title: "Kind",
+        type: FieldType.Element,
+        key: "controllerKind",
+        getElement: (row: WorkloadCostRow): ReactElement => {
+          return getControllerKindElement(row.controllerKind);
+        },
+      },
+      {
+        title: "Namespace",
+        type: FieldType.Element,
+        key: "namespace",
+        getElement: (row: WorkloadCostRow): ReactElement => {
+          return getNamespaceElement(row.namespace);
+        },
+      },
+      {
+        title: "Total",
+        type: FieldType.Element,
+        key: "totalCost",
+        getElement: (row: WorkloadCostRow): ReactElement => {
+          return getTotalCostElement(row.totalCost, workloadSpend);
+        },
+      },
+      {
+        title: "Efficiency",
+        type: FieldType.Element,
+        key: "efficiency",
+        getElement: (row: WorkloadCostRow): ReactElement => {
+          return getEfficiencyElement(row.efficiency);
+        },
+      },
+    ];
+  }, [workloadSpend]);
+
+  const refreshButton: CardButtonSchema = {
+    title: "",
+    buttonStyle: ButtonStyleType.ICON,
+    className: "py-0 pr-0 pl-1 mt-1",
+    onClick: () => {
+      setRefreshToggle((toggle: number) => {
+        return toggle + 1;
+      });
     },
-    {
-      title: "Workload Spend",
-      value: formatCost(workloadSpend),
-      description: "Spend attributed to namespaces and workloads.",
-    },
-    {
-      title: "Idle Spend",
-      value: formatCost(idleSpend),
-      description: "Provisioned but unused capacity.",
-    },
-    {
-      title: "Idle %",
-      value: idlePercent,
-      description: "Idle spend as a share of total spend.",
-    },
-  ];
+    icon: IconProp.Refresh,
+  };
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
 
   const series: Array<SeriesPoint> = [
     {
@@ -234,18 +416,6 @@ const KubernetesClusterCosts: FunctionComponent<
     },
   };
 
-  const emptyState: ReactElement = (
-    <div className="flex h-48 flex-col items-center justify-center gap-2 text-sm text-gray-400">
-      <div>No cost data reported for the selected time range.</div>
-      <div>
-        Cost data is shipped by the OneUptime Kubernetes agent — enable it with{" "}
-        <code>cost.enabled=true</code> in the kubernetes-agent Helm chart. That
-        alone is a complete install; if you already run OpenCost or Kubecost,
-        set <code>cost.engine.url</code> to it instead.
-      </div>
-    </div>
-  );
-
   return (
     <Fragment>
       <EmbeddedMetricCard
@@ -256,23 +426,41 @@ const KubernetesClusterCosts: FunctionComponent<
         startAndEndDate={startAndEndDate}
       >
         <div>
-          <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {tiles.map((tile: StatTile, index: number): ReactElement => {
-              return (
-                <div
-                  key={index}
-                  className="rounded-md border border-gray-200 p-4"
-                  title={tile.description}
-                >
-                  <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                    {tile.title}
-                  </div>
-                  <div className="mt-1 text-2xl font-semibold text-gray-900">
-                    {isLoading ? "..." : tile.value}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <GoldenMetricTile
+              title="Total Spend"
+              icon={IconProp.CurrencyDollar}
+              iconColor="emerald"
+              value={isLoading ? "—" : formatCost(totalSpend)}
+              sublabel="allocated in this window"
+            />
+            <GoldenMetricTile
+              title="Workload Spend"
+              icon={IconProp.Cube}
+              iconColor="blue"
+              value={isLoading ? "—" : formatCost(workloadSpend)}
+              sublabel="namespaces and workloads"
+            />
+            <GoldenMetricTile
+              title="Idle Spend"
+              icon={IconProp.Clock}
+              iconColor="amber"
+              value={isLoading ? "—" : formatCost(idleSpend)}
+              sublabel="provisioned but unused"
+            />
+            <GoldenMetricTile
+              title="Idle %"
+              icon={IconProp.ChartPie}
+              iconColor="slate"
+              value={
+                isLoading || idlePercent === null
+                  ? "—"
+                  : `${Math.round(idlePercent)}%`
+              }
+              sublabel="share of total spend"
+              percent={isLoading ? null : idlePercent}
+              thresholds={{ warn: 25, danger: 40 }}
+            />
           </div>
           {isLoading ? (
             <div className="h-48 animate-pulse rounded-md bg-gray-50" />
@@ -288,7 +476,7 @@ const KubernetesClusterCosts: FunctionComponent<
               syncid={`k8s-costs-${modelId.toString()}`}
             />
           ) : (
-            emptyState
+            <ErrorMessage message={noCostDataMessage} />
           )}
         </div>
       </EmbeddedMetricCard>
@@ -296,129 +484,67 @@ const KubernetesClusterCosts: FunctionComponent<
       <Card
         title="Spend by Namespace"
         description="Whole-window cost per namespace with cpu / memory / storage split and request-vs-usage efficiency."
+        buttons={[refreshButton]}
       >
-        {isLoading ? (
-          <div className="h-32 animate-pulse rounded-md bg-gray-50" />
-        ) : namespaceRows.length === 0 ? (
-          emptyState
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="py-2 pr-4">Namespace</th>
-                  <th className="py-2 pr-4 text-right">CPU</th>
-                  <th className="py-2 pr-4 text-right">Memory</th>
-                  <th className="py-2 pr-4 text-right">Storage</th>
-                  <th className="py-2 pr-4 text-right">Other</th>
-                  <th className="py-2 pr-4 text-right">Total</th>
-                  <th className="py-2 text-right">Efficiency</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {namespaceRows
-                  .slice(0, TOP_ROWS_LIMIT)
-                  .map((row: NamespaceCostRow, index: number): ReactElement => {
-                    const isSentinel: boolean = isSentinelNamespace(
-                      row.namespace,
-                    );
-                    return (
-                      <tr
-                        key={index}
-                        className={isSentinel ? "text-gray-500" : ""}
-                      >
-                        <td className="py-2 pr-4 font-medium">
-                          {sentinelDisplayName(row.namespace) || "-"}
-                        </td>
-                        <td className="py-2 pr-4 text-right">
-                          {formatCost(row.cpuCost)}
-                        </td>
-                        <td className="py-2 pr-4 text-right">
-                          {formatCost(row.ramCost)}
-                        </td>
-                        <td className="py-2 pr-4 text-right">
-                          {formatCost(row.pvCost)}
-                        </td>
-                        <td className="py-2 pr-4 text-right">
-                          {formatCost(row.otherCost)}
-                        </td>
-                        <td className="py-2 pr-4 text-right font-semibold">
-                          {formatCost(row.totalCost)}
-                        </td>
-                        <td className="py-2 text-right">
-                          {isSentinel ? "-" : formatEfficiency(row.efficiency)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-            {namespaceRows.length > TOP_ROWS_LIMIT ? (
-              <div className="mt-2 text-xs text-gray-400">
-                Showing top {TOP_ROWS_LIMIT} of {namespaceRows.length}{" "}
-                namespaces by spend.
-              </div>
-            ) : (
-              <></>
-            )}
-          </div>
-        )}
+        <Table<NamespaceCostRow>
+          id="kubernetes-namespace-costs-table"
+          columns={namespaceColumns}
+          data={pagedNamespaceRows}
+          singularLabel="Namespace"
+          pluralLabel="Namespaces"
+          isLoading={isLoading}
+          error=""
+          currentPageNumber={namespacePage}
+          totalItemsCount={sortedNamespaceRows.length}
+          itemsOnPage={COST_ROWS_PER_PAGE}
+          onNavigateToPage={(pageNumber: number) => {
+            setNamespacePage(pageNumber);
+          }}
+          sortBy={namespaceSortBy}
+          sortOrder={namespaceSortOrder}
+          onSortChanged={(
+            newSortBy: keyof NamespaceCostRow | null,
+            newSortOrder: SortOrder,
+          ) => {
+            setNamespaceSortBy(newSortBy);
+            setNamespaceSortOrder(newSortOrder);
+            setNamespacePage(1);
+          }}
+          noItemsMessage={noCostDataMessage}
+        />
       </Card>
 
       <Card
         title="Spend by Workload"
         description="Whole-window cost per workload (controller), highest spend first. Idle capacity is excluded."
+        buttons={[refreshButton]}
       >
-        {isLoading ? (
-          <div className="h-32 animate-pulse rounded-md bg-gray-50" />
-        ) : workloadRows.length === 0 ? (
-          emptyState
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="py-2 pr-4">Workload</th>
-                  <th className="py-2 pr-4">Kind</th>
-                  <th className="py-2 pr-4">Namespace</th>
-                  <th className="py-2 pr-4 text-right">Total</th>
-                  <th className="py-2 text-right">Efficiency</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {workloadRows
-                  .slice(0, TOP_ROWS_LIMIT)
-                  .map((row: WorkloadCostRow, index: number): ReactElement => {
-                    return (
-                      <tr key={index}>
-                        <td className="py-2 pr-4 font-medium">
-                          {row.controllerName || "-"}
-                        </td>
-                        <td className="py-2 pr-4">
-                          {row.controllerKind || "-"}
-                        </td>
-                        <td className="py-2 pr-4">{row.namespace || "-"}</td>
-                        <td className="py-2 pr-4 text-right font-semibold">
-                          {formatCost(row.totalCost)}
-                        </td>
-                        <td className="py-2 text-right">
-                          {formatEfficiency(row.efficiency)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-            {workloadRows.length > TOP_ROWS_LIMIT ? (
-              <div className="mt-2 text-xs text-gray-400">
-                Showing top {TOP_ROWS_LIMIT} of {workloadRows.length} workloads
-                by spend.
-              </div>
-            ) : (
-              <></>
-            )}
-          </div>
-        )}
+        <Table<WorkloadCostRow>
+          id="kubernetes-workload-costs-table"
+          columns={workloadColumns}
+          data={pagedWorkloadRows}
+          singularLabel="Workload"
+          pluralLabel="Workloads"
+          isLoading={isLoading}
+          error=""
+          currentPageNumber={workloadPage}
+          totalItemsCount={sortedWorkloadRows.length}
+          itemsOnPage={COST_ROWS_PER_PAGE}
+          onNavigateToPage={(pageNumber: number) => {
+            setWorkloadPage(pageNumber);
+          }}
+          sortBy={workloadSortBy}
+          sortOrder={workloadSortOrder}
+          onSortChanged={(
+            newSortBy: keyof WorkloadCostRow | null,
+            newSortOrder: SortOrder,
+          ) => {
+            setWorkloadSortBy(newSortBy);
+            setWorkloadSortOrder(newSortOrder);
+            setWorkloadPage(1);
+          }}
+          noItemsMessage={noCostDataMessage}
+        />
       </Card>
     </Fragment>
   );

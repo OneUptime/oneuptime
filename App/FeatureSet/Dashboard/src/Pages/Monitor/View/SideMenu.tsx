@@ -68,6 +68,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     icon: IconProp.List,
   });
 
+  overviewItems.push({
+    link: {
+      title: "SLOs",
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MONITOR_VIEW_SLOS] as Route,
+        { modelId: props.modelId },
+      ),
+    },
+    icon: IconProp.Gauge,
+  });
+
   // Activity section items
   const activityItems: SideMenuItemProps[] = [
     {

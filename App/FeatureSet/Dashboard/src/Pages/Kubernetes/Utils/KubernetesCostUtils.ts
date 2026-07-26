@@ -9,6 +9,7 @@ import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import GroupBy from "Common/Server/Types/Database/GroupBy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GenericObject from "Common/Types/GenericObject";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 
@@ -58,6 +59,8 @@ export interface WorkloadCostRow {
 export interface ClusterCostRow {
   clusterName: string;
   totalCost: number;
+  /** Total minus idle — spend that actually landed on a workload. */
+  workloadCost: number;
   idleCost: number;
   efficiency: number | null;
 }
@@ -91,6 +94,61 @@ export const formatEfficiency: (value: number | null) => string = (
   }
   return `${Math.round(value * 100)}%`;
 };
+
+/** Rows per page in the cost breakdown tables. */
+export const COST_ROWS_PER_PAGE: number = 25;
+
+/*
+ * Client-side sort for the cost breakdown tables. Every breakdown is
+ * fetched whole-window in a single aggregate, so sorting and paging both
+ * happen in the browser. Numbers compare numerically, everything else as
+ * text, and unknown values (null efficiency) sink to the bottom whichever
+ * way the column is sorted.
+ */
+export function sortCostRows<T extends GenericObject>(
+  rows: Array<T>,
+  sortBy: keyof T | null,
+  sortOrder: SortOrder,
+): Array<T> {
+  if (!sortBy) {
+    return rows;
+  }
+
+  const sorted: Array<T> = [...rows];
+
+  sorted.sort((a: T, b: T): number => {
+    const aValue: unknown = a[sortBy];
+    const bValue: unknown = b[sortBy];
+
+    const isAUnknown: boolean = aValue === null || aValue === undefined;
+    const isBUnknown: boolean = bValue === null || bValue === undefined;
+
+    if (isAUnknown || isBUnknown) {
+      if (isAUnknown && isBUnknown) {
+        return 0;
+      }
+      return isAUnknown ? 1 : -1;
+    }
+
+    const comparison: number =
+      typeof aValue === "number" && typeof bValue === "number"
+        ? aValue - bValue
+        : String(aValue).localeCompare(String(bValue));
+
+    return sortOrder === SortOrder.Descending ? -comparison : comparison;
+  });
+
+  return sorted;
+}
+
+/** Page slice for a client-side paginated cost table (1-indexed page). */
+export function pageCostRows<T extends GenericObject>(
+  rows: Array<T>,
+  pageNumber: number,
+): Array<T> {
+  const start: number = (pageNumber - 1) * COST_ROWS_PER_PAGE;
+  return rows.slice(start, start + COST_ROWS_PER_PAGE);
+}
 
 type BuildAggregateBy = (data: {
   params: FetchCostParams;
@@ -415,10 +473,12 @@ export const fetchClusterBreakdown: (params: {
 
   const rows: Array<ClusterCostRow> = [];
   for (const [clusterName, totalCost] of totals) {
+    const idleCost: number = idle.get(clusterName) || 0;
     rows.push({
       clusterName,
       totalCost,
-      idleCost: idle.get(clusterName) || 0,
+      workloadCost: Math.max(0, totalCost - idleCost),
+      idleCost,
       efficiency: efficiencies.has(clusterName)
         ? efficiencies.get(clusterName)!
         : null,
