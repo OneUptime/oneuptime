@@ -10,6 +10,7 @@ import { JSONObject, JSONValue } from "../../Types/JSON";
 import Name from "../../Types/Name";
 import ObjectID from "../../Types/ObjectID";
 import Timezone from "../../Types/Timezone";
+import OneUptimeDate from "../../Types/Date";
 import API from "../Utils/API/API";
 import Cookie from "./Cookie";
 import CookieName from "../../Types/CookieName";
@@ -62,6 +63,22 @@ export default class UserUtil {
 
   public static setSavedUserTimezone(timezone: Timezone): void {
     LocalStorage.setItem("user_timezone", timezone);
+    OneUptimeDate.setUserTimezone(timezone);
+  }
+
+  /**
+   * Hand the timezone the user picked in User Settings to OneUptimeDate so
+   * every date the UI renders and every date the user types is resolved in
+   * that zone instead of whatever zone the browser reports. Call this once at
+   * app startup, before anything renders.
+   */
+  public static initializeUserTimezone(): void {
+    try {
+      OneUptimeDate.setUserTimezone(this.getSavedUserTimezone() || null);
+    } catch (err) {
+      // A missing / unreadable local storage must not stop the app from booting.
+      Logger.error(err as Error);
+    }
   }
 
   public static getDismissedTimezonePrompt(): Timezone | null {
@@ -199,6 +216,8 @@ export default class UserUtil {
     LocalStorage.clear();
     SessionStorage.clear();
     Cookie.clearAllCookies();
+    // The next user on this browser must not inherit this user's timezone.
+    OneUptimeDate.setUserTimezone(null);
 
     API.post({
       url: URL.fromString(IDENTITY_URL.toString()).addRoute("/logout"),

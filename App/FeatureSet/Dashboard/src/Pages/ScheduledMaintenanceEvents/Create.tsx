@@ -53,7 +53,6 @@ import FetchUsers from "../../Components/User/FetchUsers";
 import User from "Common/Models/DatabaseModels/User";
 import FetchLabels from "../../Components/Label/FetchLabels";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
-import OneUptimeDate from "Common/Types/Date";
 
 const ScheduledMaintenanceCreate: FunctionComponent<
   PageComponentProps
@@ -317,10 +316,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   title: "Event Starts At",
                   stepId: "event-time",
-                  description:
-                    "Shown in your local timezone (" +
-                    OneUptimeDate.getCurrentTimezoneString() +
-                    ").",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
@@ -331,10 +326,6 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   title: "Ends At",
                   stepId: "event-time",
-                  description:
-                    "Shown in your local timezone (" +
-                    OneUptimeDate.getCurrentTimezoneString() +
-                    ").",
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",

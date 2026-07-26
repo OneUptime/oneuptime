@@ -89,6 +89,17 @@ jest.mock("../../../../Types/Date", () => {
           return base;
         },
       ),
+      /*
+       * The picker reads the wall-clock through OneUptimeDate so it resolves in
+       * the user's configured timezone; the stubbed dates above already carry
+       * the hour/minute the test intends.
+       */
+      getLocalHours: jest.fn((d: HourMinuteMock) => {
+        return d.getHours();
+      }),
+      getLocalMinutes: jest.fn((d: HourMinuteMock) => {
+        return d.getMinutes();
+      }),
       getCurrentTimezoneString: jest.fn(() => {
         return "UTC";
       }),
