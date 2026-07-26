@@ -32,6 +32,12 @@ Each burn rate rule measures the burn over two lookback windows and fires only w
 
 This is the multi-window, multi-burn-rate pattern from the Google SRE Workbook, and it is the default OneUptime sets up for you.
 
+## When a rule starts working
+
+A rule cannot fire until the SLO has at least a full long window of monitoring history behind it — otherwise a monitor's very first bad check, with only minutes of history to divide by, would compute an enormous burn rate and page someone. In practice that means a freshly created SLO cannot fire its **Fast burn** rule for its first hour, or its **Slow burn** rule for its first six.
+
+The same rule works in reverse: if an SLO stops having enough history to evaluate a rule's long window, any alert that rule has open is auto-resolved rather than left hanging.
+
 ## Default rules
 
 Every SLO gets two burn rate rules seeded automatically. For a 30-day window:
@@ -72,11 +78,9 @@ Only one alert per rule is open at a time: while a burn alert is unresolved, the
 
 ## Low traffic and minimum sample count
 
-For event-based (metric) SLIs, burn rate is computed from good/total event counts — and at low traffic the math gets silly: one failed request out of two, against a 99.9% target, is a burn rate of 500.
+OneUptime measures SLIs from monitor uptime today, which is a time-based signal: every second in the window is a sample, so there is no low-traffic case to guard against and no minimum sample count to configure.
 
-Each rule therefore has a **minimum sample count**: if the long window contains fewer total events than the minimum, the rule is skipped for that evaluation. Set it to roughly the traffic level below which a failure rate stops being statistically meaningful for you.
-
-Time-based SLOs (monitor uptime) always have a full signal — every second is a sample — so the minimum sample count does not apply to them.
+The setting becomes relevant with event-based (metric) SLIs, which are not available yet. There, burn rate is computed from good/total event counts, and at low traffic the math gets silly: one failed request out of two, against a 99.9% target, is a burn rate of 500. A minimum sample count will let a rule skip evaluations whose long window contains too few events to mean anything.
 
 ## Scheduled maintenance
 
@@ -93,7 +97,6 @@ While any monitor attached to the SLO is in an active scheduled maintenance wind
    - **Long window** and **short window** (in minutes)
    - **Alert severity** — the severity of the alert this rule creates
    - **On-call duty policies** — who gets paged
-   - **Minimum sample count** — for event-based SLIs on low traffic
    - **Re-fire suppression** (in minutes) — quiet period after a resolve
 
 A good starting point is to keep the two seeded rules, route the fast-burn rule to your paging on-call policy at a high severity, and let the slow-burn rule create a lower-severity alert for working-hours follow-up.

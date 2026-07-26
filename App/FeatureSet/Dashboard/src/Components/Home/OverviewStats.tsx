@@ -17,6 +17,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -46,6 +48,7 @@ interface StatCounts {
   activeAlerts: number;
   inoperationalMonitors: number;
   ongoingMaintenance: number;
+  slosNeedingAttention: number;
 }
 
 const OverviewStats: FunctionComponent<ComponentProps> = (
@@ -72,7 +75,8 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
         activeAlerts,
         inoperationalMonitors,
         ongoingMaintenance,
-      ]: [number, number, number, number] = await Promise.all([
+        slosNeedingAttention,
+      ]: [number, number, number, number, number] = await Promise.all([
         unresolvedIncidentStates.length > 0
           ? ModelAPI.count<Incident>({
               modelType: Incident,
@@ -117,6 +121,24 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
             },
           },
         }),
+        /*
+         * At Risk and Budget Exhausted are the two statuses that mean a
+         * reliability target is in trouble. Misconfigured and Paused are
+         * deliberately excluded: they are a setup problem, not a burning
+         * budget, and mixing them in would make the tile impossible to
+         * act on.
+         */
+        ModelAPI.count<ServiceLevelObjective>({
+          modelType: ServiceLevelObjective,
+          query: {
+            projectId: props.projectId,
+            isEnabled: true,
+            sloStatus: new Includes([
+              SloStatus.AtRisk,
+              SloStatus.BudgetExhausted,
+            ]),
+          },
+        }),
       ]);
 
       setCounts({
@@ -124,6 +146,7 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
         activeAlerts,
         inoperationalMonitors,
         ongoingMaintenance,
+        slosNeedingAttention,
       });
       setHasError(false);
     } catch {
@@ -185,12 +208,22 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
       attentionIcon: IconProp.Clock,
       allClearLabel: "None ongoing",
     },
+    {
+      key: "slos-needing-attention",
+      label: "SLOs at risk",
+      pageMap: PageMap.SLOS,
+      count: counts?.slosNeedingAttention || 0,
+      attentionLabel: "Budget burning",
+      attentionClassName: "text-amber-600",
+      attentionIcon: IconProp.Gauge,
+      allClearLabel: "Budgets healthy",
+    },
   ];
 
   return (
     <div
       data-testid="home-overview-stats"
-      className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"
     >
       {tiles.map((tile: StatTile) => {
         const needsAttention: boolean = tile.count > 0;

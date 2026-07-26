@@ -48,9 +48,29 @@ const SloViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Alert}
         />
+        <SideMenuItem
+          link={{
+            title: "Alerts",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_ALERTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ExclaimationCircle}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Manage">
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SLO_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
+        />
         <SideMenuItem
           link={{
             title: "Owners",

@@ -53,12 +53,17 @@ const manualMonitorRecipe: MonitorTypeRecipe = {
 const uuidPattern: string =
   "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
-// Every value of SloStatus — the pill shows one of these, never a number.
+/*
+ * Every value of SloStatus, plus the two pills the UI adds on top of it:
+ * "Unknown" for an SLO the worker has not evaluated yet (the usual state
+ * for a seconds-old SLO) and "Disabled" for one that is switched off.
+ * The pill shows one of these, never a number.
+ */
 const sloStatusRegex: RegExp =
-  /Healthy|At Risk|Budget Exhausted|Misconfigured|Paused/;
+  /Healthy|At Risk|Budget Exhausted|Misconfigured|Paused|Unknown|Disabled/;
 
-// The empty state SloCharts renders when no SloHistory rows exist yet.
-const noChartHistoryText: string = "No history yet";
+// The empty state SloCharts renders when no SloHistory rows exist in range.
+const noChartHistoryText: string = "No history in this range";
 
 type ProjectUrlFunction = (data: { projectId: string; path: string }) => string;
 
@@ -221,14 +226,13 @@ test.describe("SLOs", () => {
     await form.getByLabel("Description").fill(ctx.sloDescription);
     await form.getByLabel("Target (%)").fill("99.9");
 
-    const windowDropdown: Locator = form.getByRole("combobox", {
-      name: "Window (Days)",
-    });
-    await windowDropdown.click();
-    await page
-      .getByRole("option", { name: "30 days", exact: true })
-      .first()
-      .click();
+    /*
+     * Window (Days) is a free number field (the column accepts 1-366), and
+     * it is prefilled with the model default of 30 — set it explicitly
+     * anyway so the row assertion below is not asserting a default that
+     * could quietly change.
+     */
+    await form.getByLabel("Window (Days)").fill("30");
 
     await page.getByTestId("modal-footer-submit-button").click();
     await modal.waitFor({ state: "hidden", timeout: 90000 });
@@ -302,6 +306,8 @@ test.describe("SLOs", () => {
       "Overview",
       "Charts",
       "Burn Rate Rules",
+      "Alerts",
+      "Audit Logs",
       "Owners",
       "Delete SLO",
     ]) {
@@ -347,6 +353,49 @@ test.describe("SLOs", () => {
     await expect(slowBurnRow).toBeVisible({ timeout: 30000 });
     await expect(slowBurnRow).toContainText(/360m\s*\/\s*30m/);
     await expect(slowBurnRow).toContainText("Enabled");
+
+    /*
+     * The seeded rules have no explicit suppression, so the table shows the
+     * worker's own fallback (the long window) rather than a blank that would
+     * read as "no suppression at all".
+     */
+    await expect(fastBurnRow).toContainText("Suppress 60m after resolve");
+    await expect(slowBurnRow).toContainText("Suppress 360m after resolve");
+
+    /*
+     * lastAlertCreatedAt is null on a seeded rule, so both rules must say so
+     * rather than rendering an empty cell that could be read as "firing".
+     */
+    await expect(fastBurnRow).toContainText("Never fired");
+    await expect(slowBurnRow).toContainText("Never fired");
+
+    // Neither seeded rule is attached to an on-call policy.
+    await expect(fastBurnRow).toContainText("No escalation");
+  });
+
+  test("should render the alerts tab with no burn rate alerts yet", async () => {
+    test.setTimeout(120000);
+    const page: Page = ctx.page;
+
+    /*
+     * The tab queries Alerts by the fingerprint the worker stamps
+     * (`slo:<sloId>:burn-rule:<ruleId>`), so an SLO that has never burnt
+     * budget must render the empty state rather than the project's whole
+     * alert list — which is exactly what a broken query would show.
+     */
+    await gotoProjectPage({
+      page,
+      projectId: ctx.projectId,
+      url: projectUrl({
+        projectId: ctx.projectId,
+        path: `/slos/${ctx.sloId}/alerts`,
+      }),
+      ready: page.getByRole("heading", { name: "Alerts" }),
+    });
+
+    await expect(
+      page.getByText(/has not raised any alerts/i).first(),
+    ).toBeVisible({ timeout: 60000 });
   });
 
   test("should render the charts tab", async () => {
@@ -380,12 +429,13 @@ test.describe("SLOs", () => {
       page.getByRole("heading", { name: "Burn Rate", exact: true }),
     ).toBeVisible();
 
-    // Range switcher.
-    for (const range of ["7d", "30d", "90d"]) {
-      await expect(
-        page.getByRole("button", { name: range, exact: true }),
-      ).toBeVisible({ timeout: 30000 });
-    }
+    /*
+     * The range switcher is the shared RangeStartAndEndDateView, which renders
+     * the currently selected range as its trigger. The default is Past 1 Month.
+     */
+    await expect(page.getByText("Past 1 Month").first()).toBeVisible({
+      timeout: 30000,
+    });
 
     /*
      * Either the chart or its empty state is acceptable: a seconds-old SLO
@@ -501,9 +551,9 @@ test.describe("SLOs", () => {
      * Wait for the table to render its empty state before asserting the row is
      * gone, so a still-loading table cannot make this pass vacuously.
      */
-    await expect(
-      page.getByText(/No service level objective/i).first(),
-    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByText(/No SLOs yet/i).first()).toBeVisible({
+      timeout: 60000,
+    });
     await expect(page.getByText(ctx.sloName)).toHaveCount(0);
   });
 });

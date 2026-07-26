@@ -650,8 +650,15 @@ export class Service extends DatabaseService<Model> {
   private validateWindowDays(value: unknown): number {
     const windowDays: number = this.normalizeNumericInput(value);
 
-    if (!Number.isFinite(windowDays) || windowDays < 1 || windowDays > 366) {
-      throw new BadDataException("SLO window must be between 1 and 366 days.");
+    /*
+     * The column is a Postgres integer, so a decimal that cleared only the
+     * range check would fail the INSERT with a raw driver error instead of
+     * this message.
+     */
+    if (!Number.isInteger(windowDays) || windowDays < 1 || windowDays > 366) {
+      throw new BadDataException(
+        "SLO window must be a whole number of days between 1 and 366.",
+      );
     }
 
     return windowDays;
@@ -660,13 +667,14 @@ export class Service extends DatabaseService<Model> {
   private validateAtRiskThresholdPercentage(value: unknown): number {
     const atRiskThresholdPercentage: number = this.normalizeNumericInput(value);
 
+    // Integer column — see validateWindowDays.
     if (
-      !Number.isFinite(atRiskThresholdPercentage) ||
+      !Number.isInteger(atRiskThresholdPercentage) ||
       atRiskThresholdPercentage < 0 ||
       atRiskThresholdPercentage > 100
     ) {
       throw new BadDataException(
-        "SLO at-risk threshold must be a percentage between 0 and 100.",
+        "SLO at-risk threshold must be a whole percentage between 0 and 100.",
       );
     }
 

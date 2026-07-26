@@ -12,6 +12,7 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
@@ -72,6 +73,14 @@ const decimalTransformer: ValueTransformer = {
  * an owner of the SLO they just created).
  */
 @OperationalResource()
+/*
+ * An SLO's target, window and monitor set are the definition of what
+ * "reliable enough" means for a service, so a change to any of them
+ * silently rewrites history: budgets recompute against the new
+ * definition on the worker's next tick. Recording those edits is how a
+ * team answers "did the SLO get better, or did someone move the target?".
+ */
+@EnableAuditLog()
 @EnableDocumentation()
 @AccessControlColumn("labels")
 @TenantColumn("projectId")
