@@ -51,15 +51,55 @@ const ModelDetail: <TBaseModel extends BaseModel>(
     JSONObject | undefined
   >(undefined);
 
+  type HasPermissionToReadFieldFunction = (fieldName: string) => boolean;
+
+  /*
+   * The server rejects the WHOLE get-item request when the select names a
+   * single column the caller cannot read (SelectPermission.checkSelectPermission
+   * throws NotAuthorizedException), which blanks the entire card instead of
+   * hiding one row. setDetailFields() below already drops unreadable fields
+   * from the render, so the fetch has to drop them too - the same thing
+   * BaseModelTable does for its selectMoreFields.
+   */
+  const hasPermissionToReadField: HasPermissionToReadFieldFunction = (
+    fieldName: string,
+  ): boolean => {
+    if (User.isMasterAdmin()) {
+      return true;
+    }
+
+    const accessControl: Dictionary<ColumnAccessControl> =
+      new props.modelType().getColumnAccessControlForAllColumns() || {};
+
+    const fieldPermissions: Array<Permission> =
+      accessControl[fieldName]?.read || [];
+
+    return PermissionHelper.doesPermissionsIntersect(
+      PermissionUtil.getAllPermissions(),
+      fieldPermissions,
+    );
+  };
+
   type GetSelectFields = () => Select<TBaseModel>;
 
   const getSelectFields: GetSelectFields = (): Select<TBaseModel> => {
     const select: Select<TBaseModel> = {};
+
+    /*
+     * _id is never a declared field on most cards, but CardModelDetail needs
+     * it to know which record its edit modal is updating. It is exempt from
+     * select permission checks server-side, so it is always safe to ask for.
+     */
+    (select as Dictionary<boolean>)["_id"] = true;
+
     for (const field of props.fields) {
       if (!field.field) {
         continue;
       }
       for (const key of Object.keys(field.field)) {
+        if (!hasPermissionToReadField(key)) {
+          continue;
+        }
         select[key as keyof TBaseModel] = true;
       }
     }
@@ -70,7 +110,8 @@ const ModelDetail: <TBaseModel extends BaseModel>(
         typeof field === "string" &&
         field &&
         props.selectMoreFields &&
-        (props.selectMoreFields as Select<TBaseModel>)[keyofField]
+        (props.selectMoreFields as Select<TBaseModel>)[keyofField] &&
+        hasPermissionToReadField(field)
       ) {
         select[keyofField] = props.selectMoreFields[keyofField] as JSONObject;
       }
@@ -91,6 +132,10 @@ const ModelDetail: <TBaseModel extends BaseModel>(
           continue;
         }
         for (const key of Object.keys(field.field)) {
+          if (!hasPermissionToReadField(key)) {
+            continue;
+          }
+
           if (model.isFileColumn(key)) {
             (relationSelect as JSONObject)[key] = {
               file: true,

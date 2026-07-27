@@ -2015,10 +2015,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return await this._updateBy(updateBy);
   }
 
+  /*
+   * Returns how many rows the update actually matched. Callers that need to
+   * tell "saved" apart from "matched nothing" must check it: the permission
+   * layer narrows the query after the caller builds it (tenant scope, access
+   * control labels, owned scope), so an update can legitimately reach here
+   * and write nothing at all.
+   */
   @CaptureSpan()
   public async updateOneById(
     updateById: UpdateByID<TBaseModel>,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!updateById.id) {
       throw new BadDataException("updateById.id is required");
     }
@@ -2048,7 +2055,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       props: updateById.props,
     });
 
-    await this.updateOneBy({
+    return await this.updateOneBy({
       query: {
         _id: updateById.id.toString() as any,
       },

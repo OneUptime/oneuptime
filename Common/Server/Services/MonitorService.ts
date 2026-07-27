@@ -30,7 +30,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../Types/Monitor/MonitorType";
@@ -705,6 +705,34 @@ ${createdItem.description?.trim() || "No description provided."}
       feedInfoInMarkdown += `\n\n`;
     }
 
+    /*
+     * Probes are attached inline rather than on the detached chain below: the
+     * create form redirects straight to the monitor, and a monitor that shows
+     * no probes for a second or two reads as "the probe was never assigned".
+     * Failures are logged, never thrown - a probe problem must not fail the
+     * monitor create.
+     */
+    if (
+      createdItem.monitorType &&
+      MonitorTypeHelper.isProbableMonitor(createdItem.monitorType)
+    ) {
+      try {
+        await this.addProbesToMonitor({
+          projectId: createdItem.projectId,
+          monitorId: createdItem.id,
+          selectedProbeIds: this.getSelectedProbeIdsFromMiscDataProps(
+            onCreate.createBy.miscDataProps,
+          ),
+        });
+      } catch (error) {
+        logger.error("Add probes failed in MonitorService.onCreateSuccess", {
+          projectId: createdItem.projectId?.toString(),
+          monitorId: createdItem.id?.toString(),
+        } as LogAttributes);
+        logger.error(error as Error);
+      }
+    }
+
     // Execute operations sequentially with error handling (workspace first)
     Promise.resolve()
       .then(async () => {
@@ -742,30 +770,6 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Change monitor status failed in MonitorService.onCreateSuccess",
-            {
-              projectId: createdItem.projectId?.toString(),
-              monitorId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-          logger.error(error as Error);
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        try {
-          if (
-            createdItem.monitorType &&
-            MonitorTypeHelper.isProbableMonitor(createdItem.monitorType)
-          ) {
-            return await this.addDefaultProbesToMonitor(
-              createdItem.projectId!,
-              createdItem.id!,
-            );
-          }
-          return Promise.resolve();
-        } catch (error) {
-          logger.error(
-            "Add default probes failed in MonitorService.onCreateSuccess",
             {
               projectId: createdItem.projectId?.toString(),
               monitorId: createdItem.id?.toString(),
@@ -1069,6 +1073,134 @@ ${createdItem.description?.trim() || "No description provided."}
     }
   }
 
+  /*
+   * The monitor create form sends the probes the user picked through
+   * miscDataProps (the same side channel the owner fields use). They arrive as
+   * plain strings because miscDataProps is not run through the model
+   * serializer, so normalise before anything else touches them.
+   */
+  public getSelectedProbeIdsFromMiscDataProps(
+    miscDataProps: JSONObject | undefined,
+  ): Array<ObjectID> | undefined {
+    const rawProbeIds: JSONValue | undefined = miscDataProps?.["probes"];
+
+    if (!Array.isArray(rawProbeIds)) {
+      // Nothing was sent (API clients, templates) - fall back to the defaults.
+      return undefined;
+    }
+
+    const probeIds: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const rawProbeId of rawProbeIds) {
+      if (!rawProbeId) {
+        continue;
+      }
+
+      const probeId: string =
+        rawProbeId instanceof ObjectID
+          ? rawProbeId.toString()
+          : String(rawProbeId);
+
+      if (!probeId || seen.has(probeId)) {
+        continue;
+      }
+
+      seen.add(probeId);
+      probeIds.push(new ObjectID(probeId));
+    }
+
+    return probeIds;
+  }
+
+  /*
+   * Attaches the probes the user explicitly selected at create time, or the
+   * project's auto-enable defaults when no selection was made. An explicit but
+   * empty selection means "no probes" and is honoured as such.
+   */
+  @CaptureSpan()
+  public async addProbesToMonitor(data: {
+    projectId: ObjectID | undefined;
+    monitorId: ObjectID | undefined | null;
+    selectedProbeIds: Array<ObjectID> | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!data.monitorId) {
+      throw new BadDataException("monitorId is required");
+    }
+
+    if (data.selectedProbeIds === undefined) {
+      return await this.addDefaultProbesToMonitor(
+        data.projectId,
+        data.monitorId,
+      );
+    }
+
+    return await this.addSelectedProbesToMonitor(
+      data.projectId,
+      data.monitorId,
+      data.selectedProbeIds,
+    );
+  }
+
+  /*
+   * Only global probes and probes belonging to this project may be attached -
+   * the id list comes from the browser, so it cannot be trusted to stay inside
+   * the tenant.
+   */
+  @CaptureSpan()
+  public async addSelectedProbesToMonitor(
+    projectId: ObjectID,
+    monitorId: ObjectID,
+    probeIds: Array<ObjectID>,
+  ): Promise<void> {
+    if (probeIds.length === 0) {
+      return;
+    }
+
+    const [globalProbes, projectProbes]: [Array<Probe>, Array<Probe>] =
+      await Promise.all([
+        ProbeService.findBy({
+          query: {
+            _id: QueryHelper.any(probeIds),
+            isGlobalProbe: true,
+          },
+          select: {
+            _id: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        }),
+        ProbeService.findBy({
+          query: {
+            _id: QueryHelper.any(probeIds),
+            isGlobalProbe: false,
+            projectId: projectId,
+          },
+          select: {
+            _id: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        }),
+      ]);
+
+    await this.createMonitorProbes({
+      projectId: projectId,
+      monitorId: monitorId,
+      probes: [...globalProbes, ...projectProbes],
+    });
+  }
+
   @CaptureSpan()
   public async addDefaultProbesToMonitor(
     projectId: ObjectID,
@@ -1124,20 +1256,31 @@ ${createdItem.description?.trim() || "No description provided."}
       },
     });
 
-    const totalProbes: Array<Probe> = [...globalProbes, ...projectProbes];
+    await this.createMonitorProbes({
+      projectId: projectId,
+      monitorId: monitorId,
+      probes: [...globalProbes, ...projectProbes],
+    });
+  }
 
-    if (totalProbes.length === 0) {
+  @CaptureSpan()
+  public async createMonitorProbes(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    probes: Array<Probe>;
+  }): Promise<void> {
+    if (data.probes.length === 0) {
       return;
     }
 
     // Create all monitor probes in parallel for better performance
     const createPromises: Array<Promise<MonitorProbe>> = [];
 
-    for (const probe of totalProbes) {
+    for (const probe of data.probes) {
       const monitorProbe: MonitorProbe = new MonitorProbe();
-      monitorProbe.monitorId = monitorId;
+      monitorProbe.monitorId = data.monitorId;
       monitorProbe.probeId = probe.id!;
-      monitorProbe.projectId = projectId;
+      monitorProbe.projectId = data.projectId;
       monitorProbe.isEnabled = true;
 
       createPromises.push(

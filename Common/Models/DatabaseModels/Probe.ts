@@ -285,7 +285,7 @@ export default class Probe extends BaseModel {
       Permission.ProjectMember,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.CreateProjectStatusPage,
+      Permission.CreateProjectProbe,
     ],
     read: [
       Permission.ProjectOwner,
@@ -295,7 +295,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectStatusPage,
+      Permission.ReadProjectProbe,
     ],
     update: [
       Permission.ProjectOwner,
@@ -303,7 +303,7 @@ export default class Probe extends BaseModel {
       Permission.ProjectMember,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.EditProjectStatusPage,
+      Permission.EditProjectProbe,
     ],
   })
   @TableColumn({
@@ -334,7 +334,7 @@ export default class Probe extends BaseModel {
       Permission.ProjectMember,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.CreateProjectStatusPage,
+      Permission.CreateProjectProbe,
     ],
     read: [
       Permission.ProjectOwner,
@@ -344,7 +344,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectStatusPage,
+      Permission.ReadProjectProbe,
     ],
     update: [
       Permission.ProjectOwner,
@@ -352,7 +352,7 @@ export default class Probe extends BaseModel {
       Permission.ProjectMember,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.EditProjectStatusPage,
+      Permission.EditProjectProbe,
     ],
   })
   @TableColumn({
@@ -546,7 +546,7 @@ export default class Probe extends BaseModel {
       Permission.ProjectMember,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.CreateProjectStatusPage,
+      Permission.CreateProjectProbe,
     ],
     read: [
       Permission.ProjectOwner,
@@ -556,7 +556,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectStatusPage,
+      Permission.ReadProjectProbe,
     ],
     update: [
       Permission.ProjectOwner,
@@ -564,7 +564,7 @@ export default class Probe extends BaseModel {
       Permission.ProjectMember,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.EditProjectStatusPage,
+      Permission.EditProjectProbe,
     ],
   })
   @TableColumn({
@@ -592,7 +592,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectStatusPage,
+      Permission.ReadProjectProbe,
     ],
     update: [],
   })
@@ -618,7 +618,7 @@ export default class Probe extends BaseModel {
       Permission.ProjectMember,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.CreateProjectStatusPage,
+      Permission.CreateProjectProbe,
     ],
     read: [
       Permission.ProjectOwner,
@@ -628,7 +628,7 @@ export default class Probe extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.ReadProjectStatusPage,
+      Permission.ReadProjectProbe,
     ],
     update: [
       Permission.ProjectOwner,
@@ -636,7 +636,7 @@ export default class Probe extends BaseModel {
       Permission.ProjectMember,
       Permission.SettingsAdmin,
       Permission.SettingsMember,
-      Permission.EditProjectStatusPage,
+      Permission.EditProjectProbe,
     ],
   })
   @TableColumn({
