@@ -858,7 +858,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - burn rate rule seeding 
   beforeEach(() => {
     updateOneByIdSpy = jest
       .spyOn(ServiceLevelObjectiveService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
 
     const severity: AlertSeverity = new AlertSeverity();
     severity._id = SEVERITY_ID.toString();
@@ -1143,7 +1143,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - default alert severity"
   beforeEach(() => {
     jest
       .spyOn(ServiceLevelObjectiveService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
 
     burnRateRuleCreateSpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
@@ -1234,7 +1234,7 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess", () => {
 
     updateOneByIdSpy = jest
       .spyOn(ServiceLevelObjectiveService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
 
     findOneByIdSpy = jest
       .spyOn(ServiceLevelObjectiveService, "findOneById")

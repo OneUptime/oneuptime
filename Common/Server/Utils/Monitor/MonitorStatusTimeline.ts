@@ -27,6 +27,26 @@ export default class MonitorStatusTimelineUtil {
   }): Promise<MonitorStatusTimeline | null> {
     // criteria filters are met, now process the actions.
 
+    /*
+     * Steady-state fast-path: the criteria's target status is already the
+     * monitor's current status (the standard "online criteria matched on a
+     * healthy check" case, i.e. almost every probe result). The sorted
+     * timeline SELECT below could only confirm what currentMonitorStatusId
+     * already tells us — Monitor.currentMonitorStatusId is kept in lockstep
+     * with the latest timeline row by MonitorStatusTimelineService — and the
+     * function would return null via the same-as-last-status check anyway.
+     * Skip the query entirely. MonitorStatusTimelineService.onBeforeCreate
+     * still dedupes as the concurrency backstop.
+     */
+    if (
+      input.criteriaInstance.data?.changeMonitorStatus &&
+      input.criteriaInstance.data?.monitorStatusId &&
+      input.criteriaInstance.data.monitorStatusId.toString() ===
+        input.monitor.currentMonitorStatusId?.toString()
+    ) {
+      return null;
+    }
+
     const lastMonitorStatusTimeline: MonitorStatusTimeline | null =
       await MonitorStatusTimelineService.findOneBy({
         query: {
@@ -56,7 +76,7 @@ export default class MonitorStatusTimelineUtil {
       input.criteriaInstance.data?.changeMonitorStatus &&
       input.criteriaInstance.data?.monitorStatusId &&
       input.criteriaInstance.data?.monitorStatusId.toString() !==
-        lastMonitorStatusTimeline?.id?.toString()
+        lastMonitorStatusTimeline?.monitorStatusId?.toString()
     ) {
       // if monitor status is changed, then create a new status timeline.
       shouldUpdateStatus = true;

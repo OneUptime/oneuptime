@@ -30,6 +30,7 @@ import UpdateByID from "../Types/Database/UpdateByID";
 import UpdateByIDAndFetch from "../Types/Database/UpdateByIDAndFetch";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Encryption from "../Utils/Encryption";
+import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -453,7 +454,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * propagates the original exception on the synchronous throw path.
    */
   protected getException(error: Exception): never {
-    throw error;
+    throw PostgresErrorTranslator.translateException(error);
   }
 
   private generateSlug(createBy: CreateBy<TBaseModel>): CreateBy<TBaseModel> {
@@ -2015,10 +2016,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return await this._updateBy(updateBy);
   }
 
+  /*
+   * Returns how many rows the update actually matched. Callers that need to
+   * tell "saved" apart from "matched nothing" must check it: the permission
+   * layer narrows the query after the caller builds it (tenant scope, access
+   * control labels, owned scope), so an update can legitimately reach here
+   * and write nothing at all.
+   */
   @CaptureSpan()
   public async updateOneById(
     updateById: UpdateByID<TBaseModel>,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!updateById.id) {
       throw new BadDataException("updateById.id is required");
     }
@@ -2048,7 +2056,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       props: updateById.props,
     });
 
-    await this.updateOneBy({
+    return await this.updateOneBy({
       query: {
         _id: updateById.id.toString() as any,
       },

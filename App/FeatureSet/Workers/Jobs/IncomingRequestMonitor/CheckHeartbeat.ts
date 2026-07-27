@@ -114,14 +114,20 @@ const checkHeartBeat: (monitor: Monitor) => Promise<void> = async (
       `Updating incoming request monitor heartbeat checked at: ${monitor.id?.toString()}`,
     );
 
-    await MonitorService.updateOneById({
+    /*
+     * Heartbeat bookkeeping stamp, written for EVERY incoming-request
+     * monitor every 30 seconds. The full updateOneById pipeline costs ~3
+     * SELECTs + UPDATE and — because Monitor has @EnableWorkflow +
+     * @EnableAuditLog — fires an on-update workflow HTTP trigger and an
+     * audit-log row per monitor per tick. A scheduler timestamp should do
+     * none of that; single-statement UPDATE, same pattern as the heartbeat
+     * writes in MonitorResource.ts.
+     */
+    await MonitorService.updateColumnsByIdWithoutHooks({
       id: monitor.id!,
       data: {
         incomingRequestMonitorHeartbeatCheckedAt:
           OneUptimeDate.getCurrentDate(),
-      },
-      props: {
-        isRoot: true,
       },
     });
 

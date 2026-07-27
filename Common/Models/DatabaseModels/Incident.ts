@@ -1678,6 +1678,7 @@ export default class Incident extends BaseModel {
       "Status of notification sent to subscribers about this incident",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
+  @Index()
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,
@@ -1764,6 +1765,7 @@ export default class Incident extends BaseModel {
       "Status of notification sent to subscribers about this incident postmortem",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
+  @Index()
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,

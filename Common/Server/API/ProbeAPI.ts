@@ -32,6 +32,8 @@ export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
               lastAlive: true,
               iconFileId: true,
               connectionStatus: true,
+              // The monitor create form pre-selects the auto-enabled probes.
+              shouldAutoEnableProbeOnNewMonitors: true,
             },
             props: {
               isRoot: true,

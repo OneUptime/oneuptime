@@ -58,6 +58,7 @@ import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
 import Columns from "./Columns";
+import { getExportKeysFromColumn } from "./ExportFromColumns";
 import {
   getRelationSelectFromColumns,
   getSelectFromColumns,
@@ -114,6 +115,21 @@ export enum ShowAs {
   List,
   OrderedStatesList,
 }
+
+/*
+ * "Select All" loads the whole filtered result set - up to LIMIT_PER_PROJECT
+ * rows - with the same columns the table itself fetches. Asking for all of
+ * them in one request would mean a single wide, relation-joined query for up
+ * to 10,000 rows, which is exactly the kind of query the database statement
+ * timeout kills. It is paged instead: each request is comparable in cost to a
+ * large page load, so a big selection degrades in latency rather than failing.
+ *
+ * The page size trades those two costs off. Every list request also runs an
+ * unbounded count over the filtered set and pays a growing OFFSET, so smaller
+ * pages multiply that overhead; 1,000 keeps each query well inside the
+ * statement timeout while capping a maxed-out selection at ten round trips.
+ */
+export const BULK_SELECT_ALL_PAGE_SIZE: number = 1000;
 
 export interface SaveFilterProps {
   tableId: string;
@@ -339,6 +355,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<TBaseModel>>(
     [],
   );
+
+  /*
+   * "Select All" gets its own loading / error state instead of sharing
+   * `isLoading` and `error` with fetchItems. They ran concurrently before, so
+   * a page refresh landing mid-selection flipped the spinner off and cleared
+   * the other's error - which is how a failed select-all could leave the user
+   * with only the current page selected and nothing on screen to say so.
+   */
+  const [isBulkSelectAllLoading, setIsBulkSelectAllLoading] =
+    useState<boolean>(false);
+  const [bulkSelectionError, setBulkSelectionError] = useState<string>("");
+  const [bulkSelectionTotalCount, setBulkSelectionTotalCount] =
+    useState<number>(0);
+  const [isBulkSelectionTruncated, setIsBulkSelectionTruncated] =
+    useState<boolean>(false);
+
+  /*
+   * The paged select-all spans several round trips, so the user can clear the
+   * selection or start another one while it is still running. Every run takes
+   * a token and drops its results if a newer one has since started.
+   */
+  const bulkSelectAllToken: MutableRefObject<number> = React.useRef<number>(0);
 
   let showAs: ShowAs | undefined = props.showAs;
 
@@ -947,6 +985,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ...column,
           disableSort: column.disableSort || shouldDisableSort(key),
           key: columnKey,
+          /*
+           * `key` is only the first declared field, so a cell composed from
+           * several of them would export just that one. Hand the exporter
+           * every field the column declares (and that we actually selected).
+           */
+          exportKeys: getExportKeysFromColumn<TBaseModel>({
+            column: column,
+            columnKey: columnKey ? String(columnKey) : null,
+            hasPermissionToReadField: (field: string): boolean => {
+              return hasPermissionToReadField(field as keyof TBaseModel);
+            },
+          }),
           tooltipText,
           getElement: column.getElement,
         });
@@ -1304,36 +1354,249 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       return fragment;
     };
 
-  const fetchAllBulkItems: PromiseVoidFunction = async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
+  type FetchAllBulkItemsFunction = () => Promise<boolean>;
 
-    try {
-      const listResult: ListResult<TBaseModel> = await props.callbacks.getList({
-        modelType: props.modelType as
-          | DatabaseBaseModelType
-          | AnalyticsBaseModelType,
-        query: {
-          ...props.query,
-          ...query,
-          ...buildSearchQueryFragment(),
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-        },
-        sort: {},
-        requestOptions: props.fetchRequestOptions,
-      });
+  /*
+   * Selects every row matching the table's current query, filters and search -
+   * not just the rows on screen - and returns whether it succeeded.
+   *
+   * It fetches the SAME columns as fetchItems. It used to ask for
+   * `select: { _id: true }`, which picked the right rows but stripped every
+   * field off them, so "Export CSV" over a select-all wrote one blank line per
+   * row and any bulk action that reads a field (or renders an item's name) saw
+   * undefined. Routing the projection through getSelect() also keeps
+   * `selectMoreFields` and per-field read permissions in play, which a
+   * hand-rolled column list would silently drop.
+   */
+  const fetchAllBulkItems: FetchAllBulkItemsFunction =
+    async (): Promise<boolean> => {
+      const token: number = ++bulkSelectAllToken.current;
 
-      setBulkSelectedItems(listResult.data);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
+      setBulkSelectionError("");
+      setIsBulkSelectionTruncated(false);
+      setIsBulkSelectAllLoading(true);
 
-    setIsLoading(false);
+      const itemsSelected: Array<TBaseModel> = [];
+
+      try {
+        /*
+         * An unsorted table is served in the API's default order, so the
+         * selection has to ask for that order explicitly - once any sort is
+         * sent, the server stops applying its default. Without this the rows
+         * came back in random UUID order, which both scrambled the exported
+         * CSV and, on a table past the selection ceiling, kept an arbitrary
+         * slice of history instead of the newest rows the user was looking at.
+         */
+        const defaultSortColumn: string =
+          (model as AnalyticsBaseModel).defaultSortColumn || "createdAt";
+
+        const bulkSort: Sort<TBaseModel> = (
+          sortBy
+            ? { [sortBy as string]: sortOrder }
+            : { [defaultSortColumn]: SortOrder.Descending }
+        ) as Sort<TBaseModel>;
+
+        /*
+         * skip/limit paging is only stable over a total order. The field that
+         * identifies a selected row (`_id` unless a table overrides it) is
+         * appended as a tiebreaker so rows sharing a sort value - 1,200 labels
+         * imported in one transaction all share a createdAt - cannot land on
+         * two pages while another row is never returned at all.
+         */
+        if (
+          (bulkSort as Dictionary<unknown>)[
+            matchBulkSelectedItemByField as string
+          ] === undefined
+        ) {
+          (bulkSort as Dictionary<SortOrder>)[
+            matchBulkSelectedItemByField as string
+          ] = SortOrder.Ascending;
+        }
+
+        /*
+         * getSelect() throws on a misconfigured column, so it is built inside
+         * the try: otherwise the button would be left spinning forever with an
+         * unhandled rejection instead of a message.
+         */
+        const bulkSelect: Select<TBaseModel> = {
+          ...getSelect(),
+          ...getRelationSelect(),
+        };
+
+        /*
+         * Every ordered column has to be selected for the database to order by
+         * it. `_id` always is; the default sort column usually is not, and a
+         * table matching its selection on some field other than `_id` would
+         * otherwise tick no row checkboxes at all.
+         */
+        for (const sortColumn of Object.keys(bulkSort)) {
+          if (
+            (bulkSelect as Dictionary<unknown>)[sortColumn] === undefined &&
+            model.hasColumn(sortColumn)
+          ) {
+            (bulkSelect as Dictionary<boolean>)[sortColumn] = true;
+          }
+        }
+
+        let totalCount: number = 0;
+        let hasMore: boolean = false;
+        let rowsFetched: number = 0;
+
+        /*
+         * Offset paging over a table that is still receiving writes can hand
+         * back a row that an earlier page already returned. Selecting it twice
+         * would duplicate it in the export and inflate the selected count.
+         */
+        const seenItemIds: Set<string> = new Set<string>();
+
+        while (itemsSelected.length < LIMIT_PER_PROJECT) {
+          const limit: number = Math.min(
+            BULK_SELECT_ALL_PAGE_SIZE,
+            LIMIT_PER_PROJECT - itemsSelected.length,
+          );
+
+          const listResult: ListResult<TBaseModel> =
+            await props.callbacks.getList({
+              modelType: props.modelType as
+                | DatabaseBaseModelType
+                | AnalyticsBaseModelType,
+              query: {
+                ...props.query,
+                ...query,
+                ...buildSearchQueryFragment(),
+              },
+              groupBy: {
+                ...props.groupBy,
+              },
+              limit: limit,
+              skip: rowsFetched,
+              select: bulkSelect,
+              sort: bulkSort,
+              requestOptions: props.fetchRequestOptions,
+            });
+
+          if (token !== bulkSelectAllToken.current) {
+            // A newer select-all, or a cleared selection, superseded this run.
+            return false;
+          }
+
+          totalCount = listResult.count || totalCount;
+          hasMore = Boolean(listResult.hasMore);
+          rowsFetched += listResult.data.length;
+
+          for (const item of listResult.data) {
+            const itemId: string =
+              item[matchBulkSelectedItemByField]?.toString() || "";
+
+            if (itemId) {
+              if (seenItemIds.has(itemId)) {
+                continue;
+              }
+
+              seenItemIds.add(itemId);
+            }
+
+            itemsSelected.push(item);
+          }
+
+          if (listResult.data.length < limit) {
+            // A short page is the last page.
+            hasMore = false;
+            break;
+          }
+
+          if (listResult.hasMore === false) {
+            break;
+          }
+
+          if (totalCount > 0 && rowsFetched >= totalCount) {
+            /*
+             * Everything matching has been read. Stopping here saves the
+             * empty round trip a result set that is an exact multiple of the
+             * page size would otherwise cost - and each of those requests
+             * runs a full count over the filtered set.
+             */
+            break;
+          }
+        }
+
+        setBulkSelectionTotalCount(Math.max(totalCount, itemsSelected.length));
+        setIsBulkSelectionTruncated(totalCount > rowsFetched || hasMore);
+        setBulkSelectedItems(itemsSelected);
+
+        return true;
+      } catch (err) {
+        if (token === bulkSelectAllToken.current) {
+          /*
+           * Leave the existing selection alone. A half-loaded selection that
+           * claims to be everything is worse than a failed one, and the user
+           * can retry because the Select All button stays on screen.
+           */
+          setBulkSelectionError(API.getFriendlyMessage(err));
+        }
+
+        return false;
+      } finally {
+        if (token === bulkSelectAllToken.current) {
+          setIsBulkSelectAllLoading(false);
+        }
+      }
+    };
+
+  type ClearBulkSelectionStateFunction = () => void;
+
+  const clearBulkSelectionState: ClearBulkSelectionStateFunction = (): void => {
+    // Supersede any select-all still in flight so it cannot repopulate this.
+    bulkSelectAllToken.current++;
+    setIsBulkSelectAllLoading(false);
+    setBulkSelectionError("");
+    setIsBulkSelectionTruncated(false);
+    setBulkSelectionTotalCount(0);
+    setBulkSelectedItems((existingItems: Array<TBaseModel>) => {
+      /*
+       * Keep the same array when there is nothing to clear, so calling this on
+       * every query change (below) costs an idle table no re-render.
+       */
+      return existingItems.length === 0 ? existingItems : [];
+    });
   };
+
+  /*
+   * Everything that decides *which rows match* - the caller's query, the
+   * column filters, the search term and the label chips. Serialised because
+   * callers routinely pass `query` as a fresh object literal on every render,
+   * and the label chips get their display names hydrated after mount without
+   * the set of ids ever changing.
+   *
+   * Sort and page are deliberately left out: they re-order or re-window the
+   * same matching set, so a selection made under them is still a selection of
+   * rows that match. Selecting rows across pages is a real workflow, and a
+   * truncated select-all keeps saying "selected N of M matching" after a
+   * re-sort, which stays true.
+   */
+  const effectiveQueryKey: string = JSON.stringify({
+    props: props.query || {},
+    filter: query,
+    search: debouncedSearchText.trim(),
+    labels: selectedLabelIdsKey,
+  });
+
+  /*
+   * A selection refers to the rows the *previous* query returned. Once the
+   * query changes, the table underneath the bulk bar is a different result
+   * set, so carrying the selection over leaves the bar claiming "6,000 Alerts
+   * Selected" above a filtered-down list of 12 - with the Select All button
+   * hidden, as though the selection matched what is on screen, and Delete
+   * still wired to all 6,000 rows the user can no longer see.
+   *
+   * Dropping it here also bumps `bulkSelectAllToken`, so a filter change that
+   * lands while a paged select-all is still running supersedes that run
+   * instead of letting it finish and repopulate the selection against the old
+   * query.
+   */
+  useEffect(() => {
+    clearBulkSelectionState();
+  }, [effectiveQueryKey]);
 
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
@@ -2236,15 +2499,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           };
         })()}
         onBulkActionEnd={async () => {
-          setBulkSelectedItems([]);
+          clearBulkSelectionState();
           await fetchItems();
         }}
         onBulkActionStart={() => {}}
         bulkSelectedItems={bulkSelectedItems}
         onBulkSelectedItemAdded={(item: TBaseModel) => {
+          // The user has moved on from the failed select-all.
+          setBulkSelectionError("");
           setBulkSelectedItems([...bulkSelectedItems, item]);
         }}
         onBulkSelectedItemRemoved={(item: TBaseModel) => {
+          setBulkSelectionError("");
           setBulkSelectedItems(
             bulkSelectedItems.filter((i: TBaseModel) => {
               return (
@@ -2278,11 +2544,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           setBulkSelectedItems(uniqueItems);
         }}
         onBulkClearAllItems={() => {
-          setBulkSelectedItems([]);
+          clearBulkSelectionState();
         }}
-        onBulkSelectAllItems={async () => {
-          await fetchAllBulkItems();
+        onBulkSelectAllItems={async (): Promise<boolean> => {
+          return await fetchAllBulkItems();
         }}
+        bulkSelectionError={bulkSelectionError}
+        isBulkSelectAllLoading={isBulkSelectAllLoading}
+        isBulkSelectionTruncated={isBulkSelectionTruncated}
+        bulkSelectionTotalCount={bulkSelectionTotalCount}
         matchBulkSelectedItemByField={matchBulkSelectedItemByField || "_id"}
         bulkItemToString={(item: TBaseModel) => {
           const label: string = props.singularName || item.singularName || "";

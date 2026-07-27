@@ -261,8 +261,8 @@ describe("UserOnCallLogService.claimNotificationRuleExecution", () => {
       .mockResolvedValue(fakeLog(logId, {}));
     const updateOneById: jest.SpyInstance = jest
       .spyOn(UserOnCallLogService, "updateOneById")
-      .mockImplementation((): Promise<void> => {
-        return Promise.resolve();
+      .mockImplementation((): Promise<number> => {
+        return Promise.resolve(1);
       });
 
     const claimed: boolean =
@@ -319,8 +319,8 @@ describe("UserOnCallLogService.claimNotificationRuleExecution", () => {
       .mockResolvedValue(fakeLog(logId, undefined));
     const updateOneById: jest.SpyInstance = jest
       .spyOn(UserOnCallLogService, "updateOneById")
-      .mockImplementation((): Promise<void> => {
-        return Promise.resolve();
+      .mockImplementation((): Promise<number> => {
+        return Promise.resolve(1);
       });
 
     const claimed: boolean =
@@ -355,8 +355,8 @@ describe("UserOnCallLogService.claimNotificationRuleExecution", () => {
     );
     const updateOneById: jest.SpyInstance = jest
       .spyOn(UserOnCallLogService, "updateOneById")
-      .mockImplementation((): Promise<void> => {
-        return Promise.resolve();
+      .mockImplementation((): Promise<number> => {
+        return Promise.resolve(1);
       });
 
     const claimed: boolean =
@@ -394,8 +394,8 @@ describe("UserOnCallLogService.claimNotificationRuleExecution", () => {
       );
     const updateOneById: jest.SpyInstance = jest
       .spyOn(UserOnCallLogService, "updateOneById")
-      .mockImplementation((): Promise<void> => {
-        return Promise.resolve();
+      .mockImplementation((): Promise<number> => {
+        return Promise.resolve(1);
       });
 
     const claimed: boolean =
@@ -419,8 +419,8 @@ describe("UserOnCallLogService.claimNotificationRuleExecution", () => {
       .mockResolvedValue(null);
     const updateOneById: jest.SpyInstance = jest
       .spyOn(UserOnCallLogService, "updateOneById")
-      .mockImplementation((): Promise<void> => {
-        return Promise.resolve();
+      .mockImplementation((): Promise<number> => {
+        return Promise.resolve(1);
       });
 
     const claimed: boolean =
@@ -445,8 +445,8 @@ describe("UserOnCallLogService.claimNotificationRuleExecution", () => {
       .mockResolvedValue(fakeLog(ObjectID.generate(), {}));
     jest
       .spyOn(UserOnCallLogService, "updateOneById")
-      .mockImplementation((): Promise<void> => {
-        return Promise.resolve();
+      .mockImplementation((): Promise<number> => {
+        return Promise.resolve(1);
       });
 
     await UserOnCallLogService.claimNotificationRuleExecution({

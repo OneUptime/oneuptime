@@ -12,6 +12,8 @@ import Fields from "../Forms/Types/Fields";
 import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
+import { ToastType } from "../Toast/Toast";
+import { ShowToastNotification } from "../Toast/ToastInit";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -165,6 +167,16 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
           onSuccess={(item: TBaseModel) => {
             setShowModal(false);
             setRefresher(!refresher);
+            /*
+             * The modal just disappears otherwise, which reads as "nothing
+             * happened" - especially on cards that do not display every field
+             * the edit form exposes.
+             */
+            ShowToastNotification({
+              title: "Changes saved",
+              description: `${model.singularName || "Item"} updated successfully.`,
+              type: ToastType.SUCCESS,
+            });
             if (props.onSaveSuccess) {
               props.onSaveSuccess(item);
             }
@@ -180,7 +192,17 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
             steps: props.formSteps || [],
             createOrUpdateApiUrl: props.createOrUpdateApiUrl,
           }}
-          modelIdToEdit={item?.id || undefined}
+          /*
+           * Prefer the id the caller already handed us. Deriving it purely
+           * from the loaded item meant that opening the modal before (or
+           * without) a successful detail fetch produced an Update form with
+           * no id: ModelForm silently skipped its fetch, rendered defaults,
+           * and BasicForm coerced every untouched Toggle to false - so
+           * saving quietly wrote blank values over the real record.
+           */
+          modelIdToEdit={
+            props.modelDetailProps.modelId || item?.id || undefined
+          }
         />
       ) : (
         <></>

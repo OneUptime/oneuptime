@@ -839,6 +839,7 @@ export default class NetworkSite extends BaseModel {
     title: "Last Rollup At",
     description: "When the health rollup for this site was last computed",
   })
+  @Index()
   @Column({
     nullable: true,
     type: ColumnType.Date,

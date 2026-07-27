@@ -53,13 +53,13 @@ function mockServices(existingInterfaces: Array<NetworkInterface> = []): void {
     .mockResolvedValue(ownedDevice);
   deviceUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(1);
   interfaceFindSpy = jest
     .spyOn(NetworkInterfaceService, "findBy")
     .mockResolvedValue(existingInterfaces);
   interfaceUpdateSpy = jest
     .spyOn(NetworkInterfaceService, "updateOneById")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(1);
   interfaceCreateSpy = jest
     .spyOn(NetworkInterfaceService, "create")
     .mockResolvedValue(new NetworkInterface());

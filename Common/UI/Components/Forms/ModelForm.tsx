@@ -641,27 +641,50 @@ const ModelForm: <TBaseModel extends BaseModel>(
     return fields;
   };
 
+  /*
+   * Keyed on the id (as a string - ObjectID identity changes every render)
+   * so a form that mounts before its id is known still fetches once it
+   * arrives. It used to run only on mount, which left an Update form showing
+   * blank defaults: submitting that silently wrote empty values - and false
+   * for every Toggle, since BasicForm defaults untouched toggles to false -
+   * over the real record.
+   */
   useAsyncEffect(async () => {
-    if (
-      props.modelIdToEdit &&
-      props.formType === FormType.Update &&
-      !props.doNotFetchExistingModel
-    ) {
-      // get item.
-      setLoading(true);
-      setIsFetching(true);
-      setError("");
-      try {
-        await fetchItem();
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-        props.onError?.(API.getFriendlyMessage(err));
-      }
-
-      setLoading(false);
-      setIsFetching(false);
+    if (props.formType !== FormType.Update || props.doNotFetchExistingModel) {
+      return;
     }
-  }, []);
+
+    if (!props.modelIdToEdit) {
+      /*
+       * Without an id there is nothing to prefill and nothing to update, so
+       * say so rather than rendering an empty form that looks editable.
+       *
+       * Deliberately not props.onError: ModelFormModal unmounts the form on
+       * that, and this state is recoverable - the effect re-runs and clears
+       * the message as soon as the id arrives.
+       */
+      setError(
+        `Cannot edit this ${(
+          model.singularName || "item"
+        ).toLowerCase()} yet because it is still loading. Please try again in a moment.`,
+      );
+      return;
+    }
+
+    // get item.
+    setLoading(true);
+    setIsFetching(true);
+    setError("");
+    try {
+      await fetchItem();
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+      props.onError?.(API.getFriendlyMessage(err));
+    }
+
+    setLoading(false);
+    setIsFetching(false);
+  }, [props.modelIdToEdit?.toString()]);
 
   type GetMiscDataPropsFunction = (
     values: FormValues<JSONObject>,

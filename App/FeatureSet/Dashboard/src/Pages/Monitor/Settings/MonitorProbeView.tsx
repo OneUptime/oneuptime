@@ -53,22 +53,18 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
           description: "Here are more details for this probe.",
         }}
         isEditable={true}
-        formSteps={[
-          {
-            title: "Basic Info",
-            id: "basic-info",
-          },
-          {
-            title: "More",
-            id: "more",
-          },
-        ]}
+        /*
+         * Deliberately NOT a multi-step form. With steps, the modal's primary
+         * button reads "Next" until the last step, so someone editing the name
+         * or the auto-enable toggle sees only "Cancel" and "Next" and closes
+         * the modal thinking there is nothing to save - and the edit is lost.
+         * Five fields fit on one page with a real "Save Changes" button.
+         */
         formFields={[
           {
             field: {
               name: true,
             },
-            stepId: "basic-info",
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -83,7 +79,6 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               description: true,
             },
             title: "Description",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "This probe is to monitor all the internal services.",
@@ -94,7 +89,6 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               iconFile: true,
             },
             title: "Probe Logo",
-            stepId: "basic-info",
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload logo",
@@ -103,8 +97,9 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
             field: {
               shouldAutoEnableProbeOnNewMonitors: true,
             },
-            stepId: "more",
             title: "Enable monitoring automatically on new monitors",
+            description:
+              "When on, this probe is pre-selected for every new monitor you create.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },
@@ -114,7 +109,6 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
             },
 
             title: "Labels ",
-            stepId: "more",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
@@ -161,6 +155,19 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               },
               title: "Probe Key",
               fieldType: FieldType.HiddenText,
+            },
+            {
+              /*
+               * The edit form sets this, so the card has to show it -
+               * otherwise saving the toggle looks like it did nothing.
+               */
+              field: {
+                shouldAutoEnableProbeOnNewMonitors: true,
+              },
+              title: "Enable Monitoring on New Monitors",
+              description:
+                "When on, this probe is pre-selected for every new monitor you create.",
+              fieldType: FieldType.Boolean,
             },
             {
               field: {
