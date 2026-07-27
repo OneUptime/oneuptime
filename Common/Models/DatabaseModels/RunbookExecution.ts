@@ -626,6 +626,40 @@ export default class RunbookExecution extends BaseModel {
   })
   public triggeredByUserId?: ObjectID = undefined;
 
+  /*
+   * Attribution for AI-initiated executions: set (server-side only) when this
+   * execution was dispatched by an approved AIRemediationAction, so an
+   * AI-triggered run is never indistinguishable from a human clicking Run.
+   * The action row carries the full audit trail (proposing AIRun, approver,
+   * policy decision).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Triggered by AI Remediation Action ID",
+    description:
+      "ID of the AI remediation action that dispatched this execution, when it was started by AI rather than a person or a rule.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByAiRemediationActionId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

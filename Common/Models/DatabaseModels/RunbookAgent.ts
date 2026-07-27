@@ -245,6 +245,57 @@ export default class RunbookAgent extends BaseModel {
   })
   public description?: string = undefined;
 
+  /*
+   * The graduated-autonomy anchor: AI-proposed remediations may only
+   * auto-execute on agents explicitly tagged Staging, Testing or
+   * Development (and only when the project opted in). Unset or unknown
+   * counts as Production — the fail-safe direction — so nothing auto-runs
+   * on an agent until a human deliberately tags it non-production.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.CreateRunbookAgent,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookAgent,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.EditRunbookAgent,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    title: "Environment",
+    description:
+      "Which environment this agent lives in: Production, Staging, Testing or Development. AI-proposed remediations never auto-execute on Production agents; untagged agents are treated as Production.",
+    defaultValue: "Production",
+    example: "Testing",
+  })
+  @Column({
+    nullable: false,
+    default: "Production",
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public environmentType?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

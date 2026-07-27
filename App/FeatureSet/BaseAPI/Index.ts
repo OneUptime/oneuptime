@@ -32,6 +32,10 @@ import AIInsight from "Common/Models/DatabaseModels/AIInsight";
 import AIInsightService, {
   Service as AIInsightServiceType,
 } from "Common/Server/Services/AIInsightService";
+import AIRemediationAction from "Common/Models/DatabaseModels/AIRemediationAction";
+import AIRemediationActionService, {
+  Service as AIRemediationActionServiceType,
+} from "Common/Server/Services/AIRemediationActionService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
@@ -4446,6 +4450,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AIInsight, AIInsightServiceType>(
         AIInsight,
         AIInsightService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIRemediationAction, AIRemediationActionServiceType>(
+        AIRemediationAction,
+        AIRemediationActionService,
       ).getRouter(),
     );
 

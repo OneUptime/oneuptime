@@ -114,6 +114,16 @@ export const RUNBOOK_AI_STEP_FEATURE: string = "Runbook AI Step";
 export const AI_INSIGHT_TRIAGE_FEATURE: string = "AI Insight Triage";
 
 /*
+ * The LlmLog feature name for the remediation proposer (RemediationProposer):
+ * one constrained call after a CONFIDENT completed investigation, drafting
+ * 0-3 remediation actions from a server-fetched allowlist of runbooks and
+ * agents. Fully autonomous (fires with no human in the loop), so the daily
+ * budget must cover it.
+ */
+export const AI_REMEDIATION_PROPOSAL_FEATURE: string =
+  "AI Remediation Proposal";
+
+/*
  * The pre-rename values of the six labels that carried the "Sentinel" codename.
  * These are NOT written by anything any more — they exist only so the daily
  * budget keeps counting rows that ALREADY carry them:
@@ -188,6 +198,11 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * budget must cover these runs too.
    */
   AI_INSIGHT_TRIAGE_FEATURE,
+  /*
+   * One constrained remediation-proposal call per confident completed
+   * investigation (RemediationProposer) — autonomous by construction.
+   */
+  AI_REMEDIATION_PROPOSAL_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

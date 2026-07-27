@@ -581,6 +581,37 @@ export default class AIInsight extends BaseModel {
   })
   public fixAiRunId?: ObjectID = undefined;
 
+  /*
+   * Set when this insight was escalated to a real Alert (opt-in via
+   * Project.enableAiInsightEscalation — the ONLY path by which an insight
+   * can ever page anyone). Also the escalation dedupe: a set value means
+   * this insight already escalated and never will again.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Escalated To Alert ID",
+    description:
+      "The alert this insight escalated to, for projects that opted into insight escalation.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public escalatedToAlertId?: ObjectID = undefined;
+
   // The LLM triage analysis posted back onto the insight when it completes.
   @ColumnAccessControl({
     create: [],

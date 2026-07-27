@@ -1,6 +1,7 @@
 import MetricDownsamplingRetentionDays from "../../Types/Metrics/MetricDownsamplingRetentionDays";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import AlertSeverity from "./AlertSeverity";
+import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
 import User from "./User";
@@ -1799,6 +1800,277 @@ export default class Project extends TenantModel {
     type: ColumnType.Number,
   })
   public aiMaxConcurrentInvestigations?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable AI Remediation",
+    description:
+      "When enabled, a completed AI investigation that reached a confident root cause also proposes remediation actions: starting one of your existing runbooks, or a drafted command for one of your Runbook Agents. Proposals wait for human approval on the incident or alert page — nothing executes on its own unless you additionally opt into auto-remediation on non-production agents. Drafted commands ALWAYS require approval, everywhere.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAiRemediation?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Auto-Execute AI Remediation on Non-Production Agents",
+    description:
+      "When enabled (and AI Remediation is on), AI-proposed RUNBOOK actions execute without waiting for approval — but only when every executing step of that runbook targets a Runbook Agent explicitly tagged Staging, Testing or Development. Agents tagged Production — and agents never tagged at all — always require a human click. Drafted commands are never auto-executed regardless of this setting.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAiAutoRemediationOnNonProduction?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily AI Remediation Execution Limit",
+    description:
+      "Maximum AI-proposed remediation executions per UTC day (approved-by-human and auto-executed both count). Unset uses the default of 10 — unlike token budgets, unset is NOT unlimited, because these actions run on your infrastructure. 0 pauses AI remediation execution entirely.",
+    example: 10,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiDailyRemediationExecutionLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable AI Insight Escalation",
+    description:
+      "When enabled, AI Insights at or above the escalation severity threshold open a real Alert — which pages via its on-call policies and (if enabled) wakes an automatic AI investigation. This is the ONLY way an AI Insight can ever page anyone; with this off (the default) insights stay a quiet inbox.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAiInsightEscalation?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "AI Insight Escalation Minimum Severity",
+    description:
+      "Only insights at or above this severity (Low, Medium or High) escalate to an alert. Unset means High — only the strongest detector findings ever page.",
+    example: "High",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public aiInsightEscalationMinimumSeverity?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "aiInsightEscalationAlertSeverityId",
+    type: TableColumnType.Entity,
+    modelType: AlertSeverity,
+    title: "AI Insight Escalation Alert Severity",
+    description:
+      "The alert severity assigned to alerts created from escalated AI Insights. When unset, the project's most critical alert severity (lowest order) is used.",
+  })
+  @ManyToOne(
+    () => {
+      return AlertSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "aiInsightEscalationAlertSeverityId" })
+  public aiInsightEscalationAlertSeverity?: AlertSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Insight Escalation Alert Severity ID",
+    description:
+      "ID of the alert severity assigned to alerts created from escalated AI Insights.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiInsightEscalationAlertSeverityId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "aiInsightEscalationOnCallDutyPolicyId",
+    type: TableColumnType.Entity,
+    modelType: OnCallDutyPolicy,
+    title: "AI Insight Escalation On-Call Policy",
+    description:
+      "The on-call policy attached to alerts created from escalated AI Insights — this is who gets paged. When unset, no policy is attached directly, though your Alert on-call rules can still match the alert and page.",
+  })
+  @ManyToOne(
+    () => {
+      return OnCallDutyPolicy;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "aiInsightEscalationOnCallDutyPolicyId" })
+  public aiInsightEscalationOnCallDutyPolicy?: OnCallDutyPolicy = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Insight Escalation On-Call Policy ID",
+    description:
+      "ID of the on-call policy attached to alerts created from escalated AI Insights.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiInsightEscalationOnCallDutyPolicyId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

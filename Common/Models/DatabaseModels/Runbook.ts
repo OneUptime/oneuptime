@@ -453,6 +453,40 @@ export default class Runbook extends BaseModel {
   })
   public isEnabled?: boolean = undefined;
 
+  /*
+   * True for runbooks the server materialized from an approved AI Command
+   * remediation action (one Bash step, exactly the script the human
+   * approved). Kept visible in the runbook list on purpose — transparency
+   * over tidiness — and server-authored only (empty create/update ACLs).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbook,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Created by AI",
+    description:
+      "True when this runbook was materialized from a human-approved AI remediation command.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isCreatedByAi?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
