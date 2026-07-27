@@ -9,6 +9,7 @@ import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import {
   AppApiClientUrl,
   AppVersion,
@@ -1116,7 +1117,26 @@ export default class MicrosoftTeamsAPI {
           const databaseProps: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-          const projectId: ObjectID = databaseProps.tenantId!;
+          const projectId: ObjectID | undefined = databaseProps.tenantId;
+
+          if (!projectId) {
+            throw new BadDataException("Project ID is required");
+          }
+
+          /*
+           * getUserMiddleware lets unauthenticated requests through as
+           * "public" — require an authenticated member of this project
+           * before disclosing chat names.
+           */
+          if (
+            !databaseProps.userId ||
+            !databaseProps.userTenantAccessPermission ||
+            !databaseProps.userTenantAccessPermission[projectId.toString()]
+          ) {
+            throw new NotAuthorizedException(
+              "You are not authorized to view Microsoft Teams chats for this project.",
+            );
+          }
 
           const availableChats: Record<string, MicrosoftTeamsChat> =
             await MicrosoftTeamsUtil.getChatsForProject({

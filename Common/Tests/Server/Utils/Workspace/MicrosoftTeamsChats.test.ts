@@ -193,6 +193,37 @@ describe("MicrosoftTeamsUtil.getChatDisplayName", () => {
     expect(name).toBe("Ops War Room");
   });
 
+  test("long topics are truncated to 80 chars with an ellipsis (log columns are varchar(100))", () => {
+    const longTopic: string = "T".repeat(200);
+    const name: string = MicrosoftTeamsUtil.getChatDisplayName({
+      chatType: "groupChat",
+      topic: longTopic,
+      memberNames: [],
+    });
+    expect(name.length).toBe(80);
+    expect(name.endsWith("…")).toBe(true);
+    expect(name.startsWith("TTTT")).toBe(true);
+  });
+
+  test("long synthesized member-name lists are truncated too", () => {
+    const name: string = MicrosoftTeamsUtil.getChatDisplayName({
+      chatType: "groupChat",
+      memberNames: ["A".repeat(60), "B".repeat(60), "C".repeat(60)],
+    });
+    expect(name.length).toBeLessThanOrEqual(80);
+    expect(name.endsWith("…")).toBe(true);
+  });
+
+  test("80-char names are not truncated", () => {
+    const exact: string = "X".repeat(80);
+    const name: string = MicrosoftTeamsUtil.getChatDisplayName({
+      chatType: "groupChat",
+      topic: exact,
+      memberNames: [],
+    });
+    expect(name).toBe(exact);
+  });
+
   test("topic is trimmed before use", () => {
     const name: string = MicrosoftTeamsUtil.getChatDisplayName({
       chatType: "groupChat",
@@ -1118,6 +1149,53 @@ describe("MicrosoftTeamsUtil.handleInstallationUpdateActivity", () => {
       chatId: "19:installed@thread.v2",
     });
     expect(saveSpy).not.toHaveBeenCalled();
+  });
+
+  test("action 'add-upgrade' (app upgraded in an already-installed chat) also saves the chat", async () => {
+    const { saveSpy }: InstallationSpies = installSpies();
+    mockMembers([
+      { id: BOT_RECIPIENT_ID, name: "OneUptime" },
+      { id: "user-1", name: "Alice" },
+    ]);
+
+    await MicrosoftTeamsUtil.handleInstallationUpdateActivity({
+      activity: {
+        action: "add-upgrade",
+        conversation: {
+          conversationType: "groupChat",
+          id: "19:upgraded@thread.v2",
+        },
+        channelData: { tenant: { id: "tenant-1" } },
+        serviceUrl: "https://smba.trafficmanager.net/amer/",
+      },
+      turnContext: buildTurnContext(),
+    });
+
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    const saveArgs: { tenantId: string; chat: MicrosoftTeamsChat } = saveSpy
+      .mock.calls[0]?.[0] as { tenantId: string; chat: MicrosoftTeamsChat };
+    expect(saveArgs.chat.id).toBe("19:upgraded@thread.v2");
+  });
+
+  test("action 'remove-upgrade' also removes the stored chat", async () => {
+    const { removeSpy }: InstallationSpies = installSpies();
+
+    await MicrosoftTeamsUtil.handleInstallationUpdateActivity({
+      activity: {
+        action: "remove-upgrade",
+        conversation: {
+          conversationType: "groupChat",
+          id: "19:upgraded@thread.v2",
+        },
+        channelData: { tenant: { id: "tenant-1" } },
+      },
+      turnContext: buildTurnContext(),
+    });
+
+    expect(removeSpy).toHaveBeenCalledWith({
+      tenantId: "tenant-1",
+      chatId: "19:upgraded@thread.v2",
+    });
   });
 
   test("action 'add' on a channel scope is ignored", async () => {

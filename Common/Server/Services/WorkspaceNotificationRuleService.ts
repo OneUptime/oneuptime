@@ -472,7 +472,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       for (const chatId of chatIds) {
         if (!connectedChats[chatId]) {
           throw new BadDataException(
-            "One of the selected chats is no longer connected to OneUptime. Please add the OneUptime app to the chat in Microsoft Teams and update this rule.",
+            `The selected chat (id: ${chatId}) is no longer connected to OneUptime. Please add the OneUptime app to the chat in Microsoft Teams and update this rule.`,
           );
         }
       }
@@ -771,13 +771,52 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
         log.projectId = data.projectId;
         log.workspaceType = res.workspaceType;
-        log.channelId = thread.channel.id;
-        log.channelName = thread.channel.name;
+        log.channelId = (thread.channel.id || "").substring(0, 100);
+        log.channelName = (thread.channel.name || "").substring(0, 100);
         log.threadId = thread.threadId;
         log.message = messageSummary;
         log.status = WorkspaceNotificationStatus.Success;
         log.actionType = WorkspaceNotificationActionType.SendMessage;
         log.statusMessage = "Message posted to workspace channel";
+
+        if (data.notificationFor.incidentId) {
+          log.incidentId = data.notificationFor.incidentId;
+        }
+        if (data.notificationFor.alertId) {
+          log.alertId = data.notificationFor.alertId;
+        }
+        if (data.notificationFor.scheduledMaintenanceId) {
+          log.scheduledMaintenanceId =
+            data.notificationFor.scheduledMaintenanceId;
+        }
+
+        if (data.workspaceNotification.notifyUserId) {
+          log.userId = data.workspaceNotification.notifyUserId;
+        }
+
+        await WorkspaceNotificationLogService.create({
+          data: log,
+          props: { isRoot: true },
+        });
+      }
+
+      /*
+       * Also log per-destination failures — otherwise a chat or channel
+       * send that errors (e.g. the OneUptime app was removed from a chat a
+       * rule still references) is invisible in the notification logs.
+       */
+      for (const sendError of res.errors || []) {
+        const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+        log.projectId = data.projectId;
+        log.workspaceType = res.workspaceType;
+        log.channelId = (sendError.channel.id || "").substring(0, 100);
+        log.channelName = (sendError.channel.name || "").substring(0, 100);
+        log.message = messageSummary;
+        log.status = WorkspaceNotificationStatus.Error;
+        log.actionType = WorkspaceNotificationActionType.SendMessage;
+        log.statusMessage = (sendError.error || "Failed to send message")
+          .toString()
+          .substring(0, 500);
 
         if (data.notificationFor.incidentId) {
           log.incidentId = data.notificationFor.incidentId;

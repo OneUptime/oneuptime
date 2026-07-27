@@ -392,9 +392,30 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         `Token expiry calculated: ${OneUptimeDate.toString(expiryDate)}`,
       );
 
-      // Update the miscData with new token and expiry
+      /*
+       * Merge the token fields into a FRESH read of miscData instead of the
+       * snapshot taken before the OAuth round-trip. The snapshot can be
+       * seconds old, and writing it back verbatim would erase concurrent
+       * miscData updates — in particular chats captured into availableChats
+       * by bot install events, which cannot be re-derived from Graph.
+       */
+      let latestMiscData: MicrosoftTeamsMiscData = data.miscData;
+      try {
+        const latestProjectAuth: WorkspaceProjectAuthToken | null =
+          await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: data.projectId,
+            workspaceType: WorkspaceType.MicrosoftTeams,
+          });
+        if (latestProjectAuth?.miscData) {
+          latestMiscData = latestProjectAuth.miscData as MicrosoftTeamsMiscData;
+        }
+      } catch (err) {
+        logger.debug("Could not re-read miscData before token refresh write");
+        logger.debug(err);
+      }
+
       const updatedMiscData: MicrosoftTeamsMiscData = {
-        ...data.miscData,
+        ...latestMiscData,
         appAccessToken: newAccessToken,
         appAccessTokenExpiresAt: OneUptimeDate.toString(expiryDate),
         lastAppTokenIssuedAt: OneUptimeDate.toString(now),
@@ -3454,13 +3475,20 @@ All monitoring checks are passing normally.`;
     logger.debug(`Installation update - Action: ${action}`);
     logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
 
-    if (action === "add") {
+    /*
+     * Teams sends "add-upgrade" / "remove-upgrade" (instead of plain
+     * "add" / "remove") when the app is upgraded in a conversation it is
+     * already installed in — e.g. after a manifest version bump. Treat them
+     * the same, otherwise chats installed before an app upgrade are never
+     * captured.
+     */
+    if (action === "add" || action === "add-upgrade") {
       logger.debug("OneUptime bot was installed");
       await this.captureChatFromBotActivity({
         activity: data.activity,
         turnContext: data.turnContext,
       });
-    } else if (action === "remove") {
+    } else if (action === "remove" || action === "remove-upgrade") {
       logger.debug("OneUptime bot was uninstalled");
       await this.removeChatFromBotActivity({
         activity: data.activity,
@@ -3493,8 +3521,20 @@ All monitoring checks are passing normally.`;
     topic?: string | undefined;
     memberNames: Array<string>;
   }): string {
+    /*
+     * Keep well under the 100-char ShortText columns that store the chat
+     * name in notification logs — Teams chat topics can be much longer.
+     */
+    const maxNameLength: number = 80;
+
+    const truncate: (name: string) => string = (name: string): string => {
+      return name.length > maxNameLength
+        ? `${name.substring(0, maxNameLength - 1)}…`
+        : name;
+    };
+
     if (data.topic && data.topic.trim()) {
-      return data.topic.trim();
+      return truncate(data.topic.trim());
     }
 
     const memberNames: Array<string> = data.memberNames.filter(
@@ -3504,7 +3544,7 @@ All monitoring checks are passing normally.`;
     );
 
     if (data.chatType === "personal") {
-      return memberNames[0] ? `${memberNames[0]}` : "Personal chat";
+      return memberNames[0] ? truncate(`${memberNames[0]}`) : "Personal chat";
     }
 
     if (memberNames.length === 0) {
@@ -3516,10 +3556,10 @@ All monitoring checks are passing normally.`;
     const remainingCount: number = memberNames.length - shownNames.length;
 
     if (remainingCount > 0) {
-      return `${shownNames.join(", ")} + ${remainingCount} more`;
+      return truncate(`${shownNames.join(", ")} + ${remainingCount} more`);
     }
 
-    return shownNames.join(", ");
+    return truncate(shownNames.join(", "));
   }
 
   @CaptureSpan()
@@ -3825,6 +3865,20 @@ All monitoring checks are passing normally.`;
             async (context: TurnContext, next: () => Promise<void>) => {
               logger.debug(
                 "Handling members added activity: " +
+                  JSON.stringify(context.activity),
+              );
+              await MicrosoftTeamsUtil.handleConversationUpdateActivity({
+                activity: context.activity as unknown as JSONObject,
+                turnContext: context,
+              });
+              await next();
+            },
+          );
+
+          this.onMembersRemoved(
+            async (context: TurnContext, next: () => Promise<void>) => {
+              logger.debug(
+                "Handling members removed activity: " +
                   JSON.stringify(context.activity),
               );
               await MicrosoftTeamsUtil.handleConversationUpdateActivity({
@@ -4197,9 +4251,28 @@ All monitoring checks are passing normally.`;
 
       logger.debug(`Processed ${Object.keys(availableTeams).length} teams`);
 
-      // Update project auth token with new teams
-      const miscData: MicrosoftTeamsMiscData =
+      /*
+       * Update project auth token with new teams. Re-read miscData first —
+       * the snapshot from the start of this method is stale by the length
+       * of the paginated Graph fetch, and writing it back verbatim would
+       * erase concurrent updates (e.g. chats captured into availableChats
+       * by bot install events, which cannot be re-derived).
+       */
+      let miscData: MicrosoftTeamsMiscData =
         (projectAuth.miscData as MicrosoftTeamsMiscData) || {};
+      try {
+        const latestProjectAuth: WorkspaceProjectAuthToken | null =
+          await WorkspaceProjectAuthTokenService.getProjectAuth({
+            projectId: data.projectId,
+            workspaceType: WorkspaceType.MicrosoftTeams,
+          });
+        if (latestProjectAuth?.miscData) {
+          miscData = latestProjectAuth.miscData as MicrosoftTeamsMiscData;
+        }
+      } catch (err) {
+        logger.debug("Could not re-read miscData before teams refresh write");
+        logger.debug(err);
+      }
       miscData.availableTeams = availableTeams;
       miscData.tenantId = tenantId;
 

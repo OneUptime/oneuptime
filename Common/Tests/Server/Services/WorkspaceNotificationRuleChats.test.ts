@@ -988,6 +988,68 @@ describe("WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification (ch
 
     expect(mocks.createLogSpy).not.toHaveBeenCalled();
   });
+
+  test("logs an Error notification for each per-destination failure in the send response", async () => {
+    const teamsBlocks: MessageBlocksByWorkspaceType = {
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      messageBlocks: [markdownBlock("Incident update")],
+    };
+
+    const response: WorkspaceSendMessageResponse = makeSendResponse({
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      threads: [
+        {
+          channelId: "chat-a",
+          channelName: "Chat chat-a",
+          threadId: "thread-1",
+        },
+      ],
+      errors: [
+        {
+          channelId: "chat-b",
+          channelName: "Chat chat-b",
+          error:
+            "This chat is not connected to OneUptime. Please add the OneUptime app to the chat in Microsoft Teams and try again.",
+        },
+      ],
+    });
+
+    const mocks: MarkdownSendMocks = mockMarkdownSendDeps({
+      blocks: [teamsBlocks],
+      existingChannelsByWorkspaceType: {},
+      monitorChannelsByWorkspaceType: {},
+      chatIdsByWorkspaceType: {
+        [WorkspaceType.MicrosoftTeams]: ["chat-a", "chat-b"],
+      },
+      responses: [response],
+    });
+
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification({
+      projectId: projectId,
+      notificationFor: notificationFor,
+      feedInfoInMarkdown: "Incident update",
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+      },
+    });
+
+    expect(mocks.createLogSpy).toHaveBeenCalledTimes(2);
+
+    const successLog: WorkspaceNotificationLog = mocks.createLogSpy.mock
+      .calls[0]?.[0]?.data as WorkspaceNotificationLog;
+    expect(successLog.status).toBe(WorkspaceNotificationStatus.Success);
+    expect(successLog.channelId).toBe("chat-a");
+
+    const errorLog: WorkspaceNotificationLog = mocks.createLogSpy.mock
+      .calls[1]?.[0]?.data as WorkspaceNotificationLog;
+    expect(errorLog.status).toBe(WorkspaceNotificationStatus.Error);
+    expect(errorLog.channelId).toBe("chat-b");
+    expect(errorLog.channelName).toBe("Chat chat-b");
+    expect(errorLog.statusMessage).toContain(
+      "This chat is not connected to OneUptime",
+    );
+    expect(errorLog.incidentId).toBe(notificationFor.incidentId);
+  });
 });
 
 describe("WorkspaceNotificationRuleService.testRule (Microsoft Teams chat path)", () => {

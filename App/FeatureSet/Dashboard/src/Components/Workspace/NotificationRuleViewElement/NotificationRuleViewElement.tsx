@@ -193,7 +193,8 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
                   key={chatId}
                   className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10"
                 >
-                  {chat?.name || "Disconnected chat"}
+                  {chat?.name ||
+                    `Disconnected chat (${chatId.substring(0, 16)}…)`}
                   {chat?.chatType === "personal" && (
                     <span className="text-indigo-400">(1:1)</span>
                   )}

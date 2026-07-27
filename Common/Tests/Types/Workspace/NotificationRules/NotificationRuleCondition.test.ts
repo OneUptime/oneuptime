@@ -98,7 +98,7 @@ describe("NotificationRuleConditionUtil", () => {
         shouldPostToExistingChannel: false,
       });
       expect(validate(rule)).toBe(
-        "Please select either create Slack channel, post to existing Slack channel",
+        "Please select a destination: create a Slack channel or post to an existing Slack channel",
       );
     });
 
@@ -141,10 +141,10 @@ describe("NotificationRuleConditionUtil", () => {
 
   describe("getValidationError - chats", () => {
     const teamsChatEitherOrError: string =
-      "Please select either create MicrosoftTeams channel, post to existing MicrosoftTeams channel, or post to existing MicrosoftTeams chat";
+      "Please select a destination: create a Microsoft Teams channel, post to an existing Microsoft Teams channel, or post to an existing Microsoft Teams chat";
 
     const teamsChatIdsError: string =
-      "Please select at least one MicrosoftTeams chat to post to. If no chats are listed, add the OneUptime app to a chat in MicrosoftTeams first.";
+      "Please select at least one Microsoft Teams chat to post to. If no chats are listed, add the OneUptime app to a chat in Microsoft Teams first.";
 
     const validateTeams: (
       rule: IncidentNotificationRule,
@@ -186,7 +186,7 @@ describe("NotificationRuleConditionUtil", () => {
       });
       const error: string | null = validate(rule);
       expect(error).toBe(
-        "Please select either create Slack channel, post to existing Slack channel",
+        "Please select a destination: create a Slack channel or post to an existing Slack channel",
       );
       expect(error).not.toContain("chat");
     });
@@ -274,7 +274,7 @@ describe("NotificationRuleConditionUtil", () => {
         existingChatIds: ["c1"],
       });
       expect(validateTeams(rule)).toBe(
-        "Existing MicrosoftTeams channel name is required",
+        "Existing Microsoft Teams channel name is required",
       );
     });
 
@@ -287,7 +287,7 @@ describe("NotificationRuleConditionUtil", () => {
         existingChatIds: ["c1"],
       });
       expect(validateTeams(rule)).toBe(
-        "New MicrosoftTeams channel name is required",
+        "New Microsoft Teams channel name is required",
       );
     });
 
@@ -300,7 +300,7 @@ describe("NotificationRuleConditionUtil", () => {
         existingChatIds: [],
       });
       expect(validateTeams(rule)).toBe(
-        "Existing MicrosoftTeams channel name is required",
+        "Existing Microsoft Teams channel name is required",
       );
     });
 

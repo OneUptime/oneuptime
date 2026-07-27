@@ -143,6 +143,11 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                   any notification rule.
                 </li>
               </ol>
+              <p className="mt-4 text-xs text-gray-500">
+                Already added the OneUptime app to a chat before this feature
+                existed? Remove the app from that chat and add it again — the
+                chat registers here when the app is added.
+              </p>
             </div>
             {MicrosoftTeamsAppClientId && (
               <button

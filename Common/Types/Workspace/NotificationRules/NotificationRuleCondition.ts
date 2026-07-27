@@ -9,7 +9,7 @@ import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledM
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "../../../UI/Utils/Dropdown";
 import MonitorType from "../../Monitor/MonitorType";
-import WorkspaceType from "../WorkspaceType";
+import WorkspaceType, { getWorkspaceTypeDisplayName } from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
 import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
 
@@ -110,32 +110,30 @@ export class NotificationRuleConditionUtil {
     ) {
       // either create a channel, post to an existing channel, or post to a chat.
 
+      const workspaceDisplayName: string =
+        getWorkspaceTypeDisplayName(workspaceType);
+
       if (
         !notificationRule.shouldCreateNewChannel &&
         !notificationRule.shouldPostToExistingChannel &&
         !notificationRule.shouldPostToExistingChat
       ) {
-        return (
-          "Please select either create " +
-          workspaceType +
-          " channel, post to existing " +
-          workspaceType +
-          " channel" +
-          (workspaceType === WorkspaceType.MicrosoftTeams
-            ? ", or post to existing " + workspaceType + " chat"
-            : "")
-        );
+        return workspaceType === WorkspaceType.MicrosoftTeams
+          ? `Please select a destination: create a ${workspaceDisplayName} channel, post to an existing ${workspaceDisplayName} channel, or post to an existing ${workspaceDisplayName} chat`
+          : `Please select a destination: create a ${workspaceDisplayName} channel or post to an existing ${workspaceDisplayName} channel`;
       }
 
       if (notificationRule.shouldPostToExistingChannel) {
         if (!notificationRule.existingChannelNames?.trim()) {
-          return "Existing " + workspaceType + " channel name is required";
+          return (
+            "Existing " + workspaceDisplayName + " channel name is required"
+          );
         }
       }
 
       if (notificationRule.shouldCreateNewChannel) {
         if (!notificationRule.newChannelTemplateName?.trim()) {
-          return "New " + workspaceType + " channel name is required";
+          return "New " + workspaceDisplayName + " channel name is required";
         }
       }
     }
@@ -145,13 +143,9 @@ export class NotificationRuleConditionUtil {
         !notificationRule.existingChatIds ||
         notificationRule.existingChatIds.length === 0
       ) {
-        return (
-          "Please select at least one " +
-          workspaceType +
-          " chat to post to. If no chats are listed, add the OneUptime app to a chat in " +
-          workspaceType +
-          " first."
-        );
+        const workspaceDisplayName: string =
+          getWorkspaceTypeDisplayName(workspaceType);
+        return `Please select at least one ${workspaceDisplayName} chat to post to. If no chats are listed, add the OneUptime app to a chat in ${workspaceDisplayName} first.`;
       }
     }
 
