@@ -5063,9 +5063,10 @@ export default class StatusPageAPI extends BaseAPI<
      */
     const monitorGroupResourcesByGroupId: Dictionary<
       Array<MonitorGroupResource>
-    > = await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
-      monitorGroupIds,
-    );
+    > =
+      await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+        monitorGroupIds,
+      );
 
     const monitorGroupStatuses: Dictionary<MonitorStatus> =
       await MonitorGroupService.getCurrentStatusesForMonitorGroups({

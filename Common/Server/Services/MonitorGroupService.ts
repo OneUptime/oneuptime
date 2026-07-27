@@ -239,10 +239,7 @@ export class Service extends DatabaseService<MonitorGroup> {
 
     const dedupedGroupIds: Array<ObjectID> = [];
     for (const monitorGroupId of monitorGroupIds) {
-      if (
-        monitorGroupId &&
-        !resourcesByGroupId[monitorGroupId.toString()]
-      ) {
+      if (monitorGroupId && !resourcesByGroupId[monitorGroupId.toString()]) {
         resourcesByGroupId[monitorGroupId.toString()] = [];
         dedupedGroupIds.push(monitorGroupId);
       }
