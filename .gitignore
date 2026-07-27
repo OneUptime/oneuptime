@@ -11,6 +11,9 @@ node_modules
 # Build Dist
 **/dist/*
 
+# Monaco runtime, copied from node_modules at build time
+**/public/assets/monaco/
+
 .idea
 # testing
 **/coverage
