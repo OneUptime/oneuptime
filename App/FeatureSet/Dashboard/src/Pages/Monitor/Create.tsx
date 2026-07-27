@@ -61,6 +61,13 @@ import {
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
 import Card from "Common/UI/Components/Card/Card";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
+import Probe from "Common/Models/DatabaseModels/Probe";
+import Project from "Common/Models/DatabaseModels/Project";
+import ProjectUtil from "Common/UI/Utils/Project";
+import ProbeUtil from "../../Utils/Probe";
+import MonitorProbeSelectionUtil from "Common/Utils/Monitor/MonitorProbeSelectionUtil";
 
 /*
  * Candidate rolling windows for "create monitor from this explorer view" —
@@ -172,6 +179,80 @@ const MonitorCreate: FunctionComponent<
   );
   const [error, setError] = useState<string>("");
   const [initialValues, setInitialValues] = useState<JSONObject>({});
+
+  /*
+   * Probe picker state. Probes used to be chosen for you after the monitor was
+   * created (every probe flagged "auto enable on new monitors"), with no way to
+   * say which probe should watch this particular resource. The picker starts
+   * out on exactly that default set, so leaving it alone keeps the old
+   * behaviour and changing it is now possible.
+   */
+  const [probeOptions, setProbeOptions] = useState<Array<DropdownOption>>([]);
+  const [defaultProbeIds, setDefaultProbeIds] = useState<Array<string> | null>(
+    null,
+  );
+  const [isLoadingProbes, setIsLoadingProbes] = useState<boolean>(true);
+
+  const loadProbes: () => Promise<void> = async (): Promise<void> => {
+    try {
+      const [probes, project]: [Array<Probe>, Project | null] =
+        await Promise.all([
+          ProbeUtil.getAllProbes(),
+          ModelAPI.getItem<Project>({
+            modelType: Project,
+            id: ProjectUtil.getCurrentProjectId()!,
+            select: {
+              doNotAddGlobalProbesByDefaultOnNewMonitors: true,
+            },
+          }),
+        ]);
+
+      setProbeOptions(
+        probes
+          .filter((probe: Probe) => {
+            return Boolean(probe._id);
+          })
+          .map((probe: Probe) => {
+            return {
+              label: probe.name?.toString() || "Probe",
+              value: probe._id!.toString(),
+            };
+          }),
+      );
+
+      setDefaultProbeIds(
+        MonitorProbeSelectionUtil.getDefaultSelectedProbeIds({
+          probes: probes.map((probe: Probe) => {
+            return {
+              id: probe._id?.toString() || "",
+              isGlobalProbe: Boolean(probe.isGlobalProbe),
+              shouldAutoEnableProbeOnNewMonitors: Boolean(
+                probe.shouldAutoEnableProbeOnNewMonitors,
+              ),
+            };
+          }),
+          doNotAddGlobalProbesByDefaultOnNewMonitors:
+            project?.doNotAddGlobalProbesByDefaultOnNewMonitors,
+        }),
+      );
+    } catch {
+      /*
+       * Non-fatal. With no probe list the picker is hidden and no "probes"
+       * value is submitted, so the server keeps assigning the defaults exactly
+       * as it did before - creating a monitor must not be blocked by this.
+       */
+      setProbeOptions([]);
+      setDefaultProbeIds(null);
+    }
+
+    setIsLoadingProbes(false);
+  };
+
+  useEffect(() => {
+    loadProbes().catch(() => {
+      setIsLoadingProbes(false);
+    });
+  }, []);
 
   /*
    * "Create monitor from this view" deep link from the metric explorer:
@@ -331,9 +412,116 @@ const MonitorCreate: FunctionComponent<
     });
   };
 
+  /*
+   * "Create monitor for this device" deep link from the Network Device
+   * pages: pre-select the Network Device type, reference the device in the
+   * step, and seed the Recommended Alert Pack criteria (device unreachable
+   * → incident, interface down → incident, utilization / errors → alerts)
+   * so alerting on a device is one review-and-save instead of assembling
+   * the monitor by hand.
+   */
+  const preSeedFromNetworkDeviceLink: (
+    networkDeviceId: string,
+  ) => Promise<void> = async (networkDeviceId: string): Promise<void> => {
+    const monitorSteps: MonitorStepsType = new MonitorStepsType();
+    const monitorStep: MonitorStep | undefined =
+      monitorSteps.data?.monitorStepsInstanceArray[0];
+
+    if (!monitorStep || !monitorStep.data) {
+      return;
+    }
+
+    monitorStep.data.networkDeviceMonitor = {
+      networkDeviceId: networkDeviceId,
+      // Deprecated collection fields — kept for step-shape compatibility.
+      monitorInterfaces: true,
+      collectEndpoints: false,
+      oids: [],
+    };
+
+    let deviceName: string = "";
+
+    try {
+      const device: NetworkDevice | null = await ModelAPI.getItem({
+        modelType: NetworkDevice,
+        id: new ObjectID(networkDeviceId),
+        select: {
+          name: true,
+        },
+      });
+      deviceName = device?.name || "";
+    } catch {
+      // Recoverable: the monitor name just falls back to a generic one.
+    }
+
+    try {
+      const monitorStatusList: ListResult<MonitorStatus> =
+        await ModelAPI.getList({
+          modelType: MonitorStatus,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: {
+            isOperationalState: true,
+            isOfflineState: true,
+          },
+          sort: {},
+        });
+
+      const operationalStatus: MonitorStatus | undefined =
+        monitorStatusList.data.find((status: MonitorStatus) => {
+          return status.isOperationalState;
+        });
+
+      if (operationalStatus?.id) {
+        monitorSteps.setDefaultMonitorStatusId(operationalStatus.id);
+      }
+
+      const offlineStatus: MonitorStatus | undefined =
+        monitorStatusList.data.find((status: MonitorStatus) => {
+          return status.isOfflineState;
+        });
+
+      const recommendedCriteria: Array<MonitorCriteriaInstance> =
+        NetworkDeviceAlertPackUtil.buildCriteriaInstances({
+          downMonitorStatusId: offlineStatus?.id || undefined,
+        });
+
+      if (recommendedCriteria.length > 0) {
+        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+        monitorCriteria.data = {
+          monitorCriteriaInstanceArray: recommendedCriteria,
+        };
+        monitorStep.data.monitorCriteria = monitorCriteria;
+      }
+    } catch {
+      // Recoverable: the user can still pick statuses / criteria manually.
+    }
+
+    setInitialValues({
+      name: deviceName ? `${deviceName} Monitor` : "Network Device Monitor",
+      description: deviceName
+        ? `Alerts on the ${deviceName} network device.`
+        : "Alerts on a registered network device.",
+      monitorType: MonitorType.NetworkDevice,
+      monitorSteps: monitorSteps.toJSON(),
+    });
+  };
+
   useEffect(() => {
     if (monitorTemplateId) {
       fetchMonitorTemplate(new ObjectID(monitorTemplateId));
+      return;
+    }
+
+    const networkDeviceId: string | null =
+      Navigation.getQueryStringByName("networkDeviceId");
+
+    if (networkDeviceId) {
+      setIsLoading(true);
+      preSeedFromNetworkDeviceLink(networkDeviceId).finally(() => {
+        setIsLoading(false);
+      });
       return;
     }
 
@@ -412,14 +600,22 @@ const MonitorCreate: FunctionComponent<
         className="mb-10"
       >
         <div>
-          {isLoading && <PageLoader isVisible={true} />}
+          {(isLoading || isLoadingProbes) && <PageLoader isVisible={true} />}
           {error && <ErrorMessage message={error} />}
-          {!isLoading && !error && (
+          {!isLoading && !isLoadingProbes && !error && (
             <ModelForm<Monitor>
               modelType={Monitor}
               name="Create New Monitor"
               id="create-monitor-form"
-              initialValues={initialValues}
+              initialValues={
+                /*
+                 * The form reads initialValues once, on mount - which is why
+                 * the render above waits for the probe list.
+                 */
+                defaultProbeIds
+                  ? { ...initialValues, probes: defaultProbeIds }
+                  : initialValues
+              }
               fields={[
                 {
                   field: {
@@ -488,6 +684,33 @@ const MonitorCreate: FunctionComponent<
                   },
                 },
                 {
+                  /*
+                   * Not a Monitor column - the selection is carried to the
+                   * server in miscDataProps and turned into MonitorProbe rows
+                   * by MonitorService.onCreateSuccess. overrideField keeps it
+                   * out of the Monitor payload; showEvenIfPermissionDoesNotExist
+                   * is required because Monitor has no "probes" column to
+                   * derive field permissions from.
+                   */
+                  overrideField: {
+                    probes: true,
+                  },
+                  overrideFieldKey: "probes",
+                  showEvenIfPermissionDoesNotExist: true,
+                  stepId: "monitoring-interval",
+                  title: "Probes",
+                  description:
+                    "Which probes should monitor this resource? Leave this empty to use every probe that is set to monitor new monitors by default.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  required: false,
+                  placeholder: "Select Probes",
+                  dropdownOptions: probeOptions,
+                  showIf: () => {
+                    // Nothing to choose from - keep the step uncluttered.
+                    return probeOptions.length > 0;
+                  },
+                },
+                {
                   field: {
                     monitoringInterval: true,
                   },
@@ -536,7 +759,13 @@ const MonitorCreate: FunctionComponent<
                   },
                 },
                 {
-                  title: "Interval",
+                  /*
+                   * Probes live on this step rather than a step of their own:
+                   * doesMonitorTypeHaveInterval is isProbableMonitor, so this
+                   * step already appears for exactly the monitor types that
+                   * are watched by probes.
+                   */
+                  title: "Probes & Interval",
                   id: "monitoring-interval",
                   showIf: (values: FormValues<Monitor>) => {
                     return MonitorTypeHelper.doesMonitorTypeHaveInterval(

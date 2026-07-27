@@ -8,12 +8,19 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
 // Pages
+import NetworkOverview from "../Pages/NetworkDevice/Overview";
 import NetworkDevices from "../Pages/NetworkDevice/Devices";
 import NetworkDeviceArchived from "../Pages/NetworkDevice/Archived";
 import NetworkDeviceDiscovery from "../Pages/NetworkDevice/Discovery";
+import NetworkEndpoints from "../Pages/NetworkDevice/Endpoints";
 import NetworkDeviceTopology from "../Pages/NetworkDevice/Topology";
 import NetworkDeviceLatencyMatrix from "../Pages/NetworkDevice/LatencyMatrix";
 import NetworkDeviceOverview from "../Pages/NetworkDevice/View/Index";
+import NetworkDeviceInterfaces from "../Pages/NetworkDevice/View/Interfaces";
+import NetworkDeviceMetrics from "../Pages/NetworkDevice/View/Metrics";
+import NetworkDeviceTraffic from "../Pages/NetworkDevice/View/Traffic";
+import NetworkDeviceMonitors from "../Pages/NetworkDevice/View/Monitors";
+import NetworkDeviceLogs from "../Pages/NetworkDevice/View/Logs";
 import NetworkDeviceOwners from "../Pages/NetworkDevice/View/Owners";
 import NetworkDeviceSettingsOwnerRules from "../Pages/NetworkDevice/Settings/OwnerRules";
 import NetworkDeviceSettingsLabelRules from "../Pages/NetworkDevice/Settings/LabelRules";
@@ -32,6 +39,15 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkDevices
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_DEVICES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={NetworkDeviceRoutePath[PageMap.NETWORK_OVERVIEW] || ""}
+          element={
+            <NetworkOverview
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_OVERVIEW] as Route}
             />
           }
         />
@@ -71,6 +87,15 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkDeviceDiscovery
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_DEVICE_DISCOVERY] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_ENDPOINTS] || ""}
+          element={
+            <NetworkEndpoints
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_ENDPOINTS] as Route}
             />
           }
         />
@@ -117,6 +142,68 @@ const NetworkDeviceRoutes: FunctionComponent<ComponentProps> = (
             <NetworkDeviceOverview
               {...props}
               pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_DEVICE_VIEW_INTERFACES,
+          )}
+          element={
+            <NetworkDeviceInterfaces
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_INTERFACES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_DEVICE_VIEW_METRICS,
+          )}
+          element={
+            <NetworkDeviceMetrics
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_METRICS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_DEVICE_VIEW_TRAFFIC,
+          )}
+          element={
+            <NetworkDeviceTraffic
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_TRAFFIC] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.NETWORK_DEVICE_VIEW_MONITORS,
+          )}
+          element={
+            <NetworkDeviceMonitors
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_MONITORS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_DEVICE_VIEW_LOGS)}
+          element={
+            <NetworkDeviceLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_DEVICE_VIEW_LOGS] as Route}
             />
           }
         />

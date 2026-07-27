@@ -10,6 +10,7 @@ export enum PermissionGroup {
   Incident = "Incident",
   Alert = "Alert",
   Monitor = "Monitor",
+  SLO = "SLO",
   StatusPage = "Status Page",
   ScheduledMaintenance = "Scheduled Maintenance",
   OnCallDutyPolicy = "On-Call Duty Policy",
@@ -1188,6 +1189,36 @@ enum Permission {
   EditNetworkDeviceDiscoveryScan = "EditNetworkDeviceDiscoveryScan",
   ReadNetworkDeviceDiscoveryScan = "ReadNetworkDeviceDiscoveryScan",
 
+  CreateNetworkSite = "CreateNetworkSite",
+  DeleteNetworkSite = "DeleteNetworkSite",
+  EditNetworkSite = "EditNetworkSite",
+  ReadNetworkSite = "ReadNetworkSite",
+
+  CreateNetworkSiteType = "CreateNetworkSiteType",
+  DeleteNetworkSiteType = "DeleteNetworkSiteType",
+  EditNetworkSiteType = "EditNetworkSiteType",
+  ReadNetworkSiteType = "ReadNetworkSiteType",
+
+  CreateNetworkEndpoint = "CreateNetworkEndpoint",
+  DeleteNetworkEndpoint = "DeleteNetworkEndpoint",
+  EditNetworkEndpoint = "EditNetworkEndpoint",
+  ReadNetworkEndpoint = "ReadNetworkEndpoint",
+
+  CreateNetworkSiteStatusTimeline = "CreateNetworkSiteStatusTimeline",
+  DeleteNetworkSiteStatusTimeline = "DeleteNetworkSiteStatusTimeline",
+  EditNetworkSiteStatusTimeline = "EditNetworkSiteStatusTimeline",
+  ReadNetworkSiteStatusTimeline = "ReadNetworkSiteStatusTimeline",
+
+  CreateNetworkSiteLink = "CreateNetworkSiteLink",
+  DeleteNetworkSiteLink = "DeleteNetworkSiteLink",
+  EditNetworkSiteLink = "EditNetworkSiteLink",
+  ReadNetworkSiteLink = "ReadNetworkSiteLink",
+
+  CreateNetworkSiteAssignmentRule = "CreateNetworkSiteAssignmentRule",
+  DeleteNetworkSiteAssignmentRule = "DeleteNetworkSiteAssignmentRule",
+  EditNetworkSiteAssignmentRule = "EditNetworkSiteAssignmentRule",
+  ReadNetworkSiteAssignmentRule = "ReadNetworkSiteAssignmentRule",
+
   CreatePodmanHost = "CreatePodmanHost",
   DeletePodmanHost = "DeletePodmanHost",
   EditPodmanHost = "EditPodmanHost",
@@ -1641,6 +1672,30 @@ enum Permission {
   DeleteIncidentSla = "DeleteIncidentSla",
   EditIncidentSla = "EditIncidentSla",
   ReadIncidentSla = "ReadIncidentSla",
+
+  // Service Level Objective Permissions
+  CreateServiceLevelObjective = "CreateServiceLevelObjective",
+  DeleteServiceLevelObjective = "DeleteServiceLevelObjective",
+  EditServiceLevelObjective = "EditServiceLevelObjective",
+  ReadServiceLevelObjective = "ReadServiceLevelObjective",
+
+  // Service Level Objective Burn Rate Rule Permissions
+  CreateServiceLevelObjectiveBurnRateRule = "CreateServiceLevelObjectiveBurnRateRule",
+  DeleteServiceLevelObjectiveBurnRateRule = "DeleteServiceLevelObjectiveBurnRateRule",
+  EditServiceLevelObjectiveBurnRateRule = "EditServiceLevelObjectiveBurnRateRule",
+  ReadServiceLevelObjectiveBurnRateRule = "ReadServiceLevelObjectiveBurnRateRule",
+
+  // Service Level Objective Owner User Permissions
+  CreateServiceLevelObjectiveOwnerUser = "CreateServiceLevelObjectiveOwnerUser",
+  DeleteServiceLevelObjectiveOwnerUser = "DeleteServiceLevelObjectiveOwnerUser",
+  EditServiceLevelObjectiveOwnerUser = "EditServiceLevelObjectiveOwnerUser",
+  ReadServiceLevelObjectiveOwnerUser = "ReadServiceLevelObjectiveOwnerUser",
+
+  // Service Level Objective Owner Team Permissions
+  CreateServiceLevelObjectiveOwnerTeam = "CreateServiceLevelObjectiveOwnerTeam",
+  DeleteServiceLevelObjectiveOwnerTeam = "DeleteServiceLevelObjectiveOwnerTeam",
+  EditServiceLevelObjectiveOwnerTeam = "EditServiceLevelObjectiveOwnerTeam",
+  ReadServiceLevelObjectiveOwnerTeam = "ReadServiceLevelObjectiveOwnerTeam",
 
   /*
    * Wildcard permissions covering all models marked @OperationalResource().
@@ -7568,6 +7623,242 @@ export class PermissionHelper {
         title: "Read Network Device Discovery Scan",
         description:
           "This permission can read Network Device Discovery Scan of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSite,
+        title: "Create Network Site",
+        description: "This permission can create Network Site in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSite,
+        title: "Delete Network Site",
+        description: "This permission can delete Network Site of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSite,
+        title: "Edit Network Site",
+        description: "This permission can edit Network Site of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSite,
+        title: "Read Network Site",
+        description: "This permission can read Network Site of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSiteType,
+        title: "Create Network Site Type",
+        description:
+          "This permission can create Network Site Type in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSiteType,
+        title: "Delete Network Site Type",
+        description:
+          "This permission can delete Network Site Type of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSiteType,
+        title: "Edit Network Site Type",
+        description:
+          "This permission can edit Network Site Type of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSiteType,
+        title: "Read Network Site Type",
+        description:
+          "This permission can read Network Site Type of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkEndpoint,
+        title: "Create Network Endpoint",
+        description:
+          "This permission can create Network Endpoint in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkEndpoint,
+        title: "Delete Network Endpoint",
+        description:
+          "This permission can delete Network Endpoint of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkEndpoint,
+        title: "Edit Network Endpoint",
+        description:
+          "This permission can edit Network Endpoint of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkEndpoint,
+        title: "Read Network Endpoint",
+        description:
+          "This permission can read Network Endpoint of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSiteStatusTimeline,
+        title: "Create Network Site Status Timeline",
+        description:
+          "This permission can create Network Site Status Timeline in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSiteStatusTimeline,
+        title: "Delete Network Site Status Timeline",
+        description:
+          "This permission can delete Network Site Status Timeline of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSiteStatusTimeline,
+        title: "Edit Network Site Status Timeline",
+        description:
+          "This permission can edit Network Site Status Timeline of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSiteStatusTimeline,
+        title: "Read Network Site Status Timeline",
+        description:
+          "This permission can read Network Site Status Timeline of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSiteLink,
+        title: "Create Network Site Link",
+        description:
+          "This permission can create Network Site Link in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSiteLink,
+        title: "Delete Network Site Link",
+        description:
+          "This permission can delete Network Site Link of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSiteLink,
+        title: "Edit Network Site Link",
+        description:
+          "This permission can edit Network Site Link of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSiteLink,
+        title: "Read Network Site Link",
+        description:
+          "This permission can read Network Site Link of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateNetworkSiteAssignmentRule,
+        title: "Create Network Site Assignment Rule",
+        description:
+          "This permission can create Network Site Assignment Rule in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteNetworkSiteAssignmentRule,
+        title: "Delete Network Site Assignment Rule",
+        description:
+          "This permission can delete Network Site Assignment Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditNetworkSiteAssignmentRule,
+        title: "Edit Network Site Assignment Rule",
+        description:
+          "This permission can edit Network Site Assignment Rule of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadNetworkSiteAssignmentRule,
+        title: "Read Network Site Assignment Rule",
+        description:
+          "This permission can read Network Site Assignment Rule of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -13816,6 +14107,164 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Incident,
+      },
+
+      // Service Level Objective Permissions
+      {
+        permission: Permission.CreateServiceLevelObjective,
+        title: "Create Service Level Objective",
+        description:
+          "Permission to create Service Level Objectives (SLOs) in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjective,
+        title: "Delete Service Level Objective",
+        description:
+          "Permission to delete Service Level Objectives (SLOs) of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjective,
+        title: "Edit Service Level Objective",
+        description:
+          "Permission to edit Service Level Objectives (SLOs) of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjective,
+        title: "Read Service Level Objective",
+        description:
+          "Permission to read Service Level Objectives (SLOs) of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Burn Rate Rule Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveBurnRateRule,
+        title: "Create SLO Burn Rate Rule",
+        description:
+          "Permission to create SLO Burn Rate Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveBurnRateRule,
+        title: "Delete SLO Burn Rate Rule",
+        description:
+          "Permission to delete SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveBurnRateRule,
+        title: "Edit SLO Burn Rate Rule",
+        description: "Permission to edit SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveBurnRateRule,
+        title: "Read SLO Burn Rate Rule",
+        description: "Permission to read SLO Burn Rate Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Owner User Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveOwnerUser,
+        title: "Create SLO User Owner",
+        description: "Permission to create SLO User Owners in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveOwnerUser,
+        title: "Delete SLO User Owner",
+        description: "Permission to delete SLO User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveOwnerUser,
+        title: "Edit SLO User Owner",
+        description: "Permission to edit SLO User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveOwnerUser,
+        title: "Read SLO User Owner",
+        description: "Permission to read SLO User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+
+      // Service Level Objective Owner Team Permissions
+      {
+        permission: Permission.CreateServiceLevelObjectiveOwnerTeam,
+        title: "Create SLO Team Owner",
+        description: "Permission to create SLO Team Owners in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.DeleteServiceLevelObjectiveOwnerTeam,
+        title: "Delete SLO Team Owner",
+        description: "Permission to delete SLO Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.EditServiceLevelObjectiveOwnerTeam,
+        title: "Edit SLO Team Owner",
+        description: "Permission to edit SLO Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
+      },
+      {
+        permission: Permission.ReadServiceLevelObjectiveOwnerTeam,
+        title: "Read SLO Team Owner",
+        description: "Permission to read SLO Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.SLO,
       },
 
       // Operational Resource Wildcard Permissions

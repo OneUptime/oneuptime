@@ -155,6 +155,24 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \\
 
 > **Note:** Managed Kubernetes services (EKS, GKE, AKS) typically do not expose control plane metrics. Only enable this for self-managed clusters.
 
+### Enable Cost Observability
+
+See what every namespace, workload, and pod actually costs — including idle capacity and request-vs-usage efficiency — on this cluster's **Costs** page:
+
+\`\`\`bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
+  --namespace oneuptime-agent \\
+  --reuse-values \\
+  --set cost.enabled=true
+\`\`\`
+
+That alone is a complete install: the chart bundles the open-source OpenCost engine (plus a minimal, dedicated Prometheus it needs) and prices your nodes and volumes from your cloud provider's public list prices — no credentials required. Two small extra pods; first data appears after the first closed hourly window.
+
+- **Already running Kubecost or OpenCost?** Point the agent at it instead and nothing is bundled: add \`--set cost.engine.url=http://opencost.opencost.svc.cluster.local:9003\` (or your Kubecost service).
+- **On-prem / bare metal?** Set a rate card with \`--set cost.opencost.customPricing.enabled=true\` (values in USD per resource-hour — see the chart's \`values.yaml\`).
+
+Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).
+
 ## Upgrading the Agent
 
 \`\`\`bash
@@ -190,6 +208,7 @@ The OneUptime Kubernetes Agent collects:
 | **Service Graph** *(via eBPF)* | Caller → callee request rate, latency, and error edges — drives the service map view |
 | **Network Flow Metrics** *(via eBPF)* | Pod-to-pod TCP/UDP byte and packet counters with k8s metadata |
 | **TCP Stats** *(via eBPF)* | Node-level RTT, failed-connection, and retransmit counters |
+| **Workload Costs** *(opt-in, \`cost.enabled=true\`)* | Pre-priced spend per namespace/workload/pod with idle and efficiency, plus node/PV hourly cost metrics — powers the Costs pages and the Kubernetes Cost dashboard |
 
 ## Application Traces & HTTP Metrics via eBPF (on by default)
 

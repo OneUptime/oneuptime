@@ -2,9 +2,9 @@
 
 ## Oversikt
 
-OneUptime Kubernetes-agenten er et ferdigpakket Helm-chart som installerer en OpenTelemetry-basert collector-pipeline på klyngen din. Den leverer node-, pod-, container- og klyngemetrikker; Kubernetes-hendelser; pod-logger; og — med eBPF slått på som standard — applikasjonssporinger (traces), HTTP RED-metrikker, service-graf-data og nettverksflytmetrikker pod-til-pod. Ingen kodeendringer, ingen SDK-er, én `helm install`.
+OneUptime Kubernetes-agenten er et ferdigpakket Helm-chart som installerer en OpenTelemetry-basert collector-pipeline på klyngen din. Den leverer node-, pod-, container- og klyngemetrikker; Kubernetes-hendelser; pod-logger; og — med eBPF slått på som standard — applikasjonssporinger (traces), HTTP RED-metrikker, service-graf-data og nettverksflytmetrikker pod-til-pod. Med `cost.enabled=true` leverer den også **kostnadsallokeringer** per arbeidslast (forbruk per namespace/arbeidslast/pod, ledig kapasitet, effektivitet). Ingen kodeendringer, ingen SDK-er, én `helm install`.
 
-Denne siden er **installasjonsveiledningen**. For å konfigurere Kubernetes-monitorer og varsler oppå dataene agenten samler inn, se [Kubernetes-agent (monitorer)](/docs/monitor/kubernetes-agent).
+Denne siden er **installasjonsveiledningen**. For å konfigurere Kubernetes-monitorer og varsler oppå dataene agenten samler inn, se [Kubernetes-agent (monitorer)](/docs/monitor/kubernetes-agent). For kostnadsobservabilitet, se [Kubernetes-kostnadsobservabilitet](/docs/telemetry/kubernetes-cost).
 
 ## Forutsetninger
 
@@ -297,6 +297,21 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 > Administrerte Kubernetes-tjenester (EKS, GKE, AKS) eksponerer vanligvis ikke control plane-metrikker. Aktiver dette kun for selvadministrerte klynger.
 
+### Aktiver kostnadsobservabilitet
+
+Se hva hvert namespace, hver arbeidslast og hver pod faktisk koster — inkludert ledig kapasitet og request-mot-forbruk-effektivitet — på klyngens **Costs**-side:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set cost.enabled=true
+```
+
+Det alene er en komplett installasjon: chartet bunter den åpne kildekode-motoren [OpenCost](https://opencost.io) (pluss en minimal, dedikert Prometheus den trenger) og prissetter nodene og volumene dine fra skyleverandørens offentlige listepriser — ingen påloggingsinformasjon nødvendig. To små ekstra pods; de første dataene vises etter det første lukkede timevinduet. Kjører du allerede Kubecost eller OpenCost? Legg til `--set cost.engine.url=<its service URL>` i stedet, så buntes ingenting. On-prem-klynger kan sette en prisliste via `cost.opencost.customPricing`.
+
+Fullstendig veiledning, inkludert on-prem-prissetting og feilsøking: [Kubernetes-kostnadsobservabilitet](/docs/telemetry/kubernetes-cost).
+
 ### Automatisk tagging med prosjektetiketter
 
 Ethvert ressursattributt med prefikset `oneuptime.label.` forfremmes til en prosjekt-Label og festes til klyngen, tjenestene og vertene som sendes fra denne agenten. Mønster: `oneuptime.label.<dimension>=<value>` blir en etikett med navnet `<dimension>:<value>`.
@@ -364,6 +379,7 @@ kubectl delete namespace oneuptime-agent
 | **Service-graf** _(via eBPF)_                           | Anroper → anropt forespørselsrate, latens og feilkanter — driver service-kartvisningen                                                   |
 | **Nettverksflytmetrikker** _(via eBPF)_                 | TCP/UDP byte- og pakketellere pod-til-pod med k8s-metadata                                                                               |
 | **TCP-statistikk** _(via eBPF)_                         | RTT på node-nivå, tellere for mislykkede tilkoblinger og retransmisjoner                                                                 |
+| **Arbeidslastkostnader** _(opt-in, `cost.enabled=true`)_ | Forhåndspriset forbruk per namespace/arbeidslast/pod med ledig kapasitet og effektivitet, pluss timekostnadsmetrikker for node/PV — se [Kubernetes-kostnadsobservabilitet](/docs/telemetry/kubernetes-cost) |
 
 ## Applikasjonssporinger og HTTP-metrikker via eBPF (på som standard)
 
@@ -558,6 +574,7 @@ Disse er **av som standard** nettopp fordi de legger til belastning — aktiver 
 | `kubeStateMetrics.enabled`                                | CrashLoop- / ImagePull- / scheduling-reason-metrikker (legger til en KSM Deployment + skrape) |
 | `ebpf.features.networkInterZoneMetrics`                   | Dobler kardinaliteten for nettverksflytmetrikker                                              |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Ekstra Prometheus-skrapejobber                                                                |
+| `cost.enabled`                                            | Kostnadsobservabilitet for arbeidslaster (bunter OpenCost + en liten Prometheus; timekostnadsrader + en stramt tillatelseslistet metrikk-skrape — beskjeden ingest, to ekstra pods) |
 
 ### Spak 6 — Sample sporinger i stedet for å droppe dem
 

@@ -23,6 +23,7 @@ import {
 } from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import BadRequestException from "../../Types/Exception/BadRequestException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
@@ -406,11 +407,26 @@ export default class BaseAPI<
     delete (item as any)["createdAt"];
     delete (item as any)["updatedAt"];
 
-    await this.service.updateOneById({
+    const numberOfDocsAffected: number = await this.service.updateOneById({
       id: new ObjectID(objectIdString),
       data: item,
       props: await CommonAPI.getDatabaseCommonInteractionProps(req),
     });
+
+    /*
+     * The permission layer narrows the update query after we build it (tenant
+     * scope, access-control labels, owned scope), so it is possible to match
+     * no rows at all. Reporting 200 for that told the client the edit was
+     * saved when nothing was written - the change then "disappeared" on the
+     * next page load with no error anywhere.
+     */
+    if (numberOfDocsAffected === 0) {
+      throw new NotAuthorizedException(
+        `Unable to update this ${(
+          new this.entityType().singularName || "item"
+        ).toLowerCase()}. It either does not exist, has been deleted, or you do not have permission to update it.`,
+      );
+    }
 
     return Response.sendEmptySuccessResponse(req, res);
   }

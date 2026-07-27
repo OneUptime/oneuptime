@@ -26,16 +26,45 @@ export type StatementParameter = {
   value: RecordValue;
 };
 
+/**
+ * A table-qualified column reference (`table.column`) bound as TWO
+ * Identifier parameters. ClickHouse treats a dotted string bound as a
+ * single Identifier parameter as one quoted identifier (`` `t.col` ``),
+ * so the qualifier and the column must be bound separately.
+ *
+ * Qualification exists so a WHERE built by
+ * StatementGenerator.toWhereStatement can reference the real table
+ * column even when the surrounding SELECT aliases an expression to the
+ * same name — ClickHouse substitutes SELECT aliases into same-level
+ * unqualified WHERE references (an aggregate alias there is an
+ * ILLEGAL_AGGREGATION error; any other alias silently changes the
+ * filter), while qualified references always resolve to the table
+ * column.
+ */
+export class QualifiedColumn {
+  public constructor(
+    public readonly tableAlias: string,
+    public readonly column: string,
+  ) {}
+}
+
 export class Statement implements BaseQueryParams {
   public constructor(
     private strings: string[] = [""],
-    private values: Array<StatementParameter | string> = [],
+    private values: Array<StatementParameter | string | QualifiedColumn> = [],
   ) {}
 
   public get query(): string {
     let query: string = this.strings.reduce(
       (prev: string, curr: string, i: integer) => {
-        const param: StatementParameter | string = this.values[i - 1]!;
+        const param: StatementParameter | string | QualifiedColumn =
+          this.values[i - 1]!;
+
+        if (param instanceof QualifiedColumn) {
+          return (
+            prev + `{p${i - 1}_t:Identifier}.{p${i - 1}_c:Identifier}` + curr
+          );
+        }
 
         const dataType: string =
           typeof param === "string"
@@ -64,6 +93,12 @@ export class Statement implements BaseQueryParams {
     const returnObject: Record<string, unknown> = {};
 
     for (const v of this.values) {
+      if (v instanceof QualifiedColumn) {
+        returnObject[`p${index}_t`] = v.tableAlias;
+        returnObject[`p${index}_c`] = v.column;
+        index++;
+        continue;
+      }
       const finalValue: RecordValue | Array<RecordValue> =
         this.serializseValue(v);
       returnObject[`p${index}`] = finalValue;
@@ -228,11 +263,12 @@ export class Statement implements BaseQueryParams {
  * ClickHouse SQL template literal tag.
  *
  * String substitution values are interpereted as Identifiers (e.g. table or column names),
+ * QualifiedColumn values compile to `table.column` identifier pairs,
  * other substitution values must be StatementParameters.
  */
 export function SQL(
   strings: TemplateStringsArray,
-  ...values: Array<StatementParameter | string>
+  ...values: Array<StatementParameter | string | QualifiedColumn>
 ): Statement {
   return new Statement(strings.slice(0), values.slice(0));
 }

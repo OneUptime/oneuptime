@@ -28,6 +28,7 @@ import MonitorViewLogs from "../Pages/Monitor/View/Logs";
 
 import MonitorViewCriteria from "../Pages/Monitor/View/Criteria";
 import MonitorViewStatusTimeline from "../Pages/Monitor/View/StatusTimeline";
+import MonitorViewSlos from "../Pages/Monitor/View/Slos";
 import MonitorIncidents from "../Pages/Monitor/View/Incidents";
 
 import MonitorAlerts from "../Pages/Monitor/View/Alerts";
@@ -359,6 +360,16 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_SLOS)}
+          element={
+            <MonitorViewSlos
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_SLOS] as Route}
             />
           }
         />

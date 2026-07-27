@@ -94,6 +94,9 @@ import AddInstanceIdToGlobalConfig from "./AddInstanceIdToGlobalConfig";
 import AddMetricEntityMinuteAggregateMaterializedViews from "./AddMetricEntityMinuteAggregateMaterializedViews";
 import CloseOrphanedMonitorStatusTimelineRows from "./CloseOrphanedMonitorStatusTimelineRows";
 import MigrateMetricAggregatesToStrictSchema from "./MigrateMetricAggregatesToStrictSchema";
+import AddInterfaceIndexColumnsToNetworkFlow from "./AddInterfaceIndexColumnsToNetworkFlow";
+import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
+import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -268,6 +271,30 @@ const DataMigrations: Array<DataMigrationBase> = [
    * model-owned metric target tables/materialized views.
    */
   new MigrateMetricAggregatesToStrictSchema(),
+  /*
+   * Adds inputInterfaceIndex / outputInterfaceIndex to NetworkFlow so flow
+   * records can be attributed to the interfaces they crossed. Existing
+   * rows read back 0 ("unknown"). Idempotent: skips columns that exist.
+   */
+  new AddInterfaceIndexColumnsToNetworkFlow(),
+  /*
+   * Device-owned polling: copies collection options (interface walks,
+   * endpoint collection, health OIDs) from Network Device monitor steps
+   * onto the referenced devices, and deletes those monitors' MonitorProbe
+   * rows so probes stop executing them. Idempotent: union/merge writes and
+   * already-deleted rows are no-ops on re-run.
+   */
+  new MoveNetworkDeviceMonitorCollectionToDevices(),
+  /*
+   * Site types became a per-project lookup table (NetworkSiteType) instead of a
+   * hardcoded enum. Seeds the default types into every existing project and
+   * points each site's networkSiteTypeId at the type matching its legacy
+   * siteType string (creating a type for any string the project has no match
+   * for). This is the only code that reads the deprecated NetworkSite.siteType
+   * column, which a follow-up PR drops. Idempotent: only sites still missing a
+   * networkSiteTypeId are touched.
+   */
+  new BackfillNetworkSiteTypes(),
 ];
 
 export default DataMigrations;

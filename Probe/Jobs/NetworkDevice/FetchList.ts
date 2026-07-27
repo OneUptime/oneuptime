@@ -1,0 +1,180 @@
+import { PROBE_INGEST_URL } from "../../Config";
+import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
+import ProxyConfig from "../../Utils/ProxyConfig";
+import SnmpMonitor from "../../Utils/Monitors/MonitorTypes/SnmpMonitor";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPMethod from "Common/Types/API/HTTPMethod";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
+import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import API from "Common/Utils/API";
+import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import BasicCron from "Common/Server/Utils/BasicCron";
+import logger from "Common/Server/Utils/Logger";
+
+/*
+ * The probe's half of device-owned polling: every minute, fetch the
+ * NetworkDevices assigned to this probe that are due for a walk (the
+ * server claims them atomically and hydrates their SNMP credentials into
+ * a concrete config), walk each one, and report the results back.
+ *
+ * Monitors play no part here — Network Device monitors are evaluated
+ * server-side from these walk results. A registered device gets polled,
+ * inventoried, and charted even when nothing alerts on it.
+ */
+
+/*
+ * Walks run concurrently in small batches: one slow device must not
+ * starve the rest of the batch, but a big parallel burst of SNMP table
+ * walks from one probe process would compete for sockets and CPU.
+ */
+const DEVICE_POLL_CONCURRENCY: number = 5;
+
+export interface DevicePollConfig {
+  networkDeviceId: string;
+  projectId: string | undefined;
+  collectEndpoints: boolean;
+  snmpMonitor: MonitorStepSnmpMonitor;
+}
+
+const InitJob: VoidFunction = (): void => {
+  BasicCron({
+    jobName: "Probe:NetworkDeviceFetchList",
+    options: {
+      schedule: EVERY_MINUTE,
+      runOnStartup: true,
+    },
+    runFunction: async () => {
+      try {
+        await fetchAndPollDevices();
+      } catch (err) {
+        logger.error("Network device poll fetch failed");
+        logger.error(err);
+      }
+    },
+  });
+};
+
+// Exported for tests: fetches this probe's due devices and polls them.
+export async function fetchAndPollDevices(): Promise<void> {
+  const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+    "/probe/network-device/list",
+  );
+
+  const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.fetch<JSONObject>({
+      method: HTTPMethod.POST,
+      url: listUrl,
+      data: {
+        ...ProbeAPIRequest.getDefaultRequestBody(),
+      },
+      headers: {},
+      options: { ...ProxyConfig.getRequestProxyAgents(listUrl) },
+    });
+
+  const devices: Array<DevicePollConfig> = (
+    ((result.data as JSONObject)?.["devices"] as JSONArray) || []
+  ).map((device: JSONObject) => {
+    return device as unknown as DevicePollConfig;
+  });
+
+  if (devices.length === 0) {
+    return;
+  }
+
+  logger.debug(`Polling ${devices.length} network device(s).`);
+
+  for (
+    let batchStart: number = 0;
+    batchStart < devices.length;
+    batchStart += DEVICE_POLL_CONCURRENCY
+  ) {
+    const batch: Array<DevicePollConfig> = devices.slice(
+      batchStart,
+      batchStart + DEVICE_POLL_CONCURRENCY,
+    );
+
+    await Promise.allSettled(
+      batch.map((device: DevicePollConfig) => {
+        return pollDevice(device);
+      }),
+    );
+  }
+}
+
+// Exported for tests: walks one device and reports the outcome back.
+export async function pollDevice(device: DevicePollConfig): Promise<void> {
+  if (!device.networkDeviceId || !device.snmpMonitor?.hostname) {
+    logger.warn(
+      `Skipping device poll: missing device id or hostname in poll config.`,
+    );
+    return;
+  }
+
+  let snmpResponse: SnmpMonitorResponse;
+
+  try {
+    const response: SnmpMonitorResponse | null = await SnmpMonitor.query(
+      device.snmpMonitor,
+      {
+        timeout: device.snmpMonitor.timeout || 5000,
+        /*
+         * ARP/FDB endpoint collection rides the interface walk. Strictly
+         * OPT-IN (extra SNMP table walks per poll): only an explicit true
+         * from the device's collectEndpoints column enables it.
+         */
+        collectEndpoints: device.collectEndpoints === true,
+      },
+    );
+
+    if (!response) {
+      // The query util retries internally; null means it gave up entirely.
+      snmpResponse = buildFailureResponse("SNMP query returned no response");
+    } else {
+      snmpResponse = response;
+    }
+  } catch (err) {
+    snmpResponse = buildFailureResponse((err as Error).message || String(err));
+  }
+
+  const ingestUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+    "/probe/network-device/response/ingest",
+  );
+
+  try {
+    await API.fetch<JSONObject>({
+      method: HTTPMethod.POST,
+      url: ingestUrl,
+      data: {
+        ...ProbeAPIRequest.getDefaultRequestBody(),
+        networkDeviceId: device.networkDeviceId,
+        snmpResponse: snmpResponse as unknown as JSONObject,
+        monitoredAt: new Date().toISOString(),
+      },
+      headers: {},
+      options: { ...ProxyConfig.getRequestProxyAgents(ingestUrl) },
+    });
+  } catch (err) {
+    logger.error(
+      `Failed to report walk for device ${device.networkDeviceId}: ${err}`,
+    );
+  }
+}
+
+/*
+ * A reachability-failure response the server can ingest like any other
+ * walk: it keeps lastSeenAt untouched (isOnline false) and lets monitors
+ * alerting on the device fire their "device unreachable" criteria.
+ */
+function buildFailureResponse(failureCause: string): SnmpMonitorResponse {
+  return {
+    isOnline: false,
+    responseTimeInMs: 0,
+    failureCause: failureCause,
+    oidResponses: [],
+  };
+}
+
+export default InitJob;

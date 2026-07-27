@@ -1,4 +1,5 @@
 import OTelIngestAPI from "./API/OTelIngest";
+import KubernetesCostIngestAPI from "./API/KubernetesCostIngest";
 import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
@@ -8,6 +9,7 @@ import TelemetryWriterAPI from "./API/TelemetryWriter";
 import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
 import ProbeIngestMonitorAPI from "./API/ProbeIngest/Monitor";
 import ProbeIngestDiscoveryScanAPI from "./API/ProbeIngest/DiscoveryScan";
+import ProbeIngestNetworkDevicePollAPI from "./API/ProbeIngest/NetworkDevicePoll";
 import ProbeIngestAPI from "./API/ProbeIngest/Probe";
 import ProbeIngestSyslogAPI from "./API/ProbeIngest/Syslog";
 import ProbeIngestNetworkFlowAPI from "./API/ProbeIngest/NetworkFlow";
@@ -67,6 +69,7 @@ const TelemetryFeatureSet: FeatureSet = {
        * the shared middleware stack from StartServer (body parsers, headers, etc.).
        */
       app.use(TELEMETRY_PREFIXES, OTelIngestAPI);
+      app.use(TELEMETRY_PREFIXES, KubernetesCostIngestAPI);
       app.use(TELEMETRY_PREFIXES, MetricsAPI);
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
       app.use(TELEMETRY_PREFIXES, FluentAPI);
@@ -95,6 +98,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestRegisterAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestMonitorAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestDiscoveryScanAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkDevicePollAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestSyslogAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkFlowAPI);

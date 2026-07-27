@@ -17,6 +17,7 @@ import logger from "Common/Server/Utils/Logger";
 // Repairs net-snmp's DES privacy on OpenSSL 3 — must load with net-snmp.
 import "../Utils/Snmp/SnmpDesPrivacyCompat";
 import snmp from "net-snmp";
+import dgram from "dgram";
 
 /*
  * Standard SNMPv1 generic-trap numbers → SNMPv2 notification OIDs
@@ -53,6 +54,19 @@ export default class SnmpTrapReceiver {
       return;
     }
 
+    // IPv4 receiver — the primary; bind failures are loud errors.
+    SnmpTrapReceiver.startReceiver("udp4");
+
+    /*
+     * IPv6 receiver — best effort. net-snmp supports one transport per
+     * receiver instance, so dual-stack reception means a second receiver
+     * on the same port. A host without IPv6 fails this bind; that is
+     * logged as a warning and IPv4 reception continues unaffected.
+     */
+    SnmpTrapReceiver.startReceiver("udp6");
+  }
+
+  private static startReceiver(transport: "udp4" | "udp6"): void {
     let hasLoggedBindFailure: boolean = false;
 
     try {
@@ -61,7 +75,22 @@ export default class SnmpTrapReceiver {
           port: PROBE_SNMP_TRAP_RECEIVER_PORT,
           disableAuthorization: true, // accept any community for v1/v2c
           includeAuthentication: true, // surface the community string
-          transport: "udp4",
+          transport: transport,
+          /*
+           * net-snmp creates its sockets with dgram.createSocket(transport),
+           * which for udp6 binds the wildcard address dual-stack. On Linux a
+           * dual-stack [::] bind collides (EADDRINUSE) with the udp4
+           * receiver already bound to 0.0.0.0 on the same port, so inject a
+           * dgram module that makes the udp6 socket v6-only.
+           */
+          dgramModule: {
+            createSocket: (type: dgram.SocketType): dgram.Socket => {
+              return dgram.createSocket({
+                type: type,
+                ipv6Only: type === "udp6",
+              });
+            },
+          },
         },
         (error: Error | null, notification: JSONObject | null) => {
           if (error) {
@@ -71,19 +100,33 @@ export default class SnmpTrapReceiver {
 
             /*
              * Socket-level bind failures (no privilege for ports < 1024
-             * outside Docker, or the port is taken) arrive through this
-             * callback. Say clearly — once — that traps are off and how
-             * to fix it; polling is unaffected either way.
+             * outside Docker, the port is taken, or — for udp6 — the host
+             * has no IPv6) arrive through this callback. Say clearly —
+             * once — what is off and how to fix it; polling is unaffected
+             * either way.
              */
-            if (errorCode === "EACCES" || errorCode === "EADDRINUSE") {
+            if (
+              errorCode === "EACCES" ||
+              errorCode === "EADDRINUSE" ||
+              errorCode === "EAFNOSUPPORT" ||
+              errorCode === "EADDRNOTAVAIL"
+            ) {
               if (!hasLoggedBindFailure) {
                 hasLoggedBindFailure = true;
-                logger.error(
-                  `SNMP trap receiver could not bind UDP port ${PROBE_SNMP_TRAP_RECEIVER_PORT} (${errorCode}). ` +
-                    `Traps will not be received; monitoring checks are unaffected. ` +
-                    `Fix: run the probe with privileges for low ports, or set PROBE_SNMP_TRAP_RECEIVER_PORT to a port above 1024, ` +
-                    `or set PROBE_SNMP_TRAP_RECEIVER_ENABLED=false to silence this.`,
-                );
+
+                if (transport === "udp6") {
+                  logger.warn(
+                    `SNMP trap receiver could not bind udp6 port ${PROBE_SNMP_TRAP_RECEIVER_PORT} (${errorCode}); ` +
+                      `this host may not have IPv6. IPv6 traps will not be received; IPv4 reception is unaffected.`,
+                  );
+                } else {
+                  logger.error(
+                    `SNMP trap receiver could not bind UDP port ${PROBE_SNMP_TRAP_RECEIVER_PORT} (${errorCode}). ` +
+                      `Traps will not be received; monitoring checks are unaffected. ` +
+                      `Fix: run the probe with privileges for low ports, or set PROBE_SNMP_TRAP_RECEIVER_PORT to a port above 1024, ` +
+                      `or set PROBE_SNMP_TRAP_RECEIVER_ENABLED=false to silence this.`,
+                  );
+                }
               }
               return;
             }
@@ -92,7 +135,9 @@ export default class SnmpTrapReceiver {
              * Per-message parse failures are routine on an open UDP port
              * (scanners, malformed agents) — log and keep listening.
              */
-            logger.debug(`SNMP trap receiver message error: ${error}`);
+            logger.debug(
+              `SNMP trap receiver message error (${transport}): ${error}`,
+            );
             return;
           }
 
@@ -110,13 +155,21 @@ export default class SnmpTrapReceiver {
 
       // Bind completes asynchronously; failures surface via the callback.
       logger.info(
-        `SNMP trap receiver starting on UDP port ${PROBE_SNMP_TRAP_RECEIVER_PORT}`,
+        `SNMP trap receiver starting on ${transport} port ${PROBE_SNMP_TRAP_RECEIVER_PORT}`,
       );
     } catch (err) {
       /*
-       * Binding can fail (port in use, no privilege for ports < 1024).
-       * The probe's polling duties are unaffected — log loudly and move on.
+       * Binding can fail (port in use, no privilege for ports < 1024, no
+       * IPv6 on the host). The probe's polling duties are unaffected —
+       * log and move on; a udp6 failure still leaves udp4 receiving.
        */
+      if (transport === "udp6") {
+        logger.warn(
+          `Could not start SNMP trap receiver on udp6 port ${PROBE_SNMP_TRAP_RECEIVER_PORT}: ${err}. Continuing with IPv4 only.`,
+        );
+        return;
+      }
+
       logger.error(
         `Could not start SNMP trap receiver on port ${PROBE_SNMP_TRAP_RECEIVER_PORT}: ${err}`,
       );

@@ -2,9 +2,9 @@
 
 ## Resumen
 
-El Agente de Kubernetes de OneUptime es un chart de Helm preempaquetado que instala una canalización de colectores basada en OpenTelemetry en tu clúster. Envía métricas de nodos, pods, contenedores y del clúster; eventos de Kubernetes; logs de pods; y — con eBPF activado de forma predeterminada — trazas de aplicaciones, métricas RED de HTTP, datos del grafo de servicios y métricas de flujo de red entre pods. Sin cambios en el código, sin SDK, un solo `helm install`.
+El Agente de Kubernetes de OneUptime es un chart de Helm preempaquetado que instala una canalización de colectores basada en OpenTelemetry en tu clúster. Envía métricas de nodos, pods, contenedores y del clúster; eventos de Kubernetes; logs de pods; y — con eBPF activado de forma predeterminada — trazas de aplicaciones, métricas RED de HTTP, datos del grafo de servicios y métricas de flujo de red entre pods. Con `cost.enabled=true` también envía **asignaciones de costos** por carga de trabajo (gasto por namespace/carga de trabajo/pod, capacidad ociosa, eficiencia). Sin cambios en el código, sin SDK, un solo `helm install`.
 
-Esta página es la **guía de instalación**. Para configurar monitores y alertas de Kubernetes sobre los datos que recopila el agente, consulta [Agente de Kubernetes (monitores)](/docs/monitor/kubernetes-agent).
+Esta página es la **guía de instalación**. Para configurar monitores y alertas de Kubernetes sobre los datos que recopila el agente, consulta [Agente de Kubernetes (monitores)](/docs/monitor/kubernetes-agent). Para la observabilidad de costos, consulta [Observabilidad de costos de Kubernetes](/docs/telemetry/kubernetes-cost).
 
 ## Requisitos previos
 
@@ -297,6 +297,21 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 > Los servicios gestionados de Kubernetes (EKS, GKE, AKS) normalmente no exponen métricas del plano de control. Habilita esto solo para clústeres autogestionados.
 
+### Habilitar la observabilidad de costos
+
+Ve lo que realmente cuesta cada namespace, carga de trabajo y pod — incluida la capacidad ociosa y la eficiencia de request frente a uso — en la página **Costs** del clúster:
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set cost.enabled=true
+```
+
+Eso por sí solo es una instalación completa: el chart incluye el motor de código abierto [OpenCost](https://opencost.io) (más un Prometheus mínimo y dedicado que este necesita) y tarifica tus nodos y volúmenes a partir de los precios de lista públicos de tu proveedor de nube — sin credenciales. Dos pequeños pods adicionales; los primeros datos aparecen después de la primera ventana horaria cerrada. ¿Ya ejecutas Kubecost u OpenCost? Agrega en su lugar `--set cost.engine.url=<su URL de servicio>` y no se incluye nada. Los clústeres on-prem pueden establecer una tabla de tarifas mediante `cost.opencost.customPricing`.
+
+Guía completa, incluidos los precios on-prem y la solución de problemas: [Observabilidad de costos de Kubernetes](/docs/telemetry/kubernetes-cost).
+
 ### Etiquetado automático con labels del proyecto
 
 Cualquier atributo de recurso con el prefijo `oneuptime.label.` se promueve a un Label del proyecto y se adjunta al clúster, los servicios y los hosts emitidos desde este agente. Patrón: `oneuptime.label.<dimension>=<value>` se convierte en un label llamado `<dimension>:<value>`.
@@ -364,6 +379,7 @@ kubectl delete namespace oneuptime-agent
 | **Grafo de servicios** _(mediante eBPF)_                                       | Tasa de solicitudes, latencia y aristas de error de llamador → llamado — impulsa la vista del mapa de servicios                                                 |
 | **Métricas de flujo de red** _(mediante eBPF)_                                 | Contadores de bytes y paquetes TCP/UDP entre pods con metadatos de k8s                                                                                          |
 | **Estadísticas de TCP** _(mediante eBPF)_                                      | Contadores de RTT, conexiones fallidas y retransmisiones a nivel de nodo                                                                                        |
+| **Costos de cargas de trabajo** _(opcional, `cost.enabled=true`)_              | Gasto con precios ya aplicados por namespace/carga de trabajo/pod con capacidad ociosa y eficiencia, más métricas de costo por hora de nodos/PV — consulta [Observabilidad de costos de Kubernetes](/docs/telemetry/kubernetes-cost) |
 
 ## Trazas de aplicaciones y métricas de HTTP mediante eBPF (activado de forma predeterminada)
 
@@ -558,6 +574,7 @@ Estas están **desactivadas de forma predeterminada** precisamente porque agrega
 | `kubeStateMetrics.enabled`                                | Métricas de CrashLoop / ImagePull / motivo de programación (agrega un Deployment de KSM + recopilación) |
 | `ebpf.features.networkInterZoneMetrics`                   | Duplica la cardinalidad de las métricas de flujo de red                                                 |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | Trabajos adicionales de recopilación de Prometheus                                                      |
+| `cost.enabled`                                            | Observabilidad de costos de cargas de trabajo (incluye OpenCost + un pequeño Prometheus; filas de costos por hora + una recopilación de métricas con una lista de permitidos estricta — ingesta modesta, dos pods adicionales) |
 
 ### Palanca 6 — Muestrea las trazas en lugar de descartarlas
 

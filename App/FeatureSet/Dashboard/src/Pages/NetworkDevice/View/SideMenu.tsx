@@ -17,7 +17,7 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   return (
     <SideMenu>
-      <SideMenuSection title="Basic">
+      <SideMenuSection title="Device">
         <SideMenuItem
           link={{
             title: "Overview",
@@ -30,6 +30,59 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Interfaces",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_INTERFACES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Bolt}
+        />
+        <SideMenuItem
+          link={{
+            title: "Metrics",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_METRICS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Graph}
+        />
+        <SideMenuItem
+          link={{
+            title: "Traffic",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_TRAFFIC] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.ArrowUpDown}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Logs}
+        />
+        <SideMenuItem
+          link={{
+            title: "Monitors",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_MONITORS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.AltGlobe}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Manage">
+        <SideMenuItem
+          link={{
             title: "Owners",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_DEVICE_VIEW_OWNERS] as Route,
@@ -38,9 +91,6 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Team}
         />
-      </SideMenuSection>
-
-      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Settings",

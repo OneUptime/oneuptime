@@ -122,6 +122,13 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         icon: IconProp.AltGlobe,
         description: "Monitors with current operational status.",
       },
+      {
+        type: DashboardComponentType.Slo,
+        label: "SLO",
+        icon: IconProp.Percent,
+        description:
+          "SLI, error budget remaining, or burn rate for one SLO — as a big number or a trend chart.",
+      },
     ],
   },
   {

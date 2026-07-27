@@ -11,12 +11,11 @@ import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import SyslogMessage from "Common/Types/Syslog/SyslogMessage";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
-import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
+import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import LogService from "Common/Server/Services/LogService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -334,31 +333,20 @@ async function processSyslogMessages(
 }
 
 /*
- * Correlates a syslog source IP to NetworkDevices: devices polled by the
- * probe that received the message whose hostname equals the datagram's
- * source address — the same match the SNMP trap path uses
- * (NetworkDeviceHydrationUtil.findDevicesByProbeAndSource). Replicated here
- * rather than reused because this path also needs the device name for log
- * attribution.
+ * Correlates a syslog source IP to NetworkDevices via the shared
+ * correlation helper the SNMP trap path uses — exact hostname == source-IP
+ * match plus the cached-DNS fallback for devices registered by name. The
+ * device name is selected for log attribution.
  */
 async function findDevicesForSource(
   probeId: ObjectID,
   sourceIpAddress: string,
 ): Promise<Array<NetworkDevice>> {
-  return NetworkDeviceService.findBy({
-    query: {
-      probeId: probeId,
-      hostname: sourceIpAddress,
-    },
+  return NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
+    probeId: probeId,
+    sourceIpAddress: sourceIpAddress,
     select: {
-      _id: true,
-      projectId: true,
       name: true,
-    },
-    limit: LIMIT_MAX,
-    skip: 0,
-    props: {
-      isRoot: true,
     },
   });
 }

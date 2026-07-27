@@ -1,3 +1,4 @@
+import Field from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -53,6 +54,14 @@ export interface SnmpConfigFormFieldOptions {
    * a discovery scan tries the community against every host in the subnet.
    */
   communityStringDescription?: string | undefined;
+
+  /*
+   * Form step these fields belong to. Every SNMP field lands on the same step
+   * — credentials are one decision, and splitting the v3 reveal chain across
+   * steps would strand the auth/priv fields on a step the user has already
+   * walked past. Callers that render the form without steps omit this.
+   */
+  stepId?: string | undefined;
 }
 
 const isV3: (item: FormValues<SnmpConfigModelFields>) => boolean = (
@@ -82,7 +91,7 @@ const isV3WithPriv: (item: FormValues<SnmpConfigModelFields>) => boolean = (
 export function getSnmpConfigFormFields(
   options?: SnmpConfigFormFieldOptions,
 ): Fields<SnmpConfigModelFields> {
-  return [
+  const fields: Fields<SnmpConfigModelFields> = [
     {
       field: {
         snmpVersion: true,
@@ -95,7 +104,14 @@ export function getSnmpConfigFormFields(
         { label: "V3", value: "V3" },
       ],
       required: true,
-      placeholder: "V2c",
+      /*
+       * Default it, do not just hint it. A required Dropdown whose
+       * placeholder reads "V2c" is indistinguishable from one already set
+       * to V2c, so submitting the form straight through failed with
+       * "SNMP Version is required" on a field the user could see filled in.
+       * V2c matches the column default on both models.
+       */
+      defaultValue: "V2c",
     },
     {
       field: {
@@ -216,4 +232,17 @@ export function getSnmpConfigFormFields(
       placeholder: "161",
     },
   ];
+
+  if (!options?.stepId) {
+    return fields;
+  }
+
+  const stepId: string = options.stepId;
+
+  return fields.map((field: Field<SnmpConfigModelFields>) => {
+    return {
+      ...field,
+      stepId: stepId,
+    };
+  });
 }

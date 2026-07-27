@@ -372,6 +372,148 @@ describe("MetricService aggregate statement generation", () => {
   });
 
   /*
+   * WHERE table qualification. The scalar and mutable builders alias
+   * aggregates to real column names (`<agg> as value`, `min(time) as
+   * time` under Total) at the same level as their WHERE clause, and
+   * ClickHouse substitutes SELECT aliases into same-level unqualified
+   * WHERE references — a Total metric aggregation therefore compiled to
+   * `WHERE min(time) >= ...` (ILLEGAL_AGGREGATION). The WHERE must
+   * reference `MetricItemV3.time` / the dedup-subquery alias instead.
+   */
+  describe("WHERE table qualification", () => {
+    type QualifierValues = (result: {
+      statement: Statement;
+      columns: Array<string>;
+    }) => Array<unknown>;
+    const qualifierValues: QualifierValues = (result: {
+      statement: Statement;
+      columns: Array<string>;
+    }): Array<unknown> => {
+      return Object.entries(result.statement.query_params)
+        .filter(([key]: [string, unknown]) => {
+          return key.endsWith("_t");
+        })
+        .map(([, value]: [string, unknown]) => {
+          return value;
+        });
+    };
+
+    it("qualifies the base scalar path with the Metric table name", () => {
+      // An attribute filter blocks the MVs and routes to the base table.
+      const result: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(
+          buildAggregateBy({
+            query: {
+              projectId: projectId,
+              name: "http.client.request.duration",
+              time: new InBetween(startDate, endDate),
+              attributes: { "oneuptime.service.name": "starship-web" },
+            } as unknown as AggregateBy<Metric>["query"],
+          }),
+        );
+      const query: string = result.statement.query;
+
+      expect(query).toMatch(
+        /\{p\d+_t:Identifier\}\.\{p\d+_c:Identifier\} >= \{p\d+:DateTime64\(9\)\}/,
+      );
+      const qualifiers: Array<unknown> = qualifierValues(result);
+      expect(qualifiers.length).toBeGreaterThan(0);
+      for (const qualifier of qualifiers) {
+        expect(qualifier).toBe("MetricItemV3");
+      }
+    });
+
+    it("keeps min(time) valid on the direct (non-subquery) scalar form under Total", () => {
+      /*
+       * Distribution hint + no attribute grouping = the SELECT aliases
+       * and the WHERE share one query level — the exact shape that
+       * failed with ILLEGAL_AGGREGATION before qualification.
+       */
+      const aggregateBy: AggregateBy<Metric> = buildAggregateBy({
+        aggregationInterval: AggregationInterval.Total,
+        query: {
+          projectId: projectId,
+          name: "http.client.request.duration",
+          time: new InBetween(startDate, endDate),
+          attributes: { "oneuptime.service.name": "starship-web" },
+        } as unknown as AggregateBy<Metric>["query"],
+      });
+
+      const result: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(aggregateBy);
+      const query: string = result.statement.query;
+
+      expect(query).toContain("min(time) as time");
+      expect(query).toMatch(
+        /\{p\d+_t:Identifier\}\.\{p\d+_c:Identifier\} >= \{p\d+:DateTime64\(9\)\}/,
+      );
+      for (const qualifier of qualifierValues(result)) {
+        expect(qualifier).toBe("MetricItemV3");
+      }
+    });
+
+    it("leaves the minute-MV fast path unqualified (different table, no alias capture)", () => {
+      /*
+       * The MV statement filters on bucketTime/projectId/name against
+       * MetricItemAggMV1m — qualifying with the base table name would
+       * be invalid there, and its SELECT aliases shadow no MV column.
+       */
+      const result: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(buildAggregateBy());
+
+      expect(result.statement.query).toContain("MetricItemAggMV1m");
+      expect(qualifierValues(result)).toHaveLength(0);
+    });
+
+    it("qualifies the mutable-metric outer WHERE with the dedup subquery alias", () => {
+      const result: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(
+          buildAggregateBy({
+            query: {
+              projectId: projectId,
+              name: "oneuptime.incident.count",
+              time: new InBetween(startDate, endDate),
+            } as AggregateBy<Metric>["query"],
+          }),
+        );
+      const query: string = result.statement.query;
+
+      // The argMax dedup subquery must carry the alias the WHERE uses.
+      expect(query).toContain(") AS mutable_metric_latest");
+      expect(query).toMatch(
+        /\{p\d+_t:Identifier\}\.\{p\d+_c:Identifier\} >= \{p\d+:DateTime64\(9\)\}/,
+      );
+      for (const qualifier of qualifierValues(result)) {
+        expect(qualifier).toBe("mutable_metric_latest");
+      }
+    });
+
+    it("keeps min(time) valid on the mutable path under Total", () => {
+      const result: { statement: Statement; columns: Array<string> } =
+        service.toAggregateStatement(
+          buildAggregateBy({
+            aggregationInterval: AggregationInterval.Total,
+            query: {
+              projectId: projectId,
+              name: "oneuptime.incident.count",
+              time: new InBetween(startDate, endDate),
+            } as AggregateBy<Metric>["query"],
+          }),
+        );
+      const query: string = result.statement.query;
+
+      expect(query).toContain("min(time) as time");
+      expect(query).toContain(") AS mutable_metric_latest");
+      // Group-less Total: no time grouping, phantom row suppressed.
+      expect(query).not.toContain("GROUP BY time");
+      expect(query).toContain("HAVING count() > 0");
+      for (const qualifier of qualifierValues(result)) {
+        expect(qualifier).toBe("mutable_metric_latest");
+      }
+    });
+  });
+
+  /*
    * The sub-hour tiers (FiveMinutes/FifteenMinutes/ThirtyMinutes) are NOT
    * valid ClickHouse date_trunc units — they must compile through the
    * shared AggregateUtil expression map to `toStartOfInterval(col,

@@ -25,13 +25,15 @@ export enum TelemetryType {
   ServerMonitorIngest = "server-monitor-ingest",
   IncomingRequestIngest = "incoming-request-ingest",
   TelemetryMonitorEvaluation = "telemetry-monitor-evaluation",
+  KubernetesCostIngest = "kubernetes-cost-ingest",
 }
 
 export type ProbeIngestJobType =
   | "probe-response"
   | "monitor-test"
   | "incoming-email"
-  | "snmp-trap";
+  | "snmp-trap"
+  | "network-device-walk";
 
 export interface IncomingEmailJobData {
   secretKey: string;
@@ -60,6 +62,11 @@ export interface ProbeIngestJobData {
   incomingEmail?: IncomingEmailJobData | undefined;
   // For snmp-trap: the raw request body ({ probeId, probeKey, snmpTrap })
   snmpTrap?: JSONObject | undefined;
+  /*
+   * For network-device-walk: the raw request body
+   * ({ probeId, networkDeviceId, snmpResponse, monitoredAt })
+   */
+  networkDeviceWalk?: JSONObject | undefined;
 }
 
 export interface ServerMonitorIngestJobData {
@@ -81,6 +88,13 @@ export interface TelemetryMonitorEvaluationJobData {
   monitorId: string;
   projectId?: string | undefined;
   queuedAt: Date;
+}
+
+export interface KubernetesCostIngestJobData {
+  projectId: string;
+  /** KubernetesCostIngestPayload as posted by the agent's cost poller. */
+  costPayload: JSONObject;
+  ingestionTimestamp: Date;
 }
 
 export interface TelemetryIngestJobData {
@@ -121,6 +135,8 @@ export interface TelemetryIngestJobData {
   incomingRequestIngest?: IncomingRequestIngestJobData;
   // TelemetryMonitorEvaluation-specific
   telemetryMonitorEvaluation?: TelemetryMonitorEvaluationJobData;
+  // KubernetesCostIngest-specific
+  kubernetesCostIngest?: KubernetesCostIngestJobData;
 }
 
 // Legacy interfaces for backward compatibility
@@ -423,6 +439,42 @@ export default class TelemetryQueueService {
     }
   }
 
+  public static async addNetworkDeviceWalkJob(data: {
+    walkRequestBody: JSONObject;
+  }): Promise<void> {
+    try {
+      const probeData: ProbeIngestJobData = {
+        jobType: "network-device-walk",
+        networkDeviceWalk: data.walkRequestBody,
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+      };
+
+      const jobData: TelemetryIngestJobData = {
+        type: TelemetryType.ProbeIngest,
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        probeIngest: probeData,
+      };
+
+      const jobId: string = `probe-network-device-walk-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
+
+      await Queue.addJob(
+        QueueName.Telemetry,
+        jobId,
+        "ProcessTelemetry",
+        jobData as unknown as JSONObject,
+        {
+          skipExistenceCheck: true,
+        },
+      );
+
+      logger.debug(`Added network device walk ingestion job: ${jobId}`);
+    } catch (error) {
+      logger.error(`Error adding network device walk ingestion job:`);
+      logger.error(error);
+      throw error;
+    }
+  }
+
   public static async addIncomingEmailJob(data: {
     secretKey: string;
     emailFrom: string;
@@ -647,6 +699,48 @@ export default class TelemetryQueueService {
       logger.debug(`Added telemetry monitor evaluation job: ${jobId}`);
     } catch (error) {
       logger.error(`Error adding telemetry monitor evaluation job:`);
+      logger.error(error);
+      throw error;
+    }
+  }
+
+  public static async addKubernetesCostIngestJob(data: {
+    projectId: ObjectID;
+    costPayload: JSONObject;
+  }): Promise<void> {
+    try {
+      const jobData: TelemetryIngestJobData = {
+        type: TelemetryType.KubernetesCostIngest,
+        projectId: data.projectId.toString(),
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        kubernetesCostIngest: {
+          projectId: data.projectId.toString(),
+          costPayload: data.costPayload,
+          ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        },
+      };
+
+      const jobId: string = `kubernetes-cost-${data.projectId.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
+
+      await Queue.addJob(
+        QueueName.Telemetry,
+        jobId,
+        "ProcessTelemetry",
+        jobData as unknown as JSONObject,
+        {
+          /*
+           * Job ids carry a random UUID suffix and are therefore unique
+           * (the unix-nano prefix alone is millisecond-precision and
+           * collides under concurrency) — skip the duplicate-id
+           * existence check (2 Redis round trips).
+           */
+          skipExistenceCheck: true,
+        },
+      );
+
+      logger.debug(`Added kubernetes cost ingestion job: ${jobId}`);
+    } catch (error) {
+      logger.error(`Error adding kubernetes cost ingestion job:`);
       logger.error(error);
       throw error;
     }

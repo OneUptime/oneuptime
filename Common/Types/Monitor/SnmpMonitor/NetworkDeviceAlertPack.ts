@@ -88,8 +88,9 @@ export default class NetworkDeviceAlertPackUtil {
 
   /*
    * Builds ready-to-append MonitorCriteriaInstances from the pack. Each is
-   * enabled and set to change monitor status; severities and on-call
-   * policies are left for the user to fill in.
+   * enabled; incident-creating items also change the monitor status to the
+   * context's down status. Severities and on-call policies are left for the
+   * user to fill in.
    */
   public static buildCriteriaInstances(
     context?: NetworkDeviceAlertPackContext,
@@ -105,7 +106,13 @@ export default class NetworkDeviceAlertPackUtil {
         alerts: [],
         createAlerts: item.createAlerts,
         createIncidents: item.createIncidents,
-        changeMonitorStatus: item.createIncidents,
+        /*
+         * Never claim to change monitor status without a status to change
+         * to — a caller that passes no context would otherwise produce
+         * criteria that "change" the monitor to an undefined status.
+         */
+        changeMonitorStatus:
+          item.createIncidents && Boolean(context?.downMonitorStatusId),
         isEnabled: true,
         name: item.name,
         description: item.description,

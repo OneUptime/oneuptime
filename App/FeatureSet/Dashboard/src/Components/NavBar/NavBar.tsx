@@ -56,6 +56,18 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: essentialsCategory,
     },
     {
+      title: t("navbar.items.slosTitle", "SLOs"),
+      description: t(
+        "navbar.items.slosDescription",
+        "Service level objectives and error budgets.",
+      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SLOS] as Route),
+      activeRoute: RouteMap[PageMap.SLOS],
+      icon: IconProp.Gauge,
+      iconColor: "violet",
+      category: essentialsCategory,
+    },
+    {
       title: t("navbar.items.statusPagesTitle"),
       description: t("navbar.items.statusPagesDescription"),
       route: RouteUtil.populateRouteParams(
@@ -277,12 +289,17 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: resourcesCategory,
     },
     {
-      title: t("navbar.items.networkDevicesTitle"),
-      description: t("navbar.items.networkDevicesDescription"),
+      title: t("navbar.items.networkTitle", "Network"),
+      description: t(
+        "navbar.items.networkDescription",
+        "Monitor network devices via SNMP and group them into sites.",
+      ),
+      // Land on the fleet Overview; devices and sites both keep this highlighted.
       route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.NETWORK_DEVICES] as Route,
+        RouteMap[PageMap.NETWORK_OVERVIEW] as Route,
       ),
       activeRoute: RouteMap[PageMap.NETWORK_DEVICES],
+      additionalActiveRoutes: [RouteMap[PageMap.NETWORK_SITES] as Route],
       icon: IconProp.Signal,
       iconColor: "indigo",
       category: resourcesCategory,

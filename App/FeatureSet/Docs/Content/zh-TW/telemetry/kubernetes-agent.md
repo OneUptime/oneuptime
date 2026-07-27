@@ -2,9 +2,9 @@
 
 ## 概觀
 
-OneUptime Kubernetes Agent 是一個預先封裝好的 Helm chart，會在您的叢集上安裝以 OpenTelemetry 為基礎的 collector pipeline。它會傳送節點、Pod、容器與叢集指標；Kubernetes 事件；Pod 日誌；並且——在預設啟用 eBPF 的情況下——還會傳送應用程式追蹤、HTTP RED 指標、service-graph 資料，以及 Pod 對 Pod 的網路流量指標。無需修改程式碼、無需 SDK，只要一個 `helm install`。
+OneUptime Kubernetes Agent 是一個預先封裝好的 Helm chart，會在您的叢集上安裝以 OpenTelemetry 為基礎的 collector pipeline。它會傳送節點、Pod、容器與叢集指標；Kubernetes 事件；Pod 日誌；並且——在預設啟用 eBPF 的情況下——還會傳送應用程式追蹤、HTTP RED 指標、service-graph 資料，以及 Pod 對 Pod 的網路流量指標。在 `cost.enabled=true` 時，它還會傳送依工作負載的**成本配置**（依命名空間/工作負載/Pod 的支出、閒置容量、效率）。無需修改程式碼、無需 SDK，只要一個 `helm install`。
 
-本頁面是**安裝指南**。若要在 agent 所收集的資料之上設定 Kubernetes 監控與警示，請參閱 [Kubernetes Agent (monitors)](/docs/monitor/kubernetes-agent)。
+本頁面是**安裝指南**。若要在 agent 所收集的資料之上設定 Kubernetes 監控與警示，請參閱 [Kubernetes Agent (monitors)](/docs/monitor/kubernetes-agent)。關於成本可觀測性，請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。
 
 ## 先決條件
 
@@ -298,6 +298,21 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 > 受管理的 Kubernetes 服務（EKS、GKE、AKS）通常不會對外公開 control plane 指標。請只為自行管理的叢集啟用此選項。
 
+### 啟用成本可觀測性
+
+在叢集的 **Costs** 頁面上查看每個命名空間、工作負載與 Pod 實際花費多少——包括閒置容量與 request 對比實際用量的效率：
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set cost.enabled=true
+```
+
+僅此一步就是一次完整的安裝：此 chart 隨附了開源的 [OpenCost](https://opencost.io) 引擎（外加它所需的一個最小化專用 Prometheus），並依據您雲端供應商的公開牌價為您的節點與 volume 定價——不需要任何憑證。只會多出兩個小 Pod；第一批資料會在第一個已結束的小時視窗之後出現。已經在執行 Kubecost 或 OpenCost？改為加上 `--set cost.engine.url=<它的服務 URL>`，就不會隨附任何東西。地端叢集可透過 `cost.opencost.customPricing` 設定一份費率表。
+
+完整指南（包括地端定價與疑難排解）：[Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost)。
+
 ### 以專案標籤自動標記
 
 任何以 `oneuptime.label.` 為前綴的 resource attribute 都會被提升為專案 Label，並附加到由此 agent 發出的叢集、服務與主機上。模式：`oneuptime.label.<dimension>=<value>` 會變成名為 `<dimension>:<value>` 的標籤。
@@ -365,6 +380,7 @@ kubectl delete namespace oneuptime-agent
 | **Service Graph** _(透過 eBPF)_          | 呼叫端 → 被呼叫端的請求率、延遲與錯誤連線——驅動 service map 檢視                                                     |
 | **網路流量指標** _(透過 eBPF)_           | 帶有 k8s 中繼資料的 Pod 對 Pod TCP/UDP 位元組與封包計數器                                                            |
 | **TCP 統計** _(透過 eBPF)_               | 節點層級的 RTT、連線失敗與重傳計數器                                                                                 |
+| **工作負載成本** _(選擇性啟用，`cost.enabled=true`)_ | 依命名空間/工作負載/Pod 預先定價的支出，含閒置與效率，外加節點/PV 每小時成本指標——請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost) |
 
 ## 透過 eBPF 取得應用程式追蹤與 HTTP 指標（預設啟用）
 
@@ -551,6 +567,7 @@ Cardinality（不同時間序列的數量）與頻率同樣重要，因為每個
 | `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / scheduling-reason 指標（新增一個 KSM Deployment + 抓取） |
 | `ebpf.features.networkInterZoneMetrics`                   | 使網路流量指標的 cardinality 加倍                                                |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 額外的 Prometheus 抓取工作                                                       |
+| `cost.enabled`                                            | 工作負載成本可觀測性（隨附 OpenCost + 一個小型 Prometheus；每小時成本資料列 + 一個嚴格限定允許清單的指標抓取——擷取量不大，多出兩個 Pod） |
 
 ### 槓桿 6 — 對追蹤取樣，而不是捨棄它們
 

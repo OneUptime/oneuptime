@@ -9,13 +9,10 @@ import logger from "../Logger";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
 import MonitorLogUtil from "./MonitorLogUtil";
 import MonitorMetricUtil from "./MonitorMetricUtil";
-import NetworkInventoryUtil from "./NetworkInventoryUtil";
-import SnmpInterfaceRateUtil from "./SnmpInterfaceRateUtil";
 import DataToProcess from "./DataToProcess";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { JSONObject } from "../../../Types/JSON";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
@@ -30,7 +27,9 @@ import ObjectID from "../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
+import MonitorProbe, {
+  MonitorStepProbeResponse,
+} from "../../../Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import OneUptimeDate from "../../../Types/Date";
@@ -245,6 +244,16 @@ export default class MonitorResourceUtil {
       const monitorName: string | undefined = monitor.name || undefined;
 
       /*
+       * All MonitorProbe rows for this monitor, fetched once per result and
+       * reused by checkProbeAgreement below. The rows carry the heavy
+       * lastMonitoringLog jsonb, so re-fetching them per result was the
+       * second-largest read on the hottest Postgres path. Safe to reuse: the
+       * per-monitor semaphore above serializes every writer of these rows
+       * for the duration of this function.
+       */
+      let monitorProbesForMonitor: Array<MonitorProbe> | null = null;
+
+      /*
        * SNMP trap responses are event-driven, not check results. They are
        * evaluated ONLY against trap criteria; they must not overwrite the
        * last check's counters, participate in probe agreement, or reset the
@@ -269,21 +278,39 @@ export default class MonitorResourceUtil {
       ) {
         dataToProcess = dataToProcess as ProbeMonitorResponse;
         if ((dataToProcess as ProbeMonitorResponse).probeId) {
-          const monitorProbe: MonitorProbe | null =
-            await MonitorProbeService.findOneBy({
-              query: {
-                monitorId: monitor.id!,
-                probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
+          /*
+           * One query for every probe assigned to this monitor (instead of
+           * one for the current probe here plus another for all of them in
+           * checkProbeAgreement). The select is the union both consumers
+           * need.
+           */
+          monitorProbesForMonitor = await MonitorProbeService.findBy({
+            query: {
+              monitorId: monitor.id!,
+            },
+            select: {
+              _id: true,
+              probeId: true,
+              isEnabled: true,
+              lastMonitoringLog: true,
+              probe: {
+                name: true,
+                connectionStatus: true,
               },
-              select: {
-                lastMonitoringLog: true,
-                probe: {
-                  name: true,
-                },
-              },
-              props: {
-                isRoot: true,
-              },
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+          const monitorProbe: MonitorProbe | undefined =
+            monitorProbesForMonitor.find((mp: MonitorProbe) => {
+              return (
+                mp.probeId?.toString() ===
+                (dataToProcess as ProbeMonitorResponse).probeId!.toString()
+              );
             });
 
           if (!monitorProbe) {
@@ -293,56 +320,46 @@ export default class MonitorResourceUtil {
           probeName = monitorProbe.probe?.name || undefined;
 
           /*
-           * SNMP interface rates (bandwidth, utilization, errors/sec) are
-           * deltas against the previous check's counters — computed here,
-           * while the previous log is still available, so the computed
-           * values flow into metrics, criteria, and the stored log below.
+           * Network Device monitors no longer flow through here: they are
+           * not probeable — the NetworkDevice resource owns its own polling
+           * and NetworkDeviceWalkUtil computes interface rates, syncs
+           * inventory, and evaluates watching monitors on each device walk.
            */
-          if (monitor.monitorType === MonitorType.NetworkDevice) {
-            SnmpInterfaceRateUtil.attachInterfaceRates({
-              probeMonitorResponse: dataToProcess as ProbeMonitorResponse,
-              previousStepLog: (
-                monitorProbe.lastMonitoringLog as JSONObject | undefined
-              )?.[
-                (dataToProcess as ProbeMonitorResponse).monitorStepId.toString()
-              ] as JSONObject | undefined,
+
+          if (!isSnmpTrapEvent) {
+            /*
+             * Runs once per probe check result — the hottest recurring write
+             * in the product. The full updateOneBy pipeline would re-SELECT
+             * this row (including the large lastMonitoringLog jsonb we just
+             * fetched above) and then save() it (another SELECT + UPDATE in a
+             * transaction). MonitorProbe has no workflow/audit/realtime
+             * decorators, so those hooks were inert anyway — a single
+             * UPDATE by the id we already hold is equivalent and 3x cheaper.
+             * See the Monitor heartbeat writes below for the same pattern.
+             */
+            const updatedLastMonitoringLog: MonitorStepProbeResponse = {
+              ...(monitorProbe.lastMonitoringLog || {}),
+              [(
+                dataToProcess as ProbeMonitorResponse
+              ).monitorStepId.toString()]: {
+                ...JSON.parse(JSON.stringify(dataToProcess)),
+                monitoredAt: OneUptimeDate.getCurrentDate(),
+              },
+            };
+
+            await MonitorProbeService.updateColumnsByIdWithoutHooks({
+              id: monitorProbe.id!,
+              data: {
+                lastMonitoringLog: updatedLastMonitoringLog as any,
+              },
             });
 
             /*
-             * Sync the NetworkDevice/NetworkInterface inventory from the
-             * walk, then prune the response to monitored interfaces so
-             * criteria and metrics ignore muted ports. Trap events carry
-             * no walk data — nothing to sync.
+             * Mirror the write onto the in-memory row so checkProbeAgreement
+             * (which reuses monitorProbesForMonitor instead of re-querying)
+             * sees exactly what a fresh read would return.
              */
-            if (!isSnmpTrapEvent) {
-              await NetworkInventoryUtil.updateFromWalk({
-                monitor: monitor,
-                dataToProcess: dataToProcess as ProbeMonitorResponse,
-              });
-            }
-          }
-
-          if (!isSnmpTrapEvent) {
-            await MonitorProbeService.updateOneBy({
-              query: {
-                monitorId: monitor.id!,
-                probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
-              },
-              data: {
-                lastMonitoringLog: {
-                  ...(monitorProbe.lastMonitoringLog || {}),
-                  [(
-                    dataToProcess as ProbeMonitorResponse
-                  ).monitorStepId.toString()]: {
-                    ...JSON.parse(JSON.stringify(dataToProcess)),
-                    monitoredAt: OneUptimeDate.getCurrentDate(),
-                  },
-                } as any,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+            monitorProbe.lastMonitoringLog = updatedLastMonitoringLog;
           }
         }
       }
@@ -665,6 +682,7 @@ export default class MonitorResourceUtil {
             monitorStep: monitorStep,
             currentCriteriaMetId: response.criteriaMetId || null,
             currentRootCause: response.rootCause || null,
+            monitorProbes: monitorProbesForMonitor || undefined,
           });
 
         // Add probe agreement event to evaluation summary
@@ -1110,6 +1128,15 @@ export default class MonitorResourceUtil {
     monitorStep: MonitorStep;
     currentCriteriaMetId: string | null;
     currentRootCause: string | null;
+    /*
+     * Pre-fetched MonitorProbe rows for this monitor (probeId, isEnabled,
+     * lastMonitoringLog, probe.name/connectionStatus). The probe-result hot
+     * path passes these to avoid re-reading every row's lastMonitoringLog
+     * jsonb per result; safe because the caller holds the per-monitor lock,
+     * so the rows cannot change underneath us. When absent, fall back to
+     * querying.
+     */
+    monitorProbes?: Array<MonitorProbe> | undefined;
   }): Promise<ProbeAgreementResult> {
     const { monitor, monitorStep, currentCriteriaMetId, currentRootCause } =
       input;
@@ -1118,8 +1145,9 @@ export default class MonitorResourceUtil {
      * If minimumProbeAgreement is not set, all probes must agree
      * Get all MonitorProbes for this monitor with their probe connection status
      */
-    const monitorProbes: Array<MonitorProbe> = await MonitorProbeService.findBy(
-      {
+    const monitorProbes: Array<MonitorProbe> =
+      input.monitorProbes ||
+      (await MonitorProbeService.findBy({
         query: {
           monitorId: monitor.id!,
         },
@@ -1137,8 +1165,7 @@ export default class MonitorResourceUtil {
         props: {
           isRoot: true,
         },
-      },
-    );
+      }));
 
     // Filter to only active probes (enabled AND connected)
     const activeProbes: Array<MonitorProbe> = monitorProbes.filter(

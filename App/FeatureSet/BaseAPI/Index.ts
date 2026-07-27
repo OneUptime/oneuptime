@@ -107,6 +107,7 @@ import UserAPI from "Common/Server/API/UserAPI";
 import NetworkDeviceFlowAPI from "./API/NetworkDeviceFlow";
 import NetworkDeviceTopologyAPI from "./API/NetworkDeviceTopology";
 import NetworkLatencyMatrixAPI from "./API/NetworkLatencyMatrix";
+import NetworkSiteHierarchyAPI from "./API/NetworkSiteHierarchy";
 import ServiceDependencyTimeseriesAPI from "./API/ServiceDependencyTimeseries";
 import ServiceOperationalStatusAPI from "./API/ServiceOperationalStatus";
 import ApiKeyPermissionService, {
@@ -430,6 +431,21 @@ import IncidentSlaService, {
 import IncidentSlaRuleService, {
   Service as IncidentSlaRuleServiceType,
 } from "Common/Server/Services/IncidentSlaRuleService";
+import ServiceLevelObjectiveService, {
+  Service as ServiceLevelObjectiveServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveService";
+import ServiceLevelObjectiveBurnRateRuleService, {
+  Service as ServiceLevelObjectiveBurnRateRuleServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveOwnerUserService, {
+  Service as ServiceLevelObjectiveOwnerUserServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveOwnerUserService";
+import ServiceLevelObjectiveOwnerTeamService, {
+  Service as ServiceLevelObjectiveOwnerTeamServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveOwnerTeamService";
+import SloHistoryService, {
+  SloHistoryService as SloHistoryServiceType,
+} from "Common/Server/Services/SloHistoryService";
 
 import IncidentReminderRuleService, {
   Service as IncidentReminderRuleServiceType,
@@ -961,6 +977,9 @@ import LlmLogService, {
 import ExceptionInstanceService, {
   ExceptionInstanceService as ExceptionInstanceServiceType,
 } from "Common/Server/Services/ExceptionInstanceService";
+import KubernetesCostAllocationService, {
+  KubernetesCostAllocationService as KubernetesCostAllocationServiceType,
+} from "Common/Server/Services/KubernetesCostAllocationService";
 import AcmeChallengeAPI from "Common/Server/API/AcmeChallengeAPI";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
@@ -1051,6 +1070,11 @@ import IncidentEpisodePrivacyRule from "Common/Models/DatabaseModels/IncidentEpi
 import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentSla from "Common/Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
+import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
+import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
+import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
 import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/ScheduledMaintenanceReminderRule";
@@ -1212,6 +1236,7 @@ import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
 } from "Common/Server/Services/WorkspaceNotificationLogService";
@@ -1441,6 +1466,42 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import NetworkDeviceDiscoveryScanService, {
   Service as NetworkDeviceDiscoveryScanServiceType,
 } from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
+
+// NetworkSite
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkSiteService, {
+  Service as NetworkSiteServiceType,
+} from "Common/Server/Services/NetworkSiteService";
+
+// NetworkEndpoint
+import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
+import NetworkEndpointService, {
+  Service as NetworkEndpointServiceType,
+} from "Common/Server/Services/NetworkEndpointService";
+
+// NetworkSiteType
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
+import NetworkSiteTypeService, {
+  Service as NetworkSiteTypeServiceType,
+} from "Common/Server/Services/NetworkSiteTypeService";
+
+// NetworkSiteStatusTimeline
+import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
+import NetworkSiteStatusTimelineService, {
+  Service as NetworkSiteStatusTimelineServiceType,
+} from "Common/Server/Services/NetworkSiteStatusTimelineService";
+
+// NetworkSiteLink
+import NetworkSiteLink from "Common/Models/DatabaseModels/NetworkSiteLink";
+import NetworkSiteLinkService, {
+  Service as NetworkSiteLinkServiceType,
+} from "Common/Server/Services/NetworkSiteLinkService";
+
+// NetworkSiteAssignmentRule
+import NetworkSiteAssignmentRule from "Common/Models/DatabaseModels/NetworkSiteAssignmentRule";
+import NetworkSiteAssignmentRuleService, {
+  Service as NetworkSiteAssignmentRuleServiceType,
+} from "Common/Server/Services/NetworkSiteAssignmentRuleService";
 
 // Open API Spec
 import OpenAPI from "Common/Server/API/OpenAPI";
@@ -2413,6 +2474,60 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // ServiceLevelObjective
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ServiceLevelObjective, ServiceLevelObjectiveServiceType>(
+        ServiceLevelObjective,
+        ServiceLevelObjectiveService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveBurnRateRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveBurnRateRule,
+        ServiceLevelObjectiveBurnRateRuleServiceType
+      >(
+        ServiceLevelObjectiveBurnRateRule,
+        ServiceLevelObjectiveBurnRateRuleService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveOwnerUser
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveOwnerUser,
+        ServiceLevelObjectiveOwnerUserServiceType
+      >(
+        ServiceLevelObjectiveOwnerUser,
+        ServiceLevelObjectiveOwnerUserService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveOwnerTeam
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveOwnerTeam,
+        ServiceLevelObjectiveOwnerTeamServiceType
+      >(
+        ServiceLevelObjectiveOwnerTeam,
+        ServiceLevelObjectiveOwnerTeamService,
+      ).getRouter(),
+    );
+
+    // SloHistory (ClickHouse — SLO evaluation history for charts)
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<SloHistory, SloHistoryServiceType>(
+        SloHistory,
+        SloHistoryService,
+      ).getRouter(),
+    );
+
     // IncidentReminderRule
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -2449,6 +2564,14 @@ const BaseAPIFeatureSet: FeatureSet = {
         ExceptionInstance,
         ExceptionInstanceService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAnalyticsAPI<
+        KubernetesCostAllocation,
+        KubernetesCostAllocationServiceType
+      >(KubernetesCostAllocation, KubernetesCostAllocationService).getRouter(),
     );
 
     app.use(
@@ -4405,9 +4528,73 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // network site
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSite, NetworkSiteServiceType>(
+        NetworkSite,
+        NetworkSiteService,
+      ).getRouter(),
+    );
+
+    // network endpoint
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkEndpoint, NetworkEndpointServiceType>(
+        NetworkEndpoint,
+        NetworkEndpointService,
+      ).getRouter(),
+    );
+
+    // network site type
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteType, NetworkSiteTypeServiceType>(
+        NetworkSiteType,
+        NetworkSiteTypeService,
+      ).getRouter(),
+    );
+
+    // network site status timeline
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkSiteStatusTimeline,
+        NetworkSiteStatusTimelineServiceType
+      >(
+        NetworkSiteStatusTimeline,
+        NetworkSiteStatusTimelineService,
+      ).getRouter(),
+    );
+
+    // network site link
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<NetworkSiteLink, NetworkSiteLinkServiceType>(
+        NetworkSiteLink,
+        NetworkSiteLinkService,
+      ).getRouter(),
+    );
+
+    // network site assignment rule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        NetworkSiteAssignmentRule,
+        NetworkSiteAssignmentRuleServiceType
+      >(
+        NetworkSiteAssignmentRule,
+        NetworkSiteAssignmentRuleService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new NetworkDeviceTopologyAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkSiteHierarchyAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

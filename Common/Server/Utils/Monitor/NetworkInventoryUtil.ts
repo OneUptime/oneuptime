@@ -1,68 +1,60 @@
-import Monitor from "../../../Models/DatabaseModels/Monitor";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "../../../Models/DatabaseModels/NetworkInterface";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import NetworkEndpointService from "../../Services/NetworkEndpointService";
 import NetworkInterfaceService from "../../Services/NetworkInterfaceService";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
-import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import LldpNeighbor from "../../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "../../../Types/Monitor/SnmpMonitor/CdpNeighbor";
+import ArpEntry from "../../../Types/Monitor/SnmpMonitor/ArpEntry";
+import FdbEntry from "../../../Types/Monitor/SnmpMonitor/FdbEntry";
+import EndpointAttachmentUtil, {
+  EndpointAttachmentResult,
+} from "../../../Utils/Monitor/EndpointAttachmentUtil";
 import SnmpSystemInfo from "../../../Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpEntityInfo from "../../../Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpVendorTemplateUtil from "../../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
-import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import logger from "../Logger";
 
 /*
  * Keeps the NetworkDevice / NetworkInterface inventory in sync with each
- * interface walk, then prunes the in-flight response down to MONITORED
+ * device walk, then prunes the in-flight response down to MONITORED
  * interfaces so criteria and metrics only consider ports the user cares
  * about. Inventory rows always reflect every walked interface; the
  * isMonitored flag is user-owned and never overwritten here.
+ *
+ * Called from the device polling pipeline (NetworkDeviceWalkUtil): the
+ * device's assigned probe walks it on the device's own schedule, so this
+ * runs for every registered device — no Monitor required.
  */
 export default class NetworkInventoryUtil {
   public static async updateFromWalk(data: {
-    monitor: Monitor;
-    dataToProcess: ProbeMonitorResponse;
+    projectId: ObjectID;
+    deviceId: ObjectID;
+    snmpResponse: SnmpMonitorResponse | undefined;
+    isOnline: boolean | undefined;
   }): Promise<void> {
-    const step: MonitorStep | undefined =
-      data.monitor.monitorSteps?.data?.monitorStepsInstanceArray?.find(
-        (monitorStep: MonitorStep) => {
-          return (
-            monitorStep.id.toString() ===
-            data.dataToProcess.monitorStepId.toString()
-          );
-        },
-      );
-
-    const deviceIdAsString: string | undefined =
-      step?.data?.networkDeviceMonitor?.networkDeviceId;
-
-    if (!deviceIdAsString || !data.monitor.projectId) {
-      return;
-    }
-
-    const deviceId: ObjectID = new ObjectID(deviceIdAsString);
+    const deviceId: ObjectID = data.deviceId;
 
     /*
-     * The device id is read from the monitor's step JSON, which a user can
-     * set to any UUID through the Monitor API (the dashboard dropdown is
-     * scoped, but the API is not). Confirm the device actually belongs to
-     * this monitor's project before writing anything with isRoot — without
-     * this guard a crafted step could point at another project's device and
-     * overwrite its inventory (or spawn interfaces under it).
+     * Confirm the device belongs to the given project before writing
+     * anything with isRoot — the walk pipeline resolves projectId from the
+     * device row itself, but keep the guard so no future caller can cross
+     * project boundaries.
      */
     const ownedDevice: NetworkDevice | null =
       await NetworkDeviceService.findOneBy({
         query: {
           _id: deviceId,
-          projectId: data.monitor.projectId,
+          projectId: data.projectId,
         },
         select: {
           _id: true,
+          siteId: true,
         },
         props: {
           isRoot: true,
@@ -74,15 +66,19 @@ export default class NetworkInventoryUtil {
     }
 
     const walkedInterfaces: Array<SnmpInterface> =
-      data.dataToProcess.snmpResponse?.interfaces || [];
+      data.snmpResponse?.interfaces || [];
     const systemInfo: SnmpSystemInfo | undefined =
-      data.dataToProcess.snmpResponse?.systemInfo;
+      data.snmpResponse?.systemInfo;
     const entityInfo: SnmpEntityInfo | undefined =
-      data.dataToProcess.snmpResponse?.entityInfo;
+      data.snmpResponse?.entityInfo;
     const lldpNeighbors: Array<LldpNeighbor> | undefined =
-      data.dataToProcess.snmpResponse?.lldpNeighbors;
+      data.snmpResponse?.lldpNeighbors;
     const cdpNeighbors: Array<CdpNeighbor> | undefined =
-      data.dataToProcess.snmpResponse?.cdpNeighbors;
+      data.snmpResponse?.cdpNeighbors;
+    const arpEntries: Array<ArpEntry> | undefined =
+      data.snmpResponse?.arpEntries;
+    const fdbEntries: Array<FdbEntry> | undefined =
+      data.snmpResponse?.fdbEntries;
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
@@ -92,9 +88,9 @@ export default class NetworkInventoryUtil {
      * derive up/down from its freshness, so bumping it on a failed poll
      * would paint an unreachable device green. A poll where the probe could
      * not reach the device reports isOnline === false; treat anything else
-     * (reachable, or a monitor type that reports no reachability) as seen.
+     * (reachable, or a walk that reports no reachability) as seen.
      */
-    const isDeviceReachable: boolean = data.dataToProcess.isOnline !== false;
+    const isDeviceReachable: boolean = data.isOnline !== false;
 
     try {
       // --- Device enrichment + cached counts ---
@@ -196,129 +192,167 @@ export default class NetworkInventoryUtil {
         });
       }
 
-      if (walkedInterfaces.length === 0) {
-        return;
-      }
-
-      // --- Interface upsert ---
-      const existingInterfaces: Array<NetworkInterface> =
-        await NetworkInterfaceService.findBy({
-          query: {
-            networkDeviceId: deviceId,
-          },
-          select: {
-            _id: true,
-            interfaceIndex: true,
-            isMonitored: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const existingByIndex: Map<number, NetworkInterface> = new Map();
-      for (const existing of existingInterfaces) {
-        if (existing.interfaceIndex !== undefined) {
-          existingByIndex.set(existing.interfaceIndex, existing);
-        }
-      }
-
-      const unmonitoredIndexes: Set<number> = new Set();
-
-      for (const walked of walkedInterfaces) {
-        const existing: NetworkInterface | undefined = existingByIndex.get(
-          walked.interfaceIndex,
-        );
-
-        if (existing && existing.isMonitored === false) {
-          unmonitoredIndexes.add(walked.interfaceIndex);
-        }
-
-        const interfaceData: Record<string, unknown> = {
-          name: (walked.name || "").substring(0, 100),
-          alias: walked.alias ? walked.alias.substring(0, 100) : null,
-          macAddress: walked.macAddress
-            ? walked.macAddress.substring(0, 100)
-            : null,
-          interfaceType: walked.interfaceType ?? null,
-          isOperationallyUp: walked.isOperationallyUp,
-          isAdministrativelyUp: walked.isAdministrativelyUp,
-          speedInMbps:
-            walked.speedInBitsPerSecond !== undefined
-              ? walked.speedInBitsPerSecond / 1000000
-              : null,
-          inRateMbps:
-            walked.inBitsPerSecond !== undefined
-              ? Math.round((walked.inBitsPerSecond / 1000000) * 1000) / 1000
-              : null,
-          outRateMbps:
-            walked.outBitsPerSecond !== undefined
-              ? Math.round((walked.outBitsPerSecond / 1000000) * 1000) / 1000
-              : null,
-          utilizationPercent: walked.utilizationPercent ?? null,
-          errorsPerSecond: walked.errorsPerSecond ?? null,
-          lastSeenAt: now,
-        };
-
-        if (existing && existing.id) {
-          await NetworkInterfaceService.updateOneById({
-            id: existing.id,
-            data: interfaceData as any,
+      if (walkedInterfaces.length > 0) {
+        // --- Interface upsert ---
+        const existingInterfaces: Array<NetworkInterface> =
+          await NetworkInterfaceService.findBy({
+            query: {
+              networkDeviceId: deviceId,
+            },
+            select: {
+              _id: true,
+              interfaceIndex: true,
+              isMonitored: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
             props: {
               isRoot: true,
             },
           });
-        } else {
-          const newInterface: NetworkInterface = new NetworkInterface();
-          newInterface.projectId = data.monitor.projectId;
-          newInterface.networkDeviceId = deviceId;
-          newInterface.interfaceIndex = walked.interfaceIndex;
-          newInterface.name = (walked.name || "").substring(0, 100);
-          if (walked.alias) {
-            newInterface.alias = walked.alias.substring(0, 100);
-          }
-          if (walked.macAddress) {
-            newInterface.macAddress = walked.macAddress.substring(0, 100);
-          }
-          if (walked.interfaceType !== undefined) {
-            newInterface.interfaceType = walked.interfaceType;
-          }
-          newInterface.isMonitored = true;
-          newInterface.isOperationallyUp = walked.isOperationallyUp;
-          newInterface.isAdministrativelyUp = walked.isAdministrativelyUp;
-          if (walked.speedInBitsPerSecond !== undefined) {
-            newInterface.speedInMbps = walked.speedInBitsPerSecond / 1000000;
-          }
-          newInterface.lastSeenAt = now;
 
-          await NetworkInterfaceService.create({
-            data: newInterface,
-            props: {
-              isRoot: true,
+        const existingByIndex: Map<number, NetworkInterface> = new Map();
+        for (const existing of existingInterfaces) {
+          if (existing.interfaceIndex !== undefined) {
+            existingByIndex.set(existing.interfaceIndex, existing);
+          }
+        }
+
+        const unmonitoredIndexes: Set<number> = new Set();
+
+        for (const walked of walkedInterfaces) {
+          const existing: NetworkInterface | undefined = existingByIndex.get(
+            walked.interfaceIndex,
+          );
+
+          if (existing && existing.isMonitored === false) {
+            unmonitoredIndexes.add(walked.interfaceIndex);
+          }
+
+          const interfaceData: Record<string, unknown> = {
+            name: (walked.name || "").substring(0, 100),
+            alias: walked.alias ? walked.alias.substring(0, 100) : null,
+            macAddress: walked.macAddress
+              ? walked.macAddress.substring(0, 100)
+              : null,
+            interfaceType: walked.interfaceType ?? null,
+            isOperationallyUp: walked.isOperationallyUp,
+            isAdministrativelyUp: walked.isAdministrativelyUp,
+            speedInMbps:
+              walked.speedInBitsPerSecond !== undefined
+                ? walked.speedInBitsPerSecond / 1000000
+                : null,
+            inRateMbps:
+              walked.inBitsPerSecond !== undefined
+                ? Math.round((walked.inBitsPerSecond / 1000000) * 1000) / 1000
+                : null,
+            outRateMbps:
+              walked.outBitsPerSecond !== undefined
+                ? Math.round((walked.outBitsPerSecond / 1000000) * 1000) / 1000
+                : null,
+            utilizationPercent: walked.utilizationPercent ?? null,
+            errorsPerSecond: walked.errorsPerSecond ?? null,
+            lastSeenAt: now,
+          };
+
+          if (existing && existing.id) {
+            await NetworkInterfaceService.updateOneById({
+              id: existing.id,
+              data: interfaceData as any,
+              props: {
+                isRoot: true,
+              },
+            });
+          } else {
+            const newInterface: NetworkInterface = new NetworkInterface();
+            newInterface.projectId = data.projectId;
+            newInterface.networkDeviceId = deviceId;
+            newInterface.interfaceIndex = walked.interfaceIndex;
+            newInterface.name = (walked.name || "").substring(0, 100);
+            if (walked.alias) {
+              newInterface.alias = walked.alias.substring(0, 100);
+            }
+            if (walked.macAddress) {
+              newInterface.macAddress = walked.macAddress.substring(0, 100);
+            }
+            if (walked.interfaceType !== undefined) {
+              newInterface.interfaceType = walked.interfaceType;
+            }
+            newInterface.isMonitored = true;
+            newInterface.isOperationallyUp = walked.isOperationallyUp;
+            newInterface.isAdministrativelyUp = walked.isAdministrativelyUp;
+            if (walked.speedInBitsPerSecond !== undefined) {
+              newInterface.speedInMbps = walked.speedInBitsPerSecond / 1000000;
+            }
+            newInterface.lastSeenAt = now;
+
+            await NetworkInterfaceService.create({
+              data: newInterface,
+              props: {
+                isRoot: true,
+              },
+            });
+          }
+        }
+
+        /*
+         * Prune the in-flight response to monitored interfaces only, so
+         * criteria (interface down / utilization / errors) and per-interface
+         * metrics ignore ports the user muted. The inventory above keeps the
+         * full picture.
+         */
+        if (unmonitoredIndexes.size > 0 && data.snmpResponse) {
+          data.snmpResponse.interfaces = walkedInterfaces.filter(
+            (walked: SnmpInterface) => {
+              return !unmonitoredIndexes.has(walked.interfaceIndex);
             },
-          });
+          );
         }
       }
 
       /*
-       * Prune the in-flight response to monitored interfaces only, so
-       * criteria (interface down / utilization / errors) and per-interface
-       * metrics ignore ports the user muted. The inventory above keeps the
-       * full picture.
+       * --- Endpoint discovery (ARP/FDB) ---
+       * Only when the walk carries the endpoint arrays — walks with endpoint
+       * collection off omit them and must flow through this function exactly
+       * as before. The pure attachment logic strips uplink/self/transit
+       * MACs; the service applies the FDB-over-ARP precedence rules per
+       * (project, MAC).
        */
-      if (unmonitoredIndexes.size > 0 && data.dataToProcess.snmpResponse) {
-        data.dataToProcess.snmpResponse.interfaces = walkedInterfaces.filter(
-          (walked: SnmpInterface) => {
-            return !unmonitoredIndexes.has(walked.interfaceIndex);
-          },
-        );
+      if (fdbEntries !== undefined || arpEntries !== undefined) {
+        const endpointResult: EndpointAttachmentResult =
+          EndpointAttachmentUtil.computeEndpointAttachments({
+            deviceId: deviceId.toString(),
+            fdbEntries: fdbEntries,
+            arpEntries: arpEntries,
+            lldpNeighbors: lldpNeighbors,
+            cdpNeighbors: cdpNeighbors,
+            interfaces: walkedInterfaces.map((walked: SnmpInterface) => {
+              return {
+                interfaceIndex: walked.interfaceIndex,
+                name: walked.name,
+                macAddress: walked.macAddress,
+              };
+            }),
+          });
+
+        if (
+          endpointResult.attachments.length > 0 ||
+          endpointResult.ipBindings.length > 0
+        ) {
+          await NetworkEndpointService.upsertDiscoveredEndpoints({
+            projectId: data.projectId,
+            deviceId: deviceId,
+            deviceSiteId: ownedDevice.siteId,
+            attachments: endpointResult.attachments,
+            ipBindings: endpointResult.ipBindings,
+            now: now,
+          });
+        }
       }
     } catch (err) {
-      // Inventory bookkeeping must never fail the check pipeline.
+      // Inventory bookkeeping must never fail the walk pipeline.
       logger.error(
-        `Failed to update network inventory for device ${deviceIdAsString}:`,
+        `Failed to update network inventory for device ${deviceId.toString()}:`,
       );
       logger.error(err);
     }

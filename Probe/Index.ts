@@ -11,6 +11,7 @@ import AliveJob from "./Jobs/Alive";
 import FetchMonitorList from "./Jobs/Monitor/FetchList";
 import FetchMonitorTestList from "./Jobs/Monitor/FetchMonitorTest";
 import FetchDiscoveryScans from "./Jobs/Discovery/FetchScans";
+import FetchNetworkDeviceList from "./Jobs/NetworkDevice/FetchList";
 import Register from "./Services/Register";
 import NetFlowReceiver from "./Services/NetFlowReceiver";
 import SnmpTrapReceiver from "./Services/SnmpTrapReceiver";
@@ -117,6 +118,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       FetchMonitorList();
       FetchMonitorTestList();
       FetchDiscoveryScans();
+      // Device-owned polling: walk this probe's assigned NetworkDevices.
+      FetchNetworkDeviceList();
 
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();

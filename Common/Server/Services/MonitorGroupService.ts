@@ -4,6 +4,7 @@ import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Dictionary from "../../Types/Dictionary";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -220,6 +221,150 @@ export class Service extends DatabaseService<MonitorGroup> {
     }
 
     return currentStatus;
+  }
+
+  /*
+   * Batched fetch of MonitorGroupResource rows for many groups in ONE query
+   * (paged only if the total exceeds LIMIT_MAX). The public status-page read
+   * paths used to issue one query per monitor group per page view; on a page
+   * with G groups that was an N+1 of G index lookups per request. Every
+   * requested group id gets an entry in the returned dictionary (empty array
+   * when the group has no resources).
+   */
+  @CaptureSpan()
+  public async getMonitorGroupResourcesByGroupIds(
+    monitorGroupIds: Array<ObjectID>,
+  ): Promise<Dictionary<Array<MonitorGroupResource>>> {
+    const resourcesByGroupId: Dictionary<Array<MonitorGroupResource>> = {};
+
+    const dedupedGroupIds: Array<ObjectID> = [];
+    for (const monitorGroupId of monitorGroupIds) {
+      if (monitorGroupId && !resourcesByGroupId[monitorGroupId.toString()]) {
+        resourcesByGroupId[monitorGroupId.toString()] = [];
+        dedupedGroupIds.push(monitorGroupId);
+      }
+    }
+
+    if (dedupedGroupIds.length === 0) {
+      return resourcesByGroupId;
+    }
+
+    const monitorGroupResources: Array<MonitorGroupResource> =
+      await MonitorGroupResourceService.findAllBy({
+        query: {
+          monitorGroupId: QueryHelper.any(dedupedGroupIds),
+        },
+        select: {
+          monitorGroupId: true,
+          monitorId: true,
+          monitor: {
+            currentMonitorStatusId: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const monitorGroupResource of monitorGroupResources) {
+      if (!monitorGroupResource.monitorGroupId) {
+        continue;
+      }
+
+      resourcesByGroupId[monitorGroupResource.monitorGroupId.toString()]?.push(
+        monitorGroupResource,
+      );
+    }
+
+    return resourcesByGroupId;
+  }
+
+  // Batched twin of the per-group monitor-id lookup: ONE query for all groups.
+  @CaptureSpan()
+  public async getMonitorIdsInMonitorGroups(
+    monitorGroupIds: Array<ObjectID>,
+  ): Promise<Dictionary<Array<ObjectID>>> {
+    const resourcesByGroupId: Dictionary<Array<MonitorGroupResource>> =
+      await this.getMonitorGroupResourcesByGroupIds(monitorGroupIds);
+
+    const monitorIdsByGroupId: Dictionary<Array<ObjectID>> = {};
+
+    for (const groupId of Object.keys(resourcesByGroupId)) {
+      monitorIdsByGroupId[groupId] = (resourcesByGroupId[groupId] || [])
+        .map((resource: MonitorGroupResource) => {
+          return resource.monitorId!;
+        })
+        .filter((id: ObjectID) => {
+          return Boolean(id); // remove nulls
+        });
+    }
+
+    return monitorIdsByGroupId;
+  }
+
+  /*
+   * Batched twin of getCurrentStatus, preserving its exact semantics: each
+   * group's status starts at the project's operational state and is replaced
+   * by the highest-priority-number status among its monitors. Callers supply
+   * the project's monitor statuses (they already have them in hand on every
+   * path that renders a status page), so this issues at most ONE query — the
+   * group-resource fetch — instead of three per group.
+   */
+  @CaptureSpan()
+  public async getCurrentStatusesForMonitorGroups(data: {
+    monitorGroupIds: Array<ObjectID>;
+    monitorStatuses: Array<MonitorStatus>;
+    monitorGroupResources?: Dictionary<Array<MonitorGroupResource>> | undefined;
+  }): Promise<Dictionary<MonitorStatus>> {
+    const currentStatuses: Dictionary<MonitorStatus> = {};
+
+    if (data.monitorGroupIds.length === 0) {
+      return currentStatuses;
+    }
+
+    const operationalStatus: MonitorStatus | undefined =
+      data.monitorStatuses.find((monitorStatus: MonitorStatus) => {
+        return monitorStatus.isOperationalState;
+      });
+
+    if (!operationalStatus) {
+      throw new BadDataException("Operational state not found.");
+    }
+
+    const resourcesByGroupId: Dictionary<Array<MonitorGroupResource>> =
+      data.monitorGroupResources ||
+      (await this.getMonitorGroupResourcesByGroupIds(data.monitorGroupIds));
+
+    for (const monitorGroupId of data.monitorGroupIds) {
+      let currentStatus: MonitorStatus = operationalStatus;
+
+      for (const monitorGroupResource of resourcesByGroupId[
+        monitorGroupId.toString()
+      ] || []) {
+        if (!monitorGroupResource.monitor) {
+          continue;
+        }
+
+        const monitorStatus: MonitorStatus | undefined =
+          data.monitorStatuses.find((monitorStatus: MonitorStatus) => {
+            return (
+              monitorStatus.id?.toString() ===
+              monitorGroupResource.monitor!.currentMonitorStatusId?.toString()
+            );
+          });
+
+        if (
+          monitorStatus &&
+          currentStatus.priority! < monitorStatus.priority!
+        ) {
+          currentStatus = monitorStatus;
+        }
+      }
+
+      currentStatuses[monitorGroupId.toString()] = currentStatus;
+    }
+
+    return currentStatuses;
   }
 }
 export default new Service();

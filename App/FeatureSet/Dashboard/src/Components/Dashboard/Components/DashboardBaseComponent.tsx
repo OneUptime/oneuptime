@@ -18,6 +18,7 @@ import DashboardTraceTableComponentType from "Common/Types/Dashboard/DashboardCo
 import DashboardIncidentListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardIncidentListComponent";
 import DashboardAlertListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardAlertListComponent";
 import DashboardMonitorListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
+import DashboardSloComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardSloComponent";
 import DashboardKubernetesPodListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesPodListComponent";
 import DashboardKubernetesNodeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesNodeListComponent";
 import DashboardKubernetesNamespaceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesNamespaceListComponent";
@@ -49,6 +50,7 @@ import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
 import DashboardTableComponent from "./DashboardTableComponent";
 import DashboardGaugeComponent from "./DashboardGaugeComponent";
+import DashboardSloComponent from "./DashboardSloComponent";
 import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
 import DashboardLogChartComponent from "./DashboardLogChartComponent";
 import DashboardTraceListComponent from "./DashboardTraceListComponent";
@@ -737,6 +739,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardMonitorListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.Slo && (
+          <DashboardSloComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardSloComponentType}
           />
         )}
         {component.componentType ===

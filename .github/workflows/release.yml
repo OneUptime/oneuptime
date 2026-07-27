@@ -215,6 +215,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -285,6 +292,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -366,6 +380,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -436,6 +457,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -506,6 +534,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -576,6 +611,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -646,6 +688,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -718,6 +767,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -790,6 +846,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -862,6 +925,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -877,6 +947,85 @@ jobs:
           SANITIZED_VERSION="${VERSION//+/-}"
           bash ./Scripts/GHA/merge_docker_manifests.sh \
             --image kubernetes-log-tailer \
+            --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION},release,enterprise-release"
+
+  kubernetes-cost-agent-docker-image-build:
+    needs: [generate-build-number, read-version]
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate Dockerfile from Dockerfile.tpl
+        run: npm run prerun
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Build and push
+        run: |
+          bash ./Scripts/GHA/build_docker_images.sh \
+            --image kubernetes-cost-agent \
+            --version "${{needs.read-version.outputs.major_minor}}" \
+            --dockerfile ./KubernetesCostAgent/Dockerfile \
+            --context . \
+            --platforms ${{ matrix.platform }} \
+            --git-sha "${{ github.sha }}" \
+            --extra-tags release \
+            --extra-enterprise-tags enterprise-release
+
+  kubernetes-cost-agent-docker-image-merge:
+    needs: [kubernetes-cost-agent-docker-image-build, read-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+
+      - name: Merge multi-arch manifests
+        run: |
+          VERSION="${{needs.read-version.outputs.major_minor}}"
+          SANITIZED_VERSION="${VERSION//+/-}"
+          bash ./Scripts/GHA/merge_docker_manifests.sh \
+            --image kubernetes-cost-agent \
             --tags "${SANITIZED_VERSION},enterprise-${SANITIZED_VERSION},release,enterprise-release"
 
   app-docker-image-build:
@@ -932,6 +1081,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -1002,6 +1158,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -1148,6 +1311,13 @@ jobs:
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # This job only runs `docker buildx imagetools`, which manipulates
+          # registry manifests directly and needs no buildkit container. The
+          # default docker driver skips booting moby/buildkit (a Docker Hub
+          # image pull that intermittently times out — the "booting buildkit"
+          # failure that broke *-docker-image-merge on master).
+          driver: docker
 
       - name: Login to Docker Hub
         run: |
@@ -1598,12 +1768,13 @@ jobs:
   # The needs list is not just ordering sugar. This job scans all twelve
   # published tags, and the unsuffixed tag it scans is created only by the
   # corresponding *-docker-image-merge job. Nine of those merges are reached
-  # transitively via draft-github-release; docker-agent, podman-agent and
-  # kubernetes-log-tailer are leaves that nothing else depends on, so they must
-  # be named explicitly. Without them a failure in any of the three would let
-  # this job run against a tag that was never pushed, fail on MANIFEST_UNKNOWN,
-  # and — since finalize-github-release now needs this job — strand the release
-  # as a permanent draft after the images and tags had already gone out.
+  # transitively via draft-github-release; docker-agent, podman-agent,
+  # kubernetes-log-tailer and kubernetes-cost-agent are leaves that nothing
+  # else depends on, so they must be named explicitly. Without them a failure
+  # in any of the four would let this job run against a tag that was never
+  # pushed, fail on MANIFEST_UNKNOWN, and — since finalize-github-release now
+  # needs this job — strand the release as a permanent draft after the images
+  # and tags had already gone out.
   generate-sboms:
     name: Generate CycloneDX SBOMs
     needs:
@@ -1612,6 +1783,7 @@ jobs:
       - docker-agent-docker-image-merge
       - podman-agent-docker-image-merge
       - kubernetes-log-tailer-docker-image-merge
+      - kubernetes-cost-agent-docker-image-merge
     runs-on: ubuntu-latest
     permissions:
       contents: write

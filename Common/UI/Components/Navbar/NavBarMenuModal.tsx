@@ -3,7 +3,7 @@ import Link from "../Link/Link";
 import Navigation from "../../Utils/Navigation";
 import IconProp from "../../../Types/Icon/IconProp";
 import URL from "../../../Types/API/URL";
-import type { MoreMenuItem } from "./NavBar";
+import { isMoreMenuItemActive, type MoreMenuItem } from "./NavBar";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -209,7 +209,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     const resolved: MoreMenuItem[] = [];
     recentRoutes.forEach((route: string) => {
       const item: MoreMenuItem | undefined = itemByRoute.get(route);
-      if (item && !Navigation.isStartWith(item.activeRoute || item.route)) {
+      if (item && !isMoreMenuItemActive(item)) {
         resolved.push(item);
       }
     });
@@ -269,7 +269,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   // Index of the product matching the current page (the "you are here" item).
   const currentFlatIndex: number = useMemo(() => {
     return flatItems.findIndex((item: MoreMenuItem) => {
-      return Navigation.isStartWith(item.activeRoute || item.route);
+      return isMoreMenuItemActive(item);
     });
   }, [flatItems]);
 

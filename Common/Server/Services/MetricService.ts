@@ -1429,8 +1429,18 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       }
     }
 
+    /*
+     * The SELECT below aliases aggregates to real column names
+     * (`<agg> as value`, `min(time) as time` under Total). In the
+     * non-subquery form the WHERE sits at the same level, so its column
+     * references must be table-qualified or ClickHouse resolves them to
+     * those aliases (ILLEGAL_AGGREGATION under Total). Both forms read
+     * FROM this model's table, so the table name is a valid qualifier
+     * in either.
+     */
     const whereStatement: Statement = this.statementGenerator.toWhereStatement(
       aggregateBy.query,
+      { tableAlias: this.model.tableName },
     );
     const sortStatement: Statement = this.statementGenerator.toSortStatement(
       aggregateBy.sort!,
@@ -1636,8 +1646,17 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       this.statementGenerator.toWhereStatement(
         this.getMutableMetricInnerQuery(aggregateBy.query),
       );
+    /*
+     * The outer SELECT aliases aggregates to real column names
+     * (`<agg> as value`, `min(time) as time` under Total) at the same
+     * level as this WHERE, so its column references must be qualified
+     * with the dedup subquery's alias — unqualified ones would resolve
+     * to those aliases (ILLEGAL_AGGREGATION under Total).
+     */
     const outerWhereStatement: Statement =
-      this.statementGenerator.toWhereStatement(aggregateBy.query);
+      this.statementGenerator.toWhereStatement(aggregateBy.query, {
+        tableAlias: "mutable_metric_latest",
+      });
     const sortStatement: Statement = this.statementGenerator.toSortStatement(
       aggregateBy.sort!,
     );
@@ -1703,7 +1722,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
               primaryEntityId,
               primaryEntityType,
               metricPointId
-          )
+          ) AS mutable_metric_latest
           WHERE isDeleted = false
         `,
       )

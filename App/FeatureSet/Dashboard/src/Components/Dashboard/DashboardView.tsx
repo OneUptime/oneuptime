@@ -30,6 +30,7 @@ import DashboardTraceTableComponentUtil from "Common/Utils/Dashboard/Components/
 import DashboardIncidentListComponentUtil from "Common/Utils/Dashboard/Components/DashboardIncidentListComponent";
 import DashboardAlertListComponentUtil from "Common/Utils/Dashboard/Components/DashboardAlertListComponent";
 import DashboardMonitorListComponentUtil from "Common/Utils/Dashboard/Components/DashboardMonitorListComponent";
+import DashboardSloComponentUtil from "Common/Utils/Dashboard/Components/DashboardSloComponent";
 import DashboardKubernetesPodListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesPodListComponent";
 import DashboardKubernetesNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesNodeListComponent";
 import DashboardKubernetesNamespaceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardKubernetesNamespaceListComponent";
@@ -580,6 +581,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.MonitorList) {
             newComponent =
               DashboardMonitorListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.Slo) {
+            newComponent = DashboardSloComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.KubernetesPodList) {

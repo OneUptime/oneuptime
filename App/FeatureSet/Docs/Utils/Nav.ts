@@ -335,6 +335,23 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "SLOs",
+    links: [
+      {
+        title: "SLOs Overview",
+        url: "/docs/slo/introduction",
+      },
+      {
+        title: "Error Budgets",
+        url: "/docs/slo/error-budget",
+      },
+      {
+        title: "Burn Rate Alerts",
+        url: "/docs/slo/burn-rate-alerts",
+      },
+    ],
+  },
+  {
     title: "On Call",
     links: [
       {
@@ -550,6 +567,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Kubernetes Agent",
         url: "/docs/telemetry/kubernetes-agent",
+      },
+      {
+        title: "Kubernetes Cost Observability",
+        url: "/docs/telemetry/kubernetes-cost",
       },
       {
         title: "Docker Agent",

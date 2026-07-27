@@ -33,6 +33,21 @@ export interface MoreMenuItem {
   iconColor?: string; // Tailwind color name like "blue", "purple", "amber"
   category?: string; // Category for grouping items (e.g., "Essentials", "Observability")
   activeRoute?: Route | undefined; // Route to check for active state
+  additionalActiveRoutes?: Array<Route> | undefined; // Extra routes that also mark this item active
+}
+
+/*
+ * One menu item can own several route prefixes (e.g. a merged "Network" item
+ * spanning /network-devices and /network-sites) — check them all.
+ */
+export function isMoreMenuItemActive(item: MoreMenuItem): boolean {
+  const routesToCheck: Array<Route> = [
+    item.activeRoute || item.route,
+    ...(item.additionalActiveRoutes || []),
+  ];
+  return routesToCheck.some((route: Route) => {
+    return Navigation.isStartWith(route);
+  });
 }
 
 export interface ComponentProps {
@@ -54,6 +69,13 @@ export interface ComponentProps {
   children?: ReactElement | Array<ReactElement>;
 }
 
+/*
+ * Breathing room kept between the bottom of the open mobile menu and the bottom
+ * of the viewport, and the smallest height we will ever shrink the menu to.
+ */
+const MOBILE_MENU_BOTTOM_GAP_IN_PX: number = 16;
+const MOBILE_MENU_MIN_HEIGHT_IN_PX: number = 160;
+
 const Navbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -61,6 +83,9 @@ const Navbar: FunctionComponent<ComponentProps> = (
   const [isMobileMenuVisible, setIsMobileMenuVisible] =
     useState<boolean>(false);
   const [isMoreMenuVisible, setIsMoreMenuVisible] = useState<boolean>(false);
+  const [mobileMenuMaxHeight, setMobileMenuMaxHeight] = useState<
+    number | undefined
+  >(undefined);
 
   // Use the existing outside click hook for mobile menu
   const {
@@ -87,6 +112,54 @@ const Navbar: FunctionComponent<ComponentProps> = (
       return window.removeEventListener("resize", checkMobile);
     };
   }, []);
+
+  /*
+   * The mobile menu is absolutely positioned inside a `sticky top-0` header, so
+   * anything that overflows past the bottom of the viewport is unreachable —
+   * scrolling the page just drags the sticky header (and the menu pinned to it)
+   * along. Cap the menu to the space left below it so it scrolls on its own.
+   */
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    const updateMobileMenuMaxHeight: () => void = (): void => {
+      const menuTop: number =
+        mobileMenuRef.current?.getBoundingClientRect().top ?? 0;
+      const viewportHeight: number =
+        window.visualViewport?.height ?? window.innerHeight;
+
+      setMobileMenuMaxHeight(
+        Math.max(
+          viewportHeight - menuTop - MOBILE_MENU_BOTTOM_GAP_IN_PX,
+          MOBILE_MENU_MIN_HEIGHT_IN_PX,
+        ),
+      );
+    };
+
+    updateMobileMenuMaxHeight();
+
+    window.addEventListener("resize", updateMobileMenuMaxHeight);
+    window.addEventListener("orientationchange", updateMobileMenuMaxHeight);
+    // The address bar collapsing on mobile only shows up on the visual viewport.
+    window.visualViewport?.addEventListener(
+      "resize",
+      updateMobileMenuMaxHeight,
+    );
+
+    return () => {
+      window.removeEventListener("resize", updateMobileMenuMaxHeight);
+      window.removeEventListener(
+        "orientationchange",
+        updateMobileMenuMaxHeight,
+      );
+      window.visualViewport?.removeEventListener(
+        "resize",
+        updateMobileMenuMaxHeight,
+      );
+    };
+  }, [isMobileMenuOpen]);
 
   // Open/close the products menu with Cmd/Ctrl + K from anywhere.
   useEffect(() => {
@@ -220,7 +293,14 @@ const Navbar: FunctionComponent<ComponentProps> = (
             ref={mobileMenuRef}
             className="absolute top-full left-0 right-0 z-50 mt-1 transition-all duration-200 ease-in-out"
           >
-            <nav className="bg-white rounded-lg shadow-lg px-3 py-3 space-y-1 border border-gray-200">
+            <nav
+              className="bg-white rounded-lg shadow-lg px-3 py-3 space-y-1 border border-gray-200 overflow-y-auto overscroll-contain"
+              style={
+                mobileMenuMaxHeight
+                  ? { maxHeight: `${mobileMenuMaxHeight}px` }
+                  : undefined
+              }
+            >
               {allNavItems.map((item: any) => {
                 return (
                   <div key={item.id} className="block w-full">
@@ -254,8 +334,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
   // Find active item in more menu items (needed for breadcrumb)
   const activeMoreItem: MoreMenuItem | undefined = props.moreMenuItems?.find(
     (item: MoreMenuItem) => {
-      const routeToCheck: Route = item.activeRoute || item.route;
-      return Navigation.isStartWith(routeToCheck);
+      return isMoreMenuItemActive(item);
     },
   );
 

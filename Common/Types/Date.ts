@@ -12,6 +12,13 @@ export const Moment: typeof moment = moment;
 export default class OneUptimeDate {
   // get date time from unix timestamp
 
+  /*
+   * The timezone the signed-in user configured in User Settings, pushed in by
+   * the UI (see UserUtil.initializeUserTimezone). Null on the server and on
+   * signed-out pages, where the process / browser zone is used instead.
+   */
+  private static userTimezone: Timezone | null = null;
+
   private static padDatePart(value: number): string {
     return value.toString().padStart(2, "0");
   }
@@ -44,6 +51,7 @@ export default class OneUptimeDate {
   private static getLocalShortMonthName(date: Date): string {
     return date.toLocaleString("default", {
       month: "short",
+      timeZone: this.getCurrentTimezone().toString(),
     });
   }
 
@@ -156,6 +164,19 @@ export default class OneUptimeDate {
     return this.getLocalTimeString(date);
   }
 
+  /**
+   * The hour / minute `date` reads at in the current timezone. Time pickers use
+   * these instead of Date.getHours()/getMinutes() so the digits they show are
+   * the ones the user expects in the zone they configured.
+   */
+  public static getLocalHours(date: Date | string): number {
+    return this.inCurrentTimezone(date).hours();
+  }
+
+  public static getLocalMinutes(date: Date | string): number {
+    return this.inCurrentTimezone(date).minutes();
+  }
+
   public static getLocalShortMonthNameFromDate(date: Date | string): string {
     date = this.fromString(date);
     return this.getLocalShortMonthName(date);
@@ -172,26 +193,27 @@ export default class OneUptimeDate {
 
     const includeMinutes: boolean = options?.includeMinutes ?? true;
     const includeSeconds: boolean = options?.includeSeconds ?? false;
-    const hours: string = this.padDatePart(date.getHours());
+    const localDate: moment.Moment = this.inCurrentTimezone(date);
+    const hours: string = this.padDatePart(localDate.hours());
 
     if (!includeMinutes) {
       return hours;
     }
 
-    const minutes: string = this.padDatePart(date.getMinutes());
+    const minutes: string = this.padDatePart(localDate.minutes());
 
     if (!includeSeconds) {
       return `${hours}:${minutes}`;
     }
 
-    const seconds: string = this.padDatePart(date.getSeconds());
+    const seconds: string = this.padDatePart(localDate.seconds());
     return `${hours}:${minutes}:${seconds}`;
   }
 
   public static getDateAsLocalDayMonthString(date: Date | string): string {
     date = this.fromString(date);
 
-    const day: string = this.padDatePart(date.getDate());
+    const day: string = this.padDatePart(this.inCurrentTimezone(date).date());
     const month: string = this.getLocalShortMonthName(date);
 
     return `${day} ${month}`;
@@ -207,7 +229,7 @@ export default class OneUptimeDate {
     date = this.fromString(date);
 
     const month: string = this.getLocalShortMonthName(date);
-    const year: string = date.getFullYear().toString();
+    const year: string = this.inCurrentTimezone(date).year().toString();
 
     return `${month} ${year}`;
   }
@@ -316,7 +338,7 @@ export default class OneUptimeDate {
       : `${datePart}, ${timePart}`;
 
     if (!data.timezone) {
-      const local: moment.Moment = moment(date).local();
+      const local: moment.Moment = this.inCurrentTimezone(date);
       return (
         local.format(formatString) +
         (data.onlyShowDate ? "" : " " + this.getCurrentTimezoneString())
@@ -333,18 +355,18 @@ export default class OneUptimeDate {
   }
 
   /**
-   * Reinterpret the wall-clock components of `date` — read in the process /
-   * browser local zone — as the SAME wall-clock in `timezone`, and return that
-   * instant. Used to store a time the user typed for the schedule's timezone
-   * even though the time picker captured it in the browser's local zone (audit
-   * F1). Inverse of getLocalDateFromWallClockInTimezone.
+   * Reinterpret the wall-clock components of `date` — read in the CURRENT
+   * timezone, i.e. the one the pickers render in — as the SAME wall-clock in
+   * `timezone`, and return that instant. Used to store a time the user typed
+   * for the schedule's timezone even though the time picker captured it in the
+   * viewer's own zone (audit F1). Inverse of
+   * getLocalDateFromWallClockInTimezone.
    */
   public static getInstantFromLocalWallClockInTimezone(
     date: Date | string,
     timezone: string,
   ): Date {
-    date = this.fromString(date);
-    const local: moment.Moment = moment(date);
+    const local: moment.Moment = this.inCurrentTimezone(date);
     return moment
       .tz(
         {
@@ -361,10 +383,10 @@ export default class OneUptimeDate {
   }
 
   /**
-   * Inverse of getInstantFromLocalWallClockInTimezone: return a process /
-   * browser local Date whose LOCAL wall-clock equals `date`'s wall-clock as seen
-   * in `timezone`. Used to display a stored schedule-timezone time inside a
-   * browser-local time picker (audit F1).
+   * Inverse of getInstantFromLocalWallClockInTimezone: return a Date whose
+   * wall-clock IN THE CURRENT TIMEZONE equals `date`'s wall-clock as seen in
+   * `timezone`. Used to display a stored schedule-timezone time inside a picker
+   * that renders in the viewer's own zone (audit F1).
    */
   public static getLocalDateFromWallClockInTimezone(
     date: Date | string,
@@ -372,14 +394,19 @@ export default class OneUptimeDate {
   ): Date {
     date = this.fromString(date);
     const zoned: moment.Moment = moment.tz(date, timezone);
-    return moment({
-      year: zoned.year(),
-      month: zoned.month(),
-      day: zoned.date(),
-      hour: zoned.hour(),
-      minute: zoned.minute(),
-      second: zoned.second(),
-    }).toDate();
+    return moment
+      .tz(
+        {
+          year: zoned.year(),
+          month: zoned.month(),
+          day: zoned.date(),
+          hour: zoned.hour(),
+          minute: zoned.minute(),
+          second: zoned.second(),
+        },
+        this.getCurrentTimezone().toString(),
+      )
+      .toDate();
   }
 
   public static isOverlapping(
@@ -709,22 +736,26 @@ export default class OneUptimeDate {
     return this.addRemoveMinutes(date, date.getTimezoneOffset());
   }
 
+  /**
+   * Render an instant as the value of an `<input type="datetime-local">` — a
+   * bare wall-clock with no offset — read in the current timezone.
+   */
   public static toDateTimeLocalString(date: Date): string {
-    date = this.fromString(date);
+    return this.inCurrentTimezone(date).format("YYYY-MM-DDTHH:mm:ss");
+  }
 
-    type TenFunction = (i: number) => string;
-
-    const ten: TenFunction = (i: number): string => {
-        return (i < 10 ? "0" : "") + i;
-      },
-      YYYY: number = date.getFullYear(),
-      MM: string = ten(date.getMonth() + 1),
-      DD: string = ten(date.getDate()),
-      HH: string = ten(date.getHours()),
-      II: string = ten(date.getMinutes()),
-      SS: string = ten(date.getSeconds());
-
-    return YYYY + "-" + MM + "-" + DD + "T" + HH + ":" + II + ":" + SS;
+  /**
+   * Inverse of toDateTimeLocalString: turn the offset-less wall-clock a user
+   * typed into a `<input type="date">` / `<input type="datetime-local">` into
+   * the instant it names in the current timezone. Without this the browser
+   * zone is used to resolve the wall-clock, so a user whose machine reports a
+   * different zone than the one they configured would have their times stored
+   * hours off.
+   */
+  public static fromDateTimeLocalString(value: string): Date {
+    return moment
+      .tz(value.trim(), this.getCurrentTimezone().toString())
+      .toDate();
   }
 
   public static fromJSON(json: JSONObject): Date {
@@ -1713,7 +1744,7 @@ export default class OneUptimeDate {
       formatstring = "MMM DD, YYYY";
     }
 
-    const momentDate: moment.Moment = moment(date).local();
+    const momentDate: moment.Moment = this.inCurrentTimezone(date);
 
     return (
       momentDate.format(formatstring) +
@@ -1752,8 +1783,41 @@ export default class OneUptimeDate {
     return zoneAbbr;
   }
 
+  /**
+   * Set the timezone the signed-in user picked in User Settings. Once set,
+   * every "local" helper below resolves wall-clock times in THIS zone instead
+   * of the zone the browser reports, so what the user reads and types matches
+   * the timezone they configured — even when the machine, OS or VPN they are
+   * on reports a different one. Pass null to fall back to the browser zone
+   * (signed-out surfaces, or a user who has not picked a timezone).
+   */
+  public static setUserTimezone(timezone: Timezone | null | undefined): void {
+    /*
+     * Ignore anything moment does not recognise as an IANA zone. A stale or
+     * corrupt saved value must not take every date in the UI down with it.
+     */
+    if (!timezone || !moment.tz.zone(timezone.toString())) {
+      this.userTimezone = null;
+      return;
+    }
+
+    this.userTimezone = timezone;
+  }
+
+  public static getUserTimezone(): Timezone | null {
+    return this.userTimezone;
+  }
+
   public static getCurrentTimezone(): Timezone {
-    return moment.tz.guess() as Timezone;
+    return this.userTimezone || (moment.tz.guess() as Timezone);
+  }
+
+  /**
+   * The instant `date` viewed through the current timezone — the single place
+   * that decides which wall clock the "local" helpers below read from.
+   */
+  private static inCurrentTimezone(date: Date | string): moment.Moment {
+    return moment(this.fromString(date)).tz(this.getCurrentTimezone());
   }
 
   public static getDateString(date: Date): string {
@@ -1810,9 +1874,8 @@ export default class OneUptimeDate {
   }
 
   public static asDateForDatabaseQuery(date: string | Date): string {
-    date = this.fromString(date);
     const formatstring: string = "YYYY-MM-DD";
-    return moment(date).local().format(formatstring);
+    return this.inCurrentTimezone(date).format(formatstring);
   }
 
   public static asFilterDateForDatabaseQuery(
@@ -1850,13 +1913,19 @@ export default class OneUptimeDate {
       throw new BadDataException("Invalid seconds");
     }
 
-    const date: Date = OneUptimeDate.getCurrentDate();
-
-    date.setHours(hour);
-    date.setMinutes(minutes);
-    date.setSeconds(seconds);
-
-    return date;
+    /*
+     * The hour/minute the user picked is a wall-clock reading in THEIR
+     * timezone, so anchor it to today's date in that zone rather than setting
+     * it on a browser-local Date.
+     */
+    return this.inCurrentTimezone(OneUptimeDate.getCurrentDate())
+      .set({
+        hour: hour,
+        minute: minutes,
+        second: seconds,
+        millisecond: 0,
+      })
+      .toDate();
   }
 
   public static toDatabaseDate(date: Date): string {

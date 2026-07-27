@@ -2,9 +2,9 @@
 
 ## 概要
 
-OneUptime Kubernetes エージェントは、OpenTelemetry ベースのコレクターパイプラインをクラスターにインストールする、事前パッケージ化された Helm チャートです。ノード、Pod、コンテナ、クラスターのメトリクス、Kubernetes イベント、Pod ログを送信し、さらにデフォルトで有効な eBPF により、アプリケーショントレース、HTTP RED メトリクス、サービスグラフのデータ、Pod 間のネットワークフローメトリクスも送信します。コードの変更も SDK も不要で、`helm install` 一回だけで済みます。
+OneUptime Kubernetes エージェントは、OpenTelemetry ベースのコレクターパイプラインをクラスターにインストールする、事前パッケージ化された Helm チャートです。ノード、Pod、コンテナ、クラスターのメトリクス、Kubernetes イベント、Pod ログを送信し、さらにデフォルトで有効な eBPF により、アプリケーショントレース、HTTP RED メトリクス、サービスグラフのデータ、Pod 間のネットワークフローメトリクスも送信します。`cost.enabled=true` にすると、ワークロードごとの **コスト割り当て** (名前空間 / ワークロード / Pod ごとの支出、アイドル容量、効率) も送信します。コードの変更も SDK も不要で、`helm install` 一回だけで済みます。
 
-このページは **インストールガイド** です。エージェントが収集するデータの上に Kubernetes モニターやアラートを構成する方法については、[Kubernetes エージェント (モニター)](/docs/monitor/kubernetes-agent) を参照してください。
+このページは **インストールガイド** です。エージェントが収集するデータの上に Kubernetes モニターやアラートを構成する方法については、[Kubernetes エージェント (モニター)](/docs/monitor/kubernetes-agent) を参照してください。コスト可観測性については、[Kubernetes コスト可観測性](/docs/telemetry/kubernetes-cost) を参照してください。
 
 ## 前提条件
 
@@ -297,6 +297,21 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 > マネージド Kubernetes サービス (EKS、GKE、AKS) は通常、コントロールプレーンのメトリクスを公開しません。これはセルフマネージドクラスターでのみ有効にしてください。
 
+### コスト可観測性を有効にする
+
+すべての名前空間、ワークロード、Pod に実際にいくらかかっているか — アイドル容量やリクエスト対使用量の効率も含めて — を、クラスターの **Costs** ページで確認できます。
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reuse-values \
+  --set cost.enabled=true
+```
+
+これだけで完全なインストールになります。このチャートはオープンソースの [OpenCost](https://opencost.io) エンジン (および OpenCost が必要とする最小限の専用 Prometheus) をバンドルし、ノードとボリュームの価格をクラウドプロバイダーの公開定価から算出します — 認証情報は不要です。追加されるのは 2 つの小さな Pod だけで、最初のデータは最初に閉じた 1 時間ウィンドウの後に表示されます。すでに Kubecost や OpenCost を実行している場合は、代わりに `--set cost.engine.url=<そのサービス URL>` を追加してください。その場合、何もバンドルされません。オンプレミスのクラスターでは、`cost.opencost.customPricing` でレートカードを設定できます。
+
+オンプレミスの価格設定やトラブルシューティングを含む完全なガイド: [Kubernetes コスト可観測性](/docs/telemetry/kubernetes-cost)。
+
 ### プロジェクトラベルで自動タグ付けする
 
 `oneuptime.label.` というプレフィックスが付いた任意のリソース属性は、プロジェクトの Label に昇格され、このエージェントから出力されるクラスター、サービス、ホストに付与されます。パターン: `oneuptime.label.<dimension>=<value>` は `<dimension>:<value>` という名前のラベルになります。
@@ -364,6 +379,7 @@ kubectl delete namespace oneuptime-agent
 | **サービスグラフ** _(eBPF 経由)_                             | 呼び出し元 → 呼び出し先のリクエストレート、レイテンシ、エラーのエッジ — サービスマップビューを駆動                                   |
 | **ネットワークフローメトリクス** _(eBPF 経由)_               | k8s メタデータ付きの Pod 間 TCP/UDP のバイトおよびパケットカウンター                                                                 |
 | **TCP 統計** _(eBPF 経由)_                                   | ノードレベルの RTT、接続失敗、再送信のカウンター                                                                                     |
+| **ワークロードコスト** _(オプトイン、`cost.enabled=true`)_   | アイドルと効率を含む、名前空間 / ワークロード / Pod ごとの事前価格付けされた支出、およびノード / PV の時間あたりコストメトリクス — [Kubernetes コスト可観測性](/docs/telemetry/kubernetes-cost) を参照 |
 
 ## eBPF によるアプリケーショントレースと HTTP メトリクス (デフォルトで有効)
 
@@ -558,6 +574,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 | `kubeStateMetrics.enabled`                                | CrashLoop / ImagePull / スケジューリング理由のメトリクス (KSM Deployment とスクレイプを追加) |
 | `ebpf.features.networkInterZoneMetrics`                   | ネットワークフローメトリクスのカーディナリティを倍増                                         |
 | `serviceMesh.enabled` / `csi.enabled` / `coreDns.enabled` | 追加の Prometheus スクレイプジョブ                                                           |
+| `cost.enabled`                                            | ワークロードのコスト可観測性 (OpenCost + 小さな Prometheus をバンドル。1 時間ごとのコスト行 + 厳密に許可リスト化されたメトリクスのスクレイプ — 取り込み量は控えめ、追加 Pod は 2 つ)     |
 
 ### レバー 6 — トレースを破棄する代わりにサンプリングする
 

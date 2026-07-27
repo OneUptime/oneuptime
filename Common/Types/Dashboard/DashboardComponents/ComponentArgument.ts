@@ -27,6 +27,7 @@ export enum EntityFilterModelType {
   AlertState = "AlertState",
   MonitorStatus = "MonitorStatus",
   Monitor = "Monitor",
+  ServiceLevelObjective = "ServiceLevelObjective",
   Label = "Label",
   KubernetesCluster = "KubernetesCluster",
   DockerHost = "DockerHost",

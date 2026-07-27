@@ -81,8 +81,12 @@ const TimePicker: FunctionComponent<ComponentProps> = (
     return toDate(props.value) || OneUptimeDate.getCurrentDate();
   }, [props.value]);
 
-  const [hours24, setHours24] = useState<number>(initialDate.getHours());
-  const [minutes, setMinutes] = useState<number>(initialDate.getMinutes());
+  const [hours24, setHours24] = useState<number>(
+    OneUptimeDate.getLocalHours(initialDate),
+  );
+  const [minutes, setMinutes] = useState<number>(
+    OneUptimeDate.getLocalMinutes(initialDate),
+  );
 
   const hoursInputRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
@@ -99,8 +103,8 @@ const TimePicker: FunctionComponent<ComponentProps> = (
     if (!d) {
       return;
     }
-    setHours24(d.getHours());
-    setMinutes(d.getMinutes());
+    setHours24(OneUptimeDate.getLocalHours(d));
+    setMinutes(OneUptimeDate.getLocalMinutes(d));
   }, [props.value]);
 
   const emitChange: (h24: number, m: number) => void = (

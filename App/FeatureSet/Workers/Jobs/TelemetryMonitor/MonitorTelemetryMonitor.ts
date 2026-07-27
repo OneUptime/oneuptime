@@ -179,7 +179,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
       },
     });
 
-    const updatePromises: Array<Promise<void>> = [];
+    const updatePromises: Array<Promise<number>> = [];
 
     for (const telemetryMonitor of telemetryMonitors) {
       let nextPing: Date = OneUptimeDate.addRemoveMinutes(
@@ -200,15 +200,21 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
         }
       }
 
+      /*
+       * Scheduler bookkeeping stamp, written for every due telemetry/infra
+       * monitor every minute. The full updateOneById pipeline costs ~4
+       * statements and — because Monitor has @EnableWorkflow +
+       * @EnableAuditLog — fires an on-update workflow HTTP trigger and an
+       * audit entry per monitor per tick. A scheduling timestamp should do
+       * none of that; single-statement UPDATE, same pattern as the heartbeat
+       * writes in MonitorResource.ts.
+       */
       updatePromises.push(
-        MonitorService.updateOneById({
+        MonitorService.updateColumnsByIdWithoutHooks({
           id: telemetryMonitor.id!,
           data: {
             telemetryMonitorLastMonitorAt: OneUptimeDate.getCurrentDate(),
             telemetryMonitorNextMonitorAt: nextPing,
-          },
-          props: {
-            isRoot: true,
           },
         }),
       );

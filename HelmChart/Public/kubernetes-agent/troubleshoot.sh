@@ -23,6 +23,11 @@
 # auth but is NOT an /otlp path — so a bad token returns `400 Invalid service
 # token` rather than the silent 200.
 #
+# When the chart is installed with `cost.enabled=true` it also diagnoses the
+# cost pipeline (Section 9), which fails the same silent way: the cost-agent /
+# OpenCost / Prometheus pods, the poller's own /healthz (it reports its last
+# poll and ship error), and whether the cost engine's Allocation API answers.
+#
 # Usage:
 #   ./troubleshoot.sh [-n NAMESPACE] [--skip-egress] [--curl-image IMG] [--no-color]
 #
@@ -99,8 +104,18 @@ b64decode() {
   fi
 }
 
+# Format an epoch as UTC RFC3339 to the SECOND. GNU date takes -d @EPOCH,
+# BSD/macOS date takes -r EPOCH; try them in order.
+utc_rfc3339() {
+  date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -r "$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null
+}
+
 # Globals populated by incluster_req()
 RESP_CODE=""; RESP_EXIT=""; RESP_BODY=""; PROBE_LAUNCH_ERR=""
+# How much of a response body incluster_req keeps. 1 kB covers every API error
+# message we match on; the cost section raises it for one probe whose body is a
+# list of every scrape target in the cluster.
+RESP_MAX_BYTES=1000
 
 # Make an HTTP request ($1=GET|POST, $2=url, $3=token) from *inside* the cluster
 # so it follows the agent's real egress path: NetworkPolicy, DNS, proxy, TLS.
@@ -144,7 +159,7 @@ EOF
   RESP_BODY=$(printf '%s\n' "$raw" \
     | sed '/^OUSTATUS:/,$d' \
     | grep -vE '^(If you|pod ".*" deleted|Error from server|Warning:)' \
-    | head -c 1000)
+    | head -c "$RESP_MAX_BYTES")
   [ -z "$RESP_CODE" ] && RESP_CODE="000"
 
   # Distinguish "the probe couldn't even start" (admission/image/exec failure)
@@ -554,6 +569,360 @@ if [ -n "$PRIMARY_POD" ]; then
   fi
 fi
 
+# ----------------------------------------------------------------------------
+section "9. Cost pipeline"
+# ----------------------------------------------------------------------------
+# Everything below is gated on the cost-agent Deployment existing — i.e. on the
+# chart having been installed with `--set cost.enabled=true`.
+#
+# Cost fails the same silent way the ingestion token does: nothing crashes, the
+# workloads above stay green, and the Kubernetes Cost dashboard just never grows
+# a row. The two failures a real install hit:
+#   * the cost-agent image tag didn't exist in the registry, so one pod out of a
+#     dozen healthy ones sat in ImagePullBackOff, and
+#   * the poller sent a millisecond-precision `window` bound, which both engines
+#     reject with `400 ... illegal window`. It retries the next window forever
+#     and reports that ONLY on its own /healthz — which still answers 200,
+#     because the shipper, never handed a row, has nothing to complain about.
+COST_ENABLED=0        # 1 once a cost-agent Deployment is found
+COST_OK=1             # flips to 0 on the first cost-specific failure
+COST_BUNDLED=0        # 1 = chart's own OpenCost, 0 = external cost.engine.url
+COST_PROBE_OK=1       # 0 once an in-cluster probe couldn't even start
+COST_MS_WINDOW_BUG=0  # 1 when the poller's own error is the millisecond window
+
+# Ready-state of one cost Deployment, named by its `component` label. Reports
+# the image ref alongside, and names ImagePullBackOff explicitly instead of
+# leaving it as a generic "not ready" — an unpullable tag is the known way this
+# feature dies.
+cost_deploy_check() {
+  local comp="$1" label="$2"
+  local dep ready want img reasons
+  dep=$(kubectl get deploy -n "$NS" -l "$SEL,component=$comp" \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+  if [ -z "$dep" ]; then
+    fail "$label Deployment (component=$comp) not found in '$NS'."
+    add_finding "The $label Deployment is missing while cost is enabled — the chart rendered a partial cost stack. Re-run: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reuse-values --set cost.enabled=true"
+    COST_OK=0
+    return 1
+  fi
+  ready=$(kubectl get deploy "$dep" -n "$NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
+  want=$(kubectl get deploy "$dep" -n "$NS" -o jsonpath='{.spec.replicas}' 2>/dev/null)
+  img=$(kubectl get deploy "$dep" -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null)
+  ready=${ready:-0}; want=${want:-1}
+  if [ "$ready" -ge 1 ] && [ "$ready" = "$want" ]; then
+    pass "$label Deployment '$dep' ready ($ready/$want)"
+    detail "image: ${img:-?}"
+    return 0
+  fi
+
+  COST_OK=0
+  # The waiting reason decides which failure this is — ImagePullBackOff gets
+  # named on the failing line itself rather than left as a generic "not ready",
+  # because among a dozen healthy pods it is the one nobody goes looking for.
+  reasons=$(kubectl get pods -n "$NS" -l "$SEL,component=$comp" \
+    -o jsonpath='{range .items[*]}{.status.containerStatuses[*].state.waiting.reason}{" "}{end}' 2>/dev/null | tr -s ' ')
+  reasons=$(printf '%s' "$reasons" | xargs)
+  case "$reasons" in
+    *ImagePull*|*ErrImage*)
+      fail "$label Deployment '$dep' NOT ready ($ready/$want) — ImagePullBackOff: cannot pull '${img:-?}'."
+      add_finding "$label is in ImagePullBackOff — the tag '${img##*:}' does not exist in the registry (or it isn't reachable from this cluster). This is the known cost failure: the chart used to default cost.agent.image.tag to the chart appVersion, a tag the release pipeline never publishes. Upgrade the chart, or pin a tag that exists: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reuse-values --set cost.agent.image.tag=release" ;;
+    *CreateContainerConfigError*|*CreateContainerError*)
+      fail "$label Deployment '$dep' NOT ready ($ready/$want) — container config error."
+      add_finding "$label has a config error (usually a missing/renamed api-key Secret key). See Section 4." ;;
+    *CrashLoop*)
+      fail "$label Deployment '$dep' NOT ready ($ready/$want) — CrashLoopBackOff."
+      add_finding "$label is CrashLooping. Inspect: kubectl logs -n $NS deploy/$dep --previous" ;;
+    *)
+      fail "$label Deployment '$dep' NOT ready ($ready/$want)${reasons:+ — waiting: $reasons}"
+      add_finding "$label Deployment '$dep' is not Ready ($ready/$want) — no cost data can flow until it is. Pod state and events are in Section 3." ;;
+  esac
+  detail "image: ${img:-?}"
+  return 1
+}
+
+# One in-cluster HTTP probe for this section, reusing Section 7's helper (the
+# existing debug sidecar, else a throwaway curl pod). Returns non-zero when the
+# probe couldn't run, and latches that so we don't try to start a pod per
+# endpoint in a namespace that won't let us start one at all.
+# The ingestion token is deliberately NOT sent: none of these endpoints
+# authenticate, and cost.engine.url can point at a third-party engine.
+cost_probe() {
+  [ "$COST_PROBE_OK" = 1 ] || return 1
+  incluster_req "$1" "$2" ""
+  if [ -n "$PROBE_LAUNCH_ERR" ]; then
+    COST_PROBE_OK=0
+    warn "Couldn't start the in-cluster probe — skipping the cost HTTP checks."
+    detail "$PROBE_LAUNCH_ERR"
+    detail "Install with --set debug.enabled=true and re-run; the probe then execs the existing sidecar instead of creating a pod."
+    return 1
+  fi
+  return 0
+}
+
+# Scrape-target health for one Prometheus job, out of the last /api/v1/targets
+# body. Each activeTarget object begins with "discoveredLabels", so splitting
+# there puts one target per line and lets a health be attributed to its own job
+# (the response is a flat list across every job).
+PROM_UP=0; PROM_TOTAL=0; PROM_ERR=""
+prom_job_health() {
+  local job="$1" recs
+  PROM_UP=0; PROM_TOTAL=0; PROM_ERR=""
+  recs=$(printf '%s' "$RESP_BODY" \
+    | awk '{gsub(/\{"discoveredLabels"/, "\n{\"discoveredLabels\""); print}' \
+    | grep -F "\"scrapePool\":\"$job\"")
+  [ -z "$recs" ] && return 0
+  PROM_TOTAL=$(printf '%s\n' "$recs" | grep -c .)
+  PROM_UP=$(printf '%s\n' "$recs" | grep -c '"health":"up"')
+  # First NON-empty lastError among the unhealthy targets ([^"][^"]* rather
+  # than \+, which BSD sed doesn't take).
+  PROM_ERR=$(printf '%s\n' "$recs" | grep -v '"health":"up"' \
+    | sed -n 's/.*"lastError":"\([^"][^"]*\)".*/\1/p' | head -1)
+}
+
+COST_AGENT_DEPLOY=$(kubectl get deploy -n "$NS" -l "$SEL,component=cost-agent" \
+  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+
+if [ -z "$COST_AGENT_DEPLOY" ]; then
+  if kubectl get deploy -n "$NS" -l "$SEL,component=opencost" -o name 2>/dev/null | grep -q .; then
+    warn "A cost engine is deployed, but there is no cost-agent Deployment (cost.agent.enabled=false)."
+    add_finding "The bundled cost engine runs but nothing polls it — cost.agent.enabled is false, so allocations are computed in-cluster and never shipped to OneUptime. Re-run with --set cost.agent.enabled=true."
+  else
+    info "Cost collection is not enabled here (no component=cost-agent Deployment) — skipping."
+    detail "Enable it with: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reuse-values --set cost.enabled=true"
+  fi
+else
+  COST_ENABLED=1
+
+  # Read the engine URL and any pinned allocation path straight off the live
+  # Deployment — same reason as the Secret in Section 4: no guessing at values.
+  COST_ENGINE_URL=$(kubectl get deploy "$COST_AGENT_DEPLOY" -n "$NS" \
+    -o jsonpath='{.spec.template.spec.containers[?(@.name=="cost-agent")].env[?(@.name=="COST_ENGINE_URL")].value}' 2>/dev/null)
+  COST_ALLOC_PATH_CFG=$(kubectl get deploy "$COST_AGENT_DEPLOY" -n "$NS" \
+    -o jsonpath='{.spec.template.spec.containers[?(@.name=="cost-agent")].env[?(@.name=="COST_ALLOCATION_PATH")].value}' 2>/dev/null)
+  COST_ENGINE_URL=${COST_ENGINE_URL%/}   # a trailing slash would double up on the path
+
+  cost_deploy_check cost-agent "cost-agent (allocation poller)"
+
+  # The chart deploys OpenCost + its Prometheus only when cost.engine.url is
+  # empty. With an external engine those pods SHOULD be absent — looking for
+  # them there would report a healthy install as broken.
+  if kubectl get deploy -n "$NS" -l "$SEL,component=opencost" -o name 2>/dev/null | grep -q .; then
+    COST_BUNDLED=1
+    cost_deploy_check opencost "opencost (bundled cost engine)"
+    cost_deploy_check cost-prometheus "cost-prometheus (engine's TSDB)"
+  else
+    info "External cost engine configured: ${COST_ENGINE_URL:-?}"
+    detail "The bundled OpenCost/Prometheus are intentionally not installed in this mode."
+    # An in-cluster DNS name only resolves while its Service exists, so that
+    # Service is what we check here.
+    EHOST=${COST_ENGINE_URL#*://}; EHOST=${EHOST%%/*}; EHOST=${EHOST%%:*}
+    ESHORT=${EHOST%.svc.cluster.local}; ESHORT=${ESHORT%.svc}
+    case "$ESHORT" in
+      "")
+        warn "cost-agent has no COST_ENGINE_URL — the poller has nothing to query."
+        add_finding "COST_ENGINE_URL is empty on the cost-agent Deployment. Set cost.engine.url (or clear it to use the bundled engine) and upgrade."
+        COST_OK=0 ;;
+      *[!0-9.]*)
+        ESVC=${ESHORT%%.*}
+        EREST=${ESHORT#*.}
+        ENS=${EREST%%.*}
+        [ "$ESVC" = "$ESHORT" ] && ENS="$NS"
+        if kubectl get svc "$ESVC" -n "$ENS" >/dev/null 2>&1; then
+          pass "Engine Service '$ENS/$ESVC' exists — '$EHOST' resolves inside the cluster."
+        elif [ "$EHOST" != "$ESHORT" ] || [ "$ESVC" = "$ESHORT" ]; then
+          fail "No Service '$ENS/$ESVC' in this cluster — '$EHOST' cannot resolve."
+          add_finding "cost.engine.url points at the cluster-local name '$EHOST', but there is no Service '$ENS/$ESVC'. The poller's every request fails DNS. Correct cost.engine.url, or install the engine in that namespace."
+          COST_OK=0
+        else
+          info "Engine host '$EHOST' is not a Service in this cluster — treating it as an external address; the allocation probe below is the real test."
+        fi ;;
+      *)
+        info "Engine host '$EHOST' is an IP address — skipping the Service check." ;;
+    esac
+  fi
+
+  # --------------------------------------------------------------------------
+  # In-cluster HTTP probes
+  # --------------------------------------------------------------------------
+  if [ "$SKIP_EGRESS" = 1 ]; then
+    warn "Cost HTTP checks skipped (--skip-egress)."
+    COST_PROBE_OK=0
+  fi
+
+  # 9a. The poller's own /healthz. This is the only place the poll loop's error
+  # surfaces: it does not crash, does not fail its probes, and logs at info.
+  COST_POD_IP=$(kubectl get pods -n "$NS" -l "$SEL,component=cost-agent" \
+    -o jsonpath='{.items[?(@.status.phase=="Running")].status.podIP}' 2>/dev/null | awk '{print $1}')
+  if [ "$COST_PROBE_OK" = 1 ] && [ -z "$COST_POD_IP" ]; then
+    warn "No Running cost-agent pod — skipping the /healthz check."
+  elif cost_probe GET "http://$COST_POD_IP:13134/healthz"; then
+    if [ "$RESP_CODE" != "200" ] && [ "$RESP_CODE" != "503" ]; then
+      fail "cost-agent /healthz (:13134) did not answer (HTTP $RESP_CODE, curl exit ${RESP_EXIT:-?})."
+      detail "$(printf '%s' "$RESP_BODY" | tr '\n' ' ' | head -c 200)"
+      COST_OK=0
+      add_finding "The cost-agent's health endpoint on :13134 is unreachable from inside the cluster, so the pod is failing its own readiness probe. Check: kubectl logs -n $NS deploy/$COST_AGENT_DEPLOY"
+    else
+      COST_STATUS=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"status":"\([^"]*\)".*/\1/p' | head -1)
+      COST_POLL_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastPollError":"\([^"]*\)".*/\1/p' | head -1)
+      COST_SHIP_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastShipError":"\([^"]*\)".*/\1/p' | head -1)
+      info "cost-agent /healthz → HTTP $RESP_CODE (status=${COST_STATUS:-?})"
+      [ "$RESP_CODE" = "200" ] && \
+        detail "A 200 here does NOT mean cost data is flowing: the status code tracks the SHIPPER, which reports healthy until it has actually failed — and a poller that never gets a window past the engine hands it nothing to fail on. The two error fields below are the real signal."
+      if [ -n "$COST_POLL_ERR" ]; then
+        fail "Poller's last error: $COST_POLL_ERR"
+        COST_OK=0
+        case "$COST_POLL_ERR" in
+          *"illegal window"*|*"Invalid 'window'"*|*.[0-9][0-9][0-9]Z*)
+            COST_MS_WINDOW_BUG=1
+            add_finding "KNOWN BUG: the cost agent is sending a millisecond-precision RFC3339 window ('...T16:00:00.000Z'), which no OpenCost/Kubecost layout parses — every window is rejected with HTTP 400 'illegal window' and nothing is ever shipped. Fixed in newer cost-agent images: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reuse-values --set cost.agent.image.tag=release, then restart: kubectl rollout restart -n $NS deploy/$COST_AGENT_DEPLOY" ;;
+          *"did not answer any known allocation path"*|*"HTTP 404"*)
+            add_finding "The cost engine at ${COST_ENGINE_URL:-?} serves none of the allocation paths the poller knows (/model/allocation, /allocation/compute, /allocation). If it exposes a different path, set cost.engine.allocationPath. Poller error: $COST_POLL_ERR" ;;
+          *ECONNREFUSED*|*ENOTFOUND*|*EAI_AGAIN*|*timeout*|*ETIMEDOUT*)
+            add_finding "The poller cannot reach the cost engine at ${COST_ENGINE_URL:-?} (DNS/refused/timeout). Poller error: $COST_POLL_ERR" ;;
+          *)
+            add_finding "The cost poller's last window failed: $COST_POLL_ERR" ;;
+        esac
+      fi
+      if [ -n "$COST_SHIP_ERR" ]; then
+        fail "Shipper's last error: $COST_SHIP_ERR"
+        COST_OK=0
+        case "$COST_SHIP_ERR" in
+          *40[13]*|*"Invalid service token"*|*"token"*)
+            add_finding "OneUptime rejected the cost payload's ingestion key — same key as Section 4. Shipper error: $COST_SHIP_ERR" ;;
+          *404*)
+            add_finding "OneUptime returned 404 for the cost ingest route (/telemetry/kubernetes-cost/ingest) — the server predates the cost feature, or a reverse proxy doesn't route it. Shipper error: $COST_SHIP_ERR" ;;
+          *)
+            add_finding "The cost agent could not ship allocations to OneUptime: $COST_SHIP_ERR" ;;
+        esac
+      fi
+      if [ -z "$COST_POLL_ERR" ] && [ -z "$COST_SHIP_ERR" ]; then
+        pass "cost-agent reports no poll or ship error."
+        # /healthz only holds the LAST error, so a pod that restarted (or has
+        # not polled since) looks clean. The log tail is the second opinion.
+        COSTLOG=$(kubectl logs -n "$NS" "deploy/$COST_AGENT_DEPLOY" --tail=200 2>/dev/null \
+          | grep -iE 'error|failed|illegal window|refused|denied' | tail -5)
+        if [ -n "$COSTLOG" ]; then
+          warn "…but the recent cost-agent logs contain errors:"
+          printf '%s\n' "$COSTLOG" | while read -r cl; do detail "$(printf '%s' "$cl" | head -c 160)"; done
+        fi
+      fi
+    fi
+  fi
+
+  # 9b. Does the engine's Allocation API actually answer? Probed with a
+  # SECOND-precision window over the last closed hour — the exact format the
+  # engines parse, so a 400 here means the engine, not the poller, is at fault.
+  COST_ALLOC_PATH=""
+  COST_WIN_END=$(( $(date -u +%s) / 3600 * 3600 ))
+  COST_WINDOW="$(utc_rfc3339 $((COST_WIN_END - 3600))),$(utc_rfc3339 "$COST_WIN_END")"
+  if [ "$COST_PROBE_OK" = 1 ] && [ -n "${COST_ENGINE_URL:-}" ]; then
+    info "Probing the allocation API at $COST_ENGINE_URL (window $COST_WINDOW)"
+    for cpath in /allocation/compute /allocation /model/allocation; do
+      cost_probe GET "$COST_ENGINE_URL$cpath?window=$COST_WINDOW&accumulate=true" || break
+      if is_conn_fail; then
+        fail "Cannot reach the cost engine at $COST_ENGINE_URL (curl exit ${RESP_EXIT:-?})."
+        detail "curl: $(printf '%s' "$RESP_BODY" | tr '\n' ' ' | head -c 200)"
+        COST_OK=0
+        add_finding "The cost engine at $COST_ENGINE_URL is unreachable from inside the cluster, so the poller has nothing to read. If it's the bundled engine, see the opencost pod above; if it's external, check cost.engine.url, DNS and any NetworkPolicy between the namespaces."
+        break
+      fi
+      case "$RESP_CODE" in
+        2??)
+          pass "Allocation API answers on $cpath (HTTP $RESP_CODE)."
+          [ "${COST_MS_WINDOW_BUG:-0}" = 1 ] && \
+            detail "…and this probe used a SECOND-precision window on the very path the poller is failing on — so the engine is fine and the poller's window format is the bug."
+          COST_ALLOC_PATH="$cpath"
+          break ;;
+        404)
+          detail "$cpath → 404 (not this engine flavour)" ;;
+        400)
+          case "$RESP_BODY" in
+            *"illegal window"*|*"Invalid 'window'"*)
+              fail "$cpath → HTTP 400 'illegal window' for a second-precision RFC3339 window."
+              detail "$(printf '%s' "$RESP_BODY" | tr '\n' ' ' | head -c 200)"
+              COST_OK=0
+              add_finding "The cost engine rejects the window format on $cpath. This is the same class of bug that made the poller ship nothing: the Allocation API parses RFC3339 with a fixed set of layouts and accepts no fractional seconds. Probe sent: window=$COST_WINDOW. Report this with the engine version — the poller cannot succeed while the engine 400s a valid window."
+              break ;;
+            *)
+              detail "$cpath → HTTP 400: $(printf '%s' "$RESP_BODY" | tr '\n' ' ' | head -c 160)" ;;
+          esac ;;
+        *)
+          detail "$cpath → HTTP $RESP_CODE: $(printf '%s' "$RESP_BODY" | tr '\n' ' ' | head -c 160)" ;;
+      esac
+    done
+    if [ -z "$COST_ALLOC_PATH" ] && [ "$COST_OK" = 1 ] && [ "$COST_PROBE_OK" = 1 ]; then
+      fail "No allocation path answered at $COST_ENGINE_URL (/allocation/compute, /allocation, /model/allocation)."
+      COST_OK=0
+      add_finding "The cost engine answers HTTP but serves none of the allocation paths the poller probes. Confirm it is OpenCost/Kubecost and, if its API lives elsewhere, set cost.engine.allocationPath."
+    fi
+    # A pinned path removes the poller's fallback: it queries that path only.
+    if [ -n "$COST_ALLOC_PATH_CFG" ] && [ -n "$COST_ALLOC_PATH" ] && [ "$COST_ALLOC_PATH_CFG" != "$COST_ALLOC_PATH" ]; then
+      fail "cost.engine.allocationPath is pinned to '$COST_ALLOC_PATH_CFG' but the engine answers on '$COST_ALLOC_PATH'."
+      COST_OK=0
+      add_finding "cost.engine.allocationPath pins the poller to '$COST_ALLOC_PATH_CFG', which this engine does not serve — and an explicit path disables the auto-probe, so it never tries '$COST_ALLOC_PATH'. Clear it (--set cost.engine.allocationPath=\"\") or set it to '$COST_ALLOC_PATH'."
+    fi
+  fi
+
+  # 9c. The bundled Prometheus is what OpenCost reconstructs usage and price
+  # history from. With either scrape target down it still answers the
+  # allocation API — with empty or costless allocations.
+  if [ "$COST_BUNDLED" = 1 ] && [ "$COST_PROBE_OK" = 1 ]; then
+    PROM_SVC=$(kubectl get svc -n "$NS" -l "$SEL,component=cost-prometheus" \
+      -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+    if [ -z "$PROM_SVC" ]; then
+      warn "No cost-prometheus Service found — skipping the scrape-target check."
+    else
+      # This body lists every discovered target with its labels, so it needs
+      # far more than the default 1 kB.
+      RESP_MAX_BYTES=400000
+      cost_probe GET "http://$PROM_SVC.$NS.svc.cluster.local:9090/api/v1/targets?state=active"
+      COST_TARGETS_RC=$?
+      [ ${#RESP_BODY} -ge 400000 ] && detail "(targets response truncated at 400 kB — counts below may be partial)"
+      RESP_MAX_BYTES=1000
+      if [ "$COST_TARGETS_RC" != 0 ]; then
+        :
+      elif [ "$RESP_CODE" != "200" ]; then
+        fail "cost-prometheus /api/v1/targets → HTTP $RESP_CODE (curl exit ${RESP_EXIT:-?})."
+        COST_OK=0
+        add_finding "The bundled cost Prometheus is not serving its API, so OpenCost has no usage/price history to allocate from. See the cost-prometheus pod in Section 3."
+      else
+        for pjob in kubernetes-nodes-cadvisor opencost; do
+          prom_job_health "$pjob"
+          if [ "$PROM_TOTAL" = 0 ]; then
+            fail "cost-prometheus has no '$pjob' target at all."
+            COST_OK=0
+            if [ "$pjob" = "kubernetes-nodes-cadvisor" ]; then
+              add_finding "The cost Prometheus discovered no cAdvisor targets — node discovery is failing (the agent ServiceAccount needs nodes + nodes/proxy). Without container usage, OpenCost can only produce empty or idle-only allocations."
+            else
+              add_finding "The cost Prometheus has no 'opencost' scrape target — its config didn't render or the pod is running an older ConfigMap. Restart it: kubectl rollout restart -n $NS deploy/$PROM_SVC"
+            fi
+          elif [ "$PROM_UP" = "$PROM_TOTAL" ]; then
+            pass "cost-prometheus target '$pjob': $PROM_UP/$PROM_TOTAL up."
+          else
+            fail "cost-prometheus target '$pjob': only $PROM_UP/$PROM_TOTAL up."
+            [ -n "$PROM_ERR" ] && detail "lastError: $(printf '%s' "$PROM_ERR" | head -c 200)"
+            COST_OK=0
+            if [ "$pjob" = "kubernetes-nodes-cadvisor" ]; then
+              add_finding "$((PROM_TOTAL - PROM_UP)) of $PROM_TOTAL cAdvisor targets are down, so those nodes' containers get no usage series and their workloads will be missing (or priced as idle) in the cost data. lastError: ${PROM_ERR:-see the target page}"
+            else
+              add_finding "The cost Prometheus cannot scrape OpenCost (${PROM_UP}/${PROM_TOTAL} up), so node/PV prices never enter the TSDB and allocations come back without cost. lastError: ${PROM_ERR:-see the target page}"
+            fi
+          fi
+        done
+      fi
+    fi
+  fi
+
+  if [ "$COST_OK" = 1 ] && [ "$COST_PROBE_OK" = 1 ]; then
+    pass "Cost pipeline looks healthy."
+    detail "Rows appear after the first hourly window closes and settles (~1h after install); the dashboard stays empty until then."
+  elif [ "$COST_OK" = 1 ]; then
+    # The workloads are fine, but the HTTP probes are the half that catches the
+    # engine and window failures — don't call that a clean bill of health.
+    info "Nothing wrong in the cost checks that could run, but the in-cluster HTTP probes didn't — the poller's /healthz and the engine's allocation API are unverified."
+  fi
+fi
+
 # ============================================================================
 section "VERDICT"
 # ============================================================================
@@ -594,6 +963,13 @@ else
       printf "      %s# (install with --set debug.enabled=true to get a shell in-cluster, then:)\n      kubectl exec -n %s <agent-pod> -c debug -- \\\\\n        curl -i -H \"x-oneuptime-token: <key>\" %s/otlp/v1/validate%s\n" "$C_DIM" "$NS" "$BASE_URL" "$C_OFF"
     fi
   fi
+fi
+
+# Cost rides its own pipeline (poller → engine → /telemetry ingest), so it can
+# be broken while telemetry is fine — and fixing telemetry won't start it.
+if [ "$COST_ENABLED" = 1 ] && [ "$COST_OK" != 1 ]; then
+  printf "\n%s%sCost collection is broken too (Section 9).%s It ships on a separate pipeline from\n" "$C_BOLD" "$C_RED" "$C_OFF"
+  printf "telemetry, so anything fixed above leaves the Kubernetes Cost dashboard empty.\n"
 fi
 
 if [ ${#FINDINGS[@]} -gt 0 ]; then

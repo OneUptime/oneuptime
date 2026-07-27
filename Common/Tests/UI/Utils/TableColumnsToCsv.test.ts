@@ -6,6 +6,7 @@ import Columns from "../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import { createElement, ReactElement } from "react";
 
 /*
  * Concrete row shape used across the tests. A real ModelTable passes model
@@ -20,7 +21,22 @@ interface Row {
   label?: { name?: string } | null | undefined;
   severityText?: string | undefined;
   _id?: string | undefined;
+  description?: string | undefined;
+  hosts?: Array<{ name: string }> | undefined;
+  services?: Array<{ name: string }> | undefined;
+  monitors?: Array<{ name: string }> | undefined;
 }
+
+/*
+ * The exporter never calls getElement - it only cares whether a column has
+ * one, because that is what makes a `_id` column a placeholder rather than an
+ * id the user asked to see.
+ */
+type RenderCellFunction = () => ReactElement;
+
+const renderCell: RenderCellFunction = (): ReactElement => {
+  return createElement("span");
+};
 
 describe("TableColumnsToCsv", () => {
   describe("escapeCsvValue", () => {
@@ -321,6 +337,192 @@ describe("TableColumnsToCsv", () => {
         ),
       ).toEqual([]);
     });
+
+    test("excludes a placeholder _id column such as Owners", () => {
+      /*
+       * The "Owners" column on alerts / incidents / monitors renders entirely
+       * through getElement and only declares `field: { _id: true }` so the row
+       * gets fetched. Exporting it wrote a raw UUID under the header "Owners".
+       */
+      const result: Columns<Row> = TableColumnsToCsv.getExportableColumns([
+        { title: "Name", type: FieldType.Text, key: "name" },
+        {
+          title: "Owners",
+          type: FieldType.Element,
+          key: "_id",
+          exportKeys: ["_id"],
+          getElement: renderCell,
+        },
+      ]);
+
+      expect(
+        result.map((c: Column<Row>) => {
+          return c.title;
+        }),
+      ).toEqual(["Name"]);
+    });
+
+    test("keeps an _id column that genuinely shows the id", () => {
+      // FieldType.ObjectID is how a column says the id IS the value.
+      const result: Columns<Row> = TableColumnsToCsv.getExportableColumns([
+        {
+          title: "Execution ID",
+          type: FieldType.ObjectID,
+          key: "_id",
+          exportKeys: ["_id"],
+          getElement: renderCell,
+        },
+      ]);
+
+      expect(result.length).toBe(1);
+    });
+
+    test("keeps an _id column that has no getElement", () => {
+      const result: Columns<Row> = TableColumnsToCsv.getExportableColumns([
+        { title: "ID", type: FieldType.Text, key: "_id", exportKeys: ["_id"] },
+      ]);
+
+      expect(result.length).toBe(1);
+    });
+
+    test("keeps an _id column that declares other fields alongside it", () => {
+      const result: Columns<Row> = TableColumnsToCsv.getExportableColumns([
+        {
+          title: "Resource",
+          type: FieldType.Element,
+          key: "_id",
+          exportKeys: ["_id", "name"],
+          getElement: renderCell,
+        },
+      ]);
+
+      expect(result.length).toBe(1);
+    });
+
+    test("excludes a column that opted out with disableCsvExport", () => {
+      const result: Columns<Row> = TableColumnsToCsv.getExportableColumns([
+        { title: "Name", type: FieldType.Text, key: "name" },
+        {
+          title: "Status",
+          type: FieldType.Text,
+          key: "status",
+          disableCsvExport: true,
+        },
+      ]);
+
+      expect(
+        result.map((c: Column<Row>) => {
+          return c.title;
+        }),
+      ).toEqual(["Name"]);
+    });
+
+    test("keeps a keyless column that supplies its own export value", () => {
+      const result: Columns<Row> = TableColumnsToCsv.getExportableColumns([
+        {
+          title: "Owners",
+          type: FieldType.Element,
+          getExportValue: (): string => {
+            return "someone";
+          },
+        },
+      ]);
+
+      expect(result.length).toBe(1);
+    });
+
+    test("disableCsvExport wins over an explicit export value", () => {
+      const result: Columns<Row> = TableColumnsToCsv.getExportableColumns([
+        {
+          title: "Owners",
+          type: FieldType.Element,
+          key: "_id",
+          disableCsvExport: true,
+          getExportValue: (): string => {
+            return "someone";
+          },
+        },
+      ]);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("getExportKeys", () => {
+    test("falls back to the single column key", () => {
+      expect(
+        TableColumnsToCsv.getExportKeys<Row>({
+          title: "Name",
+          type: FieldType.Text,
+          key: "name",
+        }),
+      ).toEqual(["name"]);
+    });
+
+    test("returns every declared key when exportKeys is set", () => {
+      expect(
+        TableColumnsToCsv.getExportKeys<Row>({
+          title: "Affected Resources",
+          type: FieldType.EntityArray,
+          key: "hosts",
+          exportKeys: ["hosts", "services", "monitors"],
+        }),
+      ).toEqual(["hosts", "services", "monitors"]);
+    });
+
+    test("returns nothing for a keyless column", () => {
+      expect(
+        TableColumnsToCsv.getExportKeys<Row>({
+          title: "Custom",
+          type: FieldType.Element,
+        }),
+      ).toEqual([]);
+    });
+  });
+
+  describe("isPlaceholderIdColumn", () => {
+    test("is true for an _id-only column rendered through getElement", () => {
+      expect(
+        TableColumnsToCsv.isPlaceholderIdColumn<Row>({
+          title: "Owners",
+          type: FieldType.Element,
+          key: "_id",
+          getElement: renderCell,
+        }),
+      ).toBe(true);
+    });
+
+    test("is false without a getElement", () => {
+      expect(
+        TableColumnsToCsv.isPlaceholderIdColumn<Row>({
+          title: "ID",
+          type: FieldType.Element,
+          key: "_id",
+        }),
+      ).toBe(false);
+    });
+
+    test("is false for FieldType.ObjectID", () => {
+      expect(
+        TableColumnsToCsv.isPlaceholderIdColumn<Row>({
+          title: "Run ID",
+          type: FieldType.ObjectID,
+          key: "_id",
+          getElement: renderCell,
+        }),
+      ).toBe(false);
+    });
+
+    test("is false for a column keyed on something other than _id", () => {
+      expect(
+        TableColumnsToCsv.isPlaceholderIdColumn<Row>({
+          title: "Name",
+          type: FieldType.Element,
+          key: "name",
+          getElement: renderCell,
+        }),
+      ).toBe(false);
+    });
   });
 
   describe("getCellValue", () => {
@@ -342,6 +544,100 @@ describe("TableColumnsToCsv", () => {
       expect(TableColumnsToCsv.getCellValue({ isActive: false }, column)).toBe(
         "No",
       );
+    });
+
+    test("reads every declared field, not just the first", () => {
+      /*
+       * The alert "Affected Resources" cell spans several relations at once.
+       * Only the first used to reach the file, so a row whose resources were
+       * services exported an empty cell.
+       */
+      const column: Column<Row> = {
+        title: "Affected Resources",
+        type: FieldType.EntityArray,
+        key: "hosts",
+        exportKeys: ["hosts", "services", "monitors"],
+      };
+
+      const item: Row = {
+        hosts: [{ name: "web-01" }],
+        services: [{ name: "checkout" }],
+        monitors: [{ name: "api-uptime" }],
+      };
+
+      expect(TableColumnsToCsv.getCellValue(item, column)).toBe(
+        "web-01; checkout; api-uptime",
+      );
+    });
+
+    test("skips the declared fields that are empty on this row", () => {
+      const column: Column<Row> = {
+        title: "Affected Resources",
+        type: FieldType.EntityArray,
+        key: "hosts",
+        exportKeys: ["hosts", "services", "monitors"],
+      };
+
+      expect(
+        TableColumnsToCsv.getCellValue(
+          { services: [{ name: "checkout" }] },
+          column,
+        ),
+      ).toBe("checkout");
+    });
+
+    test("does not list the same value twice across declared fields", () => {
+      const column: Column<Row> = {
+        title: "Affected Resources",
+        type: FieldType.EntityArray,
+        key: "hosts",
+        exportKeys: ["hosts", "services"],
+      };
+
+      const item: Row = {
+        hosts: [{ name: "shared" }],
+        services: [{ name: "shared" }],
+      };
+
+      expect(TableColumnsToCsv.getCellValue(item, column)).toBe("shared");
+    });
+
+    test("returns an empty cell when none of the declared fields are set", () => {
+      const column: Column<Row> = {
+        title: "Affected Resources",
+        type: FieldType.EntityArray,
+        key: "hosts",
+        exportKeys: ["hosts", "services"],
+      };
+
+      expect(TableColumnsToCsv.getCellValue({}, column)).toBe("");
+    });
+
+    test("uses getExportValue in preference to the row's own fields", () => {
+      const column: Column<Row> = {
+        title: "Owners",
+        type: FieldType.Element,
+        key: "_id",
+        getExportValue: (item: Row): string => {
+          return `owner of ${item.name}`;
+        },
+      };
+
+      expect(
+        TableColumnsToCsv.getCellValue({ _id: "abc", name: "Alpha" }, column),
+      ).toBe("owner of Alpha");
+    });
+
+    test("treats a null-ish getExportValue result as an empty cell", () => {
+      const column: Column<Row> = {
+        title: "Owners",
+        type: FieldType.Element,
+        getExportValue: (): string => {
+          return undefined as unknown as string;
+        },
+      };
+
+      expect(TableColumnsToCsv.getCellValue({}, column)).toBe("");
     });
   });
 
@@ -407,6 +703,70 @@ describe("TableColumnsToCsv", () => {
         columns: columns,
       });
       expect(csv).toBe("Name,Active");
+    });
+
+    test("drops the placeholder id column and spans every relation of a multi-field column", () => {
+      /*
+       * End to end over the two shapes that used to export the wrong value: an
+       * "Owners" column that wrote a UUID, and an "Affected Resources" column
+       * that wrote only its first relation.
+       */
+      const csv: string = TableColumnsToCsv.convertToCsv({
+        items: [
+          {
+            _id: "b6b0f3c2-0000-0000-0000-000000000000",
+            name: "Alpha",
+            hosts: [{ name: "web-01" }],
+            services: [{ name: "checkout" }],
+          },
+        ],
+        columns: [
+          { title: "Name", type: FieldType.Text, key: "name" },
+          {
+            title: "Affected Resources",
+            type: FieldType.EntityArray,
+            key: "hosts",
+            exportKeys: ["hosts", "services"],
+            getElement: renderCell,
+          },
+          {
+            title: "Owners",
+            type: FieldType.Element,
+            key: "_id",
+            exportKeys: ["_id"],
+            getElement: renderCell,
+          },
+        ],
+      });
+
+      expect(csv.split("\r\n")).toEqual([
+        "Name,Affected Resources",
+        "Alpha,web-01; checkout",
+      ]);
+    });
+
+    test("an opted-in placeholder column exports its supplied value", () => {
+      const csv: string = TableColumnsToCsv.convertToCsv({
+        items: [{ _id: "1", name: "Alpha" }],
+        columns: [
+          { title: "Name", type: FieldType.Text, key: "name" },
+          {
+            title: "Owners",
+            type: FieldType.Element,
+            key: "_id",
+            exportKeys: ["_id"],
+            getElement: renderCell,
+            getExportValue: (): string => {
+              return "jane@example.com";
+            },
+          },
+        ],
+      });
+
+      expect(csv.split("\r\n")).toEqual([
+        "Name,Owners",
+        "Alpha,jane@example.com",
+      ]);
     });
   });
 

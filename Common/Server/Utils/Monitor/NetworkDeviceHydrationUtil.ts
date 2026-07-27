@@ -1,5 +1,7 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import MonitorStepSnmpMonitor from "../../../Types/Monitor/MonitorStepSnmpMonitor";
+import SnmpOid from "../../../Types/Monitor/SnmpMonitor/SnmpOid";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -12,6 +14,9 @@ import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLe
 import SnmpAuthProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
 import SnmpPrivProtocol from "../../../Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import ObjectID from "../../../Types/ObjectID";
+import IP from "../../../Types/IP/IP";
+import IpCanonicalUtil from "../../../Utils/IpCanonicalUtil";
+import DnsResolutionCache from "./DnsResolutionCache";
 import logger from "../Logger";
 
 /*
@@ -27,10 +32,76 @@ export interface HydratableMonitor {
 }
 
 export default class NetworkDeviceHydrationUtil {
-  // Accepts Monitor and MonitorTest alike (structural: monitorType + monitorSteps).
-  public static async hydrateNetworkDeviceMonitors(
+  /*
+   * The device columns needed to assemble a probe-executable SNMP config.
+   * Shared by monitor hydration below and the device polling claim
+   * endpoint, so the two can never drift apart on which credentials they
+   * load.
+   */
+  public static readonly snmpConfigSelect: {
+    _id: true;
+    hostname: true;
+    snmpVersion: true;
+    snmpCommunityString: true;
+    snmpPort: true;
+    snmpV3Auth: true;
+    snmpV3SecurityLevel: true;
+    snmpV3Username: true;
+    snmpV3AuthProtocol: true;
+    snmpV3AuthKey: true;
+    snmpV3PrivProtocol: true;
+    snmpV3PrivKey: true;
+  } = {
+    _id: true,
+    hostname: true,
+    snmpVersion: true,
+    snmpCommunityString: true,
+    snmpPort: true,
+    snmpV3Auth: true,
+    snmpV3SecurityLevel: true,
+    snmpV3Username: true,
+    snmpV3AuthProtocol: true,
+    snmpV3AuthKey: true,
+    snmpV3PrivProtocol: true,
+    snmpV3PrivKey: true,
+  };
+
+  /*
+   * Assembles the concrete SNMP config a stateless probe can execute from a
+   * device's stored connection identity. The caller chooses what to collect
+   * (OIDs / interface walk) — for device polling those come from the
+   * device's own snmpOids/walkInterfaces columns.
+   */
+  public static buildSnmpMonitorConfig(data: {
+    device: NetworkDevice;
+    oids: Array<SnmpOid>;
+    monitorInterfaces: boolean;
+  }): MonitorStepSnmpMonitor {
+    return {
+      snmpVersion: NetworkDeviceHydrationUtil.parseSnmpVersion(
+        data.device.snmpVersion,
+      ),
+      hostname: data.device.hostname || "",
+      port: data.device.snmpPort || 161,
+      communityString: data.device.snmpCommunityString || undefined,
+      snmpV3Auth: NetworkDeviceHydrationUtil.buildSnmpV3Auth(data.device),
+      oids: data.oids,
+      timeout: 5000,
+      retries: 3,
+      monitorInterfaces: data.monitorInterfaces,
+    };
+  }
+
+  /*
+   * Parses which NetworkDevice IDs a batch of Network Device monitors
+   * reference in their steps (step.data.networkDeviceMonitor.networkDeviceId).
+   * Non-NetworkDevice monitors are skipped. Shared by hydration below and by
+   * the site rollup engine, which stamps device status on monitor status
+   * changes - keep this the single copy of the step-parsing logic.
+   */
+  public static getReferencedNetworkDeviceIds(
     monitors: Array<HydratableMonitor>,
-  ): Promise<void> {
+  ): Array<string> {
     const deviceIds: Set<string> = new Set();
 
     for (const monitor of monitors) {
@@ -48,28 +119,25 @@ export default class NetworkDeviceHydrationUtil {
       }
     }
 
-    if (deviceIds.size === 0) {
+    return Array.from(deviceIds);
+  }
+
+  // Accepts Monitor and MonitorTest alike (structural: monitorType + monitorSteps).
+  public static async hydrateNetworkDeviceMonitors(
+    monitors: Array<HydratableMonitor>,
+  ): Promise<void> {
+    const deviceIds: Array<string> =
+      NetworkDeviceHydrationUtil.getReferencedNetworkDeviceIds(monitors);
+
+    if (deviceIds.length === 0) {
       return;
     }
 
     const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
       query: {
-        _id: QueryHelper.any(Array.from(deviceIds)),
+        _id: QueryHelper.any(deviceIds),
       },
-      select: {
-        _id: true,
-        hostname: true,
-        snmpVersion: true,
-        snmpCommunityString: true,
-        snmpPort: true,
-        snmpV3Auth: true,
-        snmpV3SecurityLevel: true,
-        snmpV3Username: true,
-        snmpV3AuthProtocol: true,
-        snmpV3AuthKey: true,
-        snmpV3PrivProtocol: true,
-        snmpV3PrivKey: true,
-      },
+      select: NetworkDeviceHydrationUtil.snmpConfigSelect,
       limit: LIMIT_MAX,
       skip: 0,
       props: {
@@ -107,20 +175,19 @@ export default class NetworkDeviceHydrationUtil {
           continue;
         }
 
-        step.data.snmpMonitor = {
-          snmpVersion: NetworkDeviceHydrationUtil.parseSnmpVersion(
-            device.snmpVersion,
-          ),
-          hostname: device.hostname,
-          port: device.snmpPort || 161,
-          communityString: device.snmpCommunityString || undefined,
-          snmpV3Auth: NetworkDeviceHydrationUtil.buildSnmpV3Auth(device),
-          oids: step.data.networkDeviceMonitor?.oids || [],
-          timeout: 5000,
-          retries: 3,
-          monitorInterfaces:
-            step.data.networkDeviceMonitor?.monitorInterfaces !== false,
-        };
+        /*
+         * Legacy path: reads the step's own (deprecated) oids and
+         * monitorInterfaces. Only monitor TESTS still flow through here —
+         * regular Network Device monitors are no longer probe-executed
+         * (the device polls itself; see NetworkDevicePollUtil).
+         */
+        step.data.snmpMonitor =
+          NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+            device: device,
+            oids: step.data.networkDeviceMonitor?.oids || [],
+            monitorInterfaces:
+              step.data.networkDeviceMonitor?.monitorInterfaces !== false,
+          });
       }
     }
   }
@@ -183,21 +250,63 @@ export default class NetworkDeviceHydrationUtil {
   }
 
   /*
-   * Resolves which NetworkDevices (polled by the given probe) match a trap
-   * source IP. Used by the trap ingest to fan traps out to device monitors.
+   * Resolves which NetworkDevices (polled by the given probe) match a
+   * datagram source IP — SNMP traps and probe-forwarded syslog both route
+   * through here. Exact hostname == source-IP match first; devices
+   * registered by DNS name are matched by resolving their hostnames
+   * through a shared positive/negative cache, so a device added as
+   * "switch-01.example.com" still receives its traps and syslog.
    */
   public static async findDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
+    // Extra columns callers need (syslog attribution wants `name`).
+    select?: { name?: boolean | undefined } | undefined;
   }): Promise<Array<NetworkDevice>> {
-    return NetworkDeviceService.findBy({
+    const select: {
+      _id: boolean;
+      projectId: boolean;
+      name?: boolean | undefined;
+    } = {
+      _id: true,
+      projectId: true,
+      ...(data.select?.name ? { name: true } : {}),
+    };
+
+    const exactMatches: Array<NetworkDevice> =
+      await NetworkDeviceService.findBy({
+        query: {
+          probeId: data.probeId,
+          hostname: data.sourceIpAddress,
+        },
+        select: select,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (exactMatches.length > 0) {
+      return exactMatches;
+    }
+
+    /*
+     * Fallback for the two spellings the exact match cannot see:
+     * (a) IPv6-literal hostnames written differently than the datagram's
+     *     normalized source (2001:DB8::1 vs 2001:db8::1) — compared
+     *     canonically, and
+     * (b) DNS-named devices — resolved through a shared cache and their
+     *     addresses compared canonically.
+     * Only runs when the exact match found nothing.
+     */
+    const candidates: Array<NetworkDevice> = await NetworkDeviceService.findBy({
       query: {
         probeId: data.probeId,
-        hostname: data.sourceIpAddress,
       },
       select: {
-        _id: true,
-        projectId: true,
+        ...select,
+        hostname: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -205,5 +314,71 @@ export default class NetworkDeviceHydrationUtil {
         isRoot: true,
       },
     });
+
+    const canonicalSource: string = IpCanonicalUtil.canonicalize(
+      data.sourceIpAddress,
+    );
+
+    const literalMatches: Array<NetworkDevice> = [];
+    const dnsCandidates: Array<NetworkDevice> = [];
+
+    for (const device of candidates) {
+      const hostname: string = device.hostname?.trim() || "";
+
+      if (!hostname) {
+        continue;
+      }
+
+      if (IP.isIP(hostname)) {
+        if (IpCanonicalUtil.canonicalize(hostname) === canonicalSource) {
+          literalMatches.push(device);
+        }
+        continue;
+      }
+
+      dnsCandidates.push(device);
+    }
+
+    if (literalMatches.length > 0) {
+      return literalMatches;
+    }
+
+    /*
+     * DNS resolution runs in parallel (deduplicated per hostname) so a
+     * cold cache with a slow resolver costs one lookup timeout, not one
+     * per device — this is on the trap/syslog ingest path.
+     */
+    const uniqueHostnames: Array<string> = [
+      ...new Set(
+        dnsCandidates.map((device: NetworkDevice) => {
+          return device.hostname!.trim().toLowerCase();
+        }),
+      ),
+    ];
+
+    const addressesByHostname: Map<string, Array<string>> = new Map(
+      await Promise.all(
+        uniqueHostnames.map(
+          async (hostname: string): Promise<[string, Array<string>]> => {
+            return [
+              hostname,
+              await NetworkDeviceHydrationUtil.dnsCache.resolve(hostname),
+            ];
+          },
+        ),
+      ),
+    );
+
+    return dnsCandidates.filter((device: NetworkDevice) => {
+      const addresses: Array<string> =
+        addressesByHostname.get(device.hostname!.trim().toLowerCase()) || [];
+
+      return addresses.some((address: string) => {
+        return IpCanonicalUtil.canonicalize(address) === canonicalSource;
+      });
+    });
   }
+
+  // Shared across trap and syslog ingest; 5-minute TTL, failure-cached.
+  private static dnsCache: DnsResolutionCache = new DnsResolutionCache();
 }

@@ -58,6 +58,10 @@ enum NotificationSettingEventType {
   SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION = "Send AI agent status changed notification when I am the owner of the AI agent",
   SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the AI agent",
 
+  // SLO
+  SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION = "Send SLO status change notification when I am the owner of the SLO",
+  SEND_SLO_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the SLO",
+
   // On Call Notifications
   SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",
   SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER = "When user is next on-call roster",

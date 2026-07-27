@@ -18,10 +18,13 @@ import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import GreaterThan from "../../../../Types/BaseDatabase/GreaterThan";
+import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
+import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
 import Search from "../../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../../Types/BaseDatabase/StartsWith";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 
 function expectStatement(actual: Statement, expected: Statement): void {
   expect(actual.query).toBe(expected.query);
@@ -190,6 +193,33 @@ describe("StatementGenerator", () => {
         p1: "<value>",
         p2: "createdAt",
         p3: OneUptimeDate.toClickhouseDateTime(date),
+      });
+    });
+
+    test("table-qualifies every column reference when tableAlias is set", () => {
+      /*
+       * Aggregate statements alias expressions to real column names
+       * (`sum(col) as col`), and ClickHouse substitutes those aliases
+       * into same-level unqualified WHERE references. Qualified
+       * references always resolve to the table column.
+       */
+      const statement: Statement = generator.toWhereStatement(
+        {
+          _id: "<value>",
+          column_1: "<text>",
+        } as any,
+        { tableAlias: "<table-name>" },
+      );
+      expect(statement.query).toBe(
+        "AND {p0_t:Identifier}.{p0_c:Identifier} = {p1:String} AND {p2_t:Identifier}.{p2_c:Identifier} = {p3:String}",
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0_t: "<table-name>",
+        p0_c: "_id",
+        p1: "<value>",
+        p2_t: "<table-name>",
+        p2_c: "column_1",
+        p3: "<text>",
       });
     });
 
@@ -922,6 +952,380 @@ describe("StatementGenerator", () => {
           p0: "entityKeys",
           p1: ["210dac24142f1baa"],
         });
+      });
+    });
+
+    /*
+     * Table qualification (tableAlias option). Aggregate statements
+     * alias expressions to real column names (`sum(col) as col`, and
+     * `min(ts) as ts` under Total), and ClickHouse substitutes those
+     * SELECT aliases into same-level unqualified WHERE references —
+     * which injects an aggregate into WHERE (ILLEGAL_AGGREGATION; this
+     * 500'd the Kubernetes Costs page) or silently changes the filter.
+     * Table-qualified references always resolve to the real column, so
+     * every operator branch must qualify when the option is set.
+     */
+    describe("table qualification (tableAlias)", () => {
+      class QualModel extends AnalyticsBaseModel {
+        public constructor() {
+          super({
+            tableName: "<qual-table>",
+            singularName: "<singular>",
+            pluralName: "<plural>",
+            tableColumns: [
+              new AnalyticsTableColumn({
+                key: "_id",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                type: TableColumnType.ObjectID,
+              }),
+              new AnalyticsTableColumn({
+                key: "text_col",
+                title: "<title>",
+                description: "<description>",
+                required: false,
+                type: TableColumnType.Text,
+              }),
+              new AnalyticsTableColumn({
+                key: "num_col",
+                title: "<title>",
+                description: "<description>",
+                required: false,
+                type: TableColumnType.Number,
+              }),
+              new AnalyticsTableColumn({
+                key: "time_col",
+                title: "<title>",
+                description: "<description>",
+                required: false,
+                type: TableColumnType.DateTime64,
+              }),
+              new AnalyticsTableColumn({
+                key: "arr_col",
+                title: "<title>",
+                description: "<description>",
+                required: false,
+                defaultValue: [],
+                type: TableColumnType.ArrayText,
+              }),
+              new AnalyticsTableColumn({
+                key: "json_col",
+                title: "<title>",
+                description: "<description>",
+                required: false,
+                type: TableColumnType.JSON,
+              }),
+              new AnalyticsTableColumn({
+                key: "attrKeys",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: [],
+                type: TableColumnType.ArrayText,
+              }),
+              new AnalyticsTableColumn({
+                key: "attributes",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: {},
+                type: TableColumnType.MapStringString,
+                mapKeysColumn: "attrKeys",
+              }),
+              new AnalyticsTableColumn({
+                key: "entityKeys",
+                title: "<title>",
+                description: "<description>",
+                required: true,
+                defaultValue: [],
+                type: TableColumnType.ArrayText,
+              }),
+            ],
+            crudApiPath: new Route("route"),
+            primaryKeys: ["_id"],
+            sortKeys: ["_id"],
+            partitionKey: "_id",
+            tableEngine: AnalyticsTableEngine.MergeTree,
+          });
+        }
+      }
+
+      const ALIAS: string = "<qual-table>";
+
+      let qualGenerator: StatementGenerator<QualModel>;
+      beforeEach(() => {
+        qualGenerator = new StatementGenerator<QualModel>({
+          modelType: QualModel,
+          database: ClickhouseAppInstance,
+        });
+      });
+
+      type QualifiedWhere = (query: Record<string, unknown>) => Statement;
+      const qualifiedWhere: QualifiedWhere = (
+        query: Record<string, unknown>,
+      ): Statement => {
+        return qualGenerator.toWhereStatement(query as any, {
+          tableAlias: ALIAS,
+        });
+      };
+
+      /**
+       * Every `pN_t` qualifier param must carry the table alias, and the
+       * set of qualified column names must be exactly `expectedColumns`
+       * (order-insensitive, duplicates preserved).
+       */
+      type ExpectQualifiers = (
+        statement: Statement,
+        expectedColumns: Array<string>,
+      ) => void;
+      const expectQualifiers: ExpectQualifiers = (
+        statement: Statement,
+        expectedColumns: Array<string>,
+      ): void => {
+        const params: Record<string, unknown> = statement.query_params;
+        const tableEntries: Array<unknown> = Object.entries(params)
+          .filter(([key]: [string, unknown]) => {
+            return key.endsWith("_t");
+          })
+          .map(([, value]: [string, unknown]) => {
+            return value;
+          });
+        const columnEntries: Array<unknown> = Object.entries(params)
+          .filter(([key]: [string, unknown]) => {
+            return key.endsWith("_c");
+          })
+          .map(([, value]: [string, unknown]) => {
+            return value;
+          });
+
+        expect(tableEntries).toHaveLength(expectedColumns.length);
+        for (const table of tableEntries) {
+          expect(table).toBe(ALIAS);
+        }
+        expect([...columnEntries].sort()).toStrictEqual(
+          [...expectedColumns].sort(),
+        );
+        // No unqualified bare-identifier column references may remain.
+        expect(statement.query).not.toMatch(/AND \{p\d+:Identifier\}/);
+      };
+
+      test("qualifies bare equality", () => {
+        const statement: Statement = qualifiedWhere({ _id: "<value>" });
+        expect(statement.query).toBe(
+          "AND {p0_t:Identifier}.{p0_c:Identifier} = {p1:String}",
+        );
+        expect(statement.query_params).toStrictEqual({
+          p0_t: ALIAS,
+          p0_c: "_id",
+          p1: "<value>",
+        });
+      });
+
+      test("qualifies scalar comparison operators", () => {
+        const statement: Statement = qualifiedWhere({
+          text_col: new NotEqual("<x>"),
+          num_col: new GreaterThan(5),
+        });
+        expect(statement.query).toBe(
+          "AND {p0_t:Identifier}.{p0_c:Identifier} != {p1:String} " +
+            "AND {p2_t:Identifier}.{p2_c:Identifier} > {p3:Int32}",
+        );
+        expectQualifiers(statement, ["text_col", "num_col"]);
+      });
+
+      test("qualifies both bounds of an InBetween (the costs-page window filter)", () => {
+        const start: Date = new Date("2026-07-18T10:00:00.000Z");
+        const end: Date = new Date("2026-07-25T10:00:00.000Z");
+        const statement: Statement = qualifiedWhere({
+          time_col: new InBetween(start, end),
+        });
+        expect(statement.query).toBe(
+          "AND {p0_t:Identifier}.{p0_c:Identifier} >= {p1:DateTime64(9)} " +
+            "AND {p2_t:Identifier}.{p2_c:Identifier} <= {p3:DateTime64(9)}",
+        );
+        expectQualifiers(statement, ["time_col", "time_col"]);
+      });
+
+      test("qualifies ILIKE search", () => {
+        const statement: Statement = qualifiedWhere({
+          text_col: new Search("needle"),
+        });
+        expect(statement.query).toBe(
+          "AND {p0_t:Identifier}.{p0_c:Identifier} ILIKE {p1:String}",
+        );
+        expectQualifiers(statement, ["text_col"]);
+      });
+
+      test("qualifies scalar IN / NOT IN", () => {
+        const statement: Statement = qualifiedWhere({
+          text_col: new Includes(["a", "b"]),
+        });
+        expect(statement.query).toBe(
+          "AND {p0_t:Identifier}.{p0_c:Identifier} IN {p1:Array(String)}",
+        );
+        expectQualifiers(statement, ["text_col"]);
+
+        const exclusion: Statement = qualifiedWhere({
+          text_col: new IncludesNone(["a", "b"]),
+        });
+        expect(exclusion.query).toBe(
+          "AND {p0_t:Identifier}.{p0_c:Identifier} NOT IN {p1:Array(String)}",
+        );
+        expectQualifiers(exclusion, ["text_col"]);
+      });
+
+      test("qualifies hasAny membership on ArrayText columns", () => {
+        const statement: Statement = qualifiedWhere({
+          arr_col: new Includes(["k1"]),
+        });
+        expect(statement.query).toBe(
+          "AND hasAny({p0_t:Identifier}.{p0_c:Identifier}, {p1:Array(String)})",
+        );
+        expectQualifiers(statement, ["arr_col"]);
+
+        const exclusion: Statement = qualifiedWhere({
+          arr_col: new IncludesNone(["k1"]),
+        });
+        expect(exclusion.query).toBe(
+          "AND NOT hasAny({p0_t:Identifier}.{p0_c:Identifier}, {p1:Array(String)})",
+        );
+        expectQualifiers(exclusion, ["arr_col"]);
+      });
+
+      test("qualifies both references of a Text IS NULL check", () => {
+        const statement: Statement = qualifiedWhere({
+          text_col: new IsNull(),
+        });
+        expect(statement.query).toBe(
+          "AND ({p0_t:Identifier}.{p0_c:Identifier} IS NULL OR {p1_t:Identifier}.{p1_c:Identifier} = '')",
+        );
+        expectQualifiers(statement, ["text_col", "text_col"]);
+      });
+
+      test("qualifies map subscripts and the key-presence prefilter", () => {
+        const statement: Statement = qualifiedWhere({
+          attributes: { "service.name": "web" },
+        });
+        /*
+         * The presence prefilter reads the denormalized `attrKeys`
+         * column and must be qualified too — it is part of the same
+         * WHERE level as the aggregate aliases.
+         */
+        expect(statement.query).toBe(
+          "AND (empty({p0_t:Identifier}.{p0_c:Identifier}) OR hasAny({p1_t:Identifier}.{p1_c:Identifier}, {p2:Array(String)})) " +
+            "AND {p3_t:Identifier}.{p3_c:Identifier}[{p4:String}] = {p5:String}",
+        );
+        expectQualifiers(statement, ["attrKeys", "attrKeys", "attributes"]);
+      });
+
+      test("qualifies map numeric comparisons", () => {
+        const statement: Statement = qualifiedWhere({
+          attributes: { latency: new GreaterThan(100) },
+        });
+        expect(statement.query).toBe(
+          "AND (empty({p0_t:Identifier}.{p0_c:Identifier}) OR hasAny({p1_t:Identifier}.{p1_c:Identifier}, {p2:Array(String)})) " +
+            "AND toFloat64OrNull({p3_t:Identifier}.{p3_c:Identifier}[{p4:String}]) > {p5:Int32}",
+        );
+        expectQualifiers(statement, ["attrKeys", "attrKeys", "attributes"]);
+      });
+
+      test("qualifies map null checks", () => {
+        const isNull: Statement = qualifiedWhere({
+          attributes: { k: new IsNull() },
+        });
+        expect(isNull.query).toBe(
+          "AND ((NOT mapContains({p0_t:Identifier}.{p0_c:Identifier}, {p1:String})) OR {p2_t:Identifier}.{p2_c:Identifier}[{p3:String}] = '')",
+        );
+        expectQualifiers(isNull, ["attributes", "attributes"]);
+
+        const notNull: Statement = qualifiedWhere({
+          attributes: { k: new NotNull() },
+        });
+        expect(notNull.query).toBe(
+          "AND (empty({p0_t:Identifier}.{p0_c:Identifier}) OR hasAny({p1_t:Identifier}.{p1_c:Identifier}, {p2:Array(String)})) " +
+            "AND mapContains({p3_t:Identifier}.{p3_c:Identifier}, {p4:String}) AND {p5_t:Identifier}.{p5_c:Identifier}[{p6:String}] != ''",
+        );
+        expectQualifiers(notNull, [
+          "attrKeys",
+          "attrKeys",
+          "attributes",
+          "attributes",
+        ]);
+      });
+
+      test("qualifies the case-insensitive arrayExists search over map keys/values", () => {
+        const statement: Statement = qualifiedWhere({
+          attributes: { k: new Search("needle") },
+        });
+        expect(statement.query).toBe(
+          "AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8({p0:String}) AND v ILIKE {p1:String}, " +
+            "mapKeys({p2_t:Identifier}.{p2_c:Identifier}), mapValues({p3_t:Identifier}.{p3_c:Identifier}))",
+        );
+        expectQualifiers(statement, ["attributes", "attributes"]);
+      });
+
+      test("qualifies JSON extraction filters", () => {
+        const statement: Statement = qualifiedWhere({
+          json_col: { field: "<v>", flag: true, count: 3 },
+        });
+        // JSON-extract fragments append back-to-back with no separator.
+        expect(statement.query).toBe(
+          "AND JSONExtractString({p0_t:Identifier}.{p0_c:Identifier}, {p1:String}) = {p2:String}" +
+            "AND JSONExtractBool({p3_t:Identifier}.{p3_c:Identifier}, {p4:String}) = {p5:Bool}" +
+            "AND JSONExtractInt({p6_t:Identifier}.{p6_c:Identifier}, {p7:String}) = {p8:Int32}",
+        );
+        expectQualifiers(statement, ["json_col", "json_col", "json_col"]);
+      });
+
+      test("qualifies every column of a MultiSearch fan-out", () => {
+        const statement: Statement = qualifiedWhere({
+          multiSearch: new MultiSearch({
+            fields: ["text_col", "num_col"],
+            value: "needle",
+          }),
+        });
+        // The search value binds with each column's own type (num_col → Int32).
+        expect(statement.query).toBe(
+          "AND ({p0_t:Identifier}.{p0_c:Identifier} ILIKE {p1:String} OR {p2_t:Identifier}.{p2_c:Identifier} ILIKE {p3:Int32})",
+        );
+        expectQualifiers(statement, ["text_col", "num_col"]);
+      });
+
+      test("qualifies both sides of the entityScope OR-fallback", () => {
+        const statement: Statement = qualifiedWhere({
+          entityScope: {
+            entityKeys: ["210dac24142f1baa"],
+            attributeKey: "resource.host.name",
+            attributeValue: "web-1",
+          },
+        });
+        expect(statement.query).toBe(
+          "AND (hasAny({p0_t:Identifier}.{p0_c:Identifier}, {p1:Array(String)}) OR {p2_t:Identifier}.{p2_c:Identifier}[{p3:String}] = {p4:String})",
+        );
+        expectQualifiers(statement, ["entityKeys", "attributes"]);
+      });
+
+      test("omitting the option produces the exact unqualified statement", () => {
+        const query: Record<string, unknown> = {
+          _id: "<value>",
+          attributes: { "service.name": "web" },
+        };
+        const unqualified: Statement = qualGenerator.toWhereStatement(
+          query as any,
+        );
+        expect(unqualified.query).not.toContain("_t:Identifier");
+        expect(unqualified.query).toBe(
+          "AND {p0:Identifier} = {p1:String} " +
+            "AND (empty({p2:Identifier}) OR hasAny({p3:Identifier}, {p4:Array(String)})) " +
+            "AND {p5:Identifier}[{p6:String}] = {p7:String}",
+        );
+      });
+
+      test("still rejects unknown columns when qualifying", () => {
+        expect(() => {
+          return qualifiedWhere({ nonexistent: "<value>" });
+        }).toThrow(BadDataException);
       });
     });
   });

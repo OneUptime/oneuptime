@@ -1,4 +1,5 @@
 import {
+  QualifiedColumn,
   SQL,
   Statement,
 } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
@@ -50,6 +51,27 @@ describe("Statement", () => {
         p0: "table",
         p1: 123,
         p2: "<text>",
+      });
+    });
+
+    test("should bind a QualifiedColumn as a table.column identifier pair", () => {
+      /*
+       * The qualifier and the column must be two separate Identifier
+       * params — a dotted string bound as one Identifier is treated by
+       * ClickHouse as a single quoted identifier, not a qualified
+       * reference.
+       */
+      const statement: Statement = SQL`SELECT col FROM tbl WHERE ${new QualifiedColumn(
+        "tbl",
+        "col",
+      )} = ${{ value: "<text>", type: TableColumnType.Text }}`;
+      expect(statement.query).toBe(
+        "SELECT col FROM tbl WHERE {p0_t:Identifier}.{p0_c:Identifier} = {p1:String}",
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0_t: "tbl",
+        p0_c: "col",
+        p1: "<text>",
       });
     });
 
