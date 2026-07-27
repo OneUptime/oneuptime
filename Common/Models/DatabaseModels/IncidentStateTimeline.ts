@@ -506,6 +506,7 @@ export default class IncidentStateTimeline extends BaseModel {
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
     example: "Sent",
   })
+  @Index()
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,

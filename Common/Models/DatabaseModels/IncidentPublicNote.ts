@@ -507,6 +507,7 @@ export default class IncidentPublicNote extends BaseModel {
     description: "Status of notification sent to subscribers about this note",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
+  @Index()
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,

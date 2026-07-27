@@ -595,6 +595,7 @@ export default class Monitor extends BaseModel {
     example: "API",
     canReadOnRelationQuery: true,
   })
+  @Index()
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
