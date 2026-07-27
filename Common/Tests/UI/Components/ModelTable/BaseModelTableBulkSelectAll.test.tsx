@@ -158,6 +158,8 @@ type RenderOptions = {
   useHasMore?: boolean | undefined;
   selectMoreFields?: JSONObject | undefined;
   query?: Query<Monitor> | undefined;
+  // Renders the search box, which is otherwise hidden.
+  searchableFields?: Array<string> | undefined;
 };
 
 /*
@@ -175,13 +177,18 @@ describe("BaseModelTable bulk Select All", () => {
   let deferredResolve: (() => void) | null = null;
   let downloadedCsvFiles: Array<{ csv: string; filename: string }> = [];
 
-  type RenderTableFunction = (
+  /*
+   * Split out from renderTable so a test can re-render the same table with a
+   * different query - which is how a facet/filter change reaches the table
+   * from its parent.
+   */
+  type MakePropsFunction = (
     options: RenderOptions,
-  ) => ReturnType<typeof render>;
+  ) => BaseModelTableProps<Monitor>;
 
-  const renderTable: RenderTableFunction = (
+  const makeProps: MakePropsFunction = (
     options: RenderOptions,
-  ): ReturnType<typeof render> => {
+  ): BaseModelTableProps<Monitor> => {
     const callbacks: BaseTableCallbacks<Monitor> = {
       deleteItem: async () => {
         return undefined;
@@ -301,9 +308,34 @@ describe("BaseModelTable bulk Select All", () => {
         ? { selectMoreFields: options.selectMoreFields }
         : {}),
       ...(options.query ? { query: options.query } : {}),
+      ...(options.searchableFields
+        ? { searchableFields: options.searchableFields }
+        : {}),
     } as unknown as BaseModelTableProps<Monitor>;
 
-    return render(<BaseModelTable<Monitor> {...props} />);
+    return props;
+  };
+
+  type RenderTableFunction = (
+    options: RenderOptions,
+  ) => ReturnType<typeof render>;
+
+  const renderTable: RenderTableFunction = (
+    options: RenderOptions,
+  ): ReturnType<typeof render> => {
+    return render(<BaseModelTable<Monitor> {...makeProps(options)} />);
+  };
+
+  type RerenderTableFunction = (
+    rerender: ReturnType<typeof render>["rerender"],
+    options: RenderOptions,
+  ) => void;
+
+  const rerenderTable: RerenderTableFunction = (
+    rerender: ReturnType<typeof render>["rerender"],
+    options: RenderOptions,
+  ): void => {
+    rerender(<BaseModelTable<Monitor> {...makeProps(options)} />);
   };
 
   type SelectCurrentPageFunction = (container: HTMLElement) => Promise<void>;
@@ -903,6 +935,302 @@ describe("BaseModelTable bulk Select All", () => {
     expect(queryByText(/Monitors Selected/)).toBeNull();
     // ...nor keep paging for it.
     expect(bulkCalls().length).toBe(1);
+  });
+
+  /*
+   * A selection names rows the *previous* query returned. The dangerous shape
+   * is "select all 6,000, then filter down to 12": the bulk bar kept claiming
+   * 6,000 selected, kept hiding "Select All" as though the selection matched
+   * what was on screen, and a bulk Delete would have deleted 6,000 rows the
+   * user could no longer see.
+   */
+  describe("a selection does not outlive the query that produced it", () => {
+    const PROJECT_1: Query<Monitor> = {
+      projectId: "project-1",
+    } as unknown as Query<Monitor>;
+
+    const PROJECT_2: Query<Monitor> = {
+      projectId: "project-2",
+    } as unknown as Query<Monitor>;
+
+    type GetSearchInputFunction = (container: HTMLElement) => HTMLInputElement;
+
+    const getSearchInput: GetSearchInputFunction = (
+      container: HTMLElement,
+    ): HTMLInputElement => {
+      return container.querySelector<HTMLInputElement>('input[type="text"]')!;
+    };
+
+    type GoToNextPageFunction = (container: HTMLElement) => void;
+
+    /*
+     * Pagination renders a desktop and a mobile control, so take whichever one
+     * is currently enabled rather than assuming a layout.
+     */
+    const goToNextPage: GoToNextPageFunction = (
+      container: HTMLElement,
+    ): void => {
+      const nextButtons: NodeListOf<HTMLElement> =
+        container.querySelectorAll<HTMLElement>(
+          '[aria-label="Go to next page"]',
+        );
+
+      for (const button of Array.from(nextButtons)) {
+        if (!button.hasAttribute("disabled")) {
+          fireEvent.click(button);
+          return;
+        }
+      }
+
+      throw new Error("No enabled next page button was found");
+    };
+
+    test("a narrowing query change drops a selection made under the old one", async () => {
+      const { container, getByText, queryByText, rerender } = renderTable({
+        rows: makeRows(1262),
+        query: PROJECT_1,
+      });
+
+      await waitFor(() => {
+        expect(calls.length).toBeGreaterThan(0);
+      });
+
+      await selectCurrentPage(container);
+
+      fireEvent.click(getByText("Select All Monitors"));
+
+      await waitFor(() => {
+        expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      });
+
+      // The parent narrows the table - a facet click, say - down to 12 rows.
+      rerenderTable(rerender, { rows: makeRows(12), query: PROJECT_2 });
+
+      await waitFor(() => {
+        expect(queryByText(/Monitors Selected/)).toBeNull();
+      });
+
+      /*
+       * The whole bar goes with it. Leaving "Bulk Actions" on screen over a
+       * stale selection is the part that deletes rows the user cannot see.
+       */
+      expect(queryByText("Bulk Actions")).toBeNull();
+      expect(queryByText("Clear Selection")).toBeNull();
+    });
+
+    test("the Select All button comes back after the query changes", async () => {
+      /*
+       * "All items selected" lives in the table component, and used to survive
+       * every clear except an explicit one - so the next row the user ticked
+       * re-opened the bar with no way to select all of the *new* result set.
+       */
+      const { container, getByText, queryByText, rerender } = renderTable({
+        rows: makeRows(1262),
+        query: PROJECT_1,
+      });
+
+      await waitFor(() => {
+        expect(calls.length).toBeGreaterThan(0);
+      });
+
+      await selectCurrentPage(container);
+
+      fireEvent.click(getByText("Select All Monitors"));
+
+      await waitFor(() => {
+        expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      });
+
+      // Everything is selected, so the button is gone.
+      expect(queryByText("Select All Monitors")).toBeNull();
+
+      // Fewer rows than fit on a page, so the page selection is all of them.
+      rerenderTable(rerender, { rows: makeRows(6), query: PROJECT_2 });
+
+      await waitFor(() => {
+        expect(queryByText(/Monitors Selected/)).toBeNull();
+      });
+
+      /*
+       * The old page stays on screen (then a loader) until the refetch lands,
+       * and ticking before the new rows arrive would select the rows on their
+       * way out. There is one checkbox per row, plus the header's.
+       */
+      await waitFor(() => {
+        expect(
+          container.querySelectorAll('input[type="checkbox"]').length,
+        ).toBe(7);
+      });
+
+      await selectCurrentPage(container);
+
+      await waitFor(() => {
+        expect(getByText("6 Monitors Selected")).toBeTruthy();
+      });
+
+      expect(queryByText("Select All Monitors")).not.toBeNull();
+    });
+
+    test("a query change supersedes a select-all still in flight", async () => {
+      const { container, getByText, queryByText, rerender } = renderTable({
+        rows: makeRows(1262),
+        deferWhen: isFirstSelectAllCall,
+        query: PROJECT_1,
+      });
+
+      await waitFor(() => {
+        expect(calls.length).toBeGreaterThan(0);
+      });
+
+      await selectCurrentPage(container);
+
+      fireEvent.click(getByText("Select All Monitors"));
+
+      await waitFor(() => {
+        expect(deferredResolve).not.toBeNull();
+      });
+
+      // No deferWhen this time, so a run that kept going would be visible.
+      rerenderTable(rerender, { rows: makeRows(12), query: PROJECT_2 });
+
+      await act(async () => {
+        deferredResolve!();
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 50);
+        });
+      });
+
+      // The superseded run must not select rows matching the old query...
+      expect(queryByText(/Monitors Selected/)).toBeNull();
+      // ...nor spend more requests paging for them.
+      expect(bulkCalls().length).toBe(1);
+    });
+
+    test("typing a search term drops the selection", async () => {
+      const { container, getByText, queryByText } = renderTable({
+        rows: makeRows(1262),
+        searchableFields: ["name"],
+      });
+
+      await waitFor(() => {
+        expect(calls.length).toBeGreaterThan(0);
+      });
+
+      await selectCurrentPage(container);
+
+      fireEvent.click(getByText("Select All Monitors"));
+
+      await waitFor(() => {
+        expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      });
+
+      fireEvent.change(getSearchInput(container), {
+        target: { value: "gateway" },
+      });
+
+      // The search is debounced, so this lands a little after the keystroke.
+      await waitFor(() => {
+        expect(queryByText(/Monitors Selected/)).toBeNull();
+      });
+    });
+
+    test("clearing a search term drops the selection too", async () => {
+      /*
+       * Widening is as wrong as narrowing: the selection would then be a
+       * strict subset presented as "all of them".
+       */
+      const { container, getByText, queryByText } = renderTable({
+        rows: makeRows(300),
+        searchableFields: ["name"],
+      });
+
+      await waitFor(() => {
+        expect(calls.length).toBeGreaterThan(0);
+      });
+
+      fireEvent.change(getSearchInput(container), {
+        target: { value: "gateway" },
+      });
+
+      await waitFor(() => {
+        const lastQuery: JSONObject = calls[calls.length - 1]!
+          .query as unknown as JSONObject;
+        expect(lastQuery["_multiFieldSearch"]).toBeTruthy();
+      });
+
+      await selectCurrentPage(container);
+
+      fireEvent.click(getByText("Select All Monitors"));
+
+      await waitFor(() => {
+        expect(getByText("300 Monitors Selected")).toBeTruthy();
+      });
+
+      fireEvent.change(getSearchInput(container), { target: { value: "" } });
+
+      await waitFor(() => {
+        expect(queryByText(/Monitors Selected/)).toBeNull();
+      });
+    });
+
+    test("paging keeps the selection, because the matching rows are the same", async () => {
+      /*
+       * Deliberate: a page turn re-windows the same result set, and ticking
+       * rows across pages before acting on them is a real workflow.
+       */
+      const { container, getByText } = renderTable({ rows: makeRows(1262) });
+
+      await waitFor(() => {
+        expect(calls.length).toBeGreaterThan(0);
+      });
+
+      await selectCurrentPage(container);
+
+      expect(getByText("10 Monitors Selected")).toBeTruthy();
+
+      goToNextPage(container);
+
+      await waitFor(() => {
+        expect(calls[calls.length - 1]!.skip).toBe(10);
+      });
+
+      expect(getByText("10 Monitors Selected")).toBeTruthy();
+    });
+
+    test("sorting keeps the selection, because the matching rows are the same", async () => {
+      /*
+       * Also deliberate. A sort re-orders the matching set without changing
+       * it, and a truncated select-all keeps reporting "selected N of M
+       * matching", which stays true afterwards.
+       */
+      const { container, getByText, queryByText } = renderTable({
+        rows: makeRows(1262),
+      });
+
+      await waitFor(() => {
+        expect(calls.length).toBeGreaterThan(0);
+      });
+
+      await selectCurrentPage(container);
+
+      fireEvent.click(getByText("Select All Monitors"));
+
+      await waitFor(() => {
+        expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      });
+
+      fireEvent.click(getByText("Name"));
+
+      await waitFor(() => {
+        expect(calls[calls.length - 1]!.sort).toEqual({
+          name: SortOrder.Descending,
+        });
+      });
+
+      expect(getByText("1262 Monitors Selected")).toBeTruthy();
+      // Still everything, so the button stays away.
+      expect(queryByText("Select All Monitors")).toBeNull();
+    });
   });
 
   test("selecting only the current page still exports just those rows", async () => {

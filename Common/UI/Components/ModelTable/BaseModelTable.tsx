@@ -1539,8 +1539,51 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setBulkSelectionError("");
     setIsBulkSelectionTruncated(false);
     setBulkSelectionTotalCount(0);
-    setBulkSelectedItems([]);
+    setBulkSelectedItems((existingItems: Array<TBaseModel>) => {
+      /*
+       * Keep the same array when there is nothing to clear, so calling this on
+       * every query change (below) costs an idle table no re-render.
+       */
+      return existingItems.length === 0 ? existingItems : [];
+    });
   };
+
+  /*
+   * Everything that decides *which rows match* - the caller's query, the
+   * column filters, the search term and the label chips. Serialised because
+   * callers routinely pass `query` as a fresh object literal on every render,
+   * and the label chips get their display names hydrated after mount without
+   * the set of ids ever changing.
+   *
+   * Sort and page are deliberately left out: they re-order or re-window the
+   * same matching set, so a selection made under them is still a selection of
+   * rows that match. Selecting rows across pages is a real workflow, and a
+   * truncated select-all keeps saying "selected N of M matching" after a
+   * re-sort, which stays true.
+   */
+  const effectiveQueryKey: string = JSON.stringify({
+    props: props.query || {},
+    filter: query,
+    search: debouncedSearchText.trim(),
+    labels: selectedLabelIdsKey,
+  });
+
+  /*
+   * A selection refers to the rows the *previous* query returned. Once the
+   * query changes, the table underneath the bulk bar is a different result
+   * set, so carrying the selection over leaves the bar claiming "6,000 Alerts
+   * Selected" above a filtered-down list of 12 - with the Select All button
+   * hidden, as though the selection matched what is on screen, and Delete
+   * still wired to all 6,000 rows the user can no longer see.
+   *
+   * Dropping it here also bumps `bulkSelectAllToken`, so a filter change that
+   * lands while a paged select-all is still running supersedes that run
+   * instead of letting it finish and repopulate the selection against the old
+   * query.
+   */
+  useEffect(() => {
+    clearBulkSelectionState();
+  }, [effectiveQueryKey]);
 
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
