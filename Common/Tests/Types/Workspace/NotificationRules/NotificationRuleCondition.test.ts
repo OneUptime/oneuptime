@@ -98,7 +98,7 @@ describe("NotificationRuleConditionUtil", () => {
         shouldPostToExistingChannel: false,
       });
       expect(validate(rule)).toBe(
-        "Please select either create slack channel or post to existing Slack channel",
+        "Please select either create Slack channel, post to existing Slack channel",
       );
     });
 
@@ -137,6 +137,224 @@ describe("NotificationRuleConditionUtil", () => {
         }),
       ).toBeNull();
     });
+  });
+
+  describe("getValidationError - chats", () => {
+    const teamsChatEitherOrError: string =
+      "Please select either create MicrosoftTeams channel, post to existing MicrosoftTeams channel, or post to existing MicrosoftTeams chat";
+
+    const teamsChatIdsError: string =
+      "Please select at least one MicrosoftTeams chat to post to. If no chats are listed, add the OneUptime app to a chat in MicrosoftTeams first.";
+
+    const validateTeams: (
+      rule: IncidentNotificationRule,
+      eventType?: NotificationRuleEventType,
+    ) => string | null = (
+      rule: IncidentNotificationRule,
+      eventType: NotificationRuleEventType = NotificationRuleEventType.Incident,
+    ): string | null => {
+      return NotificationRuleConditionUtil.getValidationError({
+        notificationRule: rule,
+        eventType: eventType,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+    };
+
+    test("a Teams rule posting only to an existing chat satisfies the either/or requirement", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: false,
+        shouldPostToExistingChat: true,
+        existingChatIds: ["c1"],
+      });
+      expect(validateTeams(rule)).toBeNull();
+    });
+
+    test("a Teams rule with all three destination toggles off mentions the chat option in the error", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: false,
+        shouldPostToExistingChat: false,
+      });
+      expect(validateTeams(rule)).toBe(teamsChatEitherOrError);
+    });
+
+    test("a Slack rule with both channel toggles off does not mention the chat option", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: false,
+      });
+      const error: string | null = validate(rule);
+      expect(error).toBe(
+        "Please select either create Slack channel, post to existing Slack channel",
+      );
+      expect(error).not.toContain("chat");
+    });
+
+    test("chat toggle on with an empty chat-id list returns the chat-selection error", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: false,
+        shouldPostToExistingChat: true,
+        existingChatIds: [],
+      });
+      expect(validateTeams(rule)).toBe(teamsChatIdsError);
+    });
+
+    test("chat toggle on with undefined chat ids returns the chat-selection error", () => {
+      // existingChatIds is intentionally left off the rule so it is undefined.
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: false,
+        shouldPostToExistingChat: true,
+      });
+      expect(rule.existingChatIds).toBeUndefined();
+      expect(validateTeams(rule)).toBe(teamsChatIdsError);
+    });
+
+    test("chat toggle on with chat ids passes even when channel toggles are also configured", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldPostToExistingChat: true,
+        existingChatIds: ["19:abc@thread.v2", "19:def@unq.gbl.spaces"],
+      });
+      expect(validateTeams(rule)).toBeNull();
+    });
+
+    test("chat-id validation still runs for the Monitor event type (either/or block is skipped)", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: false,
+        shouldPostToExistingChat: true,
+        existingChatIds: [],
+      });
+      expect(validateTeams(rule, NotificationRuleEventType.Monitor)).toBe(
+        teamsChatIdsError,
+      );
+    });
+
+    test("chat-id validation still runs for the OnCallDutyPolicy event type", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: false,
+        shouldPostToExistingChat: true,
+        existingChatIds: [],
+      });
+      expect(
+        validateTeams(rule, NotificationRuleEventType.OnCallDutyPolicy),
+      ).toBe(teamsChatIdsError);
+    });
+
+    test("a Monitor-event chat rule with chat ids passes", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: false,
+        shouldPostToExistingChat: true,
+        existingChatIds: ["c1"],
+      });
+      expect(validateTeams(rule, NotificationRuleEventType.Monitor)).toBeNull();
+    });
+
+    test("a combined existing-channel + chat rule is valid", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: true,
+        existingChannelNames: "ops-alerts",
+        shouldPostToExistingChat: true,
+        existingChatIds: ["c1"],
+      });
+      expect(validateTeams(rule)).toBeNull();
+    });
+
+    test("existing-channel toggle still requires channel names even when chat fields are valid", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: true,
+        existingChannelNames: "   ",
+        shouldPostToExistingChat: true,
+        existingChatIds: ["c1"],
+      });
+      expect(validateTeams(rule)).toBe(
+        "Existing MicrosoftTeams channel name is required",
+      );
+    });
+
+    test("create-channel toggle still requires a template name even when chat fields are valid", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: true,
+        newChannelTemplateName: "  ",
+        shouldPostToExistingChannel: false,
+        shouldPostToExistingChat: true,
+        existingChatIds: ["c1"],
+      });
+      expect(validateTeams(rule)).toBe(
+        "New MicrosoftTeams channel name is required",
+      );
+    });
+
+    test("channel-name errors take precedence over the chat-id error", () => {
+      const rule: IncidentNotificationRule = makeRule({
+        shouldCreateNewChannel: false,
+        shouldPostToExistingChannel: true,
+        existingChannelNames: "",
+        shouldPostToExistingChat: true,
+        existingChatIds: [],
+      });
+      expect(validateTeams(rule)).toBe(
+        "Existing MicrosoftTeams channel name is required",
+      );
+    });
+
+    test("chat-id validation is workspace-agnostic: a Slack rule with the chat toggle on and no ids errors too", () => {
+      /*
+       * The chat toggle is only surfaced in the Teams UI, but the validator
+       * does not gate the chat-ids check on workspace type. Pin the current
+       * behavior so a change here is deliberate.
+       */
+      const rule: IncidentNotificationRule = makeRule({
+        shouldPostToExistingChat: true,
+        existingChatIds: [],
+      });
+      expect(validate(rule)).toBe(
+        "Please select at least one Slack chat to post to. If no chats are listed, add the OneUptime app to a chat in Slack first.",
+      );
+    });
+
+    test.each([
+      NotificationRuleEventType.Incident,
+      NotificationRuleEventType.Alert,
+      NotificationRuleEventType.AlertEpisode,
+      NotificationRuleEventType.IncidentEpisode,
+      NotificationRuleEventType.ScheduledMaintenance,
+    ])(
+      "a chat-only Teams rule is accepted for the %s event type",
+      (eventType: NotificationRuleEventType) => {
+        const rule: IncidentNotificationRule = makeRule({
+          shouldCreateNewChannel: false,
+          shouldPostToExistingChannel: false,
+          shouldPostToExistingChat: true,
+          existingChatIds: ["c1"],
+        });
+        expect(validateTeams(rule, eventType)).toBeNull();
+      },
+    );
+
+    test.each([
+      NotificationRuleEventType.Incident,
+      NotificationRuleEventType.Alert,
+      NotificationRuleEventType.AlertEpisode,
+      NotificationRuleEventType.IncidentEpisode,
+      NotificationRuleEventType.ScheduledMaintenance,
+    ])(
+      "a Teams rule with no destination at all is rejected for the %s event type",
+      (eventType: NotificationRuleEventType) => {
+        const rule: IncidentNotificationRule = makeRule({
+          shouldCreateNewChannel: false,
+          shouldPostToExistingChannel: false,
+          shouldPostToExistingChat: false,
+        });
+        expect(validateTeams(rule, eventType)).toBe(teamsChatEitherOrError);
+      },
+    );
   });
 
   describe("hasValueField", () => {

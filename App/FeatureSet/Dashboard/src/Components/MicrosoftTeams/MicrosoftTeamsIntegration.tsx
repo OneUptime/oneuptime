@@ -39,6 +39,7 @@ import Link from "Common/UI/Components/Link/Link";
 import { ButtonStyleType as SharedButtonStyle } from "Common/UI/Components/Button/Button";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import TeamsAvailableModal from "./TeamsAvailableModal";
+import MicrosoftTeamsChatsCard from "./MicrosoftTeamsChatsCard";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
@@ -516,6 +517,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             description={cardDescription}
             buttons={cardButtons}
           />
+        </div>
+      )}
+
+      {isAdminConsentCompleted && isProjectAccountConnected && (
+        <div className="mt-6">
+          <MicrosoftTeamsChatsCard />
         </div>
       )}
 

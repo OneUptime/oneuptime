@@ -31,6 +31,8 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken, {
+  MicrosoftTeamsChat,
+  MicrosoftTeamsChatType,
   MicrosoftTeamsMiscData,
 } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -60,12 +62,15 @@ import UserService from "../../../Services/UserService";
 // Import database utilities
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 
 // Bot Framework SDK imports
 import {
   CloudAdapter,
   ConfigurationBotFrameworkAuthentication,
   TeamsActivityHandler,
+  TeamsInfo,
+  TeamsChannelAccount,
   TurnContext,
   ConversationReference,
   MessageFactory,
@@ -1223,6 +1228,55 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
     }
 
+    // Send to Teams chats (group / personal chats the OneUptime app was added to).
+    const chatIdsToPostTo: Array<string> =
+      data.workspaceMessagePayload.chatIds || [];
+
+    if (chatIdsToPostTo.length > 0) {
+      logger.debug(`Processing ${chatIdsToPostTo.length} chat ids`);
+
+      const availableChats: Record<string, MicrosoftTeamsChat> =
+        await this.getChatsForProject({
+          projectId: data.projectId,
+        });
+
+      for (const chatId of chatIdsToPostTo) {
+        const chatAsChannel: WorkspaceChannel = {
+          id: chatId,
+          name: availableChats[chatId]?.name || chatId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        };
+
+        try {
+          let lastThread: WorkspaceThread | undefined;
+          for (const adaptiveCard of adaptiveCards) {
+            lastThread = await this.sendAdaptiveCardToChat({
+              chatId: chatId,
+              adaptiveCard: adaptiveCard,
+              projectId: data.projectId,
+            });
+          }
+
+          if (lastThread) {
+            logger.debug(
+              `Message sent successfully to chat ${chatAsChannel.name}, thread: ${JSON.stringify(lastThread)}`,
+            );
+            workspaceMessageResponse.threads.push(lastThread);
+          }
+        } catch (e) {
+          logger.error(`Error sending message to chat ID ${chatId}:`, {
+            projectId: data.projectId.toString(),
+            chatId: chatId,
+          });
+          logger.error(e);
+          workspaceMessageResponse.errors!.push({
+            channel: chatAsChannel,
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
+      }
+    }
+
     logger.debug("=== Message sending completed ===");
     logger.debug(
       `Final thread count: ${workspaceMessageResponse.threads.length}`,
@@ -1382,6 +1436,133 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         projectId: data.projectId.toString(),
         channelId: data.workspaceChannel.id,
         teamId: data.teamId,
+      });
+      logger.error(error);
+      throw error;
+    }
+  }
+
+  /*
+   * Sends an adaptive card to a Teams group chat or personal (1:1) chat via a
+   * proactive Bot Framework message. The OneUptime app must have been added to
+   * the chat — Graph has no app-only permission for posting to chats, so the
+   * bot conversation is the only supported transport.
+   */
+  @CaptureSpan()
+  public static async sendAdaptiveCardToChat(data: {
+    chatId: string;
+    projectId: ObjectID;
+    adaptiveCard: JSONObject;
+  }): Promise<WorkspaceThread> {
+    logger.debug("sendAdaptiveCardToChat called with data:");
+    logger.debug(`Chat ID: ${data.chatId}`);
+    logger.debug(`Project ID: ${data.projectId.toString()}`);
+
+    try {
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        await WorkspaceProjectAuthTokenService.getProjectAuth({
+          projectId: data.projectId,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        });
+
+      if (!projectAuth || !projectAuth.miscData) {
+        throw new BadDataException(
+          "Microsoft Teams integration not found for this project",
+        );
+      }
+
+      const miscData: MicrosoftTeamsMiscData =
+        projectAuth.miscData as MicrosoftTeamsMiscData;
+      if (!miscData.botId) {
+        throw new BadDataException(
+          "Bot ID not found in Microsoft Teams integration",
+        );
+      }
+
+      const tenantId: string | undefined = projectAuth.workspaceProjectId;
+
+      if (!tenantId) {
+        throw new BadDataException(
+          "Tenant ID not found in Microsoft Teams integration",
+        );
+      }
+
+      if (!MicrosoftTeamsAppClientId) {
+        throw new BadDataException(
+          "Microsoft Teams App Client ID not configured",
+        );
+      }
+
+      const chat: MicrosoftTeamsChat | undefined =
+        miscData.availableChats?.[data.chatId];
+
+      if (!chat) {
+        throw new BadDataException(
+          "This chat is not connected to OneUptime. Please add the OneUptime app to the chat in Microsoft Teams and try again.",
+        );
+      }
+
+      const adapter: CloudAdapter = this.getBotAdapter();
+
+      const conversationReference: ConversationReference = {
+        bot: {
+          id: MicrosoftTeamsAppClientId,
+          name: "OneUptime Bot",
+        },
+        conversation: {
+          id: chat.id,
+          name: chat.name,
+          isGroup: chat.chatType === "groupChat",
+          conversationType: chat.chatType,
+          tenantId: tenantId,
+        },
+        channelId: "msteams",
+        serviceUrl: chat.serviceUrl || "https://smba.trafficmanager.net/teams/",
+      };
+
+      logger.debug(
+        `Chat conversation reference: ${JSON.stringify(conversationReference)}`,
+      );
+
+      let messageId: string = "";
+
+      await adapter.continueConversationAsync(
+        MicrosoftTeamsAppClientId,
+        conversationReference,
+        async (context: TurnContext) => {
+          logger.debug("Sending adaptive card to chat as proactive message");
+
+          const message: Partial<Activity> = MessageFactory.attachment({
+            contentType: "application/vnd.microsoft.card.adaptive",
+            content: data.adaptiveCard,
+          });
+
+          const response: ResourceResponse | undefined =
+            await context.sendActivity(message);
+
+          messageId = response?.id || "";
+
+          logger.debug(`Chat message sent with ID: ${messageId}`);
+        },
+      );
+
+      const thread: WorkspaceThread = {
+        channel: {
+          id: chat.id,
+          name: chat.name,
+          workspaceType: WorkspaceType.MicrosoftTeams,
+        },
+        threadId: messageId,
+      };
+
+      logger.debug(
+        `Sent message to chat via Bot Framework: ${JSON.stringify(thread)}`,
+      );
+      return thread;
+    } catch (error) {
+      logger.error("Error sending adaptive card to chat via Bot Framework:", {
+        projectId: data.projectId.toString(),
+        chatId: data.chatId,
       });
       logger.error(error);
       throw error;
@@ -3239,9 +3420,24 @@ All monitoring checks are passing normally.`;
       return member["id"] === recipientId;
     });
 
+    const botWasRemoved: boolean = membersRemoved.some((member: JSONObject) => {
+      return member["id"] === recipientId;
+    });
+
     if (botWasAdded) {
       logger.debug("OneUptime bot was added to a Teams conversation");
+      await this.captureChatFromBotActivity({
+        activity: data.activity,
+        turnContext: data.turnContext,
+      });
       await this.sendWelcomeAdaptiveCard(data.turnContext);
+    }
+
+    if (botWasRemoved) {
+      logger.debug("OneUptime bot was removed from a Teams conversation");
+      await this.removeChatFromBotActivity({
+        activity: data.activity,
+      });
     }
   }
 
@@ -3260,9 +3456,317 @@ All monitoring checks are passing normally.`;
 
     if (action === "add") {
       logger.debug("OneUptime bot was installed");
+      await this.captureChatFromBotActivity({
+        activity: data.activity,
+        turnContext: data.turnContext,
+      });
     } else if (action === "remove") {
       logger.debug("OneUptime bot was uninstalled");
+      await this.removeChatFromBotActivity({
+        activity: data.activity,
+      });
     }
+  }
+
+  /*
+   * Chats (group chats and personal 1:1 chats) cannot be listed with the
+   * app-only Graph token, so the only way OneUptime learns about them is by
+   * capturing the conversation details when the OneUptime app is added to a
+   * chat. These captured chats power the "post to chat" notification rules.
+   */
+
+  private static getChatTypeFromConversation(
+    conversation: JSONObject,
+  ): MicrosoftTeamsChatType | null {
+    const conversationType: string =
+      (conversation["conversationType"] as string) || "";
+
+    if (conversationType === "personal" || conversationType === "groupChat") {
+      return conversationType;
+    }
+
+    return null; // channels and meetings are not chats.
+  }
+
+  public static getChatDisplayName(data: {
+    chatType: MicrosoftTeamsChatType;
+    topic?: string | undefined;
+    memberNames: Array<string>;
+  }): string {
+    if (data.topic && data.topic.trim()) {
+      return data.topic.trim();
+    }
+
+    const memberNames: Array<string> = data.memberNames.filter(
+      (name: string) => {
+        return Boolean(name && name.trim());
+      },
+    );
+
+    if (data.chatType === "personal") {
+      return memberNames[0] ? `${memberNames[0]}` : "Personal chat";
+    }
+
+    if (memberNames.length === 0) {
+      return "Group chat";
+    }
+
+    const maxNamesToShow: number = 3;
+    const shownNames: Array<string> = memberNames.slice(0, maxNamesToShow);
+    const remainingCount: number = memberNames.length - shownNames.length;
+
+    if (remainingCount > 0) {
+      return `${shownNames.join(", ")} + ${remainingCount} more`;
+    }
+
+    return shownNames.join(", ");
+  }
+
+  @CaptureSpan()
+  private static async captureChatFromBotActivity(data: {
+    activity: JSONObject;
+    turnContext: TurnContext;
+  }): Promise<void> {
+    try {
+      const conversation: JSONObject =
+        (data.activity["conversation"] as JSONObject) || {};
+
+      const chatType: MicrosoftTeamsChatType | null =
+        this.getChatTypeFromConversation(conversation);
+
+      if (!chatType) {
+        return; // bot was added to a team channel, not a chat.
+      }
+
+      const chatId: string = (conversation["id"] as string) || "";
+
+      if (!chatId) {
+        logger.debug("No conversation id found on chat activity. Skipping.");
+        return;
+      }
+
+      const channelData: JSONObject =
+        (data.activity["channelData"] as JSONObject) || {};
+      const tenantId: string =
+        ((channelData["tenant"] as JSONObject)?.["id"] as string) ||
+        (conversation["tenantId"] as string) ||
+        "";
+
+      if (!tenantId) {
+        logger.debug("No tenant id found on chat activity. Skipping.");
+        return;
+      }
+
+      // Resolve a human friendly name for the chat.
+      const topic: string | undefined = conversation["name"] as
+        | string
+        | undefined;
+
+      let memberNames: Array<string> = [];
+
+      try {
+        const botId: string | undefined =
+          data.turnContext.activity.recipient?.id;
+        const members: Array<TeamsChannelAccount> = await TeamsInfo.getMembers(
+          data.turnContext,
+        );
+        memberNames = members
+          .filter((member: TeamsChannelAccount) => {
+            return member.id !== botId;
+          })
+          .map((member: TeamsChannelAccount) => {
+            return member.name || "";
+          });
+      } catch (err) {
+        logger.debug("Could not fetch chat members for chat name resolution");
+        logger.debug(err);
+      }
+
+      const chat: MicrosoftTeamsChat = {
+        id: chatId,
+        name: this.getChatDisplayName({
+          chatType: chatType,
+          topic: topic,
+          memberNames: memberNames,
+        }),
+        chatType: chatType,
+        serviceUrl:
+          (data.activity["serviceUrl"] as string) ||
+          data.turnContext.activity.serviceUrl ||
+          undefined,
+        addedAt: OneUptimeDate.getCurrentDate().toISOString(),
+      };
+
+      await this.saveChatToProjectAuthTokens({
+        tenantId: tenantId,
+        chat: chat,
+      });
+
+      logger.debug(
+        `Captured Microsoft Teams chat ${chatId} (${chat.name}) for tenant ${tenantId}`,
+      );
+    } catch (err) {
+      logger.error("Error capturing Microsoft Teams chat from bot activity:");
+      logger.error(err);
+    }
+  }
+
+  @CaptureSpan()
+  private static async removeChatFromBotActivity(data: {
+    activity: JSONObject;
+  }): Promise<void> {
+    try {
+      const conversation: JSONObject =
+        (data.activity["conversation"] as JSONObject) || {};
+
+      const chatType: MicrosoftTeamsChatType | null =
+        this.getChatTypeFromConversation(conversation);
+
+      if (!chatType) {
+        return;
+      }
+
+      const chatId: string = (conversation["id"] as string) || "";
+      const channelData: JSONObject =
+        (data.activity["channelData"] as JSONObject) || {};
+      const tenantId: string =
+        ((channelData["tenant"] as JSONObject)?.["id"] as string) ||
+        (conversation["tenantId"] as string) ||
+        "";
+
+      if (!chatId || !tenantId) {
+        return;
+      }
+
+      await this.removeChatFromProjectAuthTokens({
+        tenantId: tenantId,
+        chatId: chatId,
+      });
+
+      logger.debug(
+        `Removed Microsoft Teams chat ${chatId} for tenant ${tenantId}`,
+      );
+    } catch (err) {
+      logger.error("Error removing Microsoft Teams chat from bot activity:");
+      logger.error(err);
+    }
+  }
+
+  @CaptureSpan()
+  public static async saveChatToProjectAuthTokens(data: {
+    tenantId: string;
+    chat: MicrosoftTeamsChat;
+  }): Promise<void> {
+    /*
+     * A tenant can be connected to more than one OneUptime project, and the
+     * install event does not say which project it belongs to — so save the
+     * chat on every project connected to this tenant.
+     */
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: data.tenantId,
+        },
+        select: {
+          _id: true,
+          miscData: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const projectAuth of projectAuths) {
+      const miscData: MicrosoftTeamsMiscData = {
+        ...((projectAuth.miscData as MicrosoftTeamsMiscData) || {}),
+      } as MicrosoftTeamsMiscData;
+
+      miscData.availableChats = {
+        ...(miscData.availableChats || {}),
+        [data.chat.id]: data.chat,
+      };
+
+      await WorkspaceProjectAuthTokenService.updateOneById({
+        id: projectAuth.id!,
+        data: {
+          miscData: miscData,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
+  @CaptureSpan()
+  public static async removeChatFromProjectAuthTokens(data: {
+    tenantId: string;
+    chatId: string;
+  }): Promise<void> {
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: data.tenantId,
+        },
+        select: {
+          _id: true,
+          miscData: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const projectAuth of projectAuths) {
+      const miscData: MicrosoftTeamsMiscData = {
+        ...((projectAuth.miscData as MicrosoftTeamsMiscData) || {}),
+      } as MicrosoftTeamsMiscData;
+
+      if (!miscData.availableChats || !miscData.availableChats[data.chatId]) {
+        continue;
+      }
+
+      const availableChats: Record<string, MicrosoftTeamsChat> = {
+        ...miscData.availableChats,
+      };
+      delete availableChats[data.chatId];
+      miscData.availableChats = availableChats;
+
+      await WorkspaceProjectAuthTokenService.updateOneById({
+        id: projectAuth.id!,
+        data: {
+          miscData: miscData,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
+  @CaptureSpan()
+  public static async getChatsForProject(data: {
+    projectId: ObjectID;
+  }): Promise<Record<string, MicrosoftTeamsChat>> {
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.miscData) {
+      return {};
+    }
+
+    return (
+      (projectAuth.miscData as MicrosoftTeamsMiscData).availableChats || {}
+    );
   }
 
   /**
@@ -3335,6 +3839,20 @@ All monitoring checks are passing normally.`;
             async (context: TurnContext, next: () => Promise<void>) => {
               logger.debug(
                 "Handling installation update add activity: " +
+                  JSON.stringify(context.activity),
+              );
+              await MicrosoftTeamsUtil.handleInstallationUpdateActivity({
+                activity: context.activity as unknown as JSONObject,
+                turnContext: context,
+              });
+              await next();
+            },
+          );
+
+          this.onInstallationUpdateRemove(
+            async (context: TurnContext, next: () => Promise<void>) => {
+              logger.debug(
+                "Handling installation update remove activity: " +
                   JSON.stringify(context.activity),
               );
               await MicrosoftTeamsUtil.handleInstallationUpdateActivity({

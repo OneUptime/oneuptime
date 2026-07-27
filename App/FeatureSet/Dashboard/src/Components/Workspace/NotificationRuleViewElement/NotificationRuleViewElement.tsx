@@ -24,7 +24,10 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import TeamsElement from "../../Team/TeamsElement";
 import UsersElement from "../../User/Users";
-import { MicrosoftTeamsTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import {
+  MicrosoftTeamsChat,
+  MicrosoftTeamsTeam,
+} from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 export interface ComponentProps {
   value:
@@ -44,6 +47,7 @@ export interface ComponentProps {
   workspaceType: WorkspaceType;
   teams: Array<Team>;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
+  microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
   users: Array<User>;
 }
 
@@ -143,6 +147,61 @@ const NotificationRuleViewElement: FunctionComponent<ComponentProps> = (
           | MonitorNotificationRule,
       ) => {
         return Boolean(formValue.shouldPostToExistingChannel) || false;
+      },
+    },
+    {
+      key: "shouldPostToExistingChat",
+      title: `Post to Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Chat`,
+      description: `When above conditions are met, post to a group chat or one-on-one chat where the OneUptime app has been added.`,
+      fieldType: FieldType.Boolean,
+      showIf: () => {
+        return props.workspaceType === WorkspaceType.MicrosoftTeams;
+      },
+    },
+    {
+      key: "existingChatIds",
+      title: `${getWorkspaceTypeDisplayName(props.workspaceType)} Chats to Post To`,
+      description: `The chats where the message will be posted.`,
+      fieldType: FieldType.Element,
+      showIf: (
+        formValue:
+          | IncidentNotificationRule
+          | AlertNotificationRule
+          | ScheduledMaintenanceNotificationRule
+          | MonitorNotificationRule,
+      ) => {
+        return (
+          props.workspaceType === WorkspaceType.MicrosoftTeams &&
+          Boolean(formValue.shouldPostToExistingChat) &&
+          (formValue.existingChatIds || []).length > 0
+        );
+      },
+      getElement: () => {
+        const chatIds: Array<string> = props.value.existingChatIds || [];
+
+        return (
+          <div className="flex flex-wrap gap-2">
+            {chatIds.map((chatId: string) => {
+              const chat: MicrosoftTeamsChat | undefined = (
+                props.microsoftTeamsChats || []
+              ).find((i: MicrosoftTeamsChat) => {
+                return i.id === chatId;
+              });
+
+              return (
+                <span
+                  key={chatId}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10"
+                >
+                  {chat?.name || "Disconnected chat"}
+                  {chat?.chatType === "personal" && (
+                    <span className="text-indigo-400">(1:1)</span>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        );
       },
     },
   ];

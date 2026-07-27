@@ -108,16 +108,22 @@ export class NotificationRuleConditionUtil {
       eventType === NotificationRuleEventType.IncidentEpisode ||
       eventType === NotificationRuleEventType.ScheduledMaintenance
     ) {
-      // either create slack channel or select existing one should be active.
+      // either create a channel, post to an existing channel, or post to a chat.
 
       if (
         !notificationRule.shouldCreateNewChannel &&
-        !notificationRule.shouldPostToExistingChannel
+        !notificationRule.shouldPostToExistingChannel &&
+        !notificationRule.shouldPostToExistingChat
       ) {
         return (
-          "Please select either create slack channel or post to existing " +
+          "Please select either create " +
           workspaceType +
-          " channel"
+          " channel, post to existing " +
+          workspaceType +
+          " channel" +
+          (workspaceType === WorkspaceType.MicrosoftTeams
+            ? ", or post to existing " + workspaceType + " chat"
+            : "")
         );
       }
 
@@ -131,6 +137,21 @@ export class NotificationRuleConditionUtil {
         if (!notificationRule.newChannelTemplateName?.trim()) {
           return "New " + workspaceType + " channel name is required";
         }
+      }
+    }
+
+    if (notificationRule.shouldPostToExistingChat) {
+      if (
+        !notificationRule.existingChatIds ||
+        notificationRule.existingChatIds.length === 0
+      ) {
+        return (
+          "Please select at least one " +
+          workspaceType +
+          " chat to post to. If no chats are listed, add the OneUptime app to a chat in " +
+          workspaceType +
+          " first."
+        );
       }
     }
 

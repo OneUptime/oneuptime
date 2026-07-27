@@ -24,6 +24,7 @@ import HTTPResponse from "../../Types/API/HTTPResponse";
 import API from "../../Utils/API";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken, {
+  MicrosoftTeamsChat,
   MicrosoftTeamsMiscData,
   MicrosoftTeamsTeam,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -165,6 +166,14 @@ export default class MicrosoftTeamsAPI {
             {
               type: "Application",
               name: "Channel.Create.Group",
+            },
+            {
+              type: "Application",
+              name: "ChatMessage.Read.Chat",
+            },
+            {
+              type: "Application",
+              name: "ChatMember.Read.Chat",
             },
           ],
         },
@@ -1087,6 +1096,46 @@ export default class MicrosoftTeamsAPI {
                 };
               },
             ),
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    /*
+     * Get chats (group / personal chats) the OneUptime app has been added to.
+     * Chats cannot be listed via app-only Graph permissions, so this returns
+     * the chats captured from bot installation events.
+     */
+    router.get(
+      "/microsoft-teams/chats",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID = databaseProps.tenantId!;
+
+          const availableChats: Record<string, MicrosoftTeamsChat> =
+            await MicrosoftTeamsUtil.getChatsForProject({
+              projectId: projectId,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            chats: Object.values(availableChats)
+              .sort((a: MicrosoftTeamsChat, b: MicrosoftTeamsChat) => {
+                return a.name.localeCompare(b.name);
+              })
+              .map((chat: MicrosoftTeamsChat) => {
+                return {
+                  id: chat.id,
+                  name: chat.name,
+                  chatType: chat.chatType,
+                  addedAt: chat.addedAt || null,
+                };
+              }),
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);
