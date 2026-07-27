@@ -58,6 +58,7 @@ import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
 import Columns from "./Columns";
+import { getExportKeysFromColumn } from "./ExportFromColumns";
 import {
   getRelationSelectFromColumns,
   getSelectFromColumns,
@@ -984,6 +985,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ...column,
           disableSort: column.disableSort || shouldDisableSort(key),
           key: columnKey,
+          /*
+           * `key` is only the first declared field, so a cell composed from
+           * several of them would export just that one. Hand the exporter
+           * every field the column declares (and that we actually selected).
+           */
+          exportKeys: getExportKeysFromColumn<TBaseModel>({
+            column: column,
+            columnKey: columnKey ? String(columnKey) : null,
+            hasPermissionToReadField: (field: string): boolean => {
+              return hasPermissionToReadField(field as keyof TBaseModel);
+            },
+          }),
           tooltipText,
           getElement: column.getElement,
         });

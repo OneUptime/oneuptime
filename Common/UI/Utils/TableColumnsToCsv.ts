@@ -263,8 +263,57 @@ export default class TableColumnsToCsv {
   }
 
   /*
+   * The fields a column contributes to the export. A ModelTable column can
+   * declare several (a cell that renders hosts + clusters + services in one
+   * place), and BaseModelTable forwards all of them as exportKeys; `key`
+   * alone is only the first. Falls back to the single key for tables that
+   * build their Table columns by hand.
+   */
+  public static getExportKeys<T extends GenericObject>(
+    column: Column<T>,
+  ): Array<string> {
+    if (column.exportKeys && column.exportKeys.length > 0) {
+      return column.exportKeys;
+    }
+
+    if (column.key === null || column.key === undefined) {
+      return [];
+    }
+
+    return [String(column.key)];
+  }
+
+  /*
+   * A column that renders entirely through getElement still has to declare a
+   * field so the row gets fetched at all, and the convention for that is
+   * `field: { _id: true }` - the "Owners" column on alerts, incidents,
+   * monitors and friends. The id is plumbing, not the cell's value, so
+   * exporting it writes a raw UUID under a header like "Owners". Treat such a
+   * column as presentational and leave it out, the same way a column with no
+   * key at all is left out. A column that genuinely shows the id says so with
+   * FieldType.ObjectID, and one that wants its rendered content in the file
+   * says so with getExportValue.
+   */
+  public static isPlaceholderIdColumn<T extends GenericObject>(
+    column: Column<T>,
+  ): boolean {
+    if (!column.getElement) {
+      return false;
+    }
+
+    if (column.type === FieldType.ObjectID) {
+      return false;
+    }
+
+    const keys: Array<string> = this.getExportKeys(column);
+
+    return keys.length === 1 && keys[0] === "_id";
+  }
+
+  /*
    * Columns that can be exported: everything except the Actions column (which
-   * only holds buttons) and columns without a data key (purely presentational).
+   * only holds buttons), columns that opted out, columns without a data key
+   * (purely presentational), and placeholder id columns.
    */
   public static getExportableColumns<T extends GenericObject>(
     columns: Columns<T>,
@@ -274,7 +323,20 @@ export default class TableColumnsToCsv {
         return false;
       }
 
-      if (column.key === null || column.key === undefined) {
+      if (column.disableCsvExport) {
+        return false;
+      }
+
+      // An explicit export value makes even a keyless column exportable.
+      if (column.getExportValue) {
+        return true;
+      }
+
+      if (this.getExportKeys(column).length === 0) {
+        return false;
+      }
+
+      if (this.isPlaceholderIdColumn(column)) {
         return false;
       }
 
@@ -286,13 +348,31 @@ export default class TableColumnsToCsv {
     item: T,
     column: Column<T>,
   ): string {
-    if (column.key === null || column.key === undefined) {
-      return "";
+    if (column.getExportValue) {
+      return column.getExportValue(item) || "";
     }
 
-    const rawValue: unknown = this.getRawValueByPath(item, String(column.key));
+    /*
+     * Every declared field goes into the one cell, joined the same way a
+     * multi-value field is, so a cell that renders several relations exports
+     * all of them. Blanks are dropped (only one of the relations is usually
+     * set) and repeats are collapsed (the same entity reachable through two
+     * of them should not be listed twice).
+     */
+    const values: Array<string> = [];
 
-    return this.formatValueForCsv(rawValue, column.type);
+    for (const key of this.getExportKeys(column)) {
+      const formatted: string = this.formatValueForCsv(
+        this.getRawValueByPath(item, key),
+        column.type,
+      );
+
+      if (formatted.length > 0 && !values.includes(formatted)) {
+        values.push(formatted);
+      }
+    }
+
+    return values.join("; ");
   }
 
   /*
