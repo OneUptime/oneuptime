@@ -182,6 +182,37 @@ function createFileLoaderPlugin() {
   };
 }
 
+// Services that never bundle a CodeEditor should not carry the runtime, so the
+// built output decides rather than a hand-maintained list of service names.
+function usesMonaco(outdir) {
+  if (!outdir || !fs.existsSync(outdir)) {
+    return false;
+  }
+
+  return fs.readdirSync(outdir, { recursive: true }).some((entry) => {
+    return (
+      typeof entry === "string" &&
+      entry.endsWith(".js") &&
+      fs
+        .readFileSync(path.join(outdir, entry), "utf8")
+        .includes("assets/monaco/vs")
+    );
+  });
+}
+
+// Copy Monaco's runtime next to the bundle so the editor loads from this
+// install instead of cdn.jsdelivr.net, which is unreachable when self-hosted
+// offline. Only min/vs is copied - the rest of the package is sources and
+// type definitions the browser never asks for.
+function copyMonacoAssets(outdir) {
+  const source = path.join(resolvePackageRoot("monaco-editor"), "min", "vs");
+  const destination = path.resolve(path.dirname(outdir), "assets/monaco/vs");
+
+  fs.rmSync(destination, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.cpSync(source, destination, { recursive: true });
+}
+
 // Read environment variables from .env file
 function readEnvFile(pathToFile) {
   if (!fs.existsSync(pathToFile)) {
@@ -265,6 +296,11 @@ function createConfig(options) {
     splitting: true,
     publicPath,
     define: {
+      // Monaco resolves its runtime against this at load time. import.meta is
+      // empty at the es2017 target, so the path has to come from the build.
+      "process.env.MONACO_ASSET_PATH": JSON.stringify(
+        `${publicPath.replace(/dist\/$/, "")}assets/monaco/vs`,
+      ),
       "process.env.NODE_ENV": JSON.stringify(
         isDev ? "development" : "production",
       ),
@@ -319,6 +355,11 @@ async function build(config, serviceName) {
   try {
     const result = await esbuild.build(config);
 
+    if (usesMonaco(config.outdir)) {
+      copyMonacoAssets(config.outdir);
+      console.log(`📦 Copied Monaco assets for ${serviceName}`);
+    }
+
     if (isAnalyze && result.metafile) {
       const analyzeText = await esbuild.analyzeMetafile(result.metafile);
       console.log(`\n📊 Bundle analysis for ${serviceName}:`);
@@ -345,6 +386,13 @@ async function build(config, serviceName) {
 async function watch(config, serviceName) {
   try {
     const context = await esbuild.context(config);
+    await context.rebuild();
+
+    if (usesMonaco(config.outdir)) {
+      copyMonacoAssets(config.outdir);
+      console.log(`📦 Copied Monaco assets for ${serviceName}`);
+    }
+
     await context.watch();
     console.log(`👀 Watching ${serviceName} for changes...`);
   } catch (error) {

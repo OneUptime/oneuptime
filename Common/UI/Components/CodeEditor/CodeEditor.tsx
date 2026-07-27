@@ -1,4 +1,5 @@
 import Editor from "@monaco-editor/react";
+import configureMonacoLoader from "./MonacoLoader";
 import CodeType from "../../../Types/Code/CodeType";
 import MarkdownUtil from "../../Utils/Markdown";
 import { Theme, useTheme } from "../../Utils/Theme";
@@ -9,6 +10,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+
+configureMonacoLoader();
 
 export interface ComponentProps {
   initialValue?: undefined | string;
