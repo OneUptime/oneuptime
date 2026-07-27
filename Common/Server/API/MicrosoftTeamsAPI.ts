@@ -50,6 +50,34 @@ import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 export default class MicrosoftTeamsAPI {
+  /*
+   * getUserMiddleware lets unauthenticated requests through as "public" and
+   * takes the tenant id from a caller-supplied header — endpoints that
+   * disclose integration data must require an authenticated member of the
+   * project themselves.
+   */
+  private static assertAuthenticatedProjectMember(
+    databaseProps: DatabaseCommonInteractionProps,
+  ): ObjectID {
+    const projectId: ObjectID | undefined = databaseProps.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required");
+    }
+
+    if (
+      !databaseProps.userId ||
+      !databaseProps.userTenantAccessPermission ||
+      !databaseProps.userTenantAccessPermission[projectId.toString()]
+    ) {
+      throw new NotAuthorizedException(
+        "You are not authorized to access Microsoft Teams integration data for this project.",
+      );
+    }
+
+    return projectId;
+  }
+
   private static getTeamsAppManifest(): JSONObject {
     if (!MicrosoftTeamsAppClientId) {
       throw new BadDataException("Microsoft Teams App Client ID is not set");
@@ -1045,7 +1073,8 @@ export default class MicrosoftTeamsAPI {
           const databaseProps: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-          const projectId: ObjectID = databaseProps.tenantId!;
+          const projectId: ObjectID =
+            MicrosoftTeamsAPI.assertAuthenticatedProjectMember(databaseProps);
 
           // Use the refreshTeams method to get fresh teams data
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
@@ -1079,7 +1108,8 @@ export default class MicrosoftTeamsAPI {
           const databaseProps: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-          const projectId: ObjectID = databaseProps.tenantId!;
+          const projectId: ObjectID =
+            MicrosoftTeamsAPI.assertAuthenticatedProjectMember(databaseProps);
 
           // Call MicrosoftTeamsUtil to refresh teams
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
@@ -1117,26 +1147,8 @@ export default class MicrosoftTeamsAPI {
           const databaseProps: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-          const projectId: ObjectID | undefined = databaseProps.tenantId;
-
-          if (!projectId) {
-            throw new BadDataException("Project ID is required");
-          }
-
-          /*
-           * getUserMiddleware lets unauthenticated requests through as
-           * "public" — require an authenticated member of this project
-           * before disclosing chat names.
-           */
-          if (
-            !databaseProps.userId ||
-            !databaseProps.userTenantAccessPermission ||
-            !databaseProps.userTenantAccessPermission[projectId.toString()]
-          ) {
-            throw new NotAuthorizedException(
-              "You are not authorized to view Microsoft Teams chats for this project.",
-            );
-          }
+          const projectId: ObjectID =
+            MicrosoftTeamsAPI.assertAuthenticatedProjectMember(databaseProps);
 
           const availableChats: Record<string, MicrosoftTeamsChat> =
             await MicrosoftTeamsUtil.getChatsForProject({
