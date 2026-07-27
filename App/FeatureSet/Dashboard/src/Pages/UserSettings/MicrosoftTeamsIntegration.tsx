@@ -7,6 +7,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <MicrosoftTeamsIntegration
       onConnected={() => {}}
       onDisconnected={() => {}}
+      hideProjectCards={true}
     />
   );
 };

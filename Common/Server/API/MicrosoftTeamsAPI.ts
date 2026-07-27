@@ -24,6 +24,7 @@ import HTTPResponse from "../../Types/API/HTTPResponse";
 import API from "../../Utils/API";
 import WorkspaceProjectAuthTokenService from "../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceProjectAuthToken, {
+  MicrosoftTeamsChat,
   MicrosoftTeamsMiscData,
   MicrosoftTeamsTeam,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -46,6 +47,8 @@ import path from "path";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Dictionary from "../../Types/Dictionary";
+import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 
 export default class MicrosoftTeamsAPI {
   private static getTeamsAppManifest(): JSONObject {
@@ -165,6 +168,14 @@ export default class MicrosoftTeamsAPI {
             {
               type: "Application",
               name: "Channel.Create.Group",
+            },
+            {
+              type: "Application",
+              name: "ChatMessage.Read.Chat",
+            },
+            {
+              type: "Application",
+              name: "ChatMember.Read.Chat",
             },
           ],
         },
@@ -1035,7 +1046,8 @@ export default class MicrosoftTeamsAPI {
           const databaseProps: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-          const projectId: ObjectID = databaseProps.tenantId!;
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
 
           // Use the refreshTeams method to get fresh teams data
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
@@ -1069,7 +1081,8 @@ export default class MicrosoftTeamsAPI {
           const databaseProps: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-          const projectId: ObjectID = databaseProps.tenantId!;
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
 
           // Call MicrosoftTeamsUtil to refresh teams
           const availableTeams: Record<string, MicrosoftTeamsTeam> =
@@ -1087,6 +1100,90 @@ export default class MicrosoftTeamsAPI {
                 };
               },
             ),
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    // List channels of a team (app-only Graph; Channel.ReadBasic.All).
+    router.get(
+      "/microsoft-teams/channels",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          const teamId: string = (req.query["teamId"] as string) || "";
+
+          if (!teamId) {
+            throw new BadDataException("teamId is required");
+          }
+
+          const channels: Dictionary<WorkspaceChannel> =
+            await MicrosoftTeamsUtil.getAllWorkspaceChannels({
+              authToken: "", // Graph calls use the app token from miscData.
+              projectId: projectId,
+              teamId: teamId,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            channels: Object.values(channels)
+              .sort((a: WorkspaceChannel, b: WorkspaceChannel) => {
+                return (a.name || "").localeCompare(b.name || "");
+              })
+              .map((channel: WorkspaceChannel) => {
+                return {
+                  id: channel.id,
+                  name: channel.name,
+                };
+              }),
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    /*
+     * Get chats (group / personal chats) the OneUptime app has been added to.
+     * Chats cannot be listed via app-only Graph permissions, so this returns
+     * the chats captured from bot installation events.
+     */
+    router.get(
+      "/microsoft-teams/chats",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          const availableChats: Record<string, MicrosoftTeamsChat> =
+            await MicrosoftTeamsUtil.getChatsForProject({
+              projectId: projectId,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            chats: Object.values(availableChats)
+              .sort((a: MicrosoftTeamsChat, b: MicrosoftTeamsChat) => {
+                return a.name.localeCompare(b.name);
+              })
+              .map((chat: MicrosoftTeamsChat) => {
+                return {
+                  id: chat.id,
+                  name: chat.name,
+                  chatType: chat.chatType,
+                  addedAt: chat.addedAt || null,
+                };
+              }),
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);

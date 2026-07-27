@@ -3,7 +3,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 import SlackIntegration from "../../Components/Slack/SlackIntegration";
 
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
-  return <SlackIntegration onConnected={() => {}} onDisconnected={() => {}} />;
+  return (
+    <SlackIntegration
+      onConnected={() => {}}
+      onDisconnected={() => {}}
+      hideProjectCards={true}
+    />
+  );
 };
 
 export default Settings;
