@@ -25,7 +25,6 @@ import SnmpPrivProtocol, {
 } from "Common/Types/Monitor/SnmpMonitor/SnmpPrivProtocol";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
-import ProxyConfig from "../../Utils/ProxyConfig";
 
 /*
  * Assembles the SnmpV3Auth the scanner needs from the scan's flattened
@@ -89,6 +88,20 @@ export function buildSnmpV3Auth(
   };
 }
 
+/*
+ * node-cron fires every tick regardless of whether the previous run
+ * finished. A subnet sweep legitimately runs for many minutes (up to 4096
+ * hosts), and a slow/unresponsive server can hang the list fetch itself —
+ * either way, without this guard every subsequent tick stacks another
+ * request/sweep on top of the stuck one. One discovery cycle at a time.
+ */
+let isDiscoveryRunInProgress: boolean = false;
+
+// Exported for tests: lets a wedged-state test reset between cases.
+export function resetDiscoveryRunInProgress(): void {
+  isDiscoveryRunInProgress = false;
+}
+
 const InitJob: VoidFunction = (): void => {
   BasicCron({
     jobName: "Probe:DiscoveryScanFetch",
@@ -97,11 +110,22 @@ const InitJob: VoidFunction = (): void => {
       runOnStartup: true,
     },
     runFunction: async () => {
+      if (isDiscoveryRunInProgress) {
+        logger.debug(
+          "Previous discovery scan run is still in progress. Skipping this tick.",
+        );
+        return;
+      }
+
+      isDiscoveryRunInProgress = true;
+
       try {
         await fetchAndRunScans();
       } catch (err) {
         logger.error("Discovery scan fetch failed");
         logger.error(err);
+      } finally {
+        isDiscoveryRunInProgress = false;
       }
     },
   });
@@ -121,7 +145,7 @@ export async function fetchAndRunScans(): Promise<void> {
         ...ProbeAPIRequest.getDefaultRequestBody(),
       },
       headers: {},
-      options: { ...ProxyConfig.getRequestProxyAgents(listUrl) },
+      options: ProbeAPIRequest.getDefaultRequestOptions(listUrl),
     });
 
   const scans: Array<NetworkDeviceDiscoveryScan> = BaseModel.fromJSONArray(
@@ -140,66 +164,24 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
     "/probe/discovery-scan/result",
   );
 
+  let scanResult: SubnetScanResult;
+
   try {
     logger.debug(
       `Running discovery scan ${scan.id?.toString()} on ${scan.cidr}`,
     );
 
-    const scanResult: SubnetScanResult = await SubnetScanner.scan({
+    scanResult = await SubnetScanner.scan({
       cidr: scan.cidr || "",
       snmpVersion: scan.snmpVersion,
       snmpCommunityString: scan.snmpCommunityString,
       snmpV3Auth: buildSnmpV3Auth(scan),
       snmpPort: scan.snmpPort,
     });
-
-    /*
-     * discoveredHosts now includes ping-only hosts (snmpReachable false),
-     * so the "answered SNMP" count must filter — the whole-array length
-     * would overstate manageable devices.
-     */
-    const snmpResponderCount: number = scanResult.discoveredHosts.filter(
-      (host: DiscoveredHost) => {
-        return host.snmpReachable;
-      },
-    ).length;
-
-    /*
-     * The scan model has no column for the ICMP pre-sweep count, so it rides
-     * along in statusMessage (which the ingest endpoint already accepts)
-     * instead of a payload field the server would silently drop.
-     */
-    const statusMessage: string =
-      scanResult.respondedToPingCount !== undefined
-        ? `Swept ${scanResult.scannedHostCount} hosts: ` +
-          `${scanResult.respondedToPingCount} answered ICMP ping, ` +
-          `${snmpResponderCount} answered SNMP.`
-        : `Swept ${scanResult.scannedHostCount} hosts via SNMP ` +
-          `(ICMP pre-sweep unavailable on this probe): ` +
-          `${snmpResponderCount} answered SNMP.`;
-
-    await API.fetch<JSONArray>({
-      method: HTTPMethod.POST,
-      url: resultUrl,
-      data: {
-        ...ProbeAPIRequest.getDefaultRequestBody(),
-        scanId: scan.id?.toString(),
-        success: true,
-        statusMessage: statusMessage,
-        discoveredDevices: scanResult.discoveredHosts as unknown as JSONArray,
-        scannedHostCount: scanResult.scannedHostCount,
-      },
-      headers: {},
-      options: { ...ProxyConfig.getRequestProxyAgents(resultUrl) },
-    });
-
-    logger.debug(
-      `Discovery scan ${scan.id?.toString()} found ${snmpResponderCount} SNMP hosts (${scanResult.discoveredHosts.length} alive in total)`,
-    );
   } catch (err) {
     logger.error(`Discovery scan ${scan.id?.toString()} failed: ${err}`);
 
-    // Report the failure so the scan doesn't sit In Progress forever.
+    // Report the SWEEP failure so the scan doesn't sit In Progress forever.
     try {
       await API.fetch<JSONArray>({
         method: HTTPMethod.POST,
@@ -212,13 +194,76 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
           discoveredDevices: [],
         },
         headers: {},
-        options: { ...ProxyConfig.getRequestProxyAgents(resultUrl) },
+        options: ProbeAPIRequest.getDefaultRequestOptions(resultUrl),
       });
     } catch (reportErr) {
       logger.error(
         `Failed to report discovery scan failure for ${scan.id?.toString()}: ${reportErr}`,
       );
     }
+
+    return;
+  }
+
+  /*
+   * discoveredHosts now includes ping-only hosts (snmpReachable false),
+   * so the "answered SNMP" count must filter — the whole-array length
+   * would overstate manageable devices.
+   */
+  const snmpResponderCount: number = scanResult.discoveredHosts.filter(
+    (host: DiscoveredHost) => {
+      return host.snmpReachable;
+    },
+  ).length;
+
+  /*
+   * The scan model has no column for the ICMP pre-sweep count, so it rides
+   * along in statusMessage (which the ingest endpoint already accepts)
+   * instead of a payload field the server would silently drop.
+   */
+  const statusMessage: string =
+    scanResult.respondedToPingCount !== undefined
+      ? `Swept ${scanResult.scannedHostCount} hosts: ` +
+        `${scanResult.respondedToPingCount} answered ICMP ping, ` +
+        `${snmpResponderCount} answered SNMP.`
+      : `Swept ${scanResult.scannedHostCount} hosts via SNMP ` +
+        `(ICMP pre-sweep unavailable on this probe): ` +
+        `${snmpResponderCount} answered SNMP.`;
+
+  /*
+   * The RESULT UPLOAD failing must NOT trigger the success:false report
+   * above: the upload's own timeout does not cancel the server-side
+   * handler, so on a slow server the sweep's Completed write can land
+   * AFTER the client gave up — a failure report sent then would race it,
+   * flip the finished scan to Failed and wipe its discovered hosts. Log
+   * and walk away instead: a genuinely lost result leaves the scan In
+   * Progress, and the server's stale-In-Progress reaper
+   * (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts) already
+   * self-heals that case.
+   */
+  try {
+    await API.fetch<JSONArray>({
+      method: HTTPMethod.POST,
+      url: resultUrl,
+      data: {
+        ...ProbeAPIRequest.getDefaultRequestBody(),
+        scanId: scan.id?.toString(),
+        success: true,
+        statusMessage: statusMessage,
+        discoveredDevices: scanResult.discoveredHosts as unknown as JSONArray,
+        scannedHostCount: scanResult.scannedHostCount,
+      },
+      headers: {},
+      options: ProbeAPIRequest.getDefaultRequestOptions(resultUrl),
+    });
+
+    logger.debug(
+      `Discovery scan ${scan.id?.toString()} found ${snmpResponderCount} SNMP hosts (${scanResult.discoveredHosts.length} alive in total)`,
+    );
+  } catch (uploadErr) {
+    logger.error(
+      `Failed to upload discovery scan result for ${scan.id?.toString()}: ${uploadErr}`,
+    );
   }
 }
 
