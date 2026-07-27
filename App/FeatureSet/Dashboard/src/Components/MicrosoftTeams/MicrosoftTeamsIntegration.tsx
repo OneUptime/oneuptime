@@ -40,10 +40,12 @@ import { ButtonStyleType as SharedButtonStyle } from "Common/UI/Components/Butto
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import TeamsAvailableModal from "./TeamsAvailableModal";
 import MicrosoftTeamsChatsCard from "./MicrosoftTeamsChatsCard";
+import MicrosoftTeamsChannelsCard from "./MicrosoftTeamsChannelsCard";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
   onDisconnected: VoidFunction;
+  hideProjectCards?: boolean | undefined; // hide project-level cards (e.g. on User Settings)
 }
 
 const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
@@ -520,11 +522,21 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {isAdminConsentCompleted && isProjectAccountConnected && (
-        <div className="mt-6">
-          <MicrosoftTeamsChatsCard />
-        </div>
-      )}
+      {isAdminConsentCompleted &&
+        isProjectAccountConnected &&
+        !props.hideProjectCards && (
+          <div className="mt-6">
+            <MicrosoftTeamsChannelsCard />
+          </div>
+        )}
+
+      {isAdminConsentCompleted &&
+        isProjectAccountConnected &&
+        !props.hideProjectCards && (
+          <div className="mt-6">
+            <MicrosoftTeamsChatsCard />
+          </div>
+        )}
 
       {isAdminConsentCompleted &&
         isUserAccountConnected &&

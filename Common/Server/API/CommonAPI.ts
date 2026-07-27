@@ -6,8 +6,40 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import UserType from "../../Types/UserType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
+import ObjectID from "../../Types/ObjectID";
+import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 
 export default class CommonAPI {
+  /*
+   * getUserMiddleware lets unauthenticated requests through as "public" and
+   * takes the tenant id from a caller-supplied header — custom endpoints
+   * that disclose project data must require an authenticated member of the
+   * project themselves. Returns the project id when authorized, throws
+   * otherwise.
+   */
+  public static assertAuthenticatedProjectMember(
+    databaseProps: DatabaseCommonInteractionProps,
+  ): ObjectID {
+    const projectId: ObjectID | undefined = databaseProps.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required");
+    }
+
+    if (
+      !databaseProps.userId ||
+      !databaseProps.userTenantAccessPermission ||
+      !databaseProps.userTenantAccessPermission[projectId.toString()]
+    ) {
+      throw new NotAuthorizedException(
+        "You are not authorized to access this project's data.",
+      );
+    }
+
+    return projectId;
+  }
+
   @CaptureSpan()
   public static async getDatabaseCommonInteractionProps(
     req: ExpressRequest,
