@@ -166,6 +166,18 @@ const Table: TableFunction = <T extends GenericObject>(
   useEffect(() => {
     if (props.bulkSelectedItems) {
       setBulkSelectedItems(props.bulkSelectedItems);
+
+      /*
+       * "All items selected" is a claim about a selection that exists, so it
+       * cannot outlive one. The parent drops the selection whenever the query
+       * changes underneath it (and after a bulk action completes), and this
+       * state is local to the table - without this, the next single row the
+       * user ticked would re-open the bulk bar with the "Select All" button
+       * still hidden, as though everything matching were already selected.
+       */
+      if (props.bulkSelectedItems.length === 0) {
+        setIsAllItemsSelected(false);
+      }
     }
   }, [props.bulkSelectedItems]);
 
