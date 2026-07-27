@@ -107,6 +107,22 @@ export class Service extends DatabaseService<StatusPage> {
     10_000,
   );
 
+  /*
+   * Caches verified custom-domain -> statusPageId resolution. Every public
+   * status-page API call served on a custom domain (overview, incidents,
+   * announcements, polling — several per page view) starts with this lookup,
+   * and the mapping only changes when a customer provisions or removes a
+   * domain (which takes minutes anyway), so a 60s staleness window is the
+   * same tradeoff `statusPageUrlCache` above already accepts. Only
+   * SUCCESSFUL resolutions are cached: misses re-query, so a freshly
+   * verified domain works immediately and attacker-controlled Host headers
+   * cannot fill the cache with negative entries.
+   */
+  private statusPageDomainToIdCache: InMemoryTTLCache<string> =
+    new InMemoryTTLCache(10_000);
+
+  private static readonly DOMAIN_TO_ID_CACHE_TTL_MS: number = 60 * 1000;
+
   public constructor() {
     super(StatusPage);
   }
@@ -117,6 +133,14 @@ export class Service extends DatabaseService<StatusPage> {
       return;
     }
     this.statusPageUrlCache.clear();
+  }
+
+  public clearStatusPageDomainToIdCache(fullDomain?: string): void {
+    if (fullDomain) {
+      this.statusPageDomainToIdCache.delete(fullDomain);
+      return;
+    }
+    this.statusPageDomainToIdCache.clear();
   }
 
   /*
@@ -135,6 +159,13 @@ export class Service extends DatabaseService<StatusPage> {
     }
 
     if (statusPageIdOrDomain.includes(".")) {
+      const cachedStatusPageId: string | undefined =
+        this.statusPageDomainToIdCache.get(statusPageIdOrDomain);
+
+      if (cachedStatusPageId) {
+        return new ObjectID(cachedStatusPageId);
+      }
+
       const statusPageDomain: StatusPageDomain | null =
         await StatusPageDomainService.findOneBy({
           query: {
@@ -154,6 +185,12 @@ export class Service extends DatabaseService<StatusPage> {
       if (!statusPageDomain || !statusPageDomain.statusPageId) {
         return null;
       }
+
+      this.statusPageDomainToIdCache.set(
+        statusPageIdOrDomain,
+        statusPageDomain.statusPageId.toString(),
+        Service.DOMAIN_TO_ID_CACHE_TTL_MS,
+      );
 
       return statusPageDomain.statusPageId;
     }

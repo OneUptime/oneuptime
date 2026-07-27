@@ -27,8 +27,15 @@ RunCron(
         },
       });
 
+    /*
+     * Status stamps use the hookless fast-path: WorkflowLog has no
+     * workflow/audit/realtime decorators and no service update hooks, so the
+     * full update pipeline is pure overhead for these per-run bookkeeping
+     * writes (the dashboard log viewer polls; it does not rely on realtime
+     * events).
+     */
     for (const stalledWorkflowLog of stalledWorkflowLogs) {
-      await WorkflowLogService.updateOneById({
+      await WorkflowLogService.updateColumnsByIdWithoutHooks({
         id: stalledWorkflowLog.id!,
         data: {
           workflowStatus: WorkflowStatus.Error,
@@ -37,9 +44,6 @@ RunCron(
           } \n ${OneUptimeDate.getCurrentDateAsFormattedString({
             showSeconds: true,
           })}: Workflow was not picked up by the runner and has timed out.`,
-        },
-        props: {
-          isRoot: true,
         },
       });
     }
@@ -67,7 +71,7 @@ RunCron(
       });
 
     for (const stuckWaitingWorkflowLog of stuckWaitingWorkflowLogs) {
-      await WorkflowLogService.updateOneById({
+      await WorkflowLogService.updateColumnsByIdWithoutHooks({
         id: stuckWaitingWorkflowLog.id!,
         data: {
           workflowStatus: WorkflowStatus.Error,
@@ -79,9 +83,6 @@ RunCron(
           } \n ${OneUptimeDate.getCurrentDateAsFormattedString({
             showSeconds: true,
           })}: Workflow was waiting to resume but the resume job was not picked up in time. Marking as failed.`,
-        },
-        props: {
-          isRoot: true,
         },
       });
     }

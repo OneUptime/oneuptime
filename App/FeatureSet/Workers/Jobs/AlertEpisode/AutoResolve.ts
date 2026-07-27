@@ -13,6 +13,7 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 
 RunCron(
   "AlertEpisode:AutoResolve",
@@ -51,10 +52,25 @@ RunCron(
         `AlertEpisode:AutoResolve - Found ${activeEpisodes.length} active episodes`,
       );
 
+      if (activeEpisodes.length === 0) {
+        return;
+      }
+
+      /*
+       * Episodes cluster by grouping rule and project, so fetch each distinct
+       * rule and resolved-state once per tick instead of once per episode.
+       */
+      const rulesById: Map<string, AlertGroupingRule> =
+        await fetchGroupingRules(activeEpisodes);
+      const resolvedStateByProjectId: Map<string, AlertState> =
+        await fetchResolvedStates(activeEpisodes);
+
       const promises: Array<Promise<void>> = [];
 
       for (const episode of activeEpisodes) {
-        promises.push(checkAndResolveEpisode(episode));
+        promises.push(
+          checkAndResolveEpisode(episode, rulesById, resolvedStateByProjectId),
+        );
       }
 
       await Promise.allSettled(promises);
@@ -64,10 +80,113 @@ RunCron(
   },
 );
 
-type CheckAndResolveEpisodeFunction = (episode: AlertEpisode) => Promise<void>;
+type FetchGroupingRulesFunction = (
+  episodes: Array<AlertEpisode>,
+) => Promise<Map<string, AlertGroupingRule>>;
+
+const fetchGroupingRules: FetchGroupingRulesFunction = async (
+  episodes: Array<AlertEpisode>,
+): Promise<Map<string, AlertGroupingRule>> => {
+  const rulesById: Map<string, AlertGroupingRule> = new Map();
+
+  const distinctRuleIds: Map<string, ObjectID> = new Map();
+  for (const episode of episodes) {
+    if (episode.alertGroupingRuleId) {
+      distinctRuleIds.set(
+        episode.alertGroupingRuleId.toString(),
+        episode.alertGroupingRuleId,
+      );
+    }
+  }
+
+  if (distinctRuleIds.size === 0) {
+    return rulesById;
+  }
+
+  const rules: Array<AlertGroupingRule> = await AlertGroupingRuleService.findBy(
+    {
+      query: {
+        _id: QueryHelper.any([...distinctRuleIds.values()]),
+      },
+      select: {
+        _id: true,
+        enableResolveDelay: true,
+        resolveDelayMinutes: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+    },
+  );
+
+  for (const rule of rules) {
+    if (rule.id) {
+      rulesById.set(rule.id.toString(), rule);
+    }
+  }
+
+  return rulesById;
+};
+
+type FetchResolvedStatesFunction = (
+  episodes: Array<AlertEpisode>,
+) => Promise<Map<string, AlertState>>;
+
+const fetchResolvedStates: FetchResolvedStatesFunction = async (
+  episodes: Array<AlertEpisode>,
+): Promise<Map<string, AlertState>> => {
+  const resolvedStateByProjectId: Map<string, AlertState> = new Map();
+
+  const distinctProjectIds: Map<string, ObjectID> = new Map();
+  for (const episode of episodes) {
+    if (episode.projectId) {
+      distinctProjectIds.set(episode.projectId.toString(), episode.projectId);
+    }
+  }
+
+  if (distinctProjectIds.size === 0) {
+    return resolvedStateByProjectId;
+  }
+
+  const resolvedStates: Array<AlertState> = await AlertStateService.findBy({
+    query: {
+      projectId: QueryHelper.any([...distinctProjectIds.values()]),
+      isResolvedState: true,
+    },
+    select: {
+      _id: true,
+      order: true,
+      projectId: true,
+    },
+    props: {
+      isRoot: true,
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+  });
+
+  for (const state of resolvedStates) {
+    const projectKey: string | undefined = state.projectId?.toString();
+    if (projectKey && !resolvedStateByProjectId.has(projectKey)) {
+      resolvedStateByProjectId.set(projectKey, state);
+    }
+  }
+
+  return resolvedStateByProjectId;
+};
+
+type CheckAndResolveEpisodeFunction = (
+  episode: AlertEpisode,
+  rulesById: Map<string, AlertGroupingRule>,
+  resolvedStateByProjectId: Map<string, AlertState>,
+) => Promise<void>;
 
 const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
   episode: AlertEpisode,
+  rulesById: Map<string, AlertGroupingRule>,
+  resolvedStateByProjectId: Map<string, AlertState>,
 ): Promise<void> => {
   try {
     if (!episode.id || !episode.projectId) {
@@ -79,17 +198,9 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
     let enableResolveDelay: boolean = false;
 
     if (episode.alertGroupingRuleId) {
-      const rule: AlertGroupingRule | null =
-        await AlertGroupingRuleService.findOneById({
-          id: episode.alertGroupingRuleId,
-          select: {
-            enableResolveDelay: true,
-            resolveDelayMinutes: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      const rule: AlertGroupingRule | undefined = rulesById.get(
+        episode.alertGroupingRuleId.toString(),
+      );
 
       if (rule) {
         enableResolveDelay = rule.enableResolveDelay || false;
@@ -112,19 +223,8 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
     }
 
     // Check if all alerts are resolved
-    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: episode.projectId,
-        isResolvedState: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const resolvedState: AlertState | null =
+      resolvedStateByProjectId.get(episode.projectId.toString()) || null;
 
     if (!resolvedState || !resolvedState.order) {
       logger.debug(
@@ -133,26 +233,31 @@ const checkAndResolveEpisode: CheckAndResolveEpisodeFunction = async (
       return;
     }
 
-    // Check if all alerts are in resolved state or higher
+    /*
+     * Check if all alerts are in resolved state or higher. One batched query
+     * for the whole episode; alerts that no longer exist simply don't come
+     * back, matching the old per-id skip behavior.
+     */
+    const alerts: Array<Alert> = await AlertService.findBy({
+      query: {
+        _id: QueryHelper.any(alertIds),
+      },
+      select: {
+        _id: true,
+        currentAlertState: {
+          order: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+    });
+
     let allResolved: boolean = true;
 
-    for (const alertId of alertIds) {
-      const alert: Alert | null = await AlertService.findOneById({
-        id: alertId,
-        select: {
-          currentAlertState: {
-            order: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!alert) {
-        continue;
-      }
-
+    for (const alert of alerts) {
       const alertOrder: number = alert.currentAlertState?.order || 0;
 
       if (alertOrder < resolvedState.order) {

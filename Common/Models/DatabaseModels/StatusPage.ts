@@ -2575,6 +2575,7 @@ export default class StatusPage extends BaseModel {
     title: "Send Next Report By",
     description: "When should the next report be sent?",
   })
+  @Index()
   @Column({
     type: ColumnType.Date,
     nullable: true,
