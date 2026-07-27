@@ -1,4 +1,4 @@
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * Extensive tests for the Microsoft Teams CHAT support (group chats +
@@ -49,6 +49,7 @@ jest.mock("botbuilder", () => {
     CardFactory: { heroCard: jest.fn() },
     TeamsInfo: {
       getMembers: jest.fn(),
+      getPagedMembers: jest.fn(),
     },
   };
 });
@@ -75,6 +76,7 @@ import {
   TeamsInfo,
   type ConversationReference,
   type TeamsChannelAccount,
+  type TeamsPagedMembersResult,
   type TurnContext,
 } from "botbuilder";
 
@@ -174,13 +176,24 @@ function installFakeBotAdapter(options?: {
 }
 
 function mockMembers(members: Array<{ id: string; name?: string }>): void {
-  jest
-    .spyOn(TeamsInfo, "getMembers")
-    .mockResolvedValue(members as Array<TeamsChannelAccount>);
+  jest.spyOn(TeamsInfo, "getPagedMembers").mockResolvedValue({
+    members: members as Array<TeamsChannelAccount>,
+    continuationToken: undefined,
+  } as unknown as TeamsPagedMembersResult);
 }
 
 afterEach(() => {
   jest.restoreAllMocks();
+});
+
+/*
+ * The botbuilder module mock's jest.fn()s are shared across tests —
+ * jest.spyOn on an existing mock returns the same function, so call history
+ * and mockResolvedValueOnce queues leak between tests unless reset here.
+ */
+beforeEach(() => {
+  (TeamsInfo.getPagedMembers as jest.Mock).mockReset();
+  (TeamsInfo.getMembers as jest.Mock).mockReset();
 });
 
 describe("MicrosoftTeamsUtil.getChatDisplayName", () => {
@@ -980,10 +993,10 @@ describe("MicrosoftTeamsUtil.handleConversationUpdateActivity", () => {
     expect(saveSpy).not.toHaveBeenCalled();
   });
 
-  test("TeamsInfo.getMembers throwing still saves the chat with 'Group chat' fallback name", async () => {
+  test("TeamsInfo.getPagedMembers throwing still saves the chat with 'Group chat' fallback name", async () => {
     const { saveSpy }: ConversationUpdateSpies = installSpies();
     jest
-      .spyOn(TeamsInfo, "getMembers")
+      .spyOn(TeamsInfo, "getPagedMembers")
       .mockRejectedValue(new Error("members lookup failed"));
 
     await MicrosoftTeamsUtil.handleConversationUpdateActivity({
@@ -997,10 +1010,10 @@ describe("MicrosoftTeamsUtil.handleConversationUpdateActivity", () => {
     expect(saveArgs.chat.name).toBe("Group chat");
   });
 
-  test("TeamsInfo.getMembers throwing on a personal chat falls back to 'Personal chat'", async () => {
+  test("TeamsInfo.getPagedMembers throwing on a personal chat falls back to 'Personal chat'", async () => {
     const { saveSpy }: ConversationUpdateSpies = installSpies();
     jest
-      .spyOn(TeamsInfo, "getMembers")
+      .spyOn(TeamsInfo, "getPagedMembers")
       .mockRejectedValue(new Error("members lookup failed"));
 
     await MicrosoftTeamsUtil.handleConversationUpdateActivity({
@@ -1800,5 +1813,363 @@ describe("MicrosoftTeamsUtil.sendMessage - chat routing", () => {
     expect(sendCardSpy).not.toHaveBeenCalled();
     expect(chatsSpy).not.toHaveBeenCalled();
     expect(response.threads).toEqual([]);
+  });
+});
+
+describe("MicrosoftTeamsUtil.isChatCapturedForTenant", () => {
+  type IsCapturedFn = (data: {
+    tenantId: string;
+    chatId: string;
+    serviceUrl?: string | undefined;
+  }) => Promise<boolean>;
+
+  const isCaptured: IsCapturedFn = (data: {
+    tenantId: string;
+    chatId: string;
+    serviceUrl?: string | undefined;
+  }): Promise<boolean> => {
+    return (MicrosoftTeamsUtil as any).isChatCapturedForTenant(data);
+  };
+
+  function mockAuthRows(
+    rows: Array<Record<string, MicrosoftTeamsChat> | undefined>,
+  ): void {
+    jest.spyOn(WorkspaceProjectAuthTokenService, "findBy").mockResolvedValue(
+      rows.map(
+        (
+          availableChats: Record<string, MicrosoftTeamsChat> | undefined,
+          index: number,
+        ) => {
+          const auth: WorkspaceProjectAuthToken =
+            new WorkspaceProjectAuthToken();
+          auth._id = `auth-${index}`;
+          auth.miscData = availableChats
+            ? ({ availableChats: availableChats } as any)
+            : ({} as any);
+          return auth;
+        },
+      ) as Array<WorkspaceProjectAuthToken>,
+    );
+  }
+
+  test("true when every project row stores the chat with the same serviceUrl", async () => {
+    mockAuthRows([
+      {
+        "19:x@thread.v2": {
+          id: "19:x@thread.v2",
+          name: "Chat",
+          chatType: "groupChat",
+          serviceUrl: "https://smba.trafficmanager.net/amer/",
+        },
+      },
+    ]);
+
+    expect(
+      await isCaptured({
+        tenantId: "tenant-1",
+        chatId: "19:x@thread.v2",
+        serviceUrl: "https://smba.trafficmanager.net/amer/",
+      }),
+    ).toBe(true);
+  });
+
+  test("false when the chat is missing from a project row", async () => {
+    mockAuthRows([{}]);
+
+    expect(
+      await isCaptured({
+        tenantId: "tenant-1",
+        chatId: "19:x@thread.v2",
+        serviceUrl: "https://smba.trafficmanager.net/amer/",
+      }),
+    ).toBe(false);
+  });
+
+  test("false when the stored serviceUrl is stale", async () => {
+    mockAuthRows([
+      {
+        "19:x@thread.v2": {
+          id: "19:x@thread.v2",
+          name: "Chat",
+          chatType: "groupChat",
+          serviceUrl: "https://smba.trafficmanager.net/teams/",
+        },
+      },
+    ]);
+
+    expect(
+      await isCaptured({
+        tenantId: "tenant-1",
+        chatId: "19:x@thread.v2",
+        serviceUrl: "https://smba.trafficmanager.net/emea/",
+      }),
+    ).toBe(false);
+  });
+
+  test("false when one of several project rows is missing the chat", async () => {
+    const chat: MicrosoftTeamsChat = {
+      id: "19:x@thread.v2",
+      name: "Chat",
+      chatType: "groupChat",
+      serviceUrl: "https://smba.trafficmanager.net/amer/",
+    };
+    mockAuthRows([{ "19:x@thread.v2": chat }, {}]);
+
+    expect(
+      await isCaptured({
+        tenantId: "tenant-1",
+        chatId: "19:x@thread.v2",
+        serviceUrl: "https://smba.trafficmanager.net/amer/",
+      }),
+    ).toBe(false);
+  });
+
+  test("true when the tenant has no connected projects (nothing to capture into)", async () => {
+    mockAuthRows([]);
+
+    expect(
+      await isCaptured({
+        tenantId: "tenant-unknown",
+        chatId: "19:x@thread.v2",
+      }),
+    ).toBe(true);
+  });
+
+  test("no serviceUrl on the activity skips the staleness comparison", async () => {
+    mockAuthRows([
+      {
+        "19:x@thread.v2": {
+          id: "19:x@thread.v2",
+          name: "Chat",
+          chatType: "groupChat",
+          serviceUrl: "https://smba.trafficmanager.net/teams/",
+        },
+      },
+    ]);
+
+    expect(
+      await isCaptured({
+        tenantId: "tenant-1",
+        chatId: "19:x@thread.v2",
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("MicrosoftTeamsUtil.handleBotMessageActivity - chat backfill", () => {
+  /*
+   * Chats installed before chat capture shipped fire no install events (a
+   * manifest version bump alone sends no installationUpdate per Microsoft
+   * docs) — inbound messages are the documented backfill path. These tests
+   * use group-chat messages WITHOUT an @mention so the handler exits right
+   * after the backfill step.
+   */
+
+  function groupChatMessageActivity(overrides?: {
+    conversation?: JSONObject;
+  }): JSONObject {
+    return {
+      type: "message",
+      text: "hello there",
+      from: { id: "user-1", name: "Alice" },
+      recipient: { id: BOT_RECIPIENT_ID },
+      conversation: overrides?.conversation || {
+        conversationType: "groupChat",
+        id: "19:preexisting@thread.v2",
+      },
+      channelData: { tenant: { id: "tenant-1" } },
+      serviceUrl: "https://smba.trafficmanager.net/emea/",
+      entities: [],
+    };
+  }
+
+  test("uncaptured group chat is backfilled when a user messages the bot", async () => {
+    // isChatCapturedForTenant -> false (row without the chat)
+    const authRow: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
+    authRow._id = "auth-1";
+    authRow.miscData = {} as any;
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockResolvedValue([authRow]);
+
+    const saveSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsUtil, "saveChatToProjectAuthTokens")
+      .mockResolvedValue(undefined as never);
+    mockMembers([
+      { id: BOT_RECIPIENT_ID, name: "OneUptime" },
+      { id: "user-1", name: "Alice" },
+      { id: "user-2", name: "Bob" },
+    ]);
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: groupChatMessageActivity(),
+      turnContext: buildTurnContext({
+        serviceUrl: "https://smba.trafficmanager.net/emea/",
+      }),
+    });
+
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    const saveArgs: { tenantId: string; chat: MicrosoftTeamsChat } = saveSpy
+      .mock.calls[0]?.[0] as { tenantId: string; chat: MicrosoftTeamsChat };
+    expect(saveArgs.tenantId).toBe("tenant-1");
+    expect(saveArgs.chat.id).toBe("19:preexisting@thread.v2");
+    expect(saveArgs.chat.chatType).toBe("groupChat");
+    expect(saveArgs.chat.serviceUrl).toBe(
+      "https://smba.trafficmanager.net/emea/",
+    );
+    expect(saveArgs.chat.name).toBe("Alice, Bob");
+  });
+
+  test("already-captured chat with a fresh serviceUrl is not re-saved and no roster call is made", async () => {
+    const authRow: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
+    authRow._id = "auth-1";
+    authRow.miscData = {
+      availableChats: {
+        "19:preexisting@thread.v2": {
+          id: "19:preexisting@thread.v2",
+          name: "Alice, Bob",
+          chatType: "groupChat",
+          serviceUrl: "https://smba.trafficmanager.net/emea/",
+        },
+      },
+    } as any;
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockResolvedValue([authRow]);
+
+    const saveSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsUtil, "saveChatToProjectAuthTokens")
+      .mockResolvedValue(undefined as never);
+    const rosterSpy: jest.SpyInstance = jest.spyOn(
+      TeamsInfo,
+      "getPagedMembers",
+    );
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: groupChatMessageActivity(),
+      turnContext: buildTurnContext({
+        serviceUrl: "https://smba.trafficmanager.net/emea/",
+      }),
+    });
+
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(rosterSpy).not.toHaveBeenCalled();
+  });
+
+  test("captured chat with a STALE serviceUrl is refreshed", async () => {
+    const authRow: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
+    authRow._id = "auth-1";
+    authRow.miscData = {
+      availableChats: {
+        "19:preexisting@thread.v2": {
+          id: "19:preexisting@thread.v2",
+          name: "Alice, Bob",
+          chatType: "groupChat",
+          serviceUrl: "https://smba.trafficmanager.net/OLD/",
+        },
+      },
+    } as any;
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockResolvedValue([authRow]);
+
+    const saveSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsUtil, "saveChatToProjectAuthTokens")
+      .mockResolvedValue(undefined as never);
+    mockMembers([{ id: "user-1", name: "Alice" }]);
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: groupChatMessageActivity(),
+      turnContext: buildTurnContext({
+        serviceUrl: "https://smba.trafficmanager.net/emea/",
+      }),
+    });
+
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    const saveArgs: { tenantId: string; chat: MicrosoftTeamsChat } = saveSpy
+      .mock.calls[0]?.[0] as { tenantId: string; chat: MicrosoftTeamsChat };
+    expect(saveArgs.chat.serviceUrl).toBe(
+      "https://smba.trafficmanager.net/emea/",
+    );
+  });
+
+  test("channel messages trigger no backfill", async () => {
+    const captureSpy: jest.SpyInstance = jest.spyOn(
+      MicrosoftTeamsUtil as any,
+      "captureChatFromBotActivity",
+    );
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: groupChatMessageActivity({
+        conversation: {
+          conversationType: "channel",
+          id: "19:channel@thread.tacv2",
+        },
+      }),
+      turnContext: buildTurnContext(),
+    });
+
+    expect(captureSpy).not.toHaveBeenCalled();
+  });
+
+  test("bot's own messages trigger no backfill (loop guard runs first)", async () => {
+    const captureSpy: jest.SpyInstance = jest.spyOn(
+      MicrosoftTeamsUtil as any,
+      "captureChatFromBotActivity",
+    );
+
+    const activity: JSONObject = groupChatMessageActivity();
+    (activity["from"] as JSONObject)["id"] = BOT_RECIPIENT_ID;
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: activity,
+      turnContext: buildTurnContext(),
+    });
+
+    expect(captureSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("MicrosoftTeamsUtil roster pagination (getPagedMembers)", () => {
+  test("accumulates member names across continuation pages", async () => {
+    const saveSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsUtil, "saveChatToProjectAuthTokens")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(MicrosoftTeamsUtil as any, "sendWelcomeAdaptiveCard")
+      .mockResolvedValue(undefined as never);
+
+    const pagedSpy: jest.SpyInstance = jest
+      .spyOn(TeamsInfo, "getPagedMembers")
+      .mockResolvedValueOnce({
+        members: [
+          { id: BOT_RECIPIENT_ID, name: "OneUptime" },
+          { id: "user-1", name: "Alice" },
+        ],
+        continuationToken: "page-2",
+      } as unknown as TeamsPagedMembersResult)
+      .mockResolvedValueOnce({
+        members: [{ id: "user-2", name: "Bob" }],
+        continuationToken: undefined,
+      } as unknown as TeamsPagedMembersResult);
+
+    await MicrosoftTeamsUtil.handleConversationUpdateActivity({
+      activity: {
+        membersAdded: [{ id: BOT_RECIPIENT_ID }],
+        membersRemoved: [],
+        conversation: {
+          conversationType: "groupChat",
+          id: "19:paged@thread.v2",
+        },
+        channelData: { tenant: { id: "tenant-1" } },
+        serviceUrl: "https://smba.trafficmanager.net/amer/",
+      },
+      turnContext: buildTurnContext(),
+    });
+
+    expect(pagedSpy).toHaveBeenCalledTimes(2);
+    const saveArgs: { tenantId: string; chat: MicrosoftTeamsChat } = saveSpy
+      .mock.calls[0]?.[0] as { tenantId: string; chat: MicrosoftTeamsChat };
+    expect(saveArgs.chat.name).toBe("Alice, Bob");
   });
 });

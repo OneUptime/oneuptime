@@ -144,9 +144,10 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                 </li>
               </ol>
               <p className="mt-4 text-xs text-gray-500">
-                Already added the OneUptime app to a chat before this feature
-                existed? Remove the app from that chat and add it again — the
-                chat registers here when the app is added.
+                Already have the OneUptime app in a chat? Just @mention
+                OneUptime in that chat (or send the bot any message in a 1:1
+                chat) — the chat registers here the moment the bot hears from
+                you.
               </p>
             </div>
             {MicrosoftTeamsAppClientId && (

@@ -71,6 +71,7 @@ import {
   TeamsActivityHandler,
   TeamsInfo,
   TeamsChannelAccount,
+  TeamsPagedMembersResult,
   TurnContext,
   ConversationReference,
   MessageFactory,
@@ -1538,6 +1539,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           tenantId: tenantId,
         },
         channelId: "msteams",
+        /*
+         * Fallback is the commercial-cloud global endpoint; the serviceUrl
+         * captured from bot activities is preferred (required for GCC/DoD).
+         */
         serviceUrl: chat.serviceUrl || "https://smba.trafficmanager.net/teams/",
       };
 
@@ -2121,6 +2126,29 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         "Message activity originates from the bot itself; ignoring to prevent a loop",
       );
       return;
+    }
+
+    /*
+     * Backfill chat capture from inbound messages. Chats where the app was
+     * installed before chat capture shipped never fire install events — per
+     * Microsoft docs, app upgrades only send installationUpdate when the
+     * manifest's bot is added or removed, so a version bump alone re-fires
+     * nothing. Messaging the bot in a chat is the documented recovery path,
+     * and this also keeps the stored serviceUrl fresh (docs: verify the
+     * stored serviceUrl when a new message arrives). Cheap when the chat is
+     * already captured (single read, no roster fetch, no write).
+     */
+    const messageConversationType: string =
+      (conversation["conversationType"] as string) || "";
+    if (
+      messageConversationType === "personal" ||
+      messageConversationType === "groupChat"
+    ) {
+      await this.captureChatFromBotActivity({
+        activity: data.activity,
+        turnContext: data.turnContext,
+        onlyIfMissingOrStale: true,
+      });
     }
 
     // If this is actually an Adaptive Card submit wrapped as a message, route to invoke handler
@@ -3476,11 +3504,11 @@ All monitoring checks are passing normally.`;
     logger.debug(`Conversation: ${JSON.stringify(conversation)}`);
 
     /*
-     * Teams sends "add-upgrade" / "remove-upgrade" (instead of plain
-     * "add" / "remove") when the app is upgraded in a conversation it is
-     * already installed in — e.g. after a manifest version bump. Treat them
-     * the same, otherwise chats installed before an app upgrade are never
-     * captured.
+     * Teams sends "add-upgrade" / "remove-upgrade" when an app upgrade adds
+     * or removes the bot in the manifest (per Microsoft docs, a plain
+     * version bump fires no installationUpdate at all). Treat them the same
+     * as add/remove. Chats installed before chat capture shipped are
+     * backfilled from inbound messages in handleBotMessageActivity instead.
      */
     if (action === "add" || action === "add-upgrade") {
       logger.debug("OneUptime bot was installed");
@@ -3562,10 +3590,59 @@ All monitoring checks are passing normally.`;
     return truncate(shownNames.join(", "));
   }
 
+  /*
+   * Returns true when every connected project of this tenant already has
+   * this chat stored with the same service URL — i.e. there is nothing to
+   * capture or refresh.
+   */
+  private static async isChatCapturedForTenant(data: {
+    tenantId: string;
+    chatId: string;
+    serviceUrl?: string | undefined;
+  }): Promise<boolean> {
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: data.tenantId,
+        },
+        select: {
+          _id: true,
+          miscData: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (projectAuths.length === 0) {
+      return true; // no connected projects — nothing to capture into.
+    }
+
+    for (const projectAuth of projectAuths) {
+      const chat: MicrosoftTeamsChat | undefined = (
+        projectAuth.miscData as MicrosoftTeamsMiscData
+      )?.availableChats?.[data.chatId];
+
+      if (!chat) {
+        return false;
+      }
+
+      if (data.serviceUrl && chat.serviceUrl !== data.serviceUrl) {
+        return false; // stored serviceUrl is stale.
+      }
+    }
+
+    return true;
+  }
+
   @CaptureSpan()
   private static async captureChatFromBotActivity(data: {
     activity: JSONObject;
     turnContext: TurnContext;
+    onlyIfMissingOrStale?: boolean | undefined;
   }): Promise<void> {
     try {
       const conversation: JSONObject =
@@ -3597,6 +3674,27 @@ All monitoring checks are passing normally.`;
         return;
       }
 
+      const activityServiceUrl: string | undefined =
+        (data.activity["serviceUrl"] as string) ||
+        data.turnContext.activity.serviceUrl ||
+        undefined;
+
+      /*
+       * On the message-backfill path, skip the roster fetch and DB writes
+       * when the chat is already captured with a fresh serviceUrl.
+       */
+      if (data.onlyIfMissingOrStale) {
+        const alreadyCaptured: boolean = await this.isChatCapturedForTenant({
+          tenantId: tenantId,
+          chatId: chatId,
+          serviceUrl: activityServiceUrl,
+        });
+
+        if (alreadyCaptured) {
+          return;
+        }
+      }
+
       // Resolve a human friendly name for the chat.
       const topic: string | undefined = conversation["name"] as
         | string
@@ -3607,9 +3705,23 @@ All monitoring checks are passing normally.`;
       try {
         const botId: string | undefined =
           data.turnContext.activity.recipient?.id;
-        const members: Array<TeamsChannelAccount> = await TeamsInfo.getMembers(
-          data.turnContext,
-        );
+
+        /*
+         * TeamsInfo.getMembers is deprecated — page through the roster
+         * instead. Chats return the full roster in one page in practice.
+         */
+        const members: Array<TeamsChannelAccount> = [];
+        let continuationToken: string | undefined = undefined;
+        do {
+          const page: TeamsPagedMembersResult = await TeamsInfo.getPagedMembers(
+            data.turnContext,
+            500,
+            continuationToken,
+          );
+          members.push(...(page.members || []));
+          continuationToken = page.continuationToken;
+        } while (continuationToken);
+
         memberNames = members
           .filter((member: TeamsChannelAccount) => {
             return member.id !== botId;
@@ -3630,10 +3742,7 @@ All monitoring checks are passing normally.`;
           memberNames: memberNames,
         }),
         chatType: chatType,
-        serviceUrl:
-          (data.activity["serviceUrl"] as string) ||
-          data.turnContext.activity.serviceUrl ||
-          undefined,
+        serviceUrl: activityServiceUrl,
         addedAt: OneUptimeDate.getCurrentDate().toISOString(),
       };
 
