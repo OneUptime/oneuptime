@@ -384,6 +384,10 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     data: {
                       data: component.arguments,
                     },
+                    // The manual-run endpoint access-checks the workflow
+                    // under the caller's project permissions, so the
+                    // tenantid header must be sent.
+                    headers: ModelAPI.getCommonHeaders({}),
                   });
 
                 if (result instanceof HTTPErrorResponse) {

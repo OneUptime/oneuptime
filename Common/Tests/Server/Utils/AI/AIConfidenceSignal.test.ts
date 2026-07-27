@@ -212,6 +212,34 @@ describe("per-consumer fail directions", () => {
       AIConfidenceSignal.shouldEnqueueInstrumentationTask(classificationFailed),
     ).toBe(false);
   });
+
+  test("remediation proposal: ONLY a positive confident classification proposes", () => {
+    expect(
+      AIConfidenceSignal.shouldProposeRemediation(classifiedConfident),
+    ).toBe(true);
+    expect(
+      AIConfidenceSignal.shouldProposeRemediation(classifiedInconclusive),
+    ).toBe(false);
+    expect(AIConfidenceSignal.shouldProposeRemediation(floorInconclusive)).toBe(
+      false,
+    );
+  });
+
+  test("remediation proposal fails toward DOING NOTHING: classification-failed → no proposals", () => {
+    expect(
+      AIConfidenceSignal.shouldProposeRemediation(classificationFailed),
+    ).toBe(false);
+    /*
+     * Even if a bug ever set the placeholder boolean to true, the source
+     * check alone must keep the proposer silent.
+     */
+    expect(
+      AIConfidenceSignal.shouldProposeRemediation({
+        confident: true,
+        source: "classification-failed",
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("AIConfidenceSignal.computeConfidenceSignal", () => {

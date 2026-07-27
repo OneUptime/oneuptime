@@ -906,6 +906,10 @@ enum PageMap {
   AI_INSIGHT_VIEW = "AI_INSIGHT_VIEW",
   AI_INSIGHTS_SETTINGS = "AI_INSIGHTS_SETTINGS",
 
+  // AI Remediation section (AI-proposed remediation actions)
+  AI_REMEDIATION_ROOT = "AI_REMEDIATION_ROOT",
+  AI_REMEDIATION = "AI_REMEDIATION",
+
   // Exceptions (standalone, not under Telemetry)
   EXCEPTIONS_ROOT = "EXCEPTIONS_ROOT",
   EXCEPTIONS = "EXCEPTIONS",

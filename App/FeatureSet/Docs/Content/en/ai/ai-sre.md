@@ -24,8 +24,8 @@ Autonomous investigations are **off by default**. To enable them:
 1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens.
 2. **Make sure AI is enabled for the project** (it is by default) — Project Settings > AI > AI Credits > Enable AI.
 3. **Opt in per signal type:**
-   - Incidents: **Incidents > Settings > AI** — toggle *Automatically Investigate Incidents*.
-   - Alerts: **Alerts > Settings > AI** — toggle *Automatically Investigate Alerts*.
+   - Incidents: **Incidents > Settings > AI** — toggle _Automatically Investigate Incidents_.
+   - Alerts: **Alerts > Settings > AI** — toggle _Automatically Investigate Alerts_.
 
 Incidents and alerts are opted in independently, so you can start with incidents only.
 
@@ -39,13 +39,13 @@ Whether an analysis counts as confident is decided by a server-verified signal, 
 
 Alert volume can be much higher than incident volume, so autonomous investigations are gated by several cost controls:
 
-| Control | Behavior | Where to configure |
-|---|---|---|
-| Severity floor (alerts) | Only alerts at or above a minimum severity are investigated. Default: the project's **top two severity tiers**. | Alerts > Settings > AI |
-| Re-investigation cooldown (alerts) | Repeat alerts from the same monitor within the cooldown are not re-investigated — the first analysis stands. Default **30 minutes**; set 0 to disable. | Alerts > Settings > AI |
-| Concurrency cap | How many investigations run at once per project. Default **3** (1–25); queued investigations wait for a free slot and expire after 30 minutes. | Incidents or Alerts > Settings > AI |
-| Per-run budget | Each investigation is capped at 8 LLM calls, 12 tool calls, 150 seconds, and 2,000 output tokens. A completed investigation additionally spends one tiny confidence-classification call (20 output tokens max), metered and counted against the daily token limit. | Built in |
-| Daily token limit | Optional maximum tokens per UTC day across all autonomous investigations. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Set **0** to pause autonomous investigations entirely. | Incidents or Alerts > Settings > AI |
+| Control                            | Behavior                                                                                                                                                                                                                                                           | Where to configure                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| Severity floor (alerts)            | Only alerts at or above a minimum severity are investigated. Default: the project's **top two severity tiers**.                                                                                                                                                    | Alerts > Settings > AI              |
+| Re-investigation cooldown (alerts) | Repeat alerts from the same monitor within the cooldown are not re-investigated — the first analysis stands. Default **30 minutes**; set 0 to disable.                                                                                                             | Alerts > Settings > AI              |
+| Concurrency cap                    | How many investigations run at once per project. Default **3** (1–25); queued investigations wait for a free slot and expire after 30 minutes.                                                                                                                     | Incidents or Alerts > Settings > AI |
+| Per-run budget                     | Each investigation is capped at 8 LLM calls, 12 tool calls, 150 seconds, and 2,000 output tokens. A completed investigation additionally spends one tiny confidence-classification call (20 output tokens max), metered and counted against the daily token limit. | Built in                            |
+| Daily token limit                  | Optional maximum tokens per UTC day across all autonomous investigations. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Set **0** to pause autonomous investigations entirely.                           | Incidents or Alerts > Settings > AI |
 
 ## Trust and safety
 
@@ -54,6 +54,10 @@ Alert volume can be much higher than incident volume, so autonomous investigatio
 - **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (Project Settings > AI > AI Logs) with token counts and cost.
 - **Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns).
 - **Self-host = zero third-party egress.** With your own LLM provider (including local Ollama), telemetry never leaves your infrastructure.
+
+## Auto-remediation
+
+Investigations are strictly read-only, but they do not have to be the end of the story. With the separate **AI Remediation** opt-in, a confident investigation also proposes concrete remediation actions — running one of your existing runbooks, or a drafted command for one of your [Runbook Agents](/docs/runbooks/agents) — each waiting for human approval on the incident or alert page. Projects can additionally allow runbook proposals to auto-execute, but only on agents explicitly tagged as non-production; drafted commands always require a human, everywhere. Execution is budgeted, attributed, and fully audited. Everything remediation-related is off by default — see [Auto-Remediation](/docs/ai/auto-remediation) for the full safety model.
 
 ## Auto-postmortem
 
@@ -65,15 +69,15 @@ Investigations react to incidents and alerts. **AI Insights** watch for problems
 
 What the detectors watch:
 
-| Detector | Fires when | Severity |
-|---|---|---|
-| New exceptions | An exception first seen in the last 24 hours has already occurred 3+ times | Medium; High at 50+ occurrences |
-| Exception spikes | An established exception jumps to 10+ occurrences in the last hour, at 5×+ its normal hourly rate — including a long-dormant exception waking up | Medium; High at 10× |
-| Error-log spikes | Project-wide Error/Fatal log volume reaches 100+ in the last hour, at 3×+ the prior day's hourly average; the insight names the top contributing services | Medium; High at 10× |
-| Trace latency regressions | A service's p99 latency over the last hour is at least 1 second and 2×+ its prior-24-hour p99, with enough traffic to be meaningful. The detector drills into a representative slow trace and records what it found — N+1 query patterns, dominant slow spans — as evidence on the insight | Medium; High at 4× |
-| Metric drift | A metric's average this week has moved 50%+ versus the same metric last week | Always Low — drift direction says nothing about whether the change is bad, so drift is never auto-fixed |
+| Detector                  | Fires when                                                                                                                                                                                                                                                                                 | Severity                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| New exceptions            | An exception first seen in the last 24 hours has already occurred 3+ times                                                                                                                                                                                                                 | Medium; High at 50+ occurrences                                                                         |
+| Exception spikes          | An established exception jumps to 10+ occurrences in the last hour, at 5×+ its normal hourly rate — including a long-dormant exception waking up                                                                                                                                           | Medium; High at 10×                                                                                     |
+| Error-log spikes          | Project-wide Error/Fatal log volume reaches 100+ in the last hour, at 3×+ the prior day's hourly average; the insight names the top contributing services                                                                                                                                  | Medium; High at 10×                                                                                     |
+| Trace latency regressions | A service's p99 latency over the last hour is at least 1 second and 2×+ its prior-24-hour p99, with enough traffic to be meaningful. The detector drills into a representative slow trace and records what it found — N+1 query patterns, dominant slow spans — as evidence on the insight | Medium; High at 4×                                                                                      |
+| Metric drift              | A metric's average this week has moved 50%+ versus the same metric last week                                                                                                                                                                                                               | Always Low — drift direction says nothing about whether the change is bad, so drift is never auto-fixed |
 
-Each finding becomes an **insight** in a quiet inbox — **AI > Insights** in the dashboard. Insights **never page anyone and never open incidents**; they wait until someone looks. A recurring finding refreshes its existing insight (last seen, occurrence count) instead of piling up duplicates, a finding you dismiss stays out of your inbox for 7 days, and each scan files at most 10 new insights per project.
+Each finding becomes an **insight** in a quiet inbox — **AI > Insights** in the dashboard. Insights **never open incidents**, and by default they **never page anyone**; they wait until someone looks. The one exception is explicit: a project can opt into [insight escalation](/docs/ai/auto-remediation), which opens a real alert (never an incident, never anything status-page visible) for insights at or above a severity threshold you choose — that opt-in is off by default. A recurring finding refreshes its existing insight (last seen, occurrence count) instead of piling up duplicates, a finding you dismiss stays out of your inbox for 7 days, and each scan files at most 10 new insights per project.
 
 When an LLM provider is configured, each new insight also gets a **triage analysis**: a read-only, cited AI investigation — same engine, same audit trail, same per-run budget and daily token limit as autonomous investigations — that assesses the likely root cause, the blast radius, and the one next action worth taking. The result is saved to the insight page. Without a provider you still get the insights; you just skip the AI triage.
 

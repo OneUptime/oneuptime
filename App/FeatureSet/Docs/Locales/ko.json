@@ -111,6 +111,7 @@
     "Incident & Alert Templating": "인시던트 및 알림 템플릿",
     "Monitor Secrets": "모니터 시크릿",
     "AI SRE": "AI SRE",
+    "Auto-Remediation": "자동 복구",
     "Incoming Call Policy": "수신 전화 정책",
     "Phone Number Whitelist": "전화번호 화이트리스트",
     "Runbooks Overview": "Runbook 개요",

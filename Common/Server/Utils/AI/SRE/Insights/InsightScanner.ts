@@ -8,6 +8,7 @@ import ProjectService from "../../../../Services/ProjectService";
 import AIInsightService from "../../../../Services/AIInsightService";
 import InsightDetectors from "./Detectors/Index";
 import InsightStore, { UpsertCandidatesResult } from "./InsightStore";
+import InsightEscalation, { EscalationScanCounter } from "./InsightEscalation";
 import InsightFixRouting, { InsightFixRoutingResult } from "./FixRouting";
 import InsightTriage, { InsightTriageResult } from "./Triage";
 import { InsightCandidate, InsightDetector, InsightScanContext } from "./Types";
@@ -30,9 +31,12 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
  * insights the triage classified as code faults.
  *
  * Everything is opt-in and quiet: only projects with the default-false
- * enableAiInsights flag are scanned, insights never page and never
- * open incidents, and every layer (project, detector, insight) fails in
- * isolation — one broken tenant or sensor must not stop the sweep.
+ * enableAiInsights flag are scanned, insights never open incidents, and
+ * insights never page UNLESS the project explicitly opted into the
+ * escalation bridge (default-false enableAiInsightEscalation — which opens
+ * alerts, never incidents; see InsightEscalation). Every layer (project,
+ * detector, insight) fails in isolation — one broken tenant or sensor must
+ * not stop the sweep.
  */
 export default class InsightScanner {
   /*
@@ -147,6 +151,32 @@ export default class InsightScanner {
       } catch (error) {
         logger.error(
           `AI Insights: routing failed for insight ${insight.id?.toString()} (project ${projectId.toString()}) — continuing with the remaining insights: ${error}`,
+        );
+      }
+    }
+
+    /*
+     * Escalation bridge (opt-in): ONLY the rows this tick genuinely CREATED
+     * may escalate to an alert — refreshed rows re-emit the same live
+     * finding every tick and would page every 15 minutes, and stranded rows
+     * swept from earlier ticks already had their escalation attempt when
+     * they were created. A separate loop from routing so a failed status
+     * write on one insight cannot silence its escalation (or vice versa).
+     * The counter caps escalations per project per tick; the collaborator
+     * never throws by contract, but is wrapped anyway — an escalation
+     * failure must not cost the project its scan.
+     */
+    const escalationCounter: EscalationScanCounter = { escalations: 0 };
+
+    for (const insight of upsertResult.created) {
+      try {
+        await InsightEscalation.escalateNewInsight({
+          insight: insight,
+          counter: escalationCounter,
+        });
+      } catch (error) {
+        logger.error(
+          `AI Insights: escalation threw for insight ${insight.id?.toString()} (project ${projectId.toString()}) — continuing with the remaining insights: ${error}`,
         );
       }
     }

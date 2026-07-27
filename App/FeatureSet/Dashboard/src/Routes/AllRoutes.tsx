@@ -41,6 +41,7 @@ export { default as CloudResourceRoutes } from "./CloudResourceRoutes";
 export { default as RumApplicationRoutes } from "./RumApplicationRoutes";
 export { default as AIAgentTasksRoutes } from "./AIAgentTasksRoutes";
 export { default as AIInsightsRoutes } from "./AIInsightsRoutes";
+export { default as AIRemediationRoutes } from "./AIRemediationRoutes";
 
 // Settings
 export { default as SettingsRoutes } from "./SettingsRoutes";

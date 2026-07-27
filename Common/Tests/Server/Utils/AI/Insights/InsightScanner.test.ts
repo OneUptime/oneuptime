@@ -2,6 +2,10 @@ import InsightScanner from "../../../../../Server/Utils/AI/SRE/Insights/InsightS
 import InsightStore, {
   UpsertCandidatesResult,
 } from "../../../../../Server/Utils/AI/SRE/Insights/InsightStore";
+import InsightEscalation, {
+  EscalationScanCounter,
+  InsightEscalationResult,
+} from "../../../../../Server/Utils/AI/SRE/Insights/InsightEscalation";
 import InsightDetectors from "../../../../../Server/Utils/AI/SRE/Insights/Detectors/Index";
 import InsightFixRouting from "../../../../../Server/Utils/AI/SRE/Insights/FixRouting";
 import InsightTriage from "../../../../../Server/Utils/AI/SRE/Insights/Triage";
@@ -296,6 +300,11 @@ describe("InsightScanner — routing newly created insights", () => {
     enqueueInsightTriage = jest
       .spyOn(InsightTriage, "enqueueInsightTriage")
       .mockResolvedValue({});
+    // Escalation is off-topic here — its wiring has its own describe below.
+    jest.spyOn(InsightEscalation, "escalateNewInsight").mockResolvedValue({
+      escalated: false,
+      reason: "test",
+    } as InsightEscalationResult);
   });
 
   afterEach(() => {
@@ -433,6 +442,138 @@ describe("InsightScanner — routing newly created insights", () => {
   });
 });
 
+/*
+ * The escalation bridge wiring: ONLY rows this tick genuinely CREATED are
+ * offered to InsightEscalation — refreshed rows re-emit the same live
+ * finding every 15 minutes and would page every tick, and stranded rows
+ * swept from earlier ticks had their escalation attempt when they were
+ * created. One counter per project per tick is threaded through every
+ * attempt, and an escalation contract breach never costs the scan.
+ */
+describe("InsightScanner — escalation bridge wiring (only-new, counter threading)", () => {
+  let escalate: jest.SpyInstance;
+
+  beforeEach(() => {
+    // Nothing stranded: the self-heal sweep is a no-op for these tests.
+    jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+    jest.spyOn(InsightTriage, "enqueueInsightTriage").mockResolvedValue({});
+    escalate = jest
+      .spyOn(InsightEscalation, "escalateNewInsight")
+      .mockResolvedValue({
+        escalated: false,
+        reason: "test",
+      } as InsightEscalationResult);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("every NEWLY created insight is offered exactly once, with ONE shared per-scan counter", async () => {
+    const first: AIInsight = fakeInsight();
+    const second: AIInsight = fakeInsight();
+    jest
+      .spyOn(InsightDetectors, "getAllDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [makeCandidate()] })]);
+    jest
+      .spyOn(InsightStore, "upsertCandidates")
+      .mockResolvedValue(emptyUpsertResult({ created: [first, second] }));
+
+    await InsightScanner.scanProjectForInsights(fakeProject());
+
+    expect(escalate).toHaveBeenCalledTimes(2);
+    expect(escalate).toHaveBeenCalledWith({
+      insight: first,
+      counter: expect.objectContaining({ escalations: expect.any(Number) }),
+    });
+    // The SAME counter object is threaded through the whole tick.
+    const firstCounter: EscalationScanCounter =
+      escalate.mock.calls[0]?.[0]?.counter;
+    const secondCounter: EscalationScanCounter =
+      escalate.mock.calls[1]?.[0]?.counter;
+    expect(secondCounter).toBe(firstCounter);
+  });
+
+  test("a refresh-only tick escalates NOTHING — refreshed rows would page every 15 minutes", async () => {
+    jest
+      .spyOn(InsightDetectors, "getAllDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [makeCandidate()] })]);
+    jest
+      .spyOn(InsightStore, "upsertCandidates")
+      .mockResolvedValue(emptyUpsertResult({ refreshed: 3 }));
+
+    await InsightScanner.scanProjectForInsights(fakeProject());
+
+    expect(escalate).not.toHaveBeenCalled();
+  });
+
+  test("stranded rows swept from earlier ticks are re-routed but NOT escalated", async () => {
+    const stranded: AIInsight = fakeInsight();
+    jest
+      .spyOn(AIInsightService, "findBy")
+      .mockImplementation((findByArgs: unknown): Promise<Array<AIInsight>> => {
+        const query: Record<string, unknown> =
+          (findByArgs as { query: Record<string, unknown> }).query || {};
+        if (query["status"] === AIInsightStatus.Detected) {
+          return Promise.resolve([stranded]);
+        }
+        return Promise.resolve([]);
+      });
+    // No candidates this tick: only the sweep runs.
+    jest
+      .spyOn(InsightDetectors, "getAllDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [] })]);
+
+    await InsightScanner.scanProjectForInsights(fakeProject());
+
+    expect(escalate).not.toHaveBeenCalled();
+  });
+
+  test("escalation throwing (contract breach) does not fail the scan or stop the remaining insights", async () => {
+    const first: AIInsight = fakeInsight();
+    const second: AIInsight = fakeInsight();
+    jest
+      .spyOn(InsightDetectors, "getAllDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [makeCandidate()] })]);
+    jest
+      .spyOn(InsightStore, "upsertCandidates")
+      .mockResolvedValue(emptyUpsertResult({ created: [first, second] }));
+    escalate
+      .mockRejectedValueOnce(new Error("contract breach"))
+      .mockResolvedValueOnce({
+        escalated: true,
+        reason: "escalated",
+      } as InsightEscalationResult);
+
+    await expect(
+      InsightScanner.scanProjectForInsights(fakeProject()),
+    ).resolves.toBeUndefined();
+
+    expect(escalate).toHaveBeenCalledTimes(2);
+  });
+
+  test("routing failure on an insight does not silence its escalation — the loops are independent", async () => {
+    const insight: AIInsight = fakeInsight();
+    jest
+      .spyOn(InsightDetectors, "getAllDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [makeCandidate()] })]);
+    jest
+      .spyOn(InsightStore, "upsertCandidates")
+      .mockResolvedValue(emptyUpsertResult({ created: [insight] }));
+    // The ActionRequired status write fails — routing degrades.
+    jest
+      .spyOn(AIInsightService, "updateOneById")
+      .mockRejectedValue(new Error("write conflict"));
+
+    await expect(
+      InsightScanner.scanProjectForInsights(fakeProject()),
+    ).resolves.toBeUndefined();
+
+    expect(escalate).toHaveBeenCalledWith(expect.objectContaining({ insight }));
+  });
+});
+
 describe("InsightScanner — the self-heal sweep for insights stranded in Detected", () => {
   let findBy: jest.SpyInstance;
   let updateOneById: jest.SpyInstance;
@@ -484,6 +625,11 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
     enqueueInsightTriage = jest
       .spyOn(InsightTriage, "enqueueInsightTriage")
       .mockResolvedValue({});
+    // Escalation is off-topic here — its wiring has its own describe above.
+    jest.spyOn(InsightEscalation, "escalateNewInsight").mockResolvedValue({
+      escalated: false,
+      reason: "test",
+    } as InsightEscalationResult);
   });
 
   afterEach(() => {

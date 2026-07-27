@@ -15,6 +15,7 @@ import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import AIMemory from "./AIMemory";
 import InstrumentationTaskTrigger from "./InstrumentationTaskTrigger";
+import RemediationProposer from "./RemediationProposer";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -224,6 +225,28 @@ export default class AIIncidentInvestigationRunner {
                 projectId,
                 incidentId,
               },
+            );
+          }
+
+          /*
+           * Remediation lane: a CONFIDENT RCA on an opted-in project
+           * (Project.enableAiRemediation, default false) may propose 0-3
+           * structured remediation actions against server-fetched runbook/
+           * agent allowlists. Runs strictly LAST, and the proposer never
+           * throws — belt-and-braces try/catch so remediation can never
+           * fail (or duplicate) the investigation.
+           */
+          try {
+            await RemediationProposer.proposeForCompletedInvestigation({
+              projectId,
+              aiRunId,
+              incidentId,
+              analysisMarkdown: postData.analysisMarkdown,
+              confidence: postData.confidence,
+            });
+          } catch (error) {
+            logger.error(
+              `AI: remediation proposer failed for incident ${incidentId.toString()}: ${error}`,
             );
           }
         },

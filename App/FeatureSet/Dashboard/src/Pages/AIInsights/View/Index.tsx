@@ -126,6 +126,7 @@ const AIInsightViewPage: FunctionComponent<
             detailMarkdown: true,
             triageSummaryMarkdown: true,
             fixAiRunId: true,
+            escalatedToAlertId: true,
           },
         });
 
@@ -522,6 +523,37 @@ const AIInsightViewPage: FunctionComponent<
           )}
         </div>
       </div>
+
+      {/*
+        The opt-in escalation bridge fired: this insight crossed the
+        project's escalation threshold and opened a real alert. Prominent by
+        design — an insight that paged someone should never look like a
+        quiet inbox item.
+      */}
+      {insight.escalatedToAlertId ? (
+        <Alert
+          type={AlertType.WARNING}
+          strongTitle="Escalated to Alert"
+          title={
+            <span>
+              This insight crossed your escalation threshold and opened an alert
+              that pages via its on-call policies.{" "}
+              <Link
+                className="underline"
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.ALERT_VIEW] as Route,
+                  { modelId: insight.escalatedToAlertId },
+                )}
+              >
+                View the alert
+              </Link>
+              .
+            </span>
+          }
+        />
+      ) : (
+        <></>
+      )}
 
       <Card
         title="Evidence"

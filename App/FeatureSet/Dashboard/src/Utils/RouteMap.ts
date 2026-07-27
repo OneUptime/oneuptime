@@ -5257,6 +5257,15 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // AI Remediation section (AI-proposed remediation actions)
+  [PageMap.AI_REMEDIATION_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/remediation/*`,
+  ),
+
+  [PageMap.AI_REMEDIATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ai/remediation`,
+  ),
+
   // Exceptions (standalone menu item)
   [PageMap.EXCEPTIONS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/exceptions/*`,

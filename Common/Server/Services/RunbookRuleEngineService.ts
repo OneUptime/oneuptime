@@ -205,6 +205,12 @@ class RunbookRuleEngineServiceClass {
       scheduledMaintenanceId?: ObjectID;
     };
     triggeredByUserId?: ObjectID;
+    /*
+     * Set when an approved AI remediation action dispatched this run —
+     * stamps the execution so AI-initiated runs are always distinguishable
+     * from human clicks and rule triggers in the audit trail.
+     */
+    triggeredByAiRemediationActionId?: ObjectID;
   }): Promise<RunbookExecution | null> {
     const runbook: Runbook | null = await RunbookService.findOneById({
       id: data.runbookId,
@@ -266,6 +272,10 @@ class RunbookRuleEngineServiceClass {
     }
     if (data.triggeredByUserId) {
       execution.triggeredByUserId = data.triggeredByUserId;
+    }
+    if (data.triggeredByAiRemediationActionId) {
+      execution.triggeredByAiRemediationActionId =
+        data.triggeredByAiRemediationActionId;
     }
 
     const created: RunbookExecution = await RunbookExecutionService.create({

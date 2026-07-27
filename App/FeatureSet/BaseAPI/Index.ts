@@ -11,6 +11,7 @@ import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
+import AIRemediationAPI from "Common/Server/API/AIRemediationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
@@ -4416,6 +4417,13 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
+
+    /*
+     * AI remediation — approve/reject endpoints for AI-proposed remediation
+     * actions (the rows themselves are read via the generic
+     * AIRemediationAction CRUD router below).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIRemediationAPI);
 
     /*
      * AI Insights — human verdict/resolve actions + live triage

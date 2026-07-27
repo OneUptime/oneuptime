@@ -151,6 +151,9 @@ import "./Jobs/AIChat/ProcessQueuedInvestigations";
 // AI Insights — preventive telemetry scan (deterministic, no LLM).
 import "./Jobs/AIInsight/ScanForInsights";
 
+// AI Remediation — finalize executing actions + sweep expired proposals.
+import "./Jobs/AIRemediation/SyncExecutionStatus";
+
 // Telemetry Monitors.
 import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 

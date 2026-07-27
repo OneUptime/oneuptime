@@ -33,12 +33,12 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * degradation when the classification itself failed (unparseable response or
  * the call errored). As implemented:
  *
- *   | source                | confident | workspace ping | instrumentation PR |
- *   |-----------------------|-----------|----------------|--------------------|
- *   | deterministic-floor   | false     | no (quiet)     | yes (enqueue)      |
- *   | classification        | true      | yes            | no                 |
- *   | classification        | false     | no (quiet)     | yes (enqueue)      |
- *   | classification-failed | false (*) | YES — louder   | NO — no PR         |
+ *   | source                | confident | workspace ping | instrumentation PR | remediation proposal |
+ *   |-----------------------|-----------|----------------|--------------------|----------------------|
+ *   | deterministic-floor   | false     | no (quiet)     | yes (enqueue)      | no                   |
+ *   | classification        | true      | yes            | no                 | YES — propose        |
+ *   | classification        | false     | no (quiet)     | yes (enqueue)      | no                   |
+ *   | classification-failed | false (*) | YES — louder   | NO — no PR         | NO — nothing         |
  *
  *   - The workspace ping treats classification-failed as CONFIDENT: quiet
  *     mode's fail direction is "louder, not silent" (vision §6) — a broken
@@ -47,6 +47,12 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *     NOT-inconclusive: autonomous PR creation (G11 posture) requires a
  *     POSITIVE, verified inconclusive verdict — "we don't know" must fail
  *     toward doing nothing.
+ *   - The remediation proposer requires a POSITIVE classification verdict:
+ *     only source === "classification" with confident === true proposes.
+ *     Inconclusive runs and failed classifications propose NOTHING —
+ *     drafting actions against customer infrastructure from an unverified
+ *     analysis fails toward doing nothing, the same direction as the
+ *     instrumentation trigger.
  *   - (*) When source is "classification-failed" the `confident` boolean is
  *     a placeholder, NOT a verdict — consumers must route decisions through
  *     the helpers below, never through the raw boolean.
@@ -214,6 +220,18 @@ export default class AIConfidenceSignal {
     }
 
     return !signal.confident;
+  }
+
+  /*
+   * Consumer decision: may the remediation proposer draft actions against
+   * this analysis? Requires a POSITIVE confident verdict from the
+   * classification call — the deterministic floor alone can only prove
+   * inconclusiveness, never confidence. Fail direction: classification-
+   * failed → FALSE — proposing execution on customer infrastructure fails
+   * toward doing nothing, exactly like the instrumentation trigger.
+   */
+  public static shouldProposeRemediation(signal: ConfidenceSignal): boolean {
+    return signal.source === "classification" && signal.confident === true;
   }
 
   /*

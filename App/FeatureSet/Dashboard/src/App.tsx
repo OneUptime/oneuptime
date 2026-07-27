@@ -380,6 +380,15 @@ const AIInsightsRoutes: React.LazyExoticComponent<
     };
   });
 });
+const AIRemediationRoutes: React.LazyExoticComponent<
+  AllRoutesModule["AIRemediationRoutes"]
+> = lazy(() => {
+  return import("./Routes/AllRoutes").then((m: AllRoutesModule) => {
+    return {
+      default: m.AIRemediationRoutes,
+    };
+  });
+});
 const SettingsRoutes: React.LazyExoticComponent<
   AllRoutesModule["SettingsRoutes"]
 > = lazy(() => {
@@ -1053,6 +1062,13 @@ const App: () => JSX.Element = () => {
           <PageRoute
             path={RouteMap[PageMap.AI_INSIGHTS_ROOT]?.toString() || ""}
             element={<AIInsightsRoutes {...commonPageProps} />}
+          />
+
+          {/** AI Remediation */}
+
+          <PageRoute
+            path={RouteMap[PageMap.AI_REMEDIATION_ROOT]?.toString() || ""}
+            element={<AIRemediationRoutes {...commonPageProps} />}
           />
 
           {/** Exceptions */}

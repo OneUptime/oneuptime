@@ -1,3 +1,4 @@
+import RunbookAgentEnvironmentBadge from "../../Components/RunbookAgent/EnvironmentBadge";
 import RunbookAgentInstallInstructions from "../../Components/RunbookAgent/InstallInstructions";
 import TeamElement from "../../Components/Team/Team";
 import UserElement from "../../Components/User/User";
@@ -8,6 +9,8 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
+import RunbookAgentEnvironmentType from "Common/Types/Runbook/RunbookAgentEnvironmentType";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -66,6 +69,18 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
               "Runs inside the production EU cluster. Can reach internal services.",
           },
           {
+            field: { environmentType: true },
+            title: "Environment",
+            description:
+              "Which environment this agent lives in. AI-proposed remediations never auto-execute on Production agents — and untagged agents count as Production.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              RunbookAgentEnvironmentType,
+            ),
+            required: false,
+            placeholder: "Production (default)",
+          },
+          {
             field: { labels: true },
             title: "Labels",
             description:
@@ -101,6 +116,18 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
             {
               field: { description: true },
               title: "Description",
+            },
+            {
+              field: { environmentType: true },
+              title: "Environment",
+              fieldType: FieldType.Element,
+              getElement: (item: RunbookAgent): ReactElement => {
+                return (
+                  <RunbookAgentEnvironmentBadge
+                    environmentType={item.environmentType}
+                  />
+                );
+              },
             },
             {
               field: { key: true },

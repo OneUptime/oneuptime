@@ -318,10 +318,10 @@ export default class RemediationPolicy {
     decision: RemediationBudgetDecision,
   ): string {
     if (decision.paused) {
-      return `AI remediation execution is paused for this project — the "Daily AI Remediation Execution Limit" is set to 0. Raise or unset the limit in Settings > AI to resume.`;
+      return `AI remediation execution is paused for this project — the "Daily AI Remediation Execution Limit" is set to 0. Raise or unset the limit in the AI settings pages (Settings > Incidents/Alerts > AI) to resume.`;
     }
 
-    return `The project's daily AI remediation execution limit has been reached (${decision.executionsToday} of ${decision.limit} executions today, UTC). Approved actions can run tomorrow — or raise the "Daily AI Remediation Execution Limit" in Settings > AI (unset means the default of ${DEFAULT_DAILY_REMEDIATION_EXECUTION_LIMIT}/day).`;
+    return `The project's daily AI remediation execution limit has been reached (${decision.executionsToday} of ${decision.limit} executions today, UTC). Approved actions can run tomorrow — or raise the "Daily AI Remediation Execution Limit" in the AI settings pages (Settings > Incidents/Alerts > AI; unset means the default of ${DEFAULT_DAILY_REMEDIATION_EXECUTION_LIMIT}/day).`;
   }
 
   public static describeSubjectCapRejection(): string {

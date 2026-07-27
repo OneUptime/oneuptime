@@ -1,4 +1,5 @@
 import ChatActivityFeed from "../AIChat/ChatActivityFeed";
+import RemediationActions from "./RemediationActions";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
@@ -507,6 +508,18 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+
+        {/*
+          Structured remediation actions proposed from this analysis (the
+          remediation lane). The section renders nothing until at least one
+          action exists, so it is invisible for projects that never enabled
+          AI Remediation.
+        */}
+        <RemediationActions
+          subjectType={props.subjectType}
+          subjectId={props.subjectId}
+          isInvestigationActive={isActive}
+        />
       </div>
     </Card>
   );

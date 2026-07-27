@@ -224,6 +224,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       category: aiCategory,
     },
     {
+      title: t("navbar.items.aiRemediationTitle", "Remediation"),
+      description: t(
+        "navbar.items.aiRemediationDescription",
+        "AI-proposed remediation actions from investigations — review, approve and audit what ran.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.AI_REMEDIATION] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.AI_REMEDIATION],
+      icon: IconProp.Bolt,
+      iconColor: "violet",
+      category: aiCategory,
+    },
+    {
       title: t("navbar.items.codeRepositoriesTitle"),
       description: t(
         "navbar.items.codeRepositoriesDescription",

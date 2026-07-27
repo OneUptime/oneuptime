@@ -32,10 +32,11 @@ The agent only needs **outbound HTTPS** to your OneUptime instance. It does not 
 
 Go to **Runbooks → Settings → Agents** and create a new agent. Fill in:
 
-| Field           | Notes                                                                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Name**        | A friendly name — usually `where-it-runs-and-what-it-can-do`, e.g. `prod-eu-west-1`. This is what shows up in the dropdown when authoring a step. |
-| **Description** | Optional. A sentence on what this host can reach. Future-you will thank you.                                                                      |
+| Field           | Notes                                                                                                                                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**        | A friendly name — usually `where-it-runs-and-what-it-can-do`, e.g. `prod-eu-west-1`. This is what shows up in the dropdown when authoring a step.                                                                             |
+| **Description** | Optional. A sentence on what this host can reach. Future-you will thank you.                                                                                                                                                  |
+| **Environment** | Which environment the agent lives in: Production, Staging, Testing, or Development. Defaults to Production. See [Environment tagging](#environment-tagging) below — this field gates AI auto-execution, so tag it truthfully. |
 
 ### 2. Copy the install command
 
@@ -63,6 +64,19 @@ Go back to **Runbooks → Settings → Agents**. Within ~60 seconds the agent's 
 - Check the container logs (`docker logs oneuptime-runbook-agent`) for auth errors or network failures.
 - Verify the host can reach your OneUptime URL with `curl`.
 - Verify the ID and key were copied without whitespace.
+
+## Environment tagging
+
+Every agent carries an **Environment** field: Production, Staging, Testing, or Development. It shows up as a badge wherever the agent appears, which alone is worth setting it for — "which box is this again?" at 3am is a bad question to be asking.
+
+The field also has one behavioral consequence, and it matters: it is the anchor for [AI Auto-Remediation](/docs/ai/auto-remediation). When a project opts into AI-proposed remediation, a proposed runbook may execute **without human approval** only if every one of its Bash and JavaScript steps targets an agent explicitly tagged Staging, Testing, or Development. Agents tagged Production never auto-run anything, and — the fail-safe default — an agent that was never tagged **counts as Production**. If you ignore this field entirely, nothing changes for you: no AI action will ever auto-execute on your agents.
+
+Two things follow from that:
+
+- **Tag truthfully.** The environment tag is an assertion OneUptime trusts, not something it can verify. Tagging a production host as "Testing" removes the strongest guardrail the AI remediation lane has — the AI will treat that host as a safe place to act unattended.
+- **Tagging is safe even if you never use AI features.** With the AI remediation opt-ins off (their default), the field is purely informational.
+
+The tag is read fresh whenever the AI decides whether a proposal may auto-execute — it is never copied onto runbooks or steps — so retagging an agent takes effect from the next proposal onwards.
 
 ## Pointing a step at an agent
 
