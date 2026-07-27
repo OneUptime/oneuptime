@@ -14,6 +14,7 @@ import RunbookExecutionService from "../../../Services/RunbookExecutionService";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
 import AlertFeedService from "../../../Services/AlertFeedService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import DatabaseConfig from "../../../DatabaseConfig";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -54,35 +55,47 @@ export default class RemediationStatusSync {
   /*
    * (a) Finalize Executing actions from their RunbookExecution status.
    * Each action is handled in its own try/catch so one bad row can never
-   * stall the sweep.
+   * stall the sweep. Pages through the WHOLE Executing set every tick:
+   * actions parked at WaitingForManualStep stay Executing indefinitely, so
+   * a single fixed-size window would let them crowd out newer rows forever.
    */
   @CaptureSpan()
   public static async syncExecutingActions(): Promise<void> {
-    const executingActions: Array<AIRemediationAction> =
-      await AIRemediationActionService.findBy({
-        query: { status: AIRemediationActionStatus.Executing },
-        select: {
-          _id: true,
-          projectId: true,
-          incidentId: true,
-          alertId: true,
-          title: true,
-          runbookId: true,
-          runbookExecutionId: true,
-          executedAt: true,
-        },
-        limit: MAX_ACTIONS_PER_SWEEP,
-        skip: 0,
-        props: { isRoot: true },
-      });
+    // Runaway guard: 50 pages x 100 rows is far beyond any real backlog.
+    const MAX_PAGES: number = 50;
 
-    for (const action of executingActions) {
-      try {
-        await this.syncOneExecutingAction(action);
-      } catch (error) {
-        logger.error(
-          `AI remediation: failed to sync action ${action._id?.toString()}: ${error}`,
-        );
+    for (let page: number = 0; page < MAX_PAGES; page++) {
+      const executingActions: Array<AIRemediationAction> =
+        await AIRemediationActionService.findBy({
+          query: { status: AIRemediationActionStatus.Executing },
+          select: {
+            _id: true,
+            projectId: true,
+            incidentId: true,
+            alertId: true,
+            title: true,
+            runbookId: true,
+            runbookExecutionId: true,
+            executedAt: true,
+          },
+          sort: { createdAt: SortOrder.Ascending },
+          limit: MAX_ACTIONS_PER_SWEEP,
+          skip: page * MAX_ACTIONS_PER_SWEEP,
+          props: { isRoot: true },
+        });
+
+      for (const action of executingActions) {
+        try {
+          await this.syncOneExecutingAction(action);
+        } catch (error) {
+          logger.error(
+            `AI remediation: failed to sync action ${action._id?.toString()}: ${error}`,
+          );
+        }
+      }
+
+      if (executingActions.length < MAX_ACTIONS_PER_SWEEP) {
+        break;
       }
     }
   }
@@ -94,8 +107,37 @@ export default class RemediationStatusSync {
 
     if (!action.runbookExecutionId) {
       /*
-       * Dispatch crashed before the execution id was stored. Only fail the
-       * action once the grace window has clearly passed.
+       * Dispatch may have crashed AFTER the runbook actually started but
+       * before the execution id was stored. Executions are attributed via
+       * triggeredByAiRemediationActionId for exactly this reason — adopt a
+       * matching execution instead of declaring the dispatch dead.
+       */
+      const adopted: RunbookExecution | null =
+        await RunbookExecutionService.findOneBy({
+          query: { triggeredByAiRemediationActionId: actionId },
+          select: { _id: true, runbookId: true },
+          props: { isRoot: true },
+        });
+
+      if (adopted && adopted._id) {
+        await AIRemediationActionService.updateOneById({
+          id: actionId,
+          data: {
+            runbookExecutionId: new ObjectID(adopted._id),
+            ...(adopted.runbookId ? { runbookId: adopted.runbookId } : {}),
+          },
+          props: { isRoot: true },
+        });
+
+        logger.warn(
+          `AI remediation: adopted orphan execution ${adopted._id.toString()} for action ${actionId.toString()} (linkage write had been lost). Finalizing on the next tick.`,
+        );
+        return;
+      }
+
+      /*
+       * No attributed execution exists — the dispatch truly never completed.
+       * Only fail the action once the grace window has clearly passed.
        */
       if (
         action.executedAt &&
@@ -208,18 +250,27 @@ export default class RemediationStatusSync {
   }
 
   /*
-   * (b) Sweep stale proposals to Expired. Quiet by design: nobody acted, so
-   * there is nothing to announce. CAS-guarded like every other transition.
+   * (b) Sweep stale undecided rows to Expired. Quiet by design: nobody
+   * acted, so there is nothing to announce. Covers Proposed AND Approved —
+   * an Approved row past its expiry means the process died between the
+   * approve CAS and dispatch (the executor otherwise moves it onward or
+   * reverts it to Proposed within seconds), and it must not sit as a
+   * dead-end forever. The CAS carries each row's actual status, so this
+   * sweeping an action that is mid-execute simply loses the race and does
+   * nothing.
    */
   @CaptureSpan()
   public static async sweepExpiredProposals(): Promise<void> {
     const expiredProposals: Array<AIRemediationAction> =
       await AIRemediationActionService.findBy({
         query: {
-          status: AIRemediationActionStatus.Proposed,
+          status: QueryHelper.any([
+            AIRemediationActionStatus.Proposed,
+            AIRemediationActionStatus.Approved,
+          ]),
           expiresAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
         },
-        select: { _id: true },
+        select: { _id: true, status: true },
         limit: MAX_ACTIONS_PER_SWEEP,
         skip: 0,
         props: { isRoot: true },
@@ -229,7 +280,7 @@ export default class RemediationStatusSync {
       try {
         await AIRemediationActionService.attemptStatusTransition({
           actionId: new ObjectID(proposal._id!),
-          fromStatus: AIRemediationActionStatus.Proposed,
+          fromStatus: proposal.status as AIRemediationActionStatus,
           set: { status: AIRemediationActionStatus.Expired },
         });
       } catch (error) {
@@ -246,8 +297,10 @@ export default class RemediationStatusSync {
    * infrastructure, and that is always news. Links to the runbook execution
    * page where the step-by-step outputs live. Best-effort: a feed failure
    * is logged, never thrown — the action row already holds the outcome.
+   * Public: the executor's dispatch-failure path posts through this too,
+   * so auto-path failures are never silent.
    */
-  private static async postOutcomeFeedItem(data: {
+  public static async postOutcomeFeedItem(data: {
     action: AIRemediationAction;
     succeeded: boolean;
     detail: string;

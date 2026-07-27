@@ -1,4 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
@@ -47,6 +48,15 @@ jest.mock("Common/Server/Middleware/UserAuthorization", () => {
     __esModule: true,
     default: {
       getUserMiddleware: jest.fn(),
+      /*
+       * The route constructor mounts a permission gate per endpoint; these
+       * handler-level tests bypass Express middleware entirely, so the mock
+       * only needs to return a middleware-shaped function. The gate's own
+       * behavior is UserMiddleware's, tested with the middleware itself.
+       */
+      requirePermission: jest.fn(() => {
+        return jest.fn();
+      }),
     },
   };
 });
@@ -137,6 +147,7 @@ jest.mock("../../FeatureSet/Runbook/Services/RunRunbook", () => {
 
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import CommonAPI from "Common/Server/API/CommonAPI";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import Response from "Common/Server/Utils/Response";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
@@ -232,6 +243,57 @@ describe("RunbookAPI authorization", () => {
     jest.clearAllMocks();
     api = new RunbookAPI();
     next = jest.fn() as unknown as jest.Mock;
+  });
+
+  describe("route permission gates", () => {
+    test("all four endpoints mount execute-capable permission gates — read access alone must never run or steer executions", () => {
+      /*
+       * Running/steering executes bash on customer hosts, so the routes
+       * demand the same permission sets as RunbookExecution's own table
+       * ACLs (create for /run, update for step complete/skip and cancel).
+       * Runbook's READ ACL (Viewer/RunbookViewer/ReadRunbook) must never
+       * appear — reading a runbook is not a license to execute it.
+       */
+      const gateCalls: Array<Array<Permission>> = (
+        UserMiddleware.requirePermission as jest.Mock
+      ).mock.calls.map((call: unknown[]) => {
+        return (call[0] as { permissions: Array<Permission> }).permissions;
+      });
+
+      // One gate per endpoint: run, step complete, step skip, cancel.
+      expect(gateCalls).toHaveLength(4);
+
+      // /run demands RunbookExecution's create-level set.
+      expect(gateCalls[0]).toEqual(
+        expect.arrayContaining([
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.RunbookAdmin,
+          Permission.RunbookMember,
+          Permission.CreateRunbookExecution,
+        ]),
+      );
+
+      // Steering demands RunbookExecution's update-level set.
+      for (const steeringGate of gateCalls.slice(1)) {
+        expect(steeringGate).toEqual(
+          expect.arrayContaining([
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.RunbookAdmin,
+            Permission.EditRunbookExecution,
+          ]),
+        );
+      }
+
+      for (const gate of gateCalls) {
+        expect(gate).not.toContain(Permission.Viewer);
+        expect(gate).not.toContain(Permission.RunbookViewer);
+        expect(gate).not.toContain(Permission.ReadRunbook);
+        expect(gate).not.toContain(Permission.ReadRunbookExecution);
+      }
+    });
   });
 
   describe("POST /run/:runbookId", () => {

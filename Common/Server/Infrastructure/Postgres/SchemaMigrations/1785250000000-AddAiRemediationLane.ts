@@ -65,6 +65,9 @@ export class AddAiRemediationLane1785250000000 implements MigrationInterface {
       `ALTER TABLE "RunbookExecution" ADD "triggeredByAiRemediationActionId" uuid`,
     );
     await queryRunner.query(
+      `CREATE INDEX "IDX_3eac54bc21a700d2083059dc58" ON "RunbookExecution" ("triggeredByAiRemediationActionId") `,
+    );
+    await queryRunner.query(
       `CREATE INDEX "IDX_d2aad31a62550da9400e5dc727" ON "AIInsight" ("escalatedToAlertId") `,
     );
     await queryRunner.query(
@@ -102,6 +105,9 @@ export class AddAiRemediationLane1785250000000 implements MigrationInterface {
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_d2aad31a62550da9400e5dc727"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_3eac54bc21a700d2083059dc58"`,
     );
     await queryRunner.query(
       `ALTER TABLE "RunbookExecution" DROP COLUMN "triggeredByAiRemediationActionId"`,

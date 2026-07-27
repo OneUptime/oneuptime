@@ -12,7 +12,9 @@ import Runbook from "../../../../Models/DatabaseModels/Runbook";
 import RunbookExecution from "../../../../Models/DatabaseModels/RunbookExecution";
 import AIRemediationActionService from "../../../Services/AIRemediationActionService";
 import RunbookService from "../../../Services/RunbookService";
+import RunbookExecutionService from "../../../Services/RunbookExecutionService";
 import RunbookRuleEngineService from "../../../Services/RunbookRuleEngineService";
+import RemediationStatusSync from "./RemediationStatusSync";
 import RemediationPolicy, {
   PER_SUBJECT_EXECUTION_CAP,
   RemediationBudgetDecision,
@@ -38,8 +40,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *      impossible. The human path stamps approvedByUserId; the auto path
  *      only approvedAt (nobody approved it — the policy gate did).
  *   4. Budgets AFTER Approved: the daily execution cap and the per-subject
- *      cap. A refusal parks the action Approved with errorMessage set, so a
- *      human can see exactly why nothing ran (and retry after midnight).
+ *      cap. A refusal REVERTS the action to Proposed with errorMessage set,
+ *      so the timeline shows exactly why nothing ran and the Approve button
+ *      simply works again once the budget clears — no stranded state. (The
+ *      budget checks are check-then-act by design: concurrent approvals of
+ *      DIFFERENT actions can overshoot the daily cap by at most one each,
+ *      bounded and accepted; same-action double-execution is impossible via
+ *      the CAS, and the proposer auto-executes sequentially.)
  *   5. CAS Approved→Executing with executedAt (the timestamp the daily
  *      budget counts), then dispatch onto the audited runbook substrate —
  *      never a bespoke execution channel. Command actions are materialized
@@ -178,7 +185,7 @@ export default class RemediationExecutor {
       return {
         ok: false,
         refusalReason:
-          "AI remediation is not enabled for this project. Enable it in Settings > AI first.",
+          "AI remediation is not enabled for this project. Enable it on the Incidents or Alerts AI settings page first.",
       };
     }
 
@@ -213,7 +220,7 @@ export default class RemediationExecutor {
           status: AIRemediationActionStatus.Approved,
           approvedAt: OneUptimeDate.getCurrentDate(),
           ...(data.byUserId && !data.isAutoExecution
-            ? { approvedByUserId: data.byUserId }
+            ? { approvedByUserId: data.byUserId.toString() }
             : {}),
         },
       });
@@ -227,9 +234,13 @@ export default class RemediationExecutor {
     }
 
     /*
-     * Budgets AFTER Approved: a refusal parks the action Approved with the
-     * reason on errorMessage, so the timeline shows why nothing ran and a
-     * human can retry once the budget clears.
+     * Budgets AFTER Approved: a refusal REVERTS the action to Proposed with
+     * the reason on errorMessage — never a stranded Approved dead end. The
+     * Approve button works again once the budget clears (the promise the
+     * refusal message makes), the 24h expiry sweep still applies, and the
+     * approver stamp is cleared because the approval did not result in an
+     * execution. Reverting is CAS'd too: losing it means someone else moved
+     * the row (e.g. the expiry sweeper), which is fine — the winner owns it.
      */
     const budget: RemediationBudgetDecision =
       await RemediationPolicy.getDailyExecutionBudget(action.projectId);
@@ -238,11 +249,7 @@ export default class RemediationExecutor {
       const reason: string =
         RemediationPolicy.describeDailyBudgetRejection(budget);
 
-      await AIRemediationActionService.updateOneById({
-        id: data.actionId,
-        data: { errorMessage: reason },
-        props: { isRoot: true },
-      });
+      await this.revertToProposed(data.actionId, reason);
 
       return { ok: false, refusalReason: reason };
     }
@@ -257,11 +264,7 @@ export default class RemediationExecutor {
     if (subjectExecutions >= PER_SUBJECT_EXECUTION_CAP) {
       const reason: string = RemediationPolicy.describeSubjectCapRejection();
 
-      await AIRemediationActionService.updateOneById({
-        id: data.actionId,
-        data: { errorMessage: reason },
-        props: { isRoot: true },
-      });
+      await this.revertToProposed(data.actionId, reason);
 
       return { ok: false, refusalReason: reason };
     }
@@ -300,12 +303,95 @@ export default class RemediationExecutor {
       const message: string =
         error instanceof Error ? error.message : String(error);
 
-      await this.markFailed(data.actionId, `Dispatch failed: ${message}`);
+      /*
+       * The failure may have landed AFTER the runbook actually started
+       * (e.g. the linkage write threw). The execution is attributed via
+       * triggeredByAiRemediationActionId, so look for it before declaring
+       * failure — an execution that is really running must be adopted, not
+       * mislabeled as failed.
+       */
+      const adopted: boolean = await this.tryAdoptOrphanExecution(
+        data.actionId,
+      );
+
+      if (adopted) {
+        return { ok: true };
+      }
+
+      await this.markFailed(
+        data.actionId,
+        action,
+        `Dispatch failed: ${message}`,
+      );
 
       return {
         ok: false,
         refusalReason: `Execution could not be dispatched: ${message}`,
       };
+    }
+  }
+
+  /*
+   * Budget/cap refusal path: CAS Approved→Proposed, clearing the approver
+   * stamp (the approval produced no execution) and recording the refusal on
+   * errorMessage so the panel shows why nothing ran.
+   */
+  private static async revertToProposed(
+    actionId: ObjectID,
+    reason: string,
+  ): Promise<void> {
+    await AIRemediationActionService.attemptStatusTransition({
+      actionId,
+      fromStatus: AIRemediationActionStatus.Approved,
+      set: {
+        status: AIRemediationActionStatus.Proposed,
+        approvedAt: null,
+        approvedByUserId: null,
+        errorMessage: reason,
+      },
+    });
+  }
+
+  /*
+   * Find a RunbookExecution attributed to this action (the dispatcher may
+   * have crashed between starting it and storing the linkage) and re-attach
+   * it. Returns true when an execution was found and adopted — the action
+   * stays Executing and the status sweeper finalizes it normally.
+   */
+  private static async tryAdoptOrphanExecution(
+    actionId: ObjectID,
+  ): Promise<boolean> {
+    try {
+      const execution: RunbookExecution | null =
+        await RunbookExecutionService.findOneBy({
+          query: { triggeredByAiRemediationActionId: actionId },
+          select: { _id: true, runbookId: true },
+          props: { isRoot: true },
+        });
+
+      if (!execution || !execution._id) {
+        return false;
+      }
+
+      await AIRemediationActionService.updateOneById({
+        id: actionId,
+        data: {
+          runbookExecutionId: new ObjectID(execution._id),
+          ...(execution.runbookId ? { runbookId: execution.runbookId } : {}),
+        },
+        props: { isRoot: true },
+      });
+
+      logger.warn(
+        `AI remediation: adopted orphan execution ${execution._id.toString()} for action ${actionId.toString()} after a dispatch-path error.`,
+      );
+
+      return true;
+    } catch (error) {
+      logger.error(
+        `AI remediation: orphan-execution adoption failed for action ${actionId.toString()}: ${error}`,
+      );
+      return false;
     }
   }
 
@@ -329,6 +415,7 @@ export default class RemediationExecutor {
       if (!action.commandScript || !action.runbookAgentId) {
         await this.markFailed(
           data.actionId,
+          action,
           "Command action is missing its script or target agent.",
         );
         return {
@@ -348,6 +435,7 @@ export default class RemediationExecutor {
     if (!runbookId) {
       await this.markFailed(
         data.actionId,
+        action,
         "Runbook action has no runbook to start.",
       );
       return {
@@ -372,6 +460,7 @@ export default class RemediationExecutor {
     if (!execution || !execution._id) {
       await this.markFailed(
         data.actionId,
+        action,
         "Runbook could not be started — it may be disabled, deleted, or have no steps.",
       );
       return {
@@ -427,12 +516,21 @@ export default class RemediationExecutor {
       .trim()
       .substring(0, MAX_RUNBOOK_DESCRIPTION_CHARS);
 
+    /*
+     * Runbook names are unique per project, and the same remediation title
+     * can legitimately recur (a second incident, a re-proposed fix) — so the
+     * name carries a short action-id suffix, sized so truncation of a long
+     * title can never eat it.
+     */
+    const nameSuffix: string = ` (${data.actionId.toString().substring(0, 8)})`;
+
     const runbook: Runbook = new Runbook();
     runbook.projectId = action.projectId!;
-    runbook.name = `AI remediation: ${action.title || "command"}`.substring(
-      0,
-      MAX_RUNBOOK_NAME_CHARS,
-    );
+    runbook.name =
+      `AI remediation: ${action.title || "command"}`.substring(
+        0,
+        MAX_RUNBOOK_NAME_CHARS - nameSuffix.length,
+      ) + nameSuffix;
     runbook.description = description;
     runbook.isEnabled = true;
     runbook.isCreatedByAi = true;
@@ -446,18 +544,34 @@ export default class RemediationExecutor {
     return new ObjectID(created._id!);
   }
 
-  // CAS Executing→Failed with the reason. Losing the CAS is fine (sweeper won).
+  /*
+   * CAS Executing→Failed with the reason, and — when this caller won the
+   * transition — post the failure to the subject's timeline. "Outcomes are
+   * never quiet": a dispatch-stage failure on the unattended path would
+   * otherwise be invisible outside logs. Losing the CAS is fine (the
+   * sweeper won and owns the announcement).
+   */
   private static async markFailed(
     actionId: ObjectID,
+    action: AIRemediationAction,
     errorMessage: string,
   ): Promise<void> {
-    await AIRemediationActionService.attemptStatusTransition({
-      actionId,
-      fromStatus: AIRemediationActionStatus.Executing,
-      set: {
-        status: AIRemediationActionStatus.Failed,
-        errorMessage,
-      },
-    });
+    const won: number =
+      await AIRemediationActionService.attemptStatusTransition({
+        actionId,
+        fromStatus: AIRemediationActionStatus.Executing,
+        set: {
+          status: AIRemediationActionStatus.Failed,
+          errorMessage,
+        },
+      });
+
+    if (won > 0) {
+      await RemediationStatusSync.postOutcomeFeedItem({
+        action,
+        succeeded: false,
+        detail: errorMessage,
+      });
+    }
   }
 }

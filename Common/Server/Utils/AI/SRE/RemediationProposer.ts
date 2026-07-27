@@ -445,21 +445,21 @@ export default class RemediationProposer {
         ),
       });
 
-      // Unattended execution for whatever the policy gate cleared.
+      /*
+       * Unattended execution for whatever the policy gate cleared —
+       * SEQUENTIALLY, on purpose. The daily/per-subject budget checks are
+       * check-then-act, so launching several auto-executions concurrently
+       * would let all of them pass the same budget headroom at once.
+       * Awaiting each one keeps the unattended path serialized (each
+       * execution's count is visible to the next check); autoExecute
+       * swallows its own failures, so this cannot fail the run.
+       */
       for (const entry of createdActions) {
         if (
           entry.decisionMode === AIRemediationDecisionMode.AutoApproved &&
           entry.action.id
         ) {
-          const actionId: ObjectID = entry.action.id;
-          // Fire-and-forget: autoExecute swallows its own failures.
-          RemediationExecutor.autoExecute({ actionId }).catch(
-            (error: Error) => {
-              logger.error(
-                `AI remediation: auto-execution kickoff failed for action ${actionId.toString()}: ${error}`,
-              );
-            },
-          );
+          await RemediationExecutor.autoExecute({ actionId: entry.action.id });
         }
       }
     } catch (error) {

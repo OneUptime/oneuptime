@@ -62,7 +62,7 @@ Anything that fails these checks simply falls back to requiring approval — it 
 | Proposal expiry             | **24 hours**         | A proposal nobody decides on is swept to Expired. An hours-old remediation for a live incident is stale advice; acting on it would be worse than doing nothing. Expired is tracked separately from Rejected so "the team declined" and "this went stale" never blur.                                                                                                                |
 | Command script size         | **2,000 characters** | Hard cap on any drafted command.                                                                                                                                                                                                                                                                                                                                                    |
 
-Budgets are checked **at execution time**, for both the approval path and the auto path. An approval that lands over budget parks the action as Approved with a message explaining why — it can run tomorrow, or after you raise the limit.
+Budgets are checked **at execution time**, for both the approval path and the auto path. An approval that lands over budget puts the action back to Proposed with a message explaining why nothing ran — the Approve button simply works again tomorrow, or after you raise the limit (until the proposal's normal 24-hour expiry).
 
 ### Concurrency cannot double-execute
 
@@ -116,7 +116,7 @@ If you want the watch loop itself to open alerts, configure insight escalation i
 - **Enable AI Insight Escalation** — the opt-in.
 - **Minimum severity** — only insights at or above this severity escalate. Unset means **High**, so only the strongest detector findings ever page. (Metric drift insights are always Low severity, so with the default threshold they can never page.)
 - **Alert severity** — which of your alert severities escalated insights are created with. Unset falls back to your most critical severity.
-- **On-call duty policy** — the policy the escalated alert should page. Without one, the alert is created but pages nobody.
+- **On-call duty policy** — the policy the escalated alert should page. Without one, no policy is attached directly — but your Alert on-call rules can still match the escalated alert and page whoever they route to.
 
 Escalation deliberately creates at most **3 alerts per scan cycle** per project, and an insight that already escalated never escalates again — a recurring finding refreshes its existing insight instead.
 

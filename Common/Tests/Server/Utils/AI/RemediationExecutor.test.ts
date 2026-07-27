@@ -23,11 +23,12 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  * The executor's transition logic (invariant 5: CAS transitions, no double
  * execution under concurrency). Under test with mocked services: a lost
  * Proposed→Approved CAS refuses and dispatches NOTHING; expired proposals
- * are swept to Expired and refused; budget refusals leave the action
- * Approved with errorMessage set; the human path stamps approvedByUserId
- * while the auto path never does; Command actions are materialized as a
- * single-step AI-authored runbook; and autoExecute refuses RequireApproval
- * actions outright (invariant 2 hardening).
+ * are swept to Expired and refused; budget refusals REVERT the action to
+ * Proposed (clearing the approver stamp, carrying the reason on
+ * errorMessage) so approval can simply be retried later; the human path
+ * stamps approvedByUserId while the auto path never does; Command actions
+ * are materialized as a single-step AI-authored runbook; and autoExecute
+ * refuses RequireApproval actions outright (invariant 2 hardening).
  */
 
 const actionId: ObjectID = ObjectID.generate();
@@ -107,14 +108,18 @@ describe("RemediationExecutor.approveAndExecute", () => {
 
     expect(result.ok).toBe(true);
 
-    // CAS 1: Proposed→Approved with the approver stamped (human path).
+    /*
+     * CAS 1: Proposed→Approved with the approver stamped (human path).
+     * The transition set is primitives-only (the conditional UPDATE
+     * bypasses column transformers), so the user id is a string.
+     */
     expect(transitionSpy).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         fromStatus: AIRemediationActionStatus.Proposed,
         set: expect.objectContaining({
           status: AIRemediationActionStatus.Approved,
-          approvedByUserId: userId,
+          approvedByUserId: userId.toString(),
           approvedAt: expect.any(Date),
         }),
       }),
@@ -202,7 +207,7 @@ describe("RemediationExecutor.approveAndExecute", () => {
     expect(startRunbookSpy).not.toHaveBeenCalled();
   });
 
-  test("a daily-budget refusal leaves the action Approved with errorMessage set", async () => {
+  test("a daily-budget refusal reverts the action to Proposed with errorMessage set", async () => {
     jest
       .spyOn(AIRemediationActionService, "findOneById")
       .mockResolvedValue(fakeAction());
@@ -228,19 +233,29 @@ describe("RemediationExecutor.approveAndExecute", () => {
       /daily AI remediation execution limit/i,
     );
 
-    // Approved happened; Executing never did.
-    expect(transitionSpy).toHaveBeenCalledTimes(1);
-    expect(transitionSpy).toHaveBeenCalledWith(
+    /*
+     * Approved happened, then the refusal REVERTED it to Proposed —
+     * clearing the approver stamp (the approval produced no execution) and
+     * carrying the reason on errorMessage. No stranded Approved dead end;
+     * the Approve button simply works again once the budget clears.
+     */
+    expect(transitionSpy).toHaveBeenCalledTimes(2);
+    expect(transitionSpy).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         fromStatus: AIRemediationActionStatus.Proposed,
       }),
     );
-
-    // The refusal reason lands on the (still Approved) row.
-    expect(updateSpy).toHaveBeenCalledWith(
+    expect(transitionSpy).toHaveBeenNthCalledWith(
+      2,
       expect.objectContaining({
-        id: actionId,
-        data: { errorMessage: result.refusalReason },
+        fromStatus: AIRemediationActionStatus.Approved,
+        set: {
+          status: AIRemediationActionStatus.Proposed,
+          approvedAt: null,
+          approvedByUserId: null,
+          errorMessage: result.refusalReason,
+        },
       }),
     );
 
@@ -248,7 +263,7 @@ describe("RemediationExecutor.approveAndExecute", () => {
     expect(startRunbookSpy).not.toHaveBeenCalled();
   });
 
-  test("the per-subject cap refuses the same way (Approved + errorMessage)", async () => {
+  test("the per-subject cap refuses the same way (revert to Proposed + errorMessage)", async () => {
     jest
       .spyOn(AIRemediationActionService, "findOneById")
       .mockResolvedValue(fakeAction());
@@ -270,10 +285,15 @@ describe("RemediationExecutor.approveAndExecute", () => {
 
     expect(result.ok).toBe(false);
     expect(result.refusalReason).toMatch(/per-subject cap/i);
-    expect(transitionSpy).toHaveBeenCalledTimes(1);
-    expect(updateSpy).toHaveBeenCalledWith(
+    expect(transitionSpy).toHaveBeenCalledTimes(2);
+    expect(transitionSpy).toHaveBeenNthCalledWith(
+      2,
       expect.objectContaining({
-        data: { errorMessage: result.refusalReason },
+        fromStatus: AIRemediationActionStatus.Approved,
+        set: expect.objectContaining({
+          status: AIRemediationActionStatus.Proposed,
+          errorMessage: result.refusalReason,
+        }),
       }),
     );
     expect(startRunbookSpy).not.toHaveBeenCalled();

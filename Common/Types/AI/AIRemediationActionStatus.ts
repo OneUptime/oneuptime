@@ -9,9 +9,11 @@ enum AIRemediationActionStatus {
   Proposed = "Proposed",
   /*
    * A human approved it (or the policy gate auto-approved a runbook action on
-   * a non-production agent) but execution has not started yet. Transient:
-   * the executor moves it to Executing in the same breath unless a budget
-   * refusal parks it here with an errorMessage explaining why.
+   * a non-production agent) but execution has not started yet. Strictly
+   * transient: the executor moves it to Executing in the same breath, or —
+   * on a budget/cap refusal — reverts it to Proposed with the reason on
+   * errorMessage so approval can simply be retried later. A row stuck here
+   * (process death mid-execute) is swept to Expired past its expiresAt.
    */
   Approved = "Approved",
   // A human explicitly declined it. Terminal.

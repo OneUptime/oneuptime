@@ -2,6 +2,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CommonAPI from "Common/Server/API/CommonAPI";
@@ -78,27 +79,69 @@ export default class RunbookAPI {
   public constructor() {
     this.router = Express.getRouter();
 
+    /*
+     * Running is a WRITE against customer infrastructure, so the read-based
+     * access checks inside the handlers are not enough on their own: the
+     * caller must also hold an execute-capable permission. The sets mirror
+     * RunbookExecution's own table ACLs — create for starting a run,
+     * update for steering one (complete/skip/cancel) — so this HTTP surface
+     * can never grant more than direct model access would.
+     */
     this.router.post(
       `/run/:runbookId`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requirePermission({
+        permissions: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.RunbookAdmin,
+          Permission.RunbookMember,
+          Permission.CreateRunbookExecution,
+        ],
+      }),
       this.runRunbook,
     );
 
     this.router.post(
       `/execution/:executionId/step/:stepId/complete`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requirePermission({
+        permissions: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.RunbookAdmin,
+          Permission.EditRunbookExecution,
+        ],
+      }),
       this.completeManualStep,
     );
 
     this.router.post(
       `/execution/:executionId/step/:stepId/skip`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requirePermission({
+        permissions: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.RunbookAdmin,
+          Permission.EditRunbookExecution,
+        ],
+      }),
       this.skipStep,
     );
 
     this.router.post(
       `/execution/:executionId/cancel`,
       UserMiddleware.getUserMiddleware,
+      UserMiddleware.requirePermission({
+        permissions: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.RunbookAdmin,
+          Permission.EditRunbookExecution,
+        ],
+      }),
       this.cancelExecution,
     );
   }

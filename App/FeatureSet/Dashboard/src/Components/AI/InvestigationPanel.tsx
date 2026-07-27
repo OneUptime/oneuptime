@@ -8,6 +8,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import OneUptimeDate from "Common/Types/Date";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -55,6 +56,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [runStatus, setRunStatus] = useState<string | null>(null);
+  /*
+   * When the run completed (from the run payload). RemediationActions uses
+   * it to keep polling for the trailing remediation-proposal write for a
+   * bounded grace window after completion. Kept in state so the reference
+   * is stable between polls.
+   */
+  const [runCompletedAt, setRunCompletedAt] = useState<Date | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
   const [stats, setStats] = useState<{
@@ -114,6 +122,26 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         if (signature !== signatureRef.current) {
           signatureRef.current = signature;
           setRunStatus(status);
+
+          /*
+           * completedAt only changes when status does, so parsing it inside
+           * the signature gate is safe. Serialized dates arrive as either a
+           * string or a { _type, value } object — fromString handles both.
+           */
+          let completedAt: Date | null = null;
+          const completedAtJson: string | JSONObject | undefined = runJson?.[
+            "completedAt"
+          ] as string | JSONObject | undefined;
+          if (completedAtJson) {
+            try {
+              completedAt = OneUptimeDate.fromString(completedAtJson);
+            } catch {
+              // Unparseable — RemediationActions falls back to watching
+              // the active -> completed transition itself.
+            }
+          }
+          setRunCompletedAt(completedAt);
+
           setErrorMessage(
             (runJson?.["errorMessage"] as string | undefined) || null,
           );
@@ -519,6 +547,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           subjectType={props.subjectType}
           subjectId={props.subjectId}
           isInvestigationActive={isActive}
+          isInvestigationCompleted={runStatus === AIRunStatus.Completed}
+          investigationCompletedAt={runCompletedAt || undefined}
         />
       </div>
     </Card>

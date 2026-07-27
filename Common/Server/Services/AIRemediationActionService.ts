@@ -3,6 +3,27 @@ import AIRemediationAction from "../../Models/DatabaseModels/AIRemediationAction
 import AIRemediationActionStatus from "../../Types/AI/AIRemediationActionStatus";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { UpdateQueryBuilder, UpdateResult } from "typeorm";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
+
+/*
+ * The fields a status transition may set. Primitives only — the query-builder
+ * update below bypasses column transformers, so ObjectID fields must be
+ * passed as strings (ObjectID.toString()); `null` explicitly clears a column
+ * (used when a budget-refused approval is reverted to Proposed).
+ */
+export interface AIRemediationActionTransitionSet {
+  status: AIRemediationActionStatus;
+  approvedByUserId?: string | null | undefined;
+  approvedAt?: Date | null | undefined;
+  rejectedByUserId?: string | undefined;
+  rejectedAt?: Date | undefined;
+  rejectionReason?: string | undefined;
+  executedAt?: Date | undefined;
+  runbookId?: string | undefined;
+  runbookExecutionId?: string | undefined;
+  errorMessage?: string | null | undefined;
+}
 
 export class Service extends DatabaseService<AIRemediationAction> {
   public constructor() {
@@ -10,44 +31,36 @@ export class Service extends DatabaseService<AIRemediationAction> {
   }
 
   /*
-   * The single write primitive for the action lifecycle: one conditional
-   * UPDATE guarded on the expected current status, exactly the
-   * AIRunService.attemptStatusTransition idiom. Returns the number of rows
-   * moved (0 or 1) — 0 means another actor won the transition (a concurrent
+   * A genuinely atomic status transition: one conditional UPDATE whose WHERE
+   * carries the expected current status. Returns the number of rows changed
+   * (0 or 1) — 0 means another actor won the transition (a concurrent
    * approve, the expiry sweeper, ...) and the caller must do NOTHING with
-   * the action, because the winner already owns its side effects. Every
-   * transition in the executor, the API, and the sweeper routes through
-   * this so double-execution is structurally impossible.
+   * the action, because the winner already owns its side effects.
+   *
+   * This exists because updateBy/updateOneBy is SELECT-then-save: two
+   * concurrent callers can both observe the precondition and both write, so
+   * it cannot implement a claim (the AIRunService.attemptStatusTransition
+   * lesson). Every transition in the executor, the API, and the sweeper
+   * routes through this so double-execution is structurally impossible.
    */
   @CaptureSpan()
   public async attemptStatusTransition(data: {
     actionId: ObjectID;
     fromStatus: AIRemediationActionStatus;
-    set: {
-      status: AIRemediationActionStatus;
-      approvedByUserId?: ObjectID;
-      approvedAt?: Date;
-      rejectedByUserId?: ObjectID;
-      rejectedAt?: Date;
-      rejectionReason?: string;
-      executedAt?: Date;
-      runbookId?: ObjectID;
-      runbookExecutionId?: ObjectID;
-      errorMessage?: string;
-    };
+    set: AIRemediationActionTransitionSet;
   }): Promise<number> {
-    const updatedCount: number = await this.updateBy({
-      query: {
-        _id: data.actionId.toString(),
-        status: data.fromStatus,
-      },
-      data: data.set as never,
-      limit: 1,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    const queryBuilder: UpdateQueryBuilder<AIRemediationAction> =
+      this.getRepository()
+        .createQueryBuilder()
+        .update(AIRemediationAction)
+        .set(data.set as QueryDeepPartialEntity<AIRemediationAction>)
+        .where('"_id" = :id', { id: data.actionId.toString() })
+        .andWhere('"status" = :fromStatus', { fromStatus: data.fromStatus })
+        .andWhere('"deletedAt" IS NULL');
 
-    return updatedCount;
+    const result: UpdateResult = await queryBuilder.execute();
+
+    return result.affected || 0;
   }
 }
 

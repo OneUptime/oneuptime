@@ -251,16 +251,16 @@ export default class RunbookAgent extends BaseModel {
    * Development (and only when the project opted in). Unset or unknown
    * counts as Production — the fail-safe direction — so nothing auto-runs
    * on an agent until a human deliberately tags it non-production.
+   *
+   * SECURITY-SENSITIVE ACL: this tag is the boundary that decides whether
+   * AI may execute unattended, so writing it is restricted to exactly the
+   * principals who can arm auto-remediation in the first place
+   * (Project.enableAiAutoRemediationOnNonProduction is Owner/Admin-only).
+   * Anyone else deploys agents as untagged — i.e. Production, never
+   * auto-run — until an owner or admin deliberately reclassifies them.
    */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.RunbookAdmin,
-      Permission.RunbookMember,
-      Permission.CreateRunbookAgent,
-    ],
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -271,12 +271,7 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookViewer,
       Permission.ReadRunbookAgent,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.RunbookAdmin,
-      Permission.EditRunbookAgent,
-    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
   @TableColumn({
     required: true,

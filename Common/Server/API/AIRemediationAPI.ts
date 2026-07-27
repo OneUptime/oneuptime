@@ -13,6 +13,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
+import Permission from "../../Types/Permission";
 import AIRemediationActionStatus from "../../Types/AI/AIRemediationActionStatus";
 import AIRemediationAction from "../../Models/DatabaseModels/AIRemediationAction";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -135,6 +136,23 @@ async function loadActionWithSubjectAccessCheck(
 router.post(
   "/ai-remediation/approve",
   UserMiddleware.getUserMiddleware,
+  /*
+   * Approving EXECUTES on customer infrastructure, so reading the subject
+   * is not enough: the caller must hold an execute-capable permission —
+   * the same set that may create a RunbookExecution directly. A read-only
+   * Viewer can see proposals but can never make one run. (Reject keeps the
+   * read bar: declining execution is the safe direction.)
+   */
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.CreateRunbookExecution,
+    ],
+  }),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -202,7 +220,7 @@ router.post(
           fromStatus: AIRemediationActionStatus.Proposed,
           set: {
             status: AIRemediationActionStatus.Rejected,
-            rejectedByUserId: props.userId!,
+            rejectedByUserId: props.userId!.toString(),
             rejectedAt: OneUptimeDate.getCurrentDate(),
             ...(rejectionReason ? { rejectionReason } : {}),
           },

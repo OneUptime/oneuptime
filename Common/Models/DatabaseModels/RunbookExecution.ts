@@ -647,6 +647,7 @@ export default class RunbookExecution extends BaseModel {
     ],
     update: [],
   })
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Triggered by AI Remediation Action ID",

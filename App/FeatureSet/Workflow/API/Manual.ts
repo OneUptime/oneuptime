@@ -3,6 +3,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
@@ -50,6 +51,24 @@ export default class ManualAPI {
     this.router.post(
       `/run/:workflowId`,
       UserMiddleware.getUserMiddleware,
+      /*
+       * Manually running a workflow executes its JavaScript and HTTP
+       * components with the project's stored credentials — a write-grade
+       * capability. Read access to the workflow (checked in the handler) is
+       * necessary but not sufficient: the caller must also hold one of the
+       * permissions that could create or edit workflows in the first place.
+       */
+      UserMiddleware.requirePermission({
+        permissions: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.WorkflowAdmin,
+          Permission.WorkflowMember,
+          Permission.CreateWorkflow,
+          Permission.EditWorkflow,
+        ],
+      }),
       this.manuallyRunWorkflow,
     );
   }

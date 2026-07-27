@@ -46,10 +46,31 @@ export interface ComponentProps {
   subjectId: ObjectID;
   // Poll while the investigation is live so proposals appear as they land.
   isInvestigationActive: boolean;
+  // True when the latest investigation run finished with status Completed.
+  isInvestigationCompleted: boolean;
+  /*
+   * When that run completed (from the run payload). Drives the
+   * post-completion grace window below — proposals are persisted by
+   * trailing server work AFTER the run flips to Completed, so a live
+   * viewer needs a bounded window of continued polling to see them land.
+   */
+  investigationCompletedAt?: Date | undefined;
 }
 
 // Same cadence the investigation panel itself polls on.
 const POLL_INTERVAL_MS: number = 2500;
+
+/*
+ * After the run completes, the server still makes two trailing LLM calls
+ * (confidence classification, then the remediation proposal call) before
+ * persisting any actions. Keep polling — at a slightly slower cadence —
+ * for a bounded grace window after completion, or until the first
+ * non-empty action list arrives, whichever comes first. Outside this
+ * window a Proposed-only list deliberately does not poll (approve/reject
+ * refetch, and the server sweeps stale proposals to Expired on its own).
+ */
+const POST_COMPLETION_GRACE_WINDOW_MS: number = 5 * 60 * 1000;
+const GRACE_POLL_INTERVAL_MS: number = 5000;
 
 // Human labels for the wire-contract enum values.
 const ACTION_TYPE_LABELS: Record<AIRemediationActionType, string> = {
@@ -76,6 +97,21 @@ const STATUS_BADGE_CLASSES: Record<AIRemediationActionStatus, string> = {
     "bg-gray-100 text-gray-600 ring-gray-500/20",
   [AIRemediationActionStatus.Expired]:
     "bg-gray-100 text-gray-600 ring-gray-500/20",
+};
+
+/*
+ * Approved is strictly transient — the executor either moves it to
+ * Executing immediately or reverts it to Proposed on a budget/cap refusal
+ * — so its pill reads as motion, never as a resting state.
+ */
+const STATUS_LABELS: Record<AIRemediationActionStatus, string> = {
+  [AIRemediationActionStatus.Proposed]: "Proposed",
+  [AIRemediationActionStatus.Approved]: "Approved — starting…",
+  [AIRemediationActionStatus.Executing]: "Executing",
+  [AIRemediationActionStatus.Succeeded]: "Succeeded",
+  [AIRemediationActionStatus.Failed]: "Failed",
+  [AIRemediationActionStatus.Rejected]: "Rejected",
+  [AIRemediationActionStatus.Expired]: "Expired",
 };
 
 const STATUS_DOT_CLASSES: Record<AIRemediationActionStatus, string> = {
@@ -106,7 +142,7 @@ export function getRemediationStatusElement(
           STATUS_DOT_CLASSES[status] || "bg-gray-400"
         }`}
       />
-      {status}
+      {STATUS_LABELS[status] || status}
     </span>
   );
 }
@@ -326,10 +362,95 @@ const RemediationActions: FunctionComponent<ComponentProps> = (
   }, [fetchActions]);
 
   /*
-   * Poll while proposals can still appear (the investigation is live) or an
-   * approved action is executing and we are waiting on its outcome. Actions
-   * sitting in Proposed do not need polling — the approve/reject buttons
-   * refetch, and the server sweeps stale proposals to Expired on its own.
+   * Post-completion grace window (epoch ms deadline, or null when no
+   * window is open). Opened when the run completed within the last
+   * POST_COMPLETION_GRACE_WINDOW_MS — covering both the live transition
+   * from active to Completed and mounting onto a recently-completed run —
+   * so the trailing proposal write lands without a page reload.
+   */
+  const [graceDeadlineMs, setGraceDeadlineMs] = useState<number | null>(null);
+  const wasActiveRef: React.MutableRefObject<boolean> = useRef<boolean>(
+    props.isInvestigationActive,
+  );
+
+  // Primitive so effect deps ignore the Date object's identity.
+  const completedAtMs: number | null = props.investigationCompletedAt
+    ? props.investigationCompletedAt.getTime()
+    : null;
+
+  useEffect(() => {
+    const wasActive: boolean = wasActiveRef.current;
+    wasActiveRef.current = props.isInvestigationActive;
+
+    if (props.isInvestigationActive) {
+      // A live (re)run supersedes any grace window — live polling covers it.
+      setGraceDeadlineMs(null);
+      return;
+    }
+
+    if (!props.isInvestigationCompleted) {
+      // Failed/stopped runs never get trailing proposals.
+      return;
+    }
+
+    /*
+     * Prefer the server's completedAt (which also recognizes a recently
+     * completed run on mount); if it is somehow missing, fall back to
+     * "we just watched the run finish".
+     */
+    const graceStartMs: number | null =
+      completedAtMs !== null ? completedAtMs : wasActive ? Date.now() : null;
+
+    if (graceStartMs === null) {
+      return;
+    }
+
+    const deadlineMs: number = graceStartMs + POST_COMPLETION_GRACE_WINDOW_MS;
+
+    if (deadlineMs <= Date.now()) {
+      /*
+       * Long-completed run: keep the deliberate no-poll behavior for
+       * stale Proposed-only lists.
+       */
+      return;
+    }
+
+    setGraceDeadlineMs(deadlineMs);
+  }, [
+    props.isInvestigationActive,
+    props.isInvestigationCompleted,
+    completedAtMs,
+  ]);
+
+  // Close the grace window the moment its deadline passes.
+  useEffect(() => {
+    if (graceDeadlineMs === null) {
+      return;
+    }
+
+    const remainingMs: number = graceDeadlineMs - Date.now();
+
+    if (remainingMs <= 0) {
+      setGraceDeadlineMs(null);
+      return;
+    }
+
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setGraceDeadlineMs(null);
+    }, remainingMs);
+
+    return () => {
+      return clearTimeout(timeout);
+    };
+  }, [graceDeadlineMs]);
+
+  /*
+   * Poll while proposals can still appear (the investigation is live, or
+   * it just completed and the trailing proposal write has not landed yet)
+   * or an approved action is executing and we are waiting on its outcome.
+   * Actions sitting in Proposed do not need polling — the approve/reject
+   * buttons refetch, and the server sweeps stale proposals to Expired on
+   * its own.
    */
   const hasInFlightExecution: boolean = actions.some(
     (action: AIRemediationAction) => {
@@ -339,8 +460,21 @@ const RemediationActions: FunctionComponent<ComponentProps> = (
       );
     },
   );
+
+  // The grace window only matters until the first non-empty list arrives.
+  const isAwaitingFirstProposals: boolean =
+    graceDeadlineMs !== null && actions.length === 0;
+
   const shouldPoll: boolean =
-    props.isInvestigationActive || hasInFlightExecution;
+    props.isInvestigationActive ||
+    hasInFlightExecution ||
+    isAwaitingFirstProposals;
+
+  // The grace window polls a touch slower than the live investigation.
+  const pollIntervalMs: number =
+    props.isInvestigationActive || hasInFlightExecution
+      ? POLL_INTERVAL_MS
+      : GRACE_POLL_INTERVAL_MS;
 
   useEffect(() => {
     if (!shouldPoll) {
@@ -351,12 +485,12 @@ const RemediationActions: FunctionComponent<ComponentProps> = (
       fetchActions().catch(() => {
         // handled inside fetchActions
       });
-    }, POLL_INTERVAL_MS);
+    }, pollIntervalMs);
 
     return () => {
       return clearInterval(interval);
     };
-  }, [shouldPoll, fetchActions]);
+  }, [shouldPoll, pollIntervalMs, fetchActions]);
 
   /*
    * "Approve & Execute": the server re-checks everything (lane enabled,
@@ -548,8 +682,27 @@ const RemediationActions: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {/* Execution refusals (budget) and execution failures land here. */}
-        {action.errorMessage ? (
+        {/*
+          errorMessage never implies Failed. On a budget/per-subject-cap
+          refusal the server CAS-reverts the approval back to Proposed and
+          stores the human-readable reason on errorMessage — so a Proposed
+          action carrying one gets an amber "here is why your earlier
+          approval did not run" note while Approve/Reject stay available
+          (that is the point of the revert). Any other status with an
+          errorMessage is a real execution failure and stays red. The note
+          is skipped when the identical inline 400 message from the approve
+          attempt is already showing right below.
+        */}
+        {action.errorMessage &&
+        action.status === AIRemediationActionStatus.Proposed ? (
+          actionErrors[actionId] === action.errorMessage ? (
+            <></>
+          ) : (
+            <p className="mt-2 text-xs text-amber-600">
+              Last approval attempt: {action.errorMessage}
+            </p>
+          )
+        ) : action.errorMessage ? (
           <p className="mt-2 text-xs text-red-500">{action.errorMessage}</p>
         ) : (
           <></>

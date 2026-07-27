@@ -1,4 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
@@ -41,6 +42,14 @@ jest.mock("Common/Server/Middleware/UserAuthorization", () => {
     __esModule: true,
     default: {
       getUserMiddleware: jest.fn(),
+      /*
+       * The route constructor mounts a permission gate on the run endpoint;
+       * these handler-level tests bypass Express middleware entirely, so
+       * the mock only needs to return a middleware-shaped function.
+       */
+      requirePermission: jest.fn(() => {
+        return jest.fn();
+      }),
     },
   };
 });
@@ -84,6 +93,7 @@ jest.mock("../../../FeatureSet/Workflow/Services/QueueWorkflow", () => {
 
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import Express from "Common/Server/Utils/Express";
+import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import Response from "Common/Server/Utils/Response";
 import WorkflowService from "Common/Server/Services/WorkflowService";
@@ -140,6 +150,34 @@ describe("ManualAPI (workflow manual trigger) authorization", () => {
     expect(routerStub.get).not.toHaveBeenCalled();
     expect(routerStub.post).toHaveBeenCalledTimes(1);
     expect(routerStub.post.mock.calls[0]?.[0]).toBe("/run/:workflowId");
+  });
+
+  test("mounts an execute-capable permission gate — read access alone must not run workflows", () => {
+    /*
+     * Manually running a workflow executes its JavaScript/HTTP components
+     * with stored project credentials, so the route must demand one of the
+     * permissions that could author workflows — never mere read access
+     * (Workflow's read ACL includes Viewer/WorkflowViewer/ReadWorkflow,
+     * none of which may appear here).
+     */
+    expect(UserMiddleware.requirePermission).toHaveBeenCalledWith({
+      permissions: expect.arrayContaining([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.WorkflowAdmin,
+        Permission.WorkflowMember,
+        Permission.CreateWorkflow,
+        Permission.EditWorkflow,
+      ]),
+    });
+
+    const granted: Array<Permission> = (
+      UserMiddleware.requirePermission as jest.Mock
+    ).mock.calls[0]?.[0]?.permissions;
+    expect(granted).not.toContain(Permission.Viewer);
+    expect(granted).not.toContain(Permission.WorkflowViewer);
+    expect(granted).not.toContain(Permission.ReadWorkflow);
   });
 
   test("rejects an unauthenticated (Public) caller before touching the workflow", async () => {

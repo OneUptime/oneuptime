@@ -201,6 +201,10 @@ describe("RemediationStatusSync.syncExecutingActions", () => {
         executedAt: OneUptimeDate.getCurrentDate(),
       }),
     ]);
+    // No attributed execution exists to adopt.
+    jest
+      .spyOn(RunbookExecutionService, "findOneBy")
+      .mockResolvedValue(null as never);
     const findExecutionSpy: jest.SpyInstance = jest.spyOn(
       RunbookExecutionService,
       "findOneById",
@@ -219,6 +223,10 @@ describe("RemediationStatusSync.syncExecutingActions", () => {
         executedAt: OneUptimeDate.getSomeHoursAgo(2),
       }),
     ]);
+    // No attributed execution exists — the dispatch truly never completed.
+    jest
+      .spyOn(RunbookExecutionService, "findOneBy")
+      .mockResolvedValue(null as never);
 
     await RemediationStatusSync.syncExecutingActions();
 
@@ -231,6 +239,39 @@ describe("RemediationStatusSync.syncExecutingActions", () => {
         }),
       }),
     );
+  });
+
+  test("an unlinked action whose execution IS attributed gets adopted, never failed", async () => {
+    const orphanExecutionId: ObjectID = ObjectID.generate();
+    const orphanRunbookId: ObjectID = ObjectID.generate();
+
+    jest.spyOn(AIRemediationActionService, "findBy").mockResolvedValue([
+      executingAction({
+        runbookExecutionId: undefined,
+        // Even past the grace window: adoption always wins over failing.
+        executedAt: OneUptimeDate.getSomeHoursAgo(2),
+      }),
+    ]);
+    jest.spyOn(RunbookExecutionService, "findOneBy").mockResolvedValue({
+      _id: orphanExecutionId.toString(),
+      runbookId: orphanRunbookId,
+    } as unknown as RunbookExecution);
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(AIRemediationActionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await RemediationStatusSync.syncExecutingActions();
+
+    // The linkage is restored; the action stays Executing for the next tick.
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          runbookExecutionId: expect.any(ObjectID),
+          runbookId: orphanRunbookId,
+        }),
+      }),
+    );
+    expect(transitionSpy).not.toHaveBeenCalled();
   });
 
   test("one bad row never stalls the sweep", async () => {
@@ -277,22 +318,33 @@ describe("RemediationStatusSync.sweepExpiredProposals", () => {
     jest.restoreAllMocks();
   });
 
-  test("stale proposals are CAS'd to Expired with no notification", async () => {
+  test("stale Proposed AND Approved rows are CAS'd to Expired with no notification", async () => {
     const secondId: ObjectID = ObjectID.generate();
     const findBySpy: jest.SpyInstance = jest
       .spyOn(AIRemediationActionService, "findBy")
       .mockResolvedValue([
-        { _id: actionId.toString() } as unknown as AIRemediationAction,
-        { _id: secondId.toString() } as unknown as AIRemediationAction,
+        {
+          _id: actionId.toString(),
+          status: AIRemediationActionStatus.Proposed,
+        } as unknown as AIRemediationAction,
+        /*
+         * An Approved row past expiry means the process died between the
+         * approve CAS and dispatch — it must terminate too, from its OWN
+         * status so a concurrent executor still wins its race.
+         */
+        {
+          _id: secondId.toString(),
+          status: AIRemediationActionStatus.Approved,
+        } as unknown as AIRemediationAction,
       ]);
 
     await RemediationStatusSync.sweepExpiredProposals();
 
-    // The sweep queries Proposed rows past their expiry.
+    // The sweep queries undecided (Proposed/Approved) rows past their expiry.
     expect(findBySpy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          status: AIRemediationActionStatus.Proposed,
+          status: expect.anything(),
           expiresAt: expect.anything(),
         }),
       }),
@@ -303,6 +355,13 @@ describe("RemediationStatusSync.sweepExpiredProposals", () => {
       expect.objectContaining({
         actionId,
         fromStatus: AIRemediationActionStatus.Proposed,
+        set: { status: AIRemediationActionStatus.Expired },
+      }),
+    );
+    expect(transitionSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: secondId,
+        fromStatus: AIRemediationActionStatus.Approved,
         set: { status: AIRemediationActionStatus.Expired },
       }),
     );
