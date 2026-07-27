@@ -159,8 +159,13 @@ describe("MonitorStepsProjectValidator", () => {
   });
 
   it("does no lookups when there are no monitorSteps or no project", async () => {
-    const findBy: jest.SpiedFunction<typeof MonitorStatusService.findBy> =
-      jest.spyOn(MonitorStatusService, "findBy");
+    /*
+     * stubLookups installs the spy, so the lookup is asserted on the service
+     * method itself. Annotating the spy handle is not an option here: this
+     * file takes jest from @jest/globals, so spyOn returns jest-mock's type
+     * while the jest.SpyInstance namespace resolves to @types/jest's.
+     */
+    stubLookups({});
 
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: undefined,
@@ -171,6 +176,6 @@ describe("MonitorStepsProjectValidator", () => {
       projectId: undefined,
     });
 
-    expect(findBy).not.toHaveBeenCalled();
+    expect(MonitorStatusService.findBy).not.toHaveBeenCalled();
   });
 });
