@@ -472,6 +472,7 @@ import { AddServiceLevelObjective1784987015619 } from "./1784987015619-AddServic
 import { MigrationName1785066759532 } from "./1785066759532-MigrationName";
 import { AddHotQueryIndexes1785140242697 } from "./1785140242697-AddHotQueryIndexes";
 import { AddHotQueryIndexesSecondPass1785148065137 } from "./1785148065137-AddHotQueryIndexesSecondPass";
+import { RepairCrossProjectMonitorStatusReferences1785240000000 } from "./1785240000000-RepairCrossProjectMonitorStatusReferences";
 
 export default [
   InitialMigration,
@@ -948,4 +949,5 @@ export default [
   MigrationName1785066759532,
   AddHotQueryIndexes1785140242697,
   AddHotQueryIndexesSecondPass1785148065137,
+  RepairCrossProjectMonitorStatusReferences1785240000000,
 ];

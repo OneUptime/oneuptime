@@ -60,6 +60,7 @@ import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import Query from "../Types/Database/Query";
 import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -68,6 +69,7 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
+import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
@@ -383,6 +385,57 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    if (updateBy.data.monitorSteps) {
+      /*
+       * Root/API updates do not always carry a tenantId, so fall back to the
+       * project of each monitor the query actually matches.
+       */
+      const projectIds: Array<ObjectID> = updateBy.props.tenantId
+        ? [updateBy.props.tenantId]
+        : await this.getProjectIdsForUpdateQuery(updateBy);
+
+      for (const projectId of projectIds) {
+        await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+          monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
+          projectId: projectId,
+        });
+      }
+    }
+
+    return { updateBy, carryForward: null };
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const monitors: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const monitor of monitors) {
+      if (monitor.projectId) {
+        projectIds[monitor.projectId.toString()] = monitor.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
+  }
+
+  @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
@@ -601,6 +654,11 @@ export class Service extends DatabaseService<Model> {
     if (!createBy.props.tenantId) {
       throw new BadDataException("ProjectId required to create monitor.");
     }
+
+    await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+      monitorSteps: createBy.data.monitorSteps,
+      projectId: createBy.props.tenantId,
+    });
 
     const monitorStatus: MonitorStatus | null =
       await MonitorStatusService.findOneBy({

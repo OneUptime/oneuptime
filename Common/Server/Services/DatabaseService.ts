@@ -30,6 +30,7 @@ import UpdateByID from "../Types/Database/UpdateByID";
 import UpdateByIDAndFetch from "../Types/Database/UpdateByIDAndFetch";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Encryption from "../Utils/Encryption";
+import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -453,7 +454,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * propagates the original exception on the synchronous throw path.
    */
   protected getException(error: Exception): never {
-    throw error;
+    throw PostgresErrorTranslator.translateException(error);
   }
 
   private generateSlug(createBy: CreateBy<TBaseModel>): CreateBy<TBaseModel> {
