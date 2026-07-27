@@ -33,9 +33,30 @@ describe("configureMonacoLoader", () => {
 
     (await loadLoader())();
 
+    /*
+     * Absolute, not the root-relative value the build baked in: Monaco resolves
+     * its language-service workers from this inside a blob: worker, which has no
+     * base to resolve a root-relative path against.
+     */
     expect(config).toHaveBeenCalledWith({
-      paths: { vs: "/dashboard/assets/monaco/vs" },
+      paths: {
+        vs: `${window.location.origin}/dashboard/assets/monaco/vs`,
+      },
     });
+  });
+
+  test("gives Monaco an absolute path its blob workers can resolve", async () => {
+    process.env["MONACO_ASSET_PATH"] = "/dashboard/assets/monaco/vs";
+
+    (await loadLoader())();
+
+    const configuredPath: string = (
+      config.mock.calls[0] as unknown as Array<{ paths: { vs: string } }>
+    )[0]!.paths.vs;
+
+    expect(() => {
+      return new URL(configuredPath);
+    }).not.toThrow();
   });
 
   test("keeps the bundled default when the build set no path", async () => {
