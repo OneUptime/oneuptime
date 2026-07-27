@@ -31,6 +31,14 @@ export class RepairCrossProjectMonitorStatusReferences1785240000000
     "RepairCrossProjectMonitorStatusReferences1785240000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    /*
+     * The repair below scans MonitorStatusTimeline, which is in the millions of
+     * rows. Measured at ~4.5s on a production-sized table, but the connection
+     * carries the app's 30s statement_timeout (DATABASE_STATEMENT_TIMEOUT_MS)
+     * and a loaded database should not turn this into a failed deploy.
+     */
+    await queryRunner.query(`SET LOCAL statement_timeout = '600s'`);
+
     // 1. MonitorStatusTimeline rows pointing at another project's status.
     await queryRunner.query(`
       WITH bad AS (
@@ -225,7 +233,17 @@ export class RepairCrossProjectMonitorStatusReferences1785240000000
      * blocking. Without this, a leftover cross-project row (one we could not
      * resolve above, e.g. a project with no statuses of its own) would still
      * make the referenced project undeletable.
+     *
+     * Swapping a foreign key needs ACCESS EXCLUSIVE on MonitorStatusTimeline —
+     * the busiest write table there is — and the lock is held until this
+     * migration commits. The DDL itself measures ~1.3s, but the server has no
+     * lock_timeout, so without the line below a single slow transaction holding
+     * the table would make this statement queue *and* park every reader and
+     * writer behind it until the 30s statement_timeout fired. Failing fast and
+     * retrying the deploy is much cheaper than stalling the table.
      */
+    await queryRunner.query(`SET LOCAL lock_timeout = '5s'`);
+
     await queryRunner.query(
       `ALTER TABLE "MonitorStatusTimeline" DROP CONSTRAINT "FK_574feb4161c5216c2c7ee0faaf8"`,
     );
