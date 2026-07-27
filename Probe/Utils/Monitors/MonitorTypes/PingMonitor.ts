@@ -11,6 +11,10 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import logger from "Common/Server/Utils/Logger";
+import MonitorCheckBudget, {
+  MIN_MONITOR_CHECK_ATTEMPT_TIMEOUT_IN_MS,
+  MONITOR_CHECK_RETRY_DELAY_IN_MS,
+} from "Common/Types/Monitor/MonitorCheckBudget";
 import ping from "ping";
 
 /*
@@ -18,6 +22,12 @@ import ping from "ping";
  * into a measurement: packet loss %, jitter, and min/avg/max RTT.
  */
 export const PING_PACKET_COUNT: number = 5;
+
+// Used when the caller does not configure one.
+export const DEFAULT_PING_ATTEMPT_TIMEOUT_IN_MS: number = 5000;
+
+// Attempts left after this many retries, when the caller does not say.
+export const DEFAULT_PING_RETRY_COUNT: number = 5;
 
 // TODO - make sure it works for the IPV6
 export interface PingResponse {
@@ -31,15 +41,80 @@ export interface PingResponse {
 }
 
 export interface PingOptions {
+  // Timeout for a single attempt.
   timeout?: PositiveNumber;
   retry?: number | undefined;
   currentRetryCount?: number | undefined;
   monitorId?: ObjectID | undefined;
   isOnlineCheckRequest?: boolean | undefined;
   attempts?: Array<ProbeAttempt> | undefined;
+  /*
+   * Wall-clock moment the whole check (every attempt and every backoff
+   * between them) must be finished by. Without it a check against an
+   * unreachable host costs `timeout × retry`, which for the default 60s
+   * timeout and 3 retries is over three minutes — longer than the interval
+   * of most monitors, so every result lands late.
+   */
+  deadlineAt?: Date | undefined;
 }
 
 export default class PingMonitor {
+  /**
+   * How long this attempt may take: the configured per-attempt timeout,
+   * shortened when less than that is left of the check's budget.
+   */
+  public static getAttemptTimeoutInMs(pingOptions: PingOptions): number {
+    const configuredTimeoutInMs: number =
+      pingOptions.timeout?.toNumber() || DEFAULT_PING_ATTEMPT_TIMEOUT_IN_MS;
+
+    if (!pingOptions.deadlineAt) {
+      return configuredTimeoutInMs;
+    }
+
+    const remainingInMs: number = MonitorCheckBudget.getRemainingBudgetInMs(
+      pingOptions.deadlineAt,
+    );
+
+    /*
+     * The floor only ever applies to the remaining-budget clamp: an attempt
+     * is never stretched past the timeout the user configured.
+     */
+    return Math.min(
+      configuredTimeoutInMs,
+      Math.max(MIN_MONITOR_CHECK_ATTEMPT_TIMEOUT_IN_MS, remainingInMs),
+    );
+  }
+
+  /**
+   * True when another attempt is both allowed by the retry count and
+   * affordable within what is left of the check's budget.
+   */
+  public static canRetry(pingOptions: PingOptions): boolean {
+    const retryLimit: number = pingOptions.retry ?? DEFAULT_PING_RETRY_COUNT;
+
+    if ((pingOptions.currentRetryCount || 0) >= retryLimit) {
+      return false;
+    }
+
+    if (!pingOptions.deadlineAt) {
+      return true;
+    }
+
+    const remainingInMs: number = MonitorCheckBudget.getRemainingBudgetInMs(
+      pingOptions.deadlineAt,
+    );
+
+    /*
+     * Only retry when the backoff plus a meaningful attempt still fit.
+     * Otherwise the retry would run past the deadline and delay the result
+     * without any chance of changing it.
+     */
+    return (
+      remainingInMs >
+      MONITOR_CHECK_RETRY_DELAY_IN_MS + MIN_MONITOR_CHECK_ATTEMPT_TIMEOUT_IN_MS
+    );
+  }
+
   /*
    * Builds packet-level statistics from the ping library result. The library
    * parses the OS ping summary into strings (min/max/avg/stddev/packetLoss,
@@ -134,10 +209,23 @@ export default class PingMonitor {
       }`,
     );
 
+    const attemptTimeoutInMs: number = this.getAttemptTimeoutInMs(pingOptions);
+    const attemptTimeoutInSeconds: number = Math.max(
+      1,
+      Math.ceil(attemptTimeoutInMs / 1000),
+    );
+
     const attemptedAt: Date = new Date();
     try {
       const res: ping.PingResponse = await ping.promise.probe(hostAddress, {
-        timeout: Math.ceil((pingOptions?.timeout?.toNumber() || 5000) / 1000),
+        timeout: attemptTimeoutInSeconds, // maps to -W: how long to wait for a single reply
+        /*
+         * Hard cap on the whole invocation (-w on Linux, -t on macOS).
+         * Without it, `ping -c 5 -W 60` against a black-holed host sends its
+         * packets a second apart and then sits waiting the full 60s for the
+         * last reply, so a single attempt outlives the monitor's interval.
+         */
+        deadline: attemptTimeoutInSeconds,
         min_reply: PING_PACKET_COUNT, // maps to -c on Linux/macOS and -n on Windows
       });
 
@@ -184,10 +272,10 @@ export default class PingMonitor {
       if (
         responseTime?.toNumber() &&
         responseTime.toNumber() > 10000 &&
-        pingOptions.currentRetryCount < (pingOptions.retry || 5)
+        this.canRetry(pingOptions)
       ) {
         pingOptions.currentRetryCount++;
-        await Sleep.sleep(1000);
+        await Sleep.sleep(MONITOR_CHECK_RETRY_DELAY_IN_MS);
         return await this.ping(host, pingOptions);
       }
 
@@ -227,9 +315,9 @@ export default class PingMonitor {
         failureCause: (err as any).toString(),
       });
 
-      if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
+      if (this.canRetry(pingOptions)) {
         pingOptions.currentRetryCount++;
-        await Sleep.sleep(1000);
+        await Sleep.sleep(MONITOR_CHECK_RETRY_DELAY_IN_MS);
         return await this.ping(host, pingOptions);
       }
 

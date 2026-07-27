@@ -12,8 +12,18 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
 import logger from "Common/Server/Utils/Logger";
+import MonitorCheckBudget, {
+  MIN_MONITOR_CHECK_ATTEMPT_TIMEOUT_IN_MS,
+  MONITOR_CHECK_RETRY_DELAY_IN_MS,
+} from "Common/Types/Monitor/MonitorCheckBudget";
 import net from "net";
 import Register from "../../../Services/Register";
+
+// Used when the caller does not configure one.
+export const DEFAULT_PORT_ATTEMPT_TIMEOUT_IN_MS: number = 5000;
+
+// Attempts left after this many retries, when the caller does not say.
+export const DEFAULT_PORT_RETRY_COUNT: number = 5;
 
 // TODO - make sure it works for the IPV6
 export interface PortMonitorResponse {
@@ -26,15 +36,66 @@ export interface PortMonitorResponse {
 }
 
 export interface PingOptions {
+  // Timeout for a single connect attempt.
   timeout?: PositiveNumber;
   retry?: number | undefined;
   currentRetryCount?: number | undefined;
   monitorId?: ObjectID | undefined;
   isOnlineCheckRequest?: boolean | undefined;
   attempts?: Array<ProbeAttempt> | undefined;
+  /*
+   * Wall-clock moment the whole check (every attempt and every backoff
+   * between them) must be finished by, so a dead target cannot cost
+   * `timeout × retry` and push the check past its monitoring interval.
+   */
+  deadlineAt?: Date | undefined;
 }
 
 export default class PortMonitor {
+  /**
+   * How long this attempt may take: the configured per-attempt timeout,
+   * shortened when less than that is left of the check's budget.
+   */
+  public static getAttemptTimeoutInMs(pingOptions: PingOptions): number {
+    const configuredTimeoutInMs: number =
+      pingOptions.timeout?.toNumber() || DEFAULT_PORT_ATTEMPT_TIMEOUT_IN_MS;
+
+    if (!pingOptions.deadlineAt) {
+      return configuredTimeoutInMs;
+    }
+
+    const remainingInMs: number = MonitorCheckBudget.getRemainingBudgetInMs(
+      pingOptions.deadlineAt,
+    );
+
+    // The floor only ever applies to the remaining-budget clamp.
+    return Math.min(
+      configuredTimeoutInMs,
+      Math.max(MIN_MONITOR_CHECK_ATTEMPT_TIMEOUT_IN_MS, remainingInMs),
+    );
+  }
+
+  /**
+   * True when another attempt is both allowed by the retry count and
+   * affordable within what is left of the check's budget.
+   */
+  public static canRetry(pingOptions: PingOptions): boolean {
+    const retryLimit: number = pingOptions.retry ?? DEFAULT_PORT_RETRY_COUNT;
+
+    if ((pingOptions.currentRetryCount || 0) >= retryLimit) {
+      return false;
+    }
+
+    if (!pingOptions.deadlineAt) {
+      return true;
+    }
+
+    return (
+      MonitorCheckBudget.getRemainingBudgetInMs(pingOptions.deadlineAt) >
+      MONITOR_CHECK_RETRY_DELAY_IN_MS + MIN_MONITOR_CHECK_ATTEMPT_TIMEOUT_IN_MS
+    );
+  }
+
   public static async ping(
     host: Hostname | IPv4 | IPv6 | URL,
     port: Port,
@@ -92,7 +153,9 @@ export default class PortMonitor {
 
           const socket: net.Socket = new net.Socket();
 
-          const timeout: number = pingOptions?.timeout?.toNumber() || 5000;
+          const timeout: number = PortMonitor.getAttemptTimeoutInMs(
+            pingOptions || {},
+          );
 
           socket.setTimeout(timeout);
 
@@ -175,12 +238,9 @@ export default class PortMonitor {
 
       // if response time is greater than 10 seconds then give it one more try
 
-      if (
-        responseTimeInMS.toNumber() > 10000 &&
-        pingOptions.currentRetryCount < (pingOptions.retry || 5)
-      ) {
+      if (responseTimeInMS.toNumber() > 10000 && this.canRetry(pingOptions)) {
         pingOptions.currentRetryCount++;
-        await Sleep.sleep(1000);
+        await Sleep.sleep(MONITOR_CHECK_RETRY_DELAY_IN_MS);
         return await this.ping(host, port, pingOptions);
       }
 
@@ -220,9 +280,9 @@ export default class PortMonitor {
         failureCause: (err as any).toString(),
       });
 
-      if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
+      if (this.canRetry(pingOptions)) {
         pingOptions.currentRetryCount++;
-        await Sleep.sleep(1000);
+        await Sleep.sleep(MONITOR_CHECK_RETRY_DELAY_IN_MS);
         return await this.ping(host, port, pingOptions);
       }
 

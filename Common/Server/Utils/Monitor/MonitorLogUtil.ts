@@ -7,6 +7,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import DataToProcess from "./DataToProcess";
+import MonitorLogTimeUtil from "./MonitorLogTimeUtil";
 
 /*
  * Maximum rows held in memory before we force a flush, and the
@@ -127,6 +128,17 @@ export default class MonitorLogUtil {
         const logTimestamp: string =
           OneUptimeDate.toClickhouseDateTime(logIngestionDate);
 
+        /*
+         * "Monitored At" is when the check ran, which is not when we write the
+         * row: a failing check spends its retry budget before reporting.
+         */
+        const monitoredAtTimestamp: string = OneUptimeDate.toClickhouseDateTime(
+          MonitorLogTimeUtil.getMonitorLogTime(
+            data.dataToProcess,
+            logIngestionDate,
+          ),
+        );
+
         const retentionDate: Date = OneUptimeDate.addRemoveDays(
           logIngestionDate,
           retentionDays,
@@ -137,7 +149,7 @@ export default class MonitorLogUtil {
           createdAt: logTimestamp,
           projectId: data.projectId.toString(),
           monitorId: data.monitorId.toString(),
-          time: logTimestamp,
+          time: monitoredAtTimestamp,
           logBody: JSON.parse(JSON.stringify(data.dataToProcess)),
           retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
         };

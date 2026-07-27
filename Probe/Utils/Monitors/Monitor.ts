@@ -42,6 +42,7 @@ import MonitorStep, {
   clampMonitorRetryCount,
   DEFAULT_MONITOR_REQUEST_TIMEOUT_IN_MS,
 } from "Common/Types/Monitor/MonitorStep";
+import MonitorCheckBudget from "Common/Types/Monitor/MonitorCheckBudget";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
@@ -196,6 +197,11 @@ export default class MonitorUtil {
         monitorId: monitor.id!,
         monitorStep: monitorStep,
         projectId: monitor.projectId!,
+        /*
+         * The check has to finish inside its own interval, otherwise the next
+         * one is claimed before this one reports and every result lands late.
+         */
+        monitoringInterval: monitor.monitoringInterval,
       });
 
       if (result) {
@@ -267,6 +273,8 @@ export default class MonitorUtil {
     monitorType: MonitorType;
     monitorId: ObjectID;
     projectId: ObjectID;
+    // Cron expression. Absent for one-off monitor tests, which are unscheduled.
+    monitoringInterval?: string | undefined;
   }): Promise<ProbeMonitorResponse | null> {
     const startNs: bigint = process.hrtime.bigint();
     const monitorTypeAttr: string = data.monitorType?.toString() || "unknown";
@@ -320,10 +328,18 @@ export default class MonitorUtil {
     monitorType: MonitorType;
     monitorId: ObjectID;
     projectId: ObjectID;
+    monitoringInterval?: string | undefined;
   }): Promise<ProbeMonitorResponse | null> {
     const monitorStep: MonitorStep = data.monitorStep;
     const monitorType: MonitorType = data.monitorType;
     const monitorId: ObjectID = data.monitorId;
+
+    /*
+     * When the check started. This is what the result is stamped with and what
+     * every deadline below is measured from, so a check that spends its retry
+     * budget still reports the moment it was actually taken.
+     */
+    const checkStartedAt: Date = OneUptimeDate.getCurrentDate();
 
     const result: ProbeMonitorResponse = {
       monitorStepId: monitorStep.id,
@@ -331,7 +347,7 @@ export default class MonitorUtil {
       monitorId: monitorId!,
       probeId: ProbeUtil.getProbeId(),
       failureCause: "",
-      monitoredAt: OneUptimeDate.getCurrentDate(),
+      monitoredAt: checkStartedAt,
     };
 
     if (!monitorStep.data) {
@@ -358,6 +374,64 @@ export default class MonitorUtil {
         ? clampMonitorRetryCount(monitorStep.data.retryCount)
         : PROBE_MONITOR_RETRY_LIMIT;
 
+    /*
+     * Wall-clock budget for this whole check — every attempt, every backoff
+     * and the post-failure traceroute included — capped so the check still
+     * fits inside its own monitoring interval. Reachability checks used to
+     * spend `requestTimeout × retryCount` (three minutes on the defaults)
+     * against an unreachable target, which overran the interval and made
+     * every result land minutes late.
+     *
+     * Only the reachability checks below are budgeted this way. The other
+     * monitor types keep `requestTimeoutInMs` as a plain per-request timeout.
+     */
+    const isReachabilityCheck: boolean =
+      monitorType === MonitorType.Ping ||
+      monitorType === MonitorType.IP ||
+      monitorType === MonitorType.Port;
+
+    const checkBudgetInMs: number = MonitorCheckBudget.getCheckBudgetInMs({
+      requestTimeoutInMs: requestTimeoutInMs,
+      monitoringInterval: data.monitoringInterval,
+      from: checkStartedAt,
+    });
+
+    // Held back so failure diagnostics cannot push the check past its budget.
+    const reachabilityBudgetInMs: number =
+      MonitorCheckBudget.getReachabilityBudgetInMs(checkBudgetInMs);
+
+    const reachabilityDeadlineAt: Date = MonitorCheckBudget.getDeadlineAt(
+      checkStartedAt,
+      reachabilityBudgetInMs,
+    );
+
+    const checkDeadlineAt: Date = MonitorCheckBudget.getDeadlineAt(
+      checkStartedAt,
+      checkBudgetInMs,
+    );
+
+    // Attempts the budget can actually pay for; usually all of them.
+    const reachabilityRetryCount: number =
+      MonitorCheckBudget.getAffordableAttemptCount({
+        budgetInMs: reachabilityBudgetInMs,
+        retryCount: retryCount,
+      });
+
+    const reachabilityAttemptTimeoutInMs: number =
+      MonitorCheckBudget.getAttemptTimeoutInMs({
+        budgetInMs: reachabilityBudgetInMs,
+        retryCount: retryCount,
+      });
+
+    if (
+      isReachabilityCheck &&
+      reachabilityAttemptTimeoutInMs < requestTimeoutInMs
+    ) {
+      logger.debug(
+        `Monitor ${monitorId.toString()} - attempt timeout shortened to ${reachabilityAttemptTimeoutInMs}ms (from ${requestTimeoutInMs}ms) so ${reachabilityRetryCount} attempts fit in the ${checkBudgetInMs}ms check budget.`,
+      );
+    }
+
     if (monitorType === MonitorType.Ping || monitorType === MonitorType.IP) {
       if (!monitorStep.data?.monitorDestination) {
         return result;
@@ -372,9 +446,10 @@ export default class MonitorUtil {
           monitorStep.data?.monitorDestination,
           new Port(80), // use port 80 by default.
           {
-            retry: retryCount,
+            retry: reachabilityRetryCount,
             monitorId: monitorId,
-            timeout: new PositiveNumber(requestTimeoutInMs),
+            timeout: new PositiveNumber(reachabilityAttemptTimeoutInMs),
+            deadlineAt: reachabilityDeadlineAt,
           },
         );
 
@@ -392,9 +467,10 @@ export default class MonitorUtil {
         const response: PingResponse | null = await PingMonitor.ping(
           monitorStep.data?.monitorDestination,
           {
-            retry: retryCount,
+            retry: reachabilityRetryCount,
             monitorId: monitorId,
-            timeout: new PositiveNumber(requestTimeoutInMs),
+            timeout: new PositiveNumber(reachabilityAttemptTimeoutInMs),
+            deadlineAt: reachabilityDeadlineAt,
           },
         );
 
@@ -433,9 +509,10 @@ export default class MonitorUtil {
         monitorStep.data?.monitorDestination,
         monitorStep.data.monitorDestinationPort,
         {
-          retry: retryCount,
+          retry: reachabilityRetryCount,
           monitorId: monitorId,
-          timeout: new PositiveNumber(requestTimeoutInMs),
+          timeout: new PositiveNumber(reachabilityAttemptTimeoutInMs),
+          deadlineAt: reachabilityDeadlineAt,
         },
       );
 
@@ -464,14 +541,28 @@ export default class MonitorUtil {
       result.isOnline === false &&
       monitorStep.data?.monitorDestination
     ) {
+      const diagnosticsBudgetInMs: number =
+        MonitorCheckBudget.getRemainingBudgetInMs(checkDeadlineAt);
+
       try {
-        result.networkPathTrace = await NetworkPathMonitor.trace(
-          monitorStep.data.monitorDestination,
-          {
-            timeout: 20000,
-            maxHops: 20,
-          },
-        );
+        if (diagnosticsBudgetInMs <= 0) {
+          /*
+           * The reachability attempts already used the whole budget. Skipping
+           * the trace keeps the check inside its interval — a late result is
+           * worse than a missing traceroute.
+           */
+          logger.debug(
+            `Monitor ${monitorId.toString()} - skipping network path trace, no time left in the check budget.`,
+          );
+        } else {
+          result.networkPathTrace = await NetworkPathMonitor.trace(
+            monitorStep.data.monitorDestination,
+            {
+              timeout: Math.min(20000, diagnosticsBudgetInMs),
+              maxHops: 20,
+            },
+          );
+        }
       } catch (err) {
         // Diagnostics must never turn a completed check into a failed one.
         logger.error(
@@ -900,9 +991,12 @@ export default class MonitorUtil {
       result.totalAttempts = response.totalAttempts;
     }
 
-    // update the monitoredAt time to the current time.
-    result.monitoredAt = OneUptimeDate.getCurrentDate();
-
+    /*
+     * monitoredAt stays at the moment the check STARTED (set above). Stamping
+     * it on completion instead made every result look as though it had been
+     * taken minutes after it was scheduled, because a failing check spends its
+     * whole retry budget before returning.
+     */
     return result;
   }
 }
