@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { fireEvent, render, RenderResult } from "@testing-library/react";
 import * as React from "react";
+import { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import Table, { BulkActionProps } from "../../../UI/Components/Table/Table";
 import TableColumnsToCsv from "../../../UI/Utils/TableColumnsToCsv";
@@ -29,6 +30,8 @@ interface Row {
   _id?: string | undefined;
   name?: string | undefined;
   description?: string | undefined;
+  hosts?: Array<{ name: string }> | undefined;
+  services?: Array<{ name: string }> | undefined;
 }
 
 const columns: Columns<Row> = [
@@ -45,6 +48,7 @@ interface RenderTableOptions {
   bulkActions?: BulkActionProps<Row> | undefined;
   bulkSelectedItems?: Array<Row> | undefined;
   disableBulkCsvExport?: boolean | undefined;
+  columns?: Columns<Row> | undefined;
 }
 
 type RenderTableFunction = (options: RenderTableOptions) => RenderResult;
@@ -56,7 +60,7 @@ const renderTable: RenderTableFunction = (
     <Table<Row>
       id="test-table"
       data={data}
-      columns={columns}
+      columns={options.columns || columns}
       currentPageNumber={1}
       totalItemsCount={data.length}
       itemsOnPage={10}
@@ -263,6 +267,111 @@ describe("Table bulk CSV export", () => {
       "Name,Description",
       ",",
       ",",
+    ]);
+  });
+
+  test("a placeholder id column is left out instead of exporting a raw uuid", () => {
+    spyOnDownload();
+
+    /*
+     * The "Owners" column on alerts / incidents / monitors renders entirely
+     * through getElement and declares `field: { _id: true }` only so the row
+     * gets fetched. It used to put the row's UUID in the file under the
+     * header "Owners".
+     */
+    const { getByText } = renderTable({
+      bulkActions: customBulkActions,
+      bulkSelectedItems: [data[0]!],
+      columns: [
+        { title: "Name", type: FieldType.Text, key: "name" },
+        {
+          title: "Owners",
+          type: FieldType.Element,
+          key: "_id",
+          exportKeys: ["_id"],
+          getElement: (): ReactElement => {
+            return <span>Owners</span>;
+          },
+        },
+      ],
+    });
+
+    fireEvent.click(getByText("Bulk Actions"));
+    fireEvent.click(getByText("Export CSV"));
+
+    expect(downloadedCsvFiles[0]!.csv.split("\r\n")).toEqual(["Name", "Alpha"]);
+  });
+
+  test("a placeholder id column that supplies an export value is exported", () => {
+    spyOnDownload();
+
+    const { getByText } = renderTable({
+      bulkActions: customBulkActions,
+      bulkSelectedItems: [data[0]!],
+      columns: [
+        { title: "Name", type: FieldType.Text, key: "name" },
+        {
+          title: "Owners",
+          type: FieldType.Element,
+          key: "_id",
+          exportKeys: ["_id"],
+          getElement: (): ReactElement => {
+            return <span>Owners</span>;
+          },
+          getExportValue: (item: Row): string => {
+            return `owner-of-${item.name}`;
+          },
+        },
+      ],
+    });
+
+    fireEvent.click(getByText("Bulk Actions"));
+    fireEvent.click(getByText("Export CSV"));
+
+    expect(downloadedCsvFiles[0]!.csv.split("\r\n")).toEqual([
+      "Name,Owners",
+      "Alpha,owner-of-Alpha",
+    ]);
+  });
+
+  test("a column that renders several relations exports all of them", () => {
+    spyOnDownload();
+
+    /*
+     * The alert "Affected Resources" cell spans hosts / kubernetesClusters /
+     * dockerHosts / podmanHosts / services. All of them are fetched, but only
+     * the first reached the file.
+     */
+    const { getByText } = renderTable({
+      bulkActions: customBulkActions,
+      bulkSelectedItems: [
+        {
+          _id: "1",
+          name: "Alpha",
+          hosts: [{ name: "web-01" }],
+          services: [{ name: "checkout" }],
+        },
+      ],
+      columns: [
+        { title: "Name", type: FieldType.Text, key: "name" },
+        {
+          title: "Affected Resources",
+          type: FieldType.EntityArray,
+          key: "hosts",
+          exportKeys: ["hosts", "services"],
+          getElement: (): ReactElement => {
+            return <span>Resources</span>;
+          },
+        },
+      ],
+    });
+
+    fireEvent.click(getByText("Bulk Actions"));
+    fireEvent.click(getByText("Export CSV"));
+
+    expect(downloadedCsvFiles[0]!.csv.split("\r\n")).toEqual([
+      "Name,Affected Resources",
+      "Alpha,web-01; checkout",
     ]);
   });
 });
