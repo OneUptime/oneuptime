@@ -112,7 +112,7 @@ function resolveIndexColumns(
   const propertiesMap: Record<string, string> = new Proxy(
     {},
     {
-      get: (_target: object, property: string | symbol) => {
+      get: (_target: Record<string, string>, property: string | symbol) => {
         return String(property);
       },
     },

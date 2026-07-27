@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddHotQueryIndexes1785140242697 implements MigrationInterface {
-  name = "AddHotQueryIndexes1785140242697";
+  public name = "AddHotQueryIndexes1785140242697";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
