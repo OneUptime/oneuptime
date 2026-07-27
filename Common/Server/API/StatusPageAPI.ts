@@ -119,44 +119,19 @@ type ResolveStatusPageIdOrThrowFunction = (
 const resolveStatusPageIdOrThrow: ResolveStatusPageIdOrThrowFunction = async (
   statusPageIdOrDomain: string,
 ): Promise<ObjectID> => {
-  if (!statusPageIdOrDomain) {
+  /*
+   * Delegates to the service resolver so every endpoint shares its
+   * custom-domain -> statusPageId cache (one Postgres lookup per domain per
+   * TTL instead of one per request).
+   */
+  const statusPageId: ObjectID | null =
+    await StatusPageService.resolveStatusPageIdOrNull(statusPageIdOrDomain);
+
+  if (!statusPageId) {
     throw new NotFoundException("Status Page not found");
   }
 
-  if (statusPageIdOrDomain.includes(".")) {
-    const statusPageDomain: StatusPageDomain | null =
-      await StatusPageDomainService.findOneBy({
-        query: {
-          fullDomain: statusPageIdOrDomain,
-          domain: {
-            isVerified: true,
-          } as any,
-        },
-        select: {
-          statusPageId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!statusPageDomain || !statusPageDomain.statusPageId) {
-      throw new NotFoundException("Status Page not found");
-    }
-
-    return statusPageDomain.statusPageId;
-  }
-
-  try {
-    ObjectID.validateUUID(statusPageIdOrDomain);
-    return new ObjectID(statusPageIdOrDomain);
-  } catch (err) {
-    logger.error(
-      `Error converting statusPageIdOrDomain to ObjectID: ${statusPageIdOrDomain}`,
-    );
-    logger.error(err);
-    throw new NotFoundException("Status Page not found");
-  }
+  return statusPageId;
 };
 
 export default class StatusPageAPI extends BaseAPI<
@@ -175,52 +150,18 @@ export default class StatusPageAPI extends BaseAPI<
           "statusPageIdOrDomain"
         ] as string;
 
-        let statusPageId: ObjectID | null = null;
+        // Shares the service resolver's custom-domain -> statusPageId cache.
+        const statusPageId: ObjectID | null =
+          await StatusPageService.resolveStatusPageIdOrNull(
+            statusPageIdOrDomain,
+          );
 
-        if (statusPageIdOrDomain && statusPageIdOrDomain.includes(".")) {
-          // then this is a domain and not the status page id. We need to get the status page id from the domain.
-
-          const statusPageDomain: StatusPageDomain | null =
-            await StatusPageDomainService.findOneBy({
-              query: {
-                fullDomain: statusPageIdOrDomain,
-                domain: {
-                  isVerified: true,
-                } as any,
-              },
-              select: {
-                statusPageId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (!statusPageDomain || !statusPageDomain.statusPageId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Status Page not found"),
-            );
-          }
-
-          statusPageId = statusPageDomain.statusPageId;
-        } else {
-          // then this is a status page id. We need to get the status page id from the id.
-          try {
-            statusPageId = new ObjectID(statusPageIdOrDomain);
-          } catch (err) {
-            logger.error(
-              `Error converting statusPageIdOrDomain to ObjectID: ${statusPageIdOrDomain}`,
-              getLogAttributesFromRequest(req as any),
-            );
-            logger.error(err, getLogAttributesFromRequest(req as any));
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Status Page not found"),
-            );
-          }
+        if (!statusPageId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
+          );
         }
 
         const statusPage: StatusPage | null = await StatusPageService.findOneBy(
@@ -1529,34 +1470,13 @@ export default class StatusPageAPI extends BaseAPI<
           req: req,
         });
 
-        // First fetch the status page to get the configured uptime history days
-        const statusPageForDays: StatusPage | null =
-          await StatusPageService.findOneBy({
-            query: {
-              _id: statusPageId.toString(),
-            },
-            select: {
-              showUptimeHistoryInDays: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        let uptimeHistoryDays: number =
-          statusPageForDays?.showUptimeHistoryInDays || 90;
-
-        if (uptimeHistoryDays > 90) {
-          uptimeHistoryDays = 90;
-        }
-
-        if (uptimeHistoryDays < 1) {
-          uptimeHistoryDays = 1;
-        }
-
-        const startDate: Date = OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
-        const endDate: Date = OneUptimeDate.getCurrentDate();
-
+        /*
+         * The timeline window comes from the status page's configured
+         * showUptimeHistoryInDays. getStatusPageResourcesAndTimelines
+         * fetches the status page row anyway, so let it compute the window
+         * (clamped to 1..90 days, ending now) instead of issuing a separate
+         * StatusPage query here just to read that one column.
+         */
         const {
           monitorStatuses,
           monitorGroupCurrentStatuses,
@@ -1566,10 +1486,10 @@ export default class StatusPageAPI extends BaseAPI<
           monitorStatusTimelines,
           statusPageGroups,
           monitorsInGroup,
-        } = await this.getStatusPageResourcesAndTimelines({
-          statusPageId: statusPageId,
           startDateForMonitorTimeline: startDate,
           endDateForMonitorTimeline: endDate,
+        } = await this.getStatusPageResourcesAndTimelines({
+          statusPageId: statusPageId,
         });
 
         // check if status page has active incident.
@@ -4881,8 +4801,15 @@ export default class StatusPageAPI extends BaseAPI<
   @CaptureSpan()
   public async getStatusPageResourcesAndTimelines(data: {
     statusPageId: ObjectID;
-    startDateForMonitorTimeline: Date;
-    endDateForMonitorTimeline: Date;
+    /*
+     * When omitted, the timeline window is computed from the status page's
+     * own showUptimeHistoryInDays (clamped to 1..90 days, ending now) —
+     * the status page row is fetched below anyway, so callers that want the
+     * page-configured window (the overview endpoint) don't need their own
+     * StatusPage query just to read that column.
+     */
+    startDateForMonitorTimeline?: Date | undefined;
+    endDateForMonitorTimeline?: Date | undefined;
   }): Promise<{
     statusPageResources: StatusPageResource[];
     monitorStatuses: MonitorStatus[];
@@ -4892,6 +4819,8 @@ export default class StatusPageAPI extends BaseAPI<
     statusPage: StatusPage;
     monitorsOnStatusPage: ObjectID[];
     monitorsInGroup: Dictionary<ObjectID[]>;
+    startDateForMonitorTimeline: Date;
+    endDateForMonitorTimeline: Date;
   }> {
     const objectId: ObjectID = data.statusPageId;
 
@@ -4926,6 +4855,27 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage) {
       throw new BadDataException("Status Page not found");
+    }
+
+    let startDateForMonitorTimeline: Date | undefined =
+      data.startDateForMonitorTimeline;
+    let endDateForMonitorTimeline: Date | undefined =
+      data.endDateForMonitorTimeline;
+
+    if (!startDateForMonitorTimeline || !endDateForMonitorTimeline) {
+      let uptimeHistoryDays: number = statusPage.showUptimeHistoryInDays || 90;
+
+      if (uptimeHistoryDays > 90) {
+        uptimeHistoryDays = 90;
+      }
+
+      if (uptimeHistoryDays < 1) {
+        uptimeHistoryDays = 1;
+      }
+
+      startDateForMonitorTimeline =
+        OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
+      endDateForMonitorTimeline = OneUptimeDate.getCurrentDate();
     }
 
     //get monitor statuses
@@ -5138,8 +5088,8 @@ export default class StatusPageAPI extends BaseAPI<
     const monitorStatusTimelines: Array<MonitorStatusTimeline> =
       await StatusPageService.getMonitorStatusTimelineForStatusPage({
         monitorIds: monitorsOnStatusPageForTimeline,
-        startDate: data.startDateForMonitorTimeline,
-        endDate: data.endDateForMonitorTimeline,
+        startDate: startDateForMonitorTimeline,
+        endDate: endDateForMonitorTimeline,
       });
 
     // return everything.
@@ -5153,6 +5103,8 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage,
       monitorsOnStatusPage,
       monitorsInGroup,
+      startDateForMonitorTimeline,
+      endDateForMonitorTimeline,
     };
   }
 

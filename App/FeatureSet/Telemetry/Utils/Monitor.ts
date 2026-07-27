@@ -37,17 +37,94 @@ export default class MonitorUtil {
     return secrets;
   }
 
+  /*
+   * Batched variant of loadMonitorSecrets: one query for a whole list of
+   * monitors (e.g. every monitor claimed by a probe fetch cycle) instead of
+   * one query per monitor. Secrets are grouped strictly by their own
+   * `monitors` relation, so a monitor can never receive a secret that is not
+   * attached to it.
+   */
+  public static async loadMonitorSecretsForMonitors(
+    monitorIds: Array<ObjectID>,
+  ): Promise<Map<string, Array<MonitorSecret>>> {
+    const secretsByMonitorId: Map<string, Array<MonitorSecret>> = new Map();
+
+    if (monitorIds.length === 0) {
+      return secretsByMonitorId;
+    }
+
+    const secrets: Array<MonitorSecret> = await MonitorSecretService.findBy({
+      query: {
+        monitors: QueryHelper.inRelationArray(monitorIds),
+      },
+      select: {
+        secretValue: true,
+        name: true,
+        monitors: {
+          _id: true,
+        },
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const secret of secrets) {
+      for (const monitor of secret.monitors || []) {
+        const monitorKey: string | undefined = monitor.id?.toString();
+
+        if (!monitorKey) {
+          continue;
+        }
+
+        if (!secretsByMonitorId.has(monitorKey)) {
+          secretsByMonitorId.set(monitorKey, []);
+        }
+
+        secretsByMonitorId.get(monitorKey)!.push(secret);
+      }
+    }
+
+    return secretsByMonitorId;
+  }
+
+  // True when any part of the monitor steps references a {{monitorSecrets.*}} value.
+  public static monitorStepsReferenceSecrets(
+    monitorSteps: MonitorSteps,
+  ): boolean {
+    return this.hasSecrets(JSONFunctions.toString(monitorSteps.toJSON()));
+  }
+
   public static async populateSecretsInMonitorSteps(data: {
     monitorSteps: MonitorSteps;
     monitorType: MonitorType;
     monitorId: ObjectID;
+    preloadedSecrets?: Array<MonitorSecret> | undefined;
   }): Promise<MonitorSteps> {
-    let isSecretsLoaded: boolean = false;
-    let monitorSecrets: MonitorSecret[] = [];
+    /*
+     * Secrets are loaded lazily (only when a step actually references one)
+     * and at most once per call — the promise is memoized so the many
+     * populate sites below can all await it without issuing duplicate
+     * queries. Callers that already batch-fetched secrets pass them in via
+     * preloadedSecrets and skip the query entirely.
+     */
+    let monitorSecretsPromise: Promise<MonitorSecret[]> | null =
+      data.preloadedSecrets ? Promise.resolve(data.preloadedSecrets) : null;
+
+    const getSecrets: () => Promise<MonitorSecret[]> = (): Promise<
+      MonitorSecret[]
+    > => {
+      if (!monitorSecretsPromise) {
+        monitorSecretsPromise = MonitorUtil.loadMonitorSecrets(data.monitorId);
+      }
+
+      return monitorSecretsPromise;
+    };
 
     const monitorSteps: MonitorSteps = data.monitorSteps;
     const monitorType: MonitorType = data.monitorType;
-    const monitorId: ObjectID = data.monitorId;
 
     if (monitorType === MonitorType.API) {
       for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
@@ -58,9 +135,7 @@ export default class MonitorUtil {
             JSONFunctions.toString(monitorStep.data.requestHeaders),
           )
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.requestHeaders =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -71,9 +146,7 @@ export default class MonitorUtil {
           monitorStep.data?.requestBody &&
           this.hasSecrets(JSONFunctions.toString(monitorStep.data.requestBody))
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.requestBody =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -101,9 +174,7 @@ export default class MonitorUtil {
           )
         ) {
           // replace secret in monitorDestination.
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.monitorDestination =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -125,10 +196,7 @@ export default class MonitorUtil {
           monitorStep.data?.tlsClientCertificate &&
           this.hasSecrets(monitorStep.data.tlsClientCertificate)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.tlsClientCertificate =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -141,10 +209,7 @@ export default class MonitorUtil {
           monitorStep.data?.tlsClientKey &&
           this.hasSecrets(monitorStep.data.tlsClientKey)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.tlsClientKey =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -157,10 +222,7 @@ export default class MonitorUtil {
           monitorStep.data?.tlsClientKeyPassphrase &&
           this.hasSecrets(monitorStep.data.tlsClientKeyPassphrase)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.tlsClientKeyPassphrase =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -182,9 +244,7 @@ export default class MonitorUtil {
           this.hasSecrets(JSONFunctions.toString(monitorStep.data.customCode))
         ) {
           // replace secret in script
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.customCode =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -203,10 +263,7 @@ export default class MonitorUtil {
           monitorStep.data?.snmpMonitor?.communityString &&
           this.hasSecrets(monitorStep.data.snmpMonitor.communityString)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.snmpMonitor.communityString =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -220,10 +277,7 @@ export default class MonitorUtil {
           monitorStep.data?.snmpMonitor?.snmpV3Auth?.authKey &&
           this.hasSecrets(monitorStep.data.snmpMonitor.snmpV3Auth.authKey)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.snmpMonitor.snmpV3Auth.authKey =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -238,10 +292,7 @@ export default class MonitorUtil {
           monitorStep.data?.snmpMonitor?.snmpV3Auth?.privKey &&
           this.hasSecrets(monitorStep.data.snmpMonitor.snmpV3Auth.privKey)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.snmpMonitor.snmpV3Auth.privKey =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -261,10 +312,7 @@ export default class MonitorUtil {
           monitorStep.data?.dnsMonitor?.hostname &&
           this.hasSecrets(monitorStep.data.dnsMonitor.hostname)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.dnsMonitor.hostname =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -278,10 +326,7 @@ export default class MonitorUtil {
           monitorStep.data?.dnsMonitor?.queryName &&
           this.hasSecrets(monitorStep.data.dnsMonitor.queryName)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.dnsMonitor.queryName =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -300,10 +345,7 @@ export default class MonitorUtil {
           monitorStep.data?.domainMonitor?.domainName &&
           this.hasSecrets(monitorStep.data.domainMonitor.domainName)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.domainMonitor.domainName =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -321,10 +363,7 @@ export default class MonitorUtil {
           monitorStep.data?.dnssecMonitor?.domainName &&
           this.hasSecrets(monitorStep.data.dnssecMonitor.domainName)
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.dnssecMonitor.domainName =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -357,10 +396,7 @@ export default class MonitorUtil {
             monitorStep.data.sqlMonitor[field];
 
           if (currentValue && this.hasSecrets(currentValue)) {
-            if (!isSecretsLoaded) {
-              monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-              isSecretsLoaded = true;
-            }
+            const monitorSecrets: MonitorSecret[] = await getSecrets();
 
             monitorStep.data.sqlMonitor[field] =
               (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -382,10 +418,7 @@ export default class MonitorUtil {
             monitorStep.data.externalStatusPageMonitor.statusPageUrl,
           )
         ) {
-          if (!isSecretsLoaded) {
-            monitorSecrets = await MonitorUtil.loadMonitorSecrets(monitorId);
-            isSecretsLoaded = true;
-          }
+          const monitorSecrets: MonitorSecret[] = await getSecrets();
 
           monitorStep.data.externalStatusPageMonitor.statusPageUrl =
             (await MonitorUtil.fillSecretsInStringOrJSON({
@@ -430,7 +463,10 @@ export default class MonitorUtil {
     return monitorTest;
   }
 
-  public static async populateSecrets(monitor: Monitor): Promise<Monitor> {
+  public static async populateSecrets(
+    monitor: Monitor,
+    preloadedSecrets?: Array<MonitorSecret> | undefined,
+  ): Promise<Monitor> {
     if (!monitor.id) {
       return monitor;
     }
@@ -451,6 +487,7 @@ export default class MonitorUtil {
       monitorSteps: monitor.monitorSteps,
       monitorType: monitor.monitorType,
       monitorId: monitor.id,
+      preloadedSecrets: preloadedSecrets,
     });
 
     return monitor;

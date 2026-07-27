@@ -1285,6 +1285,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
     description: "When is the next event scheduled?",
     example: "2024-03-29T02:00:00.000Z",
   })
+  @Index()
   @Column({
     type: ColumnType.Date,
     nullable: true,

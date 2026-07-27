@@ -187,15 +187,17 @@ router.post(
         statusMessage += ` Provider error code: ${errorCode}.`;
       }
 
-      await SmsLogService.updateOneById({
+      /*
+       * Per-delivery-callback bookkeeping stamp. SmsLog has update workflows
+       * disabled and no audit/realtime decorators or service update hooks,
+       * so skip the full update pipeline.
+       */
+      await SmsLogService.updateColumnsByIdWithoutHooks({
         id: smsLog.id!,
         data: {
           status: mappedStatus,
           statusMessage: statusMessage,
           ...(errorCode ? { errorCode: errorCode } : {}),
-        },
-        props: {
-          isRoot: true,
         },
       });
 

@@ -448,17 +448,20 @@ export default class SmsService {
 
     if (options.projectId) {
       if (smsLogId) {
-        // Row was inserted before the send — persist the resulting state.
-        await SmsLogService.updateOneById({
+        /*
+         * Row was inserted before the send — persist the resulting state.
+         * Runs once per SMS. SmsLog has update workflows disabled and no
+         * audit/realtime decorators or service update hooks, so the full
+         * update pipeline (re-SELECT + save transaction) is pure overhead —
+         * a single hookless UPDATE is equivalent.
+         */
+        await SmsLogService.updateColumnsByIdWithoutHooks({
           id: smsLogId,
           data: {
             status: smsLog.status!,
             statusMessage: smsLog.statusMessage!,
             smsCostInUSDCents: smsLog.smsCostInUSDCents!,
             ...(smsLog.errorCode ? { errorCode: smsLog.errorCode } : {}),
-          },
-          props: {
-            isRoot: true,
           },
         });
       } else {

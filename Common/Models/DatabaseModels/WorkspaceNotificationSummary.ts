@@ -698,6 +698,7 @@ class WorkspaceNotificationSummary extends BaseModel {
     title: "Next Send At",
     description: "When the next summary should be sent",
   })
+  @Index()
   @Column({
     type: ColumnType.Date,
     nullable: true,

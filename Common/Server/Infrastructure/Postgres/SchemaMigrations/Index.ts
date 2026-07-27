@@ -471,6 +471,7 @@ import { AddNetworkSiteTypeTable1784986826214 } from "./1784986826214-AddNetwork
 import { AddServiceLevelObjective1784987015619 } from "./1784987015619-AddServiceLevelObjective";
 import { MigrationName1785066759532 } from "./1785066759532-MigrationName";
 import { AddHotQueryIndexes1785140242697 } from "./1785140242697-AddHotQueryIndexes";
+import { AddHotQueryIndexesSecondPass1785148065137 } from "./1785148065137-AddHotQueryIndexesSecondPass";
 
 export default [
   InitialMigration,
@@ -946,4 +947,5 @@ export default [
   AddServiceLevelObjective1784987015619,
   MigrationName1785066759532,
   AddHotQueryIndexes1785140242697,
+  AddHotQueryIndexesSecondPass1785148065137,
 ];

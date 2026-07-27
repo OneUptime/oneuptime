@@ -45,8 +45,23 @@ RunCron(
           continue;
         }
 
+        /*
+         * The sweep already selected monitorSteps, so filter out monitors
+         * with no Is Online criteria here — before paying a per-monitor
+         * re-fetch query for monitors that would be skipped anyway.
+         */
+        if (!shouldProcessRequest(monitor)) {
+          continue;
+        }
+
         const monitorTask: Promise<void> = (async () => {
           try {
+            /*
+             * Re-check freshness right before processing: the monitor may
+             * have received a response since the sweep. monitorSteps is
+             * deliberately not re-selected — the Is Online filter already
+             * ran on the sweep row above.
+             */
             const serverMonitor: Monitor | null =
               await MonitorService.findOneBy({
                 query: {
@@ -59,7 +74,6 @@ RunCron(
                 },
                 select: {
                   _id: true,
-                  monitorSteps: true,
                   projectId: true,
                   serverMonitorRequestReceivedAt: true,
                   createdAt: true,
@@ -69,12 +83,6 @@ RunCron(
 
             if (!serverMonitor) {
               // server monitor may have receievd a response in the last 2 minutes
-              return;
-            }
-
-            const processRequest: boolean = shouldProcessRequest(serverMonitor);
-
-            if (!processRequest) {
               return;
             }
 
