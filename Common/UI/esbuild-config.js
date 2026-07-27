@@ -182,28 +182,16 @@ function createFileLoaderPlugin() {
   };
 }
 
-// Services that never bundle a CodeEditor should not carry the runtime, so the
-// built output decides rather than a hand-maintained list of service names.
-function usesMonaco(outdir) {
-  if (!outdir || !fs.existsSync(outdir)) {
-    return false;
-  }
-
-  return fs.readdirSync(outdir, { recursive: true }).some((entry) => {
-    return (
-      typeof entry === "string" &&
-      entry.endsWith(".js") &&
-      fs
-        .readFileSync(path.join(outdir, entry), "utf8")
-        .includes("assets/monaco/vs")
-    );
-  });
-}
-
 // Copy Monaco's runtime next to the bundle so the editor loads from this
 // install instead of cdn.jsdelivr.net, which is unreachable when self-hosted
 // offline. Only min/vs is copied - the rest of the package is sources and
 // type definitions the browser never asks for.
+//
+// Every frontend gets a copy. Forms/Fields/FormField.tsx imports CodeEditor
+// directly, so every service that renders a form pulls the editor into its
+// bundle - there is no service to skip. Gating this on the built output only
+// looked selective; it matched all five services and risked a silent offline
+// 404 the moment a code field showed up somewhere unexpected.
 function copyMonacoAssets(outdir) {
   const source = path.join(resolvePackageRoot("monaco-editor"), "min", "vs");
   const destination = path.resolve(path.dirname(outdir), "assets/monaco/vs");
@@ -355,10 +343,8 @@ async function build(config, serviceName) {
   try {
     const result = await esbuild.build(config);
 
-    if (usesMonaco(config.outdir)) {
-      copyMonacoAssets(config.outdir);
-      console.log(`📦 Copied Monaco assets for ${serviceName}`);
-    }
+    copyMonacoAssets(config.outdir);
+    console.log(`📦 Copied Monaco assets for ${serviceName}`);
 
     if (isAnalyze && result.metafile) {
       const analyzeText = await esbuild.analyzeMetafile(result.metafile);
@@ -386,12 +372,12 @@ async function build(config, serviceName) {
 async function watch(config, serviceName) {
   try {
     const context = await esbuild.context(config);
-    await context.rebuild();
 
-    if (usesMonaco(config.outdir)) {
-      copyMonacoAssets(config.outdir);
-      console.log(`📦 Copied Monaco assets for ${serviceName}`);
-    }
+    // The copy no longer reads the built output, so it can run before the
+    // first build instead of forcing an extra one just to have something to
+    // inspect. context.watch() does the initial build on its own.
+    copyMonacoAssets(config.outdir);
+    console.log(`📦 Copied Monaco assets for ${serviceName}`);
 
     await context.watch();
     console.log(`👀 Watching ${serviceName} for changes...`);
