@@ -185,7 +185,7 @@ describe("InsightFixRouting.routeInsightFix", () => {
     const create: jest.SpyInstance = jest
       .spyOn(TelemetryExceptionService, "createCodeFixRunForException")
       .mockResolvedValue({ id: fixRunId } as unknown as AIRun);
-    jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(undefined);
+    jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1);
 
     const explicitlyOn: InsightFixRoutingResult =
       await InsightFixRouting.routeInsightFix({
@@ -303,7 +303,7 @@ describe("InsightFixRouting.routeInsightFix", () => {
       .mockResolvedValue({ id: fixRunId } as unknown as AIRun);
     const stamp: jest.SpyInstance = jest
       .spyOn(AIRunService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
 
     const result: InsightFixRoutingResult =
       await InsightFixRouting.routeInsightFix({
@@ -339,7 +339,7 @@ describe("InsightFixRouting.routeInsightFix", () => {
       .mockResolvedValue({ id: fixRunId } as unknown as AIRun);
     const stamp: jest.SpyInstance = jest
       .spyOn(AIRunService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
 
     const result: InsightFixRoutingResult =
       await InsightFixRouting.routeInsightFix({
@@ -382,7 +382,7 @@ describe("InsightFixRouting.routeInsightFix", () => {
     const createFromFindings: jest.SpyInstance = jest
       .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromFindings")
       .mockResolvedValue({ id: fixRunId } as unknown as AIRun);
-    jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(undefined);
+    jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1);
 
     await InsightFixRouting.routeInsightFix({
       insight: makeLatencyInsight({ traceId: undefined }),

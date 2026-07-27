@@ -160,7 +160,7 @@ describe("InsightTriage.enqueueInsightTriage", () => {
       .mockResolvedValue(triageRunId);
     const persist: jest.SpyInstance = jest
       .spyOn(AIInsightService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
 
     const result: InsightTriageResult =
       await InsightTriage.enqueueInsightTriage({ insight: makeInsight() });

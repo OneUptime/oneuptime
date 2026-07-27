@@ -83,9 +83,7 @@ function mockFindOneBy(existing: AIInsight | null): jest.SpyInstance {
 }
 
 function mockUpdateOneById(): jest.SpyInstance {
-  return jest
-    .spyOn(AIInsightService, "updateOneById")
-    .mockResolvedValue(undefined);
+  return jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
 }
 
 describe("InsightStore — column-length clamps", () => {
