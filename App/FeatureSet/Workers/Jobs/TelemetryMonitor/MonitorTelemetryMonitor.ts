@@ -179,7 +179,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
       },
     });
 
-    const updatePromises: Array<Promise<number>> = [];
+    const updatePromises: Array<Promise<void>> = [];
 
     for (const telemetryMonitor of telemetryMonitors) {
       let nextPing: Date = OneUptimeDate.addRemoveMinutes(
