@@ -676,6 +676,7 @@ export default class StatusPageAnnouncement extends BaseModel {
     type: TableColumnType.ShortText,
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
+  @Index()
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,

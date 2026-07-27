@@ -8,7 +8,6 @@ import IncidentPublicNoteService from "../Services/IncidentPublicNoteService";
 import IncidentService from "../Services/IncidentService";
 import IncidentStateService from "../Services/IncidentStateService";
 import IncidentStateTimelineService from "../Services/IncidentStateTimelineService";
-import MonitorGroupResourceService from "../Services/MonitorGroupResourceService";
 import MonitorGroupService from "../Services/MonitorGroupService";
 import MonitorStatusService from "../Services/MonitorStatusService";
 import ScheduledMaintenancePublicNoteService from "../Services/ScheduledMaintenancePublicNoteService";
@@ -1727,10 +1726,54 @@ export default class StatusPageAPI extends BaseAPI<
         let episodePublicNotes: Array<IncidentEpisodePublicNote> = [];
         let episodeStateTimelines: Array<IncidentEpisodeStateTimeline> = [];
 
+        /*
+         * Cheap guard before the expensive part: the block below scans every
+         * incident ever attached to this page's monitors (a many-to-many
+         * join, up to LIMIT_PER_PROJECT rows) just to discover episode
+         * membership — on every overview view, even though most pages have
+         * zero active episodes most of the time. One indexed COUNT of the
+         * project's unresolved, visible episodes lets us skip all of it in
+         * the common case. Behavior-preserving: the final activeEpisodes
+         * query applies exactly these three constraints, so count == 0
+         * implies the block's outputs stay empty.
+         */
+        let unresolvedIncidentStateIds: Array<ObjectID> = [];
+        let hasActiveEpisodes: boolean = false;
+
         if (
           statusPage.showEpisodesOnStatusPage &&
           monitorsOnStatusPage.length > 0
         ) {
+          const unresolvedIncidentStates: Array<IncidentState> =
+            await IncidentStateService.getUnresolvedIncidentStates(
+              statusPage.projectId!,
+              { isRoot: true },
+            );
+
+          unresolvedIncidentStateIds = unresolvedIncidentStates.map(
+            (state: IncidentState) => {
+              return state.id!;
+            },
+          );
+
+          const activeEpisodeCount: PositiveNumber =
+            await IncidentEpisodeService.countBy({
+              query: {
+                projectId: statusPage.projectId!,
+                isVisibleOnStatusPage: true,
+                currentIncidentStateId: QueryHelper.any(
+                  unresolvedIncidentStateIds,
+                ),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          hasActiveEpisodes = activeEpisodeCount.toNumber() > 0;
+        }
+
+        if (hasActiveEpisodes) {
           // First, get incidents that have monitors on status page
           const incidentsForEpisodes: Array<Incident> =
             await IncidentService.findBy({
@@ -1784,17 +1827,7 @@ export default class StatusPageAPI extends BaseAPI<
 
           // Fetch active (unresolved) episodes
           if (episodeIdsFromMembers.size > 0) {
-            const unresolvedIncidentStates: Array<IncidentState> =
-              await IncidentStateService.getUnresolvedIncidentStates(
-                statusPage.projectId!,
-                { isRoot: true },
-              );
-
-            const unresolvedIncidentStateIds: Array<ObjectID> =
-              unresolvedIncidentStates.map((state: IncidentState) => {
-                return state.id!;
-              });
-
+            // unresolvedIncidentStateIds was fetched by the guard above.
             let selectEpisodes: Select<IncidentEpisode> = {
               createdAt: true,
               declaredAt: true,
@@ -3009,31 +3042,15 @@ export default class StatusPageAPI extends BaseAPI<
         return Boolean(id); // remove nulls
       });
 
+    // Batched: one query for all monitor groups instead of one per group.
+    const monitorIdsByGroupId: Dictionary<Array<ObjectID>> =
+      await MonitorGroupService.getMonitorIdsInMonitorGroups(monitorGroupIds);
+
     for (const monitorGroupId of monitorGroupIds) {
       // get monitors in the group.
 
-      const groupResources: Array<MonitorGroupResource> =
-        await MonitorGroupResourceService.findBy({
-          query: {
-            monitorGroupId: monitorGroupId,
-          },
-          select: {
-            monitorId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        });
-
-      const monitorsInGroupIds: Array<ObjectID> = groupResources
-        .map((resource: MonitorGroupResource) => {
-          return resource.monitorId!;
-        })
-        .filter((id: ObjectID) => {
-          return Boolean(id); // remove nulls
-        });
+      const monitorsInGroupIds: Array<ObjectID> =
+        monitorIdsByGroupId[monitorGroupId.toString()] || [];
 
       for (const monitorId of monitorsInGroupIds) {
         if (
@@ -3232,31 +3249,15 @@ export default class StatusPageAPI extends BaseAPI<
         return Boolean(id); // remove nulls
       });
 
+    // Batched: one query for all monitor groups instead of one per group.
+    const monitorIdsByGroupId: Dictionary<Array<ObjectID>> =
+      await MonitorGroupService.getMonitorIdsInMonitorGroups(monitorGroupIds);
+
     for (const monitorGroupId of monitorGroupIds) {
       // get monitors in the group.
 
-      const groupResources: Array<MonitorGroupResource> =
-        await MonitorGroupResourceService.findBy({
-          query: {
-            monitorGroupId: monitorGroupId,
-          },
-          select: {
-            monitorId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        });
-
-      const monitorsInGroupIds: Array<ObjectID> = groupResources
-        .map((resource: MonitorGroupResource) => {
-          return resource.monitorId!;
-        })
-        .filter((id: ObjectID) => {
-          return Boolean(id); // remove nulls
-        });
+      const monitorsInGroupIds: Array<ObjectID> =
+        monitorIdsByGroupId[monitorGroupId.toString()] || [];
 
       for (const monitorId of monitorsInGroupIds) {
         if (
@@ -4177,6 +4178,8 @@ export default class StatusPageAPI extends BaseAPI<
     const { monitorsOnStatusPage, monitorsInGroup } =
       await StatusPageService.getMonitorIdsOnStatusPage({
         statusPageId: statusPageId,
+        // reuse the resources fetched above instead of re-querying them
+        statusPageResources: statusPageResources,
       });
 
     const today: Date = OneUptimeDate.getCurrentDate();
@@ -4453,6 +4456,8 @@ export default class StatusPageAPI extends BaseAPI<
     const { monitorsOnStatusPage, monitorsInGroup } =
       await StatusPageService.getMonitorIdsOnStatusPage({
         statusPageId: statusPageId,
+        // reuse the resources fetched above instead of re-querying them
+        statusPageResources: statusPageResources,
       });
 
     const today: Date = OneUptimeDate.getCurrentDate();
@@ -5049,35 +5054,42 @@ export default class StatusPageAPI extends BaseAPI<
         return Boolean(id); // remove nulls
       });
 
+    /*
+     * Batched: this loop used to issue 4 queries per monitor group per page
+     * view (3 inside MonitorGroupService.getCurrentStatus + one duplicate
+     * group-resource fetch), on the hottest public endpoint in the product.
+     * One shared fetch + the already-loaded `monitorStatuses` now serve every
+     * group.
+     */
+    const monitorGroupResourcesByGroupId: Dictionary<
+      Array<MonitorGroupResource>
+    > = await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+      monitorGroupIds,
+    );
+
+    const monitorGroupStatuses: Dictionary<MonitorStatus> =
+      await MonitorGroupService.getCurrentStatusesForMonitorGroups({
+        monitorGroupIds: monitorGroupIds,
+        monitorStatuses: monitorStatuses,
+        monitorGroupResources: monitorGroupResourcesByGroupId,
+      });
+
     for (const monitorGroupId of monitorGroupIds) {
       // get current status of monitors in the group.
 
-      const currentStatus: MonitorStatus =
-        await MonitorGroupService.getCurrentStatus(monitorGroupId, {
-          isRoot: true,
-        });
+      const currentStatus: MonitorStatus | undefined =
+        monitorGroupStatuses[monitorGroupId.toString()];
 
-      monitorGroupCurrentStatuses[monitorGroupId.toString()] =
-        currentStatus.id!;
+      if (currentStatus) {
+        monitorGroupCurrentStatuses[monitorGroupId.toString()] =
+          currentStatus.id!;
+      }
 
       // get monitors in the group.
 
-      const groupResources: Array<MonitorGroupResource> =
-        await MonitorGroupResourceService.findBy({
-          query: {
-            monitorGroupId: monitorGroupId,
-          },
-          select: {
-            monitorId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        });
-
-      const monitorsInGroupIds: Array<ObjectID> = groupResources
+      const monitorsInGroupIds: Array<ObjectID> = (
+        monitorGroupResourcesByGroupId[monitorGroupId.toString()] || []
+      )
         .map((resource: MonitorGroupResource) => {
           return resource.monitorId!;
         })

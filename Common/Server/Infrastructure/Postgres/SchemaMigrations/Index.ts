@@ -470,6 +470,7 @@ import { AddNetworkDevicePollingColumns1784970388777 } from "./1784970388777-Add
 import { AddNetworkSiteTypeTable1784986826214 } from "./1784986826214-AddNetworkSiteTypeTable";
 import { AddServiceLevelObjective1784987015619 } from "./1784987015619-AddServiceLevelObjective";
 import { MigrationName1785066759532 } from "./1785066759532-MigrationName";
+import { AddHotQueryIndexes1785140242697 } from "./1785140242697-AddHotQueryIndexes";
 
 export default [
   InitialMigration,
@@ -944,4 +945,5 @@ export default [
   AddNetworkSiteTypeTable1784986826214,
   AddServiceLevelObjective1784987015619,
   MigrationName1785066759532,
+  AddHotQueryIndexes1785140242697,
 ];

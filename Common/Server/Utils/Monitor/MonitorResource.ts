@@ -297,11 +297,18 @@ export default class MonitorResourceUtil {
            */
 
           if (!isSnmpTrapEvent) {
-            await MonitorProbeService.updateOneBy({
-              query: {
-                monitorId: monitor.id!,
-                probeId: (dataToProcess as ProbeMonitorResponse).probeId!,
-              },
+            /*
+             * Runs once per probe check result — the hottest recurring write
+             * in the product. The full updateOneBy pipeline would re-SELECT
+             * this row (including the large lastMonitoringLog jsonb we just
+             * fetched above) and then save() it (another SELECT + UPDATE in a
+             * transaction). MonitorProbe has no workflow/audit/realtime
+             * decorators, so those hooks were inert anyway — a single
+             * UPDATE by the id we already hold is equivalent and 3x cheaper.
+             * See the Monitor heartbeat writes below for the same pattern.
+             */
+            await MonitorProbeService.updateColumnsByIdWithoutHooks({
+              id: monitorProbe.id!,
               data: {
                 lastMonitoringLog: {
                   ...(monitorProbe.lastMonitoringLog || {}),
@@ -312,9 +319,6 @@ export default class MonitorResourceUtil {
                     monitoredAt: OneUptimeDate.getCurrentDate(),
                   },
                 } as any,
-              },
-              props: {
-                isRoot: true,
               },
             });
           }
