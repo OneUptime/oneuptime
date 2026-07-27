@@ -87,22 +87,26 @@ router.post(
         });
 
       for (const scan of scans) {
-        await NetworkDeviceDiscoveryScanService.updateOneById({
+        /*
+         * Claim via the hook-free single-statement write: the model and
+         * service have no update hooks, workflow, realtime, or audit
+         * decorators, so the full updateOneById pipeline (permission
+         * pre-fetch SELECT + row re-fetch + save() transaction) was pure
+         * overhead — three extra pool round-trips on a route the probe
+         * polls every minute and whose response it synchronously waits on.
+         *
+         * Plain object, NOT a model instance: a `new
+         * NetworkDeviceDiscoveryScan()` payload carries non-column base
+         * props (isPermissionIf) that made every update here throw, so no
+         * scan ever left Pending. Cast: the model's JSON column makes
+         * DeepPartial recursion blow up.
+         */
+        await NetworkDeviceDiscoveryScanService.updateColumnsByIdWithoutHooks({
           id: scan.id!,
-          /*
-           * Plain object, NOT a model instance: a `new
-           * NetworkDeviceDiscoveryScan()` payload carries non-column base
-           * props (isPermissionIf) that made every update here throw, so no
-           * scan ever left Pending. Cast: the model's JSON column makes
-           * DeepPartial recursion blow up.
-           */
           data: {
             status: "In Progress",
             startedAt: OneUptimeDate.getCurrentDate(),
           } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
-          props: {
-            isRoot: true,
-          },
         });
       }
 

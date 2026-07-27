@@ -44,14 +44,15 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
-      // Update last alive in probe and return success response.
-
-      const data: JSONObject = req.body;
-
-      const probeId: ObjectID = new ObjectID(data["probeId"] as string);
-
-      await ProbeService.updateLastAlive(probeId);
-
+      /*
+       * The auth middleware has already verified this probe AND scheduled
+       * the lastAlive stamp (it does so for every authenticated probe
+       * request — a request that authenticates IS proof of liveness).
+       * Awaiting a second updateLastAlive here would re-couple the
+       * heartbeat's response time to Postgres write latency, which is the
+       * exact coupling that let a slow database mark healthy probes
+       * Disconnected while they were successfully running their checks.
+       */
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);

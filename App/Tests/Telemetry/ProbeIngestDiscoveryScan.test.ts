@@ -58,6 +58,7 @@ jest.mock("Common/Server/Services/NetworkDeviceDiscoveryScanService", () => {
       findBy: jest.fn(),
       findOneBy: jest.fn(),
       updateOneById: jest.fn(),
+      updateColumnsByIdWithoutHooks: jest.fn(),
     },
   };
 });
@@ -92,6 +93,7 @@ type MockedService = {
   findBy: jest.Mock;
   findOneBy: jest.Mock;
   updateOneById: jest.Mock;
+  updateColumnsByIdWithoutHooks: jest.Mock;
 };
 
 const scanService: MockedService =
@@ -179,7 +181,9 @@ describe("POST /probe/discovery-scan/list", () => {
       scanId,
     );
     scanService.findBy.mockResolvedValue([scan] as never);
-    scanService.updateOneById.mockResolvedValue(undefined as never);
+    scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
+      undefined as never,
+    );
 
     const { next } = await callListEndpoint(makeRequest({ probeId }));
 
@@ -199,10 +203,17 @@ describe("POST /probe/discovery-scan/list", () => {
     );
     expect((findArgs["props"] as JSONObject)["isRoot"]).toBe(true);
 
-    // The claim: status In Progress + startedAt, and nothing else.
-    expect(scanService.updateOneById).toHaveBeenCalledTimes(1);
-    const updateArgs: JSONObject = scanService.updateOneById.mock
-      .calls[0]![0] as JSONObject;
+    /*
+     * The claim: status In Progress + startedAt, and nothing else — via the
+     * hook-free single-statement write. The probe synchronously waits on
+     * this route every minute, so the claim must not pay the full
+     * updateOneById pipeline (permission pre-fetch + row re-fetch + save()
+     * transaction) for a model with no update hooks.
+     */
+    expect(scanService.updateOneById).not.toHaveBeenCalled();
+    expect(scanService.updateColumnsByIdWithoutHooks).toHaveBeenCalledTimes(1);
+    const updateArgs: JSONObject = scanService.updateColumnsByIdWithoutHooks
+      .mock.calls[0]![0] as JSONObject;
     expect((updateArgs["id"] as ObjectID).toString()).toBe(scanId.toString());
     const data: JSONObject = expectPlainUpdateData(updateArgs["data"]);
     expect(Object.keys(data).sort()).toEqual(["startedAt", "status"]);
@@ -224,12 +235,14 @@ describe("POST /probe/discovery-scan/list", () => {
       ObjectID.generate(),
     );
     scanService.findBy.mockResolvedValue([scan] as never);
-    scanService.updateOneById.mockResolvedValue(undefined as never);
+    scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
+      undefined as never,
+    );
 
     await callListEndpoint(makeRequest({ probeId }));
 
     const updateOrder: number =
-      scanService.updateOneById.mock.invocationCallOrder[0]!;
+      scanService.updateColumnsByIdWithoutHooks.mock.invocationCallOrder[0]!;
     const respondOrder: number =
       responseUtil.sendEntityArrayResponse.mock.invocationCallOrder[0]!;
     expect(updateOrder).toBeLessThan(respondOrder);
@@ -266,11 +279,13 @@ describe("POST /probe/discovery-scan/list", () => {
       new NetworkDeviceDiscoveryScan(ObjectID.generate()),
     ];
     scanService.findBy.mockResolvedValue(scans as never);
-    scanService.updateOneById.mockResolvedValue(undefined as never);
+    scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
+      undefined as never,
+    );
 
     await callListEndpoint(makeRequest({ probeId }));
 
-    expect(scanService.updateOneById).toHaveBeenCalledTimes(2);
+    expect(scanService.updateColumnsByIdWithoutHooks).toHaveBeenCalledTimes(2);
   });
 
   test("no pending scans: responds with an empty list and updates nothing", async () => {
@@ -278,6 +293,7 @@ describe("POST /probe/discovery-scan/list", () => {
 
     await callListEndpoint(makeRequest({ probeId }));
 
+    expect(scanService.updateColumnsByIdWithoutHooks).not.toHaveBeenCalled();
     expect(scanService.updateOneById).not.toHaveBeenCalled();
     expect(responseUtil.sendEntityArrayResponse).toHaveBeenCalledWith(
       expect.anything(),

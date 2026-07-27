@@ -57,7 +57,6 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
-import ProxyConfig from "../ProxyConfig";
 
 export default class MonitorUtil {
   // Replace dynamic URL placeholders like {{timestamp}} and {{random}} with actual values.
@@ -141,9 +140,8 @@ export default class MonitorUtil {
             probeMonitorResponse: result as any,
           },
           headers: {},
-          options: {
-            ...ProxyConfig.getRequestProxyAgents(monitorTestIngestUrl),
-          },
+          options:
+            ProbeAPIRequest.getDefaultRequestOptions(monitorTestIngestUrl),
         });
       }
 
@@ -212,9 +210,7 @@ export default class MonitorUtil {
             probeMonitorResponse: result as any,
           },
           headers: {},
-          options: {
-            ...ProxyConfig.getRequestProxyAgents(monitorIngestUrl),
-          },
+          options: ProbeAPIRequest.getDefaultRequestOptions(monitorIngestUrl),
         });
       }
 
