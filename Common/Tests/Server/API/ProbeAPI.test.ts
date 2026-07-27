@@ -71,6 +71,12 @@ describe("ProbeAPI", () => {
         connectionStatus: true,
         lastAlive: true,
         iconFileId: true,
+        /*
+         * The monitor create form pre-selects the probes that auto-enable on
+         * new monitors, and global probes are not project rows - this endpoint
+         * is the only place the browser can learn the flag for them.
+         */
+        shouldAutoEnableProbeOnNewMonitors: true,
       },
       props: {
         isRoot: true,
