@@ -67,6 +67,21 @@ export interface ComponentProps<T extends GenericObject> {
   onActionStart?: (() => void) | undefined;
   onActionEnd?: (() => void) | undefined;
   itemToString?: ((item: T) => string) | undefined;
+  /*
+   * Selecting everything is a multi-request fetch that can fail. Surfacing it
+   * here - next to the button the user pressed - keeps the message alive; the
+   * table body's own error is wiped by the next refresh.
+   */
+  errorMessage?: string | undefined;
+  isSelectingAllItems?: boolean | undefined;
+  /*
+   * Set when the selection hit the per-selection ceiling and there are more
+   * matching rows than were selected. `totalMatchingItemsCount` is how many
+   * rows actually matched, so the warning can name real numbers instead of
+   * inferring truncation from the selected count.
+   */
+  isSelectionTruncated?: boolean | undefined;
+  totalMatchingItemsCount?: number | undefined;
 }
 
 const isDangerStyle: (style: ButtonStyleType) => boolean = (
@@ -317,9 +332,16 @@ const BulkUpdateForm: <T extends GenericObject>(
     menuChildren.push(renderMenuItem(button, safeButtons.length + index));
   });
 
-  const showLimitWarning: boolean =
-    props.isAllItemsSelected &&
-    props.selectedItems.length === LIMIT_PER_PROJECT;
+  /*
+   * Driven by what the fetch actually reported rather than by
+   * `selectedItems.length === LIMIT_PER_PROJECT`, which both cried wolf on a
+   * project holding exactly the ceiling and stayed silent whenever a partial
+   * selection came back one row short of it.
+   */
+  const showLimitWarning: boolean = Boolean(props.isSelectionTruncated);
+
+  const totalMatchingItemsCount: number =
+    props.totalMatchingItemsCount || props.selectedItems.length;
 
   return (
     <div>
@@ -345,13 +367,33 @@ const BulkUpdateForm: <T extends GenericObject>(
               {!props.isAllItemsSelected && (
                 <button
                   type="button"
+                  disabled={props.isSelectingAllItems}
                   onClick={() => {
+                    if (props.isSelectingAllItems) {
+                      // the fetch is paged, so it must not be re-entrant.
+                      return;
+                    }
                     props.onSelectAllClick();
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 cursor-pointer select-none"
+                  className={`inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 select-none ${
+                    props.isSelectingAllItems
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700"
+                  }`}
                 >
-                  <Icon icon={IconProp.CheckCircle} className="h-3.5 w-3.5" />
-                  <span>Select All {props.pluralLabel}</span>
+                  <Icon
+                    icon={
+                      props.isSelectingAllItems
+                        ? IconProp.Spinner
+                        : IconProp.CheckCircle
+                    }
+                    className="h-3.5 w-3.5"
+                  />
+                  <span>
+                    {props.isSelectingAllItems
+                      ? `Selecting All ${props.pluralLabel}...`
+                      : `Select All ${props.pluralLabel}`}
+                  </span>
                 </button>
               )}
 
@@ -393,8 +435,21 @@ const BulkUpdateForm: <T extends GenericObject>(
 
           {showLimitWarning && (
             <div className="mt-2 text-xs text-gray-500">
-              You can only select {LIMIT_PER_PROJECT} {props.pluralLabel} at a
-              time. This is for performance reasons.
+              Selected {props.selectedItems.length.toLocaleString()} of{" "}
+              {totalMatchingItemsCount.toLocaleString()} matching{" "}
+              {props.pluralLabel}. You can only select{" "}
+              {LIMIT_PER_PROJECT.toLocaleString()} {props.pluralLabel} at a
+              time, for performance reasons, so bulk actions will apply to the
+              selected {props.selectedItems.length.toLocaleString()} only.
+            </div>
+          )}
+
+          {props.errorMessage && (
+            <div
+              role="alert"
+              className="mt-2 rounded-lg bg-red-50 p-3 text-sm text-red-800"
+            >
+              {props.errorMessage}
             </div>
           )}
         </div>
