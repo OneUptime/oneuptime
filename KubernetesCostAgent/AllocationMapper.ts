@@ -65,8 +65,9 @@ export const mapAllocationToRow: (data: {
     cpuCoreUsageAverage: allocation.cpuCoreUsageAverage,
     gpuHours: allocation.gpuHours,
     ramByteHours: allocation.ramByteHours,
-    ramBytesRequestAverage: allocation.ramBytesRequestAverage,
-    ramBytesUsageAverage: allocation.ramBytesUsageAverage,
+    // Engine wire names are singular "Byte"; ours are plural. See Types.ts.
+    ramBytesRequestAverage: allocation.ramByteRequestAverage,
+    ramBytesUsageAverage: allocation.ramByteUsageAverage,
     pvByteHours: allocation.pvByteHours,
 
     /*

@@ -69,6 +69,26 @@ export interface KubernetesCostIngestPayload {
   clusterName: string;
   /** Currency code of all cost figures (e.g. "USD"). Optional. */
   currency?: string | undefined;
+
+  /*
+   * Identity of one shipment — the agent's delivery of ONE window — and this
+   * request's position within it.
+   *
+   * A window wider than the agent's batch size arrives as several requests,
+   * each becoming its own ingest job. Without an identity the server cannot
+   * tell "another chunk of the shipment I have already started" (accept)
+   * from "a window an earlier shipment already delivered in full" (drop, or
+   * a restart double-counts spend), so it dropped both and lost every row
+   * past the first chunk on clusters above SHIP_BATCH_SIZE containers.
+   *
+   * shipmentId is a content hash over the window's row identities, so the
+   * same window re-shipped after a restart hashes the same and its chunks
+   * dedup individually. Both are absent on agents older than this contract;
+   * the server then falls back to the whole-window guard.
+   */
+  shipmentId?: string | undefined;
+  shipmentChunk?: number | undefined;
+
   allocations: Array<KubernetesCostAllocationIngestRow>;
 }
 
