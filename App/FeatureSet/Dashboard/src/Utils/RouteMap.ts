@@ -163,7 +163,6 @@ export const NetworkSiteRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_SITE_MAP]: `map`,
   [PageMap.NETWORK_SITE_ASSIGNMENT_RULES]: `assignment-rules`,
   [PageMap.NETWORK_SITE_LINKS]: `links`,
-  [PageMap.NETWORK_SITE_IMPORT]: `import`,
   [PageMap.NETWORK_SITE_SETTINGS_SITE_TYPES]: `settings/site-types`,
 };
 
@@ -2640,12 +2639,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_SITE_LINKS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-sites/${
       NetworkSiteRoutePath[PageMap.NETWORK_SITE_LINKS]
-    }`,
-  ),
-
-  [PageMap.NETWORK_SITE_IMPORT]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/network-sites/${
-      NetworkSiteRoutePath[PageMap.NETWORK_SITE_IMPORT]
     }`,
   ),
 

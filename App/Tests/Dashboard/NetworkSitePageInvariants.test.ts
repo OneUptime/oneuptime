@@ -64,9 +64,16 @@ describe("NetworkSite View page selects every column it renders", () => {
  * importSites() runs off parseResult, never off the textarea's current
  * text. Editing the CSV after previewing therefore used to import the
  * pre-edit rows — a typo "fixed" in the box was still persisted.
+ *
+ * (The import moved out of its own page and into a modal on the Sites
+ * table's ⋯ menu; the defect below moved with it.)
  */
-describe("NetworkSite Import page disarms a stale parse", () => {
-  const source: string = readSource("Pages", "NetworkSite", "Import.tsx");
+describe("Import Sites modal disarms a stale parse", () => {
+  const source: string = readSource(
+    "Components",
+    "NetworkSite",
+    "ImportSitesFromCsvModal.tsx",
+  );
 
   test("typing in the textarea drops the previous parse", () => {
     const onChangeBody: string = source
@@ -77,9 +84,132 @@ describe("NetworkSite Import page disarms a stale parse", () => {
     expect(onChangeBody).toContain("setRowResults([]);");
   });
 
-  test("the Import button is still gated on parseResult", () => {
-    // Clearing the parse only disarms the button because of this predicate.
-    expect(source).toContain("!parseResult ||");
+  test("the Import button is still gated on a live parse", () => {
+    /*
+     * Clearing the parse only disarms the footer's submit button because
+     * canImport is computed from parseResult rather than from csvText.
+     */
+    expect(source).toContain(
+      squash(
+        "const canImport: boolean = Boolean( parseResult && rows.length > 0 && parseErrors.length === 0, );",
+      ),
+    );
+    expect(source).toContain("(!hasImported && !canImport)");
+  });
+
+  /*
+   * A second press of a still-armed Import would replay the whole file
+   * against a project that already contains most of it — every created row
+   * coming back as a duplicate-name failure.
+   */
+  test("a finished run turns the submit button into Done", () => {
+    expect(source).toContain("setHasImported(true);");
+    expect(source).toContain(squash('hasImported ? "Done"'));
+    expect(source).toContain(
+      squash("if (hasImported) { props.onClose(); return; }"),
+    );
+  });
+
+  // Closing mid-run would leave the create loop writing into an unmounted tree.
+  test("the modal cannot be dismissed while the import is running", () => {
+    expect(source).toContain(
+      squash(
+        "onClose={() => { if (isImporting) { return; } props.onClose(); }}",
+      ),
+    );
+  });
+});
+
+/*
+ * The import used to be a standalone page under a "Discovery & Import"
+ * section of the Network side menu — the one action that creates sites,
+ * parked in a different corner of the product from the table that lists
+ * them. It is now a bulk action in the Sites table's ⋯ overflow menu, the
+ * same place every other table-wide action lives.
+ */
+describe("Sites table owns the CSV import", () => {
+  const source: string = readSource("Pages", "NetworkSite", "Sites.tsx");
+
+  test("the table offers an Import from CSV card button", () => {
+    expect(source).toContain(squash('title: "Import from CSV",'));
+    expect(source).toContain("setShowImportModal(true);");
+  });
+
+  /*
+   * BaseModelTable promotes the first NORMAL/PRIMARY-styled button to the
+   * header slot and hides the rest behind the ⋯ menu. An OUTLINE style is
+   * what keeps this one in the overflow, next to Refresh and Filter,
+   * instead of competing with "Create Network Site".
+   */
+  test("it is styled so it stays in the overflow menu", () => {
+    const buttonBlock: string = source
+      .split('title: "Import from CSV",')[1]!
+      .split("} as CardButtonSchema")[0]!;
+    expect(buttonBlock).toContain("buttonStyle: ButtonStyleType.OUTLINE,");
+    expect(buttonBlock).not.toContain("ButtonStyleType.NORMAL");
+    expect(buttonBlock).not.toContain("ButtonStyleType.PRIMARY");
+  });
+
+  test("the modal is rendered from the page", () => {
+    expect(source).toContain("<ImportSitesFromCsvModal");
+    expect(source).toContain("setShowImportModal(false);");
+  });
+
+  /*
+   * An import creates rows the table is already showing a page of, plus it
+   * moves every number in the summary strip and the hierarchy tree. Without
+   * the toggle reaching all three the user closes the modal onto stale data.
+   */
+  test("a completed import refreshes the table and the rollups above it", () => {
+    expect(source).toContain(squash("onImportComplete={() => {"));
+    const completeBody: string = source
+      .split("onImportComplete={() => {")[1]!
+      .split("}}")[0]!;
+    expect(completeBody).toContain("setRefreshToggle(Date.now().toString());");
+
+    // The same toggle has to be wired into all three consumers.
+    expect(source).toContain(
+      "<SiteSummaryCards refreshToggle={refreshToggle} />",
+    );
+    expect(source).toContain(
+      "<SiteHierarchyTree refreshToggle={refreshToggle} />",
+    );
+    expect(source).toContain(
+      squash("<ModelTable<NetworkSite> refreshToggle={refreshToggle}"),
+    );
+  });
+});
+
+describe("the standalone Import Sites page is gone", () => {
+  test("the page file no longer exists", () => {
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Pages", "NetworkSite", "Import.tsx"),
+      ),
+    ).toBe(false);
+  });
+
+  test.each([
+    ["Routes/NetworkSiteRoutes.tsx"],
+    ["Utils/PageMap.ts"],
+    ["Utils/RouteMap.ts"],
+    ["Components/Network/NetworkSideMenu.tsx"],
+    ["Pages/NetworkSite/Utils/Breadcrumbs.ts"],
+  ])("%s carries no route to it", (relativePath: string) => {
+    expect(readSource(...relativePath.split("/"))).not.toContain(
+      "NETWORK_SITE_IMPORT",
+    );
+  });
+
+  test("the side menu no longer advertises it", () => {
+    const source: string = readSource(
+      "Components",
+      "Network",
+      "NetworkSideMenu.tsx",
+    );
+    expect(source).not.toContain('title: "Import Sites"');
+    // The section it lived in was named for it; only discovery is left.
+    expect(source).not.toContain('title: "Discovery & Import"');
   });
 });
 
