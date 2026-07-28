@@ -415,30 +415,50 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       role="navigation"
       aria-label="Main navigation"
     >
-      <div className="sticky top-6">
+      {/*
+       * Stick below the app header, not at the top of the viewport. The header
+       * is sticky too, so a plain `top-6` slides the first menu items behind it
+       * as soon as the page scrolls. --app-header-height is measured and
+       * published by MasterPage; the 0px fallback keeps this correct on pages
+       * that render without a sticky header.
+       */}
+      <div
+        className="sticky"
+        style={{ top: "calc(var(--app-header-height, 0px) + 1.5rem)" }}
+      >
         <div
           className={`
+            flex flex-col
             bg-white rounded-2xl
             border border-gray-200/80
             shadow-sm
             overflow-hidden
           `}
+          /*
+           * Menus longer than the viewport (the Kubernetes cluster menu, for
+           * one) would otherwise get pushed back up behind the header near the
+           * bottom of a long page. Cap the card to the space left under the
+           * header and let the item list scroll inside it instead.
+           */
+          style={{
+            maxHeight: "calc(100vh - var(--app-header-height, 0px) - 3rem)",
+          }}
         >
           {/* Optional Header */}
           {props.header && (
-            <div className="px-3 py-3 border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white">
+            <div className="flex-shrink-0 px-3 py-3 border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white">
               {props.header}
             </div>
           )}
 
           {/* Menu Content */}
-          <nav className="p-2">
+          <nav className="p-2 min-h-0 overflow-y-auto">
             <div className="space-y-0.5">{renderMenuContent()}</div>
           </nav>
 
           {/* Optional Footer */}
           {props.footer && (
-            <div className="px-3 py-2 border-t border-gray-100 bg-gray-50/50">
+            <div className="flex-shrink-0 px-3 py-2 border-t border-gray-100 bg-gray-50/50">
               {props.footer}
             </div>
           )}
