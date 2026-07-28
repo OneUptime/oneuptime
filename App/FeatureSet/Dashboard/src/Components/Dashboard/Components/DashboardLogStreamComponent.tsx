@@ -18,7 +18,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
+import {
+  DashboardDateTime,
+  getDashboardDateTime,
+} from "../Utils/DashboardDateTime";
 import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import {
@@ -244,9 +247,13 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
               (log.severityText as string) || "Unspecified";
             const colors: SeverityColor = getSeverityColor(severity);
             const body: string = (log.body as string) || "";
-            const time: Date | undefined = log.time
-              ? OneUptimeDate.fromString(log.time as unknown as string)
-              : undefined;
+            const time: DashboardDateTime | null = log.time
+              ? getDashboardDateTime(
+                  log.time as unknown as string,
+                  // Log lines arrive seconds apart; the minute alone cannot order them.
+                  { showSeconds: true },
+                )
+              : null;
 
             return (
               <div
@@ -266,10 +273,11 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
                 </div>
                 {time && (
                   <span
-                    className="text-xs text-gray-400 shrink-0 tabular-nums"
+                    className="text-xs text-gray-400 shrink-0 tabular-nums whitespace-nowrap"
                     style={{ fontSize: "11px" }}
+                    title={time.title}
                   >
-                    {OneUptimeDate.getDateAsLocalFormattedString(time, true)}
+                    {time.label}
                   </span>
                 )}
                 <span

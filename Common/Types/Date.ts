@@ -341,7 +341,10 @@ export default class OneUptimeDate {
       const local: moment.Moment = this.inCurrentTimezone(date);
       return (
         local.format(formatString) +
-        (data.onlyShowDate ? "" : " " + this.getCurrentTimezoneString())
+        (data.onlyShowDate
+          ? ""
+          : // Same DST-aware lookup the explicit-timezone branch below uses.
+            " " + this.getZoneAbbrByTimezone(this.getCurrentTimezone(), date))
       ).trim();
     }
 
@@ -1746,11 +1749,17 @@ export default class OneUptimeDate {
 
     const momentDate: moment.Moment = this.inCurrentTimezone(date);
 
-    return (
-      momentDate.format(formatstring) +
-      " " +
-      (onlyShowDate ? "" : this.getCurrentTimezoneString())
-    ).trim();
+    /*
+     * The abbreviation has to describe THIS date's offset, not today's. Asking
+     * for it without the date labelled every January timestamp "EDT" all
+     * summer — a wall clock paired with the wrong zone names a different
+     * instant, which is worse than printing no zone at all.
+     */
+    const zoneAbbr: string = onlyShowDate
+      ? ""
+      : this.getZoneAbbrByTimezone(this.getCurrentTimezone(), date);
+
+    return (momentDate.format(formatstring) + " " + zoneAbbr).trim();
   }
 
   public static getDayInSeconds(days?: number | undefined): number {

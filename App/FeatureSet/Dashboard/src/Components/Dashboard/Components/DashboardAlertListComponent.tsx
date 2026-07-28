@@ -18,7 +18,11 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
+import {
+  DashboardDateTime,
+  getDashboardDateTime,
+  getDashboardDateTimeLabel,
+} from "../Utils/DashboardDateTime";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -35,10 +39,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Title", widthPct: "45%" },
-  { label: "State", widthPct: "20%" },
+  { label: "Title", widthPct: "40%" },
+  { label: "State", widthPct: "17%" },
   { label: "Severity", widthPct: "15%" },
-  { label: "Created", widthPct: "20%" },
+  // Wider than the other columns because it carries a date *and* a time.
+  { label: "Created", widthPct: "28%" },
 ];
 
 const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
@@ -194,6 +199,16 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
           details: [
             { label: "State", value: stateName },
             { label: "Severity", value: severityName },
+            /*
+             * Honeycomb mode has no "Created" column, so without this the tile
+             * view is the one place a user cannot tell when an alert fired.
+             */
+            {
+              label: "Created",
+              value: getDashboardDateTimeLabel(
+                alert.createdAt as unknown as string | undefined,
+              ),
+            },
           ],
         },
       };
@@ -210,9 +225,9 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
     const severityColor: Color | undefined = alert.alertSeverity?.color as
       | Color
       | undefined;
-    const created: Date | undefined = alert.createdAt
-      ? OneUptimeDate.fromString(alert.createdAt as unknown as string)
-      : undefined;
+    const created: DashboardDateTime = getDashboardDateTime(
+      alert.createdAt as unknown as string | undefined,
+    );
 
     const detailRoute: Route = RouteUtil.populateRouteParams(
       RouteMap[PageMap.ALERT_VIEW] as Route,
@@ -261,10 +276,11 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
             {severityName}
           </span>
         </td>
-        <td className="px-3 py-2 text-xs text-gray-500 tabular-nums">
-          {created
-            ? OneUptimeDate.getDateAsLocalFormattedString(created, true)
-            : "—"}
+        <td
+          className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"
+          title={created.title}
+        >
+          {created.label}
         </td>
       </tr>
     );
