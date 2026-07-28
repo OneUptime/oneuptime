@@ -77,7 +77,7 @@ export interface DiscoveredNetworkDevice {
   pluralName: "Network Device Discovery Scans",
   icon: IconProp.Search,
   tableDescription:
-    "Subnet discovery scans that sweep a CIDR range via SNMP from a probe and report devices found, so they can be imported as Network Devices.",
+    "Network discovery scans that sweep an address space — a CIDR subnet or an octet range — via SNMP from a probe and report devices found, so they can be imported as Network Devices.",
 })
 @Entity({
   name: "NetworkDeviceDiscoveryScan",
@@ -260,12 +260,22 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * The address space this scan sweeps. Two notations are accepted (see
+   * Common/Utils/NetworkDiscovery/ScanTargetUtil): CIDR, and octet ranges
+   * where any octet may be an inclusive low-high range.
+   *
+   * The column keeps the name `cidr` it was created with: it is part of the
+   * public API surface and the probe payload, and renaming it would break both
+   * for a purely cosmetic gain.
+   */
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    title: "CIDR",
-    description: "Subnet to scan in CIDR notation, e.g. 192.168.1.0/24",
+    title: "Scan Target",
+    description:
+      "Address space to scan, either in CIDR notation (192.168.1.0/24) or octet-range notation where any octet may be an inclusive low-high range (10.16-22.0-255.51-66)",
     example: "192.168.1.0/24",
   })
   @Column({

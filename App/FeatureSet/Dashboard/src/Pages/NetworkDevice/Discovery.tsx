@@ -27,6 +27,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
 import { isImportableDiscoveredHost } from "../../Components/NetworkDevice/DiscoveryImportEligibility";
 import React, {
@@ -282,10 +283,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
         cardProps={{
           title: "Discovery Scans",
           description:
-            "Scan a subnet for SNMP devices from a probe, then review the results and import the devices you want to monitor.",
+            "Scan a subnet or octet range for SNMP devices from a probe, then review the results and import the devices you want to monitor.",
         }}
         noItemsMessage={
-          "No discovery scans yet. Start one to sweep a subnet for SNMP devices."
+          "No discovery scans yet. Start one to sweep a subnet or octet range for SNMP devices."
         }
         formSteps={[
           { title: "Scan Target", id: "scan-target" },
@@ -297,12 +298,20 @@ const NetworkDeviceDiscovery: FunctionComponent<
             field: {
               cidr: true,
             },
-            title: "Subnet (CIDR)",
+            title: "Scan Target",
             stepId: "scan-target",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "192.168.1.0/24",
-            description: "Subnet to scan in CIDR notation, e.g. 192.168.1.0/24",
+            /*
+             * Both notations are described here rather than only CIDR because
+             * octet ranges are the only way to express the common real-world
+             * shape "the same handful of addresses in every one of these
+             * /24s" without creating hundreds of separate scans.
+             */
+            description:
+              "Either a subnet in CIDR notation (192.168.1.0/24), or an octet range where any octet may be an inclusive low-high range — 10.16-22.0-255.51-66 sweeps .51 to .66 in every /24 from 10.16 to 10.22. " +
+              `A single scan may cover at most ${ScanTargetUtil.MAX_SCAN_HOSTS.toLocaleString("en-US")} addresses.`,
           },
           {
             field: {
@@ -390,7 +399,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
             field: {
               cidr: true,
             },
-            title: "Subnet",
+            title: "Scan Target",
             type: FieldType.Text,
           },
           {
@@ -546,7 +555,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
         <Modal
           title="Review Discovered Devices"
           description={`Hosts that responded in ${
-            scanToReview.cidr || "the scanned subnet"
+            scanToReview.cidr || "the scanned address range"
           }. Select the ones you want to import as Network Devices — hosts without SNMP cannot be imported.`}
           modalWidth={ModalWidth.Medium}
           isLoading={isImporting}
