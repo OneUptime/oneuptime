@@ -655,7 +655,7 @@ export default class RemediationProposer {
       for (const entry of data.createdActions) {
         const mode: string =
           entry.decisionMode === AIRemediationDecisionMode.AutoApproved
-            ? "auto-approved (non-production)"
+            ? "auto-approved by a matching Auto Remediation Rule"
             : "requires approval";
         lines.push(
           `- **${entry.title}** — ${entry.actionType} action targeting ${entry.target} · ${mode}`,

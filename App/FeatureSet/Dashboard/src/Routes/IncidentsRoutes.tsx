@@ -75,6 +75,8 @@ import IncidentSettingsGroupingRules from "../Pages/Incidents/Settings/IncidentG
 
 import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnCallRules";
 
+import IncidentSettingsAutoRemediationRules from "../Pages/Incidents/Settings/IncidentAutoRemediationRules";
+
 import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
 import IncidentSettingsRunbookRules from "../Pages/Incidents/Settings/IncidentRunbookRules";
 
@@ -364,6 +366,24 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
+            ] || ""
+          }
+          element={
+            <IncidentSettingsAutoRemediationRules
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
+                ] as Route
               }
             />
           }

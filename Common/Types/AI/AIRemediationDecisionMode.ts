@@ -7,9 +7,11 @@ enum AIRemediationDecisionMode {
   // A human must click Approve before this action can execute.
   RequireApproval = "RequireApproval",
   /*
-   * The policy gate cleared it for unattended execution: a runbook action
-   * whose every executing step targets a known non-production agent, on a
-   * project that opted into enableAiAutoRemediationOnNonProduction.
+   * The policy gate cleared it for unattended execution: an Auto
+   * Remediation Rule the project authored matches this incident/alert
+   * (and, for an AI-drafted command, that rule grants unattended
+   * commands), and every agent the action would write through carries a
+   * ReadWrite AI access grant.
    */
   AutoApproved = "AutoApproved",
 }

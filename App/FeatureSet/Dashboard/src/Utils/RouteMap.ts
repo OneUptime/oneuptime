@@ -601,6 +601,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
   [PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
+  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
+    "settings/auto-remediation-rules",
   [PageMap.INCIDENTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
   [PageMap.INCIDENTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
@@ -662,6 +664,8 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.ALERTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
   [PageMap.ALERTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
+  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]:
+    "settings/auto-remediation-rules",
   [PageMap.ALERTS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.ALERTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
   [PageMap.ALERTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
@@ -1256,6 +1260,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_OWNER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_OWNER_RULES]
@@ -1738,6 +1748,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]
     }`,
   ),
 

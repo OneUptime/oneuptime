@@ -424,7 +424,7 @@ export default class AIRemediationAction extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Decision Mode",
     description:
-      "What the remediation policy gate decided at proposal time: RequireApproval or AutoApproved (non-production runbook actions on opted-in projects only).",
+      "What the remediation policy gate decided at proposal time: RequireApproval, or AutoApproved when an Auto Remediation Rule matched the incident/alert (and, for actions that write, every target agent carries a ReadWrite AI access grant).",
     canReadOnRelationQuery: true,
   })
   @Column({

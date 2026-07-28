@@ -1,3 +1,4 @@
+import RunbookAgentAccessLevelBadge from "../../Components/RunbookAgent/AccessLevelBadge";
 import RunbookAgentEnvironmentBadge from "../../Components/RunbookAgent/EnvironmentBadge";
 import RunbookAgentInstallInstructions from "../../Components/RunbookAgent/InstallInstructions";
 import TeamElement from "../../Components/Team/Team";
@@ -9,6 +10,9 @@ import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
+import RunbookAgentAccessLevel, {
+  RunbookAgentAccessLevelHelper,
+} from "Common/Types/Runbook/RunbookAgentAccessLevel";
 import RunbookAgentEnvironmentType from "Common/Types/Runbook/RunbookAgentEnvironmentType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Card from "Common/UI/Components/Card/Card";
@@ -72,13 +76,25 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
             field: { environmentType: true },
             title: "Environment",
             description:
-              "Which environment this agent lives in. AI-proposed remediations never auto-execute on Production agents — and untagged agents count as Production.",
+              "Which environment this agent lives in. This is context for approvers — a badge shown wherever the agent appears. It does not gate AI execution.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               RunbookAgentEnvironmentType,
             ),
             required: false,
             placeholder: "Production (default)",
+          },
+          {
+            field: { accessLevel: true },
+            title: "AI Access Level",
+            description:
+              "What OneUptime AI may run on this agent. ReadOnly (the default): AI may run diagnostics here unattended, never remediations. ReadWrite: AI may also run remediations here unattended, when an Auto Remediation Rule matches the incident or alert. Grant ReadWrite to test and staging agents and leave production agents ReadOnly.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              RunbookAgentAccessLevel,
+            ),
+            required: false,
+            placeholder: "ReadOnly (default)",
           },
           {
             field: { labels: true },
@@ -126,6 +142,25 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
                   <RunbookAgentEnvironmentBadge
                     environmentType={item.environmentType}
                   />
+                );
+              },
+            },
+            {
+              field: { accessLevel: true },
+              title: "AI Access Level",
+              fieldType: FieldType.Element,
+              getElement: (item: RunbookAgent): ReactElement => {
+                return (
+                  <div>
+                    <RunbookAgentAccessLevelBadge
+                      accessLevel={item.accessLevel}
+                    />
+                    <p className="mt-1 text-xs text-gray-400">
+                      {RunbookAgentAccessLevelHelper.canWrite(item.accessLevel)
+                        ? "AI may run diagnostics and remediations on this agent unattended when an Auto Remediation Rule matches."
+                        : "AI may run diagnostics on this agent unattended. It may never run remediations here."}
+                    </p>
+                  </div>
                 );
               },
             },

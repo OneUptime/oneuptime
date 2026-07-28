@@ -163,6 +163,10 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Custom Fields",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      ["Project", "Incidents", "Settings", "Auto Remediation"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

@@ -177,7 +177,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "AI Remediation",
           description:
-            "When an investigation reaches a confident root cause, OneUptime AI can also propose remediation actions — starting one of your existing runbooks, or a drafted command for one of your Runbook Agents. Proposals wait for approval on the incident or alert page and expire after 24 hours. This setting is shared between incident and alert investigations.",
+            "When an investigation reaches a confident root cause, OneUptime AI can also propose remediation actions — starting one of your existing runbooks, or a drafted command for one of your Runbook Agents. Every proposal waits for a human to approve it on the incident or alert page and expires after 24 hours, unless an Auto Remediation Rule you wrote matches that incident or alert. Those rules are the only standing authorization for unattended execution — write them in Alerts > Settings > Auto Remediation (and Incidents > Settings > Auto Remediation for incidents). This setting is shared between incident and alert investigations.",
         }}
         isEditable={true}
         editButtonText={"Update"}
@@ -188,17 +188,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             },
             title: "Propose Remediation Actions",
             description:
-              "Propose up to 3 remediation actions after each confident investigation. Proposals are only ever suggestions until approved — and drafted commands always require explicit approval, everywhere.",
-            required: false,
-            fieldType: FormFieldSchemaType.Toggle,
-          },
-          {
-            field: {
-              enableAiAutoRemediationOnNonProduction: true,
-            },
-            title: "Auto-Execute Runbook Actions On Non-Production Agents",
-            description:
-              "Only ever applies to RUNBOOK actions — and only when every executing step of that runbook targets a Runbook Agent explicitly tagged Staging, Testing or Development. Agents tagged Production, and agents never tagged at all, always require a human click. Drafted commands are never auto-executed regardless of this setting.",
+              "Propose up to 3 remediation actions after each confident investigation. With no matching Auto Remediation Rule, every proposal is only a suggestion until someone clicks Approve. Where a rule does match, AI-proposed runbook actions run unattended, and AI-drafted commands run unattended only if that rule allows commands — and AI may only write through Runbook Agents you granted ReadWrite access.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },
@@ -223,14 +213,6 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
                 enableAiRemediation: true,
               },
               title: "Propose Remediation Actions",
-              placeholder: "Disabled",
-              fieldType: FieldType.Boolean,
-            },
-            {
-              field: {
-                enableAiAutoRemediationOnNonProduction: true,
-              },
-              title: "Auto-Execute Runbook Actions On Non-Production Agents",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
             },

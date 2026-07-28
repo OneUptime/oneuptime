@@ -1,6 +1,8 @@
+import RunbookAgentAccessLevelBadge from "../../Components/RunbookAgent/AccessLevelBadge";
 import RunbookAgentEnvironmentBadge from "../../Components/RunbookAgent/EnvironmentBadge";
 import RunbookAgentInstallInstructions from "../../Components/RunbookAgent/InstallInstructions";
 import PageComponentProps from "../PageComponentProps";
+import RunbookAgentAccessLevel from "Common/Types/Runbook/RunbookAgentAccessLevel";
 import RunbookAgentEnvironmentType from "Common/Types/Runbook/RunbookAgentEnvironmentType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -55,7 +57,7 @@ const RunbookAgentsPage: FunctionComponent<
         cardProps={{
           title: "Runbook Agents",
           description:
-            "Self-hosted agents that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the agent that should run it.",
+            "Self-hosted agents that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the agent that should run it. AI Access decides what OneUptime AI may run on each agent unattended: ReadOnly agents accept diagnostics only, ReadWrite agents accept remediations too.",
         }}
         selectMoreFields={{
           _id: true,
@@ -86,13 +88,25 @@ const RunbookAgentsPage: FunctionComponent<
             field: { environmentType: true },
             title: "Environment",
             description:
-              "Which environment this agent lives in. AI-proposed remediations never auto-execute on Production agents — and untagged agents count as Production.",
+              "Which environment this agent lives in. This is context for approvers — a badge shown wherever the agent appears. It does not gate AI execution.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               RunbookAgentEnvironmentType,
             ),
             required: false,
             placeholder: "Production (default)",
+          },
+          {
+            field: { accessLevel: true },
+            title: "AI Access Level",
+            description:
+              "What OneUptime AI may run on this agent. ReadOnly (the default): AI may run diagnostics here unattended, never remediations. ReadWrite: AI may also run remediations here unattended, when an Auto Remediation Rule matches the incident or alert. Grant ReadWrite to test and staging agents and leave production agents ReadOnly.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              RunbookAgentAccessLevel,
+            ),
+            required: false,
+            placeholder: "ReadOnly (default)",
           },
           {
             field: { labels: true },
@@ -144,6 +158,14 @@ const RunbookAgentsPage: FunctionComponent<
             ),
           },
           {
+            field: { accessLevel: true },
+            title: "AI Access Level",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+              RunbookAgentAccessLevel,
+            ),
+          },
+          {
             title: "Labels",
             type: FieldType.EntityArray,
             field: {
@@ -182,6 +204,16 @@ const RunbookAgentsPage: FunctionComponent<
                 <RunbookAgentEnvironmentBadge
                   environmentType={item.environmentType}
                 />
+              );
+            },
+          },
+          {
+            field: { accessLevel: true },
+            title: "AI Access",
+            type: FieldType.Element,
+            getElement: (item: RunbookAgent): ReactElement => {
+              return (
+                <RunbookAgentAccessLevelBadge accessLevel={item.accessLevel} />
               );
             },
           },

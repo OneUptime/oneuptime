@@ -57,7 +57,7 @@ Alert volume can be much higher than incident volume, so autonomous investigatio
 
 ## Auto-remediation
 
-Investigations are strictly read-only, but they do not have to be the end of the story. With the separate **AI Remediation** opt-in, a confident investigation also proposes concrete remediation actions — running one of your existing runbooks, or a drafted command for one of your [Runbook Agents](/docs/runbooks/agents) — each waiting for human approval on the incident or alert page. Projects can additionally allow runbook proposals to auto-execute, but only on agents explicitly tagged as non-production; drafted commands always require a human, everywhere. Execution is budgeted, attributed, and fully audited. Everything remediation-related is off by default — see [Auto-Remediation](/docs/ai/auto-remediation) for the full safety model.
+Investigations are strictly read-only, but they do not have to be the end of the story. With the separate **AI Remediation** opt-in, a confident investigation also proposes concrete remediation actions — running one of your existing runbooks, or a drafted command for one of your [Runbook Agents](/docs/runbooks/agents) — each waiting for human approval on the incident or alert page. Unattended execution exists only where a project admin wrote an **Auto Remediation Rule** that matches the incident or alert, and actions that change things additionally need the target agent's **ReadWrite** AI access grant. Execution is budgeted, attributed, and fully audited. Everything remediation-related is off by default — see [Auto-Remediation](/docs/ai/auto-remediation) for the full safety model.
 
 ## Auto-postmortem
 

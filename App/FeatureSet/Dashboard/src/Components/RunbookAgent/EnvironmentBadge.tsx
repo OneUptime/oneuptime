@@ -8,12 +8,13 @@ export interface ComponentProps {
 }
 
 /*
- * The environment tag for a Runbook Agent. Production renders in rose and
- * non-production in emerald so the two trust levels are distinguishable at a
- * glance — AI-proposed remediations may only ever auto-execute on agents
- * explicitly tagged non-production. An untagged agent renders as Production
- * because that is exactly how the remediation policy gate treats it
- * (RunbookAgentEnvironmentTypeHelper.isProduction is the fail-safe read).
+ * The environment tag for a Runbook Agent — informational context, not a
+ * gate. Production renders in rose and non-production in emerald so an
+ * approver can see at a glance where an action would land; what AI is
+ * actually allowed to do is decided by Auto Remediation Rules and the
+ * agent's AI access grant (see AccessLevelBadge). An untagged agent renders
+ * as Production because that is the conservative read
+ * (RunbookAgentEnvironmentTypeHelper.isProduction).
  */
 const RunbookAgentEnvironmentBadge: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

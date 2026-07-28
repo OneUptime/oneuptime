@@ -32,11 +32,12 @@ The agent only needs **outbound HTTPS** to your OneUptime instance. It does not 
 
 Go to **Runbooks → Settings → Agents** and create a new agent. Fill in:
 
-| Field           | Notes                                                                                                                                                                                                                         |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Name**        | A friendly name — usually `where-it-runs-and-what-it-can-do`, e.g. `prod-eu-west-1`. This is what shows up in the dropdown when authoring a step.                                                                             |
-| **Description** | Optional. A sentence on what this host can reach. Future-you will thank you.                                                                                                                                                  |
-| **Environment** | Which environment the agent lives in: Production, Staging, Testing, or Development. Defaults to Production. See [Environment tagging](#environment-tagging) below — this field gates AI auto-execution, so tag it truthfully. |
+| Field               | Notes                                                                                                                                                                                   |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**            | A friendly name — usually `where-it-runs-and-what-it-can-do`, e.g. `prod-eu-west-1`. This is what shows up in the dropdown when authoring a step.                                       |
+| **Description**     | Optional. A sentence on what this host can reach. Future-you will thank you.                                                                                                            |
+| **Environment**     | Which environment the agent lives in: Production, Staging, Testing, or Development. Defaults to Production. Informational only — see [Environment tagging](#environment-tagging) below. |
+| **AI Access Level** | What the AI remediation lane may dispatch here: ReadOnly (the default) or ReadWrite. See [AI access level](#ai-access-level) below. Owner/Admin-writable only.                          |
 
 ### 2. Copy the install command
 
@@ -67,16 +68,35 @@ Go back to **Runbooks → Settings → Agents**. Within ~60 seconds the agent's 
 
 ## Environment tagging
 
-Every agent carries an **Environment** field: Production, Staging, Testing, or Development. It shows up as a badge wherever the agent appears, which alone is worth setting it for — "which box is this again?" at 3am is a bad question to be asking.
+Every agent carries an **Environment** field: Production, Staging, Testing, or Development. It shows up as a badge wherever the agent appears, including on AI remediation proposals — so an approver reading a proposal at 3am can see at a glance whether the target is a production box.
 
-The field also has one behavioral consequence, and it matters: it is the anchor for [AI Auto-Remediation](/docs/ai/auto-remediation). When a project opts into AI-proposed remediation, a proposed runbook may execute **without human approval** only if every one of its Bash and JavaScript steps targets an agent explicitly tagged Staging, Testing, or Development. Agents tagged Production never auto-run anything, and — the fail-safe default — an agent that was never tagged **counts as Production**. If you ignore this field entirely, nothing changes for you: no AI action will ever auto-execute on your agents.
+**The field is informational. It gates nothing.** Set it because it makes every screen the agent appears on readable, not because it protects you.
 
-Two things follow from that:
+In particular, it does **not** decide whether [AI Auto-Remediation](/docs/ai/auto-remediation) may act unattended. Two other things do:
 
-- **Tag truthfully.** The environment tag is an assertion OneUptime trusts, not something it can verify. Tagging a production host as "Testing" removes the strongest guardrail the AI remediation lane has — the AI will treat that host as a safe place to act unattended.
-- **Tagging is safe even if you never use AI features.** With the AI remediation opt-ins off (their default), the field is purely informational.
+- **Auto Remediation Rules** on the incident or alert decide whether AI-proposed actions may execute without waiting for a human at all.
+- The agent's **[AI access level](#ai-access-level)** decides whether actions that _change_ things may be dispatched to this host.
 
-The tag is read fresh whenever the AI decides whether a proposal may auto-execute — it is never copied onto runbooks or steps — so retagging an agent takes effect from the next proposal onwards.
+Retagging an agent takes effect immediately everywhere the badge is shown — the tag is never copied onto runbooks or steps.
+
+## AI access level
+
+Every agent also carries an **AI Access Level**. This one is a control: it is the per-host capability grant for the [AI Auto-Remediation](/docs/ai/auto-remediation) lane.
+
+| Access level           | What the AI may dispatch to this agent                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **ReadOnly** (default) | **Diagnostic** actions only — status checks, log and metric collection, describing resources. Nothing that is meant to change state. |
+| **ReadWrite**          | Diagnostic **and Remediation** actions — restarts, rollbacks, scaling, config edits.                                                 |
+
+Every AI-proposed action declares an intent (Diagnostic or Remediation). A Remediation action may only run unattended when **every** agent it would touch is granted ReadWrite; a Diagnostic action may run on any agent, because reading is exactly what ReadOnly permits.
+
+- **The default is ReadOnly**, for new agents and existing ones alike. No agent accepts AI-dispatched writes until somebody deliberately grants it.
+- **Only Project Owners and Project Admins can change the field.** It is the boundary that decides whether AI-proposed writes reach a host, so it is deliberately not editable by everyone who can create agents.
+- **The recommended posture is production ReadOnly, test/staging ReadWrite** — "diagnose everywhere, act only where I said". The AI can still go and look at the production box and bring its output back into the investigation; it just cannot change it.
+
+**Back the grant with OS permissions.** OneUptime enforces this grant against the intent the proposer _declared_ — it cannot read a script and prove what it truly does, so a script mislabelled Diagnostic is not caught by this field. The durable enforcement is on your side of the wire: run ReadOnly agents as an OS user (and in a container) that genuinely cannot mutate anything — no write access to the paths that matter, no privileged mounts, no credentials that can change infrastructure. Then the grant is enforced by the host rather than by trust, and the field simply declares something already true.
+
+None of this matters if you never enable AI remediation — with the lane off (the default), no AI action is dispatched to any agent regardless of access level.
 
 ## Pointing a step at an agent
 

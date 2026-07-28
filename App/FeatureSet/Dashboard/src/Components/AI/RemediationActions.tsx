@@ -7,6 +7,7 @@ import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
 import AIRemediationActionStatus from "Common/Types/AI/AIRemediationActionStatus";
 import AIRemediationActionType from "Common/Types/AI/AIRemediationActionType";
 import AIRemediationDecisionMode from "Common/Types/AI/AIRemediationDecisionMode";
+import AIRemediationIntent from "Common/Types/AI/AIRemediationIntent";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -76,6 +77,27 @@ const GRACE_POLL_INTERVAL_MS: number = 5000;
 const ACTION_TYPE_LABELS: Record<AIRemediationActionType, string> = {
   [AIRemediationActionType.Runbook]: "Runbook",
   [AIRemediationActionType.Command]: "Command",
+};
+
+/*
+ * Does this action READ or WRITE? The single most important thing an
+ * approver needs at a glance, and the dimension the per-agent AI access
+ * grant is enforced against: Diagnostic actions may dispatch to any agent,
+ * Remediation actions only to agents granted ReadWrite. Sky reads as
+ * "harmless look"; amber matches the ReadWrite grant badge and reads as
+ * "this changes something".
+ */
+const INTENT_BADGE_CLASSES: Record<AIRemediationIntent, string> = {
+  [AIRemediationIntent.Diagnostic]: "bg-sky-50 text-sky-700 ring-sky-600/20",
+  [AIRemediationIntent.Remediation]:
+    "bg-amber-50 text-amber-700 ring-amber-600/20",
+};
+
+const INTENT_TITLES: Record<AIRemediationIntent, string> = {
+  [AIRemediationIntent.Diagnostic]:
+    "Gathers information. Its output is filed here and feeds one follow-up investigation.",
+  [AIRemediationIntent.Remediation]:
+    "Changes things. Only ever dispatches to a Runbook Agent granted ReadWrite AI access.",
 };
 
 /*
@@ -156,6 +178,25 @@ export function getRemediationActionTypeElement(
   return (
     <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
       {ACTION_TYPE_LABELS[actionType] || actionType}
+    </span>
+  );
+}
+
+export function getRemediationIntentElement(
+  intent: AIRemediationIntent | undefined,
+): ReactElement {
+  if (!intent) {
+    return <></>;
+  }
+  return (
+    <span
+      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
+        INTENT_BADGE_CLASSES[intent] ||
+        "bg-gray-100 text-gray-600 ring-gray-500/20"
+      }`}
+      title={INTENT_TITLES[intent] || ""}
+    >
+      {intent}
     </span>
   );
 }
@@ -328,6 +369,7 @@ const RemediationActions: FunctionComponent<ComponentProps> = (
             select: {
               _id: true,
               actionType: true,
+              intent: true,
               title: true,
               rationale: true,
               runbookId: true,
@@ -615,10 +657,11 @@ const RemediationActions: FunctionComponent<ComponentProps> = (
       >
         <div className="flex flex-wrap items-center gap-1.5">
           {getRemediationActionTypeElement(action.actionType)}
+          {getRemediationIntentElement(action.intent)}
           {getRemediationStatusElement(action.status)}
           {action.decisionMode === AIRemediationDecisionMode.AutoApproved ? (
             <span className="text-xs text-gray-400">
-              auto-approved: non-production
+              auto-approved by a matching Auto Remediation Rule
             </span>
           ) : (
             <></>
@@ -776,8 +819,9 @@ const RemediationActions: FunctionComponent<ComponentProps> = (
       </div>
       <p className="mt-1 text-xs text-gray-400">
         Remediation actions AI proposed from this analysis. Runbook actions
-        start a runbook you already wrote; drafted commands always require your
-        approval before anything runs.
+        start a runbook you already wrote; drafted commands run a script AI
+        wrote. Each one waits for your approval unless an Auto Remediation Rule
+        authorizes it to run unattended.
       </p>
 
       <div className="mt-3 space-y-3">
