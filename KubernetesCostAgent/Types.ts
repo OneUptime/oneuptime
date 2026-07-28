@@ -26,10 +26,19 @@ export interface KubernetesCostAllocationIngestRow {
   cpuCoreHours?: number | undefined;
   cpuCoreRequestAverage?: number | undefined;
   cpuCoreUsageAverage?: number | undefined;
+  cpuCoreLimitAverage?: number | undefined;
   gpuHours?: number | undefined;
   ramByteHours?: number | undefined;
   ramBytesRequestAverage?: number | undefined;
   ramBytesUsageAverage?: number | undefined;
+  ramBytesLimitAverage?: number | undefined;
+  /*
+   * Peak working set over the window, from Prometheus rather than the cost
+   * engine. 0 when no Prometheus is configured or it had no data — the
+   * server cannot distinguish that from a genuine 0, so a right-sizing
+   * recommendation must require a positive value rather than trusting it.
+   */
+  ramBytesUsageMax?: number | undefined;
   pvByteHours?: number | undefined;
 
   cpuCost?: number | undefined;
@@ -125,6 +134,7 @@ export interface EngineAllocation {
   cpuCoreHours?: number;
   cpuCoreRequestAverage?: number;
   cpuCoreUsageAverage?: number;
+  cpuCoreLimitAverage?: number;
   cpuCost?: number;
   cpuCostAdjustment?: number;
   gpuHours?: number;
@@ -143,6 +153,7 @@ export interface EngineAllocation {
   ramByteHours?: number;
   ramByteRequestAverage?: number;
   ramByteUsageAverage?: number;
+  ramByteLimitAverage?: number;
   ramCost?: number;
   ramCostAdjustment?: number;
   pvByteHours?: number;
@@ -167,4 +178,30 @@ export interface EngineAllocation {
 export interface EngineAllocationResponse {
   code?: number;
   data?: Array<Record<string, EngineAllocation> | null> | null;
+}
+
+/*
+ * Prometheus /api/v1/query response, instant-vector shape. Note the
+ * envelope carries its own status: Prometheus answers HTTP 200 with
+ * status:"error" for a rejected query, so the HTTP code alone is not a
+ * success check.
+ */
+
+export interface PrometheusSample {
+  metric?: {
+    namespace?: string;
+    pod?: string;
+    container?: string;
+  };
+  /** [unixSeconds, "<value>"] — the value is a STRING, always. */
+  value?: [number, string];
+}
+
+export interface PrometheusInstantQueryResponse {
+  status?: string;
+  error?: string;
+  data?: {
+    resultType?: string;
+    result?: Array<PrometheusSample>;
+  };
 }

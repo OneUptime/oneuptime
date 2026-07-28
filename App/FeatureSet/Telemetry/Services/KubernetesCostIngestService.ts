@@ -394,6 +394,7 @@ export default class KubernetesCostIngestService {
         allocation.cpuCoreRequestAverage,
       ),
       cpuCoreUsageAverage: this.sanitizeNumber(allocation.cpuCoreUsageAverage),
+      cpuCoreLimitAverage: this.sanitizeNumber(allocation.cpuCoreLimitAverage),
       cpuCost: this.sanitizeNumber(allocation.cpuCost),
       gpuHours: this.sanitizeNumber(allocation.gpuHours),
       gpuCost: this.sanitizeNumber(allocation.gpuCost),
@@ -404,6 +405,10 @@ export default class KubernetesCostIngestService {
       ramBytesUsageAverage: this.sanitizeNumber(
         allocation.ramBytesUsageAverage,
       ),
+      ramBytesLimitAverage: this.sanitizeNumber(
+        allocation.ramBytesLimitAverage,
+      ),
+      ramBytesUsageMax: this.sanitizeNumber(allocation.ramBytesUsageMax),
       ramCost: this.sanitizeNumber(allocation.ramCost),
       pvByteHours: this.sanitizeNumber(allocation.pvByteHours),
       pvCost: this.sanitizeNumber(allocation.pvCost),

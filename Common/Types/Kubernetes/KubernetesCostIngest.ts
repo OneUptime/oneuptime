@@ -34,14 +34,30 @@ export interface KubernetesCostAllocationIngestRow {
   providerId?: string | undefined;
   labels?: Record<string, string> | undefined;
 
-  // Usage / request measures.
+  // Usage / request / limit measures.
   cpuCoreHours?: number | undefined;
   cpuCoreRequestAverage?: number | undefined;
   cpuCoreUsageAverage?: number | undefined;
+  cpuCoreLimitAverage?: number | undefined;
   gpuHours?: number | undefined;
   ramByteHours?: number | undefined;
   ramBytesRequestAverage?: number | undefined;
   ramBytesUsageAverage?: number | undefined;
+  ramBytesLimitAverage?: number | undefined;
+
+  /*
+   * Peak working set over the window, sourced from Prometheus rather than
+   * the cost engine — the Allocation API only reports averages, and an
+   * hourly mean hides the burst that OOMKills a container, so a memory
+   * recommendation built on the average is actively dangerous.
+   *
+   * 0 when the agent has no Prometheus configured (external-engine installs
+   * have no bundled one), when the scrape had no data for the window, or
+   * when the agent predates this field. The server cannot tell those apart
+   * from a real 0, so recommendations must require a positive value.
+   */
+  ramBytesUsageMax?: number | undefined;
+
   pvByteHours?: number | undefined;
 
   // Pre-priced cost components (in `currency` of the payload).

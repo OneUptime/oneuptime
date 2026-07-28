@@ -96,6 +96,7 @@ import CloseOrphanedMonitorStatusTimelineRows from "./CloseOrphanedMonitorStatus
 import MigrateMetricAggregatesToStrictSchema from "./MigrateMetricAggregatesToStrictSchema";
 import AddInterfaceIndexColumnsToNetworkFlow from "./AddInterfaceIndexColumnsToNetworkFlow";
 import AddShipmentColumnsToKubernetesCostAllocation from "./AddShipmentColumnsToKubernetesCostAllocation";
+import AddRightSizingColumnsToKubernetesCostAllocation from "./AddRightSizingColumnsToKubernetesCostAllocation";
 import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
 import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
 
@@ -305,6 +306,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * exist.
    */
   new AddShipmentColumnsToKubernetesCostAllocation(),
+  /*
+   * Adds cpuCoreLimitAverage / ramBytesLimitAverage / ramBytesUsageMax so
+   * right-sizing has limits and a true memory peak to work from, rather than
+   * only the window averages the cost engine reports. Existing rows read
+   * back 0, which consumers must treat as "unknown". Idempotent: skips
+   * columns that exist.
+   */
+  new AddRightSizingColumnsToKubernetesCostAllocation(),
 ];
 
 export default DataMigrations;

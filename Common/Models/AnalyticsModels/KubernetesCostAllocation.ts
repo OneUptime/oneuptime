@@ -349,6 +349,12 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
           description: "Average CPU cores actually used over the window.",
         },
         {
+          key: "cpuCoreLimitAverage",
+          title: "CPU Core Limit Average",
+          description:
+            "Average CPU core limit over the window. 0 when no limit is set — which is also what a row ingested before this column reads back.",
+        },
+        {
           key: "cpuCost",
           title: "CPU Cost",
           description: "Cost of allocated CPU over the window.",
@@ -377,6 +383,18 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
           key: "ramBytesUsageAverage",
           title: "RAM Bytes Usage Average",
           description: "Average RAM bytes actually used over the window.",
+        },
+        {
+          key: "ramBytesLimitAverage",
+          title: "RAM Bytes Limit Average",
+          description:
+            "Average RAM byte limit over the window. 0 when no limit is set — which is also what a row ingested before this column reads back.",
+        },
+        {
+          key: "ramBytesUsageMax",
+          title: "RAM Bytes Usage Max",
+          description:
+            "Peak RAM bytes used during the window, from Prometheus rather than the cost engine — the engine only reports averages, and an hourly mean hides the burst that OOMKills a container. 0 when the agent has no Prometheus configured, when the scrape had no data, or on rows ingested before this column; treat 0 as 'unknown', never as a real peak.",
         },
         {
           key: "ramCost",
@@ -733,6 +751,14 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
     this.setColumnValue("cpuCoreUsageAverage", v);
   }
 
+  public get cpuCoreLimitAverage(): number | undefined {
+    return this.getColumnValue("cpuCoreLimitAverage") as number | undefined;
+  }
+
+  public set cpuCoreLimitAverage(v: number | undefined) {
+    this.setColumnValue("cpuCoreLimitAverage", v);
+  }
+
   public get cpuCost(): number | undefined {
     return this.getColumnValue("cpuCost") as number | undefined;
   }
@@ -779,6 +805,22 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
 
   public set ramBytesUsageAverage(v: number | undefined) {
     this.setColumnValue("ramBytesUsageAverage", v);
+  }
+
+  public get ramBytesLimitAverage(): number | undefined {
+    return this.getColumnValue("ramBytesLimitAverage") as number | undefined;
+  }
+
+  public set ramBytesLimitAverage(v: number | undefined) {
+    this.setColumnValue("ramBytesLimitAverage", v);
+  }
+
+  public get ramBytesUsageMax(): number | undefined {
+    return this.getColumnValue("ramBytesUsageMax") as number | undefined;
+  }
+
+  public set ramBytesUsageMax(v: number | undefined) {
+    this.setColumnValue("ramBytesUsageMax", v);
   }
 
   public get ramCost(): number | undefined {
