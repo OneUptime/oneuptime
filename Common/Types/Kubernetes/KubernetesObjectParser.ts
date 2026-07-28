@@ -172,6 +172,42 @@ export function getArrayValues(
 }
 
 /**
+ * Parse an integer that may legitimately be absent.
+ *
+ * Distinct from `parseInt(...) || 0` because for an exit code the difference
+ * between "exited 0" and "no exit code reported" is the whole finding.
+ */
+function parseOptionalInt(value: string): number | null {
+  if (!value) {
+    return null;
+  }
+  const parsed: number = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+/**
+ * Read an OTLP arrayValue of strings (command, args, probe exec command).
+ */
+function parseStringArray(
+  arrayValue: string | JSONObject | null,
+): Array<string> {
+  if (!arrayValue || typeof arrayValue === "string") {
+    return [];
+  }
+  const values: Array<JSONObject> =
+    (arrayValue["values"] as Array<JSONObject>) || [];
+  const result: Array<string> = [];
+  for (const value of values) {
+    if (value["stringValue"]) {
+      result.push(value["stringValue"] as string);
+    } else if (value["string_value"]) {
+      result.push(value["string_value"] as string);
+    }
+  }
+  return result;
+}
+
+/**
  * Recursively convert an OTLP value wrapper to a plain JavaScript value.
  * Handles stringValue, intValue, boolValue, kvlistValue, and arrayValue.
  */
@@ -292,9 +328,31 @@ export interface KubernetesContainerPort {
   protocol: string;
 }
 
+/**
+ * A container probe (liveness / readiness / startup).
+ *
+ * Kept because a probe that fires before the app has finished booting is one
+ * of the classic CrashLoopBackOff causes, and diagnosing it needs the timing
+ * numbers (initialDelaySeconds vs how long the app actually takes) rather
+ * than just the knowledge that a probe exists.
+ */
+export interface KubernetesProbeSpec {
+  // httpGet | exec | tcpSocket | grpc — whichever handler the probe declares.
+  type: string;
+  initialDelaySeconds: number | null;
+  periodSeconds: number | null;
+  timeoutSeconds: number | null;
+  failureThreshold: number | null;
+  successThreshold: number | null;
+  httpPath: string;
+  httpPort: string;
+  execCommand: Array<string>;
+}
+
 export interface KubernetesContainerSpec {
   name: string;
   image: string;
+  imagePullPolicy: string;
   command: Array<string>;
   args: Array<string>;
   env: Array<KubernetesContainerEnvVar>;
@@ -308,6 +366,9 @@ export interface KubernetesContainerSpec {
     mountPath: string;
     readOnly: boolean;
   }>;
+  livenessProbe: KubernetesProbeSpec | null;
+  readinessProbe: KubernetesProbeSpec | null;
+  startupProbe: KubernetesProbeSpec | null;
 }
 
 export interface KubernetesCondition {
@@ -318,13 +379,47 @@ export interface KubernetesCondition {
   lastTransitionTime: string;
 }
 
+/**
+ * One entry of a container's `state` / `lastState` block.
+ *
+ * Kubernetes reports the state as a single-key map — running, waiting or
+ * terminated — whose value carries the detail. `lastState` is the same shape
+ * describing the PREVIOUS incarnation of the container, and for a crash loop
+ * that is where the answer lives: the current state says "waiting /
+ * CrashLoopBackOff" (the symptom), while lastState says "terminated /
+ * OOMKilled / exitCode 137" (the cause).
+ */
+export interface KubernetesContainerStateBlock {
+  // running | waiting | terminated, or "Unknown" when the payload has no state.
+  type: string;
+  reason: string;
+  message: string;
+  // Null rather than 0 — a clean exit(0) must stay distinguishable from "not reported".
+  exitCode: number | null;
+  signal: number | null;
+  startedAt: string;
+  finishedAt: string;
+}
+
 export interface KubernetesContainerStatus {
   name: string;
   ready: boolean;
   restartCount: number;
+  /*
+   * The CURRENT state's type and reason, kept as flat strings for the
+   * existing dashboard/inventory readers that predate lastState.
+   */
   state: string;
   reason: string;
+  /*
+   * The current state's message. For a container stuck on a bad ConfigMap
+   * reference this is the kubelet text naming the missing key, e.g.
+   * `couldn't find key DATABASE_URL in ConfigMap app/app-config`.
+   */
+  message: string;
   image: string;
+  // The previous incarnation's state — null when the container has never restarted.
+  lastState: KubernetesContainerStateBlock | null;
 }
 
 export interface KubernetesPodObject {
@@ -671,6 +766,75 @@ function parseContainerEnv(
   return result;
 }
 
+/**
+ * Parse a probe (liveness/readiness/startup) off a container spec.
+ *
+ * The handler is whichever of httpGet / exec / tcpSocket / grpc is present;
+ * we record which one it was plus the timing knobs, because "the probe fired
+ * at initialDelaySeconds=3 but the app logs show it needs 20s" is a complete
+ * root cause and "a liveness probe exists" is not.
+ */
+function parseProbeSpec(
+  probeKv: string | JSONObject | null,
+): KubernetesProbeSpec | null {
+  if (!probeKv || typeof probeKv === "string") {
+    return null;
+  }
+
+  const httpGet: string | JSONObject | null = getKvValue(probeKv, "httpGet");
+  const exec: string | JSONObject | null = getKvValue(probeKv, "exec");
+  const tcpSocket: string | JSONObject | null = getKvValue(
+    probeKv,
+    "tcpSocket",
+  );
+  const grpc: string | JSONObject | null = getKvValue(probeKv, "grpc");
+
+  let type: string = "unknown";
+  if (httpGet) {
+    type = "httpGet";
+  } else if (exec) {
+    type = "exec";
+  } else if (tcpSocket) {
+    type = "tcpSocket";
+  } else if (grpc) {
+    type = "grpc";
+  }
+
+  let httpPath: string = "";
+  let httpPort: string = "";
+  if (httpGet && typeof httpGet !== "string") {
+    httpPath = getKvStringValue(httpGet, "path");
+    httpPort = getKvStringValue(httpGet, "port");
+  } else if (tcpSocket && typeof tcpSocket !== "string") {
+    httpPort = getKvStringValue(tcpSocket, "port");
+  }
+
+  let execCommand: Array<string> = [];
+  if (exec && typeof exec !== "string") {
+    execCommand = parseStringArray(getKvValue(exec, "command"));
+  }
+
+  return {
+    type,
+    initialDelaySeconds: parseOptionalInt(
+      getKvStringValue(probeKv, "initialDelaySeconds"),
+    ),
+    periodSeconds: parseOptionalInt(getKvStringValue(probeKv, "periodSeconds")),
+    timeoutSeconds: parseOptionalInt(
+      getKvStringValue(probeKv, "timeoutSeconds"),
+    ),
+    failureThreshold: parseOptionalInt(
+      getKvStringValue(probeKv, "failureThreshold"),
+    ),
+    successThreshold: parseOptionalInt(
+      getKvStringValue(probeKv, "successThreshold"),
+    ),
+    httpPath,
+    httpPort,
+    execCommand,
+  };
+}
+
 function parseContainerSpec(kvList: JSONObject): KubernetesContainerSpec {
   const portsArrayValue: string | JSONObject | null = getKvValue(
     kvList,
@@ -733,42 +897,24 @@ function parseContainerSpec(kvList: JSONObject): KubernetesContainerSpec {
     }
   }
 
-  const commandArray: string | JSONObject | null = getKvValue(
-    kvList,
-    "command",
+  const command: Array<string> = parseStringArray(
+    getKvValue(kvList, "command"),
   );
-  const command: Array<string> = [];
-  if (commandArray && typeof commandArray !== "string") {
-    const cmdValues: Array<JSONObject> =
-      (commandArray["values"] as Array<JSONObject>) || [];
-    for (const v of cmdValues) {
-      if (v["stringValue"]) {
-        command.push(v["stringValue"] as string);
-      }
-    }
-  }
-
-  const argsArray: string | JSONObject | null = getKvValue(kvList, "args");
-  const args: Array<string> = [];
-  if (argsArray && typeof argsArray !== "string") {
-    const argValues: Array<JSONObject> =
-      (argsArray["values"] as Array<JSONObject>) || [];
-    for (const v of argValues) {
-      if (v["stringValue"]) {
-        args.push(v["stringValue"] as string);
-      }
-    }
-  }
+  const args: Array<string> = parseStringArray(getKvValue(kvList, "args"));
 
   return {
     name: getKvStringValue(kvList, "name"),
     image: getKvStringValue(kvList, "image"),
+    imagePullPolicy: getKvStringValue(kvList, "imagePullPolicy"),
     command,
     args,
     env,
     ports,
     resources: { requests, limits },
     volumeMounts,
+    livenessProbe: parseProbeSpec(getKvValue(kvList, "livenessProbe")),
+    readinessProbe: parseProbeSpec(getKvValue(kvList, "readinessProbe")),
+    startupProbe: parseProbeSpec(getKvValue(kvList, "startupProbe")),
   };
 }
 
@@ -790,6 +936,66 @@ function parseConditions(
   });
 }
 
+/**
+ * Parse one `state` / `lastState` block off a containerStatus.
+ *
+ * Kubernetes encodes these as a single-key map whose key IS the state name
+ * (running/waiting/terminated) and whose value carries the detail, so the
+ * walk is: values[0].key -> the name, values[0].value.kvlistValue -> the
+ * detail. Both `state` and `lastState` share this shape, which is why this
+ * is a function rather than the inline walk it used to be.
+ *
+ * Returns null when the block is absent — a container that has never
+ * restarted has no lastState at all, and that must not read as "terminated
+ * with no reason".
+ */
+function parseContainerStateBlock(
+  stateKv: string | JSONObject | null,
+): KubernetesContainerStateBlock | null {
+  if (!stateKv || typeof stateKv === "string") {
+    return null;
+  }
+
+  const stateValues: Array<JSONObject> | undefined = stateKv["values"] as
+    | Array<JSONObject>
+    | undefined;
+
+  if (!stateValues || stateValues.length === 0 || !stateValues[0]) {
+    return null;
+  }
+
+  const type: string = (stateValues[0]["key"] as string) || "Unknown";
+  const stateDetail: JSONObject | undefined = stateValues[0]["value"] as
+    | JSONObject
+    | undefined;
+
+  // Handle both camelCase (JSON encoding) and snake_case (protobuf), as getKvValue does.
+  const detail: JSONObject | undefined = (stateDetail?.["kvlistValue"] ||
+    stateDetail?.["kvlist_value"]) as JSONObject | undefined;
+
+  if (!detail) {
+    return {
+      type,
+      reason: "",
+      message: "",
+      exitCode: null,
+      signal: null,
+      startedAt: "",
+      finishedAt: "",
+    };
+  }
+
+  return {
+    type,
+    reason: getKvStringValue(detail, "reason"),
+    message: getKvStringValue(detail, "message"),
+    exitCode: parseOptionalInt(getKvStringValue(detail, "exitCode")),
+    signal: parseOptionalInt(getKvStringValue(detail, "signal")),
+    startedAt: getKvStringValue(detail, "startedAt"),
+    finishedAt: getKvStringValue(detail, "finishedAt"),
+  };
+}
+
 function parseContainerStatuses(
   statusesArrayValue: JSONObject | null,
 ): Array<KubernetesContainerStatus> {
@@ -798,36 +1004,22 @@ function parseContainerStatuses(
   }
   const items: Array<JSONObject> = getArrayValues(statusesArrayValue);
   return items.map((kvList: JSONObject) => {
-    // state is a kvlist with one key (running/waiting/terminated)
-    const stateKv: string | JSONObject | null = getKvValue(kvList, "state");
-    let state: string = "Unknown";
-    let reason: string = "";
-    if (stateKv && typeof stateKv !== "string") {
-      const stateValues: Array<JSONObject> | undefined = stateKv["values"] as
-        | Array<JSONObject>
-        | undefined;
-      if (stateValues && stateValues.length > 0 && stateValues[0]) {
-        state = (stateValues[0]["key"] as string) || "Unknown";
-        // Extract reason from the state's nested kvlist value (e.g., waiting -> { reason: "CrashLoopBackOff" })
-        const stateDetail: JSONObject | undefined = stateValues[0]["value"] as
-          | JSONObject
-          | undefined;
-        if (stateDetail && stateDetail["kvlistValue"]) {
-          reason = getKvStringValue(
-            stateDetail["kvlistValue"] as JSONObject,
-            "reason",
-          );
-        }
-      }
-    }
+    const currentState: KubernetesContainerStateBlock | null =
+      parseContainerStateBlock(getKvValue(kvList, "state"));
 
     return {
       name: getKvStringValue(kvList, "name"),
       ready: getKvStringValue(kvList, "ready") === "true",
       restartCount: parseInt(getKvStringValue(kvList, "restartCount")) || 0,
-      state,
-      reason,
+      /*
+       * Flattened for the readers that predate lastState. "Unknown" on a
+       * missing state block preserves the behaviour those readers expect.
+       */
+      state: currentState?.type || "Unknown",
+      reason: currentState?.reason || "",
+      message: currentState?.message || "",
       image: getKvStringValue(kvList, "image"),
+      lastState: parseContainerStateBlock(getKvValue(kvList, "lastState")),
     };
   });
 }

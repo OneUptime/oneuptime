@@ -21,6 +21,7 @@ import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
 import { RecentChangesTool } from "./RecentChangesTools";
 import { QueryInfrastructureTool } from "./InfrastructureTools";
+import { KubernetesDiagnosePodTool } from "./KubernetesDiagnosticTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
 import { LookupContextTool } from "./ContextTools";
@@ -91,6 +92,15 @@ export default class AIToolbox {
      * restarting / on a node under memory pressure" instead of inferring it.
      */
     QueryInfrastructureTool,
+    /*
+     * Kubernetes root cause (read-only). query_infrastructure reports the
+     * SYMPTOM (this container is in CrashLoopBackOff); this one assembles the
+     * evidence that names the CAUSE — last terminated state and exit code,
+     * limits versus usage, probe config, cluster Events, and the previous
+     * container generation's log tail — and classifies it server-side, so the
+     * verdict is a deterministic finding rather than model prose.
+     */
+    KubernetesDiagnosePodTool,
     /*
      * Source code (read-only). Closes the loop from a telemetry signal to the
      * code that produced it — see CodeTools for the narrower trust posture.

@@ -492,6 +492,96 @@ async function fetchKubernetesContainers(
   return dedupeById(rows);
 }
 
+/*
+ * A one-line-per-container summary of what is actually wrong inside a pod,
+ * built from the pod's stored status.
+ *
+ * This is the cheap half of the crash-loop answer: the pod row already says
+ * "not Running", and this adds the kubelet's own explanation — the previous
+ * incarnation's terminated reason and exit code, or the waiting reason and
+ * message — so the model reads "OOMKilled, exit 137" rather than having to
+ * ask a second question to find out. Init containers are included, because a
+ * pod stuck in Init:CrashLoopBackOff has no row in the container inventory at
+ * all.
+ *
+ * Kept to a compact string: this runs for every unhealthy pod in a listing,
+ * so the raw status JSONB would dominate the payload.
+ */
+function summarizeFailingContainers(
+  status: JSONObject | undefined,
+): string | undefined {
+  if (!status) {
+    return undefined;
+  }
+
+  const summaries: Array<string> = [];
+
+  for (const key of ["initContainerStatuses", "containerStatuses"]) {
+    const list: unknown = status[key];
+
+    if (!Array.isArray(list)) {
+      continue;
+    }
+
+    for (const entry of list) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+
+      const container: JSONObject = entry as JSONObject;
+      const ready: boolean = container["ready"] === true;
+      const restartCount: number = (container["restartCount"] as number) || 0;
+      const state: string = (container["state"] as string) || "";
+      const reason: string = (container["reason"] as string) || "";
+
+      // Only the broken ones — a healthy sidecar is noise here.
+      if (ready && restartCount === 0 && !reason) {
+        continue;
+      }
+
+      const parts: Array<string> = [];
+      const isInit: boolean = key === "initContainerStatuses";
+
+      parts.push(
+        `${container["name"] || "-"}${isInit ? " (init)" : ""}: ${state || "-"}${
+          reason ? `/${reason}` : ""
+        }`,
+      );
+
+      const lastState: JSONObject | undefined = container["lastState"] as
+        | JSONObject
+        | undefined;
+
+      if (lastState) {
+        const exitCode: unknown = lastState["exitCode"];
+        parts.push(
+          `last ${lastState["type"] || "-"}${
+            lastState["reason"] ? `/${lastState["reason"]}` : ""
+          }${
+            exitCode === null || exitCode === undefined
+              ? ""
+              : ` exit ${exitCode}`
+          }`,
+        );
+      }
+
+      const message: string = (container["message"] as string) || "";
+
+      if (message) {
+        parts.push(message);
+      }
+
+      if (restartCount > 0) {
+        parts.push(`${restartCount} restarts`);
+      }
+
+      summaries.push(parts.join(", "));
+    }
+  }
+
+  return summaries.length > 0 ? summaries.join(" | ") : undefined;
+}
+
 async function fetchKubernetesResources(
   params: FetchParams,
 ): Promise<Array<InfrastructureRow>> {
@@ -513,6 +603,14 @@ async function fetchKubernetesResources(
     latestMemoryPercent: true,
     resourceCreationTimestamp: true,
     lastSeenAt: true,
+    /*
+     * Read for `failingContainers` below. Deliberately status only, not spec:
+     * spec carries environment variable names and values, and this tool lists
+     * many resources at once, so pulling it here would ship credentials-shaped
+     * text into every broad listing. kubernetes_diagnose_pod reads spec for a
+     * single named pod, where that cost is bounded and the detail is the point.
+     */
+    status: true,
     kubernetesCluster: {
       name: true,
     },
@@ -590,6 +688,7 @@ async function fetchKubernetesResources(
             memoryMb: toMegabytes(resource.latestMemoryBytes),
             memoryPercent: toPercent(resource.latestMemoryPercent),
             createdAt: resource.resourceCreationTimestamp,
+            failingContainers: summarizeFailingContainers(resource.status),
           },
         }),
       );
