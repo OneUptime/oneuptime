@@ -21,6 +21,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import AIRemediationActionType from "../../Types/AI/AIRemediationActionType";
 import AIRemediationActionStatus from "../../Types/AI/AIRemediationActionStatus";
 import AIRemediationDecisionMode from "../../Types/AI/AIRemediationDecisionMode";
+import AIRemediationIntent from "../../Types/AI/AIRemediationIntent";
 
 /*
  * One AI-proposed remediation for an incident or alert: either "start this
@@ -218,7 +219,7 @@ export default class AIRemediationAction extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Action Type",
     description:
-      "Runbook (start an existing, human-authored runbook) or Command (a drafted script — always requires explicit approval).",
+      "Runbook (start an existing, human-authored runbook) or Command (a script AI drafted for a specific Runbook Agent).",
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -227,6 +228,39 @@ export default class AIRemediationAction extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public actionType?: AIRemediationActionType = undefined;
+
+  /*
+   * What the action is FOR — the dimension the per-agent access grant is
+   * enforced against. Diagnostic actions (gather information; output feeds
+   * a bounded follow-up investigation) may dispatch to any agent;
+   * Remediation actions (change things) only to agents granted ReadWrite.
+   * Declared by the proposer and shown to approvers.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Intent",
+    description:
+      "Diagnostic (gathers information; its output feeds a follow-up investigation) or Remediation (changes things; requires a ReadWrite agent grant).",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: AIRemediationIntent.Remediation,
+  })
+  public intent?: AIRemediationIntent = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -472,7 +506,8 @@ export default class AIRemediationAction extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     title: "Approved At",
-    description: "When this action was approved (by a human or the policy gate).",
+    description:
+      "When this action was approved (by a human or the policy gate).",
   })
   @Column({
     nullable: true,

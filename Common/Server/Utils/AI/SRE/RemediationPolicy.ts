@@ -3,8 +3,9 @@ import OneUptimeDate from "../../../../Types/Date";
 import AIRemediationActionType from "../../../../Types/AI/AIRemediationActionType";
 import AIRemediationActionStatus from "../../../../Types/AI/AIRemediationActionStatus";
 import AIRemediationDecisionMode from "../../../../Types/AI/AIRemediationDecisionMode";
+import AIRemediationIntent from "../../../../Types/AI/AIRemediationIntent";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
-import { RunbookAgentEnvironmentTypeHelper } from "../../../../Types/Runbook/RunbookAgentEnvironmentType";
+import { RunbookAgentAccessLevelHelper } from "../../../../Types/Runbook/RunbookAgentAccessLevel";
 import {
   BashStepConfig,
   JavaScriptStepConfig,
@@ -24,29 +25,37 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * execute unattended or must wait for a human, and whether execution budgets
  * still allow it to run. Every path — the proposer's auto-execution, the
  * approve endpoint, the executor — routes through this module so the rules
- * below hold everywhere at once, not per-callsite (the C1 lesson from the
- * scattered-flag audit; this is the G1 policy-gateway seed for the
- * environment-execution lane).
+ * below hold everywhere at once, not per-callsite (this is the G1
+ * policy-gateway seed for the environment-execution lane).
  *
  * The rules, in the fail-safe direction:
  *   1. Nothing happens unless Project.enableAiRemediation is true AND the
  *      master switch Project.enableAi is not false. Both default off/safe.
- *   2. Command actions (free-form scripts AI drafted) ALWAYS require human
- *      approval. No flag relaxes this, in any environment, deliberately:
- *      a drafted command has never been reviewed by anyone.
- *   3. Runbook actions may auto-execute ONLY when the project additionally
- *      opted into enableAiAutoRemediationOnNonProduction AND every step of
- *      that runbook is provably non-production: agent-bound steps (Bash /
- *      JavaScript) must target agents explicitly tagged Staging, Testing or
- *      Development — an untagged or unknown agent counts as Production —
- *      and HttpRequest steps disqualify auto-execution outright, because a
- *      URL has no environment tag to check. Manual and AI steps are neutral
- *      (a Manual step parks the execution for a human anyway; an AI step
- *      only produces text).
- *   4. Executions are budgeted: a per-UTC-day cap (default 10 — unset is
+ *   2. NOTHING auto-executes unless an enabled Auto Remediation Rule that a
+ *      project admin authored MATCHES the incident/alert. Rules are the
+ *      standing authorization — see AutoRemediationRuleEngineService — and
+ *      match in the same shape as On-Call and Owner rules (monitors,
+ *      severities, labels, title/description patterns). No matching rule
+ *      means every proposal waits for a human. Fail-closed on any error.
+ *   3. AI-drafted Command actions additionally require the matching rule's
+ *      autoExecuteCommands grant. A drafted command is a script no human has
+ *      reviewed, so authorizing it unattended is a separate, explicit choice
+ *      made per rule.
+ *   4. Writing to a host additionally requires that host's AI access grant.
+ *      RunbookAgent.accessLevel is ReadOnly by default: AI may run
+ *      Diagnostic actions there unattended (that IS read access) but a
+ *      Remediation action targeting a ReadOnly agent always waits for a
+ *      human. Grant ReadWrite on the agents where AI may change things —
+ *      typically test/staging — and leave production ReadOnly to get
+ *      "diagnose everywhere, act only where I said".
+ *   5. Executions are budgeted: a per-UTC-day cap (default 10 — unset is
  *      NOT unlimited, unlike token budgets, because these actions run on
  *      customer infrastructure; 0 pauses the lane) and a per-subject cap so
  *      one incident can never eat the whole day's budget.
+ *
+ * Human approval is ALWAYS available regardless of rules and grants — those
+ * govern what happens UNATTENDED. The approve endpoint has its own
+ * execute-capable permission gate.
  */
 
 // Executions allowed per project per UTC day when no explicit limit is set.
@@ -89,12 +98,21 @@ export interface RemediationBudgetDecision {
 
 /*
  * The autonomy-relevant shape of a runbook's steps: which agents its
- * agent-bound steps target, and whether any step is an HTTP request (which
- * has no environment to verify and therefore disqualifies auto-execution).
+ * agent-bound steps target (each one's AI access grant must permit what the
+ * action intends), and whether any step is an HTTP request — a URL has no
+ * agent and therefore no grant to check, so it can never auto-write.
  */
 export interface RunbookAutonomyProfile {
   agentIds: Array<string>;
   hasHttpSteps: boolean;
+}
+
+/* What the rule engine decided for the subject this action belongs to. */
+export interface SubjectAutoRemediationGrant {
+  // Did an enabled Auto Remediation Rule match this incident/alert?
+  matched: boolean;
+  // Does a matching rule authorize unattended AI-drafted commands?
+  commandsAllowed: boolean;
 }
 
 export default class RemediationPolicy {
@@ -166,44 +184,83 @@ export default class RemediationPolicy {
   }
 
   /*
-   * The pure decision (exported for tests): RequireApproval unless every
-   * rule for unattended execution holds. `agentEnvironmentTypes` carries the
-   * environment tag of every agent referenced by the runbook's agent-bound
-   * steps — a missing agent must be passed as undefined so it fails safe.
+   * The pure decision (exported for tests): RequireApproval unless EVERY
+   * condition for unattended execution holds — a matching rule, the
+   * command grant when the action is a drafted command, and a ReadWrite AI
+   * access grant on every agent the action would write through.
+   *
+   * `agentAccessLevels` carries the AI access grant of every agent this
+   * action dispatches to (a Command's single target agent; a Runbook's
+   * agent-bound steps). An agent that could not be resolved must be passed
+   * as undefined so the fail-safe read denies it.
    */
   public static decideDecisionMode(data: {
     actionType: AIRemediationActionType;
-    autoRemediationOnNonProductionEnabled: boolean;
+    intent: AIRemediationIntent;
+    subjectGrant: SubjectAutoRemediationGrant;
     runbookProfile?: RunbookAutonomyProfile | undefined;
-    agentEnvironmentTypes?: Array<string | undefined> | undefined;
+    agentAccessLevels?: Array<string | undefined> | undefined;
   }): AIRemediationDecisionMode {
-    if (data.actionType === AIRemediationActionType.Command) {
-      // Rule 2: drafted commands always need a human. No exceptions.
+    /*
+     * Rule 2: no standing authorization for this incident/alert means no
+     * unattended anything. This is the primary gate.
+     */
+    if (!data.subjectGrant.matched) {
       return AIRemediationDecisionMode.RequireApproval;
     }
-
-    if (!data.autoRemediationOnNonProductionEnabled) {
-      return AIRemediationDecisionMode.RequireApproval;
-    }
-
-    if (!data.runbookProfile || data.runbookProfile.hasHttpSteps) {
-      return AIRemediationDecisionMode.RequireApproval;
-    }
-
-    const environments: Array<string | undefined> =
-      data.agentEnvironmentTypes || [];
 
     /*
-     * Every agent-bound step must have resolved to a known agent — a
-     * dangling agentId means we cannot verify where it runs.
+     * Rule 3: a drafted command is a script nobody reviewed — the matching
+     * rule must explicitly authorize unattended commands.
      */
-    if (environments.length !== data.runbookProfile.agentIds.length) {
+    if (
+      data.actionType === AIRemediationActionType.Command &&
+      !data.subjectGrant.commandsAllowed
+    ) {
       return AIRemediationDecisionMode.RequireApproval;
     }
 
-    for (const environmentType of environments) {
-      if (RunbookAgentEnvironmentTypeHelper.isProduction(environmentType)) {
+    const accessLevels: Array<string | undefined> =
+      data.agentAccessLevels || [];
+
+    if (data.actionType === AIRemediationActionType.Runbook) {
+      /*
+       * A runbook we cannot classify, or one containing an HTTP step (no
+       * agent, therefore no grant to check, and a URL's effect cannot be
+       * classified), never auto-runs.
+       */
+      if (!data.runbookProfile || data.runbookProfile.hasHttpSteps) {
         return AIRemediationDecisionMode.RequireApproval;
+      }
+
+      /*
+       * Every agent-bound step must have resolved to a known agent — a
+       * dangling agentId means we cannot check where it runs.
+       */
+      if (accessLevels.length !== data.runbookProfile.agentIds.length) {
+        return AIRemediationDecisionMode.RequireApproval;
+      }
+    }
+
+    /*
+     * Rule 4: writing needs the per-host grant. Diagnostic actions only
+     * read, which is exactly what the default ReadOnly grant permits, so
+     * they may auto-run on any resolved agent; Remediation actions need
+     * ReadWrite on EVERY agent they touch.
+     */
+    if (data.intent === AIRemediationIntent.Remediation) {
+      if (
+        data.actionType === AIRemediationActionType.Command &&
+        accessLevels.length === 0
+      ) {
+        // A command with no resolvable target agent cannot be verified.
+        return AIRemediationDecisionMode.RequireApproval;
+      }
+
+      for (const accessLevel of accessLevels) {
+        if (!RunbookAgentAccessLevelHelper.canWrite(accessLevel)) {
+          return AIRemediationDecisionMode.RequireApproval;
+        }
       }
     }
 

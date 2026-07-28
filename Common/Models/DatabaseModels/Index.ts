@@ -185,6 +185,8 @@ import AIRun from "./AIRun";
 import AIRunEvent from "./AIRunEvent";
 import AIInsight from "./AIInsight";
 import AIRemediationAction from "./AIRemediationAction";
+import IncidentAutoRemediationRule from "./IncidentAutoRemediationRule";
+import AlertAutoRemediationRule from "./AlertAutoRemediationRule";
 import LlmProvider from "./LlmProvider";
 import LlmLog from "./LlmLog";
 import Project from "./Project";
@@ -745,6 +747,8 @@ const AllModelTypes: Array<{
   AIRunEvent,
   AIInsight,
   AIRemediationAction,
+  IncidentAutoRemediationRule,
+  AlertAutoRemediationRule,
 
   LlmProvider,
   LlmLog,

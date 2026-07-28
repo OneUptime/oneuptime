@@ -3,11 +3,11 @@ import OneUptimeDate from "../../../../Types/Date";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { Blue500 } from "../../../../Types/BrandColors";
 import AIRemediationActionType from "../../../../Types/AI/AIRemediationActionType";
+import AIRemediationIntent from "../../../../Types/AI/AIRemediationIntent";
 import AIRemediationActionStatus from "../../../../Types/AI/AIRemediationActionStatus";
 import AIRemediationDecisionMode from "../../../../Types/AI/AIRemediationDecisionMode";
 import { RunbookStep } from "../../../../Types/Runbook/RunbookStep";
 import AIRemediationAction from "../../../../Models/DatabaseModels/AIRemediationAction";
-import Project from "../../../../Models/DatabaseModels/Project";
 import Runbook from "../../../../Models/DatabaseModels/Runbook";
 import RunbookAgent from "../../../../Models/DatabaseModels/RunbookAgent";
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
@@ -16,13 +16,13 @@ import AIService, {
   AILogResponse,
   AI_REMEDIATION_PROPOSAL_FEATURE,
 } from "../../../Services/AIService";
-import ProjectService from "../../../Services/ProjectService";
 import RunbookService from "../../../Services/RunbookService";
 import RunbookAgentService from "../../../Services/RunbookAgentService";
 import AIRemediationActionService from "../../../Services/AIRemediationActionService";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
 import AlertFeedService from "../../../Services/AlertFeedService";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
+import AutoRemediationRuleEngineService from "../../../Services/AutoRemediationRuleEngineService";
 import RemediationPolicy, {
   MAX_ACTIONS_PER_RUN,
   MAX_COMMAND_SCRIPT_CHARS,
@@ -30,6 +30,7 @@ import RemediationPolicy, {
   MAX_TITLE_CHARS,
   PROPOSAL_TTL_HOURS,
   RunbookAutonomyProfile,
+  SubjectAutoRemediationGrant,
 } from "./RemediationPolicy";
 import RemediationExecutor from "./RemediationExecutor";
 import logger from "../../Logger";
@@ -43,8 +44,9 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * failure can never fail (or duplicate) the investigation. Turns a CONFIDENT
  * completed RCA into 0-3 structured AIRemediationAction rows: "start this
  * existing runbook" or "run this command on that agent", each waiting for
- * the policy gate's decision mode (approval-first; auto-execution only for
- * non-production runbook actions on opted-in projects).
+ * the policy gate's decision mode (approval-first; unattended execution only
+ * where an Auto Remediation Rule the project authored matches the subject,
+ * and — for actions that write — only on agents granted ReadWrite AI access).
  *
  * The threat model (vision §6) shapes everything here:
  *   - Gates BEFORE the LLM spend: only a POSITIVE confident classification
@@ -74,6 +76,12 @@ const MAX_AGENTS_IN_PROMPT: number = 50;
 
 export interface ParsedRemediationProposal {
   actionType: AIRemediationActionType;
+  /*
+   * What the action is FOR. Parsed from the model but fail-safe: anything
+   * missing or unrecognized becomes Remediation, the stronger requirement
+   * (a write needs a ReadWrite agent grant to auto-execute).
+   */
+  intent: AIRemediationIntent;
   title: string;
   rationale: string;
   // Runbook actions: an id from the server-fetched runbook allowlist.
@@ -164,6 +172,18 @@ export default class RemediationProposer {
         continue;
       }
 
+      /*
+       * Intent: only an explicit, exact "diagnostic" downgrades the action
+       * to read-only. Everything else — missing, misspelled, or adversarial
+       * — is treated as a write.
+       */
+      const rawIntent: unknown = record["intent"];
+      const intent: AIRemediationIntent =
+        typeof rawIntent === "string" &&
+        rawIntent.trim().toLowerCase() === "diagnostic"
+          ? AIRemediationIntent.Diagnostic
+          : AIRemediationIntent.Remediation;
+
       if (type.toLowerCase() === "runbook") {
         const runbookId: unknown = record["runbookId"];
 
@@ -174,6 +194,7 @@ export default class RemediationProposer {
 
         proposals.push({
           actionType: AIRemediationActionType.Runbook,
+          intent,
           title,
           rationale,
           runbookId,
@@ -204,6 +225,7 @@ export default class RemediationProposer {
 
         proposals.push({
           actionType: AIRemediationActionType.Command,
+          intent,
           title,
           rationale,
           runbookAgentId,
@@ -278,6 +300,7 @@ export default class RemediationProposer {
           _id: true,
           name: true,
           environmentType: true,
+          accessLevel: true,
           connectionStatus: true,
         },
         sort: { createdAt: SortOrder.Descending },
@@ -341,22 +364,25 @@ export default class RemediationProposer {
       }
 
       /*
-       * The auto-remediation opt-in feeds the policy's decision mode; read
-       * once for all proposals.
+       * The standing authorization for THIS subject: do any of the
+       * project's Auto Remediation Rules match it, and do they extend to
+       * AI-drafted commands? Evaluated once for all proposals. The engine
+       * is fail-closed — any error denies autonomy.
        */
-      const project: Project | null = await ProjectService.findOneById({
-        id: projectId,
-        select: { enableAiAutoRemediationOnNonProduction: true },
-        props: { isRoot: true },
-      });
+      const subjectGrant: SubjectAutoRemediationGrant = data.incidentId
+        ? await AutoRemediationRuleEngineService.getDecisionForIncident(
+            data.incidentId,
+          )
+        : data.alertId
+          ? await AutoRemediationRuleEngineService.getDecisionForAlert(
+              data.alertId,
+            )
+          : { matched: false, commandsAllowed: false };
 
-      const autoRemediationOnNonProductionEnabled: boolean =
-        project?.enableAiAutoRemediationOnNonProduction === true;
-
-      const agentEnvironmentById: Map<string, string | undefined> = new Map();
+      const agentAccessById: Map<string, string | undefined> = new Map();
       for (const agent of agents) {
         if (agent._id) {
-          agentEnvironmentById.set(agent._id.toString(), agent.environmentType);
+          agentAccessById.set(agent._id.toString(), agent.accessLevel);
         }
       }
 
@@ -376,9 +402,9 @@ export default class RemediationProposer {
       for (const proposal of proposals) {
         const decisionMode: AIRemediationDecisionMode = this.decideModeFor({
           proposal,
-          autoRemediationOnNonProductionEnabled,
+          subjectGrant,
           runbooksById,
-          agentEnvironmentById,
+          agentAccessById,
         });
 
         const action: AIRemediationAction = new AIRemediationAction();
@@ -391,6 +417,7 @@ export default class RemediationProposer {
           action.alertId = data.alertId;
         }
         action.actionType = proposal.actionType;
+        action.intent = proposal.intent;
         action.title = proposal.title;
         action.rationale = proposal.rationale;
         if (proposal.runbookId) {
@@ -470,23 +497,25 @@ export default class RemediationProposer {
   }
 
   /*
-   * Resolve the policy decision for one parsed proposal. Runbook actions
-   * need the referenced runbook's autonomy profile plus every referenced
-   * agent's environment tag — a missing agent contributes undefined so the
-   * policy fails safe (unknown = Production). Command actions go through
-   * the same gate, which returns RequireApproval unconditionally for them.
+   * Resolve the policy decision for one parsed proposal. Command actions
+   * carry a single target agent; Runbook actions carry every agent their
+   * agent-bound steps target. An agent that is not in the server-fetched
+   * map contributes undefined, which the policy's fail-safe read denies.
    */
   private static decideModeFor(data: {
     proposal: ParsedRemediationProposal;
-    autoRemediationOnNonProductionEnabled: boolean;
+    subjectGrant: SubjectAutoRemediationGrant;
     runbooksById: Map<string, Runbook>;
-    agentEnvironmentById: Map<string, string | undefined>;
+    agentAccessById: Map<string, string | undefined>;
   }): AIRemediationDecisionMode {
     if (data.proposal.actionType === AIRemediationActionType.Command) {
+      const agentId: string = data.proposal.runbookAgentId || "";
+
       return RemediationPolicy.decideDecisionMode({
         actionType: AIRemediationActionType.Command,
-        autoRemediationOnNonProductionEnabled:
-          data.autoRemediationOnNonProductionEnabled,
+        intent: data.proposal.intent,
+        subjectGrant: data.subjectGrant,
+        agentAccessLevels: agentId ? [data.agentAccessById.get(agentId)] : [],
       });
     }
 
@@ -500,18 +529,18 @@ export default class RemediationProposer {
     const profile: RunbookAutonomyProfile =
       RemediationPolicy.getRunbookAutonomyProfile(steps);
 
-    const agentEnvironmentTypes: Array<string | undefined> =
-      profile.agentIds.map((agentId: string) => {
-        // Missing agents map to undefined → the policy reads Production.
-        return data.agentEnvironmentById.get(agentId);
-      });
+    const agentAccessLevels: Array<string | undefined> = profile.agentIds.map(
+      (agentId: string) => {
+        return data.agentAccessById.get(agentId);
+      },
+    );
 
     return RemediationPolicy.decideDecisionMode({
       actionType: AIRemediationActionType.Runbook,
-      autoRemediationOnNonProductionEnabled:
-        data.autoRemediationOnNonProductionEnabled,
+      intent: data.proposal.intent,
+      subjectGrant: data.subjectGrant,
       runbookProfile: profile,
-      agentEnvironmentTypes,
+      agentAccessLevels,
     });
   }
 
@@ -520,8 +549,9 @@ export default class RemediationProposer {
       "You are an SRE assistant drafting remediation for the root-cause analysis you are given.",
       "You may ONLY reference runbooks and agents from the lists provided — never invent ids.",
       `Reply with a STRICT JSON array (no prose, no code fences) of at most ${MAX_ACTIONS_PER_RUN} objects, each one of:`,
-      '{"type":"runbook","runbookId":"...","title":"...","rationale":"..."}',
-      '{"type":"command","script":"...","runbookAgentId":"...","title":"...","rationale":"..."}',
+      '{"type":"runbook","runbookId":"...","intent":"Diagnostic|Remediation","title":"...","rationale":"..."}',
+      '{"type":"command","script":"...","runbookAgentId":"...","intent":"Diagnostic|Remediation","title":"...","rationale":"..."}',
+      'intent is "Diagnostic" when the action ONLY gathers information (status checks, log or metric collection, describing resources) and changes nothing; "Remediation" when it changes anything (restart, rollback, scale, delete, config edit). If unsure, say Remediation.',
       "Reply with an empty array [] when nothing is safely automatable.",
       "Commands must be single-purpose diagnostics or safe mitigations, never destructive: no rm -rf, no data deletion, no credential or secret access.",
       "Prefer an existing runbook over a drafted command when one fits.",

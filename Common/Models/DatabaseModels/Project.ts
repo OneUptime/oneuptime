@@ -1845,36 +1845,6 @@ export default class Project extends TenantModel {
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
   @TableColumn({
-    required: true,
-    isDefaultValueColumn: true,
-    type: TableColumnType.Boolean,
-    title: "Auto-Execute AI Remediation on Non-Production Agents",
-    description:
-      "When enabled (and AI Remediation is on), AI-proposed RUNBOOK actions execute without waiting for approval — but only when every executing step of that runbook targets a Runbook Agent explicitly tagged Staging, Testing or Development. Agents tagged Production — and agents never tagged at all — always require a human click. Drafted commands are never auto-executed regardless of this setting.",
-    defaultValue: false,
-    example: true,
-  })
-  @Column({
-    nullable: false,
-    default: false,
-    type: ColumnType.Boolean,
-  })
-  public enableAiAutoRemediationOnNonProduction?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-      Permission.UnAuthorizedSsoUser,
-      Permission.ProjectUser,
-    ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
-  })
-  @TableColumn({
     required: false,
     type: TableColumnType.Number,
     title: "Daily AI Remediation Execution Limit",

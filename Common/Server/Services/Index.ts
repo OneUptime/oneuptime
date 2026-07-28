@@ -93,6 +93,8 @@ import MonitorSecretService from "./MonitorSecretService";
 import RunbookSecretService from "./RunbookSecretService";
 import AIInsightService from "./AIInsightService";
 import AIRemediationActionService from "./AIRemediationActionService";
+import IncidentAutoRemediationRuleService from "./IncidentAutoRemediationRuleService";
+import AlertAutoRemediationRuleService from "./AlertAutoRemediationRuleService";
 
 // Monitors
 import MonitorService from "./MonitorService";
@@ -374,6 +376,8 @@ const services: Array<BaseService> = [
   RunbookSecretService,
   AIInsightService,
   AIRemediationActionService,
+  IncidentAutoRemediationRuleService,
+  AlertAutoRemediationRuleService,
   MonitorFeedService,
 
   NotificationService,

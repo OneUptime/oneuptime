@@ -246,18 +246,71 @@ export default class RunbookAgent extends BaseModel {
   public description?: string = undefined;
 
   /*
-   * The graduated-autonomy anchor: AI-proposed remediations may only
-   * auto-execute on agents explicitly tagged Staging, Testing or
-   * Development (and only when the project opted in). Unset or unknown
-   * counts as Production — the fail-safe direction — so nothing auto-runs
-   * on an agent until a human deliberately tags it non-production.
+   * INFORMATIONAL context for humans: where this agent lives. Shown as a
+   * badge wherever the agent appears (including on AI remediation
+   * proposals, so an approver sees at a glance that a command targets
+   * production). It does NOT gate AI auto-execution — Auto Remediation
+   * Rules on incidents/alerts decide that, and the accessLevel grant below
+   * decides what kind of action may dispatch here.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.CreateRunbookAgent,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookAgent,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.EditRunbookAgent,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    title: "Environment",
+    description:
+      "Which environment this agent lives in: Production, Staging, Testing or Development. Informational — shown to approvers as context; it does not gate AI auto-execution (Auto Remediation Rules and the Access Level grant do).",
+    defaultValue: "Production",
+    example: "Testing",
+  })
+  @Column({
+    nullable: false,
+    default: "Production",
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public environmentType?: string = undefined;
+
+  /*
+   * The per-agent capability grant for the AI remediation lane: what kind
+   * of AI-dispatched action this agent accepts. ReadOnly (the default —
+   * fail-safe) accepts only Diagnostic actions; ReadWrite also accepts
+   * Remediation actions. Grant production agents ReadOnly and test/staging
+   * agents ReadWrite. Applies to BOTH auto-executed and human-approved
+   * AI-lane dispatch — it is the agent's declared capability, not an
+   * approval shortcut; humans wanting more run runbooks directly.
    *
-   * SECURITY-SENSITIVE ACL: this tag is the boundary that decides whether
-   * AI may execute unattended, so writing it is restricted to exactly the
-   * principals who can arm auto-remediation in the first place
-   * (Project.enableAiAutoRemediationOnNonProduction is Owner/Admin-only).
-   * Anyone else deploys agents as untagged — i.e. Production, never
-   * auto-run — until an owner or admin deliberately reclassifies them.
+   * SECURITY-SENSITIVE ACL: writing this grant is restricted to Project
+   * Owners/Admins — it is the boundary that decides whether AI-proposed
+   * writes can reach this host at all. The honest enforcement backstop is
+   * OS-level: run ReadOnly agents as OS users that genuinely cannot mutate
+   * anything (see RunbookAgentAccessLevel).
    */
   @ColumnAccessControl({
     create: [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -277,19 +330,19 @@ export default class RunbookAgent extends BaseModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
-    title: "Environment",
+    title: "AI Access Level",
     description:
-      "Which environment this agent lives in: Production, Staging, Testing or Development. AI-proposed remediations never auto-execute on Production agents; untagged agents are treated as Production.",
-    defaultValue: "Production",
-    example: "Testing",
+      "What the AI remediation lane may dispatch to this agent: ReadOnly (diagnostics only — the default) or ReadWrite (remediations too). Grant ReadWrite deliberately; run ReadOnly agents as OS users that cannot mutate anything so the grant is enforced by the host, not by trust.",
+    defaultValue: "ReadOnly",
+    example: "ReadWrite",
   })
   @Column({
     nullable: false,
-    default: "Production",
+    default: "ReadOnly",
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
   })
-  public environmentType?: string = undefined;
+  public accessLevel?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

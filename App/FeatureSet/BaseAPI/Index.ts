@@ -37,6 +37,14 @@ import AIRemediationAction from "Common/Models/DatabaseModels/AIRemediationActio
 import AIRemediationActionService, {
   Service as AIRemediationActionServiceType,
 } from "Common/Server/Services/AIRemediationActionService";
+import IncidentAutoRemediationRule from "Common/Models/DatabaseModels/IncidentAutoRemediationRule";
+import IncidentAutoRemediationRuleService, {
+  Service as IncidentAutoRemediationRuleServiceType,
+} from "Common/Server/Services/IncidentAutoRemediationRuleService";
+import AlertAutoRemediationRule from "Common/Models/DatabaseModels/AlertAutoRemediationRule";
+import AlertAutoRemediationRuleService, {
+  Service as AlertAutoRemediationRuleServiceType,
+} from "Common/Server/Services/AlertAutoRemediationRuleService";
 import TelemetryAPI from "Common/Server/API/TelemetryAPI";
 import ProbeAPI from "Common/Server/API/ProbeAPI";
 import AIAgentAPI from "Common/Server/API/AIAgentAPI";
@@ -4466,6 +4474,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AIRemediationAction, AIRemediationActionServiceType>(
         AIRemediationAction,
         AIRemediationActionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        IncidentAutoRemediationRule,
+        IncidentAutoRemediationRuleServiceType
+      >(
+        IncidentAutoRemediationRule,
+        IncidentAutoRemediationRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AlertAutoRemediationRule, AlertAutoRemediationRuleServiceType>(
+        AlertAutoRemediationRule,
+        AlertAutoRemediationRuleService,
       ).getRouter(),
     );
 
