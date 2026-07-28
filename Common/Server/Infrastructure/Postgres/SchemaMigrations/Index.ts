@@ -475,6 +475,7 @@ import { AddHotQueryIndexesSecondPass1785148065137 } from "./1785148065137-AddHo
 import { RepairCrossProjectMonitorStatusReferences1785240000000 } from "./1785240000000-RepairCrossProjectMonitorStatusReferences";
 import { AddColumnsToTableView1785241000000 } from "./1785241000000-AddColumnsToTableView";
 import { AddAiRemediationLane1785250000000 } from "./1785250000000-AddAiRemediationLane";
+import { AddKubernetesCrashLoopEvidence1785400000000 } from "./1785400000000-AddKubernetesCrashLoopEvidence";
 
 export default [
   InitialMigration,
@@ -954,4 +955,5 @@ export default [
   RepairCrossProjectMonitorStatusReferences1785240000000,
   AddColumnsToTableView1785241000000,
   AddAiRemediationLane1785250000000,
+  AddKubernetesCrashLoopEvidence1785400000000,
 ];

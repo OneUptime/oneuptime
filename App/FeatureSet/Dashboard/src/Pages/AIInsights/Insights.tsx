@@ -45,6 +45,7 @@ const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
   [AIInsightType.ErrorLogSpike]: "Error Log Spike",
   [AIInsightType.TraceLatencyRegression]: "Latency Regression",
   [AIInsightType.MetricDrift]: "Metric Drift",
+  [AIInsightType.ContainerCrashLoop]: "Container Crash Loop",
 };
 
 // Human labels for the wire-contract status values (e.g. "ActionRequired").
@@ -105,6 +106,7 @@ const INSIGHT_TYPE_ICONS: Record<AIInsightType, IconProp> = {
   [AIInsightType.ErrorLogSpike]: IconProp.Logs,
   [AIInsightType.TraceLatencyRegression]: IconProp.Clock,
   [AIInsightType.MetricDrift]: IconProp.ArrowTrendingUp,
+  [AIInsightType.ContainerCrashLoop]: IconProp.Cube,
 };
 
 export function getInsightTypeLabel(

@@ -67,11 +67,56 @@ export interface MetricDriftInsightEvidence {
   priorSampleCount: number;
 }
 
+/*
+ * Evidence for ContainerCrashLoop insights.
+ *
+ * The only evidence shape carrying structured INFRASTRUCTURE identity —
+ * AIInsight's own subject columns are all telemetry concepts (serviceName,
+ * telemetryServiceId, telemetryExceptionId, traceId, metricName), so this is
+ * where a downstream reader learns which pod to go and look at.
+ *
+ * `classifiedCause` is the CrashLoopClassifier's verdict, computed
+ * deterministically at detect time before any LLM sees the finding.
+ */
+export interface KubernetesCrashLoopEvidence {
+  clusterName?: string | undefined;
+  namespace: string;
+  podName: string;
+  containerName: string;
+  isInitContainer: boolean;
+  controllerKind?: string | undefined;
+  controllerName?: string | undefined;
+  image?: string | undefined;
+  restartCount: number;
+  waitingReason?: string | undefined;
+  waitingMessage?: string | undefined;
+  lastTerminatedReason?: string | undefined;
+  lastTerminatedExitCode?: number | null | undefined;
+  lastTerminatedFinishedAt?: string | undefined;
+  memoryLimitBytes?: number | null | undefined;
+  latestMemoryBytes?: number | null | undefined;
+  recentEvents: Array<{
+    time?: string | undefined;
+    type: string;
+    reason: string;
+    note: string;
+  }>;
+  previousLogTail: Array<string>;
+  /*
+   * How many pods share this finding's fingerprint — five crashlooping
+   * replicas of one Deployment are ONE insight, not five.
+   */
+  affectedPodCount: number;
+  classifiedCause: string;
+  classifierConfidence: string;
+}
+
 export interface AIInsightEvidence {
   exception?: ExceptionInsightEvidence | undefined;
   logSpike?: LogSpikeInsightEvidence | undefined;
   latency?: LatencyInsightEvidence | undefined;
   metricDrift?: MetricDriftInsightEvidence | undefined;
+  kubernetes?: KubernetesCrashLoopEvidence | undefined;
 }
 
 export default AIInsightEvidence;

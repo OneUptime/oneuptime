@@ -36,6 +36,14 @@ enum AIInsightType {
    * and entity).
    */
   MetricDrift = "MetricDrift",
+  /*
+   * A Kubernetes container is stuck restarting — CrashLoopBackOff, an image
+   * that will not pull, or a container that cannot be created from its
+   * configuration. Unlike its siblings this detector reads INFRASTRUCTURE
+   * state rather than telemetry, so it fires for a workload that never
+   * managed to emit a single span or log line.
+   */
+  ContainerCrashLoop = "ContainerCrashLoop",
 }
 
 export default AIInsightType;

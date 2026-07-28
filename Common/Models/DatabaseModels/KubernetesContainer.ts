@@ -355,6 +355,114 @@ export default class KubernetesContainer extends BaseModel {
   })
   public memoryLimitBytes?: number = undefined;
 
+  /*
+   * Crash-loop evidence, lifted out of status.containerStatuses[].
+   *
+   * `reason` above says WHAT is wrong (CrashLoopBackOff — the symptom); these
+   * say WHY. lastTerminated* describe the previous incarnation, which is the
+   * one that actually died, and waitingMessage carries the kubelet's own text
+   * for a container that never started at all (e.g. the missing ConfigMap key).
+   * Indexed on (projectId, reason) by the same migration so the crash-loop
+   * detector's scan is not a full project slice.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Last Terminated Reason",
+    description:
+      "status.containerStatuses[].lastState.terminated.reason — why the PREVIOUS incarnation of this container died (e.g. OOMKilled, Error).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public lastTerminatedReason?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Last Terminated Exit Code",
+    description:
+      "status.containerStatuses[].lastState.terminated.exitCode. Signed and nullable on purpose: 0 means a clean exit, null means no exit code was reported.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public lastTerminatedExitCode?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Terminated At",
+    description:
+      "status.containerStatuses[].lastState.terminated.finishedAt — when the previous incarnation died.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastTerminatedFinishedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Waiting Message",
+    description:
+      "status.containerStatuses[].state.waiting.message — the kubelet's own explanation for a container that has not started, e.g. \"couldn't find key DATABASE_URL in ConfigMap app-config\". LongText because kubelet messages overflow ShortText.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public waitingMessage?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Is Init Container",
+    description:
+      "True when this row came from spec.initContainers. An init container stuck in CrashLoopBackOff shows on the pod as Init:CrashLoopBackOff and blocks the pod from ever starting.",
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public isInitContainer?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: READ_PERMISSIONS,

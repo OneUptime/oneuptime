@@ -424,11 +424,20 @@ export default class InsightTriageRunner {
 
     const lines: Array<string> = [];
 
+    /*
+     * Every evidence section a detector can emit must be listed here. This is
+     * an allowlist, not a loop over the object's keys, so a section that is
+     * missing from it is silently dropped from the triage prompt while still
+     * being persisted and rendered in the dashboard — the model then reasons
+     * without the very evidence the detector computed, and nothing reports a
+     * problem. Add the key here when you add one to AIInsightEvidence.
+     */
     const sections: Array<keyof AIInsightEvidence> = [
       "exception",
       "logSpike",
       "latency",
       "metricDrift",
+      "kubernetes",
     ];
 
     for (const section of sections) {

@@ -77,6 +77,21 @@ export interface ParsedKubernetesContainerRow {
   isReady: boolean | null;
   restartCount: number | null;
   memoryLimitBytes: number | null;
+  /*
+   * Crash-loop evidence. `reason` is the symptom (CrashLoopBackOff); these
+   * are the cause — the previous incarnation's terminated reason and exit
+   * code, and the kubelet message for a container that never started.
+   *
+   * NOTE: KubernetesContainerService.ParsedKubernetesContainer is a
+   * byte-identical duplicate of this interface. Widening only one of them
+   * produces NO type error at the call site and silently drops the fields on
+   * write — change both.
+   */
+  lastTerminatedReason: string | null;
+  lastTerminatedExitCode: number | null;
+  lastTerminatedFinishedAt: Date | null;
+  waitingMessage: string | null;
+  isInitContainer: boolean;
   lastSeenAt: Date;
 }
 
@@ -225,53 +240,102 @@ export function extractContainersFromPod(data: {
   const podNamespaceKey: string = meta.namespace || "";
   const podName: string = meta.name;
 
-  const specContainers: Array<KubernetesContainerSpec> = Array.isArray(
-    data.parsedPod.spec?.containers,
-  )
-    ? data.parsedPod.spec.containers
-    : [];
-  const statusList: Array<KubernetesContainerStatus> = Array.isArray(
-    data.parsedPod.status?.containerStatuses,
-  )
-    ? data.parsedPod.status.containerStatuses
-    : [];
-
-  const statusByName: Map<string, KubernetesContainerStatus> = new Map();
-  for (const cs of statusList) {
-    if (cs && typeof cs.name === "string" && cs.name) {
-      statusByName.set(cs.name, cs);
-    }
-  }
+  /*
+   * Init containers get rows too.
+   *
+   * This used to iterate spec.containers only, which meant a pod stuck in
+   * `Init:CrashLoopBackOff` produced NO KubernetesContainer row at all — the
+   * failing container was invisible to the inventory, to query_infrastructure
+   * and to anything filtering that table. Kubernetes requires container names
+   * to be unique ACROSS containers and initContainers, so the existing UNIQUE
+   * (projectId, clusterId, podNamespaceKey, podName, name) index still holds.
+   */
+  const groups: Array<{
+    specs: Array<KubernetesContainerSpec>;
+    statuses: Array<KubernetesContainerStatus>;
+    isInitContainer: boolean;
+  }> = [
+    {
+      specs: Array.isArray(data.parsedPod.spec?.initContainers)
+        ? data.parsedPod.spec.initContainers
+        : [],
+      statuses: Array.isArray(data.parsedPod.status?.initContainerStatuses)
+        ? data.parsedPod.status.initContainerStatuses
+        : [],
+      isInitContainer: true,
+    },
+    {
+      specs: Array.isArray(data.parsedPod.spec?.containers)
+        ? data.parsedPod.spec.containers
+        : [],
+      statuses: Array.isArray(data.parsedPod.status?.containerStatuses)
+        ? data.parsedPod.status.containerStatuses
+        : [],
+      isInitContainer: false,
+    },
+  ];
 
   const rows: Array<ParsedKubernetesContainerRow> = [];
-  for (const container of specContainers) {
-    const containerName: string = container?.name || "";
-    if (!containerName) {
-      continue;
+
+  for (const group of groups) {
+    const statusByName: Map<string, KubernetesContainerStatus> = new Map();
+    for (const cs of group.statuses) {
+      if (cs && typeof cs.name === "string" && cs.name) {
+        statusByName.set(cs.name, cs);
+      }
     }
-    const cs: KubernetesContainerStatus | undefined =
-      statusByName.get(containerName);
 
-    const memLimitRaw: string | undefined =
-      container.resources?.limits?.["memory"];
-    const memoryLimitBytes: number | null =
-      parseMemoryStringToBytes(memLimitRaw);
+    for (const container of group.specs) {
+      const containerName: string = container?.name || "";
+      if (!containerName) {
+        continue;
+      }
+      const cs: KubernetesContainerStatus | undefined =
+        statusByName.get(containerName);
 
-    rows.push({
-      podNamespaceKey,
-      podName,
-      name: containerName,
-      image: container.image || (cs ? cs.image || null : null) || null,
-      state: cs && typeof cs.state === "string" ? cs.state : null,
-      reason:
-        cs && typeof cs.reason === "string" && cs.reason ? cs.reason : null,
-      isReady: cs ? Boolean(cs.ready) : null,
-      restartCount:
-        cs && typeof cs.restartCount === "number" ? cs.restartCount : null,
-      memoryLimitBytes,
-      lastSeenAt: data.lastSeenAt,
-    });
+      const memLimitRaw: string | undefined =
+        container.resources?.limits?.["memory"];
+      const memoryLimitBytes: number | null =
+        parseMemoryStringToBytes(memLimitRaw);
+
+      /*
+       * The kubelet's waiting message is arbitrary text and the column is
+       * varchar(500), so clamp at this boundary rather than letting the
+       * upsert throw on an unusually verbose runtime.
+       */
+      const waitingMessage: string | null =
+        cs && typeof cs.message === "string" && cs.message
+          ? cs.message.substring(0, 500)
+          : null;
+
+      rows.push({
+        podNamespaceKey,
+        podName,
+        name: containerName,
+        image: container.image || (cs ? cs.image || null : null) || null,
+        state: cs && typeof cs.state === "string" ? cs.state : null,
+        reason:
+          cs && typeof cs.reason === "string" && cs.reason ? cs.reason : null,
+        isReady: cs ? Boolean(cs.ready) : null,
+        restartCount:
+          cs && typeof cs.restartCount === "number" ? cs.restartCount : null,
+        memoryLimitBytes,
+        lastTerminatedReason: cs?.lastState?.reason || null,
+        // Nullable on purpose: 0 is a clean exit, null is "not reported".
+        lastTerminatedExitCode:
+          cs?.lastState && typeof cs.lastState.exitCode === "number"
+            ? cs.lastState.exitCode
+            : null,
+        lastTerminatedFinishedAt: parseCreationTimestamp(
+          cs?.lastState?.finishedAt,
+        ),
+        waitingMessage,
+        isInitContainer: group.isInitContainer,
+        lastSeenAt: data.lastSeenAt,
+      });
+    }
   }
+
   return rows;
 }
 

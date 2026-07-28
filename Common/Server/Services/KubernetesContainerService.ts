@@ -20,6 +20,12 @@ import logger from "../Utils/Logger";
  * ------------------------------------------------------------------
  */
 
+/*
+ * NOTE: this is a byte-identical duplicate of ParsedKubernetesContainerRow in
+ * Common/Types/Kubernetes/KubernetesInventoryExtractor. Widening only one of
+ * the two produces NO type error at the call site and silently drops the new
+ * fields on write — always change both.
+ */
 export interface ParsedKubernetesContainer {
   podNamespaceKey: string;
   podName: string;
@@ -30,6 +36,11 @@ export interface ParsedKubernetesContainer {
   isReady: boolean | null;
   restartCount: number | null;
   memoryLimitBytes: number | null;
+  lastTerminatedReason: string | null;
+  lastTerminatedExitCode: number | null;
+  lastTerminatedFinishedAt: Date | null;
+  waitingMessage: string | null;
+  isInitContainer: boolean;
   lastSeenAt: Date;
 }
 
@@ -57,6 +68,11 @@ const UPSERT_COLUMNS: Array<string> = [
   "isReady",
   "restartCount",
   "memoryLimitBytes",
+  "lastTerminatedReason",
+  "lastTerminatedExitCode",
+  "lastTerminatedFinishedAt",
+  "waitingMessage",
+  "isInitContainer",
   "lastSeenAt",
   "version",
 ];
@@ -121,6 +137,11 @@ export class Service extends DatabaseService<Model> {
           c.memoryLimitBytes !== null && c.memoryLimitBytes !== undefined
             ? Math.trunc(c.memoryLimitBytes).toString()
             : null,
+          c.lastTerminatedReason,
+          c.lastTerminatedExitCode,
+          c.lastTerminatedFinishedAt,
+          c.waitingMessage,
+          Boolean(c.isInitContainer),
           c.lastSeenAt,
           0, // version (BaseModel @VersionColumn)
         );
@@ -131,7 +152,10 @@ export class Service extends DatabaseService<Model> {
           "projectId", "kubernetesClusterId",
           "podNamespaceKey", "podName", "name",
           "image", "state", "reason", "isReady", "restartCount",
-          "memoryLimitBytes", "lastSeenAt", "version"
+          "memoryLimitBytes",
+          "lastTerminatedReason", "lastTerminatedExitCode",
+          "lastTerminatedFinishedAt", "waitingMessage", "isInitContainer",
+          "lastSeenAt", "version"
         )
         VALUES ${valueFragments.join(", ")}
         ON CONFLICT ("projectId", "kubernetesClusterId", "podNamespaceKey", "podName", "name")
@@ -142,6 +166,11 @@ export class Service extends DatabaseService<Model> {
           "isReady" = EXCLUDED."isReady",
           "restartCount" = EXCLUDED."restartCount",
           "memoryLimitBytes" = EXCLUDED."memoryLimitBytes",
+          "lastTerminatedReason" = EXCLUDED."lastTerminatedReason",
+          "lastTerminatedExitCode" = EXCLUDED."lastTerminatedExitCode",
+          "lastTerminatedFinishedAt" = EXCLUDED."lastTerminatedFinishedAt",
+          "waitingMessage" = EXCLUDED."waitingMessage",
+          "isInitContainer" = EXCLUDED."isInitContainer",
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "updatedAt" = now()
         WHERE EXCLUDED."lastSeenAt" >= "KubernetesContainer"."lastSeenAt"
