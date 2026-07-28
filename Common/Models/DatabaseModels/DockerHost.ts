@@ -910,6 +910,24 @@ export default class DockerHost extends BaseModel {
   public labels?: Array<Label> = undefined;
 
   @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Telemetry Applied Label IDs",
+    description:
+      "Internal bookkeeping. Label IDs that telemetry ingest has already applied to this resource from oneuptime.label.* resource attributes. Ingest applies a declared label once; after that the label is the user's to keep or remove, so a removal is not undone by the next telemetry batch.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public telemetryAppliedLabelIds?: Array<string> = undefined;
+
+  @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

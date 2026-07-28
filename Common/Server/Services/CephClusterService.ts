@@ -1,8 +1,8 @@
+import attachTelemetryLabels from "../Utils/Telemetry/TelemetryAutoLabels";
 import DatabaseService from "./DatabaseService";
 import CephClusterLabelRuleEngineService from "./CephClusterLabelRuleEngineService";
 import CephClusterOwnerRuleEngineService from "./CephClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/CephCluster";
-import Label from "../../Models/DatabaseModels/Label";
 import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
@@ -15,9 +15,6 @@ import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "ceph-cluster-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
-
-const LABELS_APPLIED_CACHE_NAMESPACE: string = "ceph-cluster-labels-applied";
-const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -281,80 +278,22 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Additively attach labels to a Ceph cluster. Existing labels are
-   * never removed — manual labels set via the UI survive ingest. The
-   * set of labelIds passed in is fingerprinted and cached for 60s so
-   * the common case (steady-state collector pushing the same label
-   * set every batch) costs one in-memory lookup, not a join-table
-   * scan.
+   * Additively attach the labels telemetry declares for this resource.
+   * Ingest applies each declared label once and records it, so a label a
+   * user removes is not re-attached by the next batch. Labels are never
+   * removed here - manual labels set via the UI survive ingest.
    */
   @CaptureSpan()
   public async attachLabels(data: {
     cephClusterId: ObjectID;
     labelIds: Array<ObjectID>;
   }): Promise<void> {
-    if (!data.labelIds || data.labelIds.length === 0) {
-      return;
-    }
-
-    const cacheKey: string = data.cephClusterId.toString();
-    const fingerprint: string = fingerprintLabelIds(data.labelIds);
-    const cached: string | null = await GlobalCache.getString(
-      LABELS_APPLIED_CACHE_NAMESPACE,
-      cacheKey,
-    );
-    if (cached === fingerprint) {
-      return;
-    }
-
-    try {
-      const cephClusterIdStr: string = data.cephClusterId.toString();
-      const existingLabels: Array<Label> = await this.getRepository()
-        .createQueryBuilder()
-        .relation(Model, "labels")
-        .of(cephClusterIdStr)
-        .loadMany();
-
-      const existingIds: Set<string> = new Set();
-      for (const lbl of existingLabels) {
-        const idStr: string | undefined = lbl._id?.toString();
-        if (idStr) {
-          existingIds.add(idStr);
-        }
-      }
-
-      const toAddIds: Array<string> = [];
-      const seen: Set<string> = new Set();
-      for (const id of data.labelIds) {
-        const idStr: string = id.toString();
-        if (existingIds.has(idStr) || seen.has(idStr)) {
-          continue;
-        }
-        seen.add(idStr);
-        toAddIds.push(idStr);
-      }
-
-      if (toAddIds.length > 0) {
-        await this.getRepository()
-          .createQueryBuilder()
-          .relation(Model, "labels")
-          .of(cephClusterIdStr)
-          .add(toAddIds);
-      }
-
-      await GlobalCache.setString(
-        LABELS_APPLIED_CACHE_NAMESPACE,
-        cacheKey,
-        fingerprint,
-        { expiresInSeconds: LABELS_APPLIED_CACHE_TTL_SECONDS },
-      );
-    } catch (err) {
-      logger.warn(
-        `CephClusterService.attachLabels failed for ceph cluster ${data.cephClusterId.toString()}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-    }
+    await attachTelemetryLabels<Model>({
+      service: this,
+      modelType: Model,
+      resourceId: data.cephClusterId,
+      labelIds: data.labelIds,
+    });
   }
 
   @CaptureSpan()
@@ -401,15 +340,6 @@ export class Service extends DatabaseService<Model> {
       }
     }
   }
-}
-
-function fingerprintLabelIds(labelIds: Array<ObjectID>): string {
-  const sorted: Array<string> = labelIds
-    .map((id: ObjectID) => {
-      return id.toString();
-    })
-    .sort();
-  return crypto.createHash("sha1").update(sorted.join(",")).digest("hex");
 }
 
 export default new Service();

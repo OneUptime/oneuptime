@@ -1,8 +1,8 @@
+import attachTelemetryLabels from "../Utils/Telemetry/TelemetryAutoLabels";
 import DatabaseService from "./DatabaseService";
 import IoTFleetLabelRuleEngineService from "./IoTFleetLabelRuleEngineService";
 import IoTFleetOwnerRuleEngineService from "./IoTFleetOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/IoTFleet";
-import Label from "../../Models/DatabaseModels/Label";
 import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
@@ -15,9 +15,6 @@ import crypto from "crypto";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "iot-fleet-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
-
-const LABELS_APPLIED_CACHE_NAMESPACE: string = "iot-fleet-labels-applied";
-const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -242,80 +239,22 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Additively attach labels to an IoT fleet. Existing labels are
-   * never removed — manual labels set via the UI survive ingest. The
-   * set of labelIds passed in is fingerprinted and cached for 60s so
-   * the common case (steady-state collector pushing the same label
-   * set every batch) costs one in-memory lookup, not a join-table
-   * scan.
+   * Additively attach the labels telemetry declares for this resource.
+   * Ingest applies each declared label once and records it, so a label a
+   * user removes is not re-attached by the next batch. Labels are never
+   * removed here - manual labels set via the UI survive ingest.
    */
   @CaptureSpan()
   public async attachLabels(data: {
     iotFleetId: ObjectID;
     labelIds: Array<ObjectID>;
   }): Promise<void> {
-    if (!data.labelIds || data.labelIds.length === 0) {
-      return;
-    }
-
-    const cacheKey: string = data.iotFleetId.toString();
-    const fingerprint: string = fingerprintLabelIds(data.labelIds);
-    const cached: string | null = await GlobalCache.getString(
-      LABELS_APPLIED_CACHE_NAMESPACE,
-      cacheKey,
-    );
-    if (cached === fingerprint) {
-      return;
-    }
-
-    try {
-      const iotFleetIdStr: string = data.iotFleetId.toString();
-      const existingLabels: Array<Label> = await this.getRepository()
-        .createQueryBuilder()
-        .relation(Model, "labels")
-        .of(iotFleetIdStr)
-        .loadMany();
-
-      const existingIds: Set<string> = new Set();
-      for (const lbl of existingLabels) {
-        const idStr: string | undefined = lbl._id?.toString();
-        if (idStr) {
-          existingIds.add(idStr);
-        }
-      }
-
-      const toAddIds: Array<string> = [];
-      const seen: Set<string> = new Set();
-      for (const id of data.labelIds) {
-        const idStr: string = id.toString();
-        if (existingIds.has(idStr) || seen.has(idStr)) {
-          continue;
-        }
-        seen.add(idStr);
-        toAddIds.push(idStr);
-      }
-
-      if (toAddIds.length > 0) {
-        await this.getRepository()
-          .createQueryBuilder()
-          .relation(Model, "labels")
-          .of(iotFleetIdStr)
-          .add(toAddIds);
-      }
-
-      await GlobalCache.setString(
-        LABELS_APPLIED_CACHE_NAMESPACE,
-        cacheKey,
-        fingerprint,
-        { expiresInSeconds: LABELS_APPLIED_CACHE_TTL_SECONDS },
-      );
-    } catch (err) {
-      logger.warn(
-        `IoTFleetService.attachLabels failed for iot fleet ${data.iotFleetId.toString()}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-    }
+    await attachTelemetryLabels<Model>({
+      service: this,
+      modelType: Model,
+      resourceId: data.iotFleetId,
+      labelIds: data.labelIds,
+    });
   }
 
   @CaptureSpan()
@@ -362,15 +301,6 @@ export class Service extends DatabaseService<Model> {
       }
     }
   }
-}
-
-function fingerprintLabelIds(labelIds: Array<ObjectID>): string {
-  const sorted: Array<string> = labelIds
-    .map((id: ObjectID) => {
-      return id.toString();
-    })
-    .sort();
-  return crypto.createHash("sha1").update(sorted.join(",")).digest("hex");
 }
 
 export default new Service();

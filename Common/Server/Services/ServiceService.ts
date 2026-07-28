@@ -1,3 +1,4 @@
+import attachTelemetryLabels from "../Utils/Telemetry/TelemetryAutoLabels";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
@@ -10,7 +11,6 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/Service";
-import Label from "../../Models/DatabaseModels/Label";
 import Project from "../../Models/DatabaseModels/Project";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -21,9 +21,6 @@ const DEFAULT_TELEMETRY_RETENTION_IN_DAYS: number = 15;
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "service-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
-
-const LABELS_APPLIED_CACHE_NAMESPACE: string = "service-labels-applied";
-const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -252,89 +249,23 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
-   * Additively attach labels to a telemetry service. Existing labels
-   * are never removed — manual labels set via the UI survive ingest.
-   * The set of labelIds passed in is fingerprinted and cached for
-   * 60s so the steady-state OTel collector pushing the same labels
-   * every batch costs one in-memory lookup, not a join-table scan.
+   * Additively attach the labels telemetry declares for this resource.
+   * Ingest applies each declared label once and records it, so a label a
+   * user removes is not re-attached by the next batch. Labels are never
+   * removed here - manual labels set via the UI survive ingest.
    */
   @CaptureSpan()
   public async attachLabels(data: {
     serviceId: ObjectID;
     labelIds: Array<ObjectID>;
   }): Promise<void> {
-    if (!data.labelIds || data.labelIds.length === 0) {
-      return;
-    }
-
-    const cacheKey: string = data.serviceId.toString();
-    const fingerprint: string = fingerprintLabelIds(data.labelIds);
-    const cached: string | null = await GlobalCache.getString(
-      LABELS_APPLIED_CACHE_NAMESPACE,
-      cacheKey,
-    );
-    if (cached === fingerprint) {
-      return;
-    }
-
-    try {
-      const serviceIdStr: string = data.serviceId.toString();
-      const existingLabels: Array<Label> = await this.getRepository()
-        .createQueryBuilder()
-        .relation(Model, "labels")
-        .of(serviceIdStr)
-        .loadMany();
-
-      const existingIds: Set<string> = new Set();
-      for (const lbl of existingLabels) {
-        const idStr: string | undefined = lbl._id?.toString();
-        if (idStr) {
-          existingIds.add(idStr);
-        }
-      }
-
-      const toAddIds: Array<string> = [];
-      const seen: Set<string> = new Set();
-      for (const id of data.labelIds) {
-        const idStr: string = id.toString();
-        if (existingIds.has(idStr) || seen.has(idStr)) {
-          continue;
-        }
-        seen.add(idStr);
-        toAddIds.push(idStr);
-      }
-
-      if (toAddIds.length > 0) {
-        await this.getRepository()
-          .createQueryBuilder()
-          .relation(Model, "labels")
-          .of(serviceIdStr)
-          .add(toAddIds);
-      }
-
-      await GlobalCache.setString(
-        LABELS_APPLIED_CACHE_NAMESPACE,
-        cacheKey,
-        fingerprint,
-        { expiresInSeconds: LABELS_APPLIED_CACHE_TTL_SECONDS },
-      );
-    } catch (err) {
-      logger.warn(
-        `ServiceService.attachLabels failed for service ${data.serviceId.toString()}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-    }
+    await attachTelemetryLabels<Model>({
+      service: this,
+      modelType: Model,
+      resourceId: data.serviceId,
+      labelIds: data.labelIds,
+    });
   }
-}
-
-function fingerprintLabelIds(labelIds: Array<ObjectID>): string {
-  const sorted: Array<string> = labelIds
-    .map((id: ObjectID) => {
-      return id.toString();
-    })
-    .sort();
-  return crypto.createHash("sha1").update(sorted.join(",")).digest("hex");
 }
 
 export default new Service();

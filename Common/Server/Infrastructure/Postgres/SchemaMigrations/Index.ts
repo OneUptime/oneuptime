@@ -474,6 +474,7 @@ import { AddHotQueryIndexes1785140242697 } from "./1785140242697-AddHotQueryInde
 import { AddHotQueryIndexesSecondPass1785148065137 } from "./1785148065137-AddHotQueryIndexesSecondPass";
 import { RepairCrossProjectMonitorStatusReferences1785240000000 } from "./1785240000000-RepairCrossProjectMonitorStatusReferences";
 import { AddColumnsToTableView1785241000000 } from "./1785241000000-AddColumnsToTableView";
+import { AddTelemetryAppliedLabelIds1785274479033 } from "./1785274479033-AddTelemetryAppliedLabelIds";
 
 export default [
   InitialMigration,
@@ -952,4 +953,5 @@ export default [
   AddHotQueryIndexesSecondPass1785148065137,
   RepairCrossProjectMonitorStatusReferences1785240000000,
   AddColumnsToTableView1785241000000,
+  AddTelemetryAppliedLabelIds1785274479033,
 ];

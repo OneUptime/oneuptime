@@ -346,7 +346,7 @@ oneuptime:
 clusterName: prod
 ```
 
-Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated. Labels added manually in the OneUptime UI are never removed by the agent.
+Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated. Labels added manually in the OneUptime UI are never removed by the agent. The agent applies each label it declares once, so a label you remove in the UI stays removed even while the agent keeps declaring it; change the declared set (add or drop an `oneuptime.label.*` attribute) to have the agent apply it again.
 
 ## Upgrading the Agent
 
