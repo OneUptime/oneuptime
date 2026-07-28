@@ -17,6 +17,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import DatabaseConfig from "../../../DatabaseConfig";
 import logger from "../../Logger";
+import DiagnosticFollowUp from "./DiagnosticFollowUp";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 /*
@@ -31,8 +32,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *       execution on customer infrastructure is always news, success or
  *       failure. Transitions are CAS'd, so this sweeper racing anything
  *       else is safe by construction.
- *   (b) Sweep Proposed actions past their expiresAt to Expired — quietly.
+ *   (b) Sweep undecided actions past their expiresAt to Expired — quietly.
  *       Nobody acted; there is nothing to announce.
+ *
+ * A succeeding DIAGNOSTIC action additionally closes its loop: its captured
+ * output is filed on the subject and one follow-up investigation is queued,
+ * so the AI reasons again with the live host output in hand
+ * (DiagnosticFollowUp).
  */
 
 // Per-tick caps keep one sweep bounded; the next tick picks up the rest.
@@ -74,6 +80,7 @@ export default class RemediationStatusSync {
             incidentId: true,
             alertId: true,
             title: true,
+            intent: true,
             runbookId: true,
             runbookExecutionId: true,
             executedAt: true,
@@ -214,6 +221,13 @@ export default class RemediationStatusSync {
           succeeded: true,
           detail: "The runbook execution completed.",
         });
+
+        /*
+         * Close the diagnostic loop: a Diagnostic action exists to answer a
+         * question, so feed its output back and re-investigate with it in
+         * hand. No-ops for Remediation actions; never throws.
+         */
+        await DiagnosticFollowUp.captureAndReinvestigate({ action });
       }
       return;
     }

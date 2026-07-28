@@ -3,13 +3,15 @@ import RemediationPolicy, {
   PER_SUBJECT_EXECUTION_CAP,
   RemediationBudgetDecision,
   RunbookAutonomyProfile,
+  SubjectAutoRemediationGrant,
 } from "../../../../Server/Utils/AI/SRE/RemediationPolicy";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import AIRemediationActionService from "../../../../Server/Services/AIRemediationActionService";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRemediationActionType from "../../../../Types/AI/AIRemediationActionType";
 import AIRemediationDecisionMode from "../../../../Types/AI/AIRemediationDecisionMode";
-import RunbookAgentEnvironmentType from "../../../../Types/Runbook/RunbookAgentEnvironmentType";
+import AIRemediationIntent from "../../../../Types/AI/AIRemediationIntent";
+import RunbookAgentAccessLevel from "../../../../Types/Runbook/RunbookAgentAccessLevel";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import { RunbookStep } from "../../../../Types/Runbook/RunbookStep";
 import ObjectID from "../../../../Types/ObjectID";
@@ -112,117 +114,203 @@ describe("RemediationPolicy.getRunbookAutonomyProfile", () => {
 });
 
 describe("RemediationPolicy.decideDecisionMode", () => {
-  const nonProdProfile: RunbookAutonomyProfile = {
+  const profile: RunbookAutonomyProfile = {
     agentIds: ["agent-1"],
     hasHttpSteps: false,
   };
 
-  test("Command actions ALWAYS require approval — no flag relaxes it", () => {
-    expect(
-      RemediationPolicy.decideDecisionMode({
-        actionType: AIRemediationActionType.Command,
-        autoRemediationOnNonProductionEnabled: true,
-      }),
-    ).toBe(AIRemediationDecisionMode.RequireApproval);
+  const GRANTED: SubjectAutoRemediationGrant = {
+    matched: true,
+    commandsAllowed: true,
+  };
+  const GRANTED_NO_COMMANDS: SubjectAutoRemediationGrant = {
+    matched: true,
+    commandsAllowed: false,
+  };
+  const NO_RULE: SubjectAutoRemediationGrant = {
+    matched: false,
+    commandsAllowed: false,
+  };
+
+  const READ_WRITE: Array<string | undefined> = [
+    RunbookAgentAccessLevel.ReadWrite,
+  ];
+  const READ_ONLY: Array<string | undefined> = [
+    RunbookAgentAccessLevel.ReadOnly,
+  ];
+
+  describe("rule matching is the primary gate", () => {
+    test("no matching rule → approval, even for a fully-granted runbook", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: NO_RULE,
+          runbookProfile: profile,
+          agentAccessLevels: READ_WRITE,
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
+
+    test("no matching rule → approval, even for a read-only diagnostic", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Diagnostic,
+          subjectGrant: NO_RULE,
+          runbookProfile: profile,
+          agentAccessLevels: READ_ONLY,
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
+
+    test("a matching rule + ReadWrite grant → AutoApproved", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          runbookProfile: profile,
+          agentAccessLevels: READ_WRITE,
+        }),
+      ).toBe(AIRemediationDecisionMode.AutoApproved);
+    });
   });
 
-  test("runbook actions require approval when the project has not opted in", () => {
-    expect(
-      RemediationPolicy.decideDecisionMode({
-        actionType: AIRemediationActionType.Runbook,
-        autoRemediationOnNonProductionEnabled: false,
-        runbookProfile: nonProdProfile,
-        agentEnvironmentTypes: [RunbookAgentEnvironmentType.Staging],
-      }),
-    ).toBe(AIRemediationDecisionMode.RequireApproval);
+  describe("drafted commands need their own per-rule grant", () => {
+    test("a matching rule WITHOUT the command grant → approval", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Command,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED_NO_COMMANDS,
+          agentAccessLevels: READ_WRITE,
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
+
+    test("the command grant + a ReadWrite agent → AutoApproved", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Command,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          agentAccessLevels: READ_WRITE,
+        }),
+      ).toBe(AIRemediationDecisionMode.AutoApproved);
+    });
+
+    test("the command grant does NOT bypass the agent's write grant", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Command,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          agentAccessLevels: READ_ONLY,
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
+
+    test("a command with no resolvable target agent → approval", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Command,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          agentAccessLevels: [],
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
   });
 
-  test("a missing profile requires approval", () => {
-    expect(
-      RemediationPolicy.decideDecisionMode({
-        actionType: AIRemediationActionType.Runbook,
-        autoRemediationOnNonProductionEnabled: true,
-      }),
-    ).toBe(AIRemediationDecisionMode.RequireApproval);
+  describe("writes need the per-agent ReadWrite grant; reads do not", () => {
+    test("Remediation on a ReadOnly agent → approval", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          runbookProfile: profile,
+          agentAccessLevels: READ_ONLY,
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
+
+    test("Diagnostic on a ReadOnly agent → AutoApproved (that IS read access)", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Diagnostic,
+          subjectGrant: GRANTED,
+          runbookProfile: profile,
+          agentAccessLevels: READ_ONLY,
+        }),
+      ).toBe(AIRemediationDecisionMode.AutoApproved);
+    });
+
+    test("an unknown/unset grant fails safe to no-write", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          runbookProfile: profile,
+          agentAccessLevels: [undefined],
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
+
+    test("ONE ReadOnly agent among many disqualifies the whole runbook", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          runbookProfile: { agentIds: ["a", "b"], hasHttpSteps: false },
+          agentAccessLevels: [
+            RunbookAgentAccessLevel.ReadWrite,
+            RunbookAgentAccessLevel.ReadOnly,
+          ],
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
   });
 
-  test("an HTTP step disqualifies auto-execution — a URL has no environment", () => {
-    expect(
-      RemediationPolicy.decideDecisionMode({
-        actionType: AIRemediationActionType.Runbook,
-        autoRemediationOnNonProductionEnabled: true,
-        runbookProfile: { agentIds: [], hasHttpSteps: true },
-        agentEnvironmentTypes: [],
-      }),
-    ).toBe(AIRemediationDecisionMode.RequireApproval);
-  });
+  describe("runbook shape guards still apply", () => {
+    test("a missing profile requires approval", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          agentAccessLevels: READ_WRITE,
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
 
-  test("a dangling agent id (fewer environments than steps) requires approval", () => {
-    expect(
-      RemediationPolicy.decideDecisionMode({
-        actionType: AIRemediationActionType.Runbook,
-        autoRemediationOnNonProductionEnabled: true,
-        runbookProfile: nonProdProfile,
-        agentEnvironmentTypes: [],
-      }),
-    ).toBe(AIRemediationDecisionMode.RequireApproval);
-  });
+    test("an HTTP step disqualifies auto-execution — a URL has no grant", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          runbookProfile: { agentIds: ["agent-1"], hasHttpSteps: true },
+          agentAccessLevels: READ_WRITE,
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
 
-  test("an unknown agent (undefined environment entry) fails safe to Production", () => {
-    expect(
-      RemediationPolicy.decideDecisionMode({
-        actionType: AIRemediationActionType.Runbook,
-        autoRemediationOnNonProductionEnabled: true,
-        runbookProfile: nonProdProfile,
-        agentEnvironmentTypes: [undefined],
-      }),
-    ).toBe(AIRemediationDecisionMode.RequireApproval);
-  });
-
-  test("any Production-tagged agent requires approval", () => {
-    expect(
-      RemediationPolicy.decideDecisionMode({
-        actionType: AIRemediationActionType.Runbook,
-        autoRemediationOnNonProductionEnabled: true,
-        runbookProfile: {
-          agentIds: ["agent-1", "agent-2"],
-          hasHttpSteps: false,
-        },
-        agentEnvironmentTypes: [
-          RunbookAgentEnvironmentType.Staging,
-          RunbookAgentEnvironmentType.Production,
-        ],
-      }),
-    ).toBe(AIRemediationDecisionMode.RequireApproval);
-  });
-
-  test("an unrecognized environment string counts as Production", () => {
-    expect(
-      RemediationPolicy.decideDecisionMode({
-        actionType: AIRemediationActionType.Runbook,
-        autoRemediationOnNonProductionEnabled: true,
-        runbookProfile: nonProdProfile,
-        agentEnvironmentTypes: ["QA-Sandbox"],
-      }),
-    ).toBe(AIRemediationDecisionMode.RequireApproval);
-  });
-
-  test("opted-in + every agent known and non-Production → AutoApproved", () => {
-    expect(
-      RemediationPolicy.decideDecisionMode({
-        actionType: AIRemediationActionType.Runbook,
-        autoRemediationOnNonProductionEnabled: true,
-        runbookProfile: {
-          agentIds: ["agent-1", "agent-2", "agent-3"],
-          hasHttpSteps: false,
-        },
-        agentEnvironmentTypes: [
-          RunbookAgentEnvironmentType.Staging,
-          RunbookAgentEnvironmentType.Testing,
-          RunbookAgentEnvironmentType.Development,
-        ],
-      }),
-    ).toBe(AIRemediationDecisionMode.AutoApproved);
+    test("a dangling agent id (fewer grants than steps) requires approval", () => {
+      expect(
+        RemediationPolicy.decideDecisionMode({
+          actionType: AIRemediationActionType.Runbook,
+          intent: AIRemediationIntent.Remediation,
+          subjectGrant: GRANTED,
+          runbookProfile: { agentIds: ["a", "b"], hasHttpSteps: false },
+          agentAccessLevels: READ_WRITE,
+        }),
+      ).toBe(AIRemediationDecisionMode.RequireApproval);
+    });
   });
 });
 
