@@ -77,7 +77,7 @@ cost:
     includeIdle: true     # ship the engine's __idle__ allocation
     currency: USD         # currency code shown in the UI (informational)
   prometheus:
-    retention: 3d         # bundled TSDB history — a few days is plenty
+    retention: 7d         # bundled TSDB history; right-sizing reads peaks back over days
     persistence:
       enabled: false      # set true for a small PVC; emptyDir otherwise
   metrics:

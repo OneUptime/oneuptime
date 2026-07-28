@@ -1,9 +1,10 @@
 import "./TestEnv";
 import * as assert from "assert";
 import { test } from "node:test";
-import { floorToWindow } from "../AllocationMapper";
+import { floorToWindow, peakKey } from "../AllocationMapper";
 import { CostEngineClient } from "../CostEngineClient";
 import { Poller } from "../Poller";
+import { PrometheusClient } from "../PrometheusClient";
 import { Shipper } from "../Shipper";
 import {
   EngineAllocation,
@@ -69,13 +70,35 @@ class ShipperStub {
   }
 }
 
+class PrometheusStub {
+  public calls: number = 0;
+  public peaks: Map<string, number> = new Map<string, number>();
+  public throwOnCall: boolean = false;
+
+  public async fetchMemoryPeaks(): Promise<Map<string, number>> {
+    this.calls++;
+    if (this.throwOnCall) {
+      /*
+       * The real client never throws — it answers with an empty map on any
+       * failure. Throwing here proves the poller does not depend on that
+       * politeness, since a throw would block the checkpoint and stall
+       * spend collection over an enrichment.
+       */
+      throw new Error("prometheus unavailable");
+    }
+    return this.peaks;
+  }
+}
+
 function makePoller(
   engine: EngineStub,
   shipper: ShipperStub,
+  prometheus?: PrometheusStub,
 ): { poller: Poller; tick: () => Promise<void> } {
   const poller: Poller = new Poller(
     engine as unknown as CostEngineClient,
     shipper as unknown as Shipper,
+    prometheus as unknown as PrometheusClient,
   );
   const tick: () => Promise<void> = (): Promise<void> => {
     return (poller as unknown as { tick: () => Promise<void> })["tick"]();
@@ -319,4 +342,56 @@ test("an idle tick with no closed window keeps the streak at zero", async (): Pr
   const idle: PollerStatus = poller.status();
   assert.strictEqual(idle.consecutivePollFailures, 0);
   assert.ok(idle.windowsCompleted - drained <= 1);
+});
+
+test("stamps shipped rows with the memory peaks Prometheus reported", async (): Promise<void> => {
+  const engine: EngineStub = new EngineStub();
+  engine.allocationsPerWindow = [
+    {
+      name: "prod/deployment/api/api-abc/api",
+      properties: { namespace: "prod", pod: "api-abc", container: "api" },
+      totalCost: 1,
+    },
+  ];
+
+  const shipper: ShipperStub = new ShipperStub();
+  const prometheus: PrometheusStub = new PrometheusStub();
+  prometheus.peaks = new Map<string, number>([
+    [
+      peakKey({ namespace: "prod", podName: "api-abc", containerName: "api" }),
+      734003200,
+    ],
+  ]);
+
+  const { tick } = makePoller(engine, shipper, prometheus);
+  await tick();
+
+  assert.ok(shipper.calls.length > 0);
+  const row: KubernetesCostAllocationIngestRow = shipper.calls[0]!.rows[0]!;
+  assert.strictEqual(row.ramBytesUsageMax, 734003200);
+});
+
+/*
+ * Peaks are an enrichment on top of spend. If Prometheus being down could
+ * block a window, an unrelated outage would stop cost collection entirely —
+ * the same stall failure mode the engine-settle logic exists to avoid.
+ */
+test("a prometheus failure does not stop the window from shipping", async (): Promise<void> => {
+  const engine: EngineStub = new EngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const prometheus: PrometheusStub = new PrometheusStub();
+  prometheus.throwOnCall = true;
+
+  const { poller, tick } = makePoller(engine, shipper, prometheus);
+  await tick();
+
+  assert.ok(prometheus.calls > 0);
+  assert.ok(shipper.calls.length > 0);
+  const row: KubernetesCostAllocationIngestRow = shipper.calls[0]!.rows[0]!;
+  assert.strictEqual(row.ramBytesUsageMax, undefined);
+
+  // And the checkpoint still advanced, so the window is not retried forever.
+  const status: PollerStatus = poller.status();
+  assert.ok(status.windowsCompleted > 0);
+  assert.strictEqual(status.lastPollError, null);
 });

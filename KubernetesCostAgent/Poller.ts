@@ -4,9 +4,14 @@ import {
   POLL_INTERVAL_SECONDS,
   WINDOW_SECONDS,
 } from "./Config";
-import { floorToWindow, mapAllocationToRow } from "./AllocationMapper";
+import {
+  attachMemoryPeaks,
+  floorToWindow,
+  mapAllocationToRow,
+} from "./AllocationMapper";
 import { CostEngineClient } from "./CostEngineClient";
 import Logger from "./Logger";
+import { PrometheusClient } from "./PrometheusClient";
 import { Shipper } from "./Shipper";
 import {
   EngineAllocation,
@@ -17,6 +22,7 @@ import {
 export class Poller {
   private readonly engine: CostEngineClient;
   private readonly shipper: Shipper;
+  private readonly prometheus: PrometheusClient;
 
   /*
    * End (ms) of the newest window that was fully shipped. Windows are
@@ -45,9 +51,14 @@ export class Poller {
   private windowsCompleted: number = 0;
   private consecutivePollFailures: number = 0;
 
-  public constructor(engine: CostEngineClient, shipper: Shipper) {
+  public constructor(
+    engine: CostEngineClient,
+    shipper: Shipper,
+    prometheus?: PrometheusClient,
+  ) {
     this.engine = engine;
     this.shipper = shipper;
+    this.prometheus = prometheus || new PrometheusClient();
 
     const latestClosed: number = floorToWindow(Date.now(), WINDOW_SECONDS);
     this.checkpointMs = Math.max(
@@ -135,12 +146,40 @@ export class Poller {
               },
             );
 
+          /*
+           * Enrich with per-container memory peaks before shipping.
+           *
+           * Guarded here as well as inside the client: peaks are an
+           * enrichment, and letting anything from that path reach the tick's
+           * catch would leave the checkpoint pinned and stall SPEND
+           * collection over a Prometheus outage. The client already answers
+           * with an empty map on failure, but the poller must not depend on
+           * a collaborator's politeness for something it can do without.
+           */
+          let peaks: Map<string, number> = new Map<string, number>();
+          try {
+            peaks = await this.prometheus.fetchMemoryPeaks({
+              windowStart,
+              windowEnd,
+            });
+          } catch (err: unknown) {
+            const message: string =
+              err instanceof Error ? err.message : String(err);
+            Logger.warn("memory peak collection failed; shipping without it", {
+              windowStart: windowStart.toISOString(),
+              error: message,
+            });
+          }
+
+          attachMemoryPeaks({ rows, peaks });
+
           await this.shipper.ship(rows);
 
           Logger.info("shipped cost window", {
             windowStart: windowStart.toISOString(),
             windowEnd: windowEnd.toISOString(),
             rows: rows.length,
+            containersWithMemoryPeak: peaks.size,
           });
         } else {
           Logger.info("cost window had no allocations; skipping", {

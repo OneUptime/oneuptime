@@ -63,11 +63,13 @@ export const mapAllocationToRow: (data: {
     cpuCoreHours: allocation.cpuCoreHours,
     cpuCoreRequestAverage: allocation.cpuCoreRequestAverage,
     cpuCoreUsageAverage: allocation.cpuCoreUsageAverage,
+    cpuCoreLimitAverage: allocation.cpuCoreLimitAverage,
     gpuHours: allocation.gpuHours,
     ramByteHours: allocation.ramByteHours,
     // Engine wire names are singular "Byte"; ours are plural. See Types.ts.
     ramBytesRequestAverage: allocation.ramByteRequestAverage,
     ramBytesUsageAverage: allocation.ramByteUsageAverage,
+    ramBytesLimitAverage: allocation.ramByteLimitAverage,
     pvByteHours: allocation.pvByteHours,
 
     /*
@@ -91,6 +93,62 @@ export const mapAllocationToRow: (data: {
     ramEfficiency: allocation.ramEfficiency,
     totalEfficiency: allocation.totalEfficiency,
   };
+};
+
+/*
+ * Identity a Prometheus cAdvisor series and an engine allocation row share.
+ * cAdvisor knows nothing about controllers, so (namespace, pod, container)
+ * is the widest key both sides can produce. It lives here rather than in
+ * PrometheusClient because this module is deliberately Config-free.
+ */
+export const peakKey: (data: {
+  namespace: string;
+  podName: string;
+  containerName: string;
+}) => string = (data: {
+  namespace: string;
+  podName: string;
+  containerName: string;
+}): string => {
+  return [data.namespace, data.podName, data.containerName].join("\u0000");
+};
+
+/*
+ * Attach the per-container memory peaks Prometheus reported to the rows the
+ * engine returned. Rows with no matching series are left untouched: the
+ * engine and Prometheus see the cluster through different lenses (a
+ * container that vanished mid-window, an idle sentinel row, a scrape that
+ * missed a node), and a missing peak only costs that row a memory
+ * recommendation.
+ */
+export const attachMemoryPeaks: (data: {
+  rows: Array<KubernetesCostAllocationIngestRow>;
+  peaks: Map<string, number>;
+}) => void = (data: {
+  rows: Array<KubernetesCostAllocationIngestRow>;
+  peaks: Map<string, number>;
+}): void => {
+  if (data.peaks.size === 0) {
+    return;
+  }
+
+  for (const row of data.rows) {
+    if (!row.namespace || !row.podName || !row.containerName) {
+      continue;
+    }
+
+    const peak: number | undefined = data.peaks.get(
+      peakKey({
+        namespace: row.namespace,
+        podName: row.podName,
+        containerName: row.containerName,
+      }),
+    );
+
+    if (peak !== undefined) {
+      row.ramBytesUsageMax = peak;
+    }
+  }
 };
 
 /** Floor a timestamp (ms) to the window grid. */

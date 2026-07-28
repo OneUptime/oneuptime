@@ -31,6 +31,32 @@ export const COST_ENGINE_URL: string = required("COST_ENGINE_URL").replace(
 );
 
 /*
+ * Prometheus that scrapes this cluster's cAdvisor, e.g.
+ *   http://oneuptime-k8s-agent-kubernetes-agent-cost-prometheus.oneuptime.svc.cluster.local:9090
+ *
+ * Optional, and deliberately so. It supplies the per-container memory PEAK
+ * that right-sizing needs and the Allocation API cannot give: the engines
+ * report averages over the window, and sizing a memory request off an
+ * average is how you get OOMKills, because the spike that kills a container
+ * disappears into an hourly mean. Installs pointing at an external cost
+ * engine have no bundled Prometheus, so an empty value simply means "ship
+ * allocations without peaks" — never a fatal error.
+ */
+export const COST_PROMETHEUS_URL: string = optional("COST_PROMETHEUS_URL", "")
+  .trim()
+  .replace(/\/+$/, "");
+
+/*
+ * Prometheus job label of the cAdvisor scrape. The bundled config names it
+ * kubernetes-nodes-cadvisor; point this at your own job when reusing an
+ * existing Prometheus.
+ */
+export const COST_PROMETHEUS_CADVISOR_JOB: string = optional(
+  "COST_PROMETHEUS_CADVISOR_JOB",
+  "kubernetes-nodes-cadvisor",
+).trim();
+
+/*
  * Allocation API path on the engine. Empty (default) auto-detects by
  * probing, in order: /model/allocation (Kubecost frontend/aggregator),
  * /allocation/compute (OpenCost), /allocation (older OpenCost).
