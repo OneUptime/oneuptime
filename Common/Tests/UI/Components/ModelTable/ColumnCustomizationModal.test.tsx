@@ -569,4 +569,431 @@ describe("ColumnCustomizationModal", () => {
       "Customize Columns",
     );
   });
+
+  test("the header carries the title and description, and no icon", () => {
+    const { view }: RenderedModal = renderModal();
+
+    expect(view.getByTestId("modal-description")).toHaveTextContent(
+      "Choose which columns to show and drag them into the order you want.",
+    );
+
+    // The header icon was decorative; it repeated what the title already said.
+    expect(view.queryByTestId("icon")).not.toBeInTheDocument();
+  });
+
+  test("uses a custom description when one is given", () => {
+    const onSave: MockFunction = getJestMockFunction();
+    const onClose: MockFunction = getJestMockFunction();
+    const onReset: MockFunction = getJestMockFunction();
+
+    const view: RenderResult = render(
+      <ColumnCustomizationModal<Monitor>
+        columns={getDefaultColumns()}
+        onSave={onSave}
+        onClose={onClose}
+        onReset={onReset}
+        description="Pick the ones you care about."
+      />,
+    );
+
+    expect(view.getByTestId("modal-description")).toHaveTextContent(
+      "Pick the ones you care about.",
+    );
+  });
+
+  /*
+   * Below: the state the two bulk actions and the search box put the rest of
+   * the body into. These are the parts a viewer reads to work out why a
+   * control did nothing, so each one is pinned rather than left to the styling.
+   */
+
+  test("Show all is inert once every column is already on", () => {
+    const { view }: RenderedModal = renderModal();
+
+    const showAll: HTMLElement = view.getByTestId(
+      "column-customization-show-all",
+    );
+
+    expect(showAll).not.toBeDisabled();
+
+    fireEvent.click(showAll);
+
+    // Nothing left to show, so the control says so rather than doing nothing.
+    expect(showAll).toBeDisabled();
+  });
+
+  test("Show all comes back to life as soon as a column is switched off", () => {
+    const { view }: RenderedModal = renderModal();
+
+    fireEvent.click(view.getByTestId("column-customization-show-all"));
+    fireEvent.click(view.getByTestId("column-toggle-description"));
+
+    expect(
+      view.getByTestId("column-customization-show-all"),
+    ).not.toBeDisabled();
+  });
+
+  test("Hide all is inert once only the one required column is left", () => {
+    const { view }: RenderedModal = renderModal();
+
+    const hideAll: HTMLElement = view.getByTestId(
+      "column-customization-hide-all",
+    );
+
+    fireEvent.click(hideAll);
+
+    /*
+     * A second press could only try to hide the column that has to stay, so
+     * the button is switched off instead of quietly refusing.
+     */
+    expect(hideAll).toBeDisabled();
+    expect(view.getByTestId("column-customization-count")).toHaveTextContent(
+      "1 of 4 columns shown",
+    );
+  });
+
+  test("Hide all starts out inert when the caller opens with a single column on", () => {
+    const { view }: RenderedModal = renderModal({
+      columns: [
+        makeEntry({ id: "name", title: "Monitor Name", isVisible: true }),
+        makeEntry({
+          id: "description",
+          title: "Description",
+          isVisible: false,
+        }),
+      ],
+    });
+
+    expect(view.getByTestId("column-customization-hide-all")).toBeDisabled();
+    expect(
+      view.getByTestId("column-customization-show-all"),
+    ).not.toBeDisabled();
+  });
+
+  test("the column that cannot be switched off is marked as required", () => {
+    const { view }: RenderedModal = renderModal();
+
+    expect(view.queryByTestId("column-locked-name")).not.toBeInTheDocument();
+
+    fireEvent.click(view.getByTestId("column-customization-hide-all"));
+
+    /*
+     * The disabled checkbox alone reads as a glitch. The badge is the only
+     * thing on the row that explains why it will not move.
+     */
+    expect(view.getByTestId("column-locked-name")).toHaveTextContent(
+      "Required",
+    );
+  });
+
+  test("the required badge follows the column that is actually locked", () => {
+    const { view }: RenderedModal = renderModal({
+      columns: [
+        makeEntry({ id: "name", title: "Monitor Name", isVisible: true }),
+        makeEntry({ id: "description", title: "Description", isVisible: true }),
+      ],
+    });
+
+    fireEvent.click(view.getByTestId("column-toggle-name"));
+
+    expect(view.getByTestId("column-locked-description")).toBeInTheDocument();
+    expect(view.queryByTestId("column-locked-name")).not.toBeInTheDocument();
+  });
+
+  test("the clear button only exists while there is something to clear", () => {
+    const { view }: RenderedModal = renderModal();
+
+    expect(
+      view.queryByTestId("column-customization-search-clear"),
+    ).not.toBeInTheDocument();
+
+    typeSearch(view, "desc");
+
+    expect(
+      view.getByTestId("column-customization-search-clear"),
+    ).toBeInTheDocument();
+  });
+
+  test("the clear button empties the box and brings the whole list back", () => {
+    const { view }: RenderedModal = renderModal();
+
+    typeSearch(view, "desc");
+    expect(view.getAllByTestId(/^column-toggle-/)).toHaveLength(1);
+
+    fireEvent.click(view.getByTestId("column-customization-search-clear"));
+
+    expect(view.getByTestId("column-customization-search")).toHaveValue("");
+    expect(view.getAllByTestId(/^column-toggle-/)).toHaveLength(4);
+    expect(
+      view.queryByTestId("column-customization-search-clear"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("clearing through the button re-arms the move buttons", () => {
+    const { view, onSave }: RenderedModal = renderModal();
+
+    typeSearch(view, "desc");
+    fireEvent.click(view.getByTestId("column-customization-search-clear"));
+    fireEvent.click(view.getByTestId("column-move-down-name"));
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    expect(getSavedIds(onSave)).toEqual([
+      "currentMonitorStatus",
+      "name",
+      "description",
+      "createdAt",
+    ]);
+  });
+
+  test("a search that matches nothing still offers a way out", () => {
+    const { view }: RenderedModal = renderModal();
+
+    typeSearch(view, "no-such-column");
+
+    expect(
+      view.getByTestId("column-customization-no-results"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(view.getByTestId("column-customization-search-clear"));
+
+    expect(
+      view.queryByTestId("column-customization-no-results"),
+    ).not.toBeInTheDocument();
+    expect(view.getAllByTestId(/^column-toggle-/)).toHaveLength(4);
+  });
+
+  test("the hint explains reordering, and explains its absence while searching", () => {
+    const { view }: RenderedModal = renderModal();
+
+    expect(view.getByTestId("column-customization-hint")).toHaveTextContent(
+      "Drag a row, or use the arrows, to change the column order.",
+    );
+
+    typeSearch(view, "desc");
+
+    /*
+     * The move buttons go grey during a search. Without this line the viewer
+     * is left to guess whether that is deliberate.
+     */
+    expect(view.getByTestId("column-customization-hint")).toHaveTextContent(
+      "Clear the search to reorder columns.",
+    );
+
+    typeSearch(view, "");
+
+    expect(view.getByTestId("column-customization-hint")).toHaveTextContent(
+      "Drag a row, or use the arrows, to change the column order.",
+    );
+  });
+
+  test("whitespace alone is not a search", () => {
+    const { view }: RenderedModal = renderModal();
+
+    typeSearch(view, "   ");
+
+    // Nothing is filtered out, so nothing about the list should change either.
+    expect(view.getAllByTestId(/^column-toggle-/)).toHaveLength(4);
+    expect(view.getByTestId("column-customization-hint")).toHaveTextContent(
+      "Drag a row, or use the arrows, to change the column order.",
+    );
+    expect(view.getByTestId("column-move-down-name")).not.toBeDisabled();
+  });
+
+  test("a search that matches everything leaves every row in place", () => {
+    const { view }: RenderedModal = renderModal({
+      columns: [
+        makeEntry({ id: "one", title: "Alpha One", isVisible: true }),
+        makeEntry({ id: "two", title: "Alpha Two", isVisible: true }),
+      ],
+    });
+
+    typeSearch(view, "alpha");
+
+    expect(view.getAllByTestId(/^column-toggle-/)).toHaveLength(2);
+    // Still a search, so reordering stays off.
+    expect(view.getByTestId("column-move-down-one")).toBeDisabled();
+  });
+
+  test("a column can be toggled from inside a filtered list", () => {
+    const { view, onSave }: RenderedModal = renderModal();
+
+    typeSearch(view, "description");
+    fireEvent.click(view.getByTestId("column-toggle-description"));
+
+    expect(view.getByTestId("column-customization-count")).toHaveTextContent(
+      "2 of 4 columns shown",
+    );
+
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    expect(
+      getSaved(onSave).find((entry: CustomizableColumn<Monitor>) => {
+        return entry.id === "description";
+      })?.isVisible,
+    ).toBe(false);
+  });
+
+  test("bulk actions reach the columns a search is hiding", () => {
+    const { view, onSave }: RenderedModal = renderModal();
+
+    typeSearch(view, "name");
+    fireEvent.click(view.getByTestId("column-customization-show-all"));
+    typeSearch(view, "");
+
+    /*
+     * "Show all" is not "show all of the matches" - it works on the layout,
+     * not on what happens to be on screen.
+     */
+    expect(view.getByTestId("column-customization-count")).toHaveTextContent(
+      "4 of 4 columns shown",
+    );
+
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    expect(
+      getSaved(onSave).every((entry: CustomizableColumn<Monitor>) => {
+        return entry.isVisible;
+      }),
+    ).toBe(true);
+  });
+
+  test("Save reports the entries untouched when nothing was changed", () => {
+    const { view, onSave }: RenderedModal = renderModal();
+
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    expect(getSavedIds(onSave)).toEqual([
+      "name",
+      "currentMonitorStatus",
+      "description",
+      "createdAt",
+    ]);
+    expect(
+      getSaved(onSave).map((entry: CustomizableColumn<Monitor>) => {
+        return entry.isVisible;
+      }),
+    ).toEqual([true, true, true, false]);
+  });
+
+  test("Escape closes the modal without saving", () => {
+    const { onSave, onClose }: RenderedModal = renderModal();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  test("the header close button closes without saving", () => {
+    const { view, onSave, onClose }: RenderedModal = renderModal();
+
+    fireEvent.click(view.getByTestId("column-toggle-description"));
+    fireEvent.click(view.getByTestId("close-button"));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  test("a single-column table opens with everything locked down", () => {
+    const { view }: RenderedModal = renderModal({
+      columns: [
+        makeEntry({ id: "name", title: "Monitor Name", isVisible: true }),
+      ],
+    });
+
+    expect(view.getByTestId("column-toggle-name")).toBeDisabled();
+    expect(view.getByTestId("column-move-up-name")).toBeDisabled();
+    expect(view.getByTestId("column-move-down-name")).toBeDisabled();
+    expect(view.getByTestId("column-customization-show-all")).toBeDisabled();
+    expect(view.getByTestId("column-customization-hide-all")).toBeDisabled();
+    expect(view.getByTestId("column-customization-count")).toHaveTextContent(
+      "1 of 1 columns shown",
+    );
+  });
+
+  test("an empty column list renders without falling over", () => {
+    const { view }: RenderedModal = renderModal({ columns: [] });
+
+    expect(view.getByTestId("column-customization-modal")).toBeInTheDocument();
+    expect(view.queryAllByTestId(/^column-toggle-/)).toHaveLength(0);
+    expect(view.getByTestId("column-customization-count")).toHaveTextContent(
+      "0 of 0 columns shown",
+    );
+  });
+
+  test("columns with the same title are still addressed individually", () => {
+    const { view, onSave }: RenderedModal = renderModal({
+      columns: [
+        makeEntry({ id: "createdAt", title: "Date", isVisible: true }),
+        makeEntry({ id: "updatedAt", title: "Date", isVisible: true }),
+      ],
+    });
+
+    // The row is keyed by id, not by the title the viewer happens to see.
+    fireEvent.click(view.getByTestId("column-toggle-updatedAt"));
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    expect(
+      getSaved(onSave).map((entry: CustomizableColumn<Monitor>) => {
+        return { id: entry.id, isVisible: entry.isVisible };
+      }),
+    ).toEqual([
+      { id: "createdAt", isVisible: true },
+      { id: "updatedAt", isVisible: false },
+    ]);
+  });
+
+  test("a column with no title is searchable without breaking the filter", () => {
+    const untitled: CustomizableColumn<Monitor> = makeEntry({
+      id: "untitled",
+      title: "",
+      isVisible: true,
+    });
+
+    const { view }: RenderedModal = renderModal({
+      columns: [
+        makeEntry({ id: "name", title: "Monitor Name", isVisible: true }),
+        untitled,
+      ],
+    });
+
+    expect(view.getAllByTestId(/^column-toggle-/)).toHaveLength(2);
+
+    typeSearch(view, "monitor");
+
+    // The untitled column simply does not match; it does not throw.
+    expect(view.getAllByTestId(/^column-toggle-/)).toHaveLength(1);
+    expect(view.getByTestId("column-toggle-name")).toBeInTheDocument();
+  });
+
+  test("Reset does not close the modal on the viewer's behalf", () => {
+    const { view, onReset, onClose }: RenderedModal = renderModal({
+      isDefaultLayout: false,
+    });
+
+    fireEvent.click(view.getByTestId("column-customization-reset"));
+
+    /*
+     * Closing is the caller's decision - it owns the stored layout and this
+     * modal only reports the click.
+     */
+    expect(onReset).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  test("the props handed to Save are a fresh list, not the caller's array", () => {
+    const columns: Array<CustomizableColumn<Monitor>> = getDefaultColumns();
+    const { view, onSave }: RenderedModal = renderModal({ columns });
+
+    fireEvent.click(view.getByTestId("column-move-down-name"));
+    fireEvent.click(view.getByTestId("modal-footer-submit-button"));
+
+    // The caller's own array is left exactly as it was passed in.
+    expect(
+      columns.map((entry: CustomizableColumn<Monitor>) => {
+        return entry.id;
+      }),
+    ).toEqual(["name", "currentMonitorStatus", "description", "createdAt"]);
+    expect(getSaved(onSave)).not.toBe(columns);
+  });
 });

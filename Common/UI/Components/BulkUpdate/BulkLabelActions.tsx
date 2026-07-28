@@ -370,7 +370,6 @@ function useBulkLabelActions<T extends BaseModel>(
           <Modal
             title="No Labels to Remove"
             description="The selected items don't have any labels to remove."
-            icon={IconProp.Label}
             onClose={closeRemoveModal}
             closeButtonText="Close"
           >

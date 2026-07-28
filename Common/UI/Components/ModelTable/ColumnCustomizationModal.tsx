@@ -12,6 +12,7 @@ import {
   DragDropContext,
   Draggable,
   DraggableProvided,
+  DraggableStateSnapshot,
   Droppable,
   DroppableProvided,
   DropResult,
@@ -87,6 +88,14 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
         .includes(normalizedSearch);
     });
   }, [entries, normalizedSearch, isSearching]);
+
+  /*
+   * Both bulk actions are switched off when they have nothing left to do -
+   * "Show all" with everything already on is a no-op, and "Hide all" cannot go
+   * below the one column that has to stay.
+   */
+  const isEverythingVisible: boolean = visibleCount === entries.length;
+  const isOnlyOneVisible: boolean = visibleCount <= 1;
 
   type ToggleFunction = (id: string, isVisible: boolean) => void;
 
@@ -183,6 +192,37 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
     });
   };
 
+  type GetBulkActionFunction = (data: {
+    title: string;
+    dataTestId: string;
+    disabled: boolean;
+    onClick: () => void;
+  }) => ReactElement;
+
+  /*
+   * Rendered as plain buttons rather than through <Button>: these sit inside
+   * the body as a compact pair, and the shared button styles are sized for a
+   * footer.
+   */
+  const getBulkAction: GetBulkActionFunction = (data: {
+    title: string;
+    dataTestId: string;
+    disabled: boolean;
+    onClick: () => void;
+  }): ReactElement => {
+    return (
+      <button
+        type="button"
+        data-testid={data.dataTestId}
+        disabled={data.disabled}
+        onClick={data.onClick}
+        className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-white hover:text-gray-900 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent disabled:hover:shadow-none"
+      >
+        {data.title}
+      </button>
+    );
+  };
+
   type GetRowFunction = (data: {
     entry: CustomizableColumn<TBaseModel>;
     index: number;
@@ -199,27 +239,50 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
     const isOnlyVisibleColumn: boolean = entry.isVisible && visibleCount <= 1;
 
     return (
-      <div className="flex items-center gap-3 px-3 py-2">
-        {data.dragHandle || <div className="w-4" />}
+      <div className="group flex items-center gap-2 px-3 py-2 transition-colors hover:bg-gray-50">
+        {data.dragHandle || <div className="w-5 flex-none" />}
 
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <CheckboxElement
             value={entry.isVisible}
             disabled={isOnlyVisibleColumn}
             dataTestId={`column-toggle-${entry.id}`}
-            title={entry.column.title}
+            outerDivClassName="relative flex items-center"
+            title={
+              <span
+                className={
+                  entry.isVisible
+                    ? "text-sm font-medium text-gray-900"
+                    : "text-sm font-normal text-gray-400"
+                }
+              >
+                {entry.column.title}
+              </span>
+            }
             onChange={(value: boolean) => {
               toggleColumn(entry.id, value);
             }}
           />
         </div>
 
-        <div className="flex flex-none items-center gap-1">
+        {isOnlyVisibleColumn && (
+          <span
+            className="flex-none rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500"
+            data-testid={`column-locked-${entry.id}`}
+          >
+            Required
+          </span>
+        )}
+
+        <div className="flex flex-none items-center gap-0.5">
           <Button
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.ICON}
             icon={IconProp.ChevronUp}
             title=""
+            tooltip="Move up"
+            ariaLabel={`Move ${entry.column.title} up`}
+            className="text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:text-gray-200 disabled:hover:bg-transparent"
             dataTestId={`column-move-up-${entry.id}`}
             disabled={isSearching || index === 0}
             onClick={() => {
@@ -231,6 +294,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             buttonStyle={ButtonStyleType.ICON}
             icon={IconProp.ChevronDown}
             title=""
+            tooltip="Move down"
+            ariaLabel={`Move ${entry.column.title} down`}
+            className="text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:text-gray-200 disabled:hover:bg-transparent"
             dataTestId={`column-move-down-${entry.id}`}
             disabled={isSearching || index === entries.length - 1}
             onClick={() => {
@@ -248,10 +314,13 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
     if (shownEntries.length === 0) {
       return (
         <div
-          className="px-3 py-6 text-center text-sm text-gray-400"
+          className="flex flex-col items-center gap-2 px-3 py-10 text-center"
           data-testid="column-customization-no-results"
         >
-          No columns match &quot;{searchText}&quot;.
+          <Icon icon={IconProp.Search} className="h-6 w-6 text-gray-300" />
+          <p className="text-sm text-gray-500">
+            No columns match &quot;{searchText}&quot;.
+          </p>
         </div>
       );
     }
@@ -287,6 +356,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                 ref={droppableProvided.innerRef}
                 {...droppableProvided.droppableProps}
                 className="divide-y divide-gray-100"
+                aria-label="Columns"
               >
                 {shownEntries.map(
                   (entry: CustomizableColumn<TBaseModel>, index: number) => {
@@ -296,12 +366,19 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                         index={index}
                         key={entry.id}
                       >
-                        {(draggableProvided: DraggableProvided) => {
+                        {(
+                          draggableProvided: DraggableProvided,
+                          draggableSnapshot: DraggableStateSnapshot,
+                        ) => {
                           return (
                             <div
                               ref={draggableProvided.innerRef}
                               {...draggableProvided.draggableProps}
-                              className="bg-white"
+                              className={
+                                draggableSnapshot.isDragging
+                                  ? "rounded-md bg-white shadow-lg ring-1 ring-gray-200"
+                                  : "bg-white"
+                              }
                             >
                               {getRowContents({
                                 entry,
@@ -309,7 +386,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
                                 dragHandle: (
                                   <div
                                     {...draggableProvided.dragHandleProps}
-                                    className="flex-none cursor-grab text-gray-400 hover:text-gray-600 active:cursor-grabbing"
+                                    className="flex w-5 flex-none cursor-grab justify-center text-gray-300 transition-colors group-hover:text-gray-500 active:cursor-grabbing"
                                     aria-label={`Drag to reorder ${entry.column.title}`}
                                     title="Drag to reorder"
                                   >
@@ -344,7 +421,6 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
         "Choose which columns to show and drag them into the order you want."
       }
       modalWidth={ModalWidth.Medium}
-      icon={IconProp.TableCells}
       submitButtonText="Save"
       closeButtonText="Cancel"
       onClose={props.onClose}
@@ -357,8 +433,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
         ) : (
           <Button
             title="Reset to default"
+            icon={IconProp.Refresh}
             buttonSize={ButtonSize.Normal}
-            buttonStyle={ButtonStyleType.OUTLINE}
+            buttonStyle={ButtonStyleType.NORMAL}
             dataTestId="column-customization-reset"
             onClick={() => {
               props.onReset();
@@ -368,50 +445,76 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
       }
     >
       <div className="space-y-3" data-testid="column-customization-modal">
+        <div className="relative">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+          </div>
+          <Input
+            type={InputType.TEXT}
+            placeholder="Search columns..."
+            value={searchText}
+            dataTestId="column-customization-search"
+            outerDivClassName="w-full"
+            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-9 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            onChange={(value: string) => {
+              setSearchText(value);
+            }}
+          />
+          {searchText.length > 0 && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              title="Clear search"
+              data-testid="column-customization-search-clear"
+              onClick={() => {
+                setSearchText("");
+              }}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 transition-colors hover:text-gray-600 focus:outline-none focus-visible:text-gray-600"
+            >
+              <Icon icon={IconProp.Close} className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
         <div className="flex items-center justify-between gap-3">
-          <div className="flex-1">
-            <Input
-              type={InputType.TEXT}
-              placeholder="Search columns..."
-              value={searchText}
-              dataTestId="column-customization-search"
-              onChange={(value: string) => {
-                setSearchText(value);
-              }}
-            />
+          <div
+            className="text-xs font-medium text-gray-500"
+            data-testid="column-customization-count"
+          >
+            {visibleCount} of {entries.length} columns shown
           </div>
-          <div className="flex flex-none gap-2">
-            <Button
-              title="Show all"
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              dataTestId="column-customization-show-all"
-              onClick={() => {
+          <div className="flex flex-none items-center gap-1 rounded-md bg-gray-50 p-0.5 ring-1 ring-inset ring-gray-200">
+            {getBulkAction({
+              title: "Show all",
+              dataTestId: "column-customization-show-all",
+              disabled: isEverythingVisible,
+              onClick: () => {
                 setAllVisible(true);
-              }}
-            />
-            <Button
-              title="Hide all"
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              dataTestId="column-customization-hide-all"
-              onClick={() => {
+              },
+            })}
+            {getBulkAction({
+              title: "Hide all",
+              dataTestId: "column-customization-hide-all",
+              disabled: isOnlyOneVisible,
+              onClick: () => {
                 setAllVisible(false);
-              }}
-            />
+              },
+            })}
           </div>
         </div>
 
-        <div
-          className="text-xs text-gray-500"
-          data-testid="column-customization-count"
-        >
-          {visibleCount} of {entries.length} columns shown
-        </div>
-
-        <div className="rounded-md border border-gray-200 overflow-hidden">
+        <div className="max-h-80 overflow-y-auto overscroll-contain rounded-md border border-gray-200 bg-white">
           {getList()}
         </div>
+
+        <p
+          className="text-xs text-gray-400"
+          data-testid="column-customization-hint"
+        >
+          {isSearching
+            ? "Clear the search to reorder columns."
+            : "Drag a row, or use the arrows, to change the column order."}
+        </p>
       </div>
     </Modal>
   );

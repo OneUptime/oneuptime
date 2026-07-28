@@ -103,7 +103,6 @@ const DashboardStartAndEndDateView: FunctionComponent<ComponentProps> = (
           <Modal
             title="Select Time Range"
             description="Choose a quick range or set an exact start and end date & time."
-            icon={IconProp.Clock}
             modalWidth={ModalWidth.Medium}
             submitButtonText="Apply"
             disableSubmitButton={!isSelectionValid(tempStartAndEndDate)}

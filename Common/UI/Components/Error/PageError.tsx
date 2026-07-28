@@ -1,8 +1,6 @@
 import Navigation from "../../Utils/Navigation";
 import { ButtonStyleType } from "../Button/Button";
-import { IconType } from "../Icon/Icon";
 import Modal from "../Modal/Modal";
-import IconProp from "../../../Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -22,8 +20,6 @@ const PageError: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title || "Oops, something went wrong."}
-      icon={IconProp.Alert}
-      iconType={IconType.Danger}
       onSubmit={() => {
         Navigation.reload();
       }}
