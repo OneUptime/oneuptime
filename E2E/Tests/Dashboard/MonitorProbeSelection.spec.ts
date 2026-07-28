@@ -1,5 +1,6 @@
 import { BASE_URL } from "../../Config";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
+import { toId } from "./Helpers/MonitorAlerting";
 import {
   APIResponse,
   Browser,
@@ -94,7 +95,8 @@ const seedCustomProbe: SeedCustomProbeFunction = async (data: {
 
   const body: any = await response.json();
 
-  return (body?.data?._id || body?._id || "").toString();
+  // Ids come back as a bare string or { _type: "ObjectID", value }; normalise.
+  return toId(body?.data?._id ?? body?._id);
 };
 
 type ListMonitorProbesFunction = (data: {
@@ -267,8 +269,13 @@ test.describe("Monitor probe selection", () => {
       monitorId,
     });
 
+    /*
+     * get-list returns probeId as an ObjectID object ({ _type, value }), not a
+     * bare string, so normalise it the same way the seeded id was before
+     * comparing - otherwise every id renders as "[object Object]".
+     */
     const probeIds: Array<string> = monitorProbes.map((monitorProbe: any) => {
-      return (monitorProbe.probeId || monitorProbe.probe?._id || "").toString();
+      return toId(monitorProbe.probeId ?? monitorProbe.probe?._id);
     });
 
     /*
