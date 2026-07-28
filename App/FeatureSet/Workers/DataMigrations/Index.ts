@@ -95,6 +95,7 @@ import AddMetricEntityMinuteAggregateMaterializedViews from "./AddMetricEntityMi
 import CloseOrphanedMonitorStatusTimelineRows from "./CloseOrphanedMonitorStatusTimelineRows";
 import MigrateMetricAggregatesToStrictSchema from "./MigrateMetricAggregatesToStrictSchema";
 import AddInterfaceIndexColumnsToNetworkFlow from "./AddInterfaceIndexColumnsToNetworkFlow";
+import AddShipmentColumnsToKubernetesCostAllocation from "./AddShipmentColumnsToKubernetesCostAllocation";
 import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
 import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
 
@@ -295,6 +296,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * networkSiteTypeId are touched.
    */
   new BackfillNetworkSiteTypes(),
+  /*
+   * Adds shipmentId / shipmentChunk to KubernetesCostAllocation so the cost
+   * ingest can tell one agent delivery of a window from another, instead of
+   * dropping every request after the first on clusters whose hourly rows
+   * exceed the agent's batch size. Existing rows read back "" / 0 and keep
+   * the original whole-window behaviour. Idempotent: skips columns that
+   * exist.
+   */
+  new AddShipmentColumnsToKubernetesCostAllocation(),
 ];
 
 export default DataMigrations;

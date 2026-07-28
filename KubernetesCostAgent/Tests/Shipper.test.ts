@@ -102,6 +102,25 @@ test("ships rows chunked at SHIP_BATCH_SIZE with cluster, currency and token", a
     assert.strictEqual(request.payload.currency, "USD");
   }
 
+  /*
+   * Every chunk of one window carries the same shipment id and its own index,
+   * which is what lets the server accept the whole window instead of dropping
+   * everything after the first chunk.
+   */
+  const shipmentIds: Array<string | undefined> = recorded.map(
+    (request: RecordedRequest): string | undefined => {
+      return request.payload.shipmentId;
+    },
+  );
+  assert.strictEqual(new Set(shipmentIds).size, 1);
+  assert.ok(shipmentIds[0]);
+  assert.deepStrictEqual(
+    recorded.map((request: RecordedRequest): number | undefined => {
+      return request.payload.shipmentChunk;
+    }),
+    [0, 1, 2],
+  );
+
   // Chunks preserve row order end-to-end.
   const shippedNamespaces: Array<string> = recorded.flatMap(
     (request: RecordedRequest): Array<string> => {

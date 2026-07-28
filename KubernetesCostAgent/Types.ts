@@ -50,6 +50,16 @@ export interface KubernetesCostAllocationIngestRow {
 export interface KubernetesCostIngestPayload {
   clusterName: string;
   currency?: string | undefined;
+  /*
+   * Shipment identity — see Common/Types/Kubernetes/KubernetesCostIngest.ts
+   * for the full rationale. shipmentId is a content hash over the window's
+   * row identities (stable across agent restarts); shipmentChunk is this
+   * request's index within the shipment. Together they let the server accept
+   * every chunk of one window while still dropping a window a previous
+   * shipment already delivered.
+   */
+  shipmentId?: string | undefined;
+  shipmentChunk?: number | undefined;
   allocations: Array<KubernetesCostAllocationIngestRow>;
 }
 
@@ -120,9 +130,19 @@ export interface EngineAllocation {
   gpuHours?: number;
   gpuCost?: number;
   gpuCostAdjustment?: number;
+  /*
+   * Singular "Byte", deliberately. The engines' Go struct fields are
+   * RAMBytesRequestAverage / RAMBytesUsageAverage but their json tags are
+   * `ramByteRequestAverage` / `ramByteUsageAverage` — plural field name,
+   * singular wire name. Reading the field name instead of the tag yields
+   * undefined, which the server's sanitizeNumber turns into a silent 0, so
+   * the mismatch is invisible until someone charts memory requests. Stable
+   * across every OpenCost release from v1.108 to the bundled 1.121, and
+   * Kubecost shares the lineage.
+   */
   ramByteHours?: number;
-  ramBytesRequestAverage?: number;
-  ramBytesUsageAverage?: number;
+  ramByteRequestAverage?: number;
+  ramByteUsageAverage?: number;
   ramCost?: number;
   ramCostAdjustment?: number;
   pvByteHours?: number;

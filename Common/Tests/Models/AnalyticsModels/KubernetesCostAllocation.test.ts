@@ -95,6 +95,19 @@ describe("Analytics KubernetesCostAllocation model", () => {
     );
   });
 
+  test("carries the shipment identity the ingest dedup relies on", () => {
+    const shipmentId: AnalyticsTableColumn | null =
+      model.getTableColumn("shipmentId");
+    expect(shipmentId?.type).toBe(TableColumnType.Text);
+    // Rows written before the shipment contract read back as "no identity".
+    expect(shipmentId?.defaultValue).toBe("");
+
+    const shipmentChunk: AnalyticsTableColumn | null =
+      model.getTableColumn("shipmentChunk");
+    expect(shipmentChunk?.type).toBe(TableColumnType.Number);
+    expect(shipmentChunk?.defaultValue).toBe(0);
+  });
+
   test("stores labels as a map with an extracted key column", () => {
     const labels: AnalyticsTableColumn | null = model.getTableColumn("labels");
     expect(labels?.type).toBe(TableColumnType.MapStringString);
