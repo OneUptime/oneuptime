@@ -582,8 +582,10 @@ section "9. Cost pipeline"
 #     dozen healthy ones sat in ImagePullBackOff, and
 #   * the poller sent a millisecond-precision `window` bound, which both engines
 #     reject with `400 ... illegal window`. It retries the next window forever
-#     and reports that ONLY on its own /healthz — which still answers 200,
-#     because the shipper, never handed a row, has nothing to complain about.
+#     and reports that ONLY on its own /healthz — which, on agent images before
+#     the honest-health fix, still answered 200, because the shipper, never
+#     handed a row, had nothing to complain about. Current agents fail
+#     readiness for this; the error fields are the signal on either image.
 COST_ENABLED=0        # 1 once a cost-agent Deployment is found
 COST_OK=1             # flips to 0 on the first cost-specific failure
 COST_BUNDLED=0        # 1 = chart's own OpenCost, 0 = external cost.engine.url
@@ -767,7 +769,7 @@ else
       COST_SHIP_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastShipError":"\([^"]*\)".*/\1/p' | head -1)
       info "cost-agent /healthz → HTTP $RESP_CODE (status=${COST_STATUS:-?})"
       [ "$RESP_CODE" = "200" ] && \
-        detail "A 200 here does NOT mean cost data is flowing: the status code tracks the SHIPPER, which reports healthy until it has actually failed — and a poller that never gets a window past the engine hands it nothing to fail on. The two error fields below are the real signal."
+        detail "Current agents answer 503 here once the pipeline has demonstrably stalled, so a 200 carries real information — but it is NOT proof on older agent images, whose 200 tracked only the SHIPPER and stayed green when the poller never got a window past the engine. The two error fields below are the real signal on either image."
       if [ -n "$COST_POLL_ERR" ]; then
         fail "Poller's last error: $COST_POLL_ERR"
         COST_OK=0

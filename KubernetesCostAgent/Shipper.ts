@@ -12,6 +12,7 @@ import Logger from "./Logger";
 import {
   KubernetesCostAllocationIngestRow,
   KubernetesCostIngestPayload,
+  ShipperStatus,
 } from "./Types";
 
 const sleep: (ms: number) => Promise<void> = (ms: number): Promise<void> => {
@@ -36,12 +37,19 @@ export class Shipper {
   private lastShipOk: number = 0;
   private lastShipErr: string | null = null;
 
-  public healthy(): boolean {
-    if (this.lastShipOk === 0 && this.lastShipErr === null) {
-      return true;
-    }
-    // Healthy if the last successful ship was within 3 poll windows (~3h).
-    return Date.now() - this.lastShipOk < 3 * 60 * 60 * 1000;
+  /*
+   * Facts only — no verdict. The shipper cannot tell healthy from broken on
+   * its own: it is only ever handed rows the poller managed to fetch, so an
+   * agent whose engine never answers leaves it untouched and, until this
+   * became Health.ts's call, spotless. Health.ts reads this alongside the
+   * poller's status, where "never shipped" and "never polled" are visible
+   * together.
+   */
+  public status(): ShipperStatus {
+    return {
+      lastShipOkAtMs: this.lastShipOk,
+      lastShipError: this.lastShipErr,
+    };
   }
 
   public lastError(): string | null {

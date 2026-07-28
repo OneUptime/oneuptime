@@ -93,4 +93,38 @@ export const HEALTH_PORT: number = parseInt(
   10,
 );
 
+/*
+ * Health thresholds.
+ *
+ * /healthz has to separate "quiet because there is nothing to do yet" from
+ * "quiet because the pipeline is broken". A cost agent is quiet for long
+ * stretches by design — it ships once an hour — and on a fresh install the
+ * LOOKBACK_WINDOWS windows it re-ships predate the engine, so they
+ * legitimately come back empty. Both thresholds below therefore run off
+ * "time since the process started" and are generous by default; the fast
+ * signal is HEALTH_MAX_POLL_FAILURES, which needs real errors, not silence.
+ */
+
+/*
+ * Consecutive failing ticks before the agent reports degraded. At the
+ * default POLL_INTERVAL_SECONDS that is ~15 minutes of an unreachable or
+ * erroring cost engine — well past any engine's own startup. If you shorten
+ * POLL_INTERVAL_SECONDS substantially, raise this to keep the same
+ * wall-clock patience.
+ */
+export const HEALTH_MAX_POLL_FAILURES: number = parseInt(
+  optional("HEALTH_MAX_POLL_FAILURES", "3"),
+  10,
+);
+
+/*
+ * Windows of silence tolerated before the agent reports degraded. A window
+ * completes roughly every WINDOW_SECONDS, so the default leaves two whole
+ * windows of slack; anything below 2 will flap.
+ */
+export const HEALTH_STALE_WINDOWS: number = parseInt(
+  optional("HEALTH_STALE_WINDOWS", "3"),
+  10,
+);
+
 export const LOG_LEVEL: string = optional("LOG_LEVEL", "info");

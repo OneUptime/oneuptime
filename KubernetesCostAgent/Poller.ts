@@ -8,7 +8,11 @@ import { floorToWindow, mapAllocationToRow } from "./AllocationMapper";
 import { CostEngineClient } from "./CostEngineClient";
 import Logger from "./Logger";
 import { Shipper } from "./Shipper";
-import { EngineAllocation, KubernetesCostAllocationIngestRow } from "./Types";
+import {
+  EngineAllocation,
+  KubernetesCostAllocationIngestRow,
+  PollerStatus,
+} from "./Types";
 
 export class Poller {
   private readonly engine: CostEngineClient;
@@ -28,6 +32,19 @@ export class Poller {
   private stopped: boolean = false;
   private lastPollErr: string | null = null;
 
+  /*
+   * Progress bookkeeping for /healthz. A window that drained counts even
+   * when the engine reported no allocations: an empty window is a round
+   * trip the engine answered, which is exactly what a stalled agent cannot
+   * do. Shipping is tracked separately by the Shipper, because an engine
+   * that answers 200 with nothing, forever, drains windows happily and
+   * still never delivers a row.
+   */
+  private readonly startedAtMs: number = Date.now();
+  private lastWindowCompletedAtMs: number = 0;
+  private windowsCompleted: number = 0;
+  private consecutivePollFailures: number = 0;
+
   public constructor(engine: CostEngineClient, shipper: Shipper) {
     this.engine = engine;
     this.shipper = shipper;
@@ -41,6 +58,16 @@ export class Poller {
 
   public lastError(): string | null {
     return this.lastPollErr;
+  }
+
+  public status(): PollerStatus {
+    return {
+      startedAtMs: this.startedAtMs,
+      lastWindowCompletedAtMs: this.lastWindowCompletedAtMs,
+      windowsCompleted: this.windowsCompleted,
+      consecutivePollFailures: this.consecutivePollFailures,
+      lastPollError: this.lastPollErr,
+    };
   }
 
   public start(): void {
@@ -124,12 +151,24 @@ export class Poller {
 
         this.checkpointMs = windowEndMs;
         this.lastPollErr = null;
+        this.lastWindowCompletedAtMs = Date.now();
+        this.windowsCompleted++;
       }
+
+      /*
+       * The tick ran end to end. That includes the do-nothing tick where no
+       * window is closed yet — which is only reachable once the backlog is
+       * drained, so it is genuine progress, not silence: a broken engine
+       * pins the checkpoint in the past and every tick has work that throws.
+       */
+      this.consecutivePollFailures = 0;
     } catch (err: unknown) {
       const message: string = err instanceof Error ? err.message : String(err);
       this.lastPollErr = message;
+      this.consecutivePollFailures++;
       Logger.error("cost poll failed; will retry next tick", {
         error: message,
+        consecutiveFailures: this.consecutivePollFailures,
       });
     } finally {
       this.running = false;

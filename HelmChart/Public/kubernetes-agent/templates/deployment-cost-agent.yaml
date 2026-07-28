@@ -81,13 +81,20 @@ spec:
             - name: health
               containerPort: 13134
               protocol: TCP
+          # Liveness asks only "is the process up?" (/livez), because the
+          # things /healthz reports — an engine that will not answer, a
+          # window that never lands — are not fixed by a restart, and a
+          # restart loop would hide the diagnostic /healthz is carrying.
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /livez
               port: health
             initialDelaySeconds: 15
             periodSeconds: 30
             timeoutSeconds: 5
+          # Readiness carries the real verdict: /healthz answers 503 once the
+          # cost pipeline has demonstrably stalled, so the pod goes 0/1 Ready
+          # instead of staying green while nothing ships.
           readinessProbe:
             httpGet:
               path: /healthz

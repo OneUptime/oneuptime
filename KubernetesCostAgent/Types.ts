@@ -53,6 +53,44 @@ export interface KubernetesCostIngestPayload {
   allocations: Array<KubernetesCostAllocationIngestRow>;
 }
 
+/*
+ * Health snapshots. Poller and Shipper each report plain facts about what
+ * they have done; Health.ts is the single place that turns those facts into
+ * an ok/degraded verdict, so the judgement is testable without a clock, a
+ * socket or either collaborator.
+ */
+
+export interface PollerStatus {
+  /** When the poller was constructed (ms epoch). */
+  startedAtMs: number;
+  /**
+   * When a window last drained — shipped or legitimately empty (ms epoch).
+   * 0 means no window has ever completed.
+   */
+  lastWindowCompletedAtMs: number;
+  windowsCompleted: number;
+  /** Ticks that have thrown back-to-back; reset by any clean tick. */
+  consecutivePollFailures: number;
+  lastPollError: string | null;
+}
+
+export interface ShipperStatus {
+  /** Last successful POST to OneUptime (ms epoch); 0 means never. */
+  lastShipOkAtMs: number;
+  lastShipError: string | null;
+}
+
+export interface HealthReport {
+  healthy: boolean;
+  status: "ok" | "degraded";
+  /** Why it is degraded, in operator-readable prose. Empty when healthy. */
+  reasons: Array<string>;
+  lastPollError: string | null;
+  lastShipError: string | null;
+  windowsCompleted: number;
+  uptimeSeconds: number;
+}
+
 /** properties block of one engine allocation. */
 export interface EngineAllocationProperties {
   cluster?: string;
