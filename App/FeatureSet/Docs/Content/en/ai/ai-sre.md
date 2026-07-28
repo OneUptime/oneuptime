@@ -1,6 +1,6 @@
 # AI SRE — Autonomous Investigations
 
-OneUptime AI is your AI Site Reliability Engineer. The moment a new incident or alert is declared, it wakes up, investigates it across your own telemetry — logs, metrics, traces, exceptions, monitors, and recent changes — and posts a cited root cause analysis to the incident or alert timeline, usually before the on-call engineer has finished reading the page.
+OneUptime AI is your AI Site Reliability Engineer. The moment a new incident or alert is declared, it wakes up, investigates it across your own telemetry — logs, metrics, traces, exceptions, monitors, infrastructure state, and recent changes — and posts a cited root cause analysis to the incident or alert timeline, usually before the on-call engineer has finished reading the page.
 
 Every claim in the analysis carries a citation that deep-links to the exact data that supports it, and the investigation itself is **strictly read-only**: OneUptime AI can never change anything in your project while investigating.
 
@@ -16,6 +16,39 @@ When an investigation finishes, OneUptime AI posts a root cause analysis with th
 For incidents, the analysis is posted to the incident feed **and** as an incident internal note (where responders collaborate). For alerts, it is posted to the alert feed.
 
 While the investigation runs, the incident or alert page shows a live **AI Investigation** panel that narrates each step — which tools ran, what they found, and how long they took — so you can watch it think. If an investigation fails, the panel shows the failure reason rather than a silent gap.
+
+## What the investigation can see
+
+Everything an investigation reads is data that is already in your OneUptime project. It makes no external API calls, uses no credentials of yours, and cannot reach a system you have not connected.
+
+| Evidence                                           | What it answers                                                                                                                                                                             |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Logs, traces, exceptions                           | What is failing, in which service, with which error, on which code path                                                                                                                     |
+| Metrics                                            | How a number moved — including `baseline_anomaly`, which judges a metric against its learned hour-of-week normal range instead of a fixed threshold                                         |
+| Monitors, incidents, alerts, scheduled maintenance | What else is down right now, whether this has happened before, and whether someone planned it                                                                                               |
+| **Infrastructure state**                           | Whether the thing running your code is actually healthy — see below                                                                                                                         |
+| Recent changes                                     | What changed in the window around the problem: new exceptions, monitor status flips, maintenance windows, and infrastructure churn (workloads created or restarted, agents that went quiet) |
+| Source code                                        | The code behind an exception, for repositories you have connected                                                                                                                           |
+
+### Infrastructure state
+
+Telemetry tells the AI that checkout is throwing errors. Infrastructure state tells it **why the process serving checkout is unhappy** — the question an on-call engineer answers by reaching for a terminal:
+
+- **Is that pod actually OOMKilled?** Container `state` and `reason` (`OOMKilled`, `CrashLoopBackOff`, `Error`, …), readiness, memory limit versus latest memory use.
+- **Is it restarting?** Per-container restart counts, and workloads created or restarted inside the incident window.
+- **Is the node starved?** Node memory, disk and PID pressure flags, pod phase and readiness, latest CPU and memory per workload.
+- **Is the host or the agent the problem?** Docker containers and hosts, monitored hosts (OS, architecture, cores, memory), cloud resources and serverless functions, and whether each one's collector is still reporting.
+
+By default the AI is shown **what is wrong first** — unhealthy pods, non-ready workloads, pressured nodes, containers with recent restarts — rather than a full inventory it has to read through.
+
+Be clear about the limits of this evidence:
+
+- **It is a snapshot your agents reported, not a live query.** Every row carries a `lastSeenAt` stamp, so you can see how fresh the evidence behind a claim is. Kubernetes agents snapshot roughly every five minutes and a cluster is marked disconnected after fifteen minutes of silence, so "healthy" here means _healthy as of the last report_, not this second.
+- **It only covers infrastructure you have connected to OneUptime.** A cluster, host, or account with no agent shipping to your project does not exist as far as the investigation is concerned. The AI reports that it found nothing rather than inferring a state.
+- **No kubectl, no cloud credentials, no provider APIs.** OneUptime AI reads rows in your project that your own agents wrote. It cannot describe a pod through the Kubernetes API, exec into a container, or call AWS, GCP or Azure. If you want a live answer off a host, that is a [remediation](/docs/ai/auto-remediation) action — a separate opt-in, and it waits for a human unless you wrote a rule that says otherwise.
+- **Read-only, like every other investigation tool.** Nothing about reading infrastructure state lets the AI change infrastructure.
+
+To connect infrastructure, install the agent for it: [Kubernetes](/docs/monitor/kubernetes-agent), [hosts and VMs](/docs/telemetry/host-otel-collector), [Docker](/docs/telemetry/docker-host), [serverless functions](/docs/telemetry/serverless-functions), [cloud environments](/docs/telemetry/cloud-environments).
 
 ## Enabling AI investigations
 
@@ -49,7 +82,7 @@ Alert volume can be much higher than incident volume, so autonomous investigatio
 
 ## Trust and safety
 
-- **Read-only, always.** Autonomous investigations run with a curated set of read-only tools (metric, log, trace, exception, and change queries — including `baseline_anomaly`, which judges a metric against its learned hour-of-week normal range). The AI cannot acknowledge, resolve, page, or modify anything from an investigation.
+- **Read-only, always.** Autonomous investigations run with a curated set of read-only tools (metric, log, trace, exception, infrastructure-state, and change queries — including `baseline_anomaly`, which judges a metric against its learned hour-of-week normal range). The AI cannot acknowledge, resolve, page, or modify anything from an investigation.
 - **Citations are minted server-side** from tool calls that actually executed — the model cannot fabricate a citation to data it never read.
 - **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (Project Settings > AI > AI Logs) with token counts and cost.
 - **Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns).
@@ -95,4 +128,6 @@ Every insight has **Confirm** and **Dismiss** buttons — use them even when you
 - An LLM provider must be configured (project-specific or the cloud global provider).
 - Investigations trigger on **newly created** incidents and alerts only — enabling the toggles does not investigate historical signals.
 - The `baseline_anomaly` check needs about two weeks of metric history before its hour-of-week baselines are reliable; before that it reports "insufficient baseline data" rather than guessing.
+- Infrastructure evidence is limited to the clusters, hosts, and accounts you have connected an agent to, and is only as fresh as that agent's last report — see [What the investigation can see](#what-the-investigation-can-see).
+- There is no deploy or release feed. OneUptime records the version a service last reported, not a history of releases, so the AI cannot tell you "this started one minute after release 4.2.1 rolled out" unless the change is visible some other way (a restarted workload, a new exception, a monitor flip).
 - On OneUptime Cloud with the global provider, investigations consume metered AI tokens (see Project Settings > AI Credits). Bring your own provider key for unmetered usage.

@@ -20,6 +20,7 @@ import { QueryScheduledMaintenanceTool } from "./ScheduledMaintenanceTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
 import { RecentChangesTool } from "./RecentChangesTools";
+import { QueryInfrastructureTool } from "./InfrastructureTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
 import { GetTraceTool, QueryTracesTool } from "./TraceTools";
 import { LookupContextTool } from "./ContextTools";
@@ -83,6 +84,13 @@ export default class AIToolbox {
     QueryTracesTool,
     GetTraceTool,
     RecentChangesTool,
+    /*
+     * Infrastructure state (read-only). The rest of the read belt is telemetry
+     * — what happened over a window. This one is the live inventory the
+     * customer's agents write, so the model can answer "is that pod OOMKilled /
+     * restarting / on a node under memory pressure" instead of inferring it.
+     */
+    QueryInfrastructureTool,
     /*
      * Source code (read-only). Closes the loop from a telemetry signal to the
      * code that produced it — see CodeTools for the narrower trust posture.
