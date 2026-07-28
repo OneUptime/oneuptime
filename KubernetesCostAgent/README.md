@@ -11,6 +11,15 @@ OneUptime stores the allocations in ClickHouse (`KubernetesCostAllocation`) and 
 3. The allocations are mapped to OneUptime's ingest rows (cost components include the engine's reconciliation adjustments) and POSTed to `{ONEUPTIME_URL}/kubernetes-cost/ingest`, chunked at `SHIP_BATCH_SIZE` rows, authenticated with the `x-oneuptime-token` header.
 4. Windows ship strictly in order; the checkpoint only advances when a window fully lands, so a failed ship is retried on the next tick. On restart the agent re-ships the last `LOOKBACK_WINDOWS` closed windows — the server skips windows that already have rows, so this cannot double-count.
 
+## Health
+
+Two endpoints on `HEALTH_PORT`, and the split matters:
+
+- **`/healthz`** (also `/`) — readiness. `200 {"status":"ok"}` while the pipeline is working, `503 {"status":"degraded", "reasons": [...]}` once it demonstrably is not, so the pod reads `0/1 Ready` instead of staying green while nothing ships. Degraded means any of: the poll has thrown `HEALTH_MAX_POLL_FAILURES` ticks in a row; no window has completed in `HEALTH_STALE_WINDOWS` windows; or nothing has ever shipped well past the point something should have.
+- **`/livez`** — liveness. `200` for as long as the process is up. Restarting cannot fix a cost engine that is down, and a restart loop would throw away both the poller's in-memory checkpoint and the diagnostic `/healthz` is carrying.
+
+Silence alone never fails the agent. A healthy cost agent is idle most of the time, and on a fresh install the `LOOKBACK_WINDOWS` windows it re-ships predate the engine and legitimately come back empty — so the "nothing shipped yet" signal only counts once that grace has passed, and the fast signal needs real, repeated errors.
+
 ## Configuration
 
 | Env var | Required | Default | Description |
@@ -28,7 +37,9 @@ OneUptime stores the allocations in ClickHouse (`KubernetesCostAllocation`) and 
 | `SHIP_BATCH_SIZE` | no | `1000` | Rows per ingest POST (server cap: 5000) |
 | `EXPORT_MAX_RETRIES` | no | `5` | Retries per POST before the window is retried next tick |
 | `COST_CURRENCY` | no | `USD` | Currency code forwarded with every payload |
-| `HEALTH_PORT` | no | `13134` | `/healthz` liveness port |
+| `HEALTH_PORT` | no | `13134` | Port serving `/healthz` and `/livez` |
+| `HEALTH_MAX_POLL_FAILURES` | no | `3` | Consecutive failing ticks before `/healthz` reports degraded |
+| `HEALTH_STALE_WINDOWS` | no | `3` | Windows without a completed window before `/healthz` reports degraded |
 | `LOG_LEVEL` | no | `info` | `debug` / `info` / `warn` / `error` |
 
 ## Deployment

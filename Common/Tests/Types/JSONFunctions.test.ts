@@ -1,4 +1,4 @@
-import { JSONArray, JSONObject } from "../../Types/JSON";
+import { JSONArray, JSONObject, ObjectType } from "../../Types/JSON";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import JSONFunctions from "../../Types/JSONFunctions";
 
@@ -260,6 +260,108 @@ describe("JSONFunctions Class", () => {
       const size: number = JSONFunctions.getSizeOfJSONinGB({ a: 1 });
       expect(typeof size).toBe("number");
       expect(size).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe("serialize and serializeArray Methods", () => {
+    test("Passes primitives and null through, and drops undefined keys", () => {
+      const input: JSONObject = {
+        n: 1,
+        s: "x",
+        b: true,
+        nil: null,
+        gone: undefined,
+      };
+      expect(JSONFunctions.serialize(input)).toEqual({
+        n: 1,
+        s: "x",
+        b: true,
+        nil: null,
+      });
+    });
+
+    test("Tags a Date value with its DateTime object type", () => {
+      const serialized: JSONObject = JSONFunctions.serialize({
+        when: new Date("2023-01-01T00:00:00.000Z"),
+      });
+      const when: JSONObject = serialized["when"] as JSONObject;
+      expect(when["_type"]).toBe(ObjectType.DateTime);
+      expect(typeof when["value"]).toBe("string");
+    });
+
+    test("Serializes nested objects recursively", () => {
+      expect(JSONFunctions.serialize({ a: { b: 2 } })).toEqual({ a: { b: 2 } });
+    });
+
+    test("Serializes each value inside an array", () => {
+      expect(JSONFunctions.serialize({ arr: [1, "x", null] })).toEqual({
+        arr: [1, "x", null],
+      });
+    });
+
+    test("serializeArray serializes each object in the array", () => {
+      const input: JSONArray = [{ a: 1 }, { b: 2 }];
+      expect(JSONFunctions.serializeArray(input)).toEqual([{ a: 1 }, { b: 2 }]);
+    });
+  });
+
+  describe("deserialize and deserializeArray Methods", () => {
+    test("Passes primitives and null through", () => {
+      const input: JSONObject = { n: 1, s: "x", nil: null };
+      expect(JSONFunctions.deserialize(input)).toEqual({
+        n: 1,
+        s: "x",
+        nil: null,
+      });
+    });
+
+    test("Rebuilds a Buffer-tagged value into a Buffer", () => {
+      const input: JSONObject = {
+        payload: {
+          _type: ObjectType.Buffer,
+          value: { type: ObjectType.Buffer, data: [1, 2, 3] },
+        },
+      };
+      const deserialized: JSONObject = JSONFunctions.deserialize(input);
+      expect(Buffer.isBuffer(deserialized["payload"])).toBe(true);
+      expect(deserialized["payload"]).toEqual(Buffer.from([1, 2, 3]));
+    });
+
+    test("deserializeArray deserializes each object in the array", () => {
+      const input: JSONArray = [{ a: 1 }, { b: 2 }];
+      expect(JSONFunctions.deserializeArray(input)).toEqual([
+        { a: 1 },
+        { b: 2 },
+      ]);
+    });
+  });
+
+  describe("serializeValue and deserializeValue Methods", () => {
+    test("Pass numbers and non-empty strings through unchanged", () => {
+      expect(JSONFunctions.serializeValue(5)).toBe(5);
+      expect(JSONFunctions.serializeValue("hi")).toBe("hi");
+      expect(JSONFunctions.deserializeValue(5)).toBe(5);
+      expect(JSONFunctions.deserializeValue("hi")).toBe("hi");
+    });
+
+    test("Pass null through unchanged", () => {
+      expect(JSONFunctions.serializeValue(null)).toBeNull();
+      expect(JSONFunctions.deserializeValue(null)).toBeNull();
+    });
+  });
+
+  describe("serialize and deserialize round trip", () => {
+    test("A plain object survives a serialize -> JSON -> deserialize round trip", () => {
+      const original: JSONObject = {
+        a: 1,
+        b: "x",
+        c: { d: 2 },
+        e: [1, 2, 3],
+      };
+      const roundTripped: JSONObject = JSONFunctions.deserialize(
+        JSON.parse(JSON.stringify(JSONFunctions.serialize(original))),
+      );
+      expect(roundTripped).toEqual(original);
     });
   });
 });

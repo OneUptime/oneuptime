@@ -61,6 +61,21 @@ spec:
             - name: COST_ALLOCATION_PATH
               value: {{ .Values.cost.engine.allocationPath | quote }}
             {{- end }}
+            {{- with (include "kubernetes-agent.costPrometheusUrl" $) }}
+            # Source of per-container memory PEAKS, which the Allocation API
+            # cannot provide — it reports averages, and an hourly mean hides
+            # the burst that OOMKills a container. Omitted entirely when
+            # there is no Prometheus to point at (external cost engine with
+            # no cost.engine.prometheusUrl set); the agent then ships
+            # allocations without peaks and memory recommendations are
+            # simply unavailable.
+            - name: COST_PROMETHEUS_URL
+              value: {{ . | quote }}
+            {{- end }}
+            {{- if .Values.cost.engine.prometheusCadvisorJob }}
+            - name: COST_PROMETHEUS_CADVISOR_JOB
+              value: {{ .Values.cost.engine.prometheusCadvisorJob | quote }}
+            {{- end }}
             - name: WINDOW_SECONDS
               value: {{ .Values.cost.agent.windowSeconds | default 3600 | quote }}
             - name: POLL_INTERVAL_SECONDS
@@ -81,13 +96,20 @@ spec:
             - name: health
               containerPort: 13134
               protocol: TCP
+          # Liveness asks only "is the process up?" (/livez), because the
+          # things /healthz reports — an engine that will not answer, a
+          # window that never lands — are not fixed by a restart, and a
+          # restart loop would hide the diagnostic /healthz is carrying.
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /livez
               port: health
             initialDelaySeconds: 15
             periodSeconds: 30
             timeoutSeconds: 5
+          # Readiness carries the real verdict: /healthz answers 503 once the
+          # cost pipeline has demonstrably stalled, so the pod goes 0/1 Ready
+          # instead of staying green while nothing ships.
           readinessProbe:
             httpGet:
               path: /healthz

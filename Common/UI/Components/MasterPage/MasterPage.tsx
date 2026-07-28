@@ -27,6 +27,70 @@ const MasterPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [isOnline, setIsOnline] = React.useState(true);
+  const topSectionRef: React.RefObject<HTMLDivElement> =
+    React.useRef<HTMLDivElement>(null);
+
+  /*
+   * Publish the sticky top section's height as --app-header-height so anything
+   * that sticks underneath it (the side menu, for example) can offset itself by
+   * the real header instead of guessing and ending up tucked behind it. The
+   * height is not a constant — it changes when the navbar is hidden, when the
+   * header wraps on narrow viewports and when top alerts appear — so keep it in
+   * sync rather than measuring once.
+   */
+  React.useLayoutEffect(() => {
+    const setHeaderHeight: (height: number) => void = (
+      height: number,
+    ): void => {
+      document.documentElement.style.setProperty(
+        "--app-header-height",
+        `${height}px`,
+      );
+    };
+
+    const element: HTMLDivElement | null = topSectionRef.current;
+
+    if (!element || props.makeTopSectionUnstick) {
+      // Nothing is overlaying the content, so no offset is needed.
+      setHeaderHeight(0);
+      return undefined;
+    }
+
+    const measure: () => void = (): void => {
+      setHeaderHeight(element.offsetHeight);
+    };
+
+    measure();
+
+    /*
+     * ResizeObserver is missing in jsdom and in older browsers, so fall back to
+     * resize events there — less precise, but the header only really changes
+     * height when the viewport does.
+     */
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+
+      return () => {
+        window.removeEventListener("resize", measure);
+        document.documentElement.style.removeProperty("--app-header-height");
+      };
+    }
+
+    const observer: ResizeObserver = new ResizeObserver(measure);
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--app-header-height");
+    };
+  }, [
+    props.makeTopSectionUnstick,
+    props.hideHeader,
+    props.isLoading,
+    props.error,
+    props.disableMainContentWrapper,
+    isOnline,
+  ]);
 
   if (props.isLoading) {
     return (
@@ -62,6 +126,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
             </a>
           )}
           <div
+            ref={topSectionRef}
             className={props.makeTopSectionUnstick ? "" : "sticky top-0 z-10"}
           >
             <TopSection

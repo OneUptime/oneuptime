@@ -28,6 +28,7 @@ import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -489,6 +490,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         enableJsonImportExport={!props.disableCreate}
         name="Monitors"
         userPreferencesKey="monitors-table"
+        customFieldsModelType={MonitorCustomField}
         id="Monitors-table"
         saveFilterProps={props.saveFilterProps}
         urlStateKey={tableUrlStateKey}

@@ -68,6 +68,39 @@ test("mapAllocationToRow maps properties and sums adjustments", (): void => {
   assert.strictEqual(row.cpuEfficiency, 0.4);
 });
 
+/*
+ * Regression: the request/usage averages arrive under the engines' JSON tag
+ * names, not their Go struct field names — `ramByteRequestAverage`, singular,
+ * against a RAMBytesRequestAverage field. Parsing real engine JSON (rather
+ * than an EngineAllocation literal) is the point: a literal would only prove
+ * our own interface is self-consistent, and reading the plural spelling
+ * yields undefined, which the server stores as a silent 0.
+ */
+test("mapAllocationToRow reads the engine's request/usage averages", (): void => {
+  const engineJson: string = `{
+    "name": "prod/deployment/api/api-abc/api",
+    "properties": { "namespace": "prod", "container": "api" },
+    "window": { "start": "2026-07-24T10:00:00Z", "end": "2026-07-24T11:00:00Z" },
+    "cpuCoreRequestAverage": 0.5,
+    "cpuCoreUsageAverage": 0.07,
+    "ramByteHours": 1073741824,
+    "ramByteRequestAverage": 1073741824,
+    "ramByteUsageAverage": 268435456
+  }`;
+
+  const row: KubernetesCostAllocationIngestRow = mapAllocationToRow({
+    allocation: JSON.parse(engineJson) as EngineAllocation,
+    windowStart: new Date("2026-07-24T10:00:00Z"),
+    windowEnd: new Date("2026-07-24T11:00:00Z"),
+  });
+
+  assert.strictEqual(row.cpuCoreRequestAverage, 0.5);
+  assert.strictEqual(row.cpuCoreUsageAverage, 0.07);
+  assert.strictEqual(row.ramByteHours, 1073741824);
+  assert.strictEqual(row.ramBytesRequestAverage, 1073741824);
+  assert.strictEqual(row.ramBytesUsageAverage, 268435456);
+});
+
 test("mapAllocationToRow marks idle allocations with the sentinel namespace", (): void => {
   const allocation: EngineAllocation = {
     name: "__idle__",

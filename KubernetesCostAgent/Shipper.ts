@@ -7,11 +7,13 @@ import {
   ONEUPTIME_URL,
   SHIP_BATCH_SIZE,
 } from "./Config";
+import { buildShipment, Shipment } from "./Shipment";
 import { httpPostJson, HttpResult } from "./HttpClient";
 import Logger from "./Logger";
 import {
   KubernetesCostAllocationIngestRow,
   KubernetesCostIngestPayload,
+  ShipperStatus,
 } from "./Types";
 
 const sleep: (ms: number) => Promise<void> = (ms: number): Promise<void> => {
@@ -36,12 +38,19 @@ export class Shipper {
   private lastShipOk: number = 0;
   private lastShipErr: string | null = null;
 
-  public healthy(): boolean {
-    if (this.lastShipOk === 0 && this.lastShipErr === null) {
-      return true;
-    }
-    // Healthy if the last successful ship was within 3 poll windows (~3h).
-    return Date.now() - this.lastShipOk < 3 * 60 * 60 * 1000;
+  /*
+   * Facts only — no verdict. The shipper cannot tell healthy from broken on
+   * its own: it is only ever handed rows the poller managed to fetch, so an
+   * agent whose engine never answers leaves it untouched and, until this
+   * became Health.ts's call, spotless. Health.ts reads this alongside the
+   * poller's status, where "never shipped" and "never polled" are visible
+   * together.
+   */
+  public status(): ShipperStatus {
+    return {
+      lastShipOkAtMs: this.lastShipOk,
+      lastShipError: this.lastShipErr,
+    };
   }
 
   public lastError(): string | null {
@@ -56,14 +65,23 @@ export class Shipper {
   public async ship(
     rows: Array<KubernetesCostAllocationIngestRow>,
   ): Promise<void> {
-    for (let i: number = 0; i < rows.length; i += SHIP_BATCH_SIZE) {
-      const chunk: Array<KubernetesCostAllocationIngestRow> = rows.slice(
-        i,
-        i + SHIP_BATCH_SIZE,
-      );
+    /*
+     * Every chunk carries the same shipment id and its own index. The server
+     * needs both to accept a multi-chunk window whole while still rejecting a
+     * window an earlier shipment already delivered — see Shipment.ts. Rows are
+     * shipped in the shipment's deterministic order so chunk N of a re-shipped
+     * window holds exactly the rows it held the first time.
+     */
+    const shipment: Shipment = buildShipment(rows);
+
+    for (let i: number = 0; i < shipment.rows.length; i += SHIP_BATCH_SIZE) {
+      const chunk: Array<KubernetesCostAllocationIngestRow> =
+        shipment.rows.slice(i, i + SHIP_BATCH_SIZE);
       const payload: KubernetesCostIngestPayload = {
         clusterName: CLUSTER_NAME,
         currency: COST_CURRENCY,
+        shipmentId: shipment.id,
+        shipmentChunk: i / SHIP_BATCH_SIZE,
         allocations: chunk,
       };
       await this.post(payload, chunk.length);
