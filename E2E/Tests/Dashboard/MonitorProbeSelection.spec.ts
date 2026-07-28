@@ -332,14 +332,22 @@ test.describe("Monitor probe selection", () => {
     // And it survives a reload - the actual bug report.
     await page.reload({ waitUntil: "domcontentloaded" });
 
-    const detailRow: Locator = page
-      .locator("div")
-      .filter({ hasText: /^Enable Monitoring on New Monitors$/ })
-      .first();
-    await expect(detailRow).toBeVisible({ timeout: 60000 });
-
+    // The card still renders the flag it edits after the reload.
     await expect(
-      page.getByText("Enable Monitoring on New Monitors").locator("xpath=.."),
-    ).toContainText("Yes", { timeout: 30000 });
+      page.getByText("Enable Monitoring on New Monitors").first(),
+    ).toBeVisible({ timeout: 60000 });
+
+    /*
+     * The new value persisted: re-open the editor and the toggle now reads on.
+     * This checks the switch directly (the same stable role+name used above)
+     * rather than scraping the read-only card, whose label and value sit in
+     * separate DOM subtrees.
+     */
+    await page.getByRole("button", { name: /Edit Probe/i }).click();
+    const reloadedToggle: Locator = page.getByRole("switch", {
+      name: autoEnableToggleName,
+    });
+    await expect(reloadedToggle).toBeVisible({ timeout: 30000 });
+    await expect(reloadedToggle).toHaveAttribute("aria-checked", "true");
   });
 });
