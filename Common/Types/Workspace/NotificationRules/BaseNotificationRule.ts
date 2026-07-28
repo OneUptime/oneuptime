@@ -10,4 +10,8 @@ export default interface BaseNotificationRule {
   shouldPostToExistingChannel: boolean;
   existingChannelNames: string; // separate by comma
   existingTeam?: string; // team to post to (for MS Teams only)
+
+  // Post to group / personal chats (for MS Teams only).
+  shouldPostToExistingChat?: boolean;
+  existingChatIds?: Array<string>; // Teams chat ids the OneUptime app has been added to.
 }

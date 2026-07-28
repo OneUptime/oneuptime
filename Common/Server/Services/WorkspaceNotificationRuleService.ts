@@ -31,6 +31,8 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceProjectAuthToken, {
+  MicrosoftTeamsChat,
+  MicrosoftTeamsMiscData,
   MiscData,
   SlackMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -445,6 +447,97 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
       }
     }
+
+    // Post test message to Microsoft Teams chats.
+    if (
+      rule.workspaceType === WorkspaceType.MicrosoftTeams &&
+      notificationRule.shouldPostToExistingChat
+    ) {
+      const chatIds: Array<string> =
+        this.getExistingChatIdsFromNotificationRules({
+          notificationRules: [notificationRule],
+        });
+
+      if (chatIds.length === 0) {
+        throw new BadDataException(
+          "No Microsoft Teams chats are selected in this rule. Please edit the rule and select at least one chat.",
+        );
+      }
+
+      const connectedChats: Record<string, MicrosoftTeamsChat> =
+        await this.getConnectedMicrosoftTeamsChats({
+          projectId: data.projectId,
+        });
+
+      for (const chatId of chatIds) {
+        if (!connectedChats[chatId]) {
+          throw new BadDataException(
+            `The selected chat (id: ${chatId}) is no longer connected to OneUptime. Please add the OneUptime app to the chat in Microsoft Teams and update this rule.`,
+          );
+        }
+      }
+
+      try {
+        const responses: Array<WorkspaceSendMessageResponse> =
+          await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+            projectId: data.projectId,
+            messagePayloadsByWorkspace: messageBlocksByWorkspaceTypes.map(
+              (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
+                const payload: WorkspaceMessagePayload = {
+                  _type: "WorkspaceMessagePayload",
+                  workspaceType: messageBlocksByWorkspaceType.workspaceType,
+                  messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+                  channelNames: [],
+                  channelIds: [],
+                  chatIds: chatIds,
+                };
+
+                return payload;
+              },
+            ),
+          });
+
+        for (const res of responses) {
+          // Check for errors in the response
+          if (res.errors && res.errors.length > 0) {
+            const errorMessages: Array<string> = res.errors.map(
+              (error: { channel: WorkspaceChannel; error: string }) => {
+                return `Chat ${error.channel.name}: ${error.error}`;
+              },
+            );
+            throw new BadDataException(
+              `Failed to send test message to some chats: ${errorMessages.join(
+                "; ",
+              )}`,
+            );
+          }
+
+          for (const thread of res.threads) {
+            const log: WorkspaceNotificationLog =
+              new WorkspaceNotificationLog();
+            log.projectId = data.projectId;
+            log.workspaceType = res.workspaceType;
+            log.channelId = thread.channel.id;
+            log.channelName = thread.channel.name;
+            log.threadId = thread.threadId;
+            log.message = `This is a test message for rule **${rule.name?.trim()}**`;
+            log.status = WorkspaceNotificationStatus.Success;
+            log.statusMessage = "Test message posted to workspace chat";
+            log.userId = data.testByUserId;
+            log.actionType = WorkspaceNotificationActionType.SendMessage;
+
+            await WorkspaceNotificationLogService.create({
+              data: log,
+              props: { isRoot: true },
+            });
+          }
+        }
+      } catch (err) {
+        throw new BadDataException(
+          "Cannot post message to chat. " + (err as Error)?.message,
+        );
+      }
+    }
   }
 
   @CaptureSpan()
@@ -614,6 +707,29 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         };
         workspaceNotificationPaylaods.push(workspaceMessagePayload);
       }
+
+      // Microsoft Teams chats (group / personal chats the OneUptime app was added to).
+      const existingChatIds: Array<string> =
+        await this.getExistingChatIdsBasedOnEventType({
+          projectId: data.projectId,
+          notificationRuleEventType: this.getNotificationRuleEventType(
+            data.notificationFor,
+          ),
+          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+          notificationFor: data.notificationFor,
+        });
+
+      for (const chatId of existingChatIds) {
+        const workspaceMessagePayload: WorkspaceMessagePayload = {
+          _type: "WorkspaceMessagePayload",
+          workspaceType: messageBlocksByWorkspaceType.workspaceType,
+          messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
+          channelNames: [],
+          channelIds: [],
+          chatIds: [chatId],
+        };
+        workspaceNotificationPaylaods.push(workspaceMessagePayload);
+      }
     }
 
     const responses: Array<WorkspaceSendMessageResponse> =
@@ -655,13 +771,52 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
         log.projectId = data.projectId;
         log.workspaceType = res.workspaceType;
-        log.channelId = thread.channel.id;
-        log.channelName = thread.channel.name;
+        log.channelId = (thread.channel.id || "").substring(0, 100);
+        log.channelName = (thread.channel.name || "").substring(0, 100);
         log.threadId = thread.threadId;
         log.message = messageSummary;
         log.status = WorkspaceNotificationStatus.Success;
         log.actionType = WorkspaceNotificationActionType.SendMessage;
         log.statusMessage = "Message posted to workspace channel";
+
+        if (data.notificationFor.incidentId) {
+          log.incidentId = data.notificationFor.incidentId;
+        }
+        if (data.notificationFor.alertId) {
+          log.alertId = data.notificationFor.alertId;
+        }
+        if (data.notificationFor.scheduledMaintenanceId) {
+          log.scheduledMaintenanceId =
+            data.notificationFor.scheduledMaintenanceId;
+        }
+
+        if (data.workspaceNotification.notifyUserId) {
+          log.userId = data.workspaceNotification.notifyUserId;
+        }
+
+        await WorkspaceNotificationLogService.create({
+          data: log,
+          props: { isRoot: true },
+        });
+      }
+
+      /*
+       * Also log per-destination failures — otherwise a chat or channel
+       * send that errors (e.g. the OneUptime app was removed from a chat a
+       * rule still references) is invisible in the notification logs.
+       */
+      for (const sendError of res.errors || []) {
+        const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+        log.projectId = data.projectId;
+        log.workspaceType = res.workspaceType;
+        log.channelId = (sendError.channel.id || "").substring(0, 100);
+        log.channelName = (sendError.channel.name || "").substring(0, 100);
+        log.message = messageSummary;
+        log.status = WorkspaceNotificationStatus.Error;
+        log.actionType = WorkspaceNotificationActionType.SendMessage;
+        log.statusMessage = (sendError.error || "Failed to send message")
+          .toString()
+          .substring(0, 500);
 
         if (data.notificationFor.incidentId) {
           log.incidentId = data.notificationFor.incidentId;
@@ -1949,6 +2104,81 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     logger.debug(channels, {} as LogAttributes);
 
     return channels;
+  }
+
+  /*
+   * Collects the Microsoft Teams chat ids (group / personal chats) that
+   * matching rules want to post to. Chats are Teams-only destinations.
+   */
+  public getExistingChatIdsFromNotificationRules(data: {
+    notificationRules: Array<BaseNotificationRule>;
+  }): Array<string> {
+    const chatIds: Array<string> = [];
+
+    for (const notificationRule of data.notificationRules) {
+      if (!notificationRule.shouldPostToExistingChat) {
+        continue;
+      }
+
+      for (const chatId of notificationRule.existingChatIds || []) {
+        if (!chatId) {
+          continue;
+        }
+
+        if (!chatIds.includes(chatId)) {
+          chatIds.push(chatId);
+        }
+      }
+    }
+
+    return chatIds;
+  }
+
+  @CaptureSpan()
+  public async getExistingChatIdsBasedOnEventType(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    notificationRuleEventType: NotificationRuleEventType;
+    notificationFor: NotificationFor;
+  }): Promise<Array<string>> {
+    if (data.workspaceType !== WorkspaceType.MicrosoftTeams) {
+      return []; // chats are only supported for Microsoft Teams.
+    }
+
+    const notificationRules: Array<WorkspaceNotificationRule> =
+      await this.getMatchingNotificationRules({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        notificationRuleEventType: data.notificationRuleEventType,
+        notificationFor: data.notificationFor,
+      });
+
+    return this.getExistingChatIdsFromNotificationRules({
+      notificationRules: notificationRules.map(
+        (rule: WorkspaceNotificationRule) => {
+          return rule.notificationRule as BaseNotificationRule;
+        },
+      ),
+    });
+  }
+
+  @CaptureSpan()
+  public async getConnectedMicrosoftTeamsChats(data: {
+    projectId: ObjectID;
+  }): Promise<Record<string, MicrosoftTeamsChat>> {
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.miscData) {
+      return {};
+    }
+
+    return (
+      (projectAuth.miscData as MicrosoftTeamsMiscData).availableChats || {}
+    );
   }
 
   public getnotificationChannelssFromNotificationRules(data: {

@@ -43,6 +43,10 @@ Azure Account - You can create one by going to https://azure.com.
    - **ChannelMessage.Send.Group** - Allows the bot to send messages to team channels
    - **ChannelMessage.Read.Group** - Allows the bot to read channel messages for interactive commands
    - **Channel.Create.Group** - Allows the bot to create channels when needed
+   - **ChatMessage.Read.Chat** - Allows the bot to read messages in chats it has been added to (for interactive commands)
+   - **ChatMember.Read.Chat** - Allows the bot to read the members of chats it has been added to (to name chats in OneUptime)
+
+**Chats:** Notifications can also be sent to group chats and one-on-one chats. Add the OneUptime app to a chat in Microsoft Teams and the chat becomes available as a destination in your notification rules — no extra Azure configuration is needed. If the app was already in a chat before chat notifications existed, @mention OneUptime in that chat (or send the bot a direct message) and the chat will register.
 
 3. Click "Grant admin consent" for your organization
 
