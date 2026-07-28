@@ -5,6 +5,8 @@ import { ReactElement } from "react";
 
 export default interface Column<T extends GenericObject> {
   title: string;
+  // Stable identity carried over from the ModelTable column, if it had one.
+  id?: string | undefined;
   description?: string | undefined;
   disableSort?: boolean | undefined;
   tooltipText?: ((item: T) => string) | undefined;
