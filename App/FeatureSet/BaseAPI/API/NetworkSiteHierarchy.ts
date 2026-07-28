@@ -685,17 +685,17 @@ export default class NetworkSiteHierarchyAPI {
           }
           const projectId: ObjectID = props.tenantId;
 
-          const body: JSONObject = (req.body || {}) as JSONObject;
-          const mapRegion: unknown = body["mapRegion"];
-          if (mapRegion !== "us" && mapRegion !== "world") {
-            throw new BadDataException("mapRegion must be 'us' or 'world'");
-          }
-
           /*
            * All sites in one query: the coordinate-less ones only lend
            * their names to ancestor breadcrumbs; only sites with BOTH
            * latitude and longitude become pins. The client projects the
-           * coordinates for the requested region — no projection here.
+           * coordinates and decides which part of the world to frame — no
+           * projection and no geography here.
+           *
+           * This endpoint used to require a "mapRegion" of "us" or "world"
+           * in the body and then ignore it: the response was identical
+           * either way. The map no longer has regions, and the parameter is
+           * not read — an old client still sending it is simply answered.
            */
           const siteRows: Array<NetworkSite> = await NetworkSiteService.findBy({
             query: {

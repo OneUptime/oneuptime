@@ -4,10 +4,10 @@ import SiteCard from "../../Components/NetworkSite/SiteCard";
 import SiteContainerGraph from "../../Components/NetworkSite/SiteContainerGraph";
 import SiteGeoMap from "../../Components/NetworkSite/SiteGeoMap";
 import {
+  LEGACY_NETWORK_MAP_REGION_PARAM,
   NetworkMapDrillState,
   readDrillStateFromUrl,
 } from "../../Components/NetworkSite/NetworkMapDrillState";
-import { MapRegion } from "../../Components/NetworkSite/SiteMapViewModel";
 import {
   MapSiteView,
   SiteBreadcrumbEntry,
@@ -56,16 +56,18 @@ import { Location, useLocation } from "react-router-dom";
  * centerpiece. Three views share one page, keyed by the 'site' query
  * param:
  *
- *   ROOT (no site):   geo map (US or World, 'mapRegion' param) with
- *                     clustered pins + root-site cards + WAN link strip.
+ *   ROOT (no site):   geo map with clustered pins + root-site cards + WAN
+ *                     link strip. The map has no region control: it frames
+ *                     itself to wherever this project's sites are (see
+ *                     Components/NetworkSite/Geo/GeoViewport.ts).
  *   CONTAINER:        breadcrumbs + a graph of the site's children with
  *                     the links between them — click to go deeper.
  *   UNIT:             breadcrumbs + the live device topology of that
  *                     unit, tiered like a rack diagram.
  *
- * Both params live in the URL via replaceState so a drill position is
- * shareable and survives navigation, without flooding browser history.
- * The children/map endpoints are polled every 60 seconds on the root and
+ * The drill position lives in the URL via replaceState so it is shareable
+ * and survives navigation, without flooding browser history. The
+ * children/map endpoints are polled every 60 seconds on the root and
  * container views; the unit view's embedded topology polls itself.
  */
 
@@ -76,7 +78,7 @@ const QUERY_STRING_DEBOUNCE_MS: number = 200;
 
 const PAGE_TITLE: string = "Network Map";
 const PAGE_DESCRIPTION: string =
-  "Your whole network on one map. Marker color shows the worst status at that location — click a marker to drill into a site, or use the cards below.";
+  "Your whole network on one map, framed to wherever your sites are. Marker color shows the worst status at that location — click a marker to drill into a site, or use the cards below.";
 
 /*
  * A labeled band inside the map card. Sections are separated by a rule
@@ -122,9 +124,6 @@ const NetworkSiteMap: FunctionComponent<
       return readDrillStateFromUrl().siteId;
     },
   );
-  const [mapRegion, setMapRegion] = useState<MapRegion>((): MapRegion => {
-    return readDrillStateFromUrl().mapRegion;
-  });
   const [childrenData, setChildrenData] = useState<SiteChildrenResponse | null>(
     null,
   );
@@ -180,12 +179,10 @@ const NetworkSiteMap: FunctionComponent<
 
   const fetchData: (
     siteId: string | null,
-    region: MapRegion,
     isBackgroundRefresh: boolean,
   ) => Promise<void> = useCallback(
     async (
       siteId: string | null,
-      region: MapRegion,
       isBackgroundRefresh: boolean,
     ): Promise<void> => {
       const seq: number = ++requestSeq.current;
@@ -222,7 +219,7 @@ const NetworkSiteMap: FunctionComponent<
           ? null
           : API.post<JSONObject>({
               url: mapUrl,
-              data: { mapRegion: region },
+              data: {},
               headers: { ...ModelAPI.getCommonHeaders() },
             });
 
@@ -300,7 +297,7 @@ const NetworkSiteMap: FunctionComponent<
   }, [isUnitView]);
 
   useEffect(() => {
-    fetchData(currentSiteId, mapRegion, false).catch((err: Error) => {
+    fetchData(currentSiteId, false).catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
 
@@ -308,7 +305,7 @@ const NetworkSiteMap: FunctionComponent<
       if (isUnitViewRef.current) {
         return;
       }
-      fetchData(currentSiteId, mapRegion, true).catch(() => {
+      fetchData(currentSiteId, true).catch(() => {
         // Background refresh failures are non-fatal; keep the last view.
       });
     }, REFRESH_INTERVAL_MS);
@@ -316,7 +313,7 @@ const NetworkSiteMap: FunctionComponent<
     return () => {
       clearInterval(interval);
     };
-  }, [currentSiteId, mapRegion, fetchData]);
+  }, [currentSiteId, fetchData]);
 
   /*
    * Drill transitions are made atomic here rather than left to fetchData:
@@ -327,7 +324,7 @@ const NetworkSiteMap: FunctionComponent<
    * the map yet" empty state — before the loader appears. Raising the
    * loader in the same batch as the id closes that gap.
    *
-   * Both handlers no-op on an unchanged target: without the guard the
+   * The handler no-ops on an unchanged target: without the guard the
    * effect would not re-run (its deps are identical) and the loader would
    * never be lowered again.
    */
@@ -341,18 +338,6 @@ const NetworkSiteMap: FunctionComponent<
     setError("");
     setCurrentSiteId(siteId);
     queueQueryStringUpdate({ site: siteId });
-  };
-
-  const changeRegion: (region: MapRegion) => void = (
-    region: MapRegion,
-  ): void => {
-    if (region === mapRegion) {
-      return;
-    }
-    setIsLoading(true);
-    setError("");
-    setMapRegion(region);
-    queueQueryStringUpdate({ mapRegion: region });
   };
 
   /*
@@ -378,7 +363,13 @@ const NetworkSiteMap: FunctionComponent<
   useEffect(() => {
     const drillState: NetworkMapDrillState = readDrillStateFromUrl();
     changeSite(drillState.siteId);
-    changeRegion(drillState.mapRegion);
+    /*
+     * Links from before the map dropped its "United States / World" toggle
+     * still carry that parameter. Nothing reads it any more, so clear it
+     * out of the address bar instead of leaving a dead control name in a
+     * URL the user may well copy again.
+     */
+    queueQueryStringUpdate({ [LEGACY_NETWORK_MAP_REGION_PARAM]: null });
   }, [location.key, location.search]);
 
   const refreshButton: {
@@ -391,7 +382,7 @@ const NetworkSiteMap: FunctionComponent<
     buttonStyle: ButtonStyleType.NORMAL,
     icon: IconProp.Refresh,
     onClick: () => {
-      fetchData(currentSiteId, mapRegion, false).catch((err: Error) => {
+      fetchData(currentSiteId, false).catch((err: Error) => {
         setError(API.getFriendlyMessage(err));
       });
     },
@@ -511,38 +502,15 @@ const NetworkSiteMap: FunctionComponent<
       description={PAGE_DESCRIPTION}
       buttons={[refreshButton]}
     >
+      {/*
+       * No region control. The map frames itself to wherever this project's
+       * sites are, and zoom/pan live on the map itself where the geography
+       * is — see Components/NetworkSite/Geo/GeoViewport.ts.
+       */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* A real segmented control: one inset track, the active segment
-         * lifted onto the surface color. */}
-        <div
-          className="inline-flex rounded-lg bg-gray-100 p-0.5"
-          role="group"
-          aria-label="Map region"
-        >
-          {(["us", "world"] as Array<MapRegion>).map(
-            (region: MapRegion): ReactElement => {
-              const isActive: boolean = mapRegion === region;
-              return (
-                <button
-                  key={region}
-                  type="button"
-                  data-testid={`network-map-region-${region}`}
-                  aria-pressed={isActive}
-                  className={`rounded-md px-3 py-1 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                    isActive
-                      ? "bg-white font-semibold text-gray-900 shadow-sm"
-                      : "font-medium text-gray-500 hover:text-gray-900"
-                  }`}
-                  onClick={() => {
-                    changeRegion(region);
-                  }}
-                >
-                  {region === "us" ? "United States" : "World"}
-                </button>
-              );
-            },
-          )}
-        </div>
+        <p className="text-xs text-gray-500">
+          Drag to pan, scroll to zoom, or use the controls on the map.
+        </p>
         <p className="flex items-center gap-1.5 text-xs text-gray-500">
           <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-500" />
           Live — updates every minute
@@ -561,11 +529,7 @@ const NetworkSiteMap: FunctionComponent<
         <></>
       )}
 
-      <SiteGeoMap
-        sites={pinnedSites}
-        region={mapRegion}
-        onSiteClick={changeSite}
-      />
+      <SiteGeoMap sites={pinnedSites} onSiteClick={changeSite} />
 
       {rootSites.length > 0 ? (
         <MapSection

@@ -1,8 +1,5 @@
-import {
-  ProjectedPoint,
-  projectAlbersUsa,
-  projectRobinson,
-} from "./Geo/GeoProjection";
+import { ProjectedPoint, projectRobinson } from "./Geo/GeoProjection";
+import { MapViewport, screenLengthToViewportLength } from "./Geo/GeoViewport";
 import { GeoClusterPoint } from "./Geo/GeoClusterUtil";
 
 /*
@@ -14,8 +11,6 @@ import { GeoClusterPoint } from "./Geo/GeoClusterUtil";
  * why. Everything here is deterministic: same input, same output, no
  * randomness and no clock access.
  */
-
-export type MapRegion = "us" | "world";
 
 // The subset of a /network-site/map row the pin builder needs.
 export interface PinnableSite {
@@ -29,25 +24,21 @@ export interface BuildPinsResult {
   // Projected pins in input order, ready for GeoClusterUtil.clusterPoints.
   pins: Array<GeoClusterPoint>;
   /*
-   * Sites that could not be placed on the requested map: non-finite
-   * coordinates (either region), or — on the US map — locations outside
-   * every AlbersUSA composite zone (e.g. London, Guam).
+   * Sites that could not be placed on the map at all — coordinates that are
+   * not finite numbers. Every real location on Earth has a place on this
+   * projection, so this only ever catches corrupt data.
    */
   unmappableCount: number;
 }
 
 /**
- * Project each site into the requested region's viewBox. The US map uses
- * the AlbersUSA composite (null = outside all zones → unmappable); the
- * world map uses Robinson, which clamps every finite coordinate onto the
- * map, so only non-finite coordinates are unmappable there.
+ * Project each site into the world viewBox. Robinson places every finite
+ * coordinate, so a site is only unmappable when its coordinates are not
+ * finite numbers — whether it is currently inside the visible frame is a
+ * viewport question, not a projection one (see Geo/GeoViewport.ts).
  */
-export const buildPins: (
+export const buildPins: (sites: Array<PinnableSite>) => BuildPinsResult = (
   sites: Array<PinnableSite>,
-  region: MapRegion,
-) => BuildPinsResult = (
-  sites: Array<PinnableSite>,
-  region: MapRegion,
 ): BuildPinsResult => {
   const pins: Array<GeoClusterPoint> = [];
   let unmappableCount: number = 0;
@@ -58,15 +49,10 @@ export const buildPins: (
       continue;
     }
 
-    const point: ProjectedPoint | null =
-      region === "us"
-        ? projectAlbersUsa(site.latitude, site.longitude)
-        : projectRobinson(site.latitude, site.longitude);
-
-    if (!point) {
-      unmappableCount++;
-      continue;
-    }
+    const point: ProjectedPoint = projectRobinson(
+      site.latitude,
+      site.longitude,
+    );
 
     pins.push({
       id: site.id,
@@ -149,10 +135,10 @@ export const decideClusterColorKey: (
 };
 
 /*
- * Marker sizing, in viewBox units (the US map is 975 wide, the world map
- * 960). The minimum is deliberately generous: at realistic dashboard
- * widths the map renders at roughly 1:1, so a smaller dot reads as a
- * speck rather than a site.
+ * Marker sizing, in whole-world viewBox units (the world map is 960 wide).
+ * The minimum is deliberately generous: at realistic dashboard widths the
+ * unzoomed map renders at roughly 1:1, so a smaller dot reads as a speck
+ * rather than a site.
  */
 export const MIN_CLUSTER_RADIUS: number = 7;
 export const MAX_CLUSTER_RADIUS: number = 22;
@@ -161,14 +147,47 @@ export const MAX_CLUSTER_RADIUS: number = 22;
  * Marker radius for a cluster: sqrt scaling (area tracks count) from
  * MIN_CLUSTER_RADIUS at a single site, clamped to MAX_CLUSTER_RADIUS.
  * Non-finite or sub-1 counts render at the minimum.
+ *
+ * Pass the current viewport to keep the marker the same size ON SCREEN at
+ * every zoom. Markers are UI, not geography: a marker that grows with the
+ * zoom means zooming in to separate two sites just yields two bigger
+ * overlapping blobs.
  */
-export const clusterRadius: (totalCount: number) => number = (
+export const clusterRadius: (
   totalCount: number,
+  viewport?: MapViewport | undefined,
+) => number = (
+  totalCount: number,
+  viewport?: MapViewport | undefined,
 ): number => {
   const count: number =
     Number.isFinite(totalCount) && totalCount > 1 ? totalCount : 1;
   const radius: number = MIN_CLUSTER_RADIUS * Math.sqrt(count);
-  return Math.min(MAX_CLUSTER_RADIUS, Math.max(MIN_CLUSTER_RADIUS, radius));
+  const clamped: number = Math.min(
+    MAX_CLUSTER_RADIUS,
+    Math.max(MIN_CLUSTER_RADIUS, radius),
+  );
+  return viewport ? screenLengthToViewportLength(clamped, viewport) : clamped;
+};
+
+/*
+ * Grid cell size for pin clustering, in whole-world viewBox units. Sites
+ * closer together than this share a marker.
+ */
+export const CLUSTER_CELL_SIZE: number = 28;
+
+/**
+ * Cluster cell size for the current viewport, in viewBox units.
+ *
+ * This is what makes zoom mean something: the cell is a constant distance ON
+ * SCREEN, so it covers less and less of the world as the map zooms in, and a
+ * cluster of nearby sites breaks apart into individual markers instead of
+ * staying one lump at every zoom.
+ */
+export const clusterCellSize: (viewport: MapViewport) => number = (
+  viewport: MapViewport,
+): number => {
+  return screenLengthToViewportLength(CLUSTER_CELL_SIZE, viewport);
 };
 
 // The subset of a map row that decides where a marker is drawn.

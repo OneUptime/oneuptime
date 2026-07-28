@@ -35,6 +35,22 @@ function readSource(...relativeParts: Array<string>): string {
 }
 
 /*
+ * The same source with its comments removed. Assertions about what the
+ * product SAYS have to read the code, not the commentary — a comment
+ * explaining why a piece of copy was removed would otherwise fail the very
+ * test that checks it is gone.
+ */
+function readCode(...relativeParts: Array<string>): string {
+  const raw: string = fs.readFileSync(
+    path.join(DASHBOARD_SRC, ...relativeParts),
+    "utf8",
+  );
+  return squash(
+    raw.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/.*$/gm, " "),
+  );
+}
+
+/*
  * ModelDetail builds the API `select` purely from the keys each field
  * declares. The Coordinates row declares only latitude but renders both, so
  * without selectMoreFields longitude comes back undefined and every pinned
@@ -95,7 +111,7 @@ describe("Network Map page drill transitions", () => {
   test("changeSite raises the loader in the same batch as the site id", () => {
     const body: string = source
       .split("const changeSite: (siteId: string | null) => void = (")[1]!
-      .split("const changeRegion")[0]!;
+      .split("/*")[0]!;
     /*
      * No-op on an unchanged target, or the fetch effect never re-runs and
      * the loader is never lowered again.
@@ -107,15 +123,78 @@ describe("Network Map page drill transitions", () => {
       body.indexOf("setCurrentSiteId(siteId);"),
     );
   });
+});
 
-  test("changeRegion does the same and no-ops on the active region", () => {
-    const body: string = source
-      .split("const changeRegion: (region: MapRegion) => void = (")[1]!
-      .split("/*")[0]!;
-    expect(body).toContain(squash("if (region === mapRegion) { return; }"));
-    expect(body.indexOf("setIsLoading(true);")).toBeGreaterThan(-1);
-    expect(body.indexOf("setIsLoading(true);")).toBeLessThan(
-      body.indexOf("setMapRegion(region);"),
+/*
+ * The map used to open behind a "United States / World" segmented control:
+ * a hardcoded geography preference in a product sold everywhere, where one
+ * of the two options is dead weight for any customer outside the US and
+ * "add more countries" only moves the arbitrariness around.
+ *
+ * It is gone, and the map frames itself to wherever the project's sites are
+ * instead (Geo/GeoViewport.ts). These pin the removal rather than the
+ * mechanism — the point is that no country may be named in this UI again.
+ */
+describe("the Network Map names no country", () => {
+  const PAGE: string = readSource("Pages", "NetworkSite", "NetworkMap.tsx");
+  const MAP: string = readSource("Components", "NetworkSite", "SiteGeoMap.tsx");
+  const VIEW_MODEL: string = readSource(
+    "Components",
+    "NetworkSite",
+    "SiteMapViewModel.ts",
+  );
+
+  test("the region segmented control is gone from the page", () => {
+    expect(PAGE).not.toContain('aria-label="Map region"');
+    expect(PAGE).not.toContain("network-map-region-");
+    expect(PAGE).not.toContain("changeRegion");
+    expect(PAGE).not.toContain("setMapRegion");
+  });
+
+  test("no MapRegion type survives anywhere in the map's code", () => {
+    for (const source of [
+      readCode("Pages", "NetworkSite", "NetworkMap.tsx"),
+      readCode("Components", "NetworkSite", "SiteGeoMap.tsx"),
+      readCode("Components", "NetworkSite", "SiteMapViewModel.ts"),
+    ]) {
+      expect(source).not.toContain("MapRegion");
+    }
+    // The type itself is gone, not merely unused.
+    expect(VIEW_MODEL).not.toContain("export type MapRegion");
+  });
+
+  /*
+   * The user-facing strings are the actual product surface. "United States"
+   * appearing in any of them is the regression. Comments are stripped first
+   * — the code is allowed to explain why the control was removed.
+   */
+  test("no country name appears in the map's rendered copy", () => {
+    for (const source of [
+      readCode("Pages", "NetworkSite", "NetworkMap.tsx"),
+      readCode("Components", "NetworkSite", "SiteGeoMap.tsx"),
+    ]) {
+      expect(source).not.toContain("United States");
+      expect(source).not.toContain("US map");
+    }
+  });
+
+  test("the map component takes sites and a click handler, and no region", () => {
+    expect(PAGE).toContain(
+      squash("<SiteGeoMap sites={pinnedSites} onSiteClick={changeSite} />"),
+    );
+    expect(MAP).not.toContain("region: MapRegion;");
+  });
+
+  /*
+   * Links carrying the old parameter are still in inboxes. Nothing reads it
+   * any more, so the page has to clear it rather than leave a dead control
+   * name in a URL the user may copy again.
+   */
+  test("the stale mapRegion parameter is cleared from the URL", () => {
+    expect(PAGE).toContain(
+      squash(
+        "queueQueryStringUpdate({ [LEGACY_NETWORK_MAP_REGION_PARAM]: null });",
+      ),
     );
   });
 });
@@ -136,7 +215,12 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
   const PROJECT_ID: string = "0193a1b2-3c4d-4e5f-8a9b-0c1d2e3f4a5b";
   const MAP_PATH: string = `/dashboard/${PROJECT_ID}/network-sites/map`;
   const DRILLED_SITE_ID: string = "8f1c9d24-5b7e-4a30-9c62-1d0e5f2a7b48";
-  // Two levels deep: a franchisee inside a region, on the world map.
+  /*
+   * Two levels deep: a franchisee inside a region. The stale "mapRegion" is
+   * deliberately still here — it is what a link shared before the region
+   * toggle was removed looks like, and such a link must still open on the
+   * site it names.
+   */
   const DRILLED_SEARCH: string = `?site=${DRILLED_SITE_ID}&mapRegion=world`;
 
   const browser: { location: { pathname: string; search: string } } = {
@@ -273,7 +357,6 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
 
     expect(drillStateModule.readDrillStateFromUrl()).toEqual({
       siteId: null,
-      mapRegion: "us",
     });
   });
 
@@ -283,8 +366,28 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
 
     expect(drillStateModule.readDrillStateFromUrl()).toEqual({
       siteId: DRILLED_SITE_ID,
-      mapRegion: "world",
     });
+  });
+
+  /*
+   * A link shared before the region toggle was removed still names a site.
+   * Dropping the user at the root because the URL carries a parameter that
+   * no longer exists would break every bookmark in the wild.
+   */
+  test("a pre-existing link carrying the removed region parameter still opens its site", () => {
+    standAt(`?mapRegion=us&site=${DRILLED_SITE_ID}`);
+
+    expect(drillStateModule.readDrillStateFromUrl()).toEqual({
+      siteId: DRILLED_SITE_ID,
+    });
+  });
+
+  test("the drill state no longer carries any geography", () => {
+    standAt(DRILLED_SEARCH);
+
+    expect(Object.keys(drillStateModule.readDrillStateFromUrl())).toEqual([
+      "siteId",
+    ]);
   });
 });
 
@@ -296,42 +399,130 @@ describe("SiteGeoMap", () => {
   );
 
   /*
-   * The two geometry files are ~281 KB. Every route module lands in one
-   * shared esbuild chunk, so a static import here is downloaded and parsed
-   * by every dashboard page — Incidents, a monitor, Settings — none of
-   * which draw a map. They must be loaded on demand, and they must stay
+   * The geometry is ~600 KB across both tiers. Every route module lands in
+   * one shared esbuild chunk, so a static import here is downloaded and
+   * parsed by every dashboard page — Incidents, a monitor, Settings — none
+   * of which draw a map. They must be loaded on demand, and they must stay
    * .json: esbuild base64-inlines an imported .svg straight back into the
    * shared chunk.
    */
   test("map geometry is not statically imported", () => {
     expect(source).not.toMatch(
-      /import \S+ from "\.\/Geo\/(UsStates|WorldCountries)Geometry\.json";/,
+      /import \S+ from "\.\/Geo\/WorldCountries\w*Geometry\.json";/,
     );
   });
 
-  test("both geometry files are loaded lazily, by literal specifier", () => {
+  test("both tiers are loaded lazily, by literal specifier", () => {
     // Literal specifiers so esbuild can see both targets and split them out.
-    expect(source).toContain('await import("./Geo/UsStatesGeometry.json")');
     expect(source).toContain(
       'await import("./Geo/WorldCountriesGeometry.json")',
+    );
+    expect(source).toContain(
+      'await import("./Geo/WorldCountriesDetailGeometry.json")',
     );
   });
 
   test("the async load has a rendered pending state", () => {
-    expect(source).toContain("features === null ?");
+    expect(source).toContain("overviewFeatures === null ?");
     expect(source).toContain('data-testid="site-geo-map-skeleton"');
+  });
+
+  /*
+   * The detail tier is the expensive one. Fetching it before somebody has
+   * zoomed in would hand the whole cost to every viewer of the page,
+   * including the many who never zoom — which is the entire reason the
+   * geometry is split into tiers at all.
+   */
+  test("the detail tier is fetched only once the map is zoomed in", () => {
+    expect(source).toContain(
+      "const needsDetail: boolean = shouldUseDetailGeometry(viewport);",
+    );
+    expect(source).toContain(
+      squash("if (!needsDetail || detailFeatures) { return; }"),
+    );
+  });
+
+  test("the overview stays on screen while the detail tier loads", () => {
+    // An upgrade in place — never a blank map waiting on a 500 KB fetch.
+    expect(source).toContain(
+      squash(
+        "const features: Array<GeometryFeature> | null = needsDetail && detailFeatures ? detailFeatures : overviewFeatures;",
+      ),
+    );
   });
 
   /*
    * The reset used to depend on props.sites by identity. The page's
    * 60-second poll rebuilds that array every minute even when nothing
    * changed, so an open site-picker popover was closed out from under
-   * anyone scrolling it.
+   * anyone scrolling it — and now the map would also be re-framed under
+   * anyone who had zoomed in.
    */
-  test("the popover reset is keyed on pin geometry, not array identity", () => {
-    expect(source).toContain("}, [props.region, pinFingerprint]);");
+  test("the re-frame and popover reset are keyed on pin geometry, not array identity", () => {
+    /*
+     * The chain that has to hold, link by link: fingerprint -> pins ->
+     * fitted frame -> the effect that applies it. Break any link and the
+     * 60-second poll re-frames the map, because it hands over a new array
+     * every minute whether or not a single site moved.
+     */
     expect(source).toContain("return mapPinFingerprint(props.sites);");
-    expect(source).not.toContain("}, [props.region, props.sites]);");
+    expect(source).toContain(
+      squash("return buildPins(sitesRef.current); }, [pinFingerprint]);"),
+    );
+    expect(source).toContain(
+      squash("return fitViewportToPoints(pins); }, [pins]);"),
+    );
+
+    const reframe: string = source
+      .split("setViewport(fittedViewport);")[1]!
+      .split("]);")[0]!;
+    expect(reframe).toContain("setOpenCluster(null);");
+    expect(reframe).toContain("}, [fittedViewport");
+  });
+
+  /*
+   * Pointer capture retargets the click that follows a drag, so taking it on
+   * pointerdown stops every marker from ever being clickable. It has to be
+   * taken only once the pointer has actually moved — the same threshold that
+   * suppresses the click.
+   */
+  test("pointer capture is taken on move, not on down", () => {
+    const downHandler: string = source
+      .split("const onPointerDown:")[1]!
+      .split("const onPointerMove:")[0]!;
+    expect(downHandler).not.toContain("setPointerCapture");
+
+    const moveHandler: string = source
+      .split("const onPointerMove:")[1]!
+      .split("const onKeyDown:")[0]!;
+    expect(moveHandler).toContain("setPointerCapture");
+    expect(moveHandler).toContain("suppressClick.current = true;");
+  });
+
+  test("a drag that ends on a marker does not drill into it", () => {
+    expect(source).toContain(squash("if (suppressClick.current) { return; }"));
+  });
+
+  /*
+   * Markers, strokes and labels are UI, not geography. If they scaled with
+   * the map, zooming in to separate two sites would produce two bigger
+   * overlapping blobs instead of two markers.
+   */
+  test("marker geometry is divided by the zoom", () => {
+    expect(source).toContain("clusterRadius( cluster.totalCount, viewport, )");
+    expect(source).toContain("strokeWidth={0.6 / zoom}");
+    expect(source).toContain("strokeWidth={(isCluster ? 2.5 : 2) / zoom}");
+  });
+
+  /*
+   * React's synthetic wheel handler cannot preventDefault, so a wheel-zoom
+   * wired through onWheel scrolls the page underneath the map.
+   */
+  test("wheel zoom uses a native non-passive listener", () => {
+    expect(source).toContain(
+      'element.addEventListener("wheel", onWheel, { passive: false });',
+    );
+    expect(source).toContain("event.preventDefault();");
   });
 });
 
