@@ -5,7 +5,8 @@
  * test file in its own process, so files cannot leak env into each other.
  *
  * Ports are fixed per target so the local stub servers in the tests bind
- * predictably: 34571 plays the cost engine, 34572 plays OneUptime.
+ * predictably: 34571 plays the cost engine, 34572 plays OneUptime, and
+ * 34573 is where the agent's own health server listens.
  */
 
 process.env["TZ"] = "UTC";
@@ -28,6 +29,14 @@ process.env["ENGINE_SETTLE_SECONDS"] =
   process.env["ENGINE_SETTLE_SECONDS"] || "0";
 process.env["LOOKBACK_WINDOWS"] = process.env["LOOKBACK_WINDOWS"] || "2";
 process.env["LOG_LEVEL"] = process.env["LOG_LEVEL"] || "error";
+process.env["HEALTH_PORT"] = process.env["HEALTH_PORT"] || "34573";
+
+/*
+ * The health thresholds are deliberately NOT pinned: they read off
+ * WINDOW_SECONDS above, and Health.test.ts asserts against the shipped
+ * defaults so a change to them has to be a deliberate one.
+ */
 
 export const COST_ENGINE_PORT: number = 34571;
 export const ONEUPTIME_PORT: number = 34572;
+export const HEALTH_PORT: number = 34573;

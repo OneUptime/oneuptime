@@ -5,7 +5,11 @@ import { floorToWindow } from "../AllocationMapper";
 import { CostEngineClient } from "../CostEngineClient";
 import { Poller } from "../Poller";
 import { Shipper } from "../Shipper";
-import { EngineAllocation, KubernetesCostAllocationIngestRow } from "../Types";
+import {
+  EngineAllocation,
+  KubernetesCostAllocationIngestRow,
+  PollerStatus,
+} from "../Types";
 
 /*
  * Checkpoint / ordering semantics of the poll loop, with the engine and
@@ -220,4 +224,99 @@ test("stop() prevents further ticks from doing work", async (): Promise<void> =>
 
   assert.strictEqual(engine.calls.length, 0);
   assert.strictEqual(shipper.calls.length, 0);
+});
+
+/*
+ * Progress bookkeeping. These are the facts Health.ts renders its verdict
+ * from, so what matters is that a stalled poller cannot look like a quiet
+ * one: failures accumulate, and lastWindowCompletedAtMs stays at 0 for as
+ * long as no window drains.
+ */
+
+test("a completed window records progress even when it shipped nothing", async (): Promise<void> => {
+  const engine: EngineStub = new EngineStub();
+  engine.allocationsPerWindow = []; // Fresh install: the lookback is empty.
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick } = makePoller(engine, shipper);
+
+  const before: PollerStatus = poller.status();
+  assert.strictEqual(before.lastWindowCompletedAtMs, 0);
+  assert.strictEqual(before.windowsCompleted, 0);
+  assert.ok(before.startedAtMs > 0);
+
+  await tick();
+
+  const after: PollerStatus = poller.status();
+  assert.ok(after.windowsCompleted >= 2);
+  assert.ok(after.lastWindowCompletedAtMs >= before.startedAtMs);
+  assert.strictEqual(after.consecutivePollFailures, 0);
+  assert.strictEqual(shipper.calls.length, 0);
+});
+
+test("consecutive engine failures accumulate and record no progress", async (): Promise<void> => {
+  const engine: EngineStub = new EngineStub();
+  engine.failuresRemaining = 3;
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick } = makePoller(engine, shipper);
+
+  await tick();
+  assert.strictEqual(poller.status().consecutivePollFailures, 1);
+  await tick();
+  assert.strictEqual(poller.status().consecutivePollFailures, 2);
+  await tick();
+
+  const stalled: PollerStatus = poller.status();
+  assert.strictEqual(stalled.consecutivePollFailures, 3);
+  // The stalled poller has nothing to show for three ticks.
+  assert.strictEqual(stalled.lastWindowCompletedAtMs, 0);
+  assert.strictEqual(stalled.windowsCompleted, 0);
+  assert.match(stalled.lastPollError || "", /engine unavailable/);
+});
+
+test("a clean tick clears the failure streak", async (): Promise<void> => {
+  const engine: EngineStub = new EngineStub();
+  engine.failuresRemaining = 2;
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick } = makePoller(engine, shipper);
+
+  await tick();
+  await tick();
+  assert.strictEqual(poller.status().consecutivePollFailures, 2);
+
+  await tick(); // Engine recovers and the backlog drains.
+
+  const recovered: PollerStatus = poller.status();
+  assert.strictEqual(recovered.consecutivePollFailures, 0);
+  assert.strictEqual(recovered.lastPollError, null);
+  assert.ok(recovered.windowsCompleted >= 2);
+});
+
+test("a ship failure counts as a failed tick, not as progress", async (): Promise<void> => {
+  const engine: EngineStub = new EngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  shipper.failuresRemaining = 1;
+  const { poller, tick } = makePoller(engine, shipper);
+
+  await tick();
+
+  const status: PollerStatus = poller.status();
+  assert.strictEqual(status.consecutivePollFailures, 1);
+  // The window it failed on never completed, so nothing is recorded.
+  assert.strictEqual(status.windowsCompleted, 0);
+  assert.strictEqual(status.lastWindowCompletedAtMs, 0);
+});
+
+test("an idle tick with no closed window keeps the streak at zero", async (): Promise<void> => {
+  const engine: EngineStub = new EngineStub();
+  const shipper: ShipperStub = new ShipperStub();
+  const { poller, tick } = makePoller(engine, shipper);
+
+  await tick(); // Drains the backlog.
+  const drained: number = poller.status().windowsCompleted;
+
+  await tick(); // Nothing due (or at most one newly closed window).
+
+  const idle: PollerStatus = poller.status();
+  assert.strictEqual(idle.consecutivePollFailures, 0);
+  assert.ok(idle.windowsCompleted - drained <= 1);
 });
