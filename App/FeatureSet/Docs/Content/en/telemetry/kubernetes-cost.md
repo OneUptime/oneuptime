@@ -77,13 +77,29 @@ cost:
     includeIdle: true     # ship the engine's __idle__ allocation
     currency: USD         # currency code shown in the UI (informational)
   prometheus:
-    retention: 3d         # bundled TSDB history — a few days is plenty
+    retention: 7d         # bundled TSDB history; right-sizing reads peaks back over days
     persistence:
       enabled: false      # set true for a small PVC; emptyDir otherwise
   metrics:
     enabled: true         # cost metrics for dashboards / Metric Explorer
     scrapeInterval: 60s
 ```
+
+## Right-Sizing Data
+
+Alongside spend, the poller collects what a right-sizing recommendation needs: per-container CPU and memory **requests**, **limits**, and **usage**.
+
+Memory needs one extra source. The Allocation API reports only an average over each window, and an hourly mean hides the burst that OOMKills a container — so sizing a memory request from it is actively dangerous. The agent therefore reads the per-container memory **peak** from Prometheus, joining on `(namespace, pod, container)`.
+
+This is optional and degrades cleanly:
+
+- **Bundled engine (default):** the chart's own Prometheus is used automatically. Nothing to configure.
+- **External engine (`cost.engine.url` set):** there is no bundled Prometheus, so point `cost.engine.prometheusUrl` at one that scrapes cAdvisor. Set `cost.engine.prometheusCadvisorJob` too if its scrape job is not named `kubernetes-nodes-cadvisor`.
+- **No Prometheus at all:** CPU recommendations still work — they are derived from the stored hourly averages — and memory recommendations are unavailable rather than wrong.
+
+A Prometheus outage never blocks spend collection: peaks are an enrichment, and a window ships without them.
+
+CPU deliberately does *not* use Prometheus. Overshooting a CPU request throttles a container while overshooting memory kills it, so CPU is safely sized from the hourly averages already in ClickHouse — and querying per-container CPU rates across a whole cluster is expensive enough to destabilise a small Prometheus.
 
 ## Alerting on Cost
 

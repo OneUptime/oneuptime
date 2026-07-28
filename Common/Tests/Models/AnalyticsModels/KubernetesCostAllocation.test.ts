@@ -37,12 +37,15 @@ describe("Analytics KubernetesCostAllocation model", () => {
       "cpuCoreHours",
       "cpuCoreRequestAverage",
       "cpuCoreUsageAverage",
+      "cpuCoreLimitAverage",
       "cpuCost",
       "gpuHours",
       "gpuCost",
       "ramByteHours",
       "ramBytesRequestAverage",
       "ramBytesUsageAverage",
+      "ramBytesLimitAverage",
+      "ramBytesUsageMax",
       "ramCost",
       "pvByteHours",
       "pvCost",
@@ -93,6 +96,19 @@ describe("Analytics KubernetesCostAllocation model", () => {
     expect(model.getTableColumn("kubernetesClusterId")?.type).toBe(
       TableColumnType.ObjectID,
     );
+  });
+
+  test("carries the shipment identity the ingest dedup relies on", () => {
+    const shipmentId: AnalyticsTableColumn | null =
+      model.getTableColumn("shipmentId");
+    expect(shipmentId?.type).toBe(TableColumnType.Text);
+    // Rows written before the shipment contract read back as "no identity".
+    expect(shipmentId?.defaultValue).toBe("");
+
+    const shipmentChunk: AnalyticsTableColumn | null =
+      model.getTableColumn("shipmentChunk");
+    expect(shipmentChunk?.type).toBe(TableColumnType.Number);
+    expect(shipmentChunk?.defaultValue).toBe(0);
   });
 
   test("stores labels as a map with an extracted key column", () => {

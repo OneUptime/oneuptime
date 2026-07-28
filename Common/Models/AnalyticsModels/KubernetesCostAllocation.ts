@@ -349,6 +349,12 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
           description: "Average CPU cores actually used over the window.",
         },
         {
+          key: "cpuCoreLimitAverage",
+          title: "CPU Core Limit Average",
+          description:
+            "Average CPU core limit over the window. 0 when no limit is set — which is also what a row ingested before this column reads back.",
+        },
+        {
           key: "cpuCost",
           title: "CPU Cost",
           description: "Cost of allocated CPU over the window.",
@@ -377,6 +383,18 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
           key: "ramBytesUsageAverage",
           title: "RAM Bytes Usage Average",
           description: "Average RAM bytes actually used over the window.",
+        },
+        {
+          key: "ramBytesLimitAverage",
+          title: "RAM Bytes Limit Average",
+          description:
+            "Average RAM byte limit over the window. 0 when no limit is set — which is also what a row ingested before this column reads back.",
+        },
+        {
+          key: "ramBytesUsageMax",
+          title: "RAM Bytes Usage Max",
+          description:
+            "Peak RAM bytes used during the window, from Prometheus rather than the cost engine — the engine only reports averages, and an hourly mean hides the burst that OOMKills a container. 0 when the agent has no Prometheus configured, when the scrape had no data, or on rows ingested before this column; treat 0 as 'unknown', never as a real peak.",
         },
         {
           key: "ramCost",
@@ -472,6 +490,49 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * Delivery bookkeeping, not workload data. A window wider than the
+     * agent's batch size arrives as several independent ingest jobs, so the
+     * ingest service needs to tell "another chunk of the delivery I am
+     * already ingesting" (accept) from "a window a previous delivery already
+     * ingested" (drop, or a restarted agent double-counts spend). shipmentId
+     * is the agent's content hash of the window — identical across restarts,
+     * different when the engine's answer for that window changed.
+     *
+     * Empty / 0 on rows written before these columns existed and on rows
+     * from agents older than the shipment contract; the ingest service falls
+     * back to the whole-window guard for those.
+     */
+    const shipmentIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "shipmentId",
+      title: "Shipment ID",
+      description:
+        "Content hash identifying the agent delivery this row arrived in. Used to deduplicate re-shipped windows; empty for rows ingested before the shipment contract.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
+    const shipmentChunkColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "shipmentChunk",
+      title: "Shipment Chunk",
+      description:
+        "Index of the request within its shipment that carried this row. 0 for single-request shipments and for rows ingested before the shipment contract.",
+      required: true,
+      defaultValue: 0,
+      type: TableColumnType.Number,
+      accessControl: {
+        read: readPermissions,
+        create: createPermissions,
+        update: [],
+      },
+    });
+
     const retentionDateColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "retentionDate",
       codec: [{ codec: "DoubleDelta" }, { codec: "ZSTD", level: 1 }],
@@ -517,6 +578,8 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
         labelKeysColumn,
         ...measureColumns,
         currencyColumn,
+        shipmentIdColumn,
+        shipmentChunkColumn,
         retentionDateColumn,
       ],
       sortKeys: [
@@ -688,6 +751,14 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
     this.setColumnValue("cpuCoreUsageAverage", v);
   }
 
+  public get cpuCoreLimitAverage(): number | undefined {
+    return this.getColumnValue("cpuCoreLimitAverage") as number | undefined;
+  }
+
+  public set cpuCoreLimitAverage(v: number | undefined) {
+    this.setColumnValue("cpuCoreLimitAverage", v);
+  }
+
   public get cpuCost(): number | undefined {
     return this.getColumnValue("cpuCost") as number | undefined;
   }
@@ -734,6 +805,22 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
 
   public set ramBytesUsageAverage(v: number | undefined) {
     this.setColumnValue("ramBytesUsageAverage", v);
+  }
+
+  public get ramBytesLimitAverage(): number | undefined {
+    return this.getColumnValue("ramBytesLimitAverage") as number | undefined;
+  }
+
+  public set ramBytesLimitAverage(v: number | undefined) {
+    this.setColumnValue("ramBytesLimitAverage", v);
+  }
+
+  public get ramBytesUsageMax(): number | undefined {
+    return this.getColumnValue("ramBytesUsageMax") as number | undefined;
+  }
+
+  public set ramBytesUsageMax(v: number | undefined) {
+    this.setColumnValue("ramBytesUsageMax", v);
   }
 
   public get ramCost(): number | undefined {
@@ -830,6 +917,22 @@ export default class KubernetesCostAllocation extends AnalyticsBaseModel {
 
   public set currency(v: string | undefined) {
     this.setColumnValue("currency", v);
+  }
+
+  public get shipmentId(): string | undefined {
+    return this.getColumnValue("shipmentId") as string | undefined;
+  }
+
+  public set shipmentId(v: string | undefined) {
+    this.setColumnValue("shipmentId", v);
+  }
+
+  public get shipmentChunk(): number | undefined {
+    return this.getColumnValue("shipmentChunk") as number | undefined;
+  }
+
+  public set shipmentChunk(v: number | undefined) {
+    this.setColumnValue("shipmentChunk", v);
   }
 
   public get retentionDate(): Date | undefined {

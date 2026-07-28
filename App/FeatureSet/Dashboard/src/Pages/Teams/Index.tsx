@@ -5,6 +5,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import IconProp from "Common/Types/Icon/IconProp";
 import Query from "Common/Types/BaseDatabase/Query";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -83,6 +84,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
         isCreateable={true}
         isViewable={true}
         userPreferencesKey="teams-table"
+        customFieldsModelType={TeamCustomField}
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}

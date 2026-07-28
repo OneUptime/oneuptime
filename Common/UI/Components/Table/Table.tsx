@@ -181,9 +181,22 @@ const Table: TableFunction = <T extends GenericObject>(
     }
   }, [props.bulkSelectedItems]);
 
+  /*
+   * Width of the loading / error / "no items" row, in cells. It has to match
+   * what TableHeader actually renders or those messages sit under part of the
+   * table instead of spanning it: the Actions column is already one of
+   * `props.columns`, and the drag-handle and bulk-select cells are extra
+   * leading columns that only exist when those features are on.
+   */
   let colspan: number = props.columns.length || 0;
-  if (props.actionButtons && props.actionButtons?.length > 0) {
+  if (props.enableDragAndDrop) {
     colspan++;
+  }
+  if (isBulkActionsEnabled) {
+    colspan++;
+  }
+  if (colspan === 0) {
+    colspan = 1;
   }
 
   const getTablebody: GetReactElementFunction = (): ReactElement => {

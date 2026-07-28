@@ -18,6 +18,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -510,6 +511,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       <ModelTable<Alert>
         name="Alerts"
         userPreferencesKey="alerts-table"
+        customFieldsModelType={AlertCustomField}
         bulkActions={{
           buttons: [
             getBulkChangeStateAction(),

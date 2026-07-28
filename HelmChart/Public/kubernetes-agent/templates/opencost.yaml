@@ -70,7 +70,7 @@ spec:
                 - ALL
           env:
             - name: PROMETHEUS_SERVER_ENDPOINT
-              value: "http://{{ include "kubernetes-agent.fullname" . }}-cost-prometheus.{{ .Release.Namespace }}.svc.cluster.local:9090"
+              value: {{ include "kubernetes-agent.costPrometheusUrl" . | quote }}
             - name: CLUSTER_ID
               value: {{ .Values.clusterName | quote }}
             - name: API_PORT

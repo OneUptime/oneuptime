@@ -19,6 +19,23 @@ export default interface Columns<
   field: SelectEntityField<TEntity>;
   selectedProperty?: string | undefined;
   title: string;
+  /*
+   * Stable identity for this column, used to persist the viewer's show/hide
+   * and ordering choices. Leave it unset and one is derived from the declared
+   * field (see ColumnPreference.getColumnIds) - set it only when the derived
+   * id would be unstable, e.g. a cell rendered entirely through `getElement`
+   * off a placeholder `field: { _id: true }` whose title is likely to change.
+   */
+  id?: string | undefined;
+  /*
+   * Keep this column out of the "Customize Columns" picker: it is always
+   * shown and can never be moved. Use it for the column that identifies the
+   * row (usually the name), so a table can never be customized into
+   * anonymity.
+   */
+  isNotCustomizable?: boolean | undefined;
+  // Start hidden. The viewer can still switch it on from the picker.
+  isHiddenByDefault?: boolean | undefined;
   contentClassName?: string | undefined;
   colSpan?: number | undefined;
   disableSort?: boolean;

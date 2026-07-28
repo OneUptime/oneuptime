@@ -7,6 +7,7 @@ import {
   ONEUPTIME_URL,
   SHIP_BATCH_SIZE,
 } from "./Config";
+import { buildShipment, Shipment } from "./Shipment";
 import { httpPostJson, HttpResult } from "./HttpClient";
 import Logger from "./Logger";
 import {
@@ -64,14 +65,23 @@ export class Shipper {
   public async ship(
     rows: Array<KubernetesCostAllocationIngestRow>,
   ): Promise<void> {
-    for (let i: number = 0; i < rows.length; i += SHIP_BATCH_SIZE) {
-      const chunk: Array<KubernetesCostAllocationIngestRow> = rows.slice(
-        i,
-        i + SHIP_BATCH_SIZE,
-      );
+    /*
+     * Every chunk carries the same shipment id and its own index. The server
+     * needs both to accept a multi-chunk window whole while still rejecting a
+     * window an earlier shipment already delivered — see Shipment.ts. Rows are
+     * shipped in the shipment's deterministic order so chunk N of a re-shipped
+     * window holds exactly the rows it held the first time.
+     */
+    const shipment: Shipment = buildShipment(rows);
+
+    for (let i: number = 0; i < shipment.rows.length; i += SHIP_BATCH_SIZE) {
+      const chunk: Array<KubernetesCostAllocationIngestRow> =
+        shipment.rows.slice(i, i + SHIP_BATCH_SIZE);
       const payload: KubernetesCostIngestPayload = {
         clusterName: CLUSTER_NAME,
         currency: COST_CURRENCY,
+        shipmentId: shipment.id,
+        shipmentChunk: i / SHIP_BATCH_SIZE,
         allocations: chunk,
       };
       await this.post(payload, chunk.length);

@@ -544,6 +544,14 @@
               "type": "string",
               "description": "Base URL of an EXISTING cost engine. Empty (default) bundles OpenCost + a minimal Prometheus. Example: http://opencost.opencost.svc.cluster.local:9003"
             },
+            "prometheusUrl": {
+              "type": "string",
+              "description": "Prometheus the cost agent reads per-container memory peaks from, for right-sizing recommendations. Empty (default) uses the bundled Prometheus when the engine is bundled, and nothing when an external engine is configured. Without it, CPU recommendations still work and memory ones are unavailable."
+            },
+            "prometheusCadvisorJob": {
+              "type": "string",
+              "description": "Prometheus job label of the cAdvisor scrape. Empty (default) uses kubernetes-nodes-cadvisor, which is what the bundled Prometheus names it. Override when reusing your own Prometheus."
+            },
             "allocationPath": {
               "type": "string",
               "description": "Explicit Allocation API path. Empty auto-detects (/model/allocation, /allocation/compute, /allocation)."
