@@ -1114,8 +1114,17 @@ export default class MonitorStep extends DatabaseProperty {
       logMonitor: json["logMonitor"]
         ? (json["logMonitor"] as JSONObject)
         : undefined,
+      /*
+       * Normalize rather than pass the raw JSON straight through. Steps saved
+       * by older builds can carry a metricMonitor with no metricViewConfig,
+       * and every consumer downstream assumes the type's contract holds.
+       */
       metricMonitor: json["metricMonitor"]
-        ? (json["metricMonitor"] as JSONObject)
+        ? (MonitorStepMetricMonitorUtil.toJSON(
+            MonitorStepMetricMonitorUtil.fromJSON(
+              json["metricMonitor"] as JSONObject,
+            ),
+          ) as JSONObject)
         : undefined,
       traceMonitor: json["traceMonitor"]
         ? (json["traceMonitor"] as JSONObject)
