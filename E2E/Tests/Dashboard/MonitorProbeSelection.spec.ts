@@ -149,6 +149,13 @@ test.describe("Monitor probe selection", () => {
     ctx.projectId = await registerAndCreateProject({
       page: ctx.page,
       projectNamePrefix: "E2E Probe Selection Project",
+      /*
+       * Custom probes are gated behind the Growth plan when billing is enabled
+       * (TableBillingAccessControl.create on the Probe model), so a free-plan
+       * project cannot seed one - the create call comes back 402. Land on
+       * Growth so seedCustomProbe succeeds under SaaS.
+       */
+      preferredPlanName: "Growth",
     });
 
     ctx.customProbeName = `e2e-probe-${Faker.generateRandomString(6)}`;
@@ -210,16 +217,18 @@ test.describe("Monitor probe selection", () => {
     await expect(probesCombo).toBeVisible({ timeout: 60000 });
 
     /*
-     * The picker starts on the set the server would have attached on its own,
-     * which on a fresh project is the global probe.
+     * The picker starts on the set the server would have attached on its own.
+     * That default is environment-dependent (it is the global probes flagged
+     * "auto enable on new monitors", and their names - e.g. "Probe-1" - are
+     * config-driven), so rather than assert on a specific chip label we clear
+     * whatever is pre-selected and prove the create attaches exactly what the
+     * user picked. Backspace removes the last selected chip when the input is
+     * empty; repeat enough times to clear any number of defaults.
      */
-    await expect(page.getByText("Probe", { exact: true }).first()).toBeVisible({
-      timeout: 30000,
-    });
-
-    // Replace the default selection with only the custom probe.
     await probesCombo.click();
-    await page.keyboard.press("Backspace");
+    for (let clearAttempt: number = 0; clearAttempt < 6; clearAttempt++) {
+      await page.keyboard.press("Backspace");
+    }
     await probesCombo.fill(ctx.customProbeName);
     await page
       .getByRole("option", { name: ctx.customProbeName, exact: true })
