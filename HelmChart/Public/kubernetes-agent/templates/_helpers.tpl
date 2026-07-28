@@ -639,3 +639,26 @@ set, else the bundled OpenCost Service.
 http://{{ include "kubernetes-agent.fullname" . }}-opencost.{{ .Release.Namespace }}.svc.cluster.local:9003
 {{- end -}}
 {{- end -}}
+
+{{/*
+Resolved Prometheus URL for the cost pipeline, or EMPTY when there is none.
+
+The cost agent reads per-container memory PEAKS from here. The Allocation
+API only reports averages over the window, and an hourly mean hides the
+burst that OOMKills a container — so a memory right-sizing recommendation
+built on the average is actively dangerous. CPU needs no such help
+(overshoot throttles rather than kills), which is why this is optional.
+
+Empty is a legitimate, supported answer: an install pointing at an external
+cost engine gets no bundled Prometheus, and the agent treats an empty value
+as "ship allocations without peaks". Never default this to the bundled
+Service name unconditionally — on an external-engine install that name
+resolves to nothing and every poll would fail against it.
+*/}}
+{{- define "kubernetes-agent.costPrometheusUrl" -}}
+{{- if .Values.cost.engine.prometheusUrl -}}
+{{- .Values.cost.engine.prometheusUrl -}}
+{{- else if eq (include "kubernetes-agent.costEngineBundled" .) "true" -}}
+http://{{ include "kubernetes-agent.fullname" . }}-cost-prometheus.{{ .Release.Namespace }}.svc.cluster.local:9090
+{{- end -}}
+{{- end -}}

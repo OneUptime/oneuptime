@@ -9,6 +9,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import OnCallDutyPolicyOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
 import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -51,6 +52,7 @@ const OnCallDutyPage: FunctionComponent<
         enableJsonImportExport={true}
         id="on-call-duty-table"
         userPreferencesKey="on-call-duty-table"
+        customFieldsModelType={OnCallDutyPolicyCustomField}
         topContent={filterBar}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}

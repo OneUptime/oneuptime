@@ -26,7 +26,12 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         navBar={<NavBar />}
         isLoading={false}
         error={""}
-        className="flex flex-col h-screen"
+        /*
+         * min-h-screen, not h-screen — see the dashboard master page: a fixed
+         * 100vh caps the sticky top section's containing block at one viewport
+         * and the header scrolls away on longer pages.
+         */
+        className="flex flex-col min-h-screen"
       >
         {props.children}
       </MasterPage>

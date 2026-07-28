@@ -17,8 +17,8 @@ import {
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import { JSONObject } from "Common/Types/JSON";
-import PositiveNumber from "Common/Types/PositiveNumber";
 import logger from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 
@@ -159,13 +159,21 @@ export default class KubernetesCostIngestService {
 
     /*
      * Restart idempotency: the poller's checkpoint is in-memory, so after a
-     * restart it re-ships its lookback windows. A window that already has
-     * rows for this cluster was fully shipped before (the poller ships whole
-     * windows and only advances its checkpoint on success) — re-inserting it
-     * would double-count spend, so drop those allocations here. BullMQ
-     * retries of THIS job are covered separately by the insert-dedup tokens
-     * (see ProcessTelemetry), which make re-inserts of the same batch no-ops.
+     * restart it re-ships its lookback windows. A window a PREVIOUS shipment
+     * already delivered must not be re-inserted or spend double-counts.
+     *
+     * "Previous shipment", not "already has rows": a window wider than the
+     * agent's batch size is delivered as several requests, each its own job,
+     * so the plain has-rows test dropped every chunk after the first and left
+     * large clusters permanently short of most of every hour. The agent
+     * stamps each request with a content hash of the window (identical
+     * across restarts) plus the request's index within that delivery, which
+     * separates the two cases. BullMQ retries of THIS job remain covered by
+     * the insert-dedup tokens (see ProcessTelemetry).
      */
+    const shipmentId: string = this.sanitizeString(payload.shipmentId);
+    const shipmentChunk: number = this.sanitizeNumber(payload.shipmentChunk);
+
     const alreadyIngestedWindows: Set<string> = new Set<string>();
     const distinctWindowStarts: Map<string, Date> = new Map<string, Date>();
 
@@ -184,20 +192,18 @@ export default class KubernetesCostIngestService {
     }
 
     for (const [windowKey, windowStart] of distinctWindowStarts) {
-      const existing: PositiveNumber =
-        await KubernetesCostAllocationService.countBy({
-          query: {
-            projectId: projectId,
-            kubernetesClusterId: cluster.id,
-            windowStart: windowStart,
-          } as JSONObject,
-          props: { isRoot: true },
-        });
+      const alreadyIngested: boolean = await this.isWindowAlreadyIngested({
+        projectId: projectId,
+        kubernetesClusterId: cluster.id,
+        windowStart: windowStart,
+        shipmentId: shipmentId,
+        shipmentChunk: shipmentChunk,
+      });
 
-      if (existing.toNumber() > 0) {
+      if (alreadyIngested) {
         alreadyIngestedWindows.add(windowKey);
         logger.debug(
-          `KubernetesCostIngestService: window ${windowKey} for cluster "${clusterName}" already ingested — skipping ${existing.toNumber()} pre-existing rows' window.`,
+          `KubernetesCostIngestService: window ${windowKey} for cluster "${clusterName}" was already ingested by another shipment — skipping its rows.`,
         );
       }
     }
@@ -212,6 +218,8 @@ export default class KubernetesCostIngestService {
         clusterName: clusterIdentifier,
         k8sClusterEntityKey,
         currency,
+        shipmentId,
+        shipmentChunk,
         retentionDays,
         ingestionTimestamp,
         alreadyIngestedWindows,
@@ -252,6 +260,74 @@ export default class KubernetesCostIngestService {
     await Promise.all(pendingAcks);
   }
 
+  /**
+   * Whether this window's rows have already been ingested by a DIFFERENT
+   * shipment, or this exact chunk of the current one has already landed.
+   */
+  private static async isWindowAlreadyIngested(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    windowStart: Date;
+    shipmentId: string;
+    shipmentChunk: number;
+  }): Promise<boolean> {
+    if (!data.shipmentId) {
+      /*
+       * An agent older than the shipment contract cannot say which delivery
+       * this is, so fall back to the original whole-window guard: correct
+       * against double-counting, and no worse than what that agent got
+       * before. Such an agent still loses rows past its first chunk on a
+       * window wider than its batch size — that half of the fix ships in the
+       * agent, so both sides have to be upgraded to get it.
+       */
+      return await KubernetesCostAllocationService.existsBy({
+        query: {
+          projectId: data.projectId,
+          kubernetesClusterId: data.kubernetesClusterId,
+          windowStart: data.windowStart,
+        },
+        props: { isRoot: true },
+      });
+    }
+
+    /*
+     * A row from a different shipment means an earlier delivery already
+     * covered this window — the poller only advances its checkpoint once a
+     * whole window has shipped, so anything it re-sends is a restart's
+     * lookback, not a continuation. Re-inserting would double-count spend.
+     */
+    const fromAnotherShipment: boolean =
+      await KubernetesCostAllocationService.existsBy({
+        query: {
+          projectId: data.projectId,
+          kubernetesClusterId: data.kubernetesClusterId,
+          windowStart: data.windowStart,
+          shipmentId: new NotEqual<string>(data.shipmentId),
+        },
+        props: { isRoot: true },
+      });
+
+    if (fromAnotherShipment) {
+      return true;
+    }
+
+    /*
+     * Same shipment, so this is another chunk of a delivery in progress —
+     * accept it unless this exact chunk already landed, which is what a
+     * re-ship of a window whose later chunks failed looks like.
+     */
+    return await KubernetesCostAllocationService.existsBy({
+      query: {
+        projectId: data.projectId,
+        kubernetesClusterId: data.kubernetesClusterId,
+        windowStart: data.windowStart,
+        shipmentId: data.shipmentId,
+        shipmentChunk: data.shipmentChunk,
+      },
+      props: { isRoot: true },
+    });
+  }
+
   private static buildRow(data: {
     allocation: KubernetesCostAllocationIngestRow;
     projectId: ObjectID;
@@ -259,6 +335,8 @@ export default class KubernetesCostIngestService {
     clusterName: string;
     k8sClusterEntityKey: string;
     currency: string;
+    shipmentId: string;
+    shipmentChunk: number;
     retentionDays: number;
     ingestionTimestamp: string;
     alreadyIngestedWindows: Set<string>;
@@ -316,6 +394,7 @@ export default class KubernetesCostIngestService {
         allocation.cpuCoreRequestAverage,
       ),
       cpuCoreUsageAverage: this.sanitizeNumber(allocation.cpuCoreUsageAverage),
+      cpuCoreLimitAverage: this.sanitizeNumber(allocation.cpuCoreLimitAverage),
       cpuCost: this.sanitizeNumber(allocation.cpuCost),
       gpuHours: this.sanitizeNumber(allocation.gpuHours),
       gpuCost: this.sanitizeNumber(allocation.gpuCost),
@@ -326,6 +405,10 @@ export default class KubernetesCostIngestService {
       ramBytesUsageAverage: this.sanitizeNumber(
         allocation.ramBytesUsageAverage,
       ),
+      ramBytesLimitAverage: this.sanitizeNumber(
+        allocation.ramBytesLimitAverage,
+      ),
+      ramBytesUsageMax: this.sanitizeNumber(allocation.ramBytesUsageMax),
       ramCost: this.sanitizeNumber(allocation.ramCost),
       pvByteHours: this.sanitizeNumber(allocation.pvByteHours),
       pvCost: this.sanitizeNumber(allocation.pvCost),
@@ -338,6 +421,8 @@ export default class KubernetesCostIngestService {
       ramEfficiency: this.sanitizeNumber(allocation.ramEfficiency),
       totalEfficiency: this.sanitizeNumber(allocation.totalEfficiency),
       currency: data.currency,
+      shipmentId: data.shipmentId,
+      shipmentChunk: data.shipmentChunk,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     };
   }

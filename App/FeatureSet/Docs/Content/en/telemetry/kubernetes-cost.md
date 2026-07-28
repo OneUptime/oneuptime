@@ -77,13 +77,29 @@ cost:
     includeIdle: true     # ship the engine's __idle__ allocation
     currency: USD         # currency code shown in the UI (informational)
   prometheus:
-    retention: 3d         # bundled TSDB history — a few days is plenty
+    retention: 7d         # bundled TSDB history; right-sizing reads peaks back over days
     persistence:
       enabled: false      # set true for a small PVC; emptyDir otherwise
   metrics:
     enabled: true         # cost metrics for dashboards / Metric Explorer
     scrapeInterval: 60s
 ```
+
+## Right-Sizing Data
+
+Alongside spend, the poller collects what a right-sizing recommendation needs: per-container CPU and memory **requests**, **limits**, and **usage**.
+
+Memory needs one extra source. The Allocation API reports only an average over each window, and an hourly mean hides the burst that OOMKills a container — so sizing a memory request from it is actively dangerous. The agent therefore reads the per-container memory **peak** from Prometheus, joining on `(namespace, pod, container)`.
+
+This is optional and degrades cleanly:
+
+- **Bundled engine (default):** the chart's own Prometheus is used automatically. Nothing to configure.
+- **External engine (`cost.engine.url` set):** there is no bundled Prometheus, so point `cost.engine.prometheusUrl` at one that scrapes cAdvisor. Set `cost.engine.prometheusCadvisorJob` too if its scrape job is not named `kubernetes-nodes-cadvisor`.
+- **No Prometheus at all:** CPU recommendations still work — they are derived from the stored hourly averages — and memory recommendations are unavailable rather than wrong.
+
+A Prometheus outage never blocks spend collection: peaks are an enrichment, and a window ships without them.
+
+CPU deliberately does *not* use Prometheus. Overshooting a CPU request throttles a container while overshooting memory kills it, so CPU is safely sized from the hourly averages already in ClickHouse — and querying per-container CPU rates across a whole cluster is expensive enough to destabilise a small Prometheus.
 
 ## Alerting on Cost
 
@@ -97,6 +113,7 @@ Allocation rows are stored in ClickHouse (one row per cluster, window, namespace
 
 - **Costs pages are empty** — check the cost agent's logs: `kubectl logs -n <agent namespace> deploy/<release>-kubernetes-agent-cost`. A `401` means the ingestion key is invalid; `cost engine did not answer any known allocation path` means the engine isn't up yet (the bundled OpenCost needs a few minutes after install to price its first windows) or `cost.engine.url` is wrong.
 - **Bundled OpenCost not ready** — `kubectl logs -n <agent namespace> deploy/<release>-kubernetes-agent-opencost`. It logs which cloud provider it detected and whether pricing data loaded.
+- **`mkdir /var/configs: permission denied` in the OpenCost log** — a chart bug fixed in chart 0.6.1. OpenCost ran as non-root with no writable config directory, so `Error downloading default pricing data` left its Allocation API unable to answer and the poller stalled — while the pod stayed `Running`, `/healthz` stayed green, and the node cost metrics kept publishing. Upgrade the chart (`helm repo update && helm upgrade ... --reuse-values`); cost rows appear on the next poll.
 - **Dashboard template shows no data** — the template reads the scraped cost metrics; confirm `cost.metrics.enabled` is `true`.
 - **Numbers differ from the engine's own UI** — OneUptime includes the engine's reconciliation adjustments in each cost component and ships whole closed windows; partial current-hour spend appears after the window closes.
 - **Prometheus pod restarted** — with the default `emptyDir` storage a restart loses a few hours of usage history, so allocations for those windows may be smaller. Set `cost.prometheus.persistence.enabled=true` if that matters to you.

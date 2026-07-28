@@ -342,9 +342,12 @@ export default class JSONFunctions {
       ].fromJSON(val);
     } else if (val instanceof Date) {
       return val;
-    } else if (typeof val === Typeof.Object) {
-      return this.deserialize(val as JSONObject);
     } else if (Array.isArray(val)) {
+      /*
+       * This has to be checked before the plain-object branch below: arrays are
+       * typeof "object", so falling through to deserialize() would walk them by
+       * key and hand back { "0": ..., "1": ... } instead of an array.
+       */
       const arr: Array<JSONValue> = [];
 
       for (const v of val) {
@@ -352,6 +355,8 @@ export default class JSONFunctions {
       }
 
       return arr;
+    } else if (typeof val === Typeof.Object) {
+      return this.deserialize(val as JSONObject);
     }
 
     return val;

@@ -14,6 +14,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
@@ -421,6 +422,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         id="scheduledMaintenances-table"
         name="Scheduled Maintenance Events"
         userPreferencesKey={"scheduled-maintenance-table"}
+        customFieldsModelType={ScheduledMaintenanceCustomField}
         bulkActions={{
           buttons: [
             getBulkChangeStateAction(),

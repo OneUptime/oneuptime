@@ -555,4 +555,44 @@ export default class TableView extends BaseModel {
     nullable: true,
   })
   public facets?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateTableView,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadTableView,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditTableView,
+    ],
+  })
+  @TableColumn({
+    title: "Columns",
+    required: false,
+    unique: false,
+    type: TableColumnType.JSON,
+    canReadOnRelationQuery: true,
+    description:
+      "Which columns are shown, and in what order, for this table view",
+    example:
+      '{"order": ["name", "currentMonitorStatus"], "hidden": ["labels"]}',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    unique: false,
+    nullable: true,
+  })
+  public columns?: JSONObject = undefined;
 }
