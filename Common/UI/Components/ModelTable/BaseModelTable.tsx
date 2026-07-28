@@ -58,6 +58,23 @@ import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
 import Columns from "./Columns";
+import ColumnCustomizationModal from "./ColumnCustomizationModal";
+import {
+  ColumnPreference,
+  CustomizableColumn,
+  applyColumnPreference,
+  buildColumnPreference,
+  fromJSON as columnPreferenceFromJSON,
+  getCustomizableColumns,
+  isEmptyColumnPreference,
+  sanitizeColumnPreference,
+  getColumnIds,
+  toJSON as columnPreferenceToJSON,
+} from "./ColumnPreference";
+import { CustomFieldsColumnKey } from "./CustomFieldColumns";
+import useCustomFieldColumns, {
+  CustomFieldColumnsResult,
+} from "./useCustomFieldColumns";
 import { getExportKeysFromColumn } from "./ExportFromColumns";
 import {
   getRelationSelectFromColumns,
@@ -323,6 +340,26 @@ export interface BaseTableProps<
    * outlive the page.
    */
   disableUrlState?: boolean | undefined;
+
+  /**
+   * Hide the "Columns" control and always render the declared column set.
+   *
+   * Column customization is on by default for every table that renders
+   * columns. Turn it off for tables whose layout is load-bearing — a
+   * two-column key/value table, or one the surrounding page reads positions
+   * out of.
+   */
+  disableColumnCustomization?: boolean | undefined;
+
+  /**
+   * The model holding this resource's custom field *definitions* — e.g.
+   * `MonitorCustomField` for a table of monitors. Set it and every custom
+   * field the project has defined becomes an optional column, off by default
+   * and listed in the column picker.
+   *
+   * Only meaningful for resources with a `customFields` column of their own.
+   */
+  customFieldsModelType?: { new (): BaseModel } | undefined;
 }
 
 export interface ComponentProps<
@@ -394,6 +431,115 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [tableColumns, setColumns] = useState<Array<TableColumn<TBaseModel>>>(
     [],
   );
+
+  /*
+   * ---------------------------------------------------------------------
+   * Viewer-customizable columns
+   * ---------------------------------------------------------------------
+   *
+   * The viewer's layout (which columns are on, and in what order) is a
+   * personal, presentational preference, so it lives in localStorage next to
+   * the page size rather than on the server: saved views are named, explicit,
+   * plan-gated and need write permission, none of which should stand between
+   * someone and hiding a column they don't care about. A saved view can still
+   * carry a layout of its own, and when one is active it wins.
+   *
+   * Custom fields are appended to the declared columns as additional,
+   * off-by-default columns; from here on they are ordinary columns.
+   */
+  const customFieldColumns: CustomFieldColumnsResult<TBaseModel> =
+    useCustomFieldColumns<TBaseModel>({
+      customFieldsModelType: props.customFieldsModelType,
+    });
+
+  const isColumnCustomizationEnabled: boolean = Boolean(
+    !props.disableColumnCustomization &&
+      props.userPreferencesKey &&
+      showAs !== ShowAs.OrderedStatesList,
+  );
+
+  const allColumns: Columns<TBaseModel> = useMemo(() => {
+    if (customFieldColumns.columns.length === 0) {
+      return props.columns || [];
+    }
+
+    return [...(props.columns || []), ...customFieldColumns.columns];
+  }, [props.columns, customFieldColumns.columns]);
+
+  type ReadStoredColumnPreferenceFunction = () => ColumnPreference | null;
+
+  const readStoredColumnPreference: ReadStoredColumnPreferenceFunction =
+    (): ColumnPreference | null => {
+      if (!props.userPreferencesKey) {
+        return null;
+      }
+
+      return columnPreferenceFromJSON(
+        UserPreferences.getUserPreferenceByTypeAsJSON({
+          key: props.userPreferencesKey,
+          userPreferenceType: UserPreferenceType.BaseModelTableColumns,
+        }),
+      );
+    };
+
+  const [columnPreference, setColumnPreference] =
+    useState<ColumnPreference | null>(readStoredColumnPreference);
+
+  const [showColumnCustomizationModal, setShowColumnCustomizationModal] =
+    useState<boolean>(false);
+
+  /*
+   * Ids are derived over the *whole* declared set, so a column dropping out
+   * for lack of permission can never renumber the ones that remain.
+   */
+  const allColumnIds: Array<string> = useMemo(() => {
+    return getColumnIds<TBaseModel>(allColumns);
+  }, [allColumns]);
+
+  const effectiveColumnPreference: ColumnPreference | null = useMemo(() => {
+    if (!isColumnCustomizationEnabled) {
+      return null;
+    }
+
+    /*
+     * A stored layout outlives the release that wrote it, so anything naming
+     * a column this table no longer has is dropped before it is applied.
+     */
+    return sanitizeColumnPreference({
+      preference: columnPreference,
+      knownColumnIds: allColumnIds,
+    });
+  }, [columnPreference, allColumnIds, isColumnCustomizationEnabled]);
+
+  type SaveColumnPreferenceFunction = (
+    preference: ColumnPreference | null,
+  ) => void;
+
+  const saveColumnPreference: SaveColumnPreferenceFunction = (
+    preference: ColumnPreference | null,
+  ): void => {
+    setColumnPreference(preference);
+
+    if (!props.userPreferencesKey) {
+      return;
+    }
+
+    const json: JSONObject | null = columnPreferenceToJSON(preference);
+
+    if (!json) {
+      UserPreferences.removeUserPreferenceByType({
+        key: props.userPreferencesKey,
+        userPreferenceType: UserPreferenceType.BaseModelTableColumns,
+      });
+      return;
+    }
+
+    UserPreferences.saveUserPreferenceByTypeAsJSON({
+      key: props.userPreferencesKey,
+      userPreferenceType: UserPreferenceType.BaseModelTableColumns,
+      value: json,
+    });
+  };
 
   const [classicTableFilters, setClassicTableFilters] = useState<
     Array<ClassicFilterType<TBaseModel>>
@@ -903,8 +1049,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const getRelationSelect: GetRelationSelectFunction =
     (): Select<TBaseModel> => {
+      /*
+       * Deliberately the *unfiltered* column set. See getSelect() below.
+       */
       return getRelationSelectFromColumns<TBaseModel>({
-        columns: props.columns || [],
+        columns: allColumns,
         model: model,
       });
     };
@@ -950,7 +1099,30 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const accessControl: Dictionary<ColumnAccessControl> =
       model.getColumnAccessControlForAllColumns();
 
-    for (const column of props.columns || []) {
+    /*
+     * The viewer's layout is applied to the *input* of this loop, never to
+     * the finished array: the Actions column is appended below and has to
+     * stay last, and it is generated rather than declared, so it is not the
+     * viewer's to move or switch off.
+     */
+    const columnsToRender: Columns<TBaseModel> =
+      applyColumnPreference<TBaseModel>({
+        columns: allColumns,
+        preference: effectiveColumnPreference,
+      });
+
+    const columnIdByColumn: Map<
+      ModelTableColumn<TBaseModel>,
+      string
+    > = new Map();
+
+    allColumns.forEach(
+      (column: ModelTableColumn<TBaseModel>, index: number) => {
+        columnIdByColumn.set(column, allColumnIds[index] as string);
+      },
+    );
+
+    for (const column of columnsToRender) {
       const hasPermission: boolean =
         hasPermissionToReadColumn(column) || User.isMasterAdmin();
       const key: keyof TBaseModel | null = getColumnKey(column);
@@ -983,6 +1155,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
         columns.push({
           ...column,
+          id: columnIdByColumn.get(column),
           disableSort: column.disableSort || shouldDisableSort(key),
           key: columnKey,
           /*
@@ -1692,13 +1865,38 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   type GetSelectFunction = () => Select<TBaseModel>;
 
   const getSelect: GetSelectFunction = (): Select<TBaseModel> => {
+    /*
+     * Every declared column, including the ones the viewer has switched off.
+     *
+     * Hiding must not narrow the request. A column's `getElement` is arbitrary
+     * caller code that can read any field on the row — a "Status" cell that
+     * also reads `currentMonitorStatus`, say — so dropping a hidden column's
+     * fields from the select would silently blank a *different*, visible cell,
+     * and there is no way to detect that statically. The sort field is
+     * likewise independent of what is on screen. The cost is a few unused
+     * fields on the wire.
+     */
     const selectFields: Select<TBaseModel> = getSelectFromColumns<TBaseModel>({
-      columns: props.columns || [],
+      columns: allColumns,
       model: model,
       hasPermissionToReadField: (field: string): boolean => {
         return hasPermissionToReadField(field as keyof TBaseModel);
       },
     });
+
+    /*
+     * Custom field columns arrive asynchronously, but the table does not
+     * refetch when its column set changes — so the JSON column that backs
+     * every one of them is selected up front, off the synchronous prop, and
+     * the values are there the moment the definitions land.
+     */
+    if (
+      props.customFieldsModelType &&
+      model.hasColumn(CustomFieldsColumnKey) &&
+      hasPermissionToReadField(CustomFieldsColumnKey as keyof TBaseModel)
+    ) {
+      (selectFields as Dictionary<boolean>)[CustomFieldsColumnKey] = true;
+    }
 
     const selectMoreFields: Array<keyof TBaseModel> = props.selectMoreFields
       ? (Object.keys(props.selectMoreFields) as Array<keyof TBaseModel>)
@@ -1751,6 +1949,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           currentItemsOnPage={itemsOnPage}
           currentSortOrder={sortOrder}
           currentFacetState={props.currentFacetState}
+          currentColumns={
+            columnPreferenceToJSON(effectiveColumnPreference) || undefined
+          }
           onViewChange={async (tableView: TableView | null) => {
             setTableView(tableView);
 
@@ -1785,6 +1986,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   (tableView.facets as JSONObject | undefined) || null,
                 );
               }
+
+              /*
+               * A saved view carries the columns it was saved with. Views
+               * created before this existed have none, which restores the
+               * table's default layout rather than leaving the previous
+               * view's columns in place.
+               */
+              if (isColumnCustomizationEnabled) {
+                saveColumnPreference(
+                  columnPreferenceFromJSON(
+                    (tableView.columns as JSONObject | undefined) || null,
+                  ),
+                );
+              }
             } else {
               setQuery({});
               /*
@@ -1802,6 +2017,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               if (props.onFacetStateRestored) {
                 props.onFacetStateRestored(null);
               }
+
+              /*
+               * Columns are deliberately left alone here. Clearing a saved
+               * view means "stop filtering like that", not "throw away the
+               * column layout I built" - which the viewer may well have set
+               * up long before this view existed.
+               */
             }
           }}
         />
@@ -1932,6 +2154,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         },
         disabled: isFilterFetchLoading,
         icon: IconProp.Filter,
+      });
+    }
+
+    /*
+     * Only worth offering once there is a choice to make. A single-column
+     * table has nothing to hide and nothing to reorder.
+     */
+    if (isColumnCustomizationEnabled && allColumns.length > 1) {
+      headerbuttons.push({
+        title: "",
+        buttonStyle: ButtonStyleType.ICON,
+        buttonSize: ButtonSize.Small,
+        className: "",
+        onClick: () => {
+          setShowColumnCustomizationModal(true);
+        },
+        icon: IconProp.TableCells,
       });
     }
 
@@ -2107,6 +2346,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   useEffect(() => {
     serializeToTableColumns();
   }, [props.columns]);
+
+  /*
+   * The viewer changed their layout, or the project's custom field
+   * definitions finally arrived.
+   */
+  useEffect(() => {
+    serializeToTableColumns();
+  }, [effectiveColumnPreference, customFieldColumns.columns]);
 
   const setActionSchema: VoidFunction = () => {
     const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
@@ -3375,6 +3622,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return "Watch Demo";
       case IconProp.Search:
         return "Search";
+      case IconProp.TableCells:
+        return "Columns";
       default:
         return "Action";
     }
@@ -3581,6 +3830,133 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return originalTitle;
   };
 
+  type IsPickableColumnFunction = (
+    column: ModelTableColumn<TBaseModel>,
+  ) => boolean;
+
+  /*
+   * A column the viewer cannot read is left out of the picker entirely.
+   * Listing it would advertise a field they have no access to, and switching
+   * it on would put that field in the select — which the API rejects for the
+   * whole request, blanking the table.
+   */
+  const isPickableColumn: IsPickableColumnFunction = (
+    column: ModelTableColumn<TBaseModel>,
+  ): boolean => {
+    if (column.isNotCustomizable) {
+      return false;
+    }
+
+    return hasPermissionToReadColumn(column) || User.isMasterAdmin();
+  };
+
+  type GetPickerEntriesFunction = (
+    preference: ColumnPreference | null,
+  ) => Array<CustomizableColumn<TBaseModel>>;
+
+  const getPickerEntries: GetPickerEntriesFunction = (
+    preference: ColumnPreference | null,
+  ): Array<CustomizableColumn<TBaseModel>> => {
+    return getCustomizableColumns<TBaseModel>({
+      columns: allColumns,
+      preference: preference,
+    }).filter((entry: CustomizableColumn<TBaseModel>) => {
+      return isPickableColumn(entry.column);
+    });
+  };
+
+  type GetColumnSortKeyFunction = (
+    column: ModelTableColumn<TBaseModel>,
+  ) => string | null;
+
+  // Mirrors how serializeToTableColumns derives the key the header sorts on.
+  const getColumnSortKey: GetColumnSortKeyFunction = (
+    column: ModelTableColumn<TBaseModel>,
+  ): string | null => {
+    const key: keyof TBaseModel | null = getColumnKey(column);
+
+    if (!key) {
+      return null;
+    }
+
+    return column.selectedProperty
+      ? `${String(key)}.${column.selectedProperty}`
+      : String(key);
+  };
+
+  type OnColumnCustomizationSaveFunction = (
+    entries: Array<CustomizableColumn<TBaseModel>>,
+  ) => void;
+
+  const onColumnCustomizationSave: OnColumnCustomizationSaveFunction = (
+    entries: Array<CustomizableColumn<TBaseModel>>,
+  ): void => {
+    const preference: ColumnPreference =
+      buildColumnPreference<TBaseModel>(entries);
+
+    /*
+     * If the layout the viewer just saved matches what the table ships with,
+     * store nothing. Otherwise every table anyone ever opened the picker on
+     * would be pinned to the column set of the release they opened it in, and
+     * columns added later would arrive already stale.
+     */
+    const defaultPreference: ColumnPreference =
+      buildColumnPreference<TBaseModel>(getPickerEntries(null));
+
+    const isBackToDefault: boolean =
+      JSON.stringify(preference) === JSON.stringify(defaultPreference);
+
+    /*
+     * Sorting by a column that is no longer on screen leaves the viewer with
+     * an ordering they can neither see nor undo — there is no header left to
+     * click. Fall back to the table's own default sort.
+     */
+    if (sortBy) {
+      const hiddenIds: Set<string> = new Set(preference.hidden);
+
+      const isSortedColumnHidden: boolean = entries.some(
+        (entry: CustomizableColumn<TBaseModel>) => {
+          return (
+            hiddenIds.has(entry.id) &&
+            getColumnSortKey(entry.column) === String(sortBy)
+          );
+        },
+      );
+
+      if (isSortedColumnHidden) {
+        setSortBy((props.sortBy as keyof TBaseModel | undefined) || null);
+        setSortOrder(props.sortOrder || SortOrder.Ascending);
+        setCurrentPageNumber(1);
+      }
+    }
+
+    saveColumnPreference(isBackToDefault ? null : preference);
+    setShowColumnCustomizationModal(false);
+  };
+
+  const getColumnCustomizationModal: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!showColumnCustomizationModal || !isColumnCustomizationEnabled) {
+        return null;
+      }
+
+      return (
+        <ColumnCustomizationModal<TBaseModel>
+          columns={getPickerEntries(effectiveColumnPreference)}
+          isDefaultLayout={isEmptyColumnPreference(effectiveColumnPreference)}
+          title={tx("Customize Columns")}
+          onSave={onColumnCustomizationSave}
+          onReset={() => {
+            saveColumnPreference(null);
+            setShowColumnCustomizationModal(false);
+          }}
+          onClose={() => {
+            setShowColumnCustomizationModal(false);
+          }}
+        />
+      );
+    };
+
   const getCardComponent: GetReactElementFunction = (): ReactElement => {
     const headerButtons: Array<CardButtonSchema | ReactElement> =
       getHeaderButtonsWithSearch();
@@ -3601,7 +3977,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 getCardTitle(props.cardProps.title || ""),
               )}
             >
-              {tableColumns.length === 0 && props.columns.length > 0 ? (
+              {/*
+               * A viewer's layout can never empty this out — applyColumnPreference
+               * refuses to return nothing — so zero columns still means exactly
+               * what it always did: every column was denied by permission.
+               */}
+              {tableColumns.length === 0 && allColumns.length > 0 ? (
                 <ErrorMessage
                   message={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
                     model.getReadPermissions(),
@@ -3799,6 +4180,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           </div>
         </Modal>
       )}
+
+      {getColumnCustomizationModal()}
     </>
   );
 };

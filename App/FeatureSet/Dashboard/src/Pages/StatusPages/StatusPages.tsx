@@ -8,6 +8,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -56,6 +57,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
         enableJsonImportExport={true}
         id="status-page-table"
         userPreferencesKey="status-page-table"
+        customFieldsModelType={StatusPageCustomField}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
