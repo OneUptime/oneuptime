@@ -315,3 +315,61 @@ describe("CommonAPI.assertAuthenticatedProjectMember", () => {
     });
   });
 });
+
+/*
+ * Tests for CommonAPI.assertTenantScoped — the lighter guard for custom
+ * endpoints whose path carries only a resource id, so the project can only
+ * come from the `tenantid` header. Without it the request still reaches the
+ * handler, just with no tenant permissions, and the eventual tenant-scoped
+ * read fails as "You do not have permissions to read <model>" — a message
+ * that sends project owners hunting for a role they already hold. The guard
+ * exists to surface the real cause (a missing header) instead.
+ */
+describe("CommonAPI.assertTenantScoped", () => {
+  test("throws BadDataException naming the tenantid header when tenantId is missing", () => {
+    const props: DatabaseCommonInteractionProps = buildProps({
+      tenantId: undefined,
+      userId: ObjectID.generate(),
+    });
+
+    const thrown: unknown = captureThrown(() => {
+      CommonAPI.assertTenantScoped(props);
+    });
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect((thrown as Exception).message).toContain("Project ID is required");
+    expect((thrown as Exception).message).toContain("tenantid");
+  });
+
+  test("returns the tenant id when the request is project scoped", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const props: DatabaseCommonInteractionProps = buildProps({
+      tenantId: projectId,
+      userId: ObjectID.generate(),
+    });
+
+    expect(CommonAPI.assertTenantScoped(props)).toBe(projectId);
+  });
+
+  /*
+   * API-key callers are authenticated by ProjectMiddleware, which sets
+   * userType/tenantId and the tenant permission map but never userId. This
+   * guard must not lock them out — that is what separates it from
+   * assertAuthenticatedProjectMember.
+   */
+  test("accepts an API-key caller that has a tenant but no userId", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const permissions: Dictionary<UserTenantAccessPermission> = {};
+    permissions[projectId.toString()] = buildTenantPermission(projectId);
+
+    const props: DatabaseCommonInteractionProps = buildProps({
+      tenantId: projectId,
+      userId: undefined,
+      userTenantAccessPermission: permissions,
+    });
+
+    expect(() => {
+      CommonAPI.assertTenantScoped(props);
+    }).not.toThrow();
+  });
+});
