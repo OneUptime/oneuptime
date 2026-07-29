@@ -58,29 +58,34 @@ const getStripeCustomer: GetStripeCustomerFunction = (
   };
 };
 
-type GetStripeSubscriptionFunction = () => Stripe.Subscription;
+type GetStripeSubscriptionFunction = (options?: {
+  id?: string | undefined;
+  status?: Stripe.Subscription.Status | undefined;
+}) => Stripe.Subscription;
 
-const getStripeSubscription: GetStripeSubscriptionFunction =
-  (): Stripe.Subscription => {
-    return {
-      id: Faker.generateRandomObjectID().toString(),
-      items: {
-        data: [
-          {
-            id: Faker.generateRandomObjectID().toString(),
-            // @ts-expect-error - Simplified mock price object for testing without all required Stripe Price properties
-            price: {
-              id: new BillingService().getMeteredPlanPriceId(
-                ProductType.ActiveMonitoring,
-              ),
-            },
+const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
+  id?: string | undefined;
+  status?: Stripe.Subscription.Status | undefined;
+}): Stripe.Subscription => {
+  return {
+    id: options?.id || Faker.generateRandomObjectID().toString(),
+    items: {
+      data: [
+        {
+          id: Faker.generateRandomObjectID().toString(),
+          // @ts-expect-error - Simplified mock price object for testing without all required Stripe Price properties
+          price: {
+            id: new BillingService().getMeteredPlanPriceId(
+              ProductType.ActiveMonitoring,
+            ),
           },
-        ],
-      },
-      status: "active",
-      customer: getStripeCustomer(),
-    };
+        },
+      ],
+    },
+    status: options?.status || "active",
+    customer: getStripeCustomer(),
   };
+};
 
 type GetSubscriptionPlanDataFunction = () => SubscriptionPlan;
 

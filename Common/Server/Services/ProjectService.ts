@@ -610,6 +610,99 @@ export class ProjectService extends DatabaseService<Model> {
   }
 
   /*
+   * Pushes a project's trial end date out to a new date, in the payment
+   * provider first and then on the project row.
+   *
+   * The payment provider is the source of truth for what the customer is
+   * actually charged, so it is updated first: if Stripe rejects the change
+   * the project row keeps its old trial date rather than showing the customer
+   * a trial that is not really there.
+   */
+  @CaptureSpan()
+  public async extendTrial(params: {
+    projectId: ObjectID;
+    trialEndsAt: Date;
+    extendedByUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    if (!IsBillingEnabled) {
+      throw new BadDataException("Billing is not enabled for this server");
+    }
+
+    const project: Model | null = await this.findOneById({
+      id: params.projectId,
+      select: {
+        _id: true,
+        trialEndsAt: true,
+        paymentProviderSubscriptionId: true,
+        paymentProviderMeteredSubscriptionId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    if (!project.paymentProviderSubscriptionId) {
+      throw new BadDataException("Payment Provider subscription not found");
+    }
+
+    if (!project.paymentProviderMeteredSubscriptionId) {
+      throw new BadDataException(
+        "Payment Provider metered subscription not found",
+      );
+    }
+
+    await BillingService.extendTrial({
+      subscriptionId: project.paymentProviderSubscriptionId,
+      meteredSubscriptionId: project.paymentProviderMeteredSubscriptionId,
+      trialEndsAt: params.trialEndsAt,
+    });
+
+    /*
+     * Pushing trial_end out puts the subscriptions back into `trialing`. Read
+     * the statuses back rather than assuming them, so the project row - which
+     * drives the customer's trial banner and the paywall - matches Stripe.
+     */
+    const subscriptionStatus: SubscriptionStatus =
+      await BillingService.getSubscriptionStatus(
+        project.paymentProviderSubscriptionId,
+      );
+
+    const meteredSubscriptionStatus: SubscriptionStatus =
+      await BillingService.getSubscriptionStatus(
+        project.paymentProviderMeteredSubscriptionId,
+      );
+
+    await this.updateOneById({
+      id: project.id!,
+      data: {
+        trialEndsAt: params.trialEndsAt,
+        paymentProviderSubscriptionStatus: subscriptionStatus,
+        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionStatus,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    /*
+     * The audit trail for handing out free service. There is no generic
+     * admin-action table, so the acting master admin goes in the log line.
+     */
+    logger.info(
+      `Trial for project ${project.id?.toString()} extended from ${
+        project.trialEndsAt?.toISOString() || "none"
+      } to ${params.trialEndsAt.toISOString()} by master admin ${
+        params.extendedByUserId?.toString() || "unknown"
+      }`,
+    );
+  }
+
+  /*
    * The paid-conversion event for ad platforms: fires server-side (immune to
    * ad blockers) whenever a project's subscription plan changes, with enough
    * detail (plan amounts, attribution) for revenue reporting and offline

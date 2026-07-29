@@ -14,6 +14,11 @@ export default {
     SUBSCRIPTION_NOT_FOUND: "Subscription not found.",
     INVOICE_NOT_FOUND: "Invoice not found.",
     PAYMENT_INTENT_NOT_FOUND: "Payment intent not found.",
+    TRIAL_END_DATE_IN_PAST: "Trial end date must be in the future.",
+    TRIAL_END_DATE_TOO_FAR_IN_FUTURE:
+      "Trial end date cannot be more than 730 days (two years) in the future. This is a limit imposed by the payment provider.",
+    CANNOT_EXTEND_TRIAL_ON_CANCELLED_SUBSCRIPTION:
+      "This subscription has been cancelled. Its trial cannot be extended.",
   },
   TeamMemberService: {
     ALREADY_INVITED: "This user has already been invited to this team",

@@ -8,6 +8,7 @@ import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import { BILLING_ENABLED } from "Common/UI/Config";
 
 export interface SideMenuProps {
   modelId: ObjectID;
@@ -60,6 +61,26 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
           icon={IconProp.Team}
         />
       </SideMenuSection>
+
+      {/* Trials only exist on the hosted (billing enabled) edition. */}
+      {BILLING_ENABLED ? (
+        <SideMenuSection title={t("sideMenu.billing")}>
+          <SideMenuItem
+            link={{
+              title: t("sideMenu.trial"),
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.PROJECT_TRIAL] as Route,
+                {
+                  modelId: props.modelId,
+                },
+              ),
+            }}
+            icon={IconProp.Clock}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title={t("sideMenu.advanced")}>
         <SideMenuItem
