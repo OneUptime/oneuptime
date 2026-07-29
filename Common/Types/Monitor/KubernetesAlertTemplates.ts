@@ -959,6 +959,208 @@ const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
   },
 };
 
+/*
+ * --- Autoscaling / limit-saturation templates ---
+ *
+ * These three close the detection gap for the classic "under-resourced
+ * workload behind an autoscaler" failure: limits are set too low, so the
+ * containers sit pinned against them (OOMKilled on memory, CFS-throttled
+ * on CPU), the resulting latency/restarts drive the HPA up, and the HPA
+ * fills the cluster until nodes go NotReady.
+ *
+ * The node-side templates above catch the END of that chain (high node
+ * CPU/memory, NotReady, pending pods) — by which point the RCA is several
+ * hops from the cause. These catch the START: the HPA running out of
+ * headroom, and the containers pinned at their own limits.
+ *
+ * All three are per-series ratios, grouped by the ClickHouse-stored
+ * `resource.`-prefixed attribute (see buildKubernetesRatioMonitorConfig).
+ */
+
+const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
+  id: "k8s-hpa-at-max-replicas",
+  name: "HPA Saturated at Max Replicas",
+  description:
+    "Alert when a HorizontalPodAutoscaler is running at 90% or more of its maxReplicas. Computed per HPA as k8s.hpa.current_replicas ÷ k8s.hpa.max_replicas × 100. An HPA at its ceiling has no headroom left: load it cannot absorb by scaling turns straight into latency and errors, and a workload that reaches the ceiling and stays there is usually under-resourced per pod rather than genuinely at capacity.",
+  category: "Workload",
+  severity: "Critical",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "hpa_replica_saturation";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.hpa.current_replicas",
+        denominatorMetricName: "k8s.hpa.max_replicas",
+        groupByAttributeKey: "resource.k8s.hpa.name",
+        numeratorAlias: "current_replicas",
+        denominatorAlias: "max_replicas",
+        resultAlias: metricAlias,
+        resultLegend: "HPA Replica Saturation (%)",
+        resourceScope: KubernetesResourceScope.Workload,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * ONE series per HPA on both sides (they are the same object's
+         * status/spec fields), so Avg gives the representative per-minute
+         * ratio independent of scrape count. Both come from the same
+         * k8s_cluster scrape, so Sum would also cancel — but Avg stays
+         * correct across restarts and missed scrapes. See
+         * buildKubernetesRatioMonitorConfig.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 90,
+        incidentTitle: `[K8s] HPA Saturated at Max Replicas (>=90%) - ${args.monitorName}`,
+        incidentDescription: `A HorizontalPodAutoscaler is running at 90% or more of its maxReplicas and has effectively no scaling headroom left. Any further load cannot be absorbed by scaling out, so it will surface as latency and errors instead. Check whether the workload is genuinely at capacity or whether its per-pod CPU/memory limits are set too low — an under-resourced pod gets throttled or OOMKilled, which inflates the metric the HPA scales on and drives it to the ceiling. Check the root cause for the specific HPA, its target workload, and current vs max replicas.`,
+        criteriaName: "HPA Saturation - Current/Max Replicas >= 90%",
+        criteriaDescription:
+          "Triggers when any HPA's current replica count reaches 90% or more of its configured maxReplicas.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 90,
+      }),
+    });
+  },
+};
+
+const podMemoryLimitSaturationTemplate: KubernetesAlertTemplate = {
+  id: "k8s-pod-memory-limit-saturation",
+  name: "Pod Memory Saturating Container Limit",
+  description:
+    "Alert when a pod's memory usage exceeds 90% of its configured container memory limit — the state immediately preceding an OOMKill. Computed per pod as k8s.pod.memory.usage ÷ k8s.container.memory_limit × 100 (both bytes). This is the cause-side signal for CrashLoopBackOff and restart storms: a limit set too low shows up here minutes before the container is killed.",
+  category: "Workload",
+  severity: "Critical",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "pod_memory_limit_saturation";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.pod.memory.usage",
+        denominatorMetricName: "k8s.container.memory_limit",
+        groupByAttributeKey: "resource.k8s.pod.name",
+        numeratorAlias: "used_mem",
+        denominatorAlias: "limit_mem",
+        resultAlias: metricAlias,
+        resultLegend: "Pod Memory vs Limit (%)",
+        resourceScope: KubernetesResourceScope.Pod,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Avg, deliberately — and the one case in this file where the two
+         * sides have different series shapes, so the trade-off is worth
+         * stating.
+         *
+         * Numerator (k8s.pod.memory.usage, kubeletstats) is ONE series per
+         * pod. Denominator (k8s.container.memory_limit, k8s_cluster) is one
+         * series per CONTAINER, so a multi-container pod contributes
+         * several.
+         *
+         * Sum is definitively wrong here: the two metrics ride different
+         * receivers on independent scrape cycles, so the scrape multiple
+         * would not cancel. Avg is exact for single-container pods (the
+         * overwhelming majority, and the case this template exists for).
+         *
+         * For multi-container pods Avg takes the MEAN container limit
+         * rather than their sum, so the ratio over-reports and the alert
+         * fires early. That is the safe direction for an "OOMKill is
+         * imminent" warning — a false early page beats a missed kill — but
+         * it is a real caveat, not a rounding detail. A per-container
+         * variant needs a container-scoped usage metric to pair against
+         * (`container.memory.usage`), which the shipped catalog does not
+         * carry today.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 90,
+        incidentTitle: `[K8s] Pod Memory Saturating Container Limit (>90%) - ${args.monitorName}`,
+        incidentDescription: `A pod's memory usage has exceeded 90% of its configured container memory limit. The kubelet OOMKills a container the moment it crosses its limit, so this is the state immediately preceding a restart — and, if the workload sits behind an autoscaler, the start of a restart/scale-up loop. Either the limit is set too low for the workload's real footprint or the workload has a memory leak. Check the root cause for the specific pod, its limit, and its usage trend.`,
+        criteriaName: "Pod Memory Saturation - Usage/Limit > 90%",
+        criteriaDescription:
+          "Triggers when any pod's memory usage exceeds 90% of its container memory limit.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 90,
+      }),
+    });
+  },
+};
+
+const podCpuLimitSaturationTemplate: KubernetesAlertTemplate = {
+  id: "k8s-pod-cpu-limit-saturation",
+  name: "Pod CPU Saturating Container Limit",
+  description:
+    "Alert when a pod's CPU usage exceeds 90% of its configured container CPU limit — the point at which the kernel's CFS quota starts throttling it. Computed per pod as k8s.pod.cpu.utilization ÷ k8s.container.cpu_limit × 100; both are CPU cores, so this is a true percentage (k8s.pod.cpu.utilization is a misnamed cores gauge, not a percent). A throttled pod gets slower, not louder — behind an HPA that reads CPU, throttling drives the replica count up while every pod stays equally starved.",
+  category: "Workload",
+  severity: "Warning",
+  getMonitorStep: (args: KubernetesAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "pod_cpu_limit_saturation";
+
+    return buildKubernetesMonitorStep({
+      kubernetesMonitor: buildKubernetesRatioMonitorConfig({
+        clusterIdentifier: args.clusterIdentifier,
+        numeratorMetricName: "k8s.pod.cpu.utilization",
+        denominatorMetricName: "k8s.container.cpu_limit",
+        groupByAttributeKey: "resource.k8s.pod.name",
+        numeratorAlias: "used_cpu",
+        denominatorAlias: "limit_cpu",
+        resultAlias: metricAlias,
+        resultLegend: "Pod CPU vs Limit (%)",
+        resourceScope: KubernetesResourceScope.Pod,
+        rollingTime: RollingTime.Past5Minutes,
+        /*
+         * Avg, for the same reason as the memory template above: ONE
+         * numerator series per pod (kubeletstats) against a per-container
+         * denominator (k8s_cluster) on an independent scrape cycle. Exact
+         * for single-container pods; over-reports (fires early) for
+         * multi-container pods. See that template's note for the full
+         * trade-off.
+         */
+        aggregationType: MetricsAggregationType.Avg,
+      }),
+      offlineCriteriaInstance: buildOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 90,
+        incidentTitle: `[K8s] Pod CPU Saturating Container Limit (>90%) - ${args.monitorName}`,
+        incidentDescription: `A pod's CPU usage has exceeded 90% of its configured container CPU limit and is being throttled by the kernel's CFS quota. Throttling is silent — the pod does not crash, it just gets slower, so this usually surfaces as request latency rather than as an error. If the workload sits behind a CPU-based HorizontalPodAutoscaler, throttling also inflates the metric the HPA scales on, so the autoscaler adds replicas that are each equally starved. Check whether the CPU limit is set too low for the workload rather than adding replicas.`,
+        criteriaName: "Pod CPU Saturation - Usage/Limit > 90%",
+        criteriaDescription:
+          "Triggers when any pod's CPU usage exceeds 90% of its container CPU limit.",
+      }),
+      onlineCriteriaInstance: buildOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: 90,
+      }),
+    });
+  },
+};
+
 export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate> {
   return [
     crashLoopBackOffTemplate,
@@ -975,6 +1177,9 @@ export function getAllKubernetesAlertTemplates(): Array<KubernetesAlertTemplate>
     daemonSetUnavailableTemplate,
     nodeCpuRequestUtilizationTemplate,
     nodeMemoryRequestUtilizationTemplate,
+    hpaAtMaxReplicasTemplate,
+    podMemoryLimitSaturationTemplate,
+    podCpuLimitSaturationTemplate,
   ];
 }
 

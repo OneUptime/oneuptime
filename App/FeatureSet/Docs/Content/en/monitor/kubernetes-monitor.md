@@ -140,20 +140,36 @@ Select the time window for metric evaluation:
 
 OneUptime provides templates for common Kubernetes monitoring scenarios:
 
-| Template                    | Description                 | Threshold       |
-| --------------------------- | --------------------------- | --------------- |
-| CrashLoopBackOff Detection  | Container restart count     | > 5 restarts    |
-| Pod Stuck in Pending        | Pods in Pending phase       | > 0 pods        |
-| Node Not Ready              | Node readiness condition    | = 0 (not ready) |
-| High Node CPU               | Node CPU utilization        | > 90%           |
-| High Node Memory            | Node memory utilization     | > 85%           |
-| Deployment Replica Mismatch | Unavailable replicas        | > 0 replicas    |
-| Job Failures                | Failed pods in a job        | > 0 failures    |
-| etcd No Leader              | etcd cluster leader missing | = 0 (no leader) |
-| API Server Throttling       | Dropped API requests        | > 0 requests    |
-| Scheduler Backlog           | Pending pods in scheduler   | > 0 pods        |
-| High Node Disk Usage        | Node filesystem usage       | > 90%           |
-| DaemonSet Unavailable       | Misscheduled nodes          | > 0 nodes       |
+| Template                            | Description                                | Threshold       |
+| ----------------------------------- | ------------------------------------------ | --------------- |
+| CrashLoopBackOff Detection          | Container restart count                    | > 5 restarts    |
+| Pod Stuck in Pending                | Pods in Pending phase                      | > 0 pods        |
+| Node Not Ready                      | Node readiness condition                   | = 0 (not ready) |
+| High Node CPU                       | Node CPU utilization                       | > 90%           |
+| High Node Memory                    | Node memory utilization                    | > 85%           |
+| Deployment Replica Mismatch         | Unavailable replicas                       | > 0 replicas    |
+| Job Failures                        | Failed pods in a job                       | > 0 failures    |
+| etcd No Leader                      | etcd cluster leader missing                | = 0 (no leader) |
+| API Server Throttling               | Dropped API requests                       | > 0 requests    |
+| Scheduler Backlog                   | Pending pods in scheduler                  | > 0 pods        |
+| High Node Disk Usage                | Node filesystem usage                      | > 90%           |
+| DaemonSet Unavailable               | Misscheduled nodes                         | > 0 nodes       |
+| High Node CPU Request Commitment    | Summed pod CPU requests ÷ node allocatable | > 90%           |
+| High Node Memory Request Commitment | Summed pod memory requests ÷ allocatable   | > 90%           |
+| HPA Saturated at Max Replicas       | HPA current ÷ max replicas                 | >= 90%          |
+| Pod Memory Saturating Limit         | Pod memory usage ÷ container memory limit  | > 90%           |
+| Pod CPU Saturating Limit            | Pod CPU usage ÷ container CPU limit        | > 90%           |
+
+### Catching causes, not just symptoms
+
+The node-level templates (High Node CPU/Memory, Node Not Ready, Pod Stuck in Pending) fire at the _end_ of a resource-exhaustion chain, when the cluster is already degraded. The last three templates in the table fire at the _start_ of it, which is usually where the fix is:
+
+- **Pod Memory / CPU Saturating Limit** catch a workload pinned against its own container limits. Crossing a memory limit is an immediate OOMKill; crossing a CPU limit means the kernel throttles the pod, so it gets slower without ever erroring. Both are the usual cause behind CrashLoopBackOff and unexplained latency.
+- **HPA Saturated at Max Replicas** catches an autoscaler with no headroom left. A workload whose per-pod limits are too low gets throttled or killed, which inflates the very metric the HPA scales on — so the autoscaler keeps adding replicas that are each equally starved, until it hits its ceiling or fills the cluster. Raising the limits is the fix; raising `maxReplicas` makes it worse.
+
+Enable them together on any namespace running an autoscaled workload — the combination distinguishes "genuinely needs more capacity" from "under-resourced per pod".
+
+> **Note on multi-container pods:** the two pod-limit templates compare a pod-level usage metric against a container-level limit metric. For single-container pods (the common case) the ratio is exact. For multi-container pods the denominator is the mean container limit rather than their sum, so the ratio over-reports and the alert fires early — the safe direction for an OOMKill warning, but worth knowing before you tune the threshold down.
 
 ## Setup Requirements
 
