@@ -12,6 +12,34 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 
 export default class CommonAPI {
   /*
+   * Custom (non-CRUD) endpoints whose path carries only a resource id give
+   * getUserMiddleware no way to learn the project except the `tenantid`
+   * header. When a caller forgets it, the request still reaches the handler —
+   * just with no tenant permissions — and the eventual tenant-scoped read
+   * fails as "You do not have permissions to read <model>", which reads like a
+   * missing role when it is really a missing header. Assert the scope up front
+   * so the caller gets the real cause.
+   *
+   * This deliberately checks the tenant only, not the user: API-key callers
+   * are authenticated by ProjectMiddleware and carry tenant permissions
+   * without ever setting `userId`. Use assertAuthenticatedProjectMember when
+   * an endpoint must additionally be a logged-in human member.
+   */
+  public static assertTenantScoped(
+    databaseProps: DatabaseCommonInteractionProps,
+  ): ObjectID {
+    const projectId: ObjectID | undefined = databaseProps.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException(
+        "Project ID is required. Please pass the project ID in the 'tenantid' header.",
+      );
+    }
+
+    return projectId;
+  }
+
+  /*
    * getUserMiddleware lets unauthenticated requests through as "public" and
    * takes the tenant id from a caller-supplied header — custom endpoints
    * that disclose project data must require an authenticated member of the
