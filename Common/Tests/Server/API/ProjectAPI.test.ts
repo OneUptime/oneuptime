@@ -1,4 +1,7 @@
 import ProjectAPI from "../../../Server/API/ProjectAPI";
+import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import BillingService from "../../../Server/Services/BillingService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
@@ -305,6 +308,183 @@ describe("ProjectAPI", () => {
         mockRequest,
         mockResponse,
       );
+    });
+  });
+
+  describe("PUT /project/:id/extend-trial", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    beforeEach(() => {
+      ProjectService.extendTrial = jest.fn().mockResolvedValue(undefined);
+      mockRequest.params = { id: projectId.toString() };
+
+      /*
+       * Response is module-mocked once for the whole file, so its call log
+       * carries over from the change-plan tests above.
+       */
+      (Response.sendEmptySuccessResponse as jest.Mock).mockClear();
+    });
+
+    it("should sit behind the master admin middleware", () => {
+      /*
+       * Extending a trial hands out free service across any project, so it
+       * must not be reachable with project-level billing permissions - and not
+       * with the static master API key either, only a master admin session.
+       */
+      expect(
+        mockRouter.match("put", "/project/:id/extend-trial").middleware,
+      ).toBe(MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware);
+    });
+
+    it("should extend the trial and respond with an empty success response", async () => {
+      const trialEndsAt: string = "2027-01-15T00:00:00.000Z";
+      mockRequest.body = { data: { trialEndsAt } };
+
+      await mockRouter
+        .match("put", "/project/:id/extend-trial")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(ProjectService.extendTrial).toHaveBeenCalledWith({
+        projectId: projectId,
+        trialEndsAt: new Date(trialEndsAt),
+      });
+      expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+      );
+    });
+
+    it("should work without a tenant id, since master admins act across projects", async () => {
+      mockRequest.body = { data: { trialEndsAt: "2027-01-15T00:00:00.000Z" } };
+      delete (mockRequest as { tenantId?: ObjectID }).tenantId;
+
+      await mockRouter
+        .match("put", "/project/:id/extend-trial")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(ProjectService.extendTrial).toHaveBeenCalled();
+    });
+
+    it("should reject when trialEndsAt is missing", async () => {
+      mockRequest.body = { data: {} };
+
+      await mockRouter
+        .match("put", "/project/:id/extend-trial")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalledWith(
+        new BadDataException("Trial end date is required to extend the trial"),
+      );
+      expect(ProjectService.extendTrial).not.toHaveBeenCalled();
+    });
+
+    it("should reject when the body has no data object", async () => {
+      mockRequest.body = {};
+
+      await mockRouter
+        .match("put", "/project/:id/extend-trial")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalledWith(
+        new BadDataException("Trial end date is required to extend the trial"),
+      );
+      expect(ProjectService.extendTrial).not.toHaveBeenCalled();
+    });
+
+    it("should reject when trialEndsAt is not a parseable date", async () => {
+      mockRequest.body = { data: { trialEndsAt: "not-a-date" } };
+
+      await mockRouter
+        .match("put", "/project/:id/extend-trial")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalledWith(
+        new BadDataException("Trial end date is not a valid date"),
+      );
+      expect(ProjectService.extendTrial).not.toHaveBeenCalled();
+    });
+
+    it("should reject a non-string trialEndsAt", async () => {
+      /*
+       * OneUptimeDate.fromString hands back its own error text rather than a
+       * Date for a non-string, which would sail past an isNaN check.
+       */
+      for (const value of [12345, { year: 2027 }, ["2027-01-15"], true]) {
+        (nextFunction as jest.Mock).mockClear();
+        mockRequest.body = { data: { trialEndsAt: value } };
+
+        await mockRouter
+          .match("put", "/project/:id/extend-trial")
+          .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+        expect(nextFunction).toHaveBeenCalledWith(
+          new BadDataException("Trial end date is not a valid date"),
+        );
+      }
+
+      expect(ProjectService.extendTrial).not.toHaveBeenCalled();
+    });
+
+    it("should record which master admin granted the extension", async () => {
+      const adminUserId: ObjectID = ObjectID.generate();
+
+      jest
+        .spyOn(UserMiddleware, "getAccessTokenFromExpressRequest")
+        .mockReturnValue("a-master-admin-token");
+      jest.spyOn(JSONWebToken, "decode").mockReturnValue({
+        userId: adminUserId,
+      } as JSONWebTokenData);
+
+      mockRequest.body = { data: { trialEndsAt: "2027-01-15T00:00:00.000Z" } };
+
+      await mockRouter
+        .match("put", "/project/:id/extend-trial")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(ProjectService.extendTrial).toHaveBeenCalledWith(
+        expect.objectContaining({ extendedByUserId: adminUserId }),
+      );
+    });
+
+    it("should still extend when the acting admin cannot be resolved", async () => {
+      /*
+       * The identity is only used for the audit log line - the middleware has
+       * already authorized the request, so a decode failure must not block it.
+       */
+      jest
+        .spyOn(UserMiddleware, "getAccessTokenFromExpressRequest")
+        .mockImplementation(() => {
+          throw new Error("no cookie on this request");
+        });
+
+      mockRequest.body = { data: { trialEndsAt: "2027-01-15T00:00:00.000Z" } };
+
+      await mockRouter
+        .match("put", "/project/:id/extend-trial")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(ProjectService.extendTrial).toHaveBeenCalledWith(
+        expect.objectContaining({ extendedByUserId: undefined }),
+      );
+    });
+
+    it("should forward service errors to next", async () => {
+      const serviceError: BadDataException = new BadDataException(
+        "Payment Provider subscription not found",
+      );
+
+      ProjectService.extendTrial = jest.fn().mockRejectedValue(serviceError);
+      mockRequest.body = { data: { trialEndsAt: "2027-01-15T00:00:00.000Z" } };
+
+      await mockRouter
+        .match("put", "/project/:id/extend-trial")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalledWith(serviceError);
+      expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
     });
   });
 });
