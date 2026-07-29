@@ -139,6 +139,58 @@ describe("OneUptimeDate user timezone", () => {
       expect(formatted).toContain("EDT");
     });
 
+    it("names the abbreviation in effect on the formatted date, not today's", () => {
+      OneUptimeDate.setUserTimezone(NY);
+
+      /*
+       * The abbreviation used to be looked up for "now", so all summer every
+       * winter timestamp read "EDT" — and 13:00 EDT is a different instant
+       * than the 13:00 EST that was actually stored.
+       */
+      const winter: string = OneUptimeDate.getDateAsLocalFormattedString(
+        new Date("2026-01-15T18:00:00Z"),
+      );
+      const summer: string = OneUptimeDate.getDateAsLocalFormattedString(
+        new Date("2026-07-15T18:00:00Z"),
+      );
+
+      expect(winter).toContain("13:00");
+      expect(winter).toContain("EST");
+      expect(winter).not.toContain("EDT");
+
+      expect(summer).toContain("14:00");
+      expect(summer).toContain("EDT");
+    });
+
+    it("labels each pass of a folded fall-back hour with its own abbreviation", () => {
+      OneUptimeDate.setUserTimezone(NY);
+
+      // 01:30 local happens twice on 2026-11-01 — once EDT, once EST.
+      const firstPass: string = OneUptimeDate.getDateAsLocalFormattedString(
+        new Date("2026-11-01T05:30:00Z"),
+      );
+      const secondPass: string = OneUptimeDate.getDateAsLocalFormattedString(
+        new Date("2026-11-01T06:30:00Z"),
+      );
+
+      expect(firstPass).toContain("01:30");
+      expect(secondPass).toContain("01:30");
+      // Identical wall clocks; the abbreviation is what tells them apart.
+      expect(firstPass).toContain("EDT");
+      expect(secondPass).toContain("EST");
+    });
+
+    it("still omits the abbreviation when only the date is shown", () => {
+      OneUptimeDate.setUserTimezone(NY);
+
+      const dateOnly: string = OneUptimeDate.getDateAsLocalFormattedString(
+        new Date("2026-01-15T18:00:00Z"),
+        true,
+      );
+
+      expect(dateOnly).toBe("Jan 15, 2026");
+    });
+
     it("reads the hour and minute of an instant in the user timezone", () => {
       OneUptimeDate.setUserTimezone(KOLKATA);
 

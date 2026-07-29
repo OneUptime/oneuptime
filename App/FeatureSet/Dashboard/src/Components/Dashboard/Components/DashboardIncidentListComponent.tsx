@@ -18,7 +18,11 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import API from "Common/UI/Utils/API/API";
 import IconProp from "Common/Types/Icon/IconProp";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
+import {
+  DashboardDateTime,
+  getDashboardDateTime,
+  getDashboardDateTimeLabel,
+} from "../Utils/DashboardDateTime";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -35,10 +39,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Title", widthPct: "45%" },
-  { label: "State", widthPct: "20%" },
+  { label: "Title", widthPct: "40%" },
+  { label: "State", widthPct: "17%" },
   { label: "Severity", widthPct: "15%" },
-  { label: "Declared", widthPct: "20%" },
+  // Wider than the other columns because it carries a date *and* a time.
+  { label: "Declared", widthPct: "28%" },
 ];
 
 const DashboardIncidentListComponentElement: FunctionComponent<
@@ -196,6 +201,17 @@ const DashboardIncidentListComponentElement: FunctionComponent<
           details: [
             { label: "State", value: stateName },
             { label: "Severity", value: severityName },
+            /*
+             * Honeycomb mode has no "Declared" column, so without this the
+             * tile view is the one place a user cannot tell when an incident
+             * started.
+             */
+            {
+              label: "Declared",
+              value: getDashboardDateTimeLabel(
+                incident.createdAt as unknown as string | undefined,
+              ),
+            },
           ],
         },
       };
@@ -213,9 +229,9 @@ const DashboardIncidentListComponentElement: FunctionComponent<
         (incident.incidentSeverity?.name as string) || "—";
       const severityColor: Color | undefined = incident.incidentSeverity
         ?.color as Color | undefined;
-      const created: Date | undefined = incident.createdAt
-        ? OneUptimeDate.fromString(incident.createdAt as unknown as string)
-        : undefined;
+      const declared: DashboardDateTime = getDashboardDateTime(
+        incident.createdAt as unknown as string | undefined,
+      );
 
       const detailRoute: Route = RouteUtil.populateRouteParams(
         RouteMap[PageMap.INCIDENT_VIEW] as Route,
@@ -268,10 +284,11 @@ const DashboardIncidentListComponentElement: FunctionComponent<
               {severityName}
             </span>
           </td>
-          <td className="px-3 py-2 text-xs text-gray-500 tabular-nums">
-            {created
-              ? OneUptimeDate.getDateAsLocalFormattedString(created, true)
-              : "—"}
+          <td
+            className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"
+            title={declared.title}
+          >
+            {declared.label}
           </td>
         </tr>
       );

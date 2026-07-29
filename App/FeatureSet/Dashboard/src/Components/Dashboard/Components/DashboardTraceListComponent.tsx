@@ -25,7 +25,11 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
+import {
+  DashboardDateTime,
+  getDashboardDateTime,
+  getDashboardDateTimeLabel,
+} from "../Utils/DashboardDateTime";
 import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
 
@@ -34,10 +38,11 @@ export interface ComponentProps extends DashboardBaseComponentProps {
 }
 
 const COLUMNS: Array<ResourceListColumn> = [
-  { label: "Span Name", widthPct: "35%" },
-  { label: "Duration", widthPct: "20%" },
+  { label: "Span Name", widthPct: "32%" },
+  { label: "Duration", widthPct: "18%" },
   { label: "Status", widthPct: "15%" },
-  { label: "Time", widthPct: "30%" },
+  // Wider than the other columns because it carries a date *and* a time.
+  { label: "Time", widthPct: "35%" },
 ];
 
 const STATUS_COLORS: Record<number, { color: string; label: string }> = {
@@ -182,9 +187,11 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
       const statusInfo: { color: string; label: string } =
         STATUS_COLORS[statusCode] || STATUS_COLORS[SpanStatus.Unset]!;
       const durationNano: number = (span.durationUnixNano as number) || 0;
-      const startTime: Date | undefined = span.startTime
-        ? OneUptimeDate.fromString(span.startTime as unknown as string)
-        : undefined;
+      const startTimeLabel: string = getDashboardDateTimeLabel(
+        span.startTime as unknown as string | undefined,
+        // Spans are sub-second events, so the second is worth showing.
+        { showSeconds: true },
+      );
       const id: string =
         (span.spanId as string) || (span.traceId as string) || `${index}`;
 
@@ -198,9 +205,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
             { label: "Duration", value: formatDuration(durationNano) },
             {
               label: "Time",
-              value: startTime
-                ? OneUptimeDate.getDateAsLocalFormattedString(startTime, true)
-                : "—",
+              value: startTimeLabel,
             },
           ],
         },
@@ -214,9 +219,11 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
         (span.statusCode as number) || SpanStatus.Unset;
       const statusStyle: StatusStyle = getStatusStyle(statusCode);
       const durationNano: number = (span.durationUnixNano as number) || 0;
-      const startTime: Date | undefined = span.startTime
-        ? OneUptimeDate.fromString(span.startTime as unknown as string)
-        : undefined;
+      const startTime: DashboardDateTime = getDashboardDateTime(
+        span.startTime as unknown as string | undefined,
+        // Spans are sub-second events, so the second is worth showing.
+        { showSeconds: true },
+      );
 
       return (
         <tr
@@ -237,10 +244,11 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
               {statusStyle.label}
             </span>
           </td>
-          <td className="px-3 py-2 text-xs text-gray-500 tabular-nums">
-            {startTime
-              ? OneUptimeDate.getDateAsLocalFormattedString(startTime, true)
-              : "—"}
+          <td
+            className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"
+            title={startTime.title}
+          >
+            {startTime.label}
           </td>
         </tr>
       );
