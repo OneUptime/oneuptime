@@ -81,6 +81,18 @@ export default class ApiPost extends ComponentCode {
 
       logger.debug("API Post Component is done.", workflowLogAttributes);
 
+      /*
+       * On the server API resolves with an HTTPErrorResponse instead of
+       * throwing, so the catch below never sees an HTTP error - a 4xx/5xx used
+       * to take the success port.
+       */
+      if (apiResult instanceof HTTPErrorResponse) {
+        return Promise.resolve({
+          returnValues: ApiComponentUtils.getReturnValues(apiResult),
+          executePort: result.errorPort,
+        });
+      }
+
       return Promise.resolve({
         returnValues: ApiComponentUtils.getReturnValues(apiResult),
         executePort: result.successPort,

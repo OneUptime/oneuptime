@@ -1065,6 +1065,12 @@ func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.U
     }
 ${this.generateConditionalUpdateRequestBodyWithDeclaration(resource, resourceVarName)}
 
+    // Nothing to send. The API rejects an update that carries no fields, so keep the current state and skip the call.
+    if len(${resourceVarName}Request["data"].(map[string]interface{})) == 0 {
+        resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+        return
+    }
+
     // Make API call
     httpResp, err := r.client.${httpMethod}(${finalUpdatePath}, ${resourceVarName}Request)
     if err != nil {

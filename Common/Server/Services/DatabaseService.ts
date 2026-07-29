@@ -1841,6 +1841,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       const dataColumns: [string, boolean][] = [];
       const dataKeys: string[] = Object.keys(data);
+
+      /*
+       * An update that carries no columns writes nothing, yet it would still
+       * match rows - so returning the matched count reported a write that
+       * never happened. Treat it like a query that matched nothing instead.
+       */
+      const hasColumnsToUpdate: boolean = dataKeys.length > 0;
+
       for (const key of dataKeys) {
         dataColumns.push([key, true]);
       }
@@ -1879,13 +1887,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
-      const items: Array<TBaseModel> = await this._findBy({
-        query: beforeUpdateBy.query,
-        skip: updateBy.skip.toNumber(),
-        limit: updateBy.limit.toNumber(),
-        select: selectColumns,
-        props: { isRoot: true, ignoreHooks: true },
-      });
+      const items: Array<TBaseModel> = hasColumnsToUpdate
+        ? await this._findBy({
+            query: beforeUpdateBy.query,
+            skip: updateBy.skip.toNumber(),
+            limit: updateBy.limit.toNumber(),
+            select: selectColumns,
+            props: { isRoot: true, ignoreHooks: true },
+          })
+        : [];
 
       for (const item of items) {
         /*

@@ -298,7 +298,11 @@ export default class WorkflowVariable extends BaseModel {
       Permission.CreateWorkflowVariable,
     ],
     read: [],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditWorkflowVariable,
+    ],
   })
   @TableColumn({
     required: true,

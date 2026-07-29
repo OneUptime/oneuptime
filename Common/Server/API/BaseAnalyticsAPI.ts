@@ -21,8 +21,9 @@ import {
   DEFAULT_LIMIT,
   LIMIT_PER_PROJECT,
 } from "../../Types/Database/LimitMax";
+import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
 import { UserPermission } from "../../Types/Permission";
@@ -542,10 +543,43 @@ export default class BaseAnalyticsAPI<
     const objectId: ObjectID = new ObjectID(req.params["id"] as string);
     const objectIdString: string = objectId.toString();
     const body: JSONObject = req.body;
+    const dataInBody: JSONValue | undefined = body["data"];
+
+    /*
+     * Same contract as BaseAPI.updateItem: the payload has to be wrapped as
+     * { "data": { ...columns... } }. Reject anything else here rather than
+     * letting an empty model reach the service.
+     */
+    if (
+      !dataInBody ||
+      typeof dataInBody !== "object" ||
+      Array.isArray(dataInBody)
+    ) {
+      throw new BadDataException(
+        'Invalid request body. The update payload should be an object of the form { "data": { ...fields to update... } }.',
+      );
+    }
+
+    /*
+     * Count the fields on the raw payload, not on the model: an analytics
+     * model instance always carries its own internal properties, so
+     * Object.keys() on it is never empty.
+     */
+    const fieldsToUpdate: Array<string> = Object.keys(
+      dataInBody as JSONObject,
+    ).filter((key: string) => {
+      return key !== "_id" && key !== "createdAt" && key !== "updatedAt";
+    });
+
+    if (fieldsToUpdate.length === 0) {
+      throw new BadDataException(
+        'No fields to update. Please include at least one field to update in the "data" object of the request body.',
+      );
+    }
 
     const item: TAnalyticsDataModel =
       AnalyticsDataModel.fromJSON<TAnalyticsDataModel>(
-        body["data"] as JSONObject,
+        dataInBody as JSONObject,
         this.entityType,
       ) as TAnalyticsDataModel;
 
