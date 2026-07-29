@@ -135,6 +135,18 @@ const DockerSwarmClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.LightBulb}
         />
+        <SideMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.DOCKER_SWARM_CLUSTER_VIEW_RECOMMENDATIONS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Sparkles}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Workloads">

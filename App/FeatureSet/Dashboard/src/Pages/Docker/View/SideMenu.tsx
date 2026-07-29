@@ -113,6 +113,16 @@ const DockerHostSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DOCKER_HOST_VIEW_RECOMMENDATIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Sparkles}
+        />
+        <SideMenuItem
+          link={{
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.DOCKER_HOST_VIEW_DOCUMENTATION] as Route,

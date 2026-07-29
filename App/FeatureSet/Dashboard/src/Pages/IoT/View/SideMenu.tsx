@@ -120,6 +120,16 @@ const IoTFleetSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.IOT_FLEET_VIEW_RECOMMENDATIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Sparkles}
+        />
+        <SideMenuItem
+          link={{
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.IOT_FLEET_VIEW_DOCUMENTATION] as Route,

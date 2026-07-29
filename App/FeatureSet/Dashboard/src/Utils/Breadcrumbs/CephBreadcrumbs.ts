@@ -59,6 +59,12 @@ export function getCephBreadcrumbs(path: string): Array<Link> | undefined {
       "View Cluster",
       "Cluster Log",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS, [
+      "Project",
+      "Ceph",
+      "View Cluster",
+      "Recommendations",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_CLUSTER_VIEW_METRICS, [
       "Project",
       "Ceph",

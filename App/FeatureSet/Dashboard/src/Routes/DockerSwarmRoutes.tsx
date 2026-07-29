@@ -27,6 +27,7 @@ import DockerSwarmClusterConfigs from "../Pages/DockerSwarm/View/Configs";
 import DockerSwarmClusterVolumes from "../Pages/DockerSwarm/View/Volumes";
 import DockerSwarmClusterInsights from "../Pages/DockerSwarm/View/Insights";
 import DockerSwarmClusterMetrics from "../Pages/DockerSwarm/View/Metrics";
+import DockerSwarmClusterRecommendations from "../Pages/DockerSwarm/View/Recommendations";
 import DockerSwarmClusterLogs from "../Pages/DockerSwarm/View/Logs";
 import DockerSwarmClusterIncidents from "../Pages/DockerSwarm/View/Incidents";
 import DockerSwarmClusterAlerts from "../Pages/DockerSwarm/View/Alerts";
@@ -297,6 +298,23 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
         />
 
         {/* Metrics */}
+        {/* Recommendations */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_SWARM_CLUSTER_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <DockerSwarmClusterRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DOCKER_SWARM_CLUSTER_VIEW_RECOMMENDATIONS
+                ] as Route
+              }
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS,
