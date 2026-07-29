@@ -75,7 +75,7 @@ export default class Recurring extends DatabaseProperty {
     let nextDate: Date = OneUptimeDate.fromString(startDate);
     const dateNow: Date = OneUptimeDate.getCurrentDate();
 
-    if (nextDate.getTime() <= dateNow.getTime()) {
+    if (nextDate.getTime() < dateNow.getTime()) {
       const intervalType: EventInterval = rotation.intervalType;
       const intervalCount: PositiveNumber = rotation.intervalCount;
 
