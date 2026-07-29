@@ -304,9 +304,15 @@ test.describe("Monitor summary probe picker", () => {
       timeout: 90000,
     });
 
+    /*
+     * By accessible name, not by text: react-select's role="combobox" element
+     * is the search <input> it renders, which has no text content at all - the
+     * selected probe is painted in a sibling node - so filtering on hasText can
+     * never match. The name comes from the picker's own label via
+     * aria-labelledby, the same way the "Probes" combobox is addressed above.
+     */
     const probeCombo: Locator = page
-      .getByRole("combobox")
-      .filter({ hasText: ctx.attachedProbeName })
+      .getByRole("combobox", { name: "Showing results from:" })
       .first();
     await probeCombo.click();
 
@@ -370,6 +376,15 @@ test.describe("Monitor summary probe picker", () => {
 
     await enabledToggle.click();
     await saveButton.click();
+
+    /*
+     * The modal is torn down only when the update actually succeeds
+     * (BaseModelTable's onSuccess), so its disappearance is the save's
+     * acknowledgement. Reloading straight after the click races the in-flight
+     * PUT /api/monitor-probe/<id> and can abort it, which would fail the
+     * isEnabled assertion below for the wrong reason.
+     */
+    await expect(saveButton).toHaveCount(0, { timeout: 60000 });
 
     // And it survives a reload - the actual claim in the report.
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -436,10 +451,16 @@ test.describe("Monitor summary probe picker", () => {
       .getByRole("button", { name: /^Delete$/ })
       .first()
       .click();
-    await page
-      .getByRole("button", { name: /^Delete$/ })
-      .last()
-      .click();
+    /*
+     * Scope the confirm to the modal. The row's Delete button matches
+     * /^Delete$/ too, so .last() on the whole page silently re-clicks the row
+     * whenever the query lands before React commits the modal.
+     */
+    const deleteConfirmModal: Locator = page.getByRole("dialog", {
+      name: /Delete Monitor Probe/i,
+    });
+    await expect(deleteConfirmModal).toBeVisible({ timeout: 30000 });
+    await deleteConfirmModal.getByRole("button", { name: /^Delete$/ }).click();
 
     await expect
       .poll(
