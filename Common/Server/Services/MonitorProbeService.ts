@@ -9,6 +9,7 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorService from "./MonitorService";
+import ProbeService from "./ProbeService";
 import { MonitorTypeHelper } from "../../Types/Monitor/MonitorType";
 import CronTab from "../Utils/CronTab";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -267,6 +268,31 @@ export class Service extends DatabaseService<MonitorProbe> {
 
       if (monitorProbe) {
         throw new BadDataException("Probe is already added to this monitor.");
+      }
+    }
+
+    /*
+     * The probe id on a create comes straight from the browser (the
+     * Monitor > Probes table posts it), so it has to be checked against the
+     * tenant exactly like the monitor-create path does - otherwise another
+     * project's probe can be attached to this monitor.
+     */
+    const probeId: ObjectID | undefined | null =
+      createBy.data.probeId || createBy.data.probe?.id;
+    const projectId: ObjectID | undefined | null =
+      createBy.data.projectId || createBy.data.project?.id;
+
+    if (probeId && projectId) {
+      const isProbeAttachable: boolean =
+        await ProbeService.isProbeAttachableToProject({
+          probeId: probeId,
+          projectId: projectId,
+        });
+
+      if (!isProbeAttachable) {
+        throw new BadDataException(
+          "Probe not found or it does not belong to this project.",
+        );
       }
     }
 

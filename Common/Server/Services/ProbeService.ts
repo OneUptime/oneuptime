@@ -32,6 +32,7 @@ import MonitorService from "./MonitorService";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import QueryHelper from "../Types/Database/QueryHelper";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
@@ -432,6 +433,71 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { createBy: createBy, carryForward: [] };
+  }
+
+  /*
+   * Only global probes and probes belonging to this project may be attached to
+   * that project's monitors. Probe ids reach the server from the browser - the
+   * monitor create form and the Monitor > Probes table both post them - so
+   * they cannot be trusted to stay inside the tenant. Every path that attaches
+   * a probe to a monitor filters through here.
+   */
+  @CaptureSpan()
+  public async getProbesAttachableToProject(data: {
+    probeIds: Array<ObjectID>;
+    projectId: ObjectID;
+  }): Promise<Array<Model>> {
+    if (data.probeIds.length === 0) {
+      return [];
+    }
+
+    const [globalProbes, projectProbes]: [Array<Model>, Array<Model>] =
+      await Promise.all([
+        this.findBy({
+          query: {
+            _id: QueryHelper.any(data.probeIds),
+            isGlobalProbe: true,
+          },
+          select: {
+            _id: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        }),
+        this.findBy({
+          query: {
+            _id: QueryHelper.any(data.probeIds),
+            isGlobalProbe: false,
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        }),
+      ]);
+
+    return [...globalProbes, ...projectProbes];
+  }
+
+  @CaptureSpan()
+  public async isProbeAttachableToProject(data: {
+    probeId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<boolean> {
+    const probes: Array<Model> = await this.getProbesAttachableToProject({
+      probeIds: [data.probeId],
+      projectId: data.projectId,
+    });
+
+    return probes.length > 0;
   }
 
   @CaptureSpan()

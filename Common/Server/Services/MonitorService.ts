@@ -1207,7 +1207,8 @@ ${createdItem.description?.trim() || "No description provided."}
   /*
    * Only global probes and probes belonging to this project may be attached -
    * the id list comes from the browser, so it cannot be trusted to stay inside
-   * the tenant.
+   * the tenant. ProbeService.getProbesAttachableToProject owns that rule and
+   * MonitorProbeService enforces the same one on the CRUD path.
    */
   @CaptureSpan()
   public async addSelectedProbesToMonitor(
@@ -1215,47 +1216,16 @@ ${createdItem.description?.trim() || "No description provided."}
     monitorId: ObjectID,
     probeIds: Array<ObjectID>,
   ): Promise<void> {
-    if (probeIds.length === 0) {
-      return;
-    }
-
-    const [globalProbes, projectProbes]: [Array<Probe>, Array<Probe>] =
-      await Promise.all([
-        ProbeService.findBy({
-          query: {
-            _id: QueryHelper.any(probeIds),
-            isGlobalProbe: true,
-          },
-          select: {
-            _id: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
-        }),
-        ProbeService.findBy({
-          query: {
-            _id: QueryHelper.any(probeIds),
-            isGlobalProbe: false,
-            projectId: projectId,
-          },
-          select: {
-            _id: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
-        }),
-      ]);
+    const probes: Array<Probe> =
+      await ProbeService.getProbesAttachableToProject({
+        probeIds: probeIds,
+        projectId: projectId,
+      });
 
     await this.createMonitorProbes({
       projectId: projectId,
       monitorId: monitorId,
-      probes: [...globalProbes, ...projectProbes],
+      probes: probes,
     });
   }
 
