@@ -14,6 +14,7 @@ import HostSettingsOwnerRules from "../Pages/Host/Settings/OwnerRules";
 import HostSettingsLabelRules from "../Pages/Host/Settings/LabelRules";
 import HostOverview from "../Pages/Host/View/Overview";
 import HostMetrics from "../Pages/Host/View/Metrics";
+import HostRecommendations from "../Pages/Host/View/Recommendations";
 import HostProcesses from "../Pages/Host/View/Processes";
 import HostProcessView from "../Pages/Host/View/ProcessView";
 import HostServices from "../Pages/Host/View/Services";
@@ -90,6 +91,16 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostOverview
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_RECOMMENDATIONS)}
+          element={
+            <HostRecommendations
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_RECOMMENDATIONS] as Route}
             />
           }
         />

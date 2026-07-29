@@ -14,6 +14,7 @@ import PodmanHostOverview from "../Pages/Podman/View/Overview";
 import PodmanHostContainers from "../Pages/Podman/View/Containers";
 import PodmanHostContainerDetail from "../Pages/Podman/View/ContainerDetail";
 import PodmanHostMetrics from "../Pages/Podman/View/Metrics";
+import PodmanHostRecommendations from "../Pages/Podman/View/Recommendations";
 import PodmanHostLogs from "../Pages/Podman/View/Logs";
 import PodmanHostTraces from "../Pages/Podman/View/Traces";
 import PodmanHostProfiles from "../Pages/Podman/View/Profiles";
@@ -120,6 +121,21 @@ const PodmanRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        {/* Recommendations */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <PodmanHostRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS] as Route
               }
             />
           }
