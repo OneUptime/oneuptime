@@ -501,6 +501,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     type TimestampRow = {
       timestampIso: string;
       timestampLabel: string;
+      timestampTitle: string;
       valuesByColumnKey: Map<string, number>;
     };
     const rows: Array<TimestampRow> = [];
@@ -832,6 +833,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                   row: {
                     timestampIso: string;
                     timestampLabel: string;
+                    timestampTitle: string;
                     valuesByColumnKey: Map<string, number>;
                   },
                   index: number,

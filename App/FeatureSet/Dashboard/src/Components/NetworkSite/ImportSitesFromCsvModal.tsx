@@ -20,7 +20,6 @@ import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -350,7 +349,6 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
     <Modal
       title="Import Sites from CSV"
       description="Bulk-create your site hierarchy from a CSV file."
-      icon={IconProp.Upload}
       modalWidth={ModalWidth.Large}
       isBodyLoading={isLoadingSiteTypes}
       error={siteTypesError || undefined}
