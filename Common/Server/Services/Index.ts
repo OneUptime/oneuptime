@@ -121,6 +121,8 @@ import ProjectService from "./ProjectService";
 import ProjectUserProfileService from "./ProjectUserProfileService";
 import ProfileService from "./ProfileService";
 import ProfileSampleService from "./ProfileSampleService";
+import RumSessionService from "./RumSessionService";
+import RumSessionChunkService from "./RumSessionChunkService";
 // Project SMTP Config.
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
@@ -571,6 +573,13 @@ export const AnalyticsServices: Array<
   NetworkFlowService,
   ProfileService,
   ProfileSampleService,
+  /*
+   * Session replay. THIS is the array boot-time createTables() iterates —
+   * omitting it here means the tables are silently never created, however
+   * correctly the models are registered elsewhere.
+   */
+  RumSessionService,
+  RumSessionChunkService,
   AuditLogService,
 ];
 

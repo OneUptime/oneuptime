@@ -43,6 +43,22 @@ enum AnalyticsTableName {
    * daily raw-telemetry partitions (ttl_only_drop_parts hazard).
    */
   SloHistory = "SloHistory",
+  /*
+   * Session replay. Two tables, deliberately split:
+   *
+   *  - RumSessionV1 is the narrow per-session header: identity, device,
+   *    frustration counters, correlation keys. Every list, filter and
+   *    metering query reads only this table, so it stays cheap.
+   *  - RumSessionChunkV1 holds the opaque recorded payload, one row per
+   *    ~15s frame. It is the fattest table in the system and is only ever
+   *    read by (projectId, sessionId, tabId, chunkIndex).
+   *
+   * Both are ReplacingMergeTree so an at-least-once redelivery collapses
+   * at merge instead of double-inserting; both therefore require a column
+   * literally named `version` (see ClusterConfig.getStorageEngine).
+   */
+  RumSession = "RumSessionV1",
+  RumSessionChunk = "RumSessionChunkV1",
 }
 
 export default AnalyticsTableName;
