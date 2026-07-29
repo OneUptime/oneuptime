@@ -1,13 +1,20 @@
 /*
- * Map geometry generator for the NetworkSite map views.
+ * Map geometry generator for the NetworkSite map view.
  *
- * Decodes TopoJSON atlases (us-atlas / world-atlas), projects them with the
- * exact same AlbersUSA and Robinson math as the runtime pin projector
+ * Decodes world-atlas TopoJSON, projects it with the exact same Robinson math
+ * as the runtime pin projector
  * (App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoProjection.ts)
- * and emits checked-in SVG path geometry:
+ * and emits two checked-in SVG path geometry files, both in the SAME
+ * 960x500 viewBox so the map can swap one for the other without moving a
+ * single pin:
  *
- *   UsStatesGeometry.json      975x610 viewBox, {id: FIPS, name, path}
- *   WorldCountriesGeometry.json 960x500 viewBox, {id: ISO numeric, name, path}
+ *   WorldCountriesGeometry.json        overview outlines (countries-110m,
+ *                                      1 decimal) — what the map draws at
+ *                                      continent-and-wider zoom.
+ *   WorldCountriesDetailGeometry.json  detail outlines (countries-50m,
+ *                                      2 decimals) — swapped in once the
+ *                                      viewport is zoomed past
+ *                                      DETAIL_GEOMETRY_MIN_ZOOM.
  *
  * The projection constants here MUST stay byte-for-byte in sync with
  * GeoProjection.ts — the whole point of generating our own geometry (instead
@@ -15,9 +22,9 @@
  * land exactly on the projected outlines.
  *
  * Run (network needed only for the two downloads):
- *   curl -L -o /tmp/states-10m.json https://unpkg.com/us-atlas@3/states-10m.json
  *   curl -L -o /tmp/countries-110m.json https://unpkg.com/world-atlas@2/countries-110m.json
- *   node ./Scripts/Geo/GenerateMapGeometry.js /tmp/states-10m.json /tmp/countries-110m.json
+ *   curl -L -o /tmp/countries-50m.json https://unpkg.com/world-atlas@2/countries-50m.json
+ *   node ./Scripts/Geo/GenerateMapGeometry.js /tmp/countries-110m.json /tmp/countries-50m.json
  *
  * See ./README.md for data sources, licensing and output details.
  */
@@ -47,12 +54,6 @@ const OUTPUT_DIR = path.resolve(
  * ------------------------------------------------------------------
  */
 
-const ALBERS_USA_VIEW_BOX_WIDTH = 975;
-const ALBERS_USA_VIEW_BOX_HEIGHT = 610;
-const ALBERS_USA_SCALE = 1300;
-const ALBERS_USA_TRANSLATE_X = 487.5;
-const ALBERS_USA_TRANSLATE_Y = 305;
-
 const ROBINSON_VIEW_BOX_WIDTH = 960;
 const ROBINSON_VIEW_BOX_HEIGHT = 500;
 const ROBINSON_X_FACTOR = 0.8487;
@@ -71,120 +72,51 @@ const ROBINSON_Y = [
   0.6769, 0.7346, 0.7903, 0.8435, 0.8936, 0.9394, 0.9761, 1.0,
 ];
 
-/*
- * Rings whose projected (rounded) area is below this many square pixels are
- * dropped — they are sub-pixel specks that cost bytes but render as nothing.
- * The largest ring of every feature is always kept, so no state or country
- * disappears entirely.
- */
-const MIN_RING_AREA_PX2 = 0.5;
-
 const RADIANS = Math.PI / 180;
 
-function normalizeLongitudeDegrees(longitude) {
-  return ((((longitude + 180) % 360) + 360) % 360) - 180;
-}
-
 /*
- * d3-style conic equal-area zone (rotate -> raw conic -> scale/translate,
- * recentred so `center` projects to `translate`), plus the composite clip
- * rectangle that decides which zone owns a point.
+ * ------------------------------------------------------------------
+ * Output tiers.
+ * ------------------------------------------------------------------
+ *
+ * The map is a zoomable single world view, so one fixed resolution cannot
+ * serve it: the whole-world frame wants the smallest file that still reads
+ * as a world map, and a frame zoomed onto one country wants outlines that
+ * do not fall apart. Two tiers, same viewBox, swapped at runtime.
+ *
+ * `decimals` is coordinate quantization in viewBox units. At the overview
+ * tier 0.1 units (~40 km) is invisible; the detail tier's 0.01 units
+ * (~4 km at the equator) stays sub-pixel at the map's maximum zoom.
+ *
+ * `simplifyTolerance` is a Douglas-Peucker tolerance in viewBox units,
+ * applied BEFORE rounding. Rounding alone leaves long runs of near-collinear
+ * points that cost bytes and draw nothing; dropping them at well under the
+ * quantization step is free in appearance and large in file size.
  */
-function makeConicZone(options) {
-  const sy0 = Math.sin(options.parallel0 * RADIANS);
-  const n = (sy0 + Math.sin(options.parallel1 * RADIANS)) / 2;
-  const c = 1 + sy0 * (2 * n - sy0);
-  const r0 = Math.sqrt(c) / n;
+const OVERVIEW_TIER = {
+  fileName: "WorldCountriesGeometry.json",
+  decimals: 1,
+  simplifyTolerance: 0.05,
+  // Rings below this projected area (px²) are dropped as sub-pixel specks.
+  minRingAreaPx2: 0.5,
+};
 
-  function raw(lambdaRadians, phiRadians) {
-    const r = Math.sqrt(Math.max(0, c - 2 * n * Math.sin(phiRadians))) / n;
-    const l = n * lambdaRadians;
-    return [r * Math.sin(l), r0 - r * Math.cos(l)];
-  }
-
-  // The centre is projected through the raw conic without rotation (d3
-  // projection.center semantics).
-  const rawCenter = raw(
-    options.centerLongitude * RADIANS,
-    options.centerLatitude * RADIANS,
-  );
-
-  return {
-    clip: options.clip,
-    project: function project(longitude, latitude) {
-      const lambda = normalizeLongitudeDegrees(
-        longitude + options.rotateLongitude,
-      );
-      const point = raw(lambda * RADIANS, latitude * RADIANS);
-      return [
-        options.translateX + options.scale * (point[0] - rawCenter[0]),
-        options.translateY - options.scale * (point[1] - rawCenter[1]),
-      ];
-    },
-  };
-}
-
-function makeAlbersUsaZones() {
-  const k = ALBERS_USA_SCALE;
-  const tx = ALBERS_USA_TRANSLATE_X;
-  const ty = ALBERS_USA_TRANSLATE_Y;
-
-  // Same composite as d3.geoAlbersUsa().scale(1300).translate([487.5, 305]).
-  return [
-    makeConicZone({
-      parallel0: 29.5,
-      parallel1: 45.5,
-      rotateLongitude: 96,
-      centerLongitude: -0.6,
-      centerLatitude: 38.7,
-      scale: k,
-      translateX: tx,
-      translateY: ty,
-      clip: [tx - 0.455 * k, ty - 0.238 * k, tx + 0.455 * k, ty + 0.238 * k],
-    }),
-    makeConicZone({
-      parallel0: 55,
-      parallel1: 65,
-      rotateLongitude: 154,
-      centerLongitude: -2,
-      centerLatitude: 58.5,
-      scale: 0.35 * k,
-      translateX: tx - 0.307 * k,
-      translateY: ty + 0.201 * k,
-      clip: [tx - 0.425 * k, ty + 0.12 * k, tx - 0.214 * k, ty + 0.234 * k],
-    }),
-    makeConicZone({
-      parallel0: 8,
-      parallel1: 18,
-      rotateLongitude: 157,
-      centerLongitude: -3,
-      centerLatitude: 19.9,
-      scale: k,
-      translateX: tx - 0.205 * k,
-      translateY: ty + 0.212 * k,
-      clip: [tx - 0.214 * k, ty + 0.166 * k, tx - 0.115 * k, ty + 0.234 * k],
-    }),
-  ];
-}
-
-const ALBERS_USA_ZONES = makeAlbersUsaZones();
-
-// Returns the index of the composite zone that owns the point, or -1.
-function albersUsaZoneIndex(longitude, latitude) {
-  for (let i = 0; i < ALBERS_USA_ZONES.length; i++) {
-    const zone = ALBERS_USA_ZONES[i];
-    const point = zone.project(longitude, latitude);
-    if (
-      point[0] >= zone.clip[0] &&
-      point[0] <= zone.clip[2] &&
-      point[1] >= zone.clip[1] &&
-      point[1] <= zone.clip[3]
-    ) {
-      return i;
-    }
-  }
-  return -1;
-}
+const DETAIL_TIER = {
+  fileName: "WorldCountriesDetailGeometry.json",
+  decimals: 2,
+  /*
+   * 0.04 viewBox units of geometric error. The map's MAX_ZOOM (see
+   * Geo/GeoViewport.ts) is set so that this stays around one screen pixel
+   * at the deepest zoom the UI allows — the two numbers are chosen
+   * together, so moving either means revisiting the other.
+   */
+  simplifyTolerance: 0.04,
+  /*
+   * The detail tier is only ever seen zoomed in, where a 0.5 px² island is
+   * a visible landmass — keep far more of them than the overview does.
+   */
+  minRingAreaPx2: 0.05,
+};
 
 function projectRobinson(longitude, latitude) {
   const absoluteLatitude = Math.min(90, Math.abs(latitude));
@@ -288,11 +220,22 @@ function splitRingAtAntimeridian(ring) {
       continue;
     }
 
-    // Unwrap the far end so the segment runs continuously, then interpolate
-    // the latitude at which it meets the meridian.
+    /*
+     * Unwrap the far end so the segment runs continuously, then interpolate
+     * the latitude at which it meets the meridian. The sign of the unwrapped
+     * span is the direction of travel, which is the edge the segment leaves
+     * through: east through +180, west through -180.
+     *
+     * A zero span means the two ends unwrap onto each other — which can only
+     * happen when this vertex sits exactly ON the meridian (Fiji has one).
+     * There is no direction to read, and guessing an edge cuts the ring on
+     * the wrong side of the map, leaving a piece that streaks the full width
+     * of the world. The vertex itself is the crossing, so leave through the
+     * edge it is already on.
+     */
     const unwrappedLongitude = point[0] + (delta > 0 ? -360 : 360);
     const span = unwrappedLongitude - previous[0];
-    const edge = span < 0 ? -180 : 180;
+    const edge = span > 0 ? 180 : span < 0 ? -180 : previous[0];
     const ratio = span === 0 ? 0 : (edge - previous[0]) / span;
     const latitude = previous[1] + (point[1] - previous[1]) * ratio;
 
@@ -325,22 +268,78 @@ function splitRingAtAntimeridian(ring) {
 
 /*
  * ------------------------------------------------------------------
- * Path assembly.
+ * Simplification and path assembly.
  * ------------------------------------------------------------------
  */
 
-function roundTo1Decimal(value) {
-  return Math.round(value * 10) / 10;
+// Perpendicular distance from `point` to the segment a->b, in viewBox units.
+function distanceToSegment(point, a, b) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  if (dx === 0 && dy === 0) {
+    return Math.hypot(point[0] - a[0], point[1] - a[1]);
+  }
+  const t =
+    ((point[0] - a[0]) * dx + (point[1] - a[1]) * dy) / (dx * dx + dy * dy);
+  const clamped = t < 0 ? 0 : t > 1 ? 1 : t;
+  return Math.hypot(
+    point[0] - (a[0] + clamped * dx),
+    point[1] - (a[1] + clamped * dy),
+  );
 }
 
-// Round to 1 decimal and drop consecutive duplicate points (and the closing
-// point — SVG "Z" closes the ring). This is the resolution-appropriate
-// simplification that keeps the files small.
-function roundAndDedupe(projectedRing) {
+/*
+ * Douglas-Peucker, iterative so a 30 000-point Russian coastline cannot blow
+ * the stack. Endpoints are always kept, so a ring's two anchors survive and
+ * neighbouring countries keep sharing them.
+ */
+function simplifyRing(ring, tolerance) {
+  if (tolerance <= 0 || ring.length <= 2) {
+    return ring;
+  }
+
+  const keep = new Array(ring.length).fill(false);
+  keep[0] = true;
+  keep[ring.length - 1] = true;
+
+  const stack = [[0, ring.length - 1]];
+  while (stack.length > 0) {
+    const [start, end] = stack.pop();
+    let farthest = -1;
+    let farthestDistance = tolerance;
+    for (let i = start + 1; i < end; i++) {
+      const distance = distanceToSegment(ring[i], ring[start], ring[end]);
+      if (distance > farthestDistance) {
+        farthest = i;
+        farthestDistance = distance;
+      }
+    }
+    if (farthest !== -1) {
+      keep[farthest] = true;
+      stack.push([start, farthest]);
+      stack.push([farthest, end]);
+    }
+  }
+
+  return ring.filter(function isKept(_point, index) {
+    return keep[index];
+  });
+}
+
+function roundToDecimals(value, decimals) {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+}
+
+/*
+ * Round to the tier's precision and drop consecutive duplicate points (and
+ * the closing point — SVG "Z" closes the ring).
+ */
+function roundAndDedupe(projectedRing, decimals) {
   const out = [];
   for (const point of projectedRing) {
-    const x = roundTo1Decimal(point[0]);
-    const y = roundTo1Decimal(point[1]);
+    const x = roundToDecimals(point[0], decimals);
+    const y = roundToDecimals(point[1], decimals);
     const last = out[out.length - 1];
     if (last && last[0] === x && last[1] === y) {
       continue;
@@ -365,22 +364,71 @@ function ringAreaPx2(ring) {
   return Math.abs(sum / 2);
 }
 
-function ringToPathSegment(ring) {
-  let d = "M" + ring[0][0] + "," + ring[0][1];
-  for (let i = 1; i < ring.length; i++) {
-    d += "L" + ring[i][0] + "," + ring[i][1];
+/*
+ * Shortest legal spelling of a coordinate: SVG allows a leading "." on a
+ * fractional number, and these files are dominated by small relative steps
+ * like "0.03" — dropping that zero is ~8% of the detail tier.
+ */
+function formatNumber(value) {
+  const text = String(value);
+  if (text.startsWith("0.")) {
+    return text.slice(1);
   }
-  return d + "Z";
+  if (text.startsWith("-0.")) {
+    return "-" + text.slice(2);
+  }
+  return text;
+}
+
+/*
+ * One ring as an SVG subpath: an absolute moveto followed by ONE relative
+ * polyline. Relative steps are what make the detail tier affordable — a
+ * coastline step is "l.03,-.05" instead of "L245.67,123.45".
+ *
+ * Each step is emitted from the position the renderer is actually at (the
+ * running sum of already-rounded deltas), not from the ideal ring, so
+ * rounding error can never accumulate along a 30 000-point coastline. Every
+ * subpath re-anchors with its own absolute M, so error cannot cross rings
+ * either.
+ */
+function ringToPathSegment(ring, decimals) {
+  let d = "M" + formatNumber(ring[0][0]) + "," + formatNumber(ring[0][1]);
+
+  let currentX = ring[0][0];
+  let currentY = ring[0][1];
+  const steps = [];
+
+  for (let i = 1; i < ring.length; i++) {
+    const dx = roundToDecimals(ring[i][0] - currentX, decimals);
+    const dy = roundToDecimals(ring[i][1] - currentY, decimals);
+    if (dx === 0 && dy === 0) {
+      continue;
+    }
+    steps.push(formatNumber(dx) + "," + formatNumber(dy));
+    currentX = roundToDecimals(currentX + dx, decimals);
+    currentY = roundToDecimals(currentY + dy, decimals);
+  }
+
+  if (steps.length === 0) {
+    return null;
+  }
+
+  return d + "l" + steps.join(" ") + "Z";
 }
 
 /*
  * Turns projected rings into one SVG path string, dropping degenerate rings
- * and sub-pixel specks (but always keeping the feature's largest ring).
- * Returns null when nothing drawable remains.
+ * and specks below the tier's threshold (but always keeping the feature's
+ * largest ring). Returns null when nothing drawable remains.
  */
-function ringsToPath(projectedRings) {
+function ringsToPath(projectedRings, tier) {
   const rounded = projectedRings
-    .map(roundAndDedupe)
+    .map(function simplifyThenRound(ring) {
+      return roundAndDedupe(
+        simplifyRing(ring, tier.simplifyTolerance),
+        tier.decimals,
+      );
+    })
     .filter(function hasArea(ring) {
       return ring.length >= 3;
     })
@@ -399,90 +447,26 @@ function ringsToPath(projectedRings) {
   );
 
   const kept = rounded.filter(function bigEnough(entry) {
-    return entry.area >= MIN_RING_AREA_PX2 || entry.area === largestArea;
+    return entry.area >= tier.minRingAreaPx2 || entry.area === largestArea;
   });
 
-  return kept
+  const path = kept
     .map(function toSegment(entry) {
-      return ringToPathSegment(entry.ring);
+      return ringToPathSegment(entry.ring, tier.decimals);
     })
+    .filter(Boolean)
     .join("");
+
+  return path.length > 0 ? path : null;
 }
 
 /*
  * ------------------------------------------------------------------
- * Feature builders.
+ * Feature builder.
  * ------------------------------------------------------------------
  */
 
-function buildUsStates(topology) {
-  const decodedArcs = decodeArcs(topology);
-  const features = [];
-
-  for (const geometry of topology.objects.states.geometries) {
-    const rings = ringsOfGeometry(decodedArcs, geometry);
-    const projectedRings = [];
-
-    for (const ring of rings) {
-      /*
-       * Assign the whole ring to the composite zone that owns the majority
-       * of its vertexes, then project every vertex through that single zone
-       * without clipping — clipping mid-ring would tear the outline. Rings
-       * fully outside the composite (island territories: AS, GU, MP, PR,
-       * VI) are dropped.
-       */
-      const votes = [0, 0, 0];
-      let hits = 0;
-      for (const point of ring) {
-        const zoneIndex = albersUsaZoneIndex(point[0], point[1]);
-        if (zoneIndex >= 0) {
-          votes[zoneIndex]++;
-          hits++;
-        }
-      }
-      if (hits === 0) {
-        continue;
-      }
-      let winner = 0;
-      for (let i = 1; i < votes.length; i++) {
-        if (votes[i] > votes[winner]) {
-          winner = i;
-        }
-      }
-      const zone = ALBERS_USA_ZONES[winner];
-      projectedRings.push(
-        ring.map(function projectPoint(point) {
-          return zone.project(point[0], point[1]);
-        }),
-      );
-    }
-
-    if (projectedRings.length === 0) {
-      continue;
-    }
-    const pathD = ringsToPath(projectedRings);
-    if (!pathD) {
-      continue;
-    }
-    features.push({
-      id: String(geometry.id),
-      name: geometry.properties.name,
-      path: pathD,
-    });
-  }
-
-  features.sort(function byId(a, b) {
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-  });
-
-  return {
-    viewBox:
-      "0 0 " + ALBERS_USA_VIEW_BOX_WIDTH + " " + ALBERS_USA_VIEW_BOX_HEIGHT,
-    features: features,
-  };
-}
-
-function buildWorldCountries(topology) {
+function buildWorldCountries(topology, tier) {
   const decodedArcs = decodeArcs(topology);
   const features = [];
 
@@ -501,12 +485,12 @@ function buildWorldCountries(topology) {
     if (projectedRings.length === 0) {
       continue;
     }
-    const pathD = ringsToPath(projectedRings);
+    const pathD = ringsToPath(projectedRings, tier);
     if (!pathD) {
       continue;
     }
     /*
-     * Three disputed territories (N. Cyprus, Somaliland, Kosovo) carry no
+     * A few disputed territories (N. Cyprus, Somaliland, Kosovo) carry no
      * ISO 3166-1 numeric id in Natural Earth — fall back to their name so
      * they still render and keep a stable, unique id.
      */
@@ -538,42 +522,36 @@ function buildWorldCountries(topology) {
  */
 
 function main() {
-  const statesPath = process.argv[2];
-  const worldPath = process.argv[3];
+  const overviewPath = process.argv[2];
+  const detailPath = process.argv[3];
 
-  if (!statesPath || !worldPath) {
+  if (!overviewPath || !detailPath) {
     console.error(
-      "Usage: node Scripts/Geo/GenerateMapGeometry.js <states-10m.json> <countries-110m.json>",
+      "Usage: node Scripts/Geo/GenerateMapGeometry.js <countries-110m.json> <countries-50m.json>",
     );
     process.exit(1);
   }
 
-  const statesTopology = JSON.parse(fs.readFileSync(statesPath, "utf8"));
-  const worldTopology = JSON.parse(fs.readFileSync(worldPath, "utf8"));
-
-  const usStates = buildUsStates(statesTopology);
-  const worldCountries = buildWorldCountries(worldTopology);
-
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-  const usOutputPath = path.join(OUTPUT_DIR, "UsStatesGeometry.json");
-  const worldOutputPath = path.join(OUTPUT_DIR, "WorldCountriesGeometry.json");
-
-  fs.writeFileSync(usOutputPath, JSON.stringify(usStates, null, 2) + "\n");
-  fs.writeFileSync(
-    worldOutputPath,
-    JSON.stringify(worldCountries, null, 2) + "\n",
-  );
-
-  for (const [outputPath, data] of [
-    [usOutputPath, usStates],
-    [worldOutputPath, worldCountries],
+  for (const [sourcePath, tier] of [
+    [overviewPath, OVERVIEW_TIER],
+    [detailPath, DETAIL_TIER],
   ]) {
+    const topology = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
+    const geometry = buildWorldCountries(topology, tier);
+    const outputPath = path.join(OUTPUT_DIR, tier.fileName);
+    /*
+     * Compact JSON: these files are machine-generated and never hand-edited,
+     * and the detail tier's pretty-printed form is megabytes of indentation.
+     */
+    fs.writeFileSync(outputPath, JSON.stringify(geometry) + "\n");
+
     const bytes = fs.statSync(outputPath).size;
     console.log(
       outputPath +
         ": " +
-        data.features.length +
+        geometry.features.length +
         " features, " +
         (bytes / 1024).toFixed(1) +
         " KB",

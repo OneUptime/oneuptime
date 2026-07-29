@@ -1,32 +1,46 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   BuildPinsResult,
+  CLUSTER_CELL_SIZE,
   ClusterColorKey,
   ClusterColorMember,
   MAX_CLUSTER_RADIUS,
   MIN_CLUSTER_RADIUS,
   FingerprintableSite,
-  MapRegion,
   PinnableSite,
   buildPins,
+  clusterCellSize,
   clusterRadius,
   decideClusterColorKey,
   formatUptimePercent,
   mapPinFingerprint,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteMapViewModel";
 import {
-  ALBERS_USA_VIEW_BOX_HEIGHT,
-  ALBERS_USA_VIEW_BOX_WIDTH,
   ROBINSON_VIEW_BOX_HEIGHT,
   ROBINSON_VIEW_BOX_WIDTH,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoProjection";
+import {
+  MAX_ZOOM,
+  MapViewport,
+  WORLD_VIEWPORT,
+  zoomViewport,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoViewport";
+import {
+  GeoCluster,
+  clusterPoints,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoClusterUtil";
 
 /*
- * Pins the SiteGeoMap view-model: projection-null handling (US map drops
- * out-of-zone sites into the unmappable count; the world map only drops
- * non-finite coordinates), the cluster color decision matrix, the
- * sqrt-scaled radius clamp, and determinism — the map re-renders from the
- * same data and must never move or recolor a marker.
+ * Pins the SiteGeoMap view-model: pin building on the single world
+ * projection, the cluster color decision matrix, the sqrt-scaled radius
+ * clamp, and the zoom-awareness that makes zooming worth doing — markers
+ * that stay the same size on screen, and a cluster grid that lets a lump of
+ * nearby sites break apart as you zoom into it.
+ *
+ * buildPins used to take a region ("us" | "world") and drop every site the
+ * AlbersUSA composite could not place — which was every site outside the
+ * United States. It takes no region now, and the tests below assert the
+ * replacement promise: nothing with usable coordinates is ever dropped.
  */
 
 function site(
@@ -47,93 +61,90 @@ function member(
 
 describe("buildPins", () => {
   test("empty input yields no pins and no unmappable count", () => {
-    expect(buildPins([], "us")).toEqual({ pins: [], unmappableCount: 0 });
-    expect(buildPins([], "world")).toEqual({ pins: [], unmappableCount: 0 });
+    expect(buildPins([])).toEqual({ pins: [], unmappableCount: 0 });
   });
 
-  test("a lower-48 site projects onto the US map inside the viewBox", () => {
-    // Kansas City — comfortably inside the lower-48 zone.
-    const result: BuildPinsResult = buildPins([site("kc", 39.1, -94.58)], "us");
-    expect(result.unmappableCount).toBe(0);
-    expect(result.pins).toHaveLength(1);
-    const pin: { x: number; y: number } = result.pins[0]!;
-    expect(pin.x).toBeGreaterThan(0);
-    expect(pin.x).toBeLessThan(ALBERS_USA_VIEW_BOX_WIDTH);
-    expect(pin.y).toBeGreaterThan(0);
-    expect(pin.y).toBeLessThan(ALBERS_USA_VIEW_BOX_HEIGHT);
-  });
-
-  test("Alaska and Hawaii land in their US-map insets", () => {
-    const result: BuildPinsResult = buildPins(
-      [site("anchorage", 61.22, -149.9), site("honolulu", 21.31, -157.86)],
-      "us",
-    );
-    expect(result.unmappableCount).toBe(0);
-    expect(result.pins).toHaveLength(2);
-    for (const pin of result.pins) {
-      // Both insets sit in the bottom-left quadrant of the viewBox.
-      expect(pin.x).toBeLessThan(ALBERS_USA_VIEW_BOX_WIDTH / 2);
-      expect(pin.y).toBeGreaterThan(ALBERS_USA_VIEW_BOX_HEIGHT / 2);
-    }
-  });
-
-  test("sites outside every US zone are counted unmappable, not pinned", () => {
-    // London and Guam — projectAlbersUsa returns null for both.
-    const result: BuildPinsResult = buildPins(
-      [site("london", 51.5, -0.12), site("guam", 13.44, 144.79)],
-      "us",
-    );
-    expect(result.pins).toEqual([]);
-    expect(result.unmappableCount).toBe(2);
-  });
-
-  test("the world map places every finite coordinate", () => {
-    const result: BuildPinsResult = buildPins(
-      [
-        site("london", 51.5, -0.12),
-        site("guam", 13.44, 144.79),
-        site("sydney", -33.87, 151.21),
-      ],
-      "world",
-    );
-    expect(result.unmappableCount).toBe(0);
-    expect(result.pins).toHaveLength(3);
-    for (const pin of result.pins) {
+  /*
+   * The change that let the region toggle be deleted. Every one of these
+   * except Kansas City and Honolulu used to be silently unmappable whenever
+   * the map was in its "United States" mode.
+   */
+  test.each([
+    ["Kansas City", 39.1, -94.58],
+    ["Honolulu", 21.31, -157.86],
+    ["London", 51.5, -0.12],
+    ["Berlin", 52.52, 13.4],
+    ["Mumbai", 19.08, 72.88],
+    ["Sydney", -33.87, 151.21],
+    ["São Paulo", -23.55, -46.63],
+    ["Nairobi", -1.29, 36.82],
+    ["Guam", 13.44, 144.79],
+    ["San Juan", 18.47, -66.11],
+    ["Reykjavík", 64.15, -21.94],
+    ["Ushuaia", -54.8, -68.3],
+  ])(
+    "%s is placed on the map",
+    (name: string, latitude: number, longitude: number) => {
+      const result: BuildPinsResult = buildPins([
+        site(name, latitude, longitude),
+      ]);
+      expect(result.unmappableCount).toBe(0);
+      expect(result.pins).toHaveLength(1);
+      const pin: { x: number; y: number } = result.pins[0]!;
       expect(pin.x).toBeGreaterThanOrEqual(0);
       expect(pin.x).toBeLessThanOrEqual(ROBINSON_VIEW_BOX_WIDTH);
       expect(pin.y).toBeGreaterThanOrEqual(0);
       expect(pin.y).toBeLessThanOrEqual(ROBINSON_VIEW_BOX_HEIGHT);
-    }
+    },
+  );
+
+  test("a whole international network is placed, none dropped", () => {
+    const result: BuildPinsResult = buildPins([
+      site("london", 51.5, -0.12),
+      site("guam", 13.44, 144.79),
+      site("sydney", -33.87, 151.21),
+      site("kc", 39.1, -94.58),
+      site("nairobi", -1.29, 36.82),
+    ]);
+    expect(result.unmappableCount).toBe(0);
+    expect(result.pins).toHaveLength(5);
   });
 
-  test("non-finite coordinates are unmappable on BOTH maps", () => {
-    const badSites: Array<PinnableSite> = [
+  test("only non-finite coordinates are unmappable", () => {
+    const result: BuildPinsResult = buildPins([
       site("nan-lat", Number.NaN, -94.58),
       site("nan-lon", 39.1, Number.NaN),
       site("inf-lat", Number.POSITIVE_INFINITY, 0),
-    ];
-    for (const region of ["us", "world"] as Array<MapRegion>) {
-      const result: BuildPinsResult = buildPins(badSites, region);
-      expect(result.pins).toEqual([]);
-      expect(result.unmappableCount).toBe(3);
-    }
+      site("neg-inf-lon", 39.1, Number.NEGATIVE_INFINITY),
+    ]);
+    expect(result.pins).toEqual([]);
+    expect(result.unmappableCount).toBe(4);
   });
 
   test("mappable and unmappable sites split correctly in one call", () => {
-    const result: BuildPinsResult = buildPins(
-      [site("kc", 39.1, -94.58), site("london", 51.5, -0.12)],
-      "us",
-    );
-    expect(result.pins).toHaveLength(1);
+    const result: BuildPinsResult = buildPins([
+      site("kc", 39.1, -94.58),
+      site("broken", Number.NaN, Number.NaN),
+      site("london", 51.5, -0.12),
+    ]);
+    expect(result.pins).toHaveLength(2);
     expect(result.pins[0]!.id).toBe("kc");
+    expect(result.pins[1]!.id).toBe("london");
     expect(result.unmappableCount).toBe(1);
   });
 
+  test("out-of-range coordinates are clamped onto the map, not dropped", () => {
+    // Corrupt-but-finite data still gets a pin rather than vanishing.
+    const result: BuildPinsResult = buildPins([site("weird", 500, 900)]);
+    expect(result.unmappableCount).toBe(0);
+    expect(result.pins).toHaveLength(1);
+  });
+
   test("statusPriority is carried through; non-finite collapses to 0", () => {
-    const result: BuildPinsResult = buildPins(
-      [site("a", 39.1, -94.58, 7), site("b", 38.6, -90.2, Number.NaN)],
-      "us",
-    );
+    const result: BuildPinsResult = buildPins([
+      site("a", 39.1, -94.58, 7),
+      site("b", 38.6, -90.2, Number.NaN),
+    ]);
     expect(result.pins[0]!.statusPriority).toBe(7);
     expect(result.pins[1]!.statusPriority).toBe(0);
   });
@@ -144,14 +155,22 @@ describe("buildPins", () => {
       site("a", 34.05, -118.24, 2),
       site("c", 41.88, -87.63, 0),
     ];
-    const first: BuildPinsResult = buildPins(sites, "us");
-    const second: BuildPinsResult = buildPins(sites, "us");
+    const first: BuildPinsResult = buildPins(sites);
+    const second: BuildPinsResult = buildPins(sites);
     expect(
       first.pins.map((pin: { id: string }) => {
         return pin.id;
       }),
     ).toEqual(["b", "a", "c"]);
     expect(second).toEqual(first);
+  });
+
+  test("sites in different places project to different pins", () => {
+    const result: BuildPinsResult = buildPins([
+      site("london", 51.5, -0.12),
+      site("sydney", -33.87, 151.21),
+    ]);
+    expect(result.pins[0]!.x).not.toBeCloseTo(result.pins[1]!.x, 3);
   });
 });
 
@@ -251,6 +270,152 @@ describe("clusterRadius", () => {
       previous = radius;
     }
   });
+
+  /*
+   * A marker is UI, not geography. If it grew with the zoom, zooming in to
+   * separate two sites would just give you two bigger overlapping blobs.
+   */
+  test("shrinks in viewBox units as the map zooms in, staying constant on screen", () => {
+    const world: number = clusterRadius(1, WORLD_VIEWPORT);
+    expect(world).toBe(MIN_CLUSTER_RADIUS);
+
+    for (const zoom of [2, 4, 8, MAX_ZOOM]) {
+      const viewport: MapViewport = zoomViewport(WORLD_VIEWPORT, zoom);
+      expect(clusterRadius(1, viewport)).toBeCloseTo(
+        MIN_CLUSTER_RADIUS / zoom,
+        9,
+      );
+    }
+  });
+
+  test("no viewport means screen units — the two forms agree at zoom 1", () => {
+    for (const count of [1, 3, 9, 50]) {
+      expect(clusterRadius(count, WORLD_VIEWPORT)).toBeCloseTo(
+        clusterRadius(count),
+        9,
+      );
+    }
+  });
+
+  test("the count still drives the relative size at every zoom", () => {
+    const viewport: MapViewport = zoomViewport(WORLD_VIEWPORT, 8);
+    expect(clusterRadius(4, viewport) / clusterRadius(1, viewport)).toBeCloseTo(
+      2,
+      9,
+    );
+  });
+});
+
+describe("clusterCellSize", () => {
+  test("at zoom 1 it is the base cell size", () => {
+    expect(clusterCellSize(WORLD_VIEWPORT)).toBe(CLUSTER_CELL_SIZE);
+  });
+
+  test("shrinks with zoom, so the grid is a constant distance on screen", () => {
+    for (const zoom of [2, 4, MAX_ZOOM]) {
+      expect(clusterCellSize(zoomViewport(WORLD_VIEWPORT, zoom))).toBeCloseTo(
+        CLUSTER_CELL_SIZE / zoom,
+        9,
+      );
+    }
+  });
+
+  /*
+   * This is what makes zoom worth having: without it, sites that share a
+   * marker at world zoom would share it at every zoom, and the only way to
+   * tell them apart would be the picker popover.
+   */
+  test("zooming in actually splits a lump of nearby sites apart", () => {
+    /*
+     * Four sites a few viewBox units apart, all inside one base-size grid
+     * cell (cells are anchored at multiples of CLUSTER_CELL_SIZE, so 476-503
+     * horizontally and 252-279 vertically is a single cell) — one marker on
+     * the world map.
+     */
+    const pins: Array<{
+      id: string;
+      x: number;
+      y: number;
+      statusPriority: number;
+    }> = [
+      { id: "a", x: 480, y: 255, statusPriority: 0 },
+      { id: "b", x: 486, y: 258, statusPriority: 0 },
+      { id: "c", x: 492, y: 262, statusPriority: 0 },
+      { id: "d", x: 498, y: 266, statusPriority: 0 },
+    ];
+
+    const atWorld: Array<GeoCluster> = clusterPoints(
+      pins,
+      clusterCellSize(WORLD_VIEWPORT),
+    );
+    expect(atWorld).toHaveLength(1);
+    expect(atWorld[0]!.totalCount).toBe(4);
+
+    const zoomedIn: Array<GeoCluster> = clusterPoints(
+      pins,
+      clusterCellSize(zoomViewport(WORLD_VIEWPORT, MAX_ZOOM)),
+    );
+    expect(zoomedIn.length).toBeGreaterThan(1);
+    expect(
+      zoomedIn.reduce((total: number, cluster: GeoCluster): number => {
+        return total + cluster.totalCount;
+      }, 0),
+    ).toBe(4);
+  });
+
+  test("clustering never loses or duplicates a site at any zoom", () => {
+    const pins: Array<{
+      id: string;
+      x: number;
+      y: number;
+      statusPriority: number;
+    }> = Array.from({ length: 25 }, (_unused: unknown, index: number) => {
+      return {
+        id: `site-${index}`,
+        x: 200 + (index % 5) * 3,
+        y: 150 + Math.floor(index / 5) * 3,
+        statusPriority: 0,
+      };
+    });
+
+    for (const zoom of [1, 2, 5, 10, MAX_ZOOM]) {
+      const clusters: Array<GeoCluster> = clusterPoints(
+        pins,
+        clusterCellSize(zoomViewport(WORLD_VIEWPORT, zoom)),
+      );
+      const ids: Array<string> = clusters.flatMap((cluster: GeoCluster) => {
+        return cluster.ids;
+      });
+      expect(ids).toHaveLength(25);
+      expect(new Set(ids).size).toBe(25);
+    }
+  });
+
+  test("the number of clusters never falls as the map zooms in", () => {
+    const pins: Array<{
+      id: string;
+      x: number;
+      y: number;
+      statusPriority: number;
+    }> = Array.from({ length: 12 }, (_unused: unknown, index: number) => {
+      return {
+        id: `site-${index}`,
+        x: 300 + index * 4,
+        y: 200 + index * 2,
+        statusPriority: 0,
+      };
+    });
+
+    let previous: number = 0;
+    for (const zoom of [1, 2, 4, 8, 16, MAX_ZOOM]) {
+      const count: number = clusterPoints(
+        pins,
+        clusterCellSize(zoomViewport(WORLD_VIEWPORT, zoom)),
+      ).length;
+      expect(count).toBeGreaterThanOrEqual(previous);
+      previous = count;
+    }
+  });
 });
 
 describe("formatUptimePercent", () => {
@@ -278,8 +443,9 @@ describe("formatUptimePercent", () => {
  * The map page hands SiteGeoMap a freshly built sites array on every
  * 60-second background poll, so the component cannot use array identity to
  * decide whether the map changed — it closed the multi-site picker popover
- * out from under anyone reading it. The fingerprint is what it keys that
- * reset on instead, so what it does and does NOT include is the contract.
+ * out from under anyone reading it, and now it would also re-frame the map
+ * under anyone who has zoomed in. The fingerprint is what it keys both
+ * resets on, so what it does and does NOT include is the contract.
  */
 describe("mapPinFingerprint", () => {
   function pin(
@@ -326,8 +492,8 @@ describe("mapPinFingerprint", () => {
 
   /*
    * A site going down recolors its marker but does not move it, so it must
-   * not close a popover — the reset exists for anchors that no longer
-   * exist, not for status churn.
+   * not close a popover or re-frame the map — the resets exist for a map
+   * that has actually changed shape, not for status churn.
    */
   test("status is not part of it", () => {
     const withStatus: (

@@ -1,6 +1,5 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import { MapRegion } from "./SiteMapViewModel";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 
@@ -9,26 +8,30 @@ import Navigation from "Common/UI/Utils/Navigation";
  * itself from this at mount and re-reads it whenever a navigation lands on the
  * route, so the URL — not a component that has been alive since the user's
  * first click — is what decides which level is on screen.
+ *
+ * The map's geographic frame is deliberately NOT in here. It is derived from
+ * the sites themselves (see Geo/GeoViewport.ts fitViewportToPoints), so the
+ * same link opens on the same view for everyone without carrying coordinates
+ * around; a URL parameter would only be able to disagree with the data.
  */
 export interface NetworkMapDrillState {
   siteId: string | null;
-  mapRegion: MapRegion;
 }
 
 export const NETWORK_MAP_SITE_PARAM: string = "site";
-export const NETWORK_MAP_REGION_PARAM: string = "mapRegion";
+
+/*
+ * The map used to offer a "United States / World" toggle, mirrored into this
+ * parameter. Both are gone — the map now frames itself to wherever the sites
+ * are — but links from that era are still in inboxes and bookmarks, so the
+ * page clears the stale parameter out of the address bar rather than leaving
+ * a control name in the URL that nothing answers to.
+ */
+export const LEGACY_NETWORK_MAP_REGION_PARAM: string = "mapRegion";
 
 export function readDrillStateFromUrl(): NetworkMapDrillState {
-  const siteId: string | null = Navigation.getQueryStringByName(
-    NETWORK_MAP_SITE_PARAM,
-  );
-  const region: string | null = Navigation.getQueryStringByName(
-    NETWORK_MAP_REGION_PARAM,
-  );
-
   return {
-    siteId: siteId,
-    mapRegion: region === "world" ? "world" : "us",
+    siteId: Navigation.getQueryStringByName(NETWORK_MAP_SITE_PARAM),
   };
 }
 

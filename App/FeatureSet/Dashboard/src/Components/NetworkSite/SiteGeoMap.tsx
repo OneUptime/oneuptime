@@ -1,26 +1,35 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
-  ALBERS_USA_VIEW_BOX,
-  ALBERS_USA_VIEW_BOX_HEIGHT,
-  ALBERS_USA_VIEW_BOX_WIDTH,
-  ROBINSON_VIEW_BOX,
-  ROBINSON_VIEW_BOX_HEIGHT,
-  ROBINSON_VIEW_BOX_WIDTH,
-} from "./Geo/GeoProjection";
+  MapViewport,
+  MAX_ZOOM,
+  WORLD_VIEWPORT,
+  clampViewport,
+  countPointsInViewport,
+  fitViewportToPoints,
+  panViewport,
+  shouldUseDetailGeometry,
+  viewBoxOfViewport,
+  viewportsMatch,
+  zoomOfViewport,
+  zoomViewport,
+} from "./Geo/GeoViewport";
 import { GeoCluster, clusterPoints } from "./Geo/GeoClusterUtil";
 import {
   BuildPinsResult,
   ClusterColorKey,
-  MapRegion,
   buildPins,
+  clusterCellSize,
   clusterRadius,
   decideClusterColorKey,
   mapPinFingerprint,
@@ -28,16 +37,31 @@ import {
 import { MapSiteView } from "./SiteHierarchyTypes";
 
 /*
- * Inline-SVG geo map of network sites: checked-in state/country outlines
+ * Inline-SVG world map of network sites: checked-in country outlines
  * (projected offline with the exact math in Geo/GeoProjection.ts, so pins
- * projected at runtime land precisely on them) with clustered site markers
- * on top. Pure render — the projection/cluster/color decisions live in the
- * react-free SiteMapViewModel so they stay unit-testable.
+ * projected at runtime land precisely on them) with clustered site markers on
+ * top. Pure render — the projection, viewport, cluster and color decisions
+ * live in the react-free Geo/ modules and SiteMapViewModel so they stay
+ * unit-testable.
  *
- * Clicking a single-site marker drills straight in; clicking a multi-site
- * cluster opens a small popover to pick the site (deliberately zoom-less —
- * the drill-down hierarchy is the zoom). SVG styling mirrors
- * NetworkDeviceGraph: theme CSS variables with hex fallbacks.
+ * ONE MAP, FRAMED TO THE DATA
+ *
+ * There is no region picker. The map opens framed to wherever this project's
+ * sites actually are: a network inside one country fills the frame with that
+ * country, a network across continents opens on the world, and nobody has to
+ * be told which of those they are. See Geo/GeoViewport.ts for why the old
+ * "United States / World" toggle was the wrong axis to put in front of a
+ * customer.
+ *
+ * Zoom and pan are the manual override on that frame, and zoom does real
+ * work: clusters are bucketed at a constant SCREEN distance, so zooming in
+ * genuinely splits a lump of nearby sites into individual markers rather
+ * than magnifying one blob. Markers, strokes and labels are sized in screen
+ * units for the same reason. Clicking a single-site marker drills straight
+ * in; clicking a multi-site cluster opens a small popover to pick the site.
+ *
+ * SVG styling mirrors NetworkDeviceGraph: theme CSS variables with hex
+ * fallbacks.
  */
 
 interface GeometryFeature {
@@ -52,23 +76,32 @@ interface GeometryFile {
 }
 
 /*
- * The two outline files are ~281 KB of geometry between them. Every route
- * module in the dashboard lands in one shared esbuild chunk, so a static
- * import here would make every page — Incidents, a monitor, Settings —
- * download and parse country outlines it never draws. They are loaded on
- * demand instead, per region, and memoized for the life of the tab.
+ * Outlines ship in two resolutions (see Scripts/Geo/README.md), in the same
+ * viewBox, so swapping between them never moves an outline or a pin:
+ *
+ *   overview — small, drawn at continent-and-wider zoom.
+ *   detail   — ~6x larger, fetched only once somebody zooms in far enough
+ *              for the overview's generalization to read as chunky.
+ *
+ * Neither is statically imported. Every route module in the dashboard lands
+ * in one shared esbuild chunk, so a static import here would make every page
+ * — Incidents, a monitor, Settings — download and parse country outlines it
+ * never draws. They are loaded on demand and memoized for the life of the
+ * tab.
  *
  * They stay .json rather than .svg on purpose: esbuild base64-inlines an
  * imported .svg, which would put us straight back in the shared chunk.
  */
-const geometryCache: Partial<Record<MapRegion, Array<GeometryFeature>>> = {};
+type GeometryTier = "overview" | "detail";
+
+const geometryCache: Partial<Record<GeometryTier, Array<GeometryFeature>>> = {};
 
 const loadGeometryFeatures: (
-  region: MapRegion,
+  tier: GeometryTier,
 ) => Promise<Array<GeometryFeature>> = async (
-  region: MapRegion,
+  tier: GeometryTier,
 ): Promise<Array<GeometryFeature>> => {
-  const cached: Array<GeometryFeature> | undefined = geometryCache[region];
+  const cached: Array<GeometryFeature> | undefined = geometryCache[tier];
   if (cached) {
     return cached;
   }
@@ -79,20 +112,17 @@ const loadGeometryFeatures: (
    * for each.
    */
   const loaded: unknown =
-    region === "us"
-      ? await import("./Geo/UsStatesGeometry.json")
+    tier === "detail"
+      ? await import("./Geo/WorldCountriesDetailGeometry.json")
       : await import("./Geo/WorldCountriesGeometry.json");
 
   // JSON modules arrive under `default` once bundled, bare under ts-jest.
   const file: GeometryFile = ((loaded as { default?: GeometryFile }).default ||
     loaded) as GeometryFile;
   const features: Array<GeometryFeature> = file.features || [];
-  geometryCache[region] = features;
+  geometryCache[tier] = features;
   return features;
 };
-
-// Grid cell size (viewBox px) fed to the deterministic pin clustering.
-const CLUSTER_CELL_SIZE: number = 28;
 
 const CLUSTER_COLORS: Record<ClusterColorKey, string> = {
   none: "#9ca3af", // gray-400
@@ -113,6 +143,17 @@ const LEGEND: Array<{ key: ClusterColorKey; label: string }> = [
   { key: "down", label: "Offline" },
   { key: "none", label: "No status" },
 ];
+
+// One click of the zoom controls, and one press of an arrow key.
+const ZOOM_STEP: number = 2;
+const KEYBOARD_PAN_FRACTION: number = 0.2;
+
+/*
+ * A pointer that moved less than this (in screen px) between down and up was
+ * a click, not a drag — otherwise the tiny movement in an ordinary click
+ * would swallow every marker activation.
+ */
+const DRAG_THRESHOLD_PX: number = 4;
 
 const dotColorForSite: (site: MapSiteView) => string = (
   site: MapSiteView,
@@ -141,26 +182,28 @@ interface HoveredCluster {
 
 /*
  * Anchor an overlay (hover tooltip / site picker) to a marker, as
- * percentages of the SVG box the overlay shares. Markers near an edge
- * would push a centred overlay outside the card, so the horizontal
- * anchor is clamped and the overlay flips above markers in the lower
- * part of the map.
+ * percentages of the SVG box the overlay shares. Positions are relative to
+ * the CURRENT viewport, not the whole world, so an overlay tracks its marker
+ * through a pan. Markers near an edge would push a centred overlay outside
+ * the card, so the horizontal anchor is clamped and the overlay flips above
+ * markers in the lower part of the map.
  */
 const overlayPosition: (
   x: number,
   y: number,
-  viewWidth: number,
-  viewHeight: number,
+  viewport: MapViewport,
   offsetPx: number,
 ) => React.CSSProperties = (
   x: number,
   y: number,
-  viewWidth: number,
-  viewHeight: number,
+  viewport: MapViewport,
   offsetPx: number,
 ): React.CSSProperties => {
-  const leftPercent: number = Math.min(88, Math.max(12, (x / viewWidth) * 100));
-  const topPercent: number = (y / viewHeight) * 100;
+  const leftPercent: number = Math.min(
+    88,
+    Math.max(12, ((x - viewport.x) / viewport.width) * 100),
+  );
+  const topPercent: number = ((y - viewport.y) / viewport.height) * 100;
   const flipAbove: boolean = topPercent > 62;
   return {
     left: `${leftPercent}%`,
@@ -171,9 +214,37 @@ const overlayPosition: (
   };
 };
 
+// One button of the zoom/frame control cluster overlaid on the map.
+const MapControlButton: FunctionComponent<{
+  label: string;
+  icon: IconProp;
+  disabled: boolean;
+  onClick: () => void;
+}> = (props: {
+  label: string;
+  icon: IconProp;
+  disabled: boolean;
+  onClick: () => void;
+}): ReactElement => {
+  return (
+    <button
+      type="button"
+      title={props.label}
+      aria-label={props.label}
+      disabled={props.disabled}
+      data-testid={`site-geo-map-control-${props.label
+        .toLowerCase()
+        .replace(/[^a-z]+/g, "-")}`}
+      className="flex h-7 w-7 items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-default disabled:text-gray-300 disabled:hover:bg-transparent"
+      onClick={props.onClick}
+    >
+      <Icon className="h-4 w-4" icon={props.icon} />
+    </button>
+  );
+};
+
 export interface ComponentProps {
   sites: Array<MapSiteView>;
-  region: MapRegion;
   onSiteClick: (siteId: string) => void;
 }
 
@@ -183,36 +254,72 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   const [openCluster, setOpenCluster] = useState<OpenCluster | null>(null);
   const [hovered, setHovered] = useState<HoveredCluster | null>(null);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
-  const [features, setFeatures] = useState<Array<GeometryFeature> | null>(
-    geometryCache[props.region] || null,
-  );
+  const [overviewFeatures, setOverviewFeatures] =
+    useState<Array<GeometryFeature> | null>(geometryCache["overview"] || null);
+  const [detailFeatures, setDetailFeatures] =
+    useState<Array<GeometryFeature> | null>(geometryCache["detail"] || null);
 
   /*
-   * A popover anchored to a cluster that is no longer there is meaningless
-   * — close it. Keyed on the pin geometry, NOT on the sites array's
-   * identity: the page's 60-second background poll hands us a brand-new
-   * array every minute even when nothing changed, and closing the site
-   * picker out from under someone scrolling it is not a data update.
+   * Pin geometry, keyed by an order-independent fingerprint rather than by
+   * the sites array's identity: the page's 60-second background poll hands
+   * us a brand-new array every minute even when nothing moved, and neither
+   * re-framing the map under someone who has zoomed in, nor closing the site
+   * picker they are scrolling, is a data update.
    */
   const pinFingerprint: string = useMemo(() => {
     return mapPinFingerprint(props.sites);
   }, [props.sites]);
+
+  const sitesRef: React.MutableRefObject<Array<MapSiteView>> = useRef<
+    Array<MapSiteView>
+  >(props.sites);
+  sitesRef.current = props.sites;
+
+  const { pins, unmappableCount }: BuildPinsResult = useMemo(() => {
+    return buildPins(sitesRef.current);
+  }, [pinFingerprint]);
+
+  // The frame the sites themselves ask for — the opening view, and "Fit".
+  const fittedViewport: MapViewport = useMemo(() => {
+    return fitViewportToPoints(pins);
+  }, [pins]);
+
+  const [viewport, setViewport] = useState<MapViewport>(fittedViewport);
+
+  /*
+   * A new set of sites is a new map: re-frame it, and drop a popover that is
+   * anchored to a cluster which may no longer exist.
+   */
   useEffect(() => {
+    setViewport(fittedViewport);
     setOpenCluster(null);
     setHovered(null);
-  }, [props.region, pinFingerprint]);
+  }, [fittedViewport]);
 
-  const isUs: boolean = props.region === "us";
+  const zoom: number = zoomOfViewport(viewport);
 
-  // Outlines are fetched on demand (see loadGeometryFeatures).
+  /*
+   * Zoom changes which sites share a marker, so an open picker's list can go
+   * stale under it — close it rather than let it drill into a cluster that
+   * no longer exists.
+   */
+  const changeViewport: (next: MapViewport) => void = useCallback(
+    (next: MapViewport): void => {
+      setViewport(next);
+      setOpenCluster(null);
+      setHovered(null);
+    },
+    [],
+  );
+
+  // Overview outlines are fetched on demand (see loadGeometryFeatures).
   useEffect(() => {
     let isCurrent: boolean = true;
-    setFeatures(geometryCache[props.region] || null);
 
-    loadGeometryFeatures(props.region)
+    loadGeometryFeatures("overview")
       .then((loaded: Array<GeometryFeature>) => {
         if (isCurrent) {
-          setFeatures(loaded);
+          setOverviewFeatures(loaded);
         }
       })
       .catch(() => {
@@ -222,22 +329,45 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
          * rather than blocking the map on decoration.
          */
         if (isCurrent) {
-          setFeatures([]);
+          setOverviewFeatures([]);
         }
       });
 
     return () => {
       isCurrent = false;
     };
-  }, [props.region]);
+  }, []);
 
-  const viewBox: string = isUs ? ALBERS_USA_VIEW_BOX : ROBINSON_VIEW_BOX;
-  const viewWidth: number = isUs
-    ? ALBERS_USA_VIEW_BOX_WIDTH
-    : ROBINSON_VIEW_BOX_WIDTH;
-  const viewHeight: number = isUs
-    ? ALBERS_USA_VIEW_BOX_HEIGHT
-    : ROBINSON_VIEW_BOX_HEIGHT;
+  /*
+   * The detail tier is fetched the first time the map is zoomed in far
+   * enough to want it, and then kept — zooming back out and in again must
+   * not re-download it. Until it arrives the overview stays on screen, so
+   * this is an upgrade in place with nothing to wait for.
+   */
+  const needsDetail: boolean = shouldUseDetailGeometry(viewport);
+  useEffect(() => {
+    if (!needsDetail || detailFeatures) {
+      return;
+    }
+    let isCurrent: boolean = true;
+
+    loadGeometryFeatures("detail")
+      .then((loaded: Array<GeometryFeature>) => {
+        if (isCurrent) {
+          setDetailFeatures(loaded);
+        }
+      })
+      .catch(() => {
+        // Keep the overview rather than blanking the map.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [needsDetail, detailFeatures]);
+
+  const features: Array<GeometryFeature> | null =
+    needsDetail && detailFeatures ? detailFeatures : overviewFeatures;
 
   const siteById: Map<string, MapSiteView> = useMemo(() => {
     const map: Map<string, MapSiteView> = new Map<string, MapSiteView>();
@@ -247,13 +377,201 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
     return map;
   }, [props.sites]);
 
-  const { pins, unmappableCount }: BuildPinsResult = useMemo(() => {
-    return buildPins(props.sites, props.region);
-  }, [props.sites, props.region]);
-
+  /*
+   * Clustering depends on the zoom but NOT on where the frame sits — the
+   * grid is anchored to the world, so panning never re-buckets anything.
+   * Memoizing on the cell size rather than on the viewport keeps a drag
+   * from re-clustering every site on every pointer move.
+   */
+  const cellSize: number = clusterCellSize(viewport);
   const clusters: Array<GeoCluster> = useMemo(() => {
-    return clusterPoints(pins, CLUSTER_CELL_SIZE);
-  }, [pins]);
+    return clusterPoints(pins, cellSize);
+  }, [pins, cellSize]);
+
+  /*
+   * Pan by dragging, zoom by wheel — the same interaction model, and the
+   * same hard-won details, as NetworkDeviceGraph.
+   *
+   * Pointer deltas convert through the SVG's own rendered box: because every
+   * viewport carries the world's aspect ratio (clampViewport guarantees it),
+   * the SVG is never letterboxed and one screen pixel is exactly
+   * viewport.width / renderedWidth viewBox units.
+   */
+  const containerRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const dragState: React.MutableRefObject<{
+    pointerId: number;
+    x: number;
+    y: number;
+    moved: number;
+  } | null> = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    moved: number;
+  } | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  /*
+   * Read by the markers: releasing a drag on top of a marker still fires a
+   * click, and drilling into a site because a pan happened to end there is a
+   * genuinely bad surprise. Cleared on the next pointerdown rather than on
+   * pointerup — the click that must be ignored has not been dispatched yet.
+   */
+  const suppressClick: React.MutableRefObject<boolean> = useRef<boolean>(false);
+
+  const endDrag: (pointerId: number) => void = (pointerId: number): void => {
+    if (dragState.current && dragState.current.pointerId === pointerId) {
+      dragState.current = null;
+      setIsDragging(false);
+    }
+  };
+
+  /*
+   * Wheel zoom needs a NATIVE non-passive listener: React's synthetic wheel
+   * handler cannot preventDefault, so the page would scroll underneath the
+   * map. The point under the cursor is held still.
+   */
+  useEffect(() => {
+    const element: HTMLDivElement | null = containerRef.current;
+    if (!element) {
+      return undefined;
+    }
+    const onWheel: (event: WheelEvent) => void = (event: WheelEvent): void => {
+      event.preventDefault();
+      const svg: SVGSVGElement | null = element.querySelector("svg");
+      const rect: DOMRect = (svg || element).getBoundingClientRect();
+      if (!rect.width || !rect.height) {
+        return;
+      }
+      setViewport((current: MapViewport): MapViewport => {
+        const focus: { x: number; y: number } = {
+          x:
+            current.x +
+            ((event.clientX - rect.left) / rect.width) * current.width,
+          y:
+            current.y +
+            ((event.clientY - rect.top) / rect.height) * current.height,
+        };
+        return zoomViewport(current, Math.exp(-event.deltaY * 0.0015), focus);
+      });
+      setOpenCluster(null);
+      setHovered(null);
+    };
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      element.removeEventListener("wheel", onWheel);
+    };
+  }, []);
+
+  const onPointerDown: (event: React.PointerEvent<SVGSVGElement>) => void = (
+    event: React.PointerEvent<SVGSVGElement>,
+  ): void => {
+    // One drag at a time — a second touch must not corrupt the pan.
+    if (event.button !== 0 || dragState.current) {
+      return;
+    }
+    dragState.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      moved: 0,
+    };
+    setIsDragging(true);
+    suppressClick.current = false;
+    /*
+     * Capture is NOT taken here: pointer capture retargets the eventual
+     * click to the SVG (Chromium/Safari retarget to the capture element,
+     * Firefox to the common ancestor), which would stop the markers'
+     * onClick from ever firing. It is taken in onPointerMove once the
+     * pointer has actually moved — the same threshold that suppresses the
+     * click.
+     */
+  };
+
+  const onPointerMove: (event: React.PointerEvent<SVGSVGElement>) => void = (
+    event: React.PointerEvent<SVGSVGElement>,
+  ): void => {
+    const drag: {
+      pointerId: number;
+      x: number;
+      y: number;
+      moved: number;
+    } | null = dragState.current;
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
+    }
+    const rect: DOMRect = event.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return;
+    }
+
+    const deltaX: number = event.clientX - drag.x;
+    const deltaY: number = event.clientY - drag.y;
+    drag.moved += Math.abs(deltaX) + Math.abs(deltaY);
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+
+    if (drag.moved > DRAG_THRESHOLD_PX) {
+      /*
+       * A real pan is in progress: the click is suppressed anyway, so
+       * capturing now (and not on pointerdown) keeps the drag tracking
+       * outside the SVG without eating stationary clicks on markers.
+       */
+      suppressClick.current = true;
+      if (!event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+      }
+      setHovered(null);
+    }
+
+    /*
+     * The map follows the pointer, so the frame moves the opposite way:
+     * dragging the world to the right shows what was to its left.
+     */
+    setViewport((current: MapViewport): MapViewport => {
+      return panViewport(
+        current,
+        (-deltaX / rect.width) * current.width,
+        (-deltaY / rect.height) * current.height,
+      );
+    });
+  };
+
+  const onKeyDown: (event: React.KeyboardEvent<SVGSVGElement>) => void = (
+    event: React.KeyboardEvent<SVGSVGElement>,
+  ): void => {
+    const panX: number = viewport.width * KEYBOARD_PAN_FRACTION;
+    const panY: number = viewport.height * KEYBOARD_PAN_FRACTION;
+
+    switch (event.key) {
+      case "ArrowLeft":
+        changeViewport(panViewport(viewport, -panX, 0));
+        break;
+      case "ArrowRight":
+        changeViewport(panViewport(viewport, panX, 0));
+        break;
+      case "ArrowUp":
+        changeViewport(panViewport(viewport, 0, -panY));
+        break;
+      case "ArrowDown":
+        changeViewport(panViewport(viewport, 0, panY));
+        break;
+      case "+":
+      case "=":
+        changeViewport(zoomViewport(viewport, ZOOM_STEP));
+        break;
+      case "-":
+      case "_":
+        changeViewport(zoomViewport(viewport, 1 / ZOOM_STEP));
+        break;
+      case "0":
+        changeViewport(fittedViewport);
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+  };
 
   const tooltipForCluster: (cluster: GeoCluster) => string = (
     cluster: GeoCluster,
@@ -279,49 +597,55 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Nothing landed on this projection: say so instead of shipping a blank
-   * map. Sites that exist but sit outside the current projection get a
-   * different (actionable) message from sites with no coordinates at all.
+   * Nothing to draw: say so instead of shipping a blank map. Every finite
+   * coordinate has a place on this projection, so the only way to get here
+   * with sites in hand is coordinates that are not usable numbers.
    */
   if (clusters.length === 0) {
     const hasSites: boolean = props.sites.length > 0;
-    let description: string =
-      "Sites with a latitude and longitude appear here. Add coordinates to a site to place it on the map.";
-    if (hasSites && unmappableCount > 0) {
-      description = isUs
-        ? `None of the ${unmappableCount} site${
-            unmappableCount === 1 ? "" : "s"
-          } here can be placed on the United States map. Switch to the World view to see them.`
-        : `None of the ${unmappableCount} site${
-            unmappableCount === 1 ? "" : "s"
-          } here have usable coordinates yet.`;
-    }
     return (
       <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm">
         <EmptyState
           id="site-geo-map-empty"
-          icon={isUs ? IconProp.Map : IconProp.Globe}
+          icon={IconProp.Globe}
           title={
-            hasSites && unmappableCount > 0
-              ? "No sites on this map"
+            hasSites
+              ? "No sites can be placed on the map"
               : "No sites on the map yet"
           }
-          description={description}
+          description={
+            hasSites
+              ? `${unmappableCount} site${
+                  unmappableCount === 1 ? " has" : "s have"
+                } coordinates the map cannot read. Check the latitude and longitude on ${
+                  unmappableCount === 1 ? "that site" : "those sites"
+                }.`
+              : "Sites with a latitude and longitude appear here. Add coordinates to a site to place it on the map."
+          }
         />
       </div>
     );
   }
 
   const mappedCount: number = pins.length;
+  const inViewCount: number = countPointsInViewport(pins, viewport);
+  const isFitted: boolean = viewportsMatch(viewport, fittedViewport);
+  const isWholeWorld: boolean = viewportsMatch(viewport, WORLD_VIEWPORT);
 
   return (
     <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="p-3 sm:p-4">
         {/*
          * This wrapper is exactly the SVG's box, so the percentage-anchored
-         * overlays below line up with the markers they point at.
+         * overlays below line up with the markers they point at. It also
+         * owns the native wheel listener and the touch-action opt-out that
+         * lets a finger drag the map instead of scrolling the page.
          */}
-        <div className="relative">
+        <div
+          ref={containerRef}
+          className="relative"
+          style={{ touchAction: "none" }}
+        >
           {/*
            * Outlines still in flight. The SVG underneath already holds the
            * map's exact box, so a skeleton laid over it keeps the card from
@@ -329,7 +653,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
            * copy on purpose — a "loading" line would read as a failure
            * state for what is usually a sub-100ms chunk fetch.
            */}
-          {features === null ? (
+          {overviewFeatures === null ? (
             <div
               aria-hidden="true"
               data-testid="site-geo-map-skeleton"
@@ -340,13 +664,29 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
           )}
           <svg
             role="img"
-            aria-label={
-              isUs ? "United States network site map" : "World network site map"
-            }
-            viewBox={viewBox}
+            tabIndex={0}
+            aria-label="World network site map. Arrow keys pan, plus and minus zoom, zero refits the map to your sites."
+            viewBox={viewBoxOfViewport(viewport)}
             preserveAspectRatio="xMidYMid meet"
-            className="block"
-            style={{ width: "100%", height: "auto", minWidth: "480px" }}
+            className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            style={{
+              width: "100%",
+              height: "auto",
+              minWidth: "480px",
+              cursor: isDragging ? "grabbing" : "grab",
+            }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={(event: React.PointerEvent<SVGSVGElement>) => {
+              endDrag(event.pointerId);
+            }}
+            onPointerCancel={(event: React.PointerEvent<SVGSVGElement>) => {
+              endDrag(event.pointerId);
+            }}
+            onPointerLeave={(event: React.PointerEvent<SVGSVGElement>) => {
+              endDrag(event.pointerId);
+            }}
+            onKeyDown={onKeyDown}
           >
             {/* Land outlines under the pins. */}
             <g>
@@ -359,7 +699,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                       fillRule="evenodd"
                       fill="var(--ou-surface-quaternary, #e5e7eb)"
                       stroke="var(--ou-chart-tick, #6b7280)"
-                      strokeWidth={0.6}
+                      strokeWidth={0.6 / zoom}
                       strokeOpacity={0.8}
                     >
                       <title>{feature.name}</title>
@@ -390,7 +730,15 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                   }),
                 );
                 const color: string = CLUSTER_COLORS[colorKey];
-                const radius: number = clusterRadius(cluster.totalCount);
+                /*
+                 * Sized on screen, then converted for this zoom: the marker
+                 * is UI, not geography, so it must not grow with the map.
+                 */
+                const screenRadius: number = clusterRadius(cluster.totalCount);
+                const radius: number = clusterRadius(
+                  cluster.totalCount,
+                  viewport,
+                );
                 const isCluster: boolean = cluster.totalCount > 1;
                 const label: string = tooltipForCluster(cluster);
                 const key: string = `${cluster.x}:${cluster.y}:${cluster.ids[0]}`;
@@ -413,14 +761,24 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                     tabIndex={0}
                     aria-label={label}
                     style={{ cursor: "pointer", outline: "none" }}
-                    onClick={activate}
+                    onClick={() => {
+                      // A pan that happened to end on a marker is not a click.
+                      if (suppressClick.current) {
+                        return;
+                      }
+                      activate();
+                    }}
                     onKeyDown={(event: React.KeyboardEvent<SVGGElement>) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
+                        event.stopPropagation();
                         activate();
                       }
                     }}
                     onMouseEnter={() => {
+                      if (dragState.current) {
+                        return;
+                      }
                       setHovered({ x: cluster.x, y: cluster.y, label: label });
                     }}
                     onMouseLeave={() => {
@@ -443,7 +801,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                     <circle
                       cx={cluster.x}
                       cy={cluster.y}
-                      r={radius + (isCluster ? 4 : 3)}
+                      r={radius + (isCluster ? 4 : 3) / zoom}
                       fill={color}
                       fillOpacity={0.18}
                     />
@@ -454,7 +812,7 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                       fill={color}
                       fillOpacity={0.95}
                       stroke="var(--ou-chart-marker-ring, #ffffff)"
-                      strokeWidth={isCluster ? 2.5 : 2}
+                      strokeWidth={(isCluster ? 2.5 : 2) / zoom}
                     />
                     {isCluster ? (
                       <text
@@ -462,7 +820,13 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                         y={cluster.y}
                         dy="0.36em"
                         textAnchor="middle"
-                        fontSize={radius >= 14 ? 13 : radius >= 10 ? 11 : 10}
+                        fontSize={
+                          (screenRadius >= 14
+                            ? 13
+                            : screenRadius >= 10
+                              ? 11
+                              : 10) / zoom
+                        }
                         fontWeight={700}
                         fill="#ffffff"
                         style={{ pointerEvents: "none" }}
@@ -477,10 +841,10 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                       <circle
                         cx={cluster.x}
                         cy={cluster.y}
-                        r={radius + 5}
+                        r={radius + 5 / zoom}
                         fill="none"
                         stroke="var(--ou-link, #4f46e5)"
-                        strokeWidth={2}
+                        strokeWidth={2 / zoom}
                         style={{ pointerEvents: "none" }}
                       />
                     ) : (
@@ -492,17 +856,47 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             </g>
           </svg>
 
+          {/* Zoom and framing controls. */}
+          <div className="absolute right-2 top-2 z-10 flex flex-col rounded-lg border border-gray-200 bg-white/95 p-0.5 shadow-sm backdrop-blur">
+            <MapControlButton
+              label="Zoom in"
+              icon={IconProp.MagnifyingGlassPlus}
+              disabled={zoom >= MAX_ZOOM}
+              onClick={() => {
+                changeViewport(zoomViewport(viewport, ZOOM_STEP));
+              }}
+            />
+            <MapControlButton
+              label="Zoom out"
+              icon={IconProp.MagnifyingGlassMinus}
+              disabled={isWholeWorld}
+              onClick={() => {
+                changeViewport(zoomViewport(viewport, 1 / ZOOM_STEP));
+              }}
+            />
+            <MapControlButton
+              label="Fit to sites"
+              icon={IconProp.MapPin}
+              disabled={isFitted}
+              onClick={() => {
+                changeViewport(fittedViewport);
+              }}
+            />
+            <MapControlButton
+              label="Whole world"
+              icon={IconProp.Globe}
+              disabled={isWholeWorld}
+              onClick={() => {
+                changeViewport(clampViewport(WORLD_VIEWPORT));
+              }}
+            />
+          </div>
+
           {/* Hover/focus label — readable in both themes, unlike a native title. */}
           {hovered && !openCluster ? (
             <div
               className="pointer-events-none absolute z-10 max-w-xs rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-md"
-              style={overlayPosition(
-                hovered.x,
-                hovered.y,
-                viewWidth,
-                viewHeight,
-                12,
-              )}
+              style={overlayPosition(hovered.x, hovered.y, viewport, 12)}
             >
               {hovered.label}
             </div>
@@ -510,15 +904,14 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          {/* Site picker for multi-site clusters (zoom-less by design). */}
+          {/* Site picker for multi-site clusters. */}
           {openCluster ? (
             <div
               className="absolute z-20 w-60 rounded-md border border-gray-200 bg-white shadow-lg"
               style={overlayPosition(
                 openCluster.x,
                 openCluster.y,
-                viewWidth,
-                viewHeight,
+                viewport,
                 12,
               )}
             >
@@ -605,14 +998,20 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
         </ul>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 sm:ml-auto">
-          <span>
-            {mappedCount} site{mappedCount === 1 ? "" : "s"} mapped
+          {/*
+           * Once the frame no longer holds everything, say what it does hold
+           * — a count that quietly shrinks as you zoom reads as sites
+           * disappearing.
+           */}
+          <span data-testid="site-geo-map-count">
+            {inViewCount < mappedCount
+              ? `${inViewCount} of ${mappedCount} sites in view`
+              : `${mappedCount} site${mappedCount === 1 ? "" : "s"} mapped`}
           </span>
-          {/* Sites the current projection cannot place (e.g. abroad on the US map). */}
+          {/* Coordinates the projection cannot read at all. */}
           {unmappableCount > 0 ? (
             <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-600">
-              {unmappableCount} outside this map
-              {isUs ? " — switch to World view" : ""}
+              {unmappableCount} without usable coordinates
             </span>
           ) : (
             <></>

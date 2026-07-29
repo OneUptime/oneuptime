@@ -1,28 +1,31 @@
 # Map Geometry Generator
 
-Generates the checked-in SVG map geometry used by the NetworkSite map views:
+Generates the checked-in SVG map geometry used by the NetworkSite map view.
+The map is a single zoomable world map — there is no per-country mode — so
+the geometry ships in two resolution tiers that share one viewBox and are
+swapped at runtime as the viewport zooms:
 
-- `App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/UsStatesGeometry.json`
-  — US states projected through the AlbersUSA composite projection into a
-  `0 0 975 610` viewBox. Entries are `{ id, name, path }` where `id` is the
-  two-digit state FIPS code and `path` is an SVG path `d` string.
 - `App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/WorldCountriesGeometry.json`
-  — world countries projected through the Robinson projection into a
-  `0 0 960 500` viewBox. `id` is the ISO 3166-1 numeric code (as a string,
-  zero-padded as shipped by world-atlas).
+  — **overview** outlines, drawn at continent-and-wider zoom.
+- `App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/WorldCountriesDetailGeometry.json`
+  — **detail** outlines, loaded on demand once the viewport passes
+  `DETAIL_GEOMETRY_MIN_ZOOM` (see `Geo/GeoViewport.ts`).
+
+Both are `{ viewBox, features: [{ id, name, path }] }`, projected through the
+Robinson projection into a `0 0 960 500` viewBox. `id` is the ISO 3166-1
+numeric code (as a string, zero-padded as shipped by world-atlas).
+
+Because both tiers share the viewBox, swapping tiers never moves a pin or an
+outline — it only changes how finely that outline is drawn.
 
 ## Data sources
 
-- **US states**: [`us-atlas`](https://github.com/topojson/us-atlas) npm package
-  (`us-atlas@3`, generated from this repo with 3.0.1), `states-10m.json`.
-  Derived from the U.S. Census Bureau's cartographic boundary shapefiles —
-  public domain.
-- **World countries**: [`world-atlas`](https://github.com/topojson/world-atlas)
-  npm package (`world-atlas@2`, generated with 2.0.2), `countries-110m.json`.
-  Derived from [Natural Earth](https://www.naturalearthdata.com/) — public
-  domain.
+- **Overview**: [`world-atlas`](https://github.com/topojson/world-atlas) npm
+  package (`world-atlas@2`, generated with 2.0.2), `countries-110m.json`.
+- **Detail**: the same package's `countries-50m.json`.
 
-The raw atlases are NOT checked in — only the projected output is.
+Both are derived from [Natural Earth](https://www.naturalearthdata.com/) —
+public domain. The raw atlases are NOT checked in; only the projected output.
 
 ## Regeneration
 
@@ -30,9 +33,9 @@ Requires only Node (no npm dependencies) and network access for the two
 downloads:
 
 ```sh
-curl -L -o /tmp/states-10m.json https://unpkg.com/us-atlas@3/states-10m.json
 curl -L -o /tmp/countries-110m.json https://unpkg.com/world-atlas@2/countries-110m.json
-node ./Scripts/Geo/GenerateMapGeometry.js /tmp/states-10m.json /tmp/countries-110m.json
+curl -L -o /tmp/countries-50m.json https://unpkg.com/world-atlas@2/countries-50m.json
+node ./Scripts/Geo/GenerateMapGeometry.js /tmp/countries-110m.json /tmp/countries-50m.json
 ```
 
 Then re-run the asset tests:
@@ -44,41 +47,54 @@ cd App && npx jest Tests/Dashboard/GeometryAssets Tests/Dashboard/GeoProjection
 ## How it works
 
 1. Decodes the TopoJSON topology (delta-decoded quantized arcs → lon/lat
-   rings) and assembles each state's/country's polygon rings.
-2. Projects US rings through an AlbersUSA composite projection — conic
-   equal-area with parallels 29.5°/45.5° for the lower 48, plus scaled
-   Alaska (0.35×) and Hawaii insets at the bottom left, replicating
-   `d3.geoAlbersUsa().scale(1300).translate([487.5, 305])` so the classic
-   975×610 us-atlas layout matches. Each ring is assigned to the composite
-   zone that owns the majority of its vertexes and projected through that
-   single zone unclipped, so outlines are never torn at zone boundaries.
-3. Projects world rings through the Robinson projection (standard 5°
-   interpolation table, linear interpolation) into a 960×500 viewBox.
-4. Rounds to 1 decimal, drops consecutive duplicate points (the
-   resolution-appropriate simplification that keeps the files small) and
-   emits SVG path `d` strings.
+   rings) and assembles each country's polygon rings.
+2. Cuts any ring that crosses the ±180° antimeridian at the meridian.
+3. Projects the rings through the Robinson projection (standard 5°
+   interpolation table, linear interpolation) into the 960×500 viewBox.
+4. Simplifies each ring with Douglas-Peucker at the tier's tolerance, rounds
+   to the tier's precision, and emits SVG path `d` strings.
+
+## Tier settings
+
+| | Source | Decimals | DP tolerance | Min ring area | Output |
+|---|---|---|---|---|---|
+| Overview | countries-110m | 1 | 0.05 px | 0.5 px² | ~84 KB |
+| Detail | countries-50m | 2 | 0.04 px | 0.05 px² | ~511 KB |
+
+The detail tier's 0.04 px tolerance is chosen against the map's `MAX_ZOOM`:
+at the deepest zoom the UI allows, 0.04 viewBox units is about one screen
+pixel. Moving either number means revisiting the other.
 
 ## Invariants and edge cases
 
-- **Projection parity**: the projection constants in `GenerateMapGeometry.js`
+- **Projection parity**: the Robinson constants in `GenerateMapGeometry.js`
   MUST stay in sync with
   `App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoProjection.ts`.
   The runtime projects site pins with the same math, which is what makes a
   pin land exactly on its projected outline.
   `App/Tests/Dashboard/GeometryAssets.test.ts` cross-checks this.
-- **Island territories**: American Samoa, Guam, Northern Mariana Islands,
-  Puerto Rico and the US Virgin Islands (5 of us-atlas's 56 entries) fall
-  outside the AlbersUSA composite and are omitted, leaving 51 features
-  (50 states + DC). `projectAlbersUsa` likewise returns `null` for them.
-- **Speck threshold**: rings whose projected area is below 0.5 px² are
+- **Path encoding**: each ring is one absolute `M` followed by a single
+  relative `l` polyline (`M245.67,123.45l.03,-.05 .02,.01Z`). Relative steps
+  are what make the detail tier affordable — about 40% smaller than absolute
+  coordinates. Every step is emitted from the position the renderer is
+  actually at, so rounding error cannot accumulate along a coastline, and
+  every subpath re-anchors with its own absolute `M`. Anything parsing these
+  paths must therefore accumulate deltas, not read absolute pairs.
+- **Antimeridian**: Fiji and two Russian polygons cross ±180°. A vertex
+  sitting exactly ON the meridian (Fiji has one in the 50m data) leaves no
+  direction to read from the segment, so the cut uses the edge that vertex is
+  already on — guessing instead puts a piece on the wrong side of the map and
+  streaks a line across the whole world.
+- **Speck threshold**: rings below the tier's minimum projected area are
   dropped (sub-pixel islands that cost bytes but render as nothing). The
-  largest ring of every feature is always kept, so nothing disappears
-  entirely (e.g. DC survives).
+  largest ring of every feature is always kept, so no country disappears.
+  The detail tier's threshold is 10× lower, because at zoom those specks are
+  real islands.
 - **Missing ISO ids**: N. Cyprus, Somaliland and Kosovo carry no ISO numeric
   id in Natural Earth; their `name` is used as the `id` so they still render
   with a stable, unique id.
 - **Holes**: a feature's path can contain hole rings (MultiPolygon interior
   rings). Render with `fill-rule="evenodd"` to be winding-agnostic.
-- **Aleutian tail**: like the canonical us-atlas layout, the far Aleutian
-  islands extend slightly past the left viewBox edge (x ≈ −58); an SVG
-  viewBox simply clips them.
+- **Feature counts differ between tiers**: 177 overview features, 239 detail
+  ones — the finer source carries small states and islands the coarse one
+  drops entirely. Nothing may assume the two tiers hold the same id set.
