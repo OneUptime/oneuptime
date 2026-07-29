@@ -79,7 +79,21 @@ export interface SiteChildrenResponse {
   descendantCountsTruncated: boolean;
 }
 
-// One pin row of /network-site/map.
+/*
+ * How the map is showing the level in view:
+ *
+ *   grouped — one marker per child of this level, the same set the cards
+ *             below it list. A container child with no coordinates of its
+ *             own sits at the centroid of the sites beneath it.
+ *   all     — every located site in this level's subtree, individually.
+ *
+ * Grouped is the default because it is the only one of the two that can
+ * answer "what does my network look like": the flat view turns a franchise
+ * estate into proximity blobs whose counts match nothing anybody named.
+ */
+export type SiteMapMode = "grouped" | "all";
+
+// One marker row of /network-site/map.
 export interface MapSiteView {
   id: string;
   name: string;
@@ -90,10 +104,37 @@ export interface MapSiteView {
   statusPriority: number;
   isOperational: boolean | null;
   parentBreadcrumb: string;
+  /*
+   * This marker stands for a level of the hierarchy rather than for one
+   * place — it is drawn as a container, and clicking it drills.
+   */
+  isContainer: boolean;
+  // The position is the centroid of what is beneath it, not its own pin.
+  isDerivedLocation: boolean;
+  locatedDescendantCount: number;
+  unlocatedDescendantCount: number;
+  totalUnits: number;
+  operationalUnits: number;
+  childSiteCount: number;
+}
+
+/*
+ * A child of this level that has no place on the map: neither it nor
+ * anything beneath it carries coordinates. Reported rather than dropped —
+ * a region missing from the map while its card sits right underneath is a
+ * bug report waiting to happen.
+ */
+export interface MapUnplacedSiteView {
+  id: string;
+  name: string;
+  siteType: string;
+  isUnitLevel: boolean;
 }
 
 export interface SiteMapResponse {
+  mode: SiteMapMode;
   sites: Array<MapSiteView>;
+  unplacedSites: Array<MapUnplacedSiteView>;
   isTruncated: boolean;
 }
 
@@ -248,10 +289,51 @@ export const parseSiteChildrenResponse: (
   };
 };
 
+/*
+ * Real latitude and longitude ranges. A CSV import that shifts a column by
+ * one puts a longitude in the latitude field, and a latitude of 1246.7
+ * projects to a marker — and a frame fitted around it — somewhere no site
+ * is. Out-of-range rows are dropped here for the same reason the server
+ * refuses to place them.
+ */
+const MAX_LATITUDE: number = 90;
+const MAX_LONGITUDE: number = 180;
+
+const asCoordinate: (value: unknown, limit: number) => number | null = (
+  value: unknown,
+  limit: number,
+): number | null => {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+  return value >= -limit && value <= limit ? value : null;
+};
+
+const parseUnplacedRow: (value: unknown) => MapUnplacedSiteView | null = (
+  value: unknown,
+): MapUnplacedSiteView | null => {
+  const row: JSONObject = (value || {}) as JSONObject;
+  const id: string = asString(row["id"], "");
+  if (!id) {
+    return null;
+  }
+  return {
+    id: id,
+    name: asString(row["name"], "Unnamed site"),
+    siteType: asString(row["siteType"], "Other"),
+    isUnitLevel: row["isUnitLevel"] === true,
+  };
+};
+
 /**
- * Narrow an untyped /network-site/map payload. Rows without an id or with
- * non-finite coordinates are dropped — a pin that cannot be projected is
- * noise, and the projection math requires finite inputs.
+ * Narrow an untyped /network-site/map payload. Rows without an id, or whose
+ * coordinates are not usable numbers in the real latitude/longitude ranges,
+ * are dropped — a marker that cannot be projected is noise, and the
+ * projection math requires finite inputs.
+ *
+ * Every rollup field defaults to a shape the map can render: a payload from
+ * a server that predates grouped markers narrows to plain, non-container
+ * markers rather than to holes.
  */
 export const parseSiteMapResponse: (
   data: JSONObject | undefined,
@@ -263,16 +345,21 @@ export const parseSiteMapResponse: (
       if (!id) {
         return null;
       }
-      const latitude: unknown = row["latitude"];
-      const longitude: unknown = row["longitude"];
-      if (
-        typeof latitude !== "number" ||
-        !Number.isFinite(latitude) ||
-        typeof longitude !== "number" ||
-        !Number.isFinite(longitude)
-      ) {
+      const latitude: number | null = asCoordinate(
+        row["latitude"],
+        MAX_LATITUDE,
+      );
+      const longitude: number | null = asCoordinate(
+        row["longitude"],
+        MAX_LONGITUDE,
+      );
+      if (latitude === null || longitude === null) {
         return null;
       }
+      const totalUnits: number = Math.max(
+        0,
+        asFiniteNumber(row["totalUnits"], 0),
+      );
       return {
         id: id,
         name: asString(row["name"], "Unnamed site"),
@@ -286,13 +373,42 @@ export const parseSiteMapResponse: (
             ? (row["isOperational"] as boolean)
             : null,
         parentBreadcrumb: asString(row["parentBreadcrumb"], ""),
+        isContainer: row["isContainer"] === true,
+        isDerivedLocation: row["isDerivedLocation"] === true,
+        locatedDescendantCount: Math.max(
+          0,
+          asFiniteNumber(row["locatedDescendantCount"], 0),
+        ),
+        unlocatedDescendantCount: Math.max(
+          0,
+          asFiniteNumber(row["unlocatedDescendantCount"], 0),
+        ),
+        totalUnits: totalUnits,
+        /*
+         * Clamped into its own total: a marker can never report more
+         * healthy units than it has, however the rollup arrived.
+         */
+        operationalUnits: Math.min(
+          totalUnits,
+          Math.max(0, asFiniteNumber(row["operationalUnits"], 0)),
+        ),
+        childSiteCount: Math.max(0, asFiniteNumber(row["childSiteCount"], 0)),
       };
     })
     .filter((site: MapSiteView | null): site is MapSiteView => {
       return site !== null;
     });
+  const unplacedSites: Array<MapUnplacedSiteView> = asRows(
+    data?.["unplacedSites"],
+  )
+    .map(parseUnplacedRow)
+    .filter((site: MapUnplacedSiteView | null): site is MapUnplacedSiteView => {
+      return site !== null;
+    });
   return {
+    mode: data?.["mode"] === "all" ? "all" : "grouped",
     sites: sites,
+    unplacedSites: unplacedSites,
     isTruncated: data?.["isTruncated"] === true,
   };
 };

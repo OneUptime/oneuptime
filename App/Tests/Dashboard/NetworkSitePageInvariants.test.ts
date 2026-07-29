@@ -309,9 +309,8 @@ describe("the Network Map names no country", () => {
   });
 
   test("the map component takes sites and a click handler, and no region", () => {
-    expect(PAGE).toContain(
-      squash("<SiteGeoMap sites={pinnedSites} onSiteClick={changeSite} />"),
-    );
+    expect(PAGE).toContain(squash("sites={pinnedSites}"));
+    expect(PAGE).toContain(squash("onSiteClick={changeSite}"));
     expect(MAP).not.toContain("region: MapRegion;");
   });
 
@@ -326,6 +325,56 @@ describe("the Network Map names no country", () => {
         "queueQueryStringUpdate({ [LEGACY_NETWORK_MAP_REGION_PARAM]: null });",
       ),
     );
+  });
+});
+
+/*
+ * The map used to answer with every coordinate-bearing site in the project,
+ * flat, however deep the user had drilled — and it was only fetched at the
+ * root at all. So the map showed proximity blobs whose counts matched
+ * nothing the customer had named, while the cards directly underneath
+ * showed the real hierarchy, and drilling replaced the map with a diagram.
+ * Two halves of one page describing two different networks.
+ *
+ * These pin the three things that fixed it. Each one fails if its line is
+ * reverted.
+ */
+describe("the Network Map follows the drill", () => {
+  const PAGE: string = readSource("Pages", "NetworkSite", "NetworkMap.tsx");
+
+  test("the map endpoint is asked about the level in view", () => {
+    expect(PAGE).toContain(
+      squash(
+        "data: siteId ? { siteId: siteId, mode: mapMode } : { mode: mapMode },",
+      ),
+    );
+  });
+
+  /*
+   * The map is fetched at every level now. The old code skipped it whenever
+   * a siteId was set, which is what made a drilled view mapless.
+   */
+  test("the map is no longer skipped once you drill in", () => {
+    const code: string = readCode("Pages", "NetworkSite", "NetworkMap.tsx");
+    expect(code).not.toContain(
+      squash(
+        "const mapPromise: Promise< HTTPResponse<JSONObject> | HTTPErrorResponse > | null = siteId ? null",
+      ),
+    );
+    expect(code).toContain(
+      squash("await Promise.all([childrenPromise, mapPromise]);"),
+    );
+  });
+
+  /*
+   * One map element, rendered by BOTH the container branch and the root
+   * branch — drilling re-frames the same map instead of swapping it for
+   * something else.
+   */
+  test("the same map is rendered at the container level and at the root", () => {
+    const code: string = readCode("Pages", "NetworkSite", "NetworkMap.tsx");
+    expect(code).toContain("const geoMap: ReactElement = (");
+    expect(code.split("{geoMap}").length - 1).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -638,10 +687,51 @@ describe("SiteGeoMap", () => {
    * the map, zooming in to separate two sites would produce two bigger
    * overlapping blobs instead of two markers.
    */
+  /*
+   * A marker's colour, its count and its tooltip are all computed inside
+   * buildMapMarkers from the rollup fields. The pin fingerprint next door is
+   * deliberately geometry-only — a site going down must not re-frame the map
+   * — so keying the MARKER memo on it froze the markers: a region could go
+   * entirely dark and its square stayed green until the page was reloaded,
+   * while the card right underneath turned red. That disagreement between
+   * the two halves of the page is the whole defect this feature exists to
+   * fix, so the memo has to watch the sites themselves.
+   */
+  test("markers are rebuilt when the sites change, not only when they move", () => {
+    const memo: string = source
+      .split("const markers: Array<MapMarker> = useMemo(() => {")[1]!
+      .split("]);")[0]!;
+    expect(memo).toContain("sites: props.sites,");
+    expect(memo).toContain(squash("}, [props.sites, props.mode, cellSize"));
+    expect(memo).not.toContain("sitesRef.current");
+    expect(memo).not.toContain("pinFingerprint");
+  });
+
+  /*
+   * ...while the FIT stays keyed on geometry alone, or the 60-second poll
+   * re-frames the map under someone who has zoomed in.
+   */
+  test("the fit still ignores everything but where the sites are", () => {
+    expect(source).toContain("return mapPinFingerprint(props.sites);");
+    expect(source).toContain(
+      squash("return buildPins(sitesRef.current); }, [pinFingerprint]);"),
+    );
+  });
+
   test("marker geometry is divided by the zoom", () => {
-    expect(source).toContain("clusterRadius( cluster.totalCount, viewport, )");
+    /*
+     * Marker sizing moved into the view model when markers stopped being
+     * only proximity clusters, but the conversion still has to happen: a
+     * radius chosen in SCREEN units is meaningless until it is expressed in
+     * the viewBox units the SVG actually draws in.
+     */
+    expect(source).toContain(
+      squash("screenLengthToViewportLength( marker.screenRadius, viewport, )"),
+    );
     expect(source).toContain("strokeWidth={0.6 / zoom}");
-    expect(source).toContain("strokeWidth={(isCluster ? 2.5 : 2) / zoom}");
+    expect(source).toContain("strokeWidth={(hasCount ? 2.5 : 2) / zoom}");
+    // The name labels are UI too — they must not grow with the map.
+    expect(source).toContain("fontSize={LABEL_FONT_SIZE / zoom}");
   });
 
   /*
