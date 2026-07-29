@@ -163,21 +163,28 @@ export default class IncidentAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    // Verify user has permission to edit the incident
-    const permissions: Array<Permission> | undefined = props
-      .userTenantAccessPermission?.["permissions"] as
-      | Array<Permission>
-      | undefined;
+    /*
+     * The project comes from the caller-supplied `tenantid` header, so scope
+     * the request to a project this user is a member of before checking
+     * permissions — a missing header should report a missing project id
+     * rather than a misleading permission error. Master admins keep the
+     * bypass they already have on the permission check below.
+     */
+    if (!props.isMasterAdmin) {
+      CommonAPI.assertAuthenticatedProjectMember(props);
+    }
 
-    const hasPermission: boolean = permissions
-      ? permissions.some((p: Permission) => {
-          return (
-            p === Permission.ProjectOwner ||
-            p === Permission.ProjectAdmin ||
-            p === Permission.EditProjectIncident
-          );
-        })
-      : false;
+    // Verify user has permission to edit the incident
+    const permissions: Array<Permission> =
+      CommonAPI.getUserTenantPermissions(props);
+
+    const hasPermission: boolean = permissions.some((p: Permission) => {
+      return (
+        p === Permission.ProjectOwner ||
+        p === Permission.ProjectAdmin ||
+        p === Permission.EditProjectIncident
+      );
+    });
 
     if (!hasPermission && !props.isMasterAdmin) {
       throw new BadDataException(
@@ -271,23 +278,30 @@ export default class IncidentAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    // Verify user has permission to edit the incident
-    const permissions: Array<Permission> | undefined = props
-      .userTenantAccessPermission?.["permissions"] as
-      | Array<Permission>
-      | undefined;
+    /*
+     * The project comes from the caller-supplied `tenantid` header, so scope
+     * the request to a project this user is a member of before checking
+     * permissions — a missing header should report a missing project id
+     * rather than a misleading permission error. Master admins keep the
+     * bypass they already have on the permission check below.
+     */
+    if (!props.isMasterAdmin) {
+      CommonAPI.assertAuthenticatedProjectMember(props);
+    }
 
-    const hasPermission: boolean = permissions
-      ? permissions.some((p: Permission) => {
-          return (
-            p === Permission.ProjectOwner ||
-            p === Permission.ProjectAdmin ||
-            p === Permission.EditProjectIncident ||
-            p === Permission.CreateIncidentInternalNote ||
-            p === Permission.CreateIncidentPublicNote
-          );
-        })
-      : false;
+    // Verify user has permission to edit the incident
+    const permissions: Array<Permission> =
+      CommonAPI.getUserTenantPermissions(props);
+
+    const hasPermission: boolean = permissions.some((p: Permission) => {
+      return (
+        p === Permission.ProjectOwner ||
+        p === Permission.ProjectAdmin ||
+        p === Permission.EditProjectIncident ||
+        p === Permission.CreateIncidentInternalNote ||
+        p === Permission.CreateIncidentPublicNote
+      );
+    });
 
     if (!hasPermission && !props.isMasterAdmin) {
       throw new BadDataException(

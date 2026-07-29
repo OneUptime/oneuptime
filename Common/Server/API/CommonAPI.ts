@@ -9,6 +9,10 @@ import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../Types/Permission";
 
 export default class CommonAPI {
   /*
@@ -38,6 +42,36 @@ export default class CommonAPI {
     }
 
     return projectId;
+  }
+
+  /*
+   * userTenantAccessPermission is a dictionary keyed by project id whose
+   * entries hold UserPermission rows — not bare Permission values. Custom
+   * endpoints that roll their own permission check must resolve the entry
+   * for the current tenant; indexing the dictionary by anything else
+   * silently yields undefined and rejects every caller.
+   */
+  public static getUserTenantPermissions(
+    databaseProps: DatabaseCommonInteractionProps,
+  ): Array<Permission> {
+    const projectId: ObjectID | undefined = databaseProps.tenantId;
+
+    if (!projectId) {
+      return [];
+    }
+
+    const tenantPermission: UserTenantAccessPermission | undefined =
+      databaseProps.userTenantAccessPermission?.[projectId.toString()];
+
+    if (!tenantPermission || !tenantPermission.permissions) {
+      return [];
+    }
+
+    return tenantPermission.permissions.map(
+      (userPermission: UserPermission) => {
+        return userPermission.permission;
+      },
+    );
   }
 
   @CaptureSpan()
