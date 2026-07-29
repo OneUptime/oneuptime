@@ -176,6 +176,10 @@ export function getKubernetesBreadcrumbs(
       "Events",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS,
+      ["Project", "Kubernetes", "View Cluster", "Recommendations"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE,
       ["Project", "Kubernetes", "View Cluster", "Control Plane"],
     ),
