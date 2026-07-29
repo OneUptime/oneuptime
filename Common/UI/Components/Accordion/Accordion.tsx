@@ -32,13 +32,21 @@ const Accordion: FunctionComponent<ComponentProps> = (
     }
   }, [props.isInitiallyExpanded]);
 
+  /*
+   * A title-less accordion has nothing to click, so it stays open. Keyed on
+   * whether there is a title rather than on the title itself: callers may pass
+   * an element, and a fresh element on every parent render would otherwise
+   * collapse an accordion the visitor had just opened.
+   */
+  const hasTitle: boolean = Boolean(props.title);
+
   useEffect(() => {
-    if (!props.title) {
+    if (!hasTitle) {
       setIsOpen(true);
     } else if (!props.isInitiallyExpanded) {
       setIsOpen(false);
     }
-  }, [props.title]);
+  }, [hasTitle]);
 
   useEffect(() => {
     if (props.onClick) {

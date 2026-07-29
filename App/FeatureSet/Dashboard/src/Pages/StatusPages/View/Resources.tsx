@@ -24,6 +24,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageGroupTreeUtil, {
+  StatusPageGroupTreeNode,
+} from "Common/Utils/StatusPage/GroupTree";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import React, {
   Fragment,
@@ -66,6 +69,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           select: {
             name: true,
             _id: true,
+            order: true,
+            parentStatusPageGroupId: true,
             viewMode: true,
             rowAxisLabel: true,
             columnAxisLabel: true,
@@ -262,11 +267,60 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     statusPageGroup: StatusPageGroup | null,
   ) => ReactElement;
 
+  /*
+   * Groups can be nested, and two groups at different levels can share a name.
+   * Show the full path so it is obvious which "Region 1000" a table belongs to.
+   */
+  /*
+   * A parent's table should sit directly above the tables of the groups nested
+   * under it, the same order the public status page renders them in - a flat
+   * sort by `order` would scatter children away from their parent.
+   */
+  type GetGroupsInTreeOrderFunction = () => Array<StatusPageGroup>;
+
+  const getGroupsInTreeOrder: GetGroupsInTreeOrderFunction =
+    (): Array<StatusPageGroup> => {
+      const flattened: Array<StatusPageGroup> = [];
+
+      const visit: (nodes: Array<StatusPageGroupTreeNode>) => void = (
+        nodes: Array<StatusPageGroupTreeNode>,
+      ): void => {
+        for (const node of nodes) {
+          flattened.push(node.group);
+          visit(node.children);
+        }
+      };
+
+      visit(StatusPageGroupTreeUtil.buildTree({ statusPageGroups: groups }));
+
+      return flattened;
+    };
+
+  type GetGroupPathFunction = (statusPageGroup: StatusPageGroup) => string;
+
+  const getGroupPath: GetGroupPathFunction = (
+    statusPageGroup: StatusPageGroup,
+  ): string => {
+    const ancestorNames: Array<string> =
+      StatusPageGroupTreeUtil.getAncestorGroups({
+        statusPageGroup: statusPageGroup,
+        statusPageGroups: groups,
+      })
+        .reverse()
+        .map((ancestor: StatusPageGroup) => {
+          return ancestor.name || "";
+        });
+
+    return [...ancestorNames, statusPageGroup.name || ""].join(" › ");
+  };
+
   const getModelTable: GetModelTableFunction = (
     statusPageGroup: StatusPageGroup | null,
   ): ReactElement => {
     const statusPageGroupId: ObjectID | null = statusPageGroup?.id || null;
-    const statusPageGroupName: string | null = statusPageGroup?.name || null;
+    const statusPageGroupName: string | null = statusPageGroup
+      ? getGroupPath(statusPageGroup)
+      : null;
 
     const tableColumns: Array<Columns<StatusPageResource>> = [
       {
@@ -433,7 +487,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         {!isLoading && !error ? getModelTable(null) : <></>}
 
         {!isLoading && !error && groups && groups.length > 0 ? (
-          groups.map((group: StatusPageGroup) => {
+          getGroupsInTreeOrder().map((group: StatusPageGroup) => {
             if (group.viewMode === StatusPageGroupViewMode.Grid) {
               return (
                 <GridResourceEditor

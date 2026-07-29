@@ -40,7 +40,9 @@
     "allClearDescription": "Aún no se han añadido recursos a esta página de estado. Por favor, añada algunos recursos desde el panel de control.",
     "allResourcesAre": "Todos los recursos están {{status}}",
     "someResourcesAre": "Algunos recursos están {{status}}",
-    "someResourcesAreUnder": "Algunos recursos están en {{status}}"
+    "someResourcesAreUnder": "Algunos recursos están en {{status}}",
+    "oneSubGroup": "1 grupo",
+    "subGroupCount": "{{total}} grupos"
   },
   "eventItem": {
     "affectedResources": "Recursos afectados",
