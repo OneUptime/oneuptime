@@ -123,6 +123,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             `/workspace-notification-rule/test/${ruleId.toString()}`,
           ),
           data: {},
+          /*
+           * This is a custom route, so BaseAPI.getHeaders() adds no
+           * `tenantid` — ModelAPI.getCommonHeaders() is the only thing that
+           * does. The route requires an authenticated member of the rule's
+           * project, and without the header there is no project to check.
+           */
+          headers: ModelAPI.getCommonHeaders(),
         });
       if (response.isSuccess()) {
         setIsTestLoading(false);

@@ -68,6 +68,32 @@ export default class CommonAPI {
     return projectId;
   }
 
+  /*
+   * assertAuthenticatedProjectMember only proves the caller belongs to the
+   * project it *claimed* in the `tenantid` header — it never looks at the
+   * resource the path names. A custom route that then reads or mutates that
+   * resource as root must also confirm the resource's own projectId is the
+   * project the caller was authorized for, otherwise a member of project A
+   * reaches project B's resource id just by sending their own header.
+   *
+   * A resource that does not exist (or carries no projectId) is rejected the
+   * same way, so the endpoint cannot be used to confirm which ids exist in
+   * other projects.
+   */
+  public static assertResourceBelongsToProject(data: {
+    resourceProjectId: ObjectID | undefined | null;
+    projectId: ObjectID;
+  }): void {
+    if (
+      !data.resourceProjectId ||
+      data.resourceProjectId.toString() !== data.projectId.toString()
+    ) {
+      throw new NotAuthorizedException(
+        "You are not authorized to access this project's data.",
+      );
+    }
+  }
+
   @CaptureSpan()
   public static async getDatabaseCommonInteractionProps(
     req: ExpressRequest,
