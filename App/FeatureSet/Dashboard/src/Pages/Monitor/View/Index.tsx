@@ -427,6 +427,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             createdAt: SortOrder.Descending,
           },
           select: {
+            /*
+             * The sort column has to be selected. Because this query also pulls
+             * the probe relation, the join sends it down TypeORM's paginated
+             * path, which orders the outer query by a column the inner query
+             * only emits if it was selected - so leaving createdAt out here
+             * makes the whole request fail, which blanks the monitor page.
+             * DatabaseService only fills createdAt in for callers that pass no
+             * sort at all.
+             */
+            createdAt: true,
             probeId: true,
             isEnabled: true,
             lastMonitoringLog: true,
