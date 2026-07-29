@@ -280,6 +280,101 @@ export default class StatusPageGroup extends BaseModel {
     ],
   })
   @TableColumn({
+    manyToOneRelationColumn: "parentStatusPageGroupId",
+    type: TableColumnType.Entity,
+    modelType: StatusPageGroup,
+    title: "Parent Group",
+    description:
+      "Relation to the Status Page Group this group is nested under. Empty for top level groups.",
+  })
+  @ManyToOne(
+    () => {
+      return StatusPageGroup;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "parentStatusPageGroupId" })
+  public parentStatusPageGroup?: StatusPageGroup = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageGroup,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageGroup,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageGroup,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Parent Group ID",
+    description:
+      "ID of the Status Page Group this group is nested under. Empty for top level groups.",
+    example: "c1d2e3f4-a5b6-7890-1234-56789abcdef0",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public parentStatusPageGroupId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageGroup,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageGroup,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageGroup,
+    ],
+  })
+  @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
     title: "Group Name",

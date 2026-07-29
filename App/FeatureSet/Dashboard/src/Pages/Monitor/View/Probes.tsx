@@ -131,12 +131,19 @@ const MonitorProbes: FunctionComponent<
         saveFilterProps={{
           tableId: "monitor-view-probes-table",
         }}
-        isDeleteable={false}
+        /*
+         * Which probe a row points at is fixed once the row exists
+         * (MonitorProbe.probe/probeId are create-only), so removing the row is
+         * the only way to undo attaching the wrong probe. Without this the
+         * table could add probes and never take one away.
+         */
+        isDeleteable={true}
         isEditable={true}
         isCreateable={true}
         cardProps={{
           title: "Probes",
-          description: "List of probes that help you monitor this resource.",
+          description:
+            "List of probes that help you monitor this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.",
         }}
         noItemsMessage={
           "No probes found for this resource. However, you can add some probes to monitor this resource."
@@ -174,8 +181,17 @@ const MonitorProbes: FunctionComponent<
               probe: true,
             },
             title: "Probe",
-            stepId: "incident-details",
             description: "Which probe do you want to use?",
+            /*
+             * MonitorProbe.probe is create-only, so ModelForm drops this field
+             * from an Update form - and from the request - with no error. The
+             * modal used to render a "Save Changes" button over a Probe
+             * dropdown that was silently missing, so a user who came here to
+             * change which probe watches the resource found no control and no
+             * explanation. Say so up front instead: to point a row at a
+             * different probe, delete it and add the right one.
+             */
+            doNotShowWhenEditing: true,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: probes.map((probe: Probe) => {
               if (!probe.name || !probe._id) {
@@ -196,6 +212,8 @@ const MonitorProbes: FunctionComponent<
               isEnabled: true,
             },
             title: "Enabled",
+            description:
+              "When off, this probe stops monitoring this resource. It stays on the list so you can turn it back on.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
           },

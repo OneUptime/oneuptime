@@ -6,6 +6,12 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import ObjectID from "../../Types/ObjectID";
 import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import MonitorStatusService from "./MonitorStatusService";
+import Dictionary from "../../Types/Dictionary";
+import ProjectScopedReferenceValidator, {
+  ProjectScopedReference,
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import ScheduledMaintenanceTemplateOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "../../Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
 import CreateBy from "../Types/Database/CreateBy";
@@ -112,6 +118,12 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     this.validateEventTemplate(createBy.data);
+
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: createBy.props.tenantId || createBy.data.projectId,
+      subject: "scheduled maintenance template",
+      references: this.getProjectScopedReferences(createBy.data),
+    });
 
     if (createBy.data.isRecurringEvent) {
       // if all is good then the next scheduled at time should be set.
@@ -253,10 +265,88 @@ export class Service extends DatabaseService<Model> {
 
     updateBy.data = newTemplate;
 
+    await this.validateProjectScopedReferences(updateBy);
+
     return {
       updateBy: updateBy,
       carryForward: false,
     };
+  }
+
+  /*
+   * A template is copied onto every event created from it, so an id belonging
+   * to another project here becomes a cross-project reference on each of those
+   * events — and the referenced project can then no longer be deleted.
+   */
+  private async validateProjectScopedReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const references: Array<ProjectScopedReference> =
+      this.getProjectScopedReferences(updateBy.data);
+
+    if (
+      references.every((reference: ProjectScopedReference) => {
+        return !reference.id;
+      })
+    ) {
+      return;
+    }
+
+    /*
+     * Root/API updates do not always carry a tenantId, so fall back to the
+     * project of each template the query actually matches.
+     */
+    const projectIds: Array<ObjectID> = updateBy.props.tenantId
+      ? [updateBy.props.tenantId]
+      : await this.getProjectIdsForUpdateQuery(updateBy);
+
+    for (const projectId of projectIds) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "scheduled maintenance template",
+        references: references,
+      });
+    }
+  }
+
+  private getProjectScopedReferences(
+    data: Model | QueryDeepPartialEntity<Model>,
+  ): Array<ProjectScopedReference> {
+    return [
+      {
+        modelName: "Monitor Status",
+        id:
+          resolveReferenceId(data.changeMonitorStatusToId) ||
+          resolveReferenceId(data.changeMonitorStatusTo),
+        service: MonitorStatusService,
+      },
+    ];
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const templates: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const template of templates) {
+      if (template.projectId) {
+        projectIds[template.projectId.toString()] = template.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
   }
 
   @CaptureSpan()

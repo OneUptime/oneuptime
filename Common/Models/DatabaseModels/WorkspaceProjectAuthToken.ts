@@ -26,6 +26,16 @@ export interface MicrosoftTeamsTeam {
   name: string;
 }
 
+export type MicrosoftTeamsChatType = "personal" | "groupChat";
+
+export interface MicrosoftTeamsChat {
+  id: string; // Teams conversation id (e.g. 19:...@thread.v2)
+  name: string;
+  chatType: MicrosoftTeamsChatType;
+  serviceUrl?: string | undefined; // Bot Framework service URL captured when the bot was added.
+  addedAt?: string | undefined;
+}
+
 export interface SlackMiscData extends MiscData {
   teamId: string;
   teamName: string;
@@ -51,6 +61,7 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   adminConsentGrantedBy?: string;
   availableTeams?: Record<string, MicrosoftTeamsTeam>;
   appAccessTokenExpiresAt?: string;
+  availableChats?: Record<string, MicrosoftTeamsChat>; // keyed by chat id. Chats the OneUptime app has been added to.
 }
 
 export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;

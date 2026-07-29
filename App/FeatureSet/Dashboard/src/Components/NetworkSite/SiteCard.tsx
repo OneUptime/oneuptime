@@ -1,6 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import { SiteChildView, SiteStatusInfo } from "./SiteHierarchyTypes";
-import { formatUptimePercent } from "./SiteMapViewModel";
+import {
+  HealthTone,
+  formatUptimePercent,
+  unitRollupTone,
+} from "./SiteMapViewModel";
 
 /*
  * Shared card body for one network site: name, site-type label, health
@@ -29,42 +33,20 @@ const NO_STATUS_COLOR: string = "#9ca3af"; // gray-400
  * Derived from the unit rollup, NOT from the status row's color: the
  * status color is arbitrary project-configured hex, while the tone drives
  * Tailwind semantic classes that must stay legible in both themes.
+ *
+ * The rule itself lives in SiteMapViewModel because the MAP now colors its
+ * hierarchy markers by exactly the same rollup. A region whose card reads
+ * "63 of 63 units down" and whose marker is a calm dot is the disagreement
+ * between the two halves of this page that the shared function prevents.
  */
-type UnitRollupTone = "ok" | "warn" | "down" | "none";
-
-const rollupTone: (site: SiteChildView) => UnitRollupTone = (
-  site: SiteChildView,
-): UnitRollupTone => {
-  const total: number = site.unitStats.totalUnits;
-  if (total <= 0) {
-    return "none";
-  }
-  const operational: number = Math.min(
-    Math.max(site.unitStats.operationalUnits, 0),
-    total,
-  );
-  if (operational >= total) {
-    return "ok";
-  }
-  /*
-   * Half or more of the units down is an outage, not a wobble — red, so a
-   * "1 of 4 up" site never reads calmer than the red status dot beside it.
-   * A minority down stays amber (degraded).
-   */
-  if (operational * 2 <= total) {
-    return "down";
-  }
-  return "warn";
-};
-
-const TONE_TEXT_CLASS: Record<UnitRollupTone, string> = {
+const TONE_TEXT_CLASS: Record<HealthTone, string> = {
   ok: "text-emerald-600",
   warn: "text-amber-600",
   down: "text-red-600",
   none: "text-gray-400",
 };
 
-const TONE_BAR_CLASS: Record<UnitRollupTone, string> = {
+const TONE_BAR_CLASS: Record<HealthTone, string> = {
   ok: "bg-emerald-500",
   warn: "bg-amber-500",
   down: "bg-red-500",
@@ -91,7 +73,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
     totalUnits,
   );
   const downUnits: number = totalUnits - operationalUnits;
-  const tone: UnitRollupTone = rollupTone(site);
+  const tone: HealthTone = unitRollupTone(site.unitStats);
   const hasRollup: boolean = totalUnits > 0;
   const operationalPercent: number = hasRollup
     ? (operationalUnits / totalUnits) * 100

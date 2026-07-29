@@ -54,7 +54,10 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
-import { MicrosoftTeamsTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import {
+  MicrosoftTeamsChat,
+  MicrosoftTeamsTeam,
+} from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 export interface ComponentProps {
   workspaceType: WorkspaceType;
   eventType: NotificationRuleEventType;
@@ -87,6 +90,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<
     Array<MicrosoftTeamsTeam>
   >([]);
+  const [microsoftTeamsChats, setMicrosoftTeamsChats] = React.useState<
+    Array<MicrosoftTeamsChat>
+  >([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
 
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
@@ -117,6 +123,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             `/workspace-notification-rule/test/${ruleId.toString()}`,
           ),
           data: {},
+          /*
+           * This is a custom route, so BaseAPI.getHeaders() adds no
+           * `tenantid` — ModelAPI.getCommonHeaders() is the only thing that
+           * does. The route requires an authenticated member of the rule's
+           * project, and without the header there is no project to check.
+           */
+          headers: ModelAPI.getCommonHeaders(),
         });
       if (response.isSuccess()) {
         setIsTestLoading(false);
@@ -371,6 +384,24 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             (microsoftTeamsResponse.data as any)?.teams || [];
           setMicrosoftTeams(teamsData);
         }
+
+        // Load chats (group / personal chats the OneUptime app was added to).
+        const microsoftTeamsChatsResponse:
+          | HTTPResponse<JSONObject>
+          | HTTPErrorResponse = await API.get({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/microsoft-teams/chats`,
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+        if (microsoftTeamsChatsResponse instanceof HTTPErrorResponse) {
+          throw microsoftTeamsChatsResponse;
+        } else {
+          const chatsData: Array<MicrosoftTeamsChat> =
+            (microsoftTeamsChatsResponse.data as any)?.chats || [];
+          setMicrosoftTeamsChats(chatsData);
+        }
       }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
@@ -550,6 +581,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                   workspaceType={props.workspaceType}
                   teams={teams}
                   microsoftTeamsTeams={microsoftTeamsTeams}
+                  microsoftTeamsChats={microsoftTeamsChats}
                   users={users}
                 />
               );
@@ -622,6 +654,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                     workspaceType={props.workspaceType}
                     teams={teams}
                     microsoftTeamsTeams={microsoftTeamsTeams}
+                    microsoftTeamsChats={microsoftTeamsChats}
                     users={users}
                   />
                 </Fragment>

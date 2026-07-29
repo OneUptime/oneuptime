@@ -501,7 +501,7 @@ const NetworkOverview: FunctionComponent<
 
         <Card
           title="Recent discovery scans"
-          description="Subnet sweeps that find SNMP devices to import."
+          description="Address-range sweeps that find SNMP devices to import."
           rightElement={
             <Button
               title="Run a Scan"
@@ -519,7 +519,8 @@ const NetworkOverview: FunctionComponent<
         >
           {recentScans.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-500">
-              No scans yet. Point one at a subnet and import what answers.
+              No scans yet. Point one at a subnet or octet range and import what
+              answers.
             </p>
           ) : (
             <div className="divide-y divide-gray-100">

@@ -63,6 +63,7 @@ import { translateStatusName } from "../../Utils/StatusTranslation";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
+import StatusPageGroupTreeUtil from "Common/Utils/StatusPage/GroupTree";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import Color from "Common/Types/Color";
@@ -441,6 +442,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           statusPageResources: statusPageResources,
           monitorStatuses: monitorStatuses,
           monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
+          allStatusPageGroups: resourceGroups,
         });
 
       if (
@@ -466,6 +468,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               statusPageResources: statusPageResources,
               monitorsInGroup: monitorsInGroup,
               uptimeWindow: { startDate: startDate, endDate: endDate },
+              allStatusPageGroups: resourceGroups,
             },
           );
 
@@ -1096,6 +1099,147 @@ const Overview: FunctionComponent<PageComponentProps> = (
     );
   };
 
+  /*
+   * Groups can be nested (Corporate Unit -> Region -> Market -> Site), so a
+   * group renders its own resources first and then each of its sub groups
+   * below them. Every level is an accordion carrying its own rolled up status
+   * / uptime, and nesting is drawn with a left rail rather than by piling
+   * background tints on top of each other - that stays readable however deep
+   * the hierarchy goes.
+   */
+  type RenderResourceGroupFunction = (data: {
+    group: StatusPageGroup;
+    depth: number;
+  }) => ReactElement;
+
+  const renderResourceGroup: RenderResourceGroupFunction = (data: {
+    group: StatusPageGroup;
+    depth: number;
+  }): ReactElement => {
+    const group: StatusPageGroup = data.group;
+    const isRootLevel: boolean = data.depth === 0;
+
+    const childGroups: Array<StatusPageGroup> =
+      StatusPageGroupTreeUtil.getChildGroups({
+        statusPageGroupId: group._id?.toString() || null,
+        statusPageGroups: resourceGroups,
+      });
+
+    const directResources: Array<StatusPageResource> =
+      StatusPageResourceUptimeUtil.getResourcesInStatusPageGroup({
+        statusPageGroup: group,
+        statusPageResources: statusPageResources,
+      });
+
+    const isGrid: boolean = group.viewMode === StatusPageGroupViewMode.Grid;
+
+    /*
+     * A group that exists only to hold sub groups has no resources of its own,
+     * and telling the visitor it is empty would be wrong - the sub groups
+     * below it are its content.
+     */
+    const showOwnResources: boolean =
+      directResources.length > 0 || childGroups.length === 0;
+
+    /*
+     * The rolled up status / uptime lives inside the title rather than in the
+     * accordion's rightElement, which is hidden while the accordion is open.
+     * The whole point of the hierarchy is that every level always shows what it
+     * rolls up, and keeping it in one place means it does not jump around when
+     * a level is expanded.
+     */
+    const title: ReactElement = (
+      <div className="flex items-center justify-between gap-3 w-full">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="truncate">{group.name || ""}</span>
+          {childGroups.length > 0 && (
+            <span className="flex-shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10.5px] font-medium text-gray-500 tabular-nums">
+              {/*
+               * `total` rather than `count`: i18next treats a `count` variable
+               * as a plural selector and would look for keys that do not exist
+               * here.
+               */}
+              {childGroups.length === 1
+                ? t("overview.oneSubGroup", { defaultValue: "1 group" })
+                : t("overview.subGroupCount", {
+                    total: childGroups.length,
+                    defaultValue: "{{total}} groups",
+                  })}
+            </span>
+          )}
+        </div>
+        <div className="flex-shrink-0 text-sm font-normal">
+          {getCurrentGroupStatusElement({ group: group })}
+        </div>
+      </div>
+    );
+
+    const body: ReactElement = (
+      <>
+        {showOwnResources ? (
+          isGrid ? (
+            getGridForGroup(group)
+          ) : (
+            <>{getMonitorOverviewListInGroup(group)}</>
+          )
+        ) : (
+          <></>
+        )}
+        {childGroups.length > 0 ? (
+          <div className="space-y-2.5">
+            {childGroups.map((childGroup: StatusPageGroup) => {
+              return renderResourceGroup({
+                group: childGroup,
+                depth: data.depth + 1,
+              });
+            })}
+          </div>
+        ) : (
+          <></>
+        )}
+      </>
+    );
+
+    const accordion: ReactElement = (
+      <Accordion
+        isInitiallyExpanded={group.isExpandedByDefault}
+        isLastElement={true}
+        title={title}
+        titleClassName={
+          isRootLevel
+            ? "text-base font-semibold tracking-tight"
+            : "text-sm font-semibold tracking-tight text-gray-800"
+        }
+      >
+        {body}
+      </Accordion>
+    );
+
+    if (isRootLevel) {
+      return (
+        <div
+          key={group._id?.toString() || ""}
+          className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 rounded-xl shadow"
+          data-testid="status-page-group"
+        >
+          {accordion}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={group._id?.toString() || ""}
+        className="border-l-2 border-gray-100 pl-2 sm:pl-3"
+        data-testid="status-page-nested-group"
+      >
+        <div className="rounded-lg border border-gray-200 bg-white pl-3 pr-3 sm:pl-5 sm:pr-5">
+          {accordion}
+        </div>
+      </div>
+    );
+  };
+
   type GetActiveIncidentsFunction = () => Array<IncidentGroup>;
 
   const getActiveIncidents: GetActiveIncidentsFunction =
@@ -1339,35 +1483,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 <></>
               )}
               {resourceGroups.length > 0 &&
-                resourceGroups.map(
-                  (resourceGroup: StatusPageGroup, i: number) => {
-                    const isGrid: boolean =
-                      resourceGroup.viewMode === StatusPageGroupViewMode.Grid;
-                    const groupName: string = resourceGroup.name || "";
-                    return (
-                      <div
-                        key={i}
-                        className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 rounded-xl shadow"
-                      >
-                        <Accordion
-                          rightElement={getCurrentGroupStatusElement({
-                            group: resourceGroup,
-                          })}
-                          isInitiallyExpanded={
-                            resourceGroup.isExpandedByDefault
-                          }
-                          isLastElement={true}
-                          title={groupName}
-                          titleClassName="text-base font-semibold tracking-tight"
-                        >
-                          {isGrid
-                            ? getGridForGroup(resourceGroup)
-                            : getMonitorOverviewListInGroup(resourceGroup)}
-                        </Accordion>
-                      </div>
-                    );
-                  },
-                )}
+                StatusPageGroupTreeUtil.getRootGroups({
+                  statusPageGroups: resourceGroups,
+                }).map((resourceGroup: StatusPageGroup) => {
+                  return renderResourceGroup({
+                    group: resourceGroup,
+                    depth: 0,
+                  });
+                })}
             </div>
           )}
 

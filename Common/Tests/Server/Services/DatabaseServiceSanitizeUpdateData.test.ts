@@ -206,7 +206,7 @@ describe("DatabaseService._updateBy — updateOneById with a model instance no l
           isRoot: true,
         },
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(1);
 
     expect(findBySpy).toHaveBeenCalledTimes(1);
     const findArgs: { select: Select<NetworkDeviceDiscoveryScan> } = (

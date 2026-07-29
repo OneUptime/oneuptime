@@ -116,7 +116,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         }
         isLoading={props.isLoading}
         error={error}
-        className="flex flex-col h-screen"
+        /*
+         * min-h-screen, not h-screen: the top section sticks inside this box,
+         * so a fixed 100vh height caps its containing block at one viewport and
+         * the header scrolls away for good once the page is longer than that.
+         * The min-height still keeps the footer pushed to the bottom on short
+         * pages, because <main> grows.
+         */
+        className="flex flex-col min-h-screen"
       >
         {props.children}
       </MasterPage>

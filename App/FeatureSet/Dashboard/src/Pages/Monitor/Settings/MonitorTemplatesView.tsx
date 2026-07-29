@@ -180,6 +180,7 @@ const MonitorTemplatesView: FunctionComponent<
           data: {
             fields: ["monitorSteps"],
           },
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {
@@ -217,6 +218,7 @@ const MonitorTemplatesView: FunctionComponent<
           data: {
             fields: ["monitoringInterval", "minimumProbeAgreement"],
           },
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {
@@ -254,6 +256,7 @@ const MonitorTemplatesView: FunctionComponent<
           data: {
             fields: ["labels"],
           },
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {
@@ -292,6 +295,7 @@ const MonitorTemplatesView: FunctionComponent<
           url: URL.fromString(APP_API_URL.toString()).addRoute(
             `/monitor-template/${modelId.toString()}/sync-to-monitor/${singleSyncMonitor.id.toString()}`,
           ),
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {
@@ -387,6 +391,7 @@ const MonitorTemplatesView: FunctionComponent<
             url: URL.fromString(APP_API_URL.toString()).addRoute(
               `/monitor-template/${modelId.toString()}/link-monitor/${monitorId}`,
             ),
+            headers: ModelAPI.getCommonHeaders(),
           });
         if (response.isFailure()) {
           errors.push(API.getFriendlyMessage(response));
@@ -429,6 +434,7 @@ const MonitorTemplatesView: FunctionComponent<
           url: URL.fromString(APP_API_URL.toString()).addRoute(
             `/monitor-template/${modelId.toString()}/unlink-monitor/${unlinkTarget.id.toString()}`,
           ),
+          headers: ModelAPI.getCommonHeaders(),
         });
 
       if (response.isFailure()) {

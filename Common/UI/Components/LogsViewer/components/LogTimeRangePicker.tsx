@@ -14,11 +14,19 @@ import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import StartAndEndDate, {
   StartAndEndDateType,
 } from "../../Date/StartAndEndDate";
+import {
+  DropdownHorizontalAlignment,
+  getDropdownAlignmentClassName,
+  useDropdownHorizontalAlignment,
+} from "../../../Utils/DropdownAlignment";
 
 export interface LogTimeRangePickerProps {
   value: RangeStartAndEndDateTime;
   onChange: (value: RangeStartAndEndDateTime) => void;
 }
+
+// Matches the Tailwind `w-72` on the dropdown below (18rem).
+export const LOG_TIME_RANGE_DROPDOWN_WIDTH_IN_PX: number = 288;
 
 // Preset options to show in the dropdown (ordered for log investigation use)
 const PRESET_OPTIONS: Array<{ range: TimeRange; label: string }> = [
@@ -67,6 +75,20 @@ const LogTimeRangePicker: FunctionComponent<LogTimeRangePickerProps> = (
   );
   const containerRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
     null!,
+  );
+  const buttonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null!);
+  const dropdownRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
+    null!,
+  );
+
+  const alignment: DropdownHorizontalAlignment = useDropdownHorizontalAlignment(
+    {
+      isOpen: isOpen,
+      anchorRef: buttonRef,
+      dropdownRef: dropdownRef,
+      dropdownWidthInPx: LOG_TIME_RANGE_DROPDOWN_WIDTH_IN_PX,
+    },
   );
 
   // Close on click outside
@@ -120,7 +142,11 @@ const LogTimeRangePicker: FunctionComponent<LogTimeRangePickerProps> = (
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
+        data-testid="log-time-range-picker-button"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
         className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
           isOpen
             ? "border-indigo-300 bg-indigo-50 text-indigo-700"
@@ -139,7 +165,14 @@ const LogTimeRangePicker: FunctionComponent<LogTimeRangePickerProps> = (
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div
+          ref={dropdownRef}
+          data-testid="log-time-range-picker-dropdown"
+          data-align={alignment}
+          className={`absolute ${getDropdownAlignmentClassName(
+            alignment,
+          )} top-full z-50 mt-1 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg`}
+        >
           {/* Preset options */}
           <div className="max-h-64 overflow-y-auto py-1">
             {PRESET_OPTIONS.map(

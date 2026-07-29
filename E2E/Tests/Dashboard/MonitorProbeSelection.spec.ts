@@ -1,5 +1,6 @@
 import { BASE_URL } from "../../Config";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
+import { toId } from "./Helpers/MonitorAlerting";
 import {
   APIResponse,
   Browser,
@@ -94,7 +95,8 @@ const seedCustomProbe: SeedCustomProbeFunction = async (data: {
 
   const body: any = await response.json();
 
-  return (body?.data?._id || body?._id || "").toString();
+  // Ids come back as a bare string or { _type: "ObjectID", value }; normalise.
+  return toId(body?.data?._id ?? body?._id);
 };
 
 type ListMonitorProbesFunction = (data: {
@@ -149,6 +151,13 @@ test.describe("Monitor probe selection", () => {
     ctx.projectId = await registerAndCreateProject({
       page: ctx.page,
       projectNamePrefix: "E2E Probe Selection Project",
+      /*
+       * Custom probes are gated behind the Growth plan when billing is enabled
+       * (TableBillingAccessControl.create on the Probe model), so a free-plan
+       * project cannot seed one - the create call comes back 402. Land on
+       * Growth so seedCustomProbe succeeds under SaaS.
+       */
+      preferredPlanName: "Growth",
     });
 
     ctx.customProbeName = `e2e-probe-${Faker.generateRandomString(6)}`;
@@ -210,16 +219,18 @@ test.describe("Monitor probe selection", () => {
     await expect(probesCombo).toBeVisible({ timeout: 60000 });
 
     /*
-     * The picker starts on the set the server would have attached on its own,
-     * which on a fresh project is the global probe.
+     * The picker starts on the set the server would have attached on its own.
+     * That default is environment-dependent (it is the global probes flagged
+     * "auto enable on new monitors", and their names - e.g. "Probe-1" - are
+     * config-driven), so rather than assert on a specific chip label we clear
+     * whatever is pre-selected and prove the create attaches exactly what the
+     * user picked. Backspace removes the last selected chip when the input is
+     * empty; repeat enough times to clear any number of defaults.
      */
-    await expect(page.getByText("Probe", { exact: true }).first()).toBeVisible({
-      timeout: 30000,
-    });
-
-    // Replace the default selection with only the custom probe.
     await probesCombo.click();
-    await page.keyboard.press("Backspace");
+    for (let clearAttempt: number = 0; clearAttempt < 6; clearAttempt++) {
+      await page.keyboard.press("Backspace");
+    }
     await probesCombo.fill(ctx.customProbeName);
     await page
       .getByRole("option", { name: ctx.customProbeName, exact: true })
@@ -258,8 +269,13 @@ test.describe("Monitor probe selection", () => {
       monitorId,
     });
 
+    /*
+     * get-list returns probeId as an ObjectID object ({ _type, value }), not a
+     * bare string, so normalise it the same way the seeded id was before
+     * comparing - otherwise every id renders as "[object Object]".
+     */
     const probeIds: Array<string> = monitorProbes.map((monitorProbe: any) => {
-      return (monitorProbe.probeId || monitorProbe.probe?._id || "").toString();
+      return toId(monitorProbe.probeId ?? monitorProbe.probe?._id);
     });
 
     /*
@@ -316,14 +332,22 @@ test.describe("Monitor probe selection", () => {
     // And it survives a reload - the actual bug report.
     await page.reload({ waitUntil: "domcontentloaded" });
 
-    const detailRow: Locator = page
-      .locator("div")
-      .filter({ hasText: /^Enable Monitoring on New Monitors$/ })
-      .first();
-    await expect(detailRow).toBeVisible({ timeout: 60000 });
-
+    // The card still renders the flag it edits after the reload.
     await expect(
-      page.getByText("Enable Monitoring on New Monitors").locator("xpath=.."),
-    ).toContainText("Yes", { timeout: 30000 });
+      page.getByText("Enable Monitoring on New Monitors").first(),
+    ).toBeVisible({ timeout: 60000 });
+
+    /*
+     * The new value persisted: re-open the editor and the toggle now reads on.
+     * This checks the switch directly (the same stable role+name used above)
+     * rather than scraping the read-only card, whose label and value sit in
+     * separate DOM subtrees.
+     */
+    await page.getByRole("button", { name: /Edit Probe/i }).click();
+    const reloadedToggle: Locator = page.getByRole("switch", {
+      name: autoEnableToggleName,
+    });
+    await expect(reloadedToggle).toBeVisible({ timeout: 30000 });
+    await expect(reloadedToggle).toHaveAttribute("aria-checked", "true");
   });
 });

@@ -29,6 +29,10 @@ import Model from "../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "../../Models/DatabaseModels/AlertOwnerUser";
 import AlertState from "../../Models/DatabaseModels/AlertState";
+import MonitorStatusService from "./MonitorStatusService";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
@@ -258,7 +262,96 @@ export class Service extends DatabaseService<Model> {
       updateBy.query,
       updateBy.props,
     );
+
+    await this.validateProjectScopedReferences(updateBy);
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * An update can repoint an alert at another project's state, severity or
+   * monitor status just as easily as a create can, and the result is the same:
+   * the referenced project can no longer be deleted. Only the columns actually
+   * being written are checked, so ordinary updates cost no extra queries.
+   */
+  private async validateProjectScopedReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const alertStateId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.currentAlertStateId) ||
+      resolveReferenceId(updateBy.data.currentAlertState);
+
+    const alertSeverityId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.alertSeverityId) ||
+      resolveReferenceId(updateBy.data.alertSeverity);
+
+    const monitorStatusId: ObjectID | string | undefined =
+      resolveReferenceId(
+        updateBy.data.monitorStatusWhenThisAlertWasCreatedId,
+      ) ||
+      resolveReferenceId(updateBy.data.monitorStatusWhenThisAlertWasCreated);
+
+    if (!alertStateId && !alertSeverityId && !monitorStatusId) {
+      return;
+    }
+
+    /*
+     * Root/API updates do not always carry a tenantId, so fall back to the
+     * project of each alert the query actually matches.
+     */
+    const projectIds: Array<ObjectID> = updateBy.props.tenantId
+      ? [updateBy.props.tenantId]
+      : await this.getProjectIdsForUpdateQuery(updateBy);
+
+    for (const projectId of projectIds) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "alert",
+        references: [
+          {
+            modelName: "Alert State",
+            id: alertStateId,
+            service: AlertStateService,
+          },
+          {
+            modelName: "Alert Severity",
+            id: alertSeverityId,
+            service: AlertSeverityService,
+          },
+          {
+            modelName: "Monitor Status",
+            id: monitorStatusId,
+            service: MonitorStatusService,
+          },
+        ],
+      });
+    }
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const alerts: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const alert of alerts) {
+      if (alert.projectId) {
+        projectIds[alert.projectId.toString()] = alert.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
   }
 
   @CaptureSpan()
@@ -292,6 +385,38 @@ export class Service extends DatabaseService<Model> {
     }
 
     createBy.data.currentAlertStateId = alertState.id;
+
+    /*
+     * The severity and the monitor status stamped on the alert come from the
+     * monitor criteria or the API caller, neither of which checked that the
+     * record belongs to this project. Persisting another project's id leaves
+     * that project undeletable. Runs before the counter increment so a
+     * rejected create does not burn an alert number.
+     */
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "alert",
+      references: [
+        {
+          modelName: "Alert Severity",
+          id:
+            resolveReferenceId(createBy.data.alertSeverityId) ||
+            resolveReferenceId(createBy.data.alertSeverity),
+          service: AlertSeverityService,
+        },
+        {
+          modelName: "Monitor Status",
+          id:
+            resolveReferenceId(
+              createBy.data.monitorStatusWhenThisAlertWasCreatedId,
+            ) ||
+            resolveReferenceId(
+              createBy.data.monitorStatusWhenThisAlertWasCreated,
+            ),
+          service: MonitorStatusService,
+        },
+      ],
+    });
 
     const alertCounterResult: {
       counter: number;

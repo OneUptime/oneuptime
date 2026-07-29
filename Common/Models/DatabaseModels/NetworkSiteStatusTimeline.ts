@@ -276,6 +276,7 @@ export default class NetworkSiteStatusTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )

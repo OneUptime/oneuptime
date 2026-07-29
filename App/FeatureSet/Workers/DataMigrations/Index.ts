@@ -95,6 +95,8 @@ import AddMetricEntityMinuteAggregateMaterializedViews from "./AddMetricEntityMi
 import CloseOrphanedMonitorStatusTimelineRows from "./CloseOrphanedMonitorStatusTimelineRows";
 import MigrateMetricAggregatesToStrictSchema from "./MigrateMetricAggregatesToStrictSchema";
 import AddInterfaceIndexColumnsToNetworkFlow from "./AddInterfaceIndexColumnsToNetworkFlow";
+import AddShipmentColumnsToKubernetesCostAllocation from "./AddShipmentColumnsToKubernetesCostAllocation";
+import AddRightSizingColumnsToKubernetesCostAllocation from "./AddRightSizingColumnsToKubernetesCostAllocation";
 import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
 import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
 
@@ -295,6 +297,23 @@ const DataMigrations: Array<DataMigrationBase> = [
    * networkSiteTypeId are touched.
    */
   new BackfillNetworkSiteTypes(),
+  /*
+   * Adds shipmentId / shipmentChunk to KubernetesCostAllocation so the cost
+   * ingest can tell one agent delivery of a window from another, instead of
+   * dropping every request after the first on clusters whose hourly rows
+   * exceed the agent's batch size. Existing rows read back "" / 0 and keep
+   * the original whole-window behaviour. Idempotent: skips columns that
+   * exist.
+   */
+  new AddShipmentColumnsToKubernetesCostAllocation(),
+  /*
+   * Adds cpuCoreLimitAverage / ramBytesLimitAverage / ramBytesUsageMax so
+   * right-sizing has limits and a true memory peak to work from, rather than
+   * only the window averages the cost engine reports. Existing rows read
+   * back 0, which consumers must treat as "unknown". Idempotent: skips
+   * columns that exist.
+   */
+  new AddRightSizingColumnsToKubernetesCostAllocation(),
 ];
 
 export default DataMigrations;

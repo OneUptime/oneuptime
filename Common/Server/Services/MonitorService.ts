@@ -60,6 +60,7 @@ import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import Query from "../Types/Database/Query";
 import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -68,6 +69,10 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
+import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
@@ -383,6 +388,89 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    /*
+     * currentMonitorStatusId is writable by any project member and its FK is
+     * ON DELETE NO ACTION, so an id from another project here leaves that
+     * project undeletable — the same shape monitorSteps had. The
+     * 1785240000000 migration repaired the rows that existed then; this stops
+     * new ones. It stays NO ACTION on purpose: deleting a status monitors are
+     * currently in should be blocked, not cascaded.
+     */
+    const currentMonitorStatusId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
+      resolveReferenceId(updateBy.data.currentMonitorStatus);
+
+    if (updateBy.data.monitorSteps || currentMonitorStatusId) {
+      /*
+       * Root/API updates do not always carry a tenantId, so fall back to the
+       * project of each monitor the query actually matches.
+       */
+      const projectIds: Array<ObjectID> = updateBy.props.tenantId
+        ? [updateBy.props.tenantId]
+        : await this.getProjectIdsForUpdateQuery(updateBy);
+
+      for (const projectId of projectIds) {
+        if (updateBy.data.monitorSteps) {
+          await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject(
+            {
+              monitorSteps: updateBy.data.monitorSteps as
+                | MonitorSteps
+                | JSONObject,
+              projectId: projectId,
+            },
+          );
+        }
+
+        await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
+          {
+            projectId: projectId,
+            subject: "monitor",
+            references: [
+              {
+                modelName: "Monitor Status",
+                id: currentMonitorStatusId,
+                service: MonitorStatusService,
+              },
+            ],
+          },
+        );
+      }
+    }
+
+    return { updateBy, carryForward: null };
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const monitors: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const monitor of monitors) {
+      if (monitor.projectId) {
+        projectIds[monitor.projectId.toString()] = monitor.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
+  }
+
+  @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
@@ -601,6 +689,11 @@ export class Service extends DatabaseService<Model> {
     if (!createBy.props.tenantId) {
       throw new BadDataException("ProjectId required to create monitor.");
     }
+
+    await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+      monitorSteps: createBy.data.monitorSteps,
+      projectId: createBy.props.tenantId,
+    });
 
     const monitorStatus: MonitorStatus | null =
       await MonitorStatusService.findOneBy({
@@ -1149,7 +1242,8 @@ ${createdItem.description?.trim() || "No description provided."}
   /*
    * Only global probes and probes belonging to this project may be attached -
    * the id list comes from the browser, so it cannot be trusted to stay inside
-   * the tenant.
+   * the tenant. ProbeService.getProbesAttachableToProject owns that rule and
+   * MonitorProbeService enforces the same one on the CRUD path.
    */
   @CaptureSpan()
   public async addSelectedProbesToMonitor(
@@ -1157,47 +1251,16 @@ ${createdItem.description?.trim() || "No description provided."}
     monitorId: ObjectID,
     probeIds: Array<ObjectID>,
   ): Promise<void> {
-    if (probeIds.length === 0) {
-      return;
-    }
-
-    const [globalProbes, projectProbes]: [Array<Probe>, Array<Probe>] =
-      await Promise.all([
-        ProbeService.findBy({
-          query: {
-            _id: QueryHelper.any(probeIds),
-            isGlobalProbe: true,
-          },
-          select: {
-            _id: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
-        }),
-        ProbeService.findBy({
-          query: {
-            _id: QueryHelper.any(probeIds),
-            isGlobalProbe: false,
-            projectId: projectId,
-          },
-          select: {
-            _id: true,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
-        }),
-      ]);
+    const probes: Array<Probe> =
+      await ProbeService.getProbesAttachableToProject({
+        probeIds: probeIds,
+        projectId: projectId,
+      });
 
     await this.createMonitorProbes({
       projectId: projectId,
       monitorId: monitorId,
-      probes: [...globalProbes, ...projectProbes],
+      probes: probes,
     });
   }
 

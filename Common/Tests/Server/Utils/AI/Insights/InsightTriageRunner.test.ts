@@ -194,7 +194,7 @@ describe("InsightTriageRunner.executeTriage", () => {
       .mockResolvedValue(makeInsight());
     const persist: jest.SpyInstance = jest
       .spyOn(AIInsightService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
     const incidentFeed: jest.SpyInstance = jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined);
@@ -258,7 +258,7 @@ describe("InsightTriageRunner.executeTriage", () => {
       .mockResolvedValue(makeInsight({ telemetryExceptionId }));
     const persistInsight: jest.SpyInstance = jest
       .spyOn(AIInsightService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
     const flipStatus: jest.SpyInstance = jest
       .spyOn(AIInsightService, "updateOneBy")
       .mockResolvedValue(undefined as never);
@@ -342,7 +342,7 @@ describe("InsightTriageRunner.executeTriage", () => {
       );
     const persistInsight: jest.SpyInstance = jest
       .spyOn(AIInsightService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
     const flipStatus: jest.SpyInstance = jest
       .spyOn(AIInsightService, "updateOneBy")
       .mockResolvedValue(undefined as never);
@@ -389,7 +389,7 @@ describe("InsightTriageRunner.executeTriage", () => {
     jest
       .spyOn(AIInsightService, "findOneById")
       .mockResolvedValue(makeInsight({ telemetryExceptionId }));
-    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(undefined);
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
     const exceptionWrites: jest.SpyInstance = jest
       .spyOn(TelemetryExceptionService, "updateOneById")
       .mockResolvedValue(undefined as never);
@@ -432,7 +432,7 @@ describe("InsightTriageRunner.executeTriage", () => {
     jest
       .spyOn(AIInsightService, "findOneById")
       .mockResolvedValue(makeInsight({ telemetryExceptionId }));
-    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(undefined);
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
     const exceptionWrites: jest.SpyInstance = jest
       .spyOn(TelemetryExceptionService, "updateOneById")
       .mockResolvedValue(undefined as never);

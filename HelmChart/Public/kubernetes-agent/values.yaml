@@ -583,6 +583,21 @@ cost:
     # /model/allocation (Kubecost), /allocation/compute (OpenCost),
     # /allocation (older OpenCost).
     allocationPath: ""
+    # Prometheus the cost agent reads per-container memory PEAKS from,
+    # which right-sizing needs and the Allocation API cannot give: engines
+    # report averages, and an hourly mean hides the burst that OOMKills a
+    # container.
+    #
+    # Empty (the default) resolves to the bundled Prometheus when the
+    # engine is bundled, and to NOTHING when you point at an external
+    # engine — set it explicitly in that case if you want memory
+    # recommendations. Without it, CPU recommendations still work (they
+    # come from stored hourly averages) and memory ones are unavailable.
+    prometheusUrl: ""
+    # Prometheus job label of the cAdvisor scrape. The bundled config uses
+    # kubernetes-nodes-cadvisor; override when reusing your own Prometheus,
+    # whose job will be named differently.
+    prometheusCadvisorJob: ""
   # Bundled OpenCost engine. Deployed only when `cost.enabled` is true
   # and `cost.engine.url` is empty.
   opencost:
@@ -628,8 +643,11 @@ cost:
       tag: "v2.55.1"
       pullPolicy: IfNotPresent
     # The cost poller only queries recently-closed hourly windows, so a
-    # few days of history is all this TSDB ever needs to hold.
-    retention: 3d
+    # few days is all this TSDB needs for spend alone. It is set to 7d
+    # because right-sizing reads memory peaks back over a multi-day
+    # lookback, and a window older than retention returns no peak at all —
+    # the recommendation silently loses that day's evidence.
+    retention: 7d
     scrapeInterval: 60s
     resources:
       requests:

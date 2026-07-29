@@ -27,6 +27,10 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  DashboardDateTime,
+  getDashboardDateTime,
+} from "../Utils/DashboardDateTime";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
@@ -468,6 +472,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   const timestampRows: Array<{
     timestampIso: string;
     timestampLabel: string;
+    timestampTitle: string;
     valuesByColumnKey: Map<string, number>;
   }> = useMemo(() => {
     if (isGroupedMode) {
@@ -496,15 +501,18 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
     type TimestampRow = {
       timestampIso: string;
       timestampLabel: string;
+      timestampTitle: string;
       valuesByColumnKey: Map<string, number>;
     };
     const rows: Array<TimestampRow> = [];
     for (const [iso, perColumn] of timestampToValues) {
+      // Same date + time shape every other widget's timestamp column uses.
+      const timestamp: DashboardDateTime = getDashboardDateTime(iso);
+
       rows.push({
         timestampIso: iso,
-        timestampLabel: OneUptimeDate.getDateAsLocalFormattedString(
-          OneUptimeDate.fromString(iso),
-        ),
+        timestampLabel: timestamp.label,
+        timestampTitle: timestamp.title,
         valuesByColumnKey: perColumn,
       });
     }
@@ -825,6 +833,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                   row: {
                     timestampIso: string;
                     timestampLabel: string;
+                    timestampTitle: string;
                     valuesByColumnKey: Map<string, number>;
                   },
                   index: number,
@@ -834,7 +843,10 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                       key={`${row.timestampIso}-${index}`}
                       className="hover:bg-gray-50/50 transition-colors duration-100"
                     >
-                      <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">
+                      <td
+                        className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap"
+                        title={row.timestampTitle}
+                      >
                         {row.timestampLabel}
                       </td>
                       {visibleValueColumns.map(

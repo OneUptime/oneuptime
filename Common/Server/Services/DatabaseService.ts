@@ -30,6 +30,7 @@ import UpdateByID from "../Types/Database/UpdateByID";
 import UpdateByIDAndFetch from "../Types/Database/UpdateByIDAndFetch";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Encryption from "../Utils/Encryption";
+import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import BaseService from "./BaseService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -453,7 +454,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * propagates the original exception on the synchronous throw path.
    */
   protected getException(error: Exception): never {
-    throw error;
+    throw PostgresErrorTranslator.translateException(error);
   }
 
   private generateSlug(createBy: CreateBy<TBaseModel>): CreateBy<TBaseModel> {
@@ -1840,6 +1841,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       const dataColumns: [string, boolean][] = [];
       const dataKeys: string[] = Object.keys(data);
+
+      /*
+       * An update that carries no columns writes nothing, yet it would still
+       * match rows - so returning the matched count reported a write that
+       * never happened. Treat it like a query that matched nothing instead.
+       */
+      const hasColumnsToUpdate: boolean = dataKeys.length > 0;
+
       for (const key of dataKeys) {
         dataColumns.push([key, true]);
       }
@@ -1878,13 +1887,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
-      const items: Array<TBaseModel> = await this._findBy({
-        query: beforeUpdateBy.query,
-        skip: updateBy.skip.toNumber(),
-        limit: updateBy.limit.toNumber(),
-        select: selectColumns,
-        props: { isRoot: true, ignoreHooks: true },
-      });
+      const items: Array<TBaseModel> = hasColumnsToUpdate
+        ? await this._findBy({
+            query: beforeUpdateBy.query,
+            skip: updateBy.skip.toNumber(),
+            limit: updateBy.limit.toNumber(),
+            select: selectColumns,
+            props: { isRoot: true, ignoreHooks: true },
+          })
+        : [];
 
       for (const item of items) {
         /*

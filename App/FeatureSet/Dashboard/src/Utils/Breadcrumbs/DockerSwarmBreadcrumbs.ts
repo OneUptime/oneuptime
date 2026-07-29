@@ -77,6 +77,10 @@ export function getDockerSwarmBreadcrumbs(
       PageMap.DOCKER_SWARM_CLUSTER_VIEW_INSIGHTS,
       ["Project", "DockerSwarm", "View Cluster", "Insights"],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DOCKER_SWARM_CLUSTER_VIEW_RECOMMENDATIONS,
+      ["Project", "DockerSwarm", "View Cluster", "Recommendations"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_SWARM_CLUSTER_VIEW_METRICS, [
       "Project",
       "DockerSwarm",

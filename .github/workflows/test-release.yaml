@@ -123,11 +123,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Build and push
         run: |
@@ -161,11 +161,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Merge multi-arch manifests
         run: |
@@ -203,11 +203,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Build and push
         run: |
@@ -241,11 +241,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Merge multi-arch manifests
         run: |
@@ -282,11 +282,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Build and push
         run: |
@@ -320,11 +320,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Merge multi-arch manifests
         run: |
@@ -372,11 +372,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Build and push
         run: |
@@ -410,11 +410,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Merge multi-arch manifests
         run: |
@@ -451,11 +451,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Build and push
         run: |
@@ -489,11 +489,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Merge multi-arch manifests
         run: |
@@ -530,11 +530,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Build and push
         run: |
@@ -568,11 +568,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Merge multi-arch manifests
         run: |
@@ -609,11 +609,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Build and push
         run: |
@@ -647,11 +647,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Merge multi-arch manifests
         run: |
@@ -688,11 +688,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Build and push
         run: |
@@ -726,11 +726,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Merge multi-arch manifests
         run: |
@@ -767,11 +767,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Build and push
         run: |
@@ -805,11 +805,11 @@ jobs:
 
       - name: Login to Docker Hub
         run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login --username "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | bash ./Scripts/GHA/docker_login.sh --username "${{ secrets.DOCKERHUB_USERNAME }}"
 
       - name: Login to GitHub Container Registry
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.repository_owner }}" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | bash ./Scripts/GHA/docker_login.sh --registry ghcr.io --username "${{ github.repository_owner }}"
 
       - name: Merge multi-arch manifests
         run: |

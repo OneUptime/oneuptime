@@ -106,4 +106,5 @@ export default interface WorkspaceMessagePayload {
   messageBlocks: Array<WorkspaceMessageBlock>; // Message to add to blocks.
   workspaceType: WorkspaceType;
   teamId?: string | undefined; // Team ID for Microsoft Teams
+  chatIds?: Array<string> | undefined; // Microsoft Teams chat ids (group / personal chats) to send message to.
 }

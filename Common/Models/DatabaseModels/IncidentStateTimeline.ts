@@ -417,6 +417,7 @@ export default class IncidentStateTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )

@@ -35,6 +35,13 @@ import NetworkSiteHierarchyUtil, {
   ChildAggregate,
   SiteLinkRow,
 } from "../Utils/NetworkSiteHierarchyUtil";
+import NetworkSiteMapUtil, {
+  MapChildRow,
+  MapMarkerAggregate,
+  MapStatusInfo,
+  MapSubtreeRow,
+  isUsableCoordinate,
+} from "../Utils/NetworkSiteMapUtil";
 
 /*
  * Drill-down and map endpoints for the Network Site hierarchy. Both are
@@ -97,6 +104,13 @@ const NETWORK_SITE_TYPE_SELECT: Select<NetworkSiteType> = {
   name: true,
   isUnitLevel: true,
 };
+
+/*
+ * How the map endpoint answers: one marker per child of the level in view
+ * ("grouped" — what the drill-down page draws), or every located site in
+ * that level's subtree individually ("all").
+ */
+type MapMode = "grouped" | "all";
 
 type StatusMap = Map<string, StatusInfo>;
 
@@ -668,6 +682,30 @@ export default class NetworkSiteHierarchyAPI {
       },
     );
 
+    /*
+     * The map, scoped to one drill level.
+     *
+     * This endpoint used to answer with every coordinate-bearing site in the
+     * project, flat, whatever the user was looking at. Screen-proximity
+     * clustering then merged them into numbered blobs, so a franchise
+     * network's map showed counts that match nothing the customer named —
+     * while the cards under the map showed the real hierarchy. The two
+     * halves of the page described different networks, and the levels a
+     * customer actually models (Region, Market, "Corp") never appeared at
+     * all, because organizational rows carry no coordinates.
+     *
+     * Now it answers with ONE ROW PER CHILD of the requested level — the
+     * same set /network-site/children returns — each positioned at its own
+     * coordinates or, failing that, at the centroid of the located sites
+     * beneath it, and each carrying the rollups the marker is sized and
+     * colored by. "all" mode keeps the every-site view for anyone who wants
+     * to see individual stores, but scoped to the subtree in view rather
+     * than to the whole project.
+     *
+     * It also used to require a "mapRegion" of "us" or "world" and then
+     * ignore it. The map has no regions; an old client still sending it is
+     * simply answered.
+     */
     router.post(
       "/network-site/map",
       UserMiddleware.getUserMiddleware,
@@ -686,60 +724,140 @@ export default class NetworkSiteHierarchyAPI {
           const projectId: ObjectID = props.tenantId;
 
           const body: JSONObject = (req.body || {}) as JSONObject;
-          const mapRegion: unknown = body["mapRegion"];
-          if (mapRegion !== "us" && mapRegion !== "world") {
-            throw new BadDataException("mapRegion must be 'us' or 'world'");
+
+          const siteIdRaw: unknown = body["siteId"];
+          if (
+            siteIdRaw !== undefined &&
+            siteIdRaw !== null &&
+            typeof siteIdRaw !== "string"
+          ) {
+            throw new BadDataException("siteId must be a string");
+          }
+          const siteId: string | null =
+            typeof siteIdRaw === "string" && siteIdRaw ? siteIdRaw : null;
+
+          /*
+           * Anything that is not exactly "all" reads as the grouped view:
+           * an unknown mode must degrade to the hierarchy the page is built
+           * around, not to the flat view this endpoint was changed to stop
+           * being.
+           */
+          const mode: MapMode = body["mode"] === "all" ? "all" : "grouped";
+
+          /*
+           * Resolve the requested level first — it proves the caller can
+           * read it before any subtree query runs.
+           */
+          if (siteId) {
+            const requestedSite: NetworkSite | null =
+              await NetworkSiteService.findOneBy({
+                query: {
+                  _id: new ObjectID(siteId),
+                  projectId: projectId,
+                },
+                select: {
+                  _id: true,
+                },
+                props: props,
+              });
+            if (!requestedSite) {
+              throw new BadDataException("Network site not found");
+            }
           }
 
           /*
-           * All sites in one query: the coordinate-less ones only lend
-           * their names to ancestor breadcrumbs; only sites with BOTH
-           * latitude and longitude become pins. The client projects the
-           * coordinates for the requested region — no projection here.
+           * Two batch queries, mirroring /network-site/children: the direct
+           * children of this level, and everything beneath it. At the root
+           * the subtree is the whole project (the roots themselves
+           * included — the aggregator skips rows it has already seeded).
            */
-          const siteRows: Array<NetworkSite> = await NetworkSiteService.findBy({
-            query: {
-              projectId: projectId,
-            },
-            select: {
-              _id: true,
-              name: true,
-              siteType: true,
-              networkSiteType: NETWORK_SITE_TYPE_SELECT,
-              latitude: true,
-              longitude: true,
-              currentMonitorStatusId: true,
-              materializedPath: true,
-            },
-            sort: {
-              name: SortOrder.Ascending,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: props,
-          });
+          const [childRows, subtreeRows]: [
+            Array<NetworkSite>,
+            Array<NetworkSite>,
+          ] = await Promise.all([
+            NetworkSiteService.findBy({
+              query: {
+                projectId: projectId,
+                parentSiteId: siteId
+                  ? new ObjectID(siteId)
+                  : QueryHelper.isNull(),
+              },
+              select: {
+                _id: true,
+                name: true,
+                siteType: true,
+                networkSiteType: NETWORK_SITE_TYPE_SELECT,
+                latitude: true,
+                longitude: true,
+                currentMonitorStatusId: true,
+              },
+              sort: {
+                name: SortOrder.Ascending,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: props,
+            }),
+            NetworkSiteService.findBy({
+              query: siteId
+                ? {
+                    projectId: projectId,
+                    materializedPath: QueryHelper.search(`/${siteId}/`),
+                  }
+                : {
+                    projectId: projectId,
+                  },
+              select: {
+                _id: true,
+                name: true,
+                siteType: true,
+                networkSiteType: NETWORK_SITE_TYPE_SELECT,
+                parentSiteId: true,
+                materializedPath: true,
+                latitude: true,
+                longitude: true,
+                currentMonitorStatusId: true,
+              },
+              sort: {
+                name: SortOrder.Ascending,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: props,
+            }),
+          ]);
+
+          /*
+           * Defensive: some writers append a site's own id to its
+           * materialized path, which would make the level's own row come
+           * back as one of its descendants.
+           */
+          const descendantRows: Array<NetworkSite> = siteId
+            ? subtreeRows.filter((row: NetworkSite) => {
+                return row._id?.toString() !== siteId;
+              })
+            : subtreeRows;
 
           const nameById: Map<string, string> = new Map<string, string>();
-          for (const site of siteRows) {
+          for (const site of descendantRows) {
+            if (site._id && site.name) {
+              nameById.set(site._id.toString(), site.name);
+            }
+          }
+          for (const site of childRows) {
             if (site._id && site.name) {
               nameById.set(site._id.toString(), site.name);
             }
           }
 
-          const pinRows: Array<NetworkSite> = siteRows.filter(
-            (site: NetworkSite) => {
-              return Boolean(
-                site._id &&
-                  site.latitude !== undefined &&
-                  site.latitude !== null &&
-                  site.longitude !== undefined &&
-                  site.longitude !== null,
-              );
-            },
-          );
-
+          // Every status any part of the response reasons about, fetched once.
           const statusIds: Set<string> = new Set<string>();
-          for (const site of pinRows) {
+          for (const site of childRows) {
+            if (site.currentMonitorStatusId) {
+              statusIds.add(site.currentMonitorStatusId.toString());
+            }
+          }
+          for (const site of descendantRows) {
             if (site.currentMonitorStatusId) {
               statusIds.add(site.currentMonitorStatusId.toString());
             }
@@ -750,33 +868,166 @@ export default class NetworkSiteHierarchyAPI {
             props,
           );
 
-          const sites: Array<JSONObject> = pinRows.map(
-            (site: NetworkSite): JSONObject => {
-              const pinSiteId: string = site._id!.toString();
+          const statusInfoById: Map<string, MapStatusInfo> = new Map<
+            string,
+            MapStatusInfo
+          >();
+          for (const status of statusById.values()) {
+            statusInfoById.set(status.id, {
+              priority: status.priority,
+              isOperationalState: status.isOperationalState,
+            });
+          }
+
+          const sites: Array<JSONObject> = [];
+          const unplacedSites: Array<JSONObject> = [];
+
+          if (mode === "all") {
+            /*
+             * Every located site in the subtree, one marker each — the old
+             * flat view, but bounded by the level in view. Rollups stay at
+             * their own-row values: each marker IS one site here, so there
+             * is nothing under it to roll up.
+             */
+            for (const site of descendantRows) {
+              if (!site._id) {
+                continue;
+              }
+              const rowSiteId: string = site._id.toString();
+              if (!isUsableCoordinate(site.latitude, site.longitude)) {
+                continue;
+              }
               const status: StatusInfo | undefined = site.currentMonitorStatusId
                 ? statusById.get(site.currentMonitorStatusId.toString())
                 : undefined;
-              return {
-                id: pinSiteId,
+              const typeInfo: SiteTypeInfo = getSiteTypeInfo(site);
+              const isOperational: boolean | null = status
+                ? status.isOperationalState
+                : null;
+
+              sites.push({
+                id: rowSiteId,
                 name: site.name || "Unnamed site",
-                ...getSiteTypeInfo(site),
+                ...typeInfo,
                 latitude: site.latitude,
                 longitude: site.longitude,
                 statusPriority: status ? status.priority : 0,
-                isOperational: status ? status.isOperationalState : null,
+                isOperational: isOperational,
                 parentBreadcrumb:
                   NetworkSiteHierarchyUtil.buildParentBreadcrumbString(
                     site.materializedPath,
-                    pinSiteId,
+                    rowSiteId,
                     nameById,
                   ),
-              } as unknown as JSONObject;
-            },
-          );
+                isContainer: false,
+                isDerivedLocation: false,
+                locatedDescendantCount: 1,
+                unlocatedDescendantCount: 0,
+                totalUnits: typeInfo.isUnitLevel ? 1 : 0,
+                operationalUnits:
+                  typeInfo.isUnitLevel && isOperational === true ? 1 : 0,
+                childSiteCount: 0,
+              } as unknown as JSONObject);
+            }
+          } else {
+            const aggregates: Map<string, MapMarkerAggregate> =
+              NetworkSiteMapUtil.aggregateMapMarkers({
+                children: childRows
+                  .filter((child: NetworkSite) => {
+                    return Boolean(child._id);
+                  })
+                  .map((child: NetworkSite): MapChildRow => {
+                    return {
+                      id: child._id!.toString(),
+                      name: child.name || "Unnamed site",
+                      ...getSiteTypeInfo(child),
+                      latitude: child.latitude,
+                      longitude: child.longitude,
+                      currentMonitorStatusId:
+                        child.currentMonitorStatusId?.toString(),
+                    };
+                  }),
+                descendants: descendantRows
+                  .filter((row: NetworkSite) => {
+                    return Boolean(row._id);
+                  })
+                  .map((row: NetworkSite): MapSubtreeRow => {
+                    return {
+                      id: row._id!.toString(),
+                      name: row.name,
+                      isUnitLevel: getSiteTypeInfo(row).isUnitLevel,
+                      parentSiteId: row.parentSiteId?.toString(),
+                      materializedPath: row.materializedPath,
+                      latitude: row.latitude,
+                      longitude: row.longitude,
+                      currentMonitorStatusId:
+                        row.currentMonitorStatusId?.toString(),
+                    };
+                  }),
+                statusById: statusInfoById,
+              });
+
+            for (const child of childRows) {
+              if (!child._id) {
+                continue;
+              }
+              const childId: string = child._id.toString();
+              const typeInfo: SiteTypeInfo = getSiteTypeInfo(child);
+              const aggregate: MapMarkerAggregate | undefined =
+                aggregates.get(childId);
+              if (!aggregate) {
+                continue;
+              }
+
+              /*
+               * A child with nothing locatable anywhere beneath it cannot go
+               * on the map. It is reported rather than dropped: a region
+               * that silently vanishes from the map, while its card sits
+               * right underneath, is the exact confusion this endpoint was
+               * rewritten to end.
+               */
+              if (aggregate.latitude === null || aggregate.longitude === null) {
+                unplacedSites.push({
+                  id: childId,
+                  name: child.name || "Unnamed site",
+                  ...typeInfo,
+                } as unknown as JSONObject);
+                continue;
+              }
+
+              sites.push({
+                id: childId,
+                name: child.name || "Unnamed site",
+                ...typeInfo,
+                latitude: aggregate.latitude,
+                longitude: aggregate.longitude,
+                statusPriority: aggregate.worstStatusPriority,
+                isOperational: aggregate.isOperational,
+                /*
+                 * The breadcrumb bar above the map already names every
+                 * ancestor of this level, so a marker repeating them would
+                 * be noise. These rows are the level's own children.
+                 */
+                parentBreadcrumb: "",
+                isContainer: !typeInfo.isUnitLevel,
+                isDerivedLocation: aggregate.isDerivedLocation,
+                locatedDescendantCount: aggregate.locatedDescendantCount,
+                unlocatedDescendantCount: aggregate.unlocatedDescendantCount,
+                totalUnits: aggregate.totalUnits,
+                operationalUnits: aggregate.operationalUnits,
+                childSiteCount: aggregate.childSiteCount,
+              } as unknown as JSONObject);
+            }
+          }
 
           return Response.sendJsonObjectResponse(req, res, {
+            mode: mode,
+            siteId: siteId,
             sites: sites,
-            isTruncated: siteRows.length >= LIMIT_PER_PROJECT,
+            unplacedSites: unplacedSites,
+            isTruncated:
+              childRows.length >= LIMIT_PER_PROJECT ||
+              subtreeRows.length >= LIMIT_PER_PROJECT,
           } as unknown as JSONObject);
         } catch (err) {
           return next(err);

@@ -40,7 +40,9 @@
     "allClearDescription": "Er zijn nog geen bronnen toegevoegd aan deze statuspagina. Voeg alstublieft enkele bronnen toe vanaf het dashboard.",
     "allResourcesAre": "Alle bronnen zijn {{status}}",
     "someResourcesAre": "Sommige bronnen zijn {{status}}",
-    "someResourcesAreUnder": "Sommige bronnen zijn in {{status}}"
+    "someResourcesAreUnder": "Sommige bronnen zijn in {{status}}",
+    "oneSubGroup": "1 groep",
+    "subGroupCount": "{{total}} groepen"
   },
   "eventItem": {
     "affectedResources": "Getroffen bronnen",

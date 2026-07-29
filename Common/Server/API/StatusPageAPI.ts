@@ -85,6 +85,7 @@ import StatusPageOIDC from "../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime";
+import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import { Green } from "../../Types/BrandColors";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
@@ -1225,6 +1226,7 @@ export default class StatusPageAPI extends BaseAPI<
 
           type StatusPageGroupUptime = {
             statusPageGroupId: ObjectID | null;
+            parentStatusPageGroupId: ObjectID | null;
             uptimePercent: number | null;
             statusPageResourceUptimes: Array<ResourceUptime>;
             statusPageGroupName: string | null;
@@ -1244,6 +1246,8 @@ export default class StatusPageAPI extends BaseAPI<
                   data && data.statusPageGroup
                     ? data.statusPageGroup?.id
                     : null,
+                parentStatusPageGroupId:
+                  data.statusPageGroup?.parentStatusPageGroupId || null,
                 uptimePercent: null,
                 statusPageResourceUptimes: [],
                 statusPageGroupName: data.statusPageGroup?.name || null,
@@ -1382,43 +1386,6 @@ export default class StatusPageAPI extends BaseAPI<
                 }
               }
 
-              if (group?.showUptimePercent) {
-                // calculate uptime percent for the group.
-                const avgUptimePercent: number =
-                  UptimeUtil.calculateAvgUptimePercentage({
-                    uptimePercentages: groupUptime.statusPageResourceUptimes
-                      .filter((resource: ResourceUptime) => {
-                        return resource.uptimePercent !== null;
-                      })
-                      .map((resource: ResourceUptime) => {
-                        return resource.uptimePercent || 0;
-                      }),
-                    precision:
-                      group.uptimePercentPrecision ||
-                      UptimePrecision.ONE_DECIMAL,
-                  });
-
-                groupUptime.uptimePercent = avgUptimePercent;
-              }
-
-              if (group?.showCurrentStatus) {
-                const currentStatuses: Array<MonitorStatus> =
-                  groupUptime.statusPageResourceUptimes
-                    .filter((resourceUptime: ResourceUptime) => {
-                      return resourceUptime.currentStatus !== null;
-                    })
-                    .map((resourceUptime: ResourceUptime) => {
-                      return resourceUptime.currentStatus!;
-                    });
-
-                const worstStatus: MonitorStatus | null =
-                  StatusPageResourceUptimeUtil.getWorstMonitorStatus({
-                    monitorStatuses: currentStatuses,
-                  });
-
-                groupUptime.currentStatus = worstStatus;
-              }
-
               return groupUptime;
             };
 
@@ -1428,6 +1395,75 @@ export default class StatusPageAPI extends BaseAPI<
             groupUptimes.push(
               getUptimeByStatusPageGroup({ statusPageGroup: group }),
             );
+          }
+
+          /*
+           * Groups nest, so a group's own uptime % / current status has to
+           * cover every resource in its subtree, not just the resources
+           * attached directly to it. statusPageResourceUptimes stays the
+           * group's own resources - the nesting is reported through
+           * parentStatusPageGroupId so callers can rebuild the tree.
+           */
+          const resourceUptimesByGroupId: Dictionary<Array<ResourceUptime>> =
+            {};
+
+          for (const groupUptime of groupUptimes) {
+            resourceUptimesByGroupId[
+              groupUptime.statusPageGroupId?.toString() || ""
+            ] = groupUptime.statusPageResourceUptimes;
+          }
+
+          for (const group of statusPageGroups) {
+            const groupUptime: StatusPageGroupUptime | undefined =
+              groupUptimes.find((item: StatusPageGroupUptime) => {
+                return (
+                  item.statusPageGroupId?.toString() === group.id?.toString()
+                );
+              });
+
+            if (!groupUptime) {
+              continue;
+            }
+
+            const resourceUptimesInSubtree: Array<ResourceUptime> =
+              StatusPageGroupTreeUtil.getGroupAndDescendants({
+                statusPageGroup: group,
+                statusPageGroups: statusPageGroups,
+              }).flatMap((groupInSubtree: StatusPageGroup) => {
+                return (
+                  resourceUptimesByGroupId[
+                    groupInSubtree.id?.toString() || ""
+                  ] || []
+                );
+              });
+
+            if (group.showUptimePercent) {
+              groupUptime.uptimePercent =
+                UptimeUtil.calculateAvgUptimePercentage({
+                  uptimePercentages: resourceUptimesInSubtree
+                    .filter((resource: ResourceUptime) => {
+                      return resource.uptimePercent !== null;
+                    })
+                    .map((resource: ResourceUptime) => {
+                      return resource.uptimePercent || 0;
+                    }),
+                  precision:
+                    group.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL,
+                });
+            }
+
+            if (group.showCurrentStatus) {
+              groupUptime.currentStatus =
+                StatusPageResourceUptimeUtil.getWorstMonitorStatus({
+                  monitorStatuses: resourceUptimesInSubtree
+                    .filter((resourceUptime: ResourceUptime) => {
+                      return resourceUptime.currentStatus !== null;
+                    })
+                    .map((resourceUptime: ResourceUptime) => {
+                      return resourceUptime.currentStatus!;
+                    }),
+                });
+            }
           }
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -4920,6 +4956,7 @@ export default class StatusPageAPI extends BaseAPI<
         columnAxisLabel: true,
         rowAxisValues: true,
         columnAxisValues: true,
+        parentStatusPageGroupId: true,
       },
       sort: {
         order: SortOrder.Ascending,

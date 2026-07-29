@@ -22,7 +22,6 @@ import {
 } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
-import ProxyConfig from "../Utils/ProxyConfig";
 
 export default class Register {
   public static async isPingMonitoringEnabled(): Promise<boolean> {
@@ -80,16 +79,29 @@ export default class Register {
         PROBE_INGEST_URL.toString(),
       ).addRoute("/probe/status-report/offline");
 
-      await API.fetch<JSONObject>({
-        method: HTTPMethod.POST,
-        url: statusReportUrl,
-        data: {
-          ...ProbeAPIRequest.getDefaultRequestBody(),
-          statusReport: stausReport as any,
-        },
-        headers: {},
-        options: { ...ProxyConfig.getRequestProxyAgents(statusReportUrl) },
-      });
+      /*
+       * Best-effort: this report only triggers a courtesy notification
+       * email. It runs at every startup on hosts where ICMP is blocked
+       * (most cloud VMs), and it now carries a request timeout — so a
+       * throw here on a slow server would otherwise bubble into the fatal
+       * registration path and crash-loop a probe whose monitoring is
+       * perfectly able to run.
+       */
+      try {
+        await API.fetch<JSONObject>({
+          method: HTTPMethod.POST,
+          url: statusReportUrl,
+          data: {
+            ...ProbeAPIRequest.getDefaultRequestBody(),
+            statusReport: stausReport as any,
+          },
+          headers: {},
+          options: ProbeAPIRequest.getDefaultRequestOptions(statusReportUrl),
+        });
+      } catch (err) {
+        logger.error("Failed to send probe offline status report");
+        logger.error(err);
+      }
     }
   }
 
@@ -145,9 +157,8 @@ export default class Register {
             probeDescription: PROBE_DESCRIPTION,
             registerProbeKey: RegisterProbeKey.toString(),
           },
-          options: {
-            ...ProxyConfig.getRequestProxyAgents(probeRegistrationUrl),
-          },
+          options:
+            ProbeAPIRequest.getDefaultRequestOptions(probeRegistrationUrl),
         });
 
       if (result instanceof HTTPErrorResponse || !result.isSuccess()) {
@@ -187,7 +198,7 @@ export default class Register {
             probeKey: PROBE_KEY.toString(),
             probeId: PROBE_ID.toString(),
           },
-          options: { ...ProxyConfig.getRequestProxyAgents(aliveUrl) },
+          options: ProbeAPIRequest.getDefaultRequestOptions(aliveUrl),
         });
 
       if (

@@ -3,7 +3,6 @@ import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONValue } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -99,41 +98,19 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     }
   }, [props.showProjectModal]);
 
-  type GetCurrentProjectFunction = () => Project | null;
-
-  const getCurrentProject: GetCurrentProjectFunction = (): Project | null => {
-    // see nav params first, then local storage, then default to first project.
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    if (projectId) {
-      // check if this project is in the list.
-
-      const project: Project | undefined = props.projects.find(
-        (project: Project) => {
-          return project._id?.toString() === projectId.toString();
-        },
-      );
-
-      if (project) {
-        return project;
-      }
+  useEffect(() => {
+    /*
+     * The project list is still loading at this point. Fall back to the cached
+     * copy of the project the user was last on so the dashboard can start
+     * rendering it right away instead of waiting for the list. The effect below
+     * corrects this once the list arrives (e.g. if the user no longer has
+     * access to that project).
+     */
+    if (props.selectedProject) {
+      return;
     }
 
     const currentProject: Project | null = ProjectUtil.getCurrentProject();
-
-    if (currentProject) {
-      return currentProject;
-    }
-
-    if (props.projects.length > 0) {
-      return props.projects[0] || null;
-    }
-
-    return null;
-  };
-
-  useEffect(() => {
-    const currentProject: Project | null = getCurrentProject();
 
     if (currentProject && props.onProjectSelected) {
       props.onProjectSelected(currentProject);
@@ -141,29 +118,19 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
   }, []);
 
   useEffect(() => {
-    if (
-      props.projects &&
-      props.projects.length > 0 &&
-      !props.selectedProject &&
-      props.projects[0]
-    ) {
-      const currentProject: Project | null = getCurrentProject();
+    /*
+     * The project list has loaded (or reloaded). Open the project in the URL,
+     * else the last project this user opened on this browser, else their first
+     * project - and always one they still have access to.
+     */
+    const projectToSelect: Project | null =
+      ProjectUtil.getProjectToSelectOnProjectsLoaded({
+        projects: props.projects,
+        selectedProject: props.selectedProject,
+      });
 
-      if (!currentProject) {
-        props.onProjectSelected(props.projects[0]);
-      } else if (
-        props.projects.filter((project: Project) => {
-          return project._id === currentProject._id;
-        }).length > 0
-      ) {
-        props.onProjectSelected(
-          props.projects.filter((project: Project) => {
-            return project._id === currentProject._id;
-          })[0] as Project,
-        );
-      } else {
-        props.onProjectSelected(props.projects[0]);
-      }
+    if (projectToSelect) {
+      props.onProjectSelected(projectToSelect);
     }
   }, [props.projects]);
 

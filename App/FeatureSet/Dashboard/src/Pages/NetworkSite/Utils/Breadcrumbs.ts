@@ -68,11 +68,6 @@ export function getNetworkSiteBreadcrumbs(
       "Network",
       "Site Links",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.NETWORK_SITE_IMPORT, [
-      "Project",
-      "Network",
-      "Import Sites",
-    ]),
   };
   return breadcrumpLinksMap[path];
 }

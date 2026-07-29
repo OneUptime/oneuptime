@@ -1,6 +1,5 @@
 import { PROBE_INGEST_URL } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
-import ProxyConfig from "../../Utils/ProxyConfig";
 import SnmpMonitor from "../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -39,6 +38,24 @@ export interface DevicePollConfig {
   snmpMonitor: MonitorStepSnmpMonitor;
 }
 
+/*
+ * Single-flight guard for the LIST FETCH only. node-cron fires every tick
+ * regardless of whether the previous one finished, so a fetch stuck on an
+ * unresponsive server would otherwise stack a new hung request per minute.
+ *
+ * The guard deliberately does NOT cover the SNMP walking that follows: the
+ * server claims due devices atomically when handing out the list, so
+ * overlapping ticks poll disjoint device sets — that pipelining is what
+ * keeps a fleet whose poll cycle exceeds a minute (slow or unreachable
+ * devices) polling at its configured cadence.
+ */
+let isDeviceFetchInProgress: boolean = false;
+
+// Exported for tests: lets a wedged-state test reset between cases.
+export function resetDevicePollRunInProgress(): void {
+  isDeviceFetchInProgress = false;
+}
+
 const InitJob: VoidFunction = (): void => {
   BasicCron({
     jobName: "Probe:NetworkDeviceFetchList",
@@ -47,18 +64,39 @@ const InitJob: VoidFunction = (): void => {
       runOnStartup: true,
     },
     runFunction: async () => {
+      if (isDeviceFetchInProgress) {
+        logger.debug(
+          "Previous network device list fetch is still in flight. Skipping this tick.",
+        );
+        return;
+      }
+
+      isDeviceFetchInProgress = true;
+
+      let devices: Array<DevicePollConfig> = [];
+
       try {
-        await fetchAndPollDevices();
+        devices = await fetchDeviceList();
       } catch (err) {
         logger.error("Network device poll fetch failed");
+        logger.error(err);
+      } finally {
+        // Release as soon as the fetch settles — see the guard comment.
+        isDeviceFetchInProgress = false;
+      }
+
+      try {
+        await pollDevices(devices);
+      } catch (err) {
+        logger.error("Network device poll failed");
         logger.error(err);
       }
     },
   });
 };
 
-// Exported for tests: fetches this probe's due devices and polls them.
-export async function fetchAndPollDevices(): Promise<void> {
+// Exported for tests: fetches this probe's due devices from the server.
+export async function fetchDeviceList(): Promise<Array<DevicePollConfig>> {
   const listUrl: URL = URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
     "/probe/network-device/list",
   );
@@ -71,15 +109,20 @@ export async function fetchAndPollDevices(): Promise<void> {
         ...ProbeAPIRequest.getDefaultRequestBody(),
       },
       headers: {},
-      options: { ...ProxyConfig.getRequestProxyAgents(listUrl) },
+      options: ProbeAPIRequest.getDefaultRequestOptions(listUrl),
     });
 
-  const devices: Array<DevicePollConfig> = (
-    ((result.data as JSONObject)?.["devices"] as JSONArray) || []
-  ).map((device: JSONObject) => {
-    return device as unknown as DevicePollConfig;
-  });
+  return (((result.data as JSONObject)?.["devices"] as JSONArray) || []).map(
+    (device: JSONObject) => {
+      return device as unknown as DevicePollConfig;
+    },
+  );
+}
 
+// Exported for tests: walks the handed-out devices in bounded batches.
+export async function pollDevices(
+  devices: Array<DevicePollConfig>,
+): Promise<void> {
   if (devices.length === 0) {
     return;
   }
@@ -102,6 +145,11 @@ export async function fetchAndPollDevices(): Promise<void> {
       }),
     );
   }
+}
+
+// Exported for tests: fetches this probe's due devices and polls them.
+export async function fetchAndPollDevices(): Promise<void> {
+  await pollDevices(await fetchDeviceList());
 }
 
 // Exported for tests: walks one device and reports the outcome back.
@@ -154,7 +202,7 @@ export async function pollDevice(device: DevicePollConfig): Promise<void> {
         monitoredAt: new Date().toISOString(),
       },
       headers: {},
-      options: { ...ProxyConfig.getRequestProxyAgents(ingestUrl) },
+      options: ProbeAPIRequest.getDefaultRequestOptions(ingestUrl),
     });
   } catch (err) {
     logger.error(

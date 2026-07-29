@@ -25,6 +25,7 @@ import TelemetryMonitorSummary from "./Types/TelemetryMonitorSummary";
 import CustomCodeMonitorSummaryView from "./CustomCodeMonitorSummaryView";
 import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 import EvaluationLogList from "./EvaluationLogList";
+import { MonitorSummaryProbeState } from "Common/Utils/Monitor/MonitorSummaryProbeUtil";
 
 export interface ComponentProps {
   monitorType: MonitorType;
@@ -37,6 +38,15 @@ export interface ComponentProps {
   telemetryMonitorSummary?: TelemetryMonitorSummary | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   probeName?: string | undefined;
+  /*
+   * Optional so the callers that render one probe's log in isolation (the
+   * Probes tab, the monitoring-log modal) keep their existing wording. The
+   * monitor overview passes it, because "no data yet", "this probe is
+   * switched off" and "nothing is watching this monitor" are three different
+   * situations - and telling the user to wait a few minutes for the last two
+   * is how a probe change comes to read as never having applied.
+   */
+  probeSummaryState?: MonitorSummaryProbeState | undefined;
 }
 
 const SummaryInfo: FunctionComponent<ComponentProps> = (
@@ -200,6 +210,28 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
     MonitorTypeHelper.isProbableMonitor(props.monitorType) &&
     (!props.probeMonitorResponses || props.probeMonitorResponses.length === 0)
   ) {
+    if (props.probeSummaryState === MonitorSummaryProbeState.NoProbesAttached) {
+      return (
+        <ErrorMessage
+          message={
+            "No probes are monitoring this resource. Add one under Probes to start collecting data."
+          }
+        />
+      );
+    }
+
+    if (
+      props.probeSummaryState === MonitorSummaryProbeState.SelectedProbeDisabled
+    ) {
+      return (
+        <ErrorMessage
+          message={`${
+            props.probeName || "This probe"
+          } is disabled for this monitor, so it is not collecting any data. Enable it under Probes.`}
+        />
+      );
+    }
+
     return (
       <ErrorMessage
         message={

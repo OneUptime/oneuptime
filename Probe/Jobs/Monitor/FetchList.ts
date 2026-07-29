@@ -20,7 +20,6 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import NumberUtil from "Common/Utils/Number";
 import Sleep from "Common/Types/Sleep";
-import ProxyConfig from "../../Utils/ProxyConfig";
 
 const InitJob: VoidFunction = (): void => {
   BasicCron({
@@ -101,7 +100,7 @@ class FetchListAndProbe {
             limit: PROBE_MONITOR_FETCH_LIMIT || 100,
           },
           headers: {},
-          options: { ...ProxyConfig.getRequestProxyAgents(monitorListUrl) },
+          options: ProbeAPIRequest.getDefaultRequestOptions(monitorListUrl),
         });
 
       logger.debug("Fetched monitor list");

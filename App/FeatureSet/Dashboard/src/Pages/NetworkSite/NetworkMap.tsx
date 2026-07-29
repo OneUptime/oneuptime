@@ -4,20 +4,23 @@ import SiteCard from "../../Components/NetworkSite/SiteCard";
 import SiteContainerGraph from "../../Components/NetworkSite/SiteContainerGraph";
 import SiteGeoMap from "../../Components/NetworkSite/SiteGeoMap";
 import {
+  LEGACY_NETWORK_MAP_REGION_PARAM,
   NetworkMapDrillState,
   readDrillStateFromUrl,
 } from "../../Components/NetworkSite/NetworkMapDrillState";
-import { MapRegion } from "../../Components/NetworkSite/SiteMapViewModel";
 import {
   MapSiteView,
+  MapUnplacedSiteView,
   SiteBreadcrumbEntry,
   SiteChildView,
   SiteChildrenResponse,
   SiteLinkView,
+  SiteMapMode,
   SiteMapResponse,
   parseSiteChildrenResponse,
   parseSiteMapResponse,
 } from "../../Components/NetworkSite/SiteHierarchyTypes";
+import { childTypeLabelFor } from "../../Components/NetworkSite/SiteMapViewModel";
 import NetworkTopologyLiveView from "../../Components/Topology/NetworkTopologyLiveView";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -56,27 +59,36 @@ import { Location, useLocation } from "react-router-dom";
  * centerpiece. Three views share one page, keyed by the 'site' query
  * param:
  *
- *   ROOT (no site):   geo map (US or World, 'mapRegion' param) with
- *                     clustered pins + root-site cards + WAN link strip.
+ *   ROOT (no site):   geo map with clustered pins + root-site cards + WAN
+ *                     link strip. The map has no region control: it frames
+ *                     itself to wherever this project's sites are (see
+ *                     Components/NetworkSite/Geo/GeoViewport.ts).
  *   CONTAINER:        breadcrumbs + a graph of the site's children with
  *                     the links between them — click to go deeper.
  *   UNIT:             breadcrumbs + the live device topology of that
  *                     unit, tiered like a rack diagram.
  *
- * Both params live in the URL via replaceState so a drill position is
- * shareable and survives navigation, without flooding browser history.
- * The children/map endpoints are polled every 60 seconds on the root and
+ * The drill position lives in the URL via replaceState so it is shareable
+ * and survives navigation, without flooding browser history. The
+ * children/map endpoints are polled every 60 seconds on the root and
  * container views; the unit view's embedded topology polls itself.
  */
 
 const REFRESH_INTERVAL_MS: number = 60 * 1000;
+
+/*
+ * How a load ended. "superseded" is not a failure — it means a newer
+ * request (a drill, a refresh) took ownership of the page state while this
+ * one was in flight, and whatever it loads is the right answer.
+ */
+type FetchOutcome = "loaded" | "failed" | "superseded";
 
 // Debounce for mirroring drill state into the URL (see Navigation.setQueryString).
 const QUERY_STRING_DEBOUNCE_MS: number = 200;
 
 const PAGE_TITLE: string = "Network Map";
 const PAGE_DESCRIPTION: string =
-  "Your whole network on one map. Marker color shows the worst status at that location — click a marker to drill into a site, or use the cards below.";
+  "Your whole network on one map, framed to wherever your sites are. Marker color shows the worst status at that location — click a marker to drill into a site, or use the cards below.";
 
 /*
  * A labeled band inside the map card. Sections are separated by a rule
@@ -122,15 +134,24 @@ const NetworkSiteMap: FunctionComponent<
       return readDrillStateFromUrl().siteId;
     },
   );
-  const [mapRegion, setMapRegion] = useState<MapRegion>((): MapRegion => {
-    return readDrillStateFromUrl().mapRegion;
-  });
   const [childrenData, setChildrenData] = useState<SiteChildrenResponse | null>(
     null,
   );
   const [mapData, setMapData] = useState<SiteMapResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * How the map groups what it draws. Deliberately NOT in the URL: the
+   * drill state is the shareable part of this page (see
+   * NetworkMapDrillState), and whether one viewer prefers to see regions or
+   * every individual store is a preference, not a place. A link stays a
+   * link to a level.
+   */
+  const [mapMode, setMapMode] = useState<SiteMapMode>("grouped");
+  const mapModeRef: React.MutableRefObject<SiteMapMode> =
+    useRef<SiteMapMode>(mapMode);
+  mapModeRef.current = mapMode;
 
   /*
    * Cancel-stale: every fetch takes a sequence number; only the latest
@@ -178,17 +199,25 @@ const NetworkSiteMap: FunctionComponent<
 
   const location: Location = useLocation();
 
+  /*
+   * Reports how the load ended. Only the mode switch acts on it — see the
+   * effect below for why a FAILED switch has to be undone, and why a
+   * SUPERSEDED one (the reader drilled while it was in flight) must not be:
+   * putting the choice back then would fight a newer request that is
+   * already loading the right thing.
+   */
   const fetchData: (
     siteId: string | null,
-    region: MapRegion,
+    mapMode: SiteMapMode,
     isBackgroundRefresh: boolean,
-  ) => Promise<void> = useCallback(
+  ) => Promise<FetchOutcome> = useCallback(
     async (
       siteId: string | null,
-      region: MapRegion,
+      mapMode: SiteMapMode,
       isBackgroundRefresh: boolean,
-    ): Promise<void> => {
+    ): Promise<FetchOutcome> => {
       const seq: number = ++requestSeq.current;
+      let outcome: FetchOutcome = "failed";
       if (!isBackgroundRefresh) {
         setIsLoading(true);
         setError("");
@@ -205,9 +234,14 @@ const NetworkSiteMap: FunctionComponent<
         /*
          * Project scoping is attached automatically via the tenantid
          * header that ModelAPI.getCommonHeaders() sets from the current
-         * project. The map is only fetched at the root level — it shows
-         * every pinned site in the project, so a drill level never needs
-         * it.
+         * project.
+         *
+         * Both endpoints are asked about the SAME level. The map used to be
+         * fetched only at the root, because it answered with every pinned
+         * site in the project however deep you had drilled — which is
+         * exactly why the map and the cards under it described different
+         * networks. It is now scoped like the cards are, so drilling moves
+         * both.
          */
         const childrenPromise: Promise<
           HTTPResponse<JSONObject> | HTTPErrorResponse
@@ -218,46 +252,40 @@ const NetworkSiteMap: FunctionComponent<
         });
         const mapPromise: Promise<
           HTTPResponse<JSONObject> | HTTPErrorResponse
-        > | null = siteId
-          ? null
-          : API.post<JSONObject>({
-              url: mapUrl,
-              data: { mapRegion: region },
-              headers: { ...ModelAPI.getCommonHeaders() },
-            });
+        > = API.post<JSONObject>({
+          url: mapUrl,
+          data: siteId ? { siteId: siteId, mode: mapMode } : { mode: mapMode },
+          headers: { ...ModelAPI.getCommonHeaders() },
+        });
 
         const [childrenResponse, mapResponse]: [
           HTTPResponse<JSONObject> | HTTPErrorResponse,
-          HTTPResponse<JSONObject> | HTTPErrorResponse | null,
-        ] = await Promise.all([
-          childrenPromise,
-          mapPromise || Promise.resolve(null),
-        ]);
+          HTTPResponse<JSONObject> | HTTPErrorResponse,
+        ] = await Promise.all([childrenPromise, mapPromise]);
 
         if (!isMounted.current || seq !== requestSeq.current) {
-          return; // A newer fetch owns the state now.
+          return "superseded"; // A newer fetch owns the state now.
         }
 
         if (childrenResponse instanceof HTTPErrorResponse) {
           throw childrenResponse;
         }
-        if (mapResponse && mapResponse instanceof HTTPErrorResponse) {
+        if (mapResponse instanceof HTTPErrorResponse) {
           throw mapResponse;
         }
 
         setChildrenData(parseSiteChildrenResponse(childrenResponse.data));
-        setMapData(mapResponse ? parseSiteMapResponse(mapResponse.data) : null);
+        setMapData(parseSiteMapResponse(mapResponse.data));
         setError("");
+        outcome = "loaded";
       } catch (err) {
         /*
          * A failed background poll keeps showing the last good view —
          * only a foreground load surfaces the error state.
          */
-        if (
-          isMounted.current &&
-          seq === requestSeq.current &&
-          !isBackgroundRefresh
-        ) {
+        if (!isMounted.current || seq !== requestSeq.current) {
+          outcome = "superseded";
+        } else if (!isBackgroundRefresh) {
           setError(API.getFriendlyMessage(err));
         }
       }
@@ -269,6 +297,8 @@ const NetworkSiteMap: FunctionComponent<
       ) {
         setIsLoading(false);
       }
+
+      return outcome;
     },
     [],
   );
@@ -300,7 +330,7 @@ const NetworkSiteMap: FunctionComponent<
   }, [isUnitView]);
 
   useEffect(() => {
-    fetchData(currentSiteId, mapRegion, false).catch((err: Error) => {
+    fetchData(currentSiteId, mapModeRef.current, false).catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
     });
 
@@ -308,7 +338,7 @@ const NetworkSiteMap: FunctionComponent<
       if (isUnitViewRef.current) {
         return;
       }
-      fetchData(currentSiteId, mapRegion, true).catch(() => {
+      fetchData(currentSiteId, mapModeRef.current, true).catch(() => {
         // Background refresh failures are non-fatal; keep the last view.
       });
     }, REFRESH_INTERVAL_MS);
@@ -316,7 +346,52 @@ const NetworkSiteMap: FunctionComponent<
     return () => {
       clearInterval(interval);
     };
-  }, [currentSiteId, mapRegion, fetchData]);
+  }, [currentSiteId, fetchData]);
+
+  /*
+   * Switching how the map groups reloads quietly — as a background refresh,
+   * not a foreground one. The choice changes one panel; raising the
+   * full-page loader for it would blank the breadcrumbs, the cards and the
+   * link strip the reader is looking at in order to swap the map inside
+   * them. The switch itself is the feedback that something happened.
+   *
+   * The guard makes this effect a no-op on mount and on every drill (the
+   * effect above already loaded that level with this mode), so it fires
+   * only for an actual change of mode.
+   *
+   * A load that does not land puts the choice BACK. Leaving it would strand
+   * the reader on a switch that says "All sites" over a map that is still
+   * grouped, with the obvious remedy — pressing the same option again —
+   * doing nothing, because from the page's point of view nothing changed.
+   */
+  const loadedMapMode: React.MutableRefObject<SiteMapMode> =
+    useRef<SiteMapMode>(mapMode);
+  useEffect(() => {
+    if (loadedMapMode.current === mapMode) {
+      return;
+    }
+    const previousMode: SiteMapMode = loadedMapMode.current;
+    const requestedMode: SiteMapMode = mapMode;
+    loadedMapMode.current = requestedMode;
+
+    const revert: () => void = (): void => {
+      if (!isMounted.current || loadedMapMode.current !== requestedMode) {
+        return; // The reader has already asked for something else.
+      }
+      loadedMapMode.current = previousMode;
+      setMapMode(previousMode);
+    };
+
+    fetchData(currentSiteId, requestedMode, true)
+      .then((outcome: FetchOutcome) => {
+        if (outcome === "failed") {
+          revert();
+        }
+      })
+      .catch(() => {
+        revert();
+      });
+  }, [mapMode, currentSiteId, fetchData]);
 
   /*
    * Drill transitions are made atomic here rather than left to fetchData:
@@ -327,7 +402,7 @@ const NetworkSiteMap: FunctionComponent<
    * the map yet" empty state — before the loader appears. Raising the
    * loader in the same batch as the id closes that gap.
    *
-   * Both handlers no-op on an unchanged target: without the guard the
+   * The handler no-ops on an unchanged target: without the guard the
    * effect would not re-run (its deps are identical) and the loader would
    * never be lowered again.
    */
@@ -341,18 +416,6 @@ const NetworkSiteMap: FunctionComponent<
     setError("");
     setCurrentSiteId(siteId);
     queueQueryStringUpdate({ site: siteId });
-  };
-
-  const changeRegion: (region: MapRegion) => void = (
-    region: MapRegion,
-  ): void => {
-    if (region === mapRegion) {
-      return;
-    }
-    setIsLoading(true);
-    setError("");
-    setMapRegion(region);
-    queueQueryStringUpdate({ mapRegion: region });
   };
 
   /*
@@ -378,7 +441,13 @@ const NetworkSiteMap: FunctionComponent<
   useEffect(() => {
     const drillState: NetworkMapDrillState = readDrillStateFromUrl();
     changeSite(drillState.siteId);
-    changeRegion(drillState.mapRegion);
+    /*
+     * Links from before the map dropped its "United States / World" toggle
+     * still carry that parameter. Nothing reads it any more, so clear it
+     * out of the address bar instead of leaving a dead control name in a
+     * URL the user may well copy again.
+     */
+    queueQueryStringUpdate({ [LEGACY_NETWORK_MAP_REGION_PARAM]: null });
   }, [location.key, location.search]);
 
   const refreshButton: {
@@ -391,7 +460,7 @@ const NetworkSiteMap: FunctionComponent<
     buttonStyle: ButtonStyleType.NORMAL,
     icon: IconProp.Refresh,
     onClick: () => {
-      fetchData(currentSiteId, mapRegion, false).catch((err: Error) => {
+      fetchData(currentSiteId, mapMode, false).catch((err: Error) => {
         setError(API.getFriendlyMessage(err));
       });
     },
@@ -438,7 +507,32 @@ const NetworkSiteMap: FunctionComponent<
     );
   }
 
-  // CONTAINER level: this site's children and the links between them.
+  /*
+   * The map's inputs, shared by every level that draws one. The type label
+   * comes from the CHILD LIST rather than from the markers, so a level whose
+   * children are all Regions still says "regions" while some of them are
+   * missing from the map for want of coordinates.
+   */
+  const levelSites: Array<SiteChildView> = childrenData?.children || [];
+  const levelLinks: Array<SiteLinkView> = childrenData?.links || [];
+  const pinnedSites: Array<MapSiteView> = mapData?.sites || [];
+  const unplacedSites: Array<MapUnplacedSiteView> =
+    mapData?.unplacedSites || [];
+  const childTypeLabel: string = childTypeLabelFor(levelSites);
+
+  const geoMap: ReactElement = (
+    <SiteGeoMap
+      sites={pinnedSites}
+      mode={mapData?.mode || mapMode}
+      selectedMode={mapMode}
+      onModeChange={setMapMode}
+      unplacedSites={unplacedSites}
+      childTypeLabel={childTypeLabel}
+      onSiteClick={changeSite}
+    />
+  );
+
+  // CONTAINER level: this site's children, on the map and as a linked graph.
   if (currentSiteId && currentSite) {
     return (
       <Fragment>
@@ -453,24 +547,38 @@ const NetworkSiteMap: FunctionComponent<
           description={`${currentSite.siteType} — click a site to drill down; a unit opens its device topology.`}
           buttons={[refreshButton]}
         >
-          <SiteContainerGraph
-            sites={childrenData?.children || []}
-            links={childrenData?.links || []}
-            childrenTruncated={Boolean(childrenData?.childrenTruncated)}
-            descendantCountsTruncated={Boolean(
-              childrenData?.descendantCountsTruncated,
-            )}
-            onSiteClick={changeSite}
-          />
+          {/*
+           * The map comes first at every level, and it is the SAME map:
+           * drilling re-frames it onto this site's children instead of
+           * swapping it out for a diagram. The graph below it is the other
+           * half of the picture — it is where the links between these
+           * children live, which geography cannot show.
+           */}
+          {geoMap}
+
+          <MapSection
+            title="Sites"
+            count={levelSites.length}
+            hint="Click a site to drill in; a unit opens its device topology."
+          >
+            <SiteContainerGraph
+              sites={levelSites}
+              links={levelLinks}
+              childrenTruncated={Boolean(childrenData?.childrenTruncated)}
+              descendantCountsTruncated={Boolean(
+                childrenData?.descendantCountsTruncated,
+              )}
+              onSiteClick={changeSite}
+            />
+          </MapSection>
         </Card>
       </Fragment>
     );
   }
 
   // ROOT level: geo map + root-site cards + WAN link strip.
-  const rootSites: Array<SiteChildView> = childrenData?.children || [];
-  const rootLinks: Array<SiteLinkView> = childrenData?.links || [];
-  const pinnedSites: Array<MapSiteView> = mapData?.sites || [];
+  const rootSites: Array<SiteChildView> = levelSites;
+  const rootLinks: Array<SiteLinkView> = levelLinks;
 
   if (rootSites.length === 0 && pinnedSites.length === 0) {
     return (
@@ -511,38 +619,15 @@ const NetworkSiteMap: FunctionComponent<
       description={PAGE_DESCRIPTION}
       buttons={[refreshButton]}
     >
+      {/*
+       * No region control. The map frames itself to wherever this project's
+       * sites are, and zoom/pan live on the map itself where the geography
+       * is — see Components/NetworkSite/Geo/GeoViewport.ts.
+       */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* A real segmented control: one inset track, the active segment
-         * lifted onto the surface color. */}
-        <div
-          className="inline-flex rounded-lg bg-gray-100 p-0.5"
-          role="group"
-          aria-label="Map region"
-        >
-          {(["us", "world"] as Array<MapRegion>).map(
-            (region: MapRegion): ReactElement => {
-              const isActive: boolean = mapRegion === region;
-              return (
-                <button
-                  key={region}
-                  type="button"
-                  data-testid={`network-map-region-${region}`}
-                  aria-pressed={isActive}
-                  className={`rounded-md px-3 py-1 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                    isActive
-                      ? "bg-white font-semibold text-gray-900 shadow-sm"
-                      : "font-medium text-gray-500 hover:text-gray-900"
-                  }`}
-                  onClick={() => {
-                    changeRegion(region);
-                  }}
-                >
-                  {region === "us" ? "United States" : "World"}
-                </button>
-              );
-            },
-          )}
-        </div>
+        <p className="text-xs text-gray-500">
+          Drag to pan, scroll to zoom, or use the controls on the map.
+        </p>
         <p className="flex items-center gap-1.5 text-xs text-gray-500">
           <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-500" />
           Live — updates every minute
@@ -561,11 +646,7 @@ const NetworkSiteMap: FunctionComponent<
         <></>
       )}
 
-      <SiteGeoMap
-        sites={pinnedSites}
-        region={mapRegion}
-        onSiteClick={changeSite}
-      />
+      {geoMap}
 
       {rootSites.length > 0 ? (
         <MapSection

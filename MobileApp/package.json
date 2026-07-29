@@ -1,6 +1,6 @@
 {
   "name": "mobileapp",
-  "version": "11.7.2",
+  "version": "11.7.3",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",

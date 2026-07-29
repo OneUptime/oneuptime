@@ -6,6 +6,7 @@ import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Dictionary from "../../Types/Dictionary";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
+import StatusPageGroupTreeUtil from "./GroupTree";
 import UptimeUtil, { UptimeWindow } from "../Uptime/UptimeUtil";
 
 export default class StatusPageResourceUptimeUtil {
@@ -74,15 +75,22 @@ export default class StatusPageResourceUptimeUtil {
     statusPageResources: Array<StatusPageResource>;
     monitorStatuses: Array<MonitorStatus>;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
+    /*
+     * Every group on the status page. Supplied so a group that has nested
+     * groups under it reports the worst status of its whole subtree. Omit it
+     * (or pass only this group) to look at the group's own resources.
+     */
+    allStatusPageGroups?: Array<StatusPageGroup> | undefined;
   }): MonitorStatus {
     let currentStatus: MonitorStatus = new MonitorStatus();
     currentStatus.name = "Operational";
     currentStatus.color = Green;
 
     const resourcesInGroup: Array<StatusPageResource> =
-      this.getResourcesInStatusPageGroup({
+      this.getResourcesInStatusPageGroupAndDescendants({
         statusPageGroup: data.statusPageGroup,
         statusPageResources: data.statusPageResources,
+        allStatusPageGroups: data.allStatusPageGroups,
       });
 
     for (const resource of resourcesInGroup) {
@@ -173,15 +181,22 @@ export default class StatusPageResourceUptimeUtil {
     monitorsInGroup: Dictionary<Array<ObjectID>>;
     // if supplied, uptime is measured over this window instead of "first event -> now".
     uptimeWindow?: UptimeWindow | undefined;
+    /*
+     * Every group on the status page. Supplied so a group that has nested
+     * groups under it averages every resource in its subtree, which is what
+     * makes each level of the hierarchy show a rolled up availability.
+     */
+    allStatusPageGroups?: Array<StatusPageGroup> | undefined;
   }): number | null {
     if (!data.statusPageGroup.showUptimePercent) {
       return null;
     }
 
     const resourcesInGroup: Array<StatusPageResource> =
-      this.getResourcesInStatusPageGroup({
+      this.getResourcesInStatusPageGroupAndDescendants({
         statusPageGroup: data.statusPageGroup,
         statusPageResources: data.statusPageResources,
+        allStatusPageGroups: data.allStatusPageGroups,
       });
 
     if (resourcesInGroup.length === 0) {
@@ -251,6 +266,37 @@ export default class StatusPageResourceUptimeUtil {
     });
   }
 
+  /*
+   * Resources attached to this group plus every resource attached to a group
+   * nested under it. This is the set a rolled up number (status, uptime %) for
+   * the group has to be computed from. Without allStatusPageGroups there is no
+   * hierarchy to walk, so it degrades to the group's own resources.
+   */
+  public static getResourcesInStatusPageGroupAndDescendants(data: {
+    statusPageGroup: StatusPageGroup;
+    statusPageResources: Array<StatusPageResource>;
+    allStatusPageGroups?: Array<StatusPageGroup> | undefined;
+  }): Array<StatusPageResource> {
+    const groupsToInclude: Array<StatusPageGroup> =
+      StatusPageGroupTreeUtil.getGroupAndDescendants({
+        statusPageGroup: data.statusPageGroup,
+        statusPageGroups: data.allStatusPageGroups || [data.statusPageGroup],
+      });
+
+    const groupIds: Set<string> = new Set<string>(
+      groupsToInclude.map((group: StatusPageGroup) => {
+        return group._id?.toString() || "";
+      }),
+    );
+
+    return data.statusPageResources.filter((resource: StatusPageResource) => {
+      const resourceGroupId: string | undefined =
+        resource.statusPageGroupId?.toString();
+
+      return Boolean(resourceGroupId) && groupIds.has(resourceGroupId!);
+    });
+  }
+
   public static calculateAvgUptimePercentageOfAllResources(data: {
     monitorStatusTimelines: Array<MonitorStatusTimeline>;
     precision: UptimePrecision;
@@ -273,24 +319,51 @@ export default class StatusPageResourceUptimeUtil {
 
     const allUptimePercent: Array<number> = [];
 
-    // calculate for groups first.
+    /*
+     * Calculate for groups first. Groups nest, and a group that reports uptime
+     * already averages its whole subtree - so descend only until the first
+     * reporting group on each branch, otherwise its children would be counted
+     * twice. Groups that do not report uptime contribute nothing themselves
+     * (unchanged behaviour) but must not hide reporting groups beneath them.
+     */
+    const collectGroupUptime: (groups: Array<StatusPageGroup>) => void = (
+      groups: Array<StatusPageGroup>,
+    ): void => {
+      for (const group of groups) {
+        if (group.showUptimePercent) {
+          const groupUptimePercent: number | null =
+            this.calculateAvgUptimePercentOfStatusPageGroup({
+              statusPageGroup: group,
+              monitorStatusTimelines: data.monitorStatusTimelines,
+              precision: data.precision,
+              downtimeMonitorStatuses: data.downtimeMonitorStatuses,
+              statusPageResources: data.statusPageResources,
+              monitorsInGroup: data.monitorsInGroup,
+              uptimeWindow: data.uptimeWindow,
+              allStatusPageGroups: data.resourceGroups,
+            });
 
-    for (const group of data.resourceGroups) {
-      const calculateAvgUptimePercentOfStatusPageGroup: number | null =
-        this.calculateAvgUptimePercentOfStatusPageGroup({
-          statusPageGroup: group,
-          monitorStatusTimelines: data.monitorStatusTimelines,
-          precision: data.precision,
-          downtimeMonitorStatuses: data.downtimeMonitorStatuses,
-          statusPageResources: data.statusPageResources,
-          monitorsInGroup: data.monitorsInGroup,
-          uptimeWindow: data.uptimeWindow,
-        });
+          if (groupUptimePercent !== null) {
+            allUptimePercent.push(groupUptimePercent);
+          }
 
-      if (calculateAvgUptimePercentOfStatusPageGroup !== null) {
-        allUptimePercent.push(calculateAvgUptimePercentOfStatusPageGroup);
+          continue;
+        }
+
+        collectGroupUptime(
+          StatusPageGroupTreeUtil.getChildGroups({
+            statusPageGroupId: group._id?.toString() || "",
+            statusPageGroups: data.resourceGroups,
+          }),
+        );
       }
-    }
+    };
+
+    collectGroupUptime(
+      StatusPageGroupTreeUtil.getRootGroups({
+        statusPageGroups: data.resourceGroups,
+      }),
+    );
 
     // now fetch resources without group.
 

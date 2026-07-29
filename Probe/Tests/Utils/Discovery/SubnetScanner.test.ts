@@ -40,23 +40,42 @@ describe("SubnetScanner.countHosts", () => {
     expect(SubnetScanner.countHosts("10.0.0.0/8")).toBe(Math.pow(2, 24) - 2);
   });
 
-  it("returns 0 for malformed or out-of-range CIDRs", () => {
-    expect(SubnetScanner.countHosts("not-a-cidr")).toBe(0);
-    expect(SubnetScanner.countHosts("10.0.0.0")).toBe(0);
-    expect(SubnetScanner.countHosts("10.0.0.0/33")).toBe(0);
-    expect(SubnetScanner.countHosts("999.0.0.0/24")).toBe(0);
+  it("counts an octet-range target as the product of its octet widths", () => {
+    // 1 x 7 x 256 x 16.
+    expect(SubnetScanner.countHosts("10.16-22.0-255.51-66")).toBe(28672);
   });
 
-  it("agrees with expandCidr for reasonable subnets", () => {
-    for (const cidr of ["192.168.1.0/29", "172.16.5.0/28", "10.1.1.0/30"]) {
-      expect(SubnetScanner.countHosts(cidr)).toBe(
-        SubnetScanner.expandCidr(cidr).length,
+  /*
+   * A bare address is the degenerate octet range and now scans exactly that
+   * one host. It used to count 0 (rejected), when only CIDR was accepted.
+   */
+  it("counts a bare address as a single host", () => {
+    expect(SubnetScanner.countHosts("10.0.0.5")).toBe(1);
+  });
+
+  it("returns 0 for malformed or out-of-range targets", () => {
+    expect(SubnetScanner.countHosts("not-a-cidr")).toBe(0);
+    expect(SubnetScanner.countHosts("10.0.0.0/33")).toBe(0);
+    expect(SubnetScanner.countHosts("999.0.0.0/24")).toBe(0);
+    expect(SubnetScanner.countHosts("10.22-16.0.1")).toBe(0);
+  });
+
+  it("agrees with expandTarget for reasonable targets", () => {
+    for (const target of [
+      "192.168.1.0/29",
+      "172.16.5.0/28",
+      "10.1.1.0/30",
+      "10.0.0.1-10",
+      "10.1-2.3-4.5-6",
+    ]) {
+      expect(SubnetScanner.countHosts(target)).toBe(
+        SubnetScanner.expandTarget(target).length,
       );
     }
   });
 });
 
-describe("SubnetScanner.scan oversized-subnet guard", () => {
+describe("SubnetScanner.scan oversized-target guard", () => {
   it("rejects an oversized subnet before expanding it (no OOM)", async () => {
     // A /8 would materialize ~16.7M strings if the guard ran after expansion.
     await expect(SubnetScanner.scan({ cidr: "10.0.0.0/8" })).rejects.toThrow(
@@ -64,10 +83,155 @@ describe("SubnetScanner.scan oversized-subnet guard", () => {
     );
   });
 
-  it("rejects a malformed CIDR", async () => {
+  it("rejects an oversized octet range before expanding it", async () => {
+    await expect(
+      SubnetScanner.scan({ cidr: "10.0-255.0-255.1-10" }),
+    ).rejects.toThrow(/exceeding the/);
+  });
+
+  it("rejects a malformed target", async () => {
     await expect(SubnetScanner.scan({ cidr: "not-a-cidr" })).rejects.toThrow(
-      /Invalid or empty CIDR/,
+      /not a valid scan target/,
     );
+  });
+
+  it("rejects a reversed octet range rather than sweeping nothing", async () => {
+    await expect(
+      SubnetScanner.scan({ cidr: "10.22-16.0.1-20" }),
+    ).rejects.toThrow(/reversed/);
+  });
+
+  it("rejects an empty target", async () => {
+    await expect(SubnetScanner.scan({ cidr: "" })).rejects.toThrow(
+      /scan target is required/,
+    );
+  });
+});
+
+/*
+ * Octet-range notation reaches the SNMP layer as plain addresses, exactly as
+ * a CIDR sweep does — the notation is a front end on the address list and
+ * nothing downstream of expansion knows which notation produced it.
+ */
+describe("SubnetScanner octet-range sweeps", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function mockSnmpAnsweringEverywhere(): Array<string> {
+    const probed: Array<string> = [];
+
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(async (config: MonitorStepSnmpMonitor) => {
+        probed.push(config.hostname || "");
+        return { sysName: "device-" + config.hostname };
+      });
+
+    return probed;
+  }
+
+  it("sweeps exactly the addresses the range enumerates", async () => {
+    const probed: Array<string> = mockSnmpAnsweringEverywhere();
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: "10.1-2.0.5-6" });
+
+    expect([...probed].sort()).toEqual([
+      "10.1.0.5",
+      "10.1.0.6",
+      "10.2.0.5",
+      "10.2.0.6",
+    ]);
+    expect(result.scannedHostCount).toBe(4);
+  });
+
+  /*
+   * A range is an explicit enumeration: .0 and .255 are swept when named,
+   * where the equivalent /24 would drop them as network and broadcast.
+   */
+  it("sweeps .0 and .255 when the range names them, unlike the equivalent CIDR", async () => {
+    const probed: Array<string> = mockSnmpAnsweringEverywhere();
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+
+    await SubnetScanner.scan({ cidr: "10.0.0.0-255" });
+
+    expect(probed).toContain("10.0.0.0");
+    expect(probed).toContain("10.0.0.255");
+    expect(probed.length).toBe(256);
+    // The CIDR spelling of the same block drops both.
+    expect(SubnetScanner.countHosts("10.0.0.0/24")).toBe(254);
+  });
+
+  it("sweeps a single bare address", async () => {
+    const probed: Array<string> = mockSnmpAnsweringEverywhere();
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: "10.9.8.7" });
+
+    expect(probed).toEqual(["10.9.8.7"]);
+    expect(result.scannedHostCount).toBe(1);
+  });
+
+  it("returns discovered hosts in ascending address order", async () => {
+    mockSnmpAnsweringEverywhere();
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: "10.1-2.0.8-9" });
+
+    expect(
+      result.discoveredHosts.map((discovered: { ipAddress: string }) => {
+        return discovered.ipAddress;
+      }),
+    ).toEqual(["10.1.0.8", "10.1.0.9", "10.2.0.8", "10.2.0.9"]);
+  });
+
+  it("applies the ICMP gate to a range sweep the same way it does to a subnet", async () => {
+    const probed: Array<string> = mockSnmpAnsweringEverywhere();
+    jest
+      .spyOn(SubnetScanner, "isHostAliveByPing")
+      .mockImplementation(async (host: string) => {
+        return host === "10.1.0.6";
+      });
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: "10.1-2.0.5-6" });
+
+    expect(probed).toEqual(["10.1.0.6"]);
+    expect(result.scannedHostCount).toBe(4);
+    expect(result.respondedToPingCount).toBe(1);
+  });
+
+  it("carries SNMP credentials into a range sweep unchanged", async () => {
+    const captured: Array<MonitorStepSnmpMonitor> = [];
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(async (config: MonitorStepSnmpMonitor) => {
+        captured.push(config);
+        return null;
+      });
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+
+    await SubnetScanner.scan({
+      cidr: "10.0.0.1-2",
+      snmpVersion: "V3",
+      snmpV3Auth: {
+        securityLevel: SnmpSecurityLevel.AuthNoPriv,
+        username: "monitoring",
+        authProtocol: SnmpAuthProtocol.SHA,
+        authKey: "auth-passphrase",
+      },
+      snmpPort: 1610,
+    });
+
+    expect(captured.length).toBe(2);
+    for (const config of captured) {
+      expect(config.snmpVersion).toBe(SnmpVersion.V3);
+      expect(config.port).toBe(1610);
+    }
   });
 });
 

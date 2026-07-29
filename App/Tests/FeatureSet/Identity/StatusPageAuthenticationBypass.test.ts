@@ -1,0 +1,613 @@
+import {
+  buildRequest,
+  buildResponse,
+  createMockIdentityRouter,
+  MockIdentityRouter,
+  RouteHandler,
+} from "./IdentityRouterTestUtil";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import Exception from "Common/Types/Exception/Exception";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "Common/Server/Utils/Express";
+import ObjectID from "Common/Types/ObjectID";
+import { beforeEach, describe, expect, it } from "@jest/globals";
+
+const mockRouter: MockIdentityRouter = createMockIdentityRouter();
+
+/*
+ * ---------------------------------------------------------------------------------------------
+ * Regression tests for the status page private-user login bypass.
+ *
+ * This was the more severe of the two originally-reported bypasses, because it minted a REAL
+ * session rather than just flipping a verification flag.
+ *
+ * The `if (!user.statusPageId)` guard caught a fully empty body, so it looked defended. It was
+ * not: statusPageId is NOT a secret -- it is public in status page URLs and page config. A body
+ * of `{"data": {"statusPageId": "<any valid status page id>"}}` sailed past that guard, and then
+ *
+ *   - `await user.password?.hashValue(...)` was a silent no-op on `undefined`, and
+ *   - the lookup became `{ email: undefined, password: undefined, statusPageId: <id> }`.
+ *
+ * TypeORM dropped both credential predicates, leaving `WHERE statusPageId = <id>` sorted newest
+ * first -- so the query returned the most recently created private user of that status page, and
+ * finalizeStatusPageLogin handed the caller their session and access-token cookie.
+ *
+ * Only `requireSsoForLogin` mitigated it, and only where enabled.
+ * ---------------------------------------------------------------------------------------------
+ */
+
+jest.mock("Common/Server/Utils/Express", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "Common/Server/Utils/Express",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    __esModule: true,
+    default: {
+      getRouter: (): MockIdentityRouter => {
+        return mockRouter;
+      },
+    },
+    getClientIp: (): string => {
+      return "127.0.0.1";
+    },
+    extractDeviceInfo: (): Record<string, unknown> => {
+      return {};
+    },
+    headerValueToString: (): string => {
+      return "";
+    },
+  };
+});
+
+const privateUserFindOneBy: jest.Mock = jest.fn();
+const privateUserFindOneById: jest.Mock = jest.fn();
+const privateUserUpdateOneBy: jest.Mock = jest.fn();
+const privateUserUpdateOneById: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/StatusPagePrivateUserService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: (...args: Array<unknown>): unknown => {
+        return privateUserFindOneBy(...args);
+      },
+      findOneById: (...args: Array<unknown>): unknown => {
+        return privateUserFindOneById(...args);
+      },
+      updateOneBy: (...args: Array<unknown>): unknown => {
+        return privateUserUpdateOneBy(...args);
+      },
+      updateOneById: (...args: Array<unknown>): unknown => {
+        return privateUserUpdateOneById(...args);
+      },
+    },
+  };
+});
+
+const statusPageFindOneById: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/StatusPageService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: (...args: Array<unknown>): unknown => {
+        return statusPageFindOneById(...args);
+      },
+      getStatusPageURL: (): Promise<string> => {
+        return Promise.resolve("https://status.example.com");
+      },
+    },
+  };
+});
+
+const createSession: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/StatusPagePrivateUserSessionService", () => {
+  return {
+    __esModule: true,
+    default: {
+      createSession: (...args: Array<unknown>): unknown => {
+        createSession(...args);
+        return Promise.resolve({
+          session: { id: new ObjectID("session-id") },
+          refreshToken: "refresh-token",
+          refreshTokenExpiresAt: new Date(),
+        });
+      },
+      findActiveSessionByRefreshToken: jest.fn(),
+      revokeSessionById: jest.fn(),
+      revokeSessionByRefreshToken: jest.fn(),
+      renewSessionWithNewRefreshToken: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/ProjectSmtpConfigService", () => {
+  return {
+    __esModule: true,
+    default: {
+      toEmailServer: (): undefined => {
+        return undefined;
+      },
+    },
+  };
+});
+
+const sendMail: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Services/MailService", () => {
+  return {
+    __esModule: true,
+    default: {
+      sendMail: (...args: Array<unknown>): Promise<void> => {
+        sendMail(...args);
+        return Promise.resolve();
+      },
+    },
+  };
+});
+
+jest.mock("Common/Server/DatabaseConfig", () => {
+  return {
+    __esModule: true,
+    default: {
+      getHost: (): Promise<unknown> => {
+        return Promise.resolve({
+          toString: (): string => {
+            return "localhost";
+          },
+        });
+      },
+      getHttpProtocol: (): Promise<unknown> => {
+        return Promise.resolve({
+          toString: (): string => {
+            return "http://";
+          },
+        });
+      },
+    },
+  };
+});
+
+const setStatusPagePrivateUserCookie: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Utils/Cookie", () => {
+  return {
+    __esModule: true,
+    default: {
+      setStatusPagePrivateUserCookie: (...args: Array<unknown>): string => {
+        setStatusPagePrivateUserCookie(...args);
+        return "status-page-access-token";
+      },
+      setUserCookie: jest.fn(),
+      removeAllCookies: jest.fn(),
+      removeCookie: jest.fn(),
+      removeStatusPageMasterPasswordCookie: jest.fn(),
+      getCookieFromExpressRequest: jest.fn(),
+      getRefreshTokenFromExpressRequest: jest.fn(),
+      getUserTokenKey: jest.fn(),
+      getRefreshTokenKey: jest.fn(),
+      getStatusPageMasterPasswordKey: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/JsonWebToken", () => {
+  return {
+    __esModule: true,
+    default: {
+      sign: (): string => {
+        return "signed-token";
+      },
+      signStatusPageLoginToken: (): string => {
+        return "signed-status-page-token";
+      },
+      decode: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    default: {
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+    },
+    getLogAttributesFromRequest: (): Record<string, unknown> => {
+      return {};
+    },
+  };
+});
+
+const sendErrorResponse: jest.Mock = jest.fn();
+const sendEmptySuccessResponse: jest.Mock = jest.fn();
+const sendEntityResponse: jest.Mock = jest.fn();
+
+jest.mock("Common/Server/Utils/Response", () => {
+  return {
+    __esModule: true,
+    default: {
+      sendErrorResponse: (...args: Array<unknown>): unknown => {
+        return sendErrorResponse(...args);
+      },
+      sendEmptySuccessResponse: (...args: Array<unknown>): unknown => {
+        return sendEmptySuccessResponse(...args);
+      },
+      sendEntityResponse: (...args: Array<unknown>): unknown => {
+        return sendEntityResponse(...args);
+      },
+      sendJsonObjectResponse: jest.fn(),
+    },
+  };
+});
+
+// Importing the router registers every handler on the mock router above.
+import "../../../FeatureSet/Identity/API/StatusPageAuthentication";
+
+// A status page id is public information -- it appears in status page URLs.
+const PUBLIC_STATUS_PAGE_ID: string = "e7f4d2a0-1b3c-4d5e-8f90-a1b2c3d4e5f6";
+
+type InvokeResult = {
+  nextError: Exception | null;
+};
+
+type InvokeFunction = (uri: string, body: unknown) => Promise<InvokeResult>;
+
+const invoke: InvokeFunction = async (
+  uri: string,
+  body: unknown,
+): Promise<InvokeResult> => {
+  const handler: RouteHandler = mockRouter.match("post", uri);
+  const req: ExpressRequest = buildRequest(body);
+  const res: ExpressResponse = buildResponse();
+
+  let nextError: Exception | null = null;
+
+  const next: NextFunction = ((err?: Exception): void => {
+    if (err) {
+      nextError = err;
+    }
+  }) as unknown as NextFunction;
+
+  await handler(req, res, next);
+
+  return { nextError };
+};
+
+type ExpectNoSessionFunction = () => void;
+
+/*
+ * The whole point of this endpoint's bug was that it minted a session. Asserting only on the
+ * error response would miss a regression that errors AFTER issuing the cookie.
+ */
+const expectNoSessionIssued: ExpectNoSessionFunction = (): void => {
+  expect(privateUserFindOneBy).not.toHaveBeenCalled();
+  expect(createSession).not.toHaveBeenCalled();
+  expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+  expect(sendEntityResponse).not.toHaveBeenCalled();
+};
+
+describe("Status page /login - private user login bypass", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    statusPageFindOneById.mockResolvedValue({
+      id: new ObjectID(PUBLIC_STATUS_PAGE_ID),
+      requireSsoForLogin: false,
+    });
+  });
+
+  it("rejects an empty body", async () => {
+    const result: InvokeResult = await invoke("/login", { data: {} });
+
+    expectNoSessionIssued();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+  });
+
+  /*
+   * THE ORIGINAL EXPLOIT. statusPageId alone used to be enough to reach the query.
+   */
+  it("rejects a body carrying only the (public) statusPageId", async () => {
+    const result: InvokeResult = await invoke("/login", {
+      data: { statusPageId: PUBLIC_STATUS_PAGE_ID },
+    });
+
+    expectNoSessionIssued();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+    expect((result.nextError as unknown as Exception).message).toBe(
+      "Email is required.",
+    );
+  });
+
+  it("rejects statusPageId plus an email but no password", async () => {
+    const result: InvokeResult = await invoke("/login", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        email: "victim@example.com",
+      },
+    });
+
+    expectNoSessionIssued();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+    expect((result.nextError as unknown as Exception).message).toBe(
+      "Password is required.",
+    );
+  });
+
+  it("rejects statusPageId plus a password but no email", async () => {
+    const result: InvokeResult = await invoke("/login", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        password: { _type: "HashedString", value: "guess" },
+      },
+    });
+
+    expectNoSessionIssued();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+    expect((result.nextError as unknown as Exception).message).toBe(
+      "Email is required.",
+    );
+  });
+
+  it("rejects explicitly null credentials", async () => {
+    const result: InvokeResult = await invoke("/login", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        email: null,
+        password: null,
+      },
+    });
+
+    expectNoSessionIssued();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+  });
+
+  it("rejects empty-string credentials", async () => {
+    const result: InvokeResult = await invoke("/login", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        email: "",
+        password: "",
+      },
+    });
+
+    expectNoSessionIssued();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+  });
+
+  it("rejects a typed-but-empty HashedString password", async () => {
+    /*
+     * hashValue() returns "" without hashing when the value is empty, so this payload would
+     * reach the query as a literal empty password rather than a hash.
+     */
+    const result: InvokeResult = await invoke("/login", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        email: "victim@example.com",
+        password: { _type: "HashedString", value: "" },
+      },
+    });
+
+    expectNoSessionIssued();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+    expect((result.nextError as unknown as Exception).message).toBe(
+      "Password is required.",
+    );
+  });
+
+  it("still rejects credential-less payloads on an SSO-only status page", async () => {
+    /*
+     * requireSsoForLogin was the only thing standing between this endpoint and a bypass. The
+     * credential guard must not depend on it -- and must fire before the status page lookup.
+     */
+    statusPageFindOneById.mockResolvedValue({
+      id: new ObjectID(PUBLIC_STATUS_PAGE_ID),
+      requireSsoForLogin: true,
+    });
+
+    const result: InvokeResult = await invoke("/login", {
+      data: { statusPageId: PUBLIC_STATUS_PAGE_ID },
+    });
+
+    expectNoSessionIssued();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+  });
+
+  it("queries with all three predicates present on the happy path", async () => {
+    privateUserFindOneBy.mockResolvedValue(null);
+
+    await invoke("/login", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        email: "real-user@example.com",
+        password: { _type: "HashedString", value: "correct-password" },
+      },
+    });
+
+    expect(privateUserFindOneBy).toHaveBeenCalledTimes(1);
+
+    const query: Record<string, any> = (
+      privateUserFindOneBy.mock.calls[0]![0] as Record<string, any>
+    )["query"] as Record<string, any>;
+
+    // None of the three may be undefined -- an undefined one is silently dropped by TypeORM.
+    expect(query["email"]).toBeDefined();
+    expect(query["password"]).toBeDefined();
+    expect(query["statusPageId"]).toBeDefined();
+
+    expect(query["email"].toString()).toBe("real-user@example.com");
+    expect(query["statusPageId"].toString()).toBe(PUBLIC_STATUS_PAGE_ID);
+
+    // The password predicate must be the hash, never the plaintext the caller sent.
+    expect(query["password"].toString()).not.toBe("correct-password");
+    expect(query["password"].toString().length).toBeGreaterThan(0);
+  });
+
+  /*
+   * Positive control. Every other case in this block asserts a session was NOT issued; without
+   * this one, a typo in the mocked cookie/session names would make those assertions pass
+   * vacuously. This proves the same probes do fire when a login genuinely succeeds.
+   */
+  it("issues a session when the credentials match a real user", async () => {
+    privateUserFindOneBy.mockResolvedValue({
+      id: new ObjectID("private-user-id"),
+      _id: "private-user-id",
+      email: "real-user@example.com",
+      statusPageId: new ObjectID(PUBLIC_STATUS_PAGE_ID),
+      projectId: new ObjectID("project-id"),
+    });
+    privateUserFindOneById.mockResolvedValue(null);
+
+    await invoke("/login", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        email: "real-user@example.com",
+        password: { _type: "HashedString", value: "correct-password" },
+      },
+    });
+
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(setStatusPagePrivateUserCookie).toHaveBeenCalledTimes(1);
+    expect(sendEntityResponse).toHaveBeenCalledTimes(1);
+  });
+
+  it("issues no session when credentials are present but wrong", async () => {
+    privateUserFindOneBy.mockResolvedValue(null);
+
+    await invoke("/login", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        email: "real-user@example.com",
+        password: { _type: "HashedString", value: "wrong-password" },
+      },
+    });
+
+    expect(privateUserFindOneBy).toHaveBeenCalledTimes(1);
+    expect(createSession).not.toHaveBeenCalled();
+    expect(setStatusPagePrivateUserCookie).not.toHaveBeenCalled();
+  });
+});
+
+describe("Status page /forgot-password - email must survive deserialization", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    statusPageFindOneById.mockResolvedValue({
+      id: new ObjectID(PUBLIC_STATUS_PAGE_ID),
+      requireSsoForLogin: false,
+      projectId: new ObjectID("project-id"),
+    });
+  });
+
+  it("rejects a payload with only the public statusPageId", async () => {
+    const result: InvokeResult = await invoke("/forgot-password", {
+      data: { statusPageId: PUBLIC_STATUS_PAGE_ID },
+    });
+
+    expect(privateUserFindOneBy).not.toHaveBeenCalled();
+    expect(privateUserUpdateOneBy).not.toHaveBeenCalled();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+  });
+
+  it("rejects an empty-string email", async () => {
+    const result: InvokeResult = await invoke("/forgot-password", {
+      data: { statusPageId: PUBLIC_STATUS_PAGE_ID, email: "" },
+    });
+
+    expect(privateUserFindOneBy).not.toHaveBeenCalled();
+    expect(privateUserUpdateOneBy).not.toHaveBeenCalled();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+  });
+
+  it("queries by both email and statusPageId on the happy path", async () => {
+    privateUserFindOneBy.mockResolvedValue(null);
+
+    await invoke("/forgot-password", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        email: "subscriber@example.com",
+      },
+    });
+
+    expect(privateUserFindOneBy).toHaveBeenCalledTimes(1);
+
+    const query: Record<string, any> = (
+      privateUserFindOneBy.mock.calls[0]![0] as Record<string, any>
+    )["query"] as Record<string, any>;
+
+    expect(query["email"].toString()).toBe("subscriber@example.com");
+    expect(query["statusPageId"].toString()).toBe(PUBLIC_STATUS_PAGE_ID);
+  });
+});
+
+describe("Status page /reset-password - token and password must be present", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    statusPageFindOneById.mockResolvedValue({
+      id: new ObjectID(PUBLIC_STATUS_PAGE_ID),
+      requireSsoForLogin: false,
+      projectId: new ObjectID("project-id"),
+    });
+  });
+
+  it("rejects a payload with only the public statusPageId", async () => {
+    const result: InvokeResult = await invoke("/reset-password", {
+      data: { statusPageId: PUBLIC_STATUS_PAGE_ID },
+    });
+
+    expect(privateUserFindOneBy).not.toHaveBeenCalled();
+    expect(privateUserUpdateOneById).not.toHaveBeenCalled();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+    expect((result.nextError as unknown as Exception).message).toBe(
+      "Reset password token is required.",
+    );
+  });
+
+  it("rejects a token with no accompanying password", async () => {
+    const result: InvokeResult = await invoke("/reset-password", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        resetPasswordToken: "some-token",
+      },
+    });
+
+    expect(privateUserFindOneBy).not.toHaveBeenCalled();
+    expect(privateUserUpdateOneById).not.toHaveBeenCalled();
+    expect(result.nextError).toBeInstanceOf(BadDataException);
+    expect((result.nextError as unknown as Exception).message).toBe(
+      "Password is required.",
+    );
+  });
+
+  it("queries by the hashed token scoped to the status page on the happy path", async () => {
+    privateUserFindOneBy.mockResolvedValue(null);
+
+    await invoke("/reset-password", {
+      data: {
+        statusPageId: PUBLIC_STATUS_PAGE_ID,
+        resetPasswordToken: "a-real-token",
+        password: { _type: "HashedString", value: "new-password" },
+      },
+    });
+
+    expect(privateUserFindOneBy).toHaveBeenCalledTimes(1);
+
+    const query: Record<string, any> = (
+      privateUserFindOneBy.mock.calls[0]![0] as Record<string, any>
+    )["query"] as Record<string, any>;
+
+    expect(query["statusPageId"].toString()).toBe(PUBLIC_STATUS_PAGE_ID);
+    expect(typeof query["resetPasswordToken"]).toBe("string");
+    expect(query["resetPasswordToken"]).not.toBe("a-real-token");
+    expect(query["resetPasswordToken"].length).toBeGreaterThan(0);
+  });
+});

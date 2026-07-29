@@ -40,7 +40,9 @@
     "allClearDescription": "Ingen ressurser er lagt til på denne statussiden ennå. Legg til noen ressurser fra kontrollpanelet.",
     "allResourcesAre": "Alle ressurser er {{status}}",
     "someResourcesAre": "Noen ressurser er {{status}}",
-    "someResourcesAreUnder": "Noen ressurser er under {{status}}"
+    "someResourcesAreUnder": "Noen ressurser er under {{status}}",
+    "oneSubGroup": "1 gruppe",
+    "subGroupCount": "{{total}} grupper"
   },
   "eventItem": {
     "affectedResources": "Berørte ressurser",

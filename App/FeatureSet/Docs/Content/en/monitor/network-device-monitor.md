@@ -12,7 +12,7 @@ The split of responsibilities is simple:
 The Network Devices product is made up of:
 
 - **Device inventory** — register each device once with its hostname, SNMP credentials, and polling settings. The assigned probe polls it on schedule and OneUptime enriches the record with the device's system identity (name, description, location, vendor, model, serial number), interfaces, and health metrics.
-- **Subnet discovery** — sweep a subnet (CIDR) for SNMP devices from a probe and import the responders in bulk. Imported devices start getting polled immediately.
+- **Network discovery** — sweep a subnet (CIDR) or an octet range (`10.16-22.0-255.51-66`) for SNMP devices from a probe and import the responders in bulk. Imported devices start getting polled immediately.
 - **Network Device monitors** — the alerting layer: evaluate each device poll and trap against criteria and open incidents or alerts.
 - **SNMP traps** — probes run a trap receiver, so link-down events raise incidents in seconds instead of waiting for the next poll.
 - **Topology view** — a live network map built from LLDP neighbor data, complemented by CDP on Cisco estates.
@@ -107,9 +107,9 @@ Collected values are charted on the device's **Metrics** tab and can be alerted 
 
 After the first successful poll, OneUptime reads the SNMPv2 system group and (where supported) the ENTITY-MIB, and fills in the device record automatically: system name, description, location, contact, uptime, vendor, model, serial number, and firmware version. The vendor's registered enterprise OID (`sysObjectId`) is used as the device fingerprint to derive the vendor name and suggest a matching vendor OID template.
 
-## Discovering Devices with a Subnet Scan
+## Discovering Devices with a Network Scan
 
-Instead of registering devices one at a time, you can sweep a subnet:
+Instead of registering devices one at a time, you can sweep a range of addresses:
 
 1. Go to **Network Devices** -> **Discovery**
 2. Click **Create Discovery Scan**
@@ -117,12 +117,46 @@ Instead of registering devices one at a time, you can sweep a subnet:
 
 | Field         | Description                                              | Required |
 | ------------- | -------------------------------------------------------- | -------- |
-| Subnet (CIDR) | Subnet to scan in CIDR notation, e.g. 192.168.1.0/24     | Yes      |
-| Probe         | Which probe should scan this subnet                      | Yes      |
-| SNMP credentials | Same fields as device registration (v1/v2c community string, or the full v3 credential set) — tried against every host in the subnet | Yes |
+| Scan Target   | The address space to scan, in [CIDR or octet-range notation](#scan-target-notation) | Yes      |
+| Probe         | Which probe should run the sweep                         | Yes      |
+| SNMP credentials | Same fields as device registration (v1/v2c community string, or the full v3 credential set) — tried against every host in the range | Yes |
 
 4. The scan runs from the selected probe and reports how many hosts were scanned and how many responded to SNMP
 5. Click **Review Results** on a completed scan, select the devices you want, and click **Import Selected**
+
+### Scan Target Notation
+
+The scan target accepts two notations. Both are IPv4-only.
+
+**CIDR** — a contiguous subnet:
+
+```
+192.168.1.0/24
+10.0.5.0/28
+```
+
+The network and broadcast addresses are skipped, so a `/24` sweeps 254 hosts. `/31` and `/32` have no network or broadcast address to skip, so every address in them is scanned.
+
+**Octet range** — any of the four octets may be an inclusive `low-high` range instead of a single number:
+
+```
+10.16-22.0-255.51-66
+10.48-50.0-255.51-66
+192.168.1.10-40
+10.0.0.5
+```
+
+Every address in the resulting product is scanned; nothing is treated as a network or broadcast address, because there is no prefix length from which one could be derived. `10.0.0.0-255` therefore includes `10.0.0.0` and `10.0.0.255`.
+
+Octet ranges exist for networks that are not shaped like CIDR blocks. `10.16-22.0-255.51-66` sweeps `.51` through `.66` in every `/24` from `10.16` to `10.22` — 28,672 addresses. Expressing the same thing in CIDR takes 1,792 separate scans, and the smallest CIDR block that contains it (`10.16.0.0/13`) is 512k addresses, 98% of which are not worth probing.
+
+Rules:
+
+- Each octet is a number from 0 to 255, or a range whose lower bound comes first. `10.22-16.0.1` is rejected as a reversed range rather than quietly scanning nothing.
+- A bare address (`10.0.0.5`) is a valid target that scans exactly that host.
+- A single scan may cover at most **32,768 addresses**. Larger targets are rejected when you save the scan — split them into several scans, or narrow the ranges.
+
+Targets are validated when the scan is created, so a typo is reported on the form rather than minutes later as a failed scan.
 
 Imported devices are created with the responding IP as the hostname, the device's reported system name as the display name, and the scan's probe and SNMP credentials — so a v3 scan imports ready-to-poll v3 devices that start getting polled immediately. Devices that are already registered are flagged and skipped.
 
@@ -302,7 +336,7 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 ## Best Practices
 
 1. **Use SNMPv3 when possible** - It provides authentication and encryption for better security
-2. **Discover, then import** - A subnet scan is faster and less error-prone than registering devices by hand
+2. **Discover, then import** - A discovery scan is faster and less error-prone than registering devices by hand
 3. **Register devices by the IP they send traps from** - Trap-to-monitor matching is by source IP
 4. **Create monitors from the device page** - The type, device, and recommended alert pack come pre-filled
 5. **Keep interface walking on for switches and routers** - It powers interface alerts, utilization data, and the topology map

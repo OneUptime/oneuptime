@@ -21,6 +21,12 @@ export function getDockerBreadcrumbs(path: string): Array<Link> | undefined {
       "View Host",
       "Containers",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_RECOMMENDATIONS, [
+      "Project",
+      "Docker",
+      "View Host",
+      "Recommendations",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_LOGS, [
       "Project",
       "Docker",

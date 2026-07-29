@@ -15,7 +15,6 @@ import API from "Common/Utils/API";
 import logger from "Common/Server/Utils/Logger";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
-import ProxyConfig from "../Utils/ProxyConfig";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -66,7 +65,7 @@ router.get(
           url: pendingMonitorsUrl,
           data: requestBody,
           headers: {},
-          options: { ...ProxyConfig.getRequestProxyAgents(pendingMonitorsUrl) },
+          options: ProbeAPIRequest.getDefaultRequestOptions(pendingMonitorsUrl),
         });
 
       if (result instanceof HTTPErrorResponse) {
