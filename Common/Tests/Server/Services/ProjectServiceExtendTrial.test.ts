@@ -1,6 +1,7 @@
 import ProjectService from "../../../Server/Services/ProjectService";
 import BillingService from "../../../Server/Services/BillingService";
 import Project from "../../../Models/DatabaseModels/Project";
+import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
@@ -18,6 +19,13 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
     ...jest.requireActual("../../../Server/EnvironmentConfig"),
     IsBillingEnabled: true,
+
+    /*
+     * config.env carries a real incoming webhook URL, and reactiveSubscription
+     * announces every plan change on it. Blanked so the suite cannot post to
+     * Slack.
+     */
+    NotificationSlackWebhookOnSubscriptionUpdate: "",
   };
 });
 
@@ -319,6 +327,288 @@ describe("ProjectService.extendTrial", () => {
           },
         }),
       );
+    });
+  });
+});
+
+const CUSTOMER_ID: string = "cus_789";
+const PLAN_ID: string = "monthly_growth_plan_id";
+const REACTIVATED_SUBSCRIPTION_ID: string = "sub_main_new_789";
+const REACTIVATED_METERED_SUBSCRIPTION_ID: string = "sub_metered_new_012";
+
+function fakeReactivationProject(overrides?: Record<string, unknown>): Project {
+  return {
+    id: PROJECT_ID,
+    _id: PROJECT_ID.toString(),
+    trialEndsAt: OneUptimeDate.getSomeDaysAfter(20),
+    paymentProviderCustomerId: CUSTOMER_ID,
+    paymentProviderSubscriptionId: SUBSCRIPTION_ID,
+    paymentProviderMeteredSubscriptionId: METERED_SUBSCRIPTION_ID,
+    paymentProviderSubscriptionSeats: 4,
+    paymentProviderPlanId: PLAN_ID,
+    ...overrides,
+  } as unknown as Project;
+}
+
+/*
+ * reactiveSubscription puts a project back on its plan after payment recovers.
+ * It goes through BillingService.changePlan, which cancels both subscriptions
+ * and creates replacements - so a trial the project still has to run exists
+ * only if it is handed to those replacements and then written back.
+ *
+ * These tests pin that, because dropping it bills a customer whose trial a
+ * master admin extended as a goodwill gesture on the spot.
+ */
+describe("ProjectService.reactiveSubscription", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  interface ReactivationSpies {
+    findOneById: jest.SpyInstance;
+    changePlan: jest.SpyInstance;
+    getSubscriptionStatus: jest.SpyInstance;
+    updateOneById: jest.SpyInstance;
+  }
+
+  function setupReactivation(data?: {
+    project?: Project;
+
+    /*
+     * The trial the payment provider reports on the subscriptions it created.
+     * Omitted means it reported none.
+     */
+    billingTrialEndsAt?: Date | undefined;
+  }): ReactivationSpies {
+    const findOneById: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(data?.project || fakeReactivationProject());
+
+    jest
+      .spyOn(SubscriptionPlan, "getSubscriptionPlanById")
+      .mockReturnValue(
+        new SubscriptionPlan(
+          PLAN_ID,
+          "yearly_growth_plan_id",
+          "Growth",
+          25,
+          250,
+          2,
+          14,
+        ),
+      );
+
+    const changePlan: jest.SpyInstance = jest
+      .spyOn(BillingService, "changePlan")
+      .mockResolvedValue({
+        subscriptionId: REACTIVATED_SUBSCRIPTION_ID,
+        meteredSubscriptionId: REACTIVATED_METERED_SUBSCRIPTION_ID,
+        trialEndsAt: data?.billingTrialEndsAt,
+      } as never);
+
+    const getSubscriptionStatus: jest.SpyInstance = jest
+      .spyOn(BillingService, "getSubscriptionStatus")
+      .mockResolvedValue(SubscriptionStatus.Active as never);
+
+    const updateOneById: jest.SpyInstance = jest
+      .spyOn(ProjectService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    return { findOneById, changePlan, getSubscriptionStatus, updateOneById };
+  }
+
+  function getUpdatedData(spies: ReactivationSpies): Record<string, unknown> {
+    return (
+      spies.updateOneById.mock.calls[0]![0] as {
+        data: Record<string, unknown>;
+      }
+    ).data;
+  }
+
+  describe("reading the project", () => {
+    it("should select the trial date", async () => {
+      /*
+       * Without this column in the select the trial date reads back undefined
+       * and every extension is silently dropped - which is the bug this
+       * suite exists for.
+       */
+      const spies: ReactivationSpies = setupReactivation();
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(spies.findOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            trialEndsAt: true,
+          }),
+        }),
+      );
+    });
+  });
+
+  describe("carrying the trial onto the new subscriptions", () => {
+    it("should send a trial that is still running as endTrialAt", async () => {
+      const trialEndsAt: Date = OneUptimeDate.getSomeDaysAfter(30);
+
+      const spies: ReactivationSpies = setupReactivation({
+        project: fakeReactivationProject({ trialEndsAt: trialEndsAt }),
+      });
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(spies.changePlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endTrialAt: trialEndsAt,
+        }),
+      );
+    });
+
+    it("should not send a trial that has already lapsed", async () => {
+      /*
+       * Reactivation is not the place to hand out free service: a project
+       * whose trial ran out months ago goes back onto its plan billing.
+       */
+      const spies: ReactivationSpies = setupReactivation({
+        project: fakeReactivationProject({
+          trialEndsAt: OneUptimeDate.getSomeDaysAgo(30),
+        }),
+      });
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(spies.changePlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endTrialAt: undefined,
+        }),
+      );
+    });
+
+    it("should not send a trial when the project has none", async () => {
+      const spies: ReactivationSpies = setupReactivation({
+        project: fakeReactivationProject({ trialEndsAt: null }),
+      });
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(spies.changePlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endTrialAt: undefined,
+        }),
+      );
+    });
+  });
+
+  describe("persisting the result", () => {
+    it("should persist the trial date the payment provider reports", async () => {
+      /*
+       * The payment provider is what actually charges the customer, so the
+       * date it puts on the new subscriptions wins over the one requested.
+       */
+      const billingTrialEndsAt: Date = OneUptimeDate.getSomeDaysAfter(45);
+
+      const spies: ReactivationSpies = setupReactivation({
+        project: fakeReactivationProject({
+          trialEndsAt: OneUptimeDate.getSomeDaysAfter(20),
+        }),
+        billingTrialEndsAt: billingTrialEndsAt,
+      });
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(getUpdatedData(spies)["trialEndsAt"]).toEqual(billingTrialEndsAt);
+    });
+
+    it("should fall back to the trial it sent when the provider reports none", async () => {
+      const trialEndsAt: Date = OneUptimeDate.getSomeDaysAfter(30);
+
+      const spies: ReactivationSpies = setupReactivation({
+        project: fakeReactivationProject({ trialEndsAt: trialEndsAt }),
+      });
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(getUpdatedData(spies)["trialEndsAt"]).toEqual(trialEndsAt);
+    });
+
+    it("should leave the stored trial date alone when there is no trial", async () => {
+      /*
+       * A project that stopped trialing long ago keeps the date it ended on
+       * rather than being stamped with a fresh one by an unrelated
+       * reactivation.
+       */
+      const spies: ReactivationSpies = setupReactivation({
+        project: fakeReactivationProject({
+          trialEndsAt: OneUptimeDate.getSomeDaysAgo(30),
+        }),
+      });
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(Object.keys(getUpdatedData(spies))).not.toContain("trialEndsAt");
+    });
+
+    it("should still persist the new subscription ids and statuses", async () => {
+      const spies: ReactivationSpies = setupReactivation();
+
+      spies.getSubscriptionStatus
+        .mockResolvedValueOnce(SubscriptionStatus.Trialing as never)
+        .mockResolvedValueOnce(SubscriptionStatus.Active as never);
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(getUpdatedData(spies)).toEqual(
+        expect.objectContaining({
+          paymentProviderSubscriptionId: REACTIVATED_SUBSCRIPTION_ID,
+          paymentProviderMeteredSubscriptionId:
+            REACTIVATED_METERED_SUBSCRIPTION_ID,
+          paymentProviderSubscriptionStatus: SubscriptionStatus.Trialing,
+          paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Active,
+        }),
+      );
+    });
+
+    it("should write the project row as root", async () => {
+      // Project.trialEndsAt has an empty update ACL - only a root write sets it.
+      const spies: ReactivationSpies = setupReactivation();
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(spies.updateOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: PROJECT_ID,
+          props: {
+            isRoot: true,
+          },
+        }),
+      );
+    });
+  });
+
+  describe("the goodwill extension it exists to protect", () => {
+    it("should keep an extended trial across a reactivation", async () => {
+      /*
+       * The end-to-end shape of the bug: support extends a customer's trial,
+       * their subscription is later reactivated, and the extension has to
+       * still be there afterwards - on the new subscriptions and on the row.
+       */
+      const extendedTrialEndsAt: Date = OneUptimeDate.getSomeDaysAfter(60);
+
+      const spies: ReactivationSpies = setupReactivation({
+        project: fakeReactivationProject({
+          trialEndsAt: extendedTrialEndsAt,
+        }),
+        billingTrialEndsAt: extendedTrialEndsAt,
+      });
+
+      await ProjectService.reactiveSubscription(PROJECT_ID);
+
+      expect(spies.changePlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endTrialAt: extendedTrialEndsAt,
+        }),
+      );
+
+      expect(getUpdatedData(spies)["trialEndsAt"]).toEqual(extendedTrialEndsAt);
     });
   });
 });

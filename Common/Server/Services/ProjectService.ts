@@ -52,6 +52,7 @@ import {
 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -2133,6 +2134,7 @@ export class ProjectService extends DatabaseService<Model> {
         paymentProviderMeteredSubscriptionId: true,
         paymentProviderSubscriptionSeats: true,
         paymentProviderPlanId: true,
+        trialEndsAt: true,
       },
     });
 
@@ -2174,6 +2176,21 @@ export class ProjectService extends DatabaseService<Model> {
       throw new BadDataException("Subscription plan not found");
     }
 
+    /*
+     * Reactivating goes through changePlan, which cancels both subscriptions
+     * and creates new ones - so a trial the project still has to run has to be
+     * carried onto the replacements explicitly. Otherwise a customer whose
+     * trial a master admin extended as a goodwill gesture loses the extension
+     * the moment their subscription is reactivated, and is billed right away.
+     *
+     * A trial that has already lapsed is not revived: reactivation is not the
+     * place to hand out free service.
+     */
+    const endTrialAt: Date | undefined =
+      project.trialEndsAt && OneUptimeDate.isInTheFuture(project.trialEndsAt)
+        ? project.trialEndsAt
+        : undefined;
+
     const result: {
       subscriptionId: string;
       meteredSubscriptionId: string;
@@ -2186,7 +2203,7 @@ export class ProjectService extends DatabaseService<Model> {
       newPlan: subscriptionPlan,
       quantity: project.paymentProviderSubscriptionSeats,
       isYearly: SubscriptionPlan.isYearlyPlan(project.paymentProviderPlanId),
-      endTrialAt: undefined,
+      endTrialAt: endTrialAt,
     });
 
     // refresh subscription status.
@@ -2202,14 +2219,28 @@ export class ProjectService extends DatabaseService<Model> {
 
     // now update project with new subscription id.
 
+    const updateData: QueryDeepPartialEntity<Model> = {
+      paymentProviderSubscriptionId: result.subscriptionId,
+      paymentProviderMeteredSubscriptionId: result.meteredSubscriptionId,
+      paymentProviderSubscriptionStatus: subscriptionState,
+      paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
+    };
+
+    /*
+     * The payment provider is the source of truth for the trial the new
+     * subscriptions were created with, so its date wins over the one sent.
+     * The column is left alone when there is no trial to record, rather than
+     * stamping a project whose trial lapsed long ago with a fresh date.
+     */
+    const newTrialEndsAt: Date | undefined = result.trialEndsAt || endTrialAt;
+
+    if (newTrialEndsAt) {
+      updateData.trialEndsAt = newTrialEndsAt;
+    }
+
     await this.updateOneById({
       id: project.id!,
-      data: {
-        paymentProviderSubscriptionId: result.subscriptionId,
-        paymentProviderMeteredSubscriptionId: result.meteredSubscriptionId,
-        paymentProviderSubscriptionStatus: subscriptionState,
-        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
-      },
+      data: updateData,
       props: {
         isRoot: true,
       },
