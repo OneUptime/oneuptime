@@ -1,13 +1,17 @@
 import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageGroupTreeUtil from "Common/Utils/StatusPage/GroupTree";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
@@ -21,6 +25,60 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * Groups nest, so the parent picker has to show where each candidate sits in
+   * the tree - two groups can easily be called "Region 1000" at different
+   * levels. Options are labelled with their full path and fetched every time
+   * the form opens, so a group added a moment ago is immediately selectable.
+   *
+   * Whether the chosen parent is actually legal (not the group itself, not one
+   * of its own sub groups, not past the nesting limit) is decided by
+   * StatusPageGroupService, which is the only place that can see the tree as
+   * it is at write time.
+   */
+  const fetchParentGroupOptions: () => Promise<
+    Array<DropdownOption>
+  > = async (): Promise<Array<DropdownOption>> => {
+    const listResult: ListResult<StatusPageGroup> =
+      await ModelAPI.getList<StatusPageGroup>({
+        modelType: StatusPageGroup,
+        query: {
+          statusPageId: modelId,
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+          name: true,
+          order: true,
+          parentStatusPageGroupId: true,
+        },
+        sort: {
+          order: SortOrder.Ascending,
+        },
+        requestOptions: {},
+      });
+
+    const allGroups: Array<StatusPageGroup> = listResult.data;
+
+    return allGroups.map((group: StatusPageGroup) => {
+      const path: Array<string> = StatusPageGroupTreeUtil.getAncestorGroups({
+        statusPageGroup: group,
+        statusPageGroups: allGroups,
+      })
+        .reverse()
+        .map((ancestor: StatusPageGroup) => {
+          return ancestor.name || "";
+        });
+
+      return {
+        value: group._id?.toString() || "",
+        label: [...path, group.name || ""].join(" › "),
+      };
+    });
+  };
 
   return (
     <Fragment>
@@ -56,7 +114,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Resource Groups",
           description:
-            "Here are different groups for your status page resources.",
+            "Here are different groups for your status page resources. Groups can be nested inside other groups, and each level shows the rolled up status and uptime of everything beneath it. Deleting a group also deletes its sub groups and the resources in them.",
         }}
         noItemsMessage={"No status page group created for this status page."}
         formSteps={[
@@ -95,6 +153,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             description: MarkdownUtil.getMarkdownCheatsheet(
               "Describe the status page group here",
             ),
+          },
+          {
+            field: {
+              parentStatusPageGroup: true,
+            },
+            title: "Parent Group",
+            description:
+              "Nest this group inside another group on your status page (for example Corporate Units › Region › Market). Leave empty to keep it at the top level. Every level shows the rolled up status and uptime of everything beneath it.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            fetchDropdownOptions: fetchParentGroupOptions,
+            required: false,
+            placeholder: "No parent group (top level)",
+            stepId: "group-details",
           },
           {
             field: {
@@ -273,6 +344,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             },
             title: "Resource Group Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              parentStatusPageGroup: {
+                name: true,
+              },
+            },
+            title: "Parent Group",
+            type: FieldType.Entity,
+            getElement: (item: StatusPageGroup): ReactElement => {
+              if (!item.parentStatusPageGroup?.name) {
+                return <span className="text-gray-400">Top level</span>;
+              }
+
+              return <span>{item.parentStatusPageGroup.name}</span>;
+            },
           },
           {
             field: {

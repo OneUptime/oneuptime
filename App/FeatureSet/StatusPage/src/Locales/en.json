@@ -40,7 +40,9 @@
     "allClearDescription": "No resources added to this status page yet. Please add some resources from the dashboard.",
     "allResourcesAre": "All Resources are {{status}}",
     "someResourcesAre": "Some Resources are {{status}}",
-    "someResourcesAreUnder": "Some Resources are under {{status}}"
+    "someResourcesAreUnder": "Some Resources are under {{status}}",
+    "oneSubGroup": "1 group",
+    "subGroupCount": "{{total}} groups"
   },
   "eventItem": {
     "affectedResources": "Affected resources",
