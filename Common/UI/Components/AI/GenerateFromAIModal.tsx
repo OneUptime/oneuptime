@@ -9,7 +9,6 @@ import AILoader from "./AILoader";
 import Alert, { AlertType } from "../Alerts/Alert";
 import ButtonType from "../Button/ButtonTypes";
 import { ButtonStyleType } from "../Button/Button";
-import IconProp from "../../../Types/Icon/IconProp";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import MarkdownEditor from "../Markdown.tsx/MarkdownEditor";
 
@@ -112,7 +111,6 @@ const GenerateFromAIModal: FunctionComponent<GenerateFromAIModalProps> = (
       disableSubmitButton={isGenerating}
       onSubmit={handleGenerate}
       modalWidth={ModalWidth.Large}
-      icon={IconProp.Bolt}
     >
       <>
         {error && (

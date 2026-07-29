@@ -1,6 +1,6 @@
 import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
-import Icon, { IconType, SizeProp, ThickProp } from "../Icon/Icon";
+import Icon from "../Icon/Icon";
 import Loader, { LoaderType } from "../Loader/Loader";
 import ModalBody from "./ModalBody";
 import ModalFooter from "./ModalFooter";
@@ -35,8 +35,6 @@ export interface ComponentProps {
   disableSubmitButton?: undefined | boolean;
   error?: string | undefined;
   isBodyLoading?: boolean | undefined;
-  icon?: IconProp | undefined;
-  iconType?: IconType | undefined;
   modalWidth?: ModalWidth | undefined;
   rightElement?: ReactElement | undefined;
   closeButtonText?: string | undefined;
@@ -172,28 +170,6 @@ const Modal: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
-  let iconBgColor: string = "bg-indigo-50";
-  let iconColor: string = "text-indigo-600";
-  let iconRingColor: string = "ring-indigo-100";
-
-  if (props.iconType === IconType.Info) {
-    iconBgColor = "bg-indigo-50";
-    iconColor = "text-indigo-600";
-    iconRingColor = "ring-indigo-100";
-  } else if (props.iconType === IconType.Warning) {
-    iconBgColor = "bg-yellow-50";
-    iconColor = "text-yellow-700";
-    iconRingColor = "ring-yellow-100";
-  } else if (props.iconType === IconType.Success) {
-    iconBgColor = "bg-green-50";
-    iconColor = "text-green-600";
-    iconRingColor = "ring-green-100";
-  } else if (props.iconType === IconType.Danger) {
-    iconBgColor = "bg-red-50";
-    iconColor = "text-red-600";
-    iconRingColor = "ring-red-100";
-  }
-
   let modalWidthClassName: string = "sm:max-w-lg md:max-w-lg";
 
   if (props.modalWidth === ModalWidth.Medium) {
@@ -224,46 +200,26 @@ const Modal: FunctionComponent<ComponentProps> = (
           >
             <div className="relative flex shrink-0 flex-col gap-4 rounded-t-2xl border-b border-gray-100 bg-white px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:rounded-t-xl sm:px-6">
               <div
-                className={`flex min-w-0 flex-1 items-start gap-3 ${
+                className={`min-w-0 flex-1 ${
                   props.onClose ? "pr-9 sm:pr-0" : ""
                 }`}
               >
-                {props.icon && (
-                  <div
-                    className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${iconBgColor} ring-1 ring-inset ${iconRingColor}`}
-                    data-testid="icon"
+                <h3
+                  data-testid="modal-title"
+                  className="text-base font-semibold leading-6 tracking-tight text-gray-900"
+                  id={titleId}
+                >
+                  {translatedTitle}
+                </h3>
+                {translatedDescription && (
+                  <p
+                    id={descriptionId}
+                    data-testid="modal-description"
+                    className="mt-0.5 text-sm leading-5 text-gray-500"
                   >
-                    <Icon
-                      thick={ThickProp.Thick}
-                      type={
-                        props.iconType === undefined
-                          ? IconType.Info
-                          : props.iconType
-                      }
-                      className={`${iconColor} h-5 w-5`}
-                      icon={props.icon}
-                      size={SizeProp.Five}
-                    />
-                  </div>
+                    {translatedDescription}
+                  </p>
                 )}
-                <div className="min-w-0 flex-1">
-                  <h3
-                    data-testid="modal-title"
-                    className="text-base font-semibold leading-6 tracking-tight text-gray-900"
-                    id={titleId}
-                  >
-                    {translatedTitle}
-                  </h3>
-                  {translatedDescription && (
-                    <p
-                      id={descriptionId}
-                      data-testid="modal-description"
-                      className="mt-0.5 text-sm leading-5 text-gray-500"
-                    >
-                      {translatedDescription}
-                    </p>
-                  )}
-                </div>
               </div>
               {props.rightElement && (
                 <div
