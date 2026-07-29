@@ -60,6 +60,10 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           noItemsMessage={"No probes found."}
           showRefreshButton={true}
           searchableFields={["name", "description"]}
+          selectMoreFields={{
+            // The Name cell renders the probe logo, which no column declares.
+            iconFileId: true,
+          }}
           filters={[
             {
               field: {

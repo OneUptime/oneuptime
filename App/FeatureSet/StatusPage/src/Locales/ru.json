@@ -40,7 +40,9 @@
     "allClearDescription": "На эту страницу статуса ещё не добавлены ресурсы. Пожалуйста, добавьте ресурсы через панель управления.",
     "allResourcesAre": "Все ресурсы — {{status}}",
     "someResourcesAre": "Некоторые ресурсы — {{status}}",
-    "someResourcesAreUnder": "Некоторые ресурсы находятся в состоянии {{status}}"
+    "someResourcesAreUnder": "Некоторые ресурсы находятся в состоянии {{status}}",
+    "oneSubGroup": "1 группа",
+    "subGroupCount": "групп: {{total}}"
   },
   "eventItem": {
     "affectedResources": "Затронутые ресурсы",

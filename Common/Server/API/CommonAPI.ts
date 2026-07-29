@@ -12,26 +12,34 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 
 export default class CommonAPI {
   /*
-   * ModelAPI attaches the `tenantid` header on every request it makes, but a
-   * custom route called with a raw API.post/API.get gets no header unless the
-   * call site adds ModelAPI.getCommonHeaders() itself. Without it
-   * ProjectMiddleware.getProjectId returns null, getUserMiddleware never
-   * populates userTenantAccessPermission, and the eventual tenant-scoped read
-   * fails with "You do not have permissions to read <model>" listing
-   * permissions the caller actually holds. Call this first on any route that
-   * threads getDatabaseCommonInteractionProps into a tenant-scoped read so the
-   * real cause is reported instead.
+   * Custom (non-CRUD) endpoints whose path carries only a resource id give
+   * getUserMiddleware no way to learn the project except the `tenantid`
+   * header. ModelAPI attaches that header to every request it makes, but a
+   * custom route reached with a raw API.post/API.get gets none unless the call
+   * site adds ModelAPI.getCommonHeaders() itself. When a caller forgets it,
+   * the request still reaches the handler — just with no tenant permissions —
+   * and the eventual tenant-scoped read fails as "You do not have permissions
+   * to read <model>", which reads like a missing role when it is really a
+   * missing header. Assert the scope up front so the caller gets the real
+   * cause.
+   *
+   * This deliberately checks the tenant only, not the user: API-key callers
+   * are authenticated by ProjectMiddleware and carry tenant permissions
+   * without ever setting `userId`. Use assertAuthenticatedProjectMember when
+   * an endpoint must additionally be a logged-in human member.
    */
   public static assertTenantScoped(
     databaseProps: DatabaseCommonInteractionProps,
   ): ObjectID {
-    if (!databaseProps.tenantId) {
+    const projectId: ObjectID | undefined = databaseProps.tenantId;
+
+    if (!projectId) {
       throw new BadDataException(
-        "Project ID is required. Send the tenantid header with this request.",
+        "Project ID is required. Please pass the project ID in the 'tenantid' header.",
       );
     }
 
-    return databaseProps.tenantId;
+    return projectId;
   }
 
   /*
@@ -61,6 +69,32 @@ export default class CommonAPI {
     }
 
     return projectId;
+  }
+
+  /*
+   * assertAuthenticatedProjectMember only proves the caller belongs to the
+   * project it *claimed* in the `tenantid` header — it never looks at the
+   * resource the path names. A custom route that then reads or mutates that
+   * resource as root must also confirm the resource's own projectId is the
+   * project the caller was authorized for, otherwise a member of project A
+   * reaches project B's resource id just by sending their own header.
+   *
+   * A resource that does not exist (or carries no projectId) is rejected the
+   * same way, so the endpoint cannot be used to confirm which ids exist in
+   * other projects.
+   */
+  public static assertResourceBelongsToProject(data: {
+    resourceProjectId: ObjectID | undefined | null;
+    projectId: ObjectID;
+  }): void {
+    if (
+      !data.resourceProjectId ||
+      data.resourceProjectId.toString() !== data.projectId.toString()
+    ) {
+      throw new NotAuthorizedException(
+        "You are not authorized to access this project's data.",
+      );
+    }
   }
 
   @CaptureSpan()

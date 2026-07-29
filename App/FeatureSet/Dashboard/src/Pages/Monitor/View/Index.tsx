@@ -4,7 +4,6 @@ import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMoni
 import IncomingEmailMonitorLink from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailMonitorLink";
 import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonitor/Documentation";
 import Summary from "../../../Components/Monitor/SummaryView/Summary";
-import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import GreaterThanOrNull from "Common/Types/BaseDatabase/GreaterThanOrNull";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -97,6 +96,9 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const [probes, setProbes] = useState<Array<Probe>>([]);
 
+  // Probes attached to this monitor but switched off, so the picker can say so.
+  const [disabledProbeIds, setDisabledProbeIds] = useState<Array<string>>([]);
+
   const [probeResponses, setProbeResponses] = useState<
     Array<MonitorStepProbeResponse> | undefined
   >(undefined);
@@ -170,6 +172,13 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         url: URL.fromString(APP_API_URL.toString()).addRoute(
           "/monitor/refresh-status/" + modelId.toString(),
         ),
+        /*
+         * refresh-status is a custom route, so BaseAPI.getHeaders() adds no
+         * `tenantid` — ModelAPI.getCommonHeaders() is the only thing that
+         * does. The route requires an authenticated member of the monitor's
+         * project, and without the header there is no project to check.
+         */
+        headers: ModelAPI.getCommonHeaders(),
       });
 
       const monitorStatus: ListResult<MonitorStatusTimeline> =
@@ -397,12 +406,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         : false;
 
       if (isMonitoredByProbe) {
-        // get a list of probes
-        const probes: Array<Probe> = await ProbeUtil.getAllProbes();
-        setProbes(probes);
-
-        // get probe responses for this monitor
-
+        /*
+         * The probes this monitor is actually watched by - which is the set the
+         * summary picker offers. It used to be fed the project's whole probe
+         * list plus every global probe, so the card offered probes that had
+         * never touched this resource. Picking one of them answered "no summary
+         * available ... should be a few minutes" for data that was never going
+         * to arrive, and because that list is project-probes-first the picker
+         * frequently *defaulted* to one. That is what reads as "I changed the
+         * probe and it did not apply".
+         */
         const monitorProbes: ListResult<MonitorProbe> = await ModelAPI.getList({
           modelType: MonitorProbe,
           query: {
@@ -415,11 +428,18 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
           select: {
             probeId: true,
+            isEnabled: true,
             lastMonitoringLog: true,
+            probe: {
+              name: true,
+              iconFileId: true,
+            },
           },
         });
 
         const probeMonitorResponses: Array<MonitorStepProbeResponse> = [];
+        const attachedProbes: Array<Probe> = [];
+        const disabledProbeIds: Array<string> = [];
 
         for (let i: number = 0; i < monitorProbes.data.length; i++) {
           const monitorProbe: MonitorProbe | undefined = monitorProbes.data[i];
@@ -432,6 +452,22 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             continue;
           }
 
+          if (monitorProbe.probe) {
+            const probe: Probe = monitorProbe.probe;
+
+            /*
+             * The relation select carries _id back on its own, but the join row
+             * is the authority on which probe this is - and the picker keys its
+             * options on that id.
+             */
+            probe._id = monitorProbe.probeId.toString();
+            attachedProbes.push(probe);
+
+            if (monitorProbe.isEnabled === false) {
+              disabledProbeIds.push(monitorProbe.probeId.toString());
+            }
+          }
+
           if (!monitorProbe.lastMonitoringLog) {
             continue;
           }
@@ -439,6 +475,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           probeMonitorResponses.push(monitorProbe?.lastMonitoringLog);
         }
 
+        setProbes(attachedProbes);
+        setDisabledProbeIds(disabledProbeIds);
         setProbeResponses(probeMonitorResponses);
       }
     } catch (err) {
@@ -748,6 +786,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <Summary
         monitorType={monitorType!}
         probes={probes}
+        disabledProbeIds={disabledProbeIds}
         monitorSteps={monitor?.monitorSteps}
         incomingMonitorRequest={incomingMonitorRequest}
         incomingRequestMonitorHeartbeatCheckedAt={

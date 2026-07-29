@@ -1,6 +1,10 @@
-import { DEVICE_FRESH_WINDOW_MINUTES } from "./DeviceStatusUtil";
+import {
+  DEVICE_SUMMARY_TILES,
+  DeviceSummaryFilterKey,
+  DeviceSummaryTile,
+  getDeviceFreshCutoff,
+} from "./DeviceSummaryFilter";
 import ObjectID from "Common/Types/ObjectID";
-import OneUptimeDate from "Common/Types/Date";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
@@ -25,18 +29,21 @@ interface SummaryCounts {
   interfacesDown: number;
 }
 
-interface SummaryTile {
-  key: string;
-  label: string;
-  count: number;
-  // css class for the count when it needs attention (count > 0).
-  attentionClassName: string;
-  // css class for the count when everything is fine (count === 0).
-  allClearClassName: string;
-  caption: string;
+export interface ComponentProps {
+  // The tile currently drilled into, or null when the list is unfiltered.
+  selectedFilterKey?: DeviceSummaryFilterKey | null | undefined;
+  /*
+   * Clicking the selected tile again passes null — the tiles are toggles, so
+   * the same click that drilled in gets the user back out.
+   */
+  onFilterKeyChange?:
+    | ((filterKey: DeviceSummaryFilterKey | null) => void)
+    | undefined;
 }
 
-const DeviceSummaryCards: FunctionComponent = (): ReactElement => {
+const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const [counts, setCounts] = useState<SummaryCounts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -47,10 +54,12 @@ const DeviceSummaryCards: FunctionComponent = (): ReactElement => {
     try {
       const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
-      // Same freshness window the topology API uses to decide up vs down.
-      const freshCutoff: Date = OneUptimeDate.getSomeMinutesAgo(
-        DEVICE_FRESH_WINDOW_MINUTES,
-      );
+      /*
+       * Same freshness window the topology API uses to decide up vs down, and
+       * the same one DeviceSummaryFilter builds the drill-down queries from —
+       * so the rows a tile opens are the rows it counted.
+       */
+      const freshCutoff: Date = getDeviceFreshCutoff();
 
       const [
         devicesUp,
@@ -131,51 +140,51 @@ const DeviceSummaryCards: FunctionComponent = (): ReactElement => {
     return <></>;
   }
 
-  const tiles: Array<SummaryTile> = [
-    {
-      key: "devices-up",
-      label: "Devices Up",
-      count: counts?.devicesUp || 0,
-      attentionClassName: "text-emerald-600",
-      allClearClassName: "text-gray-900",
-      caption: `Polled within the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`,
-    },
-    {
-      key: "devices-down",
-      label: "Devices Down / Stale",
-      count: counts?.devicesDown || 0,
-      attentionClassName: "text-red-600",
-      allClearClassName: "text-gray-900",
-      caption: `No successful poll in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`,
-    },
-    {
-      key: "devices-pending",
-      label: "Devices Pending",
-      count: counts?.devicesPending || 0,
-      attentionClassName: "text-gray-500",
-      allClearClassName: "text-gray-900",
-      caption: "Never polled successfully yet.",
-    },
-    {
-      key: "interfaces-down",
-      label: "Total Interfaces Down",
-      count: counts?.interfacesDown || 0,
-      attentionClassName: "text-red-600",
-      allClearClassName: "text-gray-900",
-      caption: "Across all devices in this project.",
-    },
-  ];
+  const selectedFilterKey: DeviceSummaryFilterKey | null =
+    props.selectedFilterKey || null;
+
+  type OnTileClickFunction = (tile: DeviceSummaryTile) => void;
+
+  const onTileClick: OnTileClickFunction = (tile: DeviceSummaryTile): void => {
+    if (!props.onFilterKeyChange) {
+      return;
+    }
+
+    props.onFilterKeyChange(
+      selectedFilterKey === tile.filterKey ? null : tile.filterKey,
+    );
+  };
 
   return (
     <div
       data-testid="network-device-summary-cards"
       className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
     >
-      {tiles.map((tile: SummaryTile) => {
+      {DEVICE_SUMMARY_TILES.map((tile: DeviceSummaryTile) => {
+        const count: number = counts?.[tile.countField] || 0;
+        const isSelected: boolean = selectedFilterKey === tile.filterKey;
+
         return (
           <InfoCard
             key={tile.key}
             title={tile.label}
+            /*
+             * The tiles stay inert until the counts land: clicking a skeleton
+             * would filter the list to a number nobody has read yet.
+             */
+            onClick={
+              props.onFilterKeyChange && !isLoading
+                ? () => {
+                    onTileClick(tile);
+                  }
+                : undefined
+            }
+            isSelected={isSelected}
+            ariaLabel={
+              isSelected
+                ? `${tile.label}: ${count}. Showing these in the list below — activate to clear the filter.`
+                : `${tile.label}: ${count}. Activate to show these in the list below.`
+            }
             value={
               isLoading ? (
                 <div className="mt-1 space-y-2">
@@ -187,12 +196,12 @@ const DeviceSummaryCards: FunctionComponent = (): ReactElement => {
                   <div
                     data-testid={`network-device-stat-${tile.key}`}
                     className={`text-3xl font-semibold ${
-                      tile.count > 0
+                      count > 0
                         ? tile.attentionClassName
                         : tile.allClearClassName
                     }`}
                   >
-                    {tile.count}
+                    {count}
                   </div>
                   <div className="mt-2 text-sm text-gray-500">
                     {tile.caption}

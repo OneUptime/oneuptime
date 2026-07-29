@@ -32,6 +32,9 @@ import {
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import AlertSeverityService from "./AlertSeverityService";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
 import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
@@ -94,6 +97,36 @@ export class Service extends DatabaseService<Model> {
       updateBy.query,
       updateBy.props,
     );
+
+    /*
+     * An episode carries the same project-scoped state and severity an alert
+     * does, on FKs that are equally ON DELETE NO ACTION, so an id from another
+     * project here leaves that project undeletable in exactly the same way.
+     * onBeforeCreate overwrites currentAlertStateId with this project's
+     * created state, which leaves the severity as the only create-reachable
+     * column — but an update can write either.
+     */
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: updateBy.props.tenantId,
+      subject: "alert episode",
+      references: [
+        {
+          modelName: "Alert State",
+          id:
+            resolveReferenceId(updateBy.data.currentAlertStateId) ||
+            resolveReferenceId(updateBy.data.currentAlertState),
+          service: AlertStateService,
+        },
+        {
+          modelName: "Alert Severity",
+          id:
+            resolveReferenceId(updateBy.data.alertSeverityId) ||
+            resolveReferenceId(updateBy.data.alertSeverity),
+          service: AlertSeverityService,
+        },
+      ],
+    });
+
     return { updateBy, carryForward: null };
   }
 
@@ -140,6 +173,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     createBy.data.currentAlertStateId = alertState.id;
+
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "alert episode",
+      references: [
+        {
+          modelName: "Alert Severity",
+          id:
+            resolveReferenceId(createBy.data.alertSeverityId) ||
+            resolveReferenceId(createBy.data.alertSeverity),
+          service: AlertSeverityService,
+        },
+      ],
+    });
 
     // Auto-generate episode number
     const episodeCounterResult: {

@@ -317,15 +317,91 @@ describe("CommonAPI.assertAuthenticatedProjectMember", () => {
 });
 
 /*
- * assertTenantScoped is the narrower sibling: routes that thread these props
- * into a tenant-scoped read need the tenant id to be present, and a caller
- * that forgot ModelAPI.getCommonHeaders() should be told exactly that instead
- * of getting the read's "You do not have permissions to read <model>. You need
- * one of these permissions: ..." — which lists permissions the caller holds
- * and so reads as a product bug.
+ * Tests for CommonAPI.assertResourceBelongsToProject — the companion guard
+ * for custom routes whose path carries a resource id.
+ * assertAuthenticatedProjectMember only proves the caller belongs to the
+ * project it claimed in the `tenantid` header; without this second check a
+ * member of project A could hand the route project B's resource id and have
+ * it acted on as root.
+ */
+describe("CommonAPI.assertResourceBelongsToProject", () => {
+  test("does not throw when the resource belongs to the authorized project", () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    expect(() => {
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: projectId,
+        projectId: projectId,
+      });
+    }).not.toThrow();
+  });
+
+  test("compares by string value, not by ObjectID instance", () => {
+    const projectIdString: string = ObjectID.generate().toString();
+
+    expect(() => {
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: new ObjectID(projectIdString),
+        projectId: new ObjectID(projectIdString),
+      });
+    }).not.toThrow();
+  });
+
+  test("throws NotAuthorizedException when the resource belongs to another project", () => {
+    const thrown: unknown = captureThrown(() => {
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: ObjectID.generate(),
+        projectId: ObjectID.generate(),
+      });
+    });
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((thrown as Exception).message).toBe(
+      "You are not authorized to access this project's data.",
+    );
+  });
+
+  /*
+   * A row that was not found reaches the guard as undefined. It must be
+   * rejected exactly like a cross-project row, so the endpoint cannot be
+   * used to tell "id exists in another project" apart from "id does not
+   * exist".
+   */
+  test("throws NotAuthorizedException when the resource was not found", () => {
+    const thrown: unknown = captureThrown(() => {
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: undefined,
+        projectId: ObjectID.generate(),
+      });
+    });
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((thrown as Exception).message).toBe(
+      "You are not authorized to access this project's data.",
+    );
+  });
+
+  test("throws NotAuthorizedException when the resource carries a null projectId", () => {
+    expect(() => {
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: null,
+        projectId: ObjectID.generate(),
+      });
+    }).toThrow(NotAuthorizedException);
+  });
+});
+
+/*
+ * Tests for CommonAPI.assertTenantScoped — the lighter guard for custom
+ * endpoints whose path carries only a resource id, so the project can only
+ * come from the `tenantid` header. Without it the request still reaches the
+ * handler, just with no tenant permissions, and the eventual tenant-scoped
+ * read fails as "You do not have permissions to read <model>" — a message
+ * that sends project owners hunting for a role they already hold. The guard
+ * exists to surface the real cause (a missing header) instead.
  */
 describe("CommonAPI.assertTenantScoped", () => {
-  test("throws BadDataException naming the missing header when tenantId is absent", () => {
+  test("throws BadDataException naming the tenantid header when tenantId is missing", () => {
     const props: DatabaseCommonInteractionProps = buildProps({
       tenantId: undefined,
       userId: ObjectID.generate(),
@@ -336,9 +412,8 @@ describe("CommonAPI.assertTenantScoped", () => {
     });
 
     expect(thrown).toBeInstanceOf(BadDataException);
-    expect((thrown as BadDataException).message).toBe(
-      "Project ID is required. Send the tenantid header with this request.",
-    );
+    expect((thrown as Exception).message).toContain("Project ID is required");
+    expect((thrown as Exception).message).toContain("tenantid");
   });
 
   test("the message points at the header rather than at permissions", () => {
@@ -350,11 +425,11 @@ describe("CommonAPI.assertTenantScoped", () => {
      * The whole point of the guard: whatever it says must not look like the
      * permissions error it replaces.
      */
-    expect((thrown as BadDataException).message).toContain("tenantid");
-    expect((thrown as BadDataException).message).not.toContain("permission");
+    expect((thrown as Exception).message).toContain("tenantid");
+    expect((thrown as Exception).message).not.toContain("permission");
   });
 
-  test("returns the tenantId instance when it is present", () => {
+  test("returns the tenant id when the request is project scoped", () => {
     const projectId: ObjectID = ObjectID.generate();
     const props: DatabaseCommonInteractionProps = buildProps({
       tenantId: projectId,
@@ -362,6 +437,28 @@ describe("CommonAPI.assertTenantScoped", () => {
     });
 
     expect(CommonAPI.assertTenantScoped(props)).toBe(projectId);
+  });
+
+  /*
+   * API-key callers are authenticated by ProjectMiddleware, which sets
+   * userType/tenantId and the tenant permission map but never userId. This
+   * guard must not lock them out — that is what separates it from
+   * assertAuthenticatedProjectMember.
+   */
+  test("accepts an API-key caller that has a tenant but no userId", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const permissions: Dictionary<UserTenantAccessPermission> = {};
+    permissions[projectId.toString()] = buildTenantPermission(projectId);
+
+    const props: DatabaseCommonInteractionProps = buildProps({
+      tenantId: projectId,
+      userId: undefined,
+      userTenantAccessPermission: permissions,
+    });
+
+    expect(() => {
+      CommonAPI.assertTenantScoped(props);
+    }).not.toThrow();
   });
 
   test("does not require membership — that stays with the tenant-scoped read", () => {

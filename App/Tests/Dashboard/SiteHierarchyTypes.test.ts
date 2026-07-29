@@ -224,14 +224,81 @@ describe("parseSiteChildrenResponse", () => {
   });
 });
 
+/*
+ * The map payload grew a hierarchy: /network-site/map answers with one row
+ * per CHILD of the level in view, each carrying where it sits, what is
+ * under it and how that is doing. The parser has to narrow all of it
+ * defensively, and — because the rollups drive both the size and the color
+ * of a marker — it has to refuse to pass through numbers that would draw a
+ * marker claiming something untrue.
+ */
 describe("parseSiteMapResponse", () => {
-  test("undefined/empty payloads narrow to an empty response", () => {
-    const expected: SiteMapResponse = { sites: [], isTruncated: false };
+  test("undefined/empty payloads narrow to an empty grouped response", () => {
+    const expected: SiteMapResponse = {
+      mode: "grouped",
+      sites: [],
+      unplacedSites: [],
+      isTruncated: false,
+    };
     expect(parseSiteMapResponse(undefined)).toEqual(expected);
     expect(parseSiteMapResponse({})).toEqual(expected);
+    expect(
+      parseSiteMapResponse({
+        sites: "nope",
+        unplacedSites: 42,
+      } as unknown as JSONObject),
+    ).toEqual(expected);
   });
 
-  test("a well-formed pin narrows faithfully", () => {
+  test("a well-formed container marker narrows faithfully", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      mode: "grouped",
+      sites: [
+        {
+          id: "r1",
+          name: "Region 1000",
+          siteType: "Region",
+          isUnitLevel: false,
+          latitude: 39.1,
+          longitude: -94.58,
+          statusPriority: 3,
+          isOperational: false,
+          parentBreadcrumb: "",
+          isContainer: true,
+          isDerivedLocation: true,
+          locatedDescendantCount: 69,
+          unlocatedDescendantCount: 2,
+          totalUnits: 69,
+          operationalUnits: 0,
+          childSiteCount: 4,
+        },
+      ],
+      isTruncated: true,
+    } as unknown as JSONObject);
+    expect(parsed.isTruncated).toBe(true);
+    expect(parsed.sites).toEqual([
+      {
+        id: "r1",
+        name: "Region 1000",
+        siteType: "Region",
+        isUnitLevel: false,
+        latitude: 39.1,
+        longitude: -94.58,
+        statusPriority: 3,
+        isOperational: false,
+        parentBreadcrumb: "",
+        isContainer: true,
+        isDerivedLocation: true,
+        locatedDescendantCount: 69,
+        unlocatedDescendantCount: 2,
+        totalUnits: 69,
+        operationalUnits: 0,
+        childSiteCount: 4,
+      },
+    ]);
+  });
+
+  test("a flat pin from a server that predates grouping is not a container", () => {
     const parsed: SiteMapResponse = parseSiteMapResponse({
       sites: [
         {
@@ -246,25 +313,28 @@ describe("parseSiteMapResponse", () => {
           parentBreadcrumb: "East / Acme / KC",
         },
       ],
-      isTruncated: true,
     } as unknown as JSONObject);
-    expect(parsed.isTruncated).toBe(true);
-    expect(parsed.sites).toEqual([
-      {
-        id: "u1",
-        name: "Store #42",
-        siteType: "Unit",
-        isUnitLevel: true,
-        latitude: 39.1,
-        longitude: -94.58,
-        statusPriority: 3,
-        isOperational: false,
-        parentBreadcrumb: "East / Acme / KC",
-      },
-    ]);
+    expect(parsed.sites[0]).toEqual({
+      id: "u1",
+      name: "Store #42",
+      siteType: "Unit",
+      isUnitLevel: true,
+      latitude: 39.1,
+      longitude: -94.58,
+      statusPriority: 3,
+      isOperational: false,
+      parentBreadcrumb: "East / Acme / KC",
+      isContainer: false,
+      isDerivedLocation: false,
+      locatedDescendantCount: 0,
+      unlocatedDescendantCount: 0,
+      totalUnits: 0,
+      operationalUnits: 0,
+      childSiteCount: 0,
+    });
   });
 
-  test("pins without an id or with non-finite coordinates are dropped", () => {
+  test("markers without an id or with non-finite coordinates are dropped", () => {
     const parsed: SiteMapResponse = parseSiteMapResponse({
       sites: [
         { name: "No id", latitude: 1, longitude: 2 },
@@ -276,6 +346,30 @@ describe("parseSiteMapResponse", () => {
     } as unknown as JSONObject);
     expect(parsed.sites).toHaveLength(1);
     expect(parsed.sites[0]!.id).toBe("ok");
+  });
+
+  /*
+   * A CSV import that shifts a column by one lands a longitude in the
+   * latitude field. Projected, that drags the marker — and the frame the
+   * map fits around it — somewhere no site is, taking every other marker
+   * off screen with it. Out of range is not a coordinate.
+   */
+  test("coordinates outside the real latitude/longitude ranges are dropped", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      sites: [
+        { id: "lat-too-high", latitude: 1246.7, longitude: 0 },
+        { id: "lat-too-low", latitude: -90.5, longitude: 0 },
+        { id: "lon-too-high", latitude: 0, longitude: 180.001 },
+        { id: "lon-too-low", latitude: 0, longitude: -181 },
+        { id: "north-pole", latitude: 90, longitude: 180 },
+        { id: "south-pole", latitude: -90, longitude: -180 },
+      ],
+    } as unknown as JSONObject);
+    expect(
+      parsed.sites.map((site: { id: string }) => {
+        return site.id;
+      }),
+    ).toEqual(["north-pole", "south-pole"]);
   });
 
   test("missing optional fields fall back to safe defaults", () => {
@@ -292,6 +386,13 @@ describe("parseSiteMapResponse", () => {
       statusPriority: 0,
       isOperational: null,
       parentBreadcrumb: "",
+      isContainer: false,
+      isDerivedLocation: false,
+      locatedDescendantCount: 0,
+      unlocatedDescendantCount: 0,
+      totalUnits: 0,
+      operationalUnits: 0,
+      childSiteCount: 0,
     });
   });
 
@@ -309,5 +410,95 @@ describe("parseSiteMapResponse", () => {
         return site.isOperational;
       }),
     ).toEqual([true, false, null, null]);
+  });
+
+  test("isContainer and isDerivedLocation are strictly boolean", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      sites: [
+        {
+          id: "a",
+          latitude: 0,
+          longitude: 0,
+          isContainer: "yes",
+          isDerivedLocation: 1,
+        },
+      ],
+    } as unknown as JSONObject);
+    expect(parsed.sites[0]!.isContainer).toBe(false);
+    expect(parsed.sites[0]!.isDerivedLocation).toBe(false);
+  });
+
+  /*
+   * A marker whose rollup says more units are healthy than exist would
+   * color itself "all operational" over a level that is half dark. The
+   * clamp is what makes the marker's color trustworthy.
+   */
+  test("operationalUnits can never exceed totalUnits", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      sites: [
+        {
+          id: "a",
+          latitude: 0,
+          longitude: 0,
+          totalUnits: 4,
+          operationalUnits: 99,
+        },
+      ],
+    } as unknown as JSONObject);
+    expect(parsed.sites[0]!.totalUnits).toBe(4);
+    expect(parsed.sites[0]!.operationalUnits).toBe(4);
+  });
+
+  test("negative and non-finite rollup counts fall back to zero", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      sites: [
+        {
+          id: "a",
+          latitude: 0,
+          longitude: 0,
+          totalUnits: -3,
+          operationalUnits: -9,
+          childSiteCount: Number.NaN,
+          locatedDescendantCount: "12",
+          unlocatedDescendantCount: -1,
+        },
+      ],
+    } as unknown as JSONObject);
+    expect(parsed.sites[0]).toMatchObject({
+      totalUnits: 0,
+      operationalUnits: 0,
+      childSiteCount: 0,
+      locatedDescendantCount: 0,
+      unlocatedDescendantCount: 0,
+    });
+  });
+
+  /*
+   * An unrecognised mode has to read as the hierarchy view. Degrading to
+   * "all" would put the flat every-store map — the thing this endpoint was
+   * changed to stop being — back in front of the customer.
+   */
+  test("only the exact string all selects the flat mode", () => {
+    expect(parseSiteMapResponse({ mode: "all" }).mode).toBe("all");
+    expect(parseSiteMapResponse({ mode: "grouped" }).mode).toBe("grouped");
+    expect(parseSiteMapResponse({ mode: "ALL" }).mode).toBe("grouped");
+    expect(parseSiteMapResponse({ mode: "flat" }).mode).toBe("grouped");
+    expect(
+      parseSiteMapResponse({ mode: 1 } as unknown as JSONObject).mode,
+    ).toBe("grouped");
+  });
+
+  test("unplaced sites narrow, and rows without an id are dropped", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      unplacedSites: [
+        { id: "r7", name: "Region 2100", siteType: "Region" },
+        { name: "no id", siteType: "Region" },
+        { id: "u9", isUnitLevel: true },
+      ],
+    } as unknown as JSONObject);
+    expect(parsed.unplacedSites).toEqual([
+      { id: "r7", name: "Region 2100", siteType: "Region", isUnitLevel: false },
+      { id: "u9", name: "Unnamed site", siteType: "Other", isUnitLevel: true },
+    ]);
   });
 });

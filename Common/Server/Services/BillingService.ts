@@ -37,6 +37,13 @@ export interface PaymentMethod {
   isDefault: boolean;
 }
 
+/*
+ * Stripe rejects a trial_end more than two years past the billing cycle
+ * anchor. Enforce the same ceiling here so an admin gets a readable error
+ * instead of a raw payment-provider failure.
+ */
+export const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
+
 export interface Invoice {
   id: string;
   amount: number;
@@ -867,6 +874,97 @@ export class BillingService extends BaseService {
       await this.stripe.subscriptions.del(subscriptionId);
     } catch (err) {
       logger.error(err, { subscriptionId } as LogAttributes);
+    }
+  }
+
+  /*
+   * Moves the trial end of a project's subscriptions to a new date.
+   *
+   * Both the flat-fee subscription and the metered subscription have to move
+   * together: they were created with the same trial_end (see subscribeToPlan),
+   * and leaving the metered one behind would start billing usage while the
+   * customer still believes they are on trial.
+   */
+  @CaptureSpan()
+  public async extendTrial(data: {
+    subscriptionId: string;
+    meteredSubscriptionId?: string | undefined;
+    trialEndsAt: Date;
+  }): Promise<void> {
+    if (!this.isBillingEnabled()) {
+      throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    if (!OneUptimeDate.isInTheFuture(data.trialEndsAt)) {
+      throw new BadDataException(Errors.BillingService.TRIAL_END_DATE_IN_PAST);
+    }
+
+    if (
+      OneUptimeDate.isAfter(
+        data.trialEndsAt,
+        OneUptimeDate.getSomeDaysAfter(MAX_TRIAL_LENGTH_IN_DAYS),
+      )
+    ) {
+      throw new BadDataException(
+        Errors.BillingService.TRIAL_END_DATE_TOO_FAR_IN_FUTURE,
+      );
+    }
+
+    const subscriptionIds: Array<string> = [data.subscriptionId];
+
+    if (data.meteredSubscriptionId) {
+      subscriptionIds.push(data.meteredSubscriptionId);
+    }
+
+    /*
+     * Validate every subscription before touching any of them. Updating the
+     * flat-fee subscription and then discovering the metered one is cancelled
+     * would leave the project's two subscriptions on different trial dates.
+     */
+    for (const subscriptionId of subscriptionIds) {
+      const subscription: Stripe.Subscription =
+        await this.getSubscription(subscriptionId);
+
+      if (!subscription) {
+        throw new BadDataException(
+          Errors.BillingService.SUBSCRIPTION_NOT_FOUND,
+        );
+      }
+
+      if (
+        subscription.status === "canceled" ||
+        subscription.status === "incomplete_expired"
+      ) {
+        throw new BadDataException(
+          Errors.BillingService.CANNOT_EXTEND_TRIAL_ON_CANCELLED_SUBSCRIPTION,
+        );
+      }
+    }
+
+    for (const subscriptionId of subscriptionIds) {
+      await this.stripe.subscriptions.update(subscriptionId, {
+        trial_end: OneUptimeDate.toUnixTimestamp(data.trialEndsAt),
+
+        /*
+         * Setting trial_end also moves the billing cycle anchor to that date.
+         * With the default proration behaviour Stripe raises proration line
+         * items for the shifted period, which is exactly the surprise invoice
+         * extending a trial is meant to prevent - so prorations are disabled.
+         *
+         * Caveat: this only silences the flat-fee subscription. Usage-based
+         * billing is not subject to proration, so closing the metered
+         * subscription's period early still invoices the usage recorded in it.
+         * For a project that is still trialing that is nothing (trial usage is
+         * not billable), but extending the trial of an already-active project
+         * bills its accrued usage immediately - the admin page warns about
+         * this before the extension is submitted.
+         */
+        proration_behavior: "none",
+      });
+
+      logger.debug(
+        `Extended trial for subscription ${subscriptionId} to ${data.trialEndsAt.toISOString()}`,
+      );
     }
   }
 

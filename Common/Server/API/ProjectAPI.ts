@@ -1,4 +1,5 @@
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import ProjectService, {
   ProjectService as ProjectServiceType,
@@ -13,6 +14,7 @@ import {
   NextFunction,
   OneUptimeRequest,
 } from "../Utils/Express";
+import JSONWebToken from "../Utils/JsonWebToken";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BillingService from "../Services/BillingService";
@@ -24,9 +26,10 @@ import Project from "../../Models/DatabaseModels/Project";
 import Reseller from "../../Models/DatabaseModels/Reseller";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import BadDataException from "../../Types/Exception/BadDataException";
+import OneUptimeDate from "../../Types/Date";
 import Permission, { UserPermission } from "../../Types/Permission";
 import ObjectID from "../../Types/ObjectID";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
   public constructor() {
@@ -125,6 +128,81 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           await ProjectService.changePlan({
             projectId: projectId,
             paymentProviderPlanId: paymentProviderPlanId,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Extends a project's trial. Master-admin only: this hands out free
+     * service and moves the customer's next invoice, so it is deliberately not
+     * reachable with project-level billing permissions - only OneUptime staff
+     * acting from the Admin Dashboard can call it.
+     */
+    this.router.put(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/extend-trial`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!IsBillingEnabled) {
+            throw new BadDataException(
+              "Billing is not enabled for this server",
+            );
+          }
+
+          const projectId: ObjectID = new ObjectID(req.params["id"] as string);
+
+          const body: JSONObject = (req.body as JSONObject) || {};
+          const data: JSONObject = (body["data"] as JSONObject) || {};
+          const trialEndsAtValue: JSONValue = data["trialEndsAt"];
+
+          if (!trialEndsAtValue) {
+            throw new BadDataException(
+              "Trial end date is required to extend the trial",
+            );
+          }
+
+          /*
+           * OneUptimeDate.fromString only parses strings and Dates - anything
+           * else comes back as its own error text, not a Date - so reject a
+           * non-string body value here rather than letting it through.
+           */
+          if (typeof trialEndsAtValue !== "string") {
+            throw new BadDataException("Trial end date is not a valid date");
+          }
+
+          const trialEndsAt: Date = OneUptimeDate.fromString(trialEndsAtValue);
+
+          if (isNaN(trialEndsAt.getTime())) {
+            throw new BadDataException("Trial end date is not a valid date");
+          }
+
+          /*
+           * The master admin middleware verifies the token but does not put
+           * the decoded payload on the request, so read it again here - who
+           * granted the extension is the only audit trail this action has.
+           */
+          let extendedByUserId: ObjectID | undefined = undefined;
+
+          try {
+            const accessToken: string | undefined =
+              UserMiddleware.getAccessTokenFromExpressRequest(req);
+
+            if (accessToken) {
+              extendedByUserId = JSONWebToken.decode(accessToken).userId;
+            }
+          } catch {
+            // Only used for the log line - never block the extension on it.
+          }
+
+          await ProjectService.extendTrial({
+            projectId: projectId,
+            trialEndsAt: trialEndsAt,
+            extendedByUserId: extendedByUserId,
           });
 
           return Response.sendEmptySuccessResponse(req, res);

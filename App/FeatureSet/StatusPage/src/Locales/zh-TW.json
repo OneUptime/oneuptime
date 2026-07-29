@@ -40,7 +40,9 @@
     "allClearDescription": "此狀態頁尚未新增任何資源。請從控制台新增一些資源。",
     "allResourcesAre": "所有資源{{status}}",
     "someResourcesAre": "部分資源{{status}}",
-    "someResourcesAreUnder": "部分資源處於{{status}}狀態"
+    "someResourcesAreUnder": "部分資源處於{{status}}狀態",
+    "oneSubGroup": "1 個群組",
+    "subGroupCount": "{{total}} 個群組"
   },
   "eventItem": {
     "affectedResources": "受影響的資源",

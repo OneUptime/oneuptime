@@ -24,9 +24,10 @@ import Model from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
-import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusService from "./MonitorStatusService";
-import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
@@ -621,24 +622,12 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     const stateId: ObjectID | string | undefined =
-      (updateBy.data.currentScheduledMaintenanceStateId as unknown as
-        | ObjectID
-        | undefined) ||
-      (
-        updateBy.data.currentScheduledMaintenanceState as unknown as
-          | ScheduledMaintenanceState
-          | undefined
-      )?._id;
+      resolveReferenceId(updateBy.data.currentScheduledMaintenanceStateId) ||
+      resolveReferenceId(updateBy.data.currentScheduledMaintenanceState);
 
     const monitorStatusId: ObjectID | string | undefined =
-      (updateBy.data.changeMonitorStatusToId as unknown as
-        | ObjectID
-        | undefined) ||
-      (
-        updateBy.data.changeMonitorStatusTo as unknown as
-          | MonitorStatus
-          | undefined
-      )?._id;
+      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
+      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
 
     if (!stateId && !monitorStatusId) {
       return;
@@ -865,9 +854,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         {
           modelName: "Monitor Status",
           id:
-            createBy.data.changeMonitorStatusToId ||
-            (createBy.data.changeMonitorStatusTo as MonitorStatus | undefined)
-              ?._id,
+            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
+            resolveReferenceId(createBy.data.changeMonitorStatusTo),
           service: MonitorStatusService,
         },
       ],

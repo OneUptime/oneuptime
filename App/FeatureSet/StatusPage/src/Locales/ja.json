@@ -40,7 +40,9 @@
     "allClearDescription": "このステータスページにはまだリソースが追加されていません。ダッシュボードからリソースを追加してください。",
     "allResourcesAre": "すべてのリソースは {{status}} です",
     "someResourcesAre": "一部のリソースは {{status}} です",
-    "someResourcesAreUnder": "一部のリソースは {{status}} 中です"
+    "someResourcesAreUnder": "一部のリソースは {{status}} 中です",
+    "oneSubGroup": "1 グループ",
+    "subGroupCount": "{{total}} グループ"
   },
   "eventItem": {
     "affectedResources": "影響を受けるリソース",

@@ -40,7 +40,9 @@
     "allClearDescription": "Aucune ressource n'a encore été ajoutée à cette page de statut. Veuillez ajouter des ressources depuis le tableau de bord.",
     "allResourcesAre": "Toutes les ressources sont {{status}}",
     "someResourcesAre": "Certaines ressources sont {{status}}",
-    "someResourcesAreUnder": "Certaines ressources sont en {{status}}"
+    "someResourcesAreUnder": "Certaines ressources sont en {{status}}",
+    "oneSubGroup": "1 groupe",
+    "subGroupCount": "{{total}} groupes"
   },
   "eventItem": {
     "affectedResources": "Ressources concernées",
