@@ -6,20 +6,36 @@ import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusEl
 import ImportSitesFromCsvModal from "../../Components/NetworkSite/ImportSitesFromCsvModal";
 import SiteHierarchyTree from "../../Components/NetworkSite/SiteHierarchyTree";
 import SiteSummaryCards from "../../Components/NetworkSite/SiteSummaryCards";
+import SummaryFilterChip from "../../Components/Network/SummaryFilterChip";
+import { getDeviceListRouteForFilter } from "../../Components/NetworkDevice/DeviceSummaryFilterRoute";
+import {
+  SITE_SUMMARY_FILTER_URL_PARAM,
+  SiteSummaryFilterDefinition,
+  SiteSummaryFilterKey,
+  SiteSummaryTile,
+  SiteSummaryTileAction,
+  UNASSIGNED_DEVICES_FILTER_KEY,
+  getSiteSummaryFilterDefinition,
+  getSiteSummaryFilterQuery,
+  parseSiteSummaryFilterKey,
+} from "../../Components/NetworkSite/SiteSummaryFilter";
 import Route from "Common/Types/API/Route";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import Query from "Common/Types/BaseDatabase/Query";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useMemo,
   useState,
 } from "react";
 
@@ -35,14 +51,104 @@ const NetworkSites: FunctionComponent<
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
 
+  /*
+   * Which summary tile the table is drilled into. Seeded from the URL — read
+   * once, synchronously, so the first fetch already carries the filter rather
+   * than loading every site and throwing the response away.
+   */
+  const [summaryFilterKey, setSummaryFilterKey] =
+    useState<SiteSummaryFilterKey | null>(() => {
+      return parseSiteSummaryFilterKey(
+        Navigation.getQueryStringByName(SITE_SUMMARY_FILTER_URL_PARAM),
+      );
+    });
+
+  type ChangeSummaryFilterFunction = (
+    filterKey: SiteSummaryFilterKey | null,
+  ) => void;
+
+  const changeSummaryFilter: ChangeSummaryFilterFunction = (
+    filterKey: SiteSummaryFilterKey | null,
+  ): void => {
+    setSummaryFilterKey(filterKey);
+    /*
+     * replaceState, so a drill-down is shareable and survives viewing a site
+     * and coming back, without burying the previous page under a history
+     * entry per tile click.
+     */
+    Navigation.setQueryString({
+      [SITE_SUMMARY_FILTER_URL_PARAM]: filterKey,
+    });
+  };
+
+  type OnSummaryTileClickFunction = (tile: SiteSummaryTile) => void;
+
+  const onSummaryTileClick: OnSummaryTileClickFunction = (
+    tile: SiteSummaryTile,
+  ): void => {
+    /*
+     * The rows behind "Unassigned Devices" are devices, and this page lists
+     * sites — so that tile leaves for the device list already filtered,
+     * instead of narrowing the sites table to something the count never
+     * described.
+     */
+    if (tile.action === SiteSummaryTileAction.ShowUnassignedDevices) {
+      Navigation.navigate(
+        getDeviceListRouteForFilter(UNASSIGNED_DEVICES_FILTER_KEY),
+      );
+      return;
+    }
+
+    if (tile.action === SiteSummaryTileAction.ClearFilter) {
+      changeSummaryFilter(null);
+      return;
+    }
+
+    // Clicking the tile the table is already showing toggles back to all sites.
+    changeSummaryFilter(
+      tile.filterKey && tile.filterKey !== summaryFilterKey
+        ? tile.filterKey
+        : null,
+    );
+  };
+
+  /*
+   * Memoised because ModelTable decides whether to refetch by JSON-comparing
+   * this prop against the previous render's, and callers that hand it a fresh
+   * object literal every render make every render look like a change.
+   */
+  const tableQuery: Query<NetworkSite> = useMemo(() => {
+    return getSiteSummaryFilterQuery(summaryFilterKey);
+  }, [summaryFilterKey]);
+
+  const summaryFilterDefinition: SiteSummaryFilterDefinition | null =
+    summaryFilterKey ? getSiteSummaryFilterDefinition(summaryFilterKey) : null;
+
   return (
     <Fragment>
-      <SiteSummaryCards refreshToggle={refreshToggle} />
+      <SiteSummaryCards
+        refreshToggle={refreshToggle}
+        selectedFilterKey={summaryFilterKey}
+        onTileClick={onSummaryTileClick}
+      />
       <div className="mb-5">
         <SiteHierarchyTree refreshToggle={refreshToggle} />
       </div>
       <ModelTable<NetworkSite>
         refreshToggle={refreshToggle}
+        query={tableQuery}
+        topContent={
+          summaryFilterDefinition ? (
+            <SummaryFilterChip
+              testIdSuffix="network-sites"
+              label={summaryFilterDefinition.chipLabel}
+              onClear={() => {
+                changeSummaryFilter(null);
+              }}
+            />
+          ) : undefined
+        }
+        noItemsMessage={summaryFilterDefinition?.emptyMessage}
         onCreateSuccess={(item: NetworkSite): Promise<NetworkSite> => {
           setRefreshToggle(Date.now().toString());
           return Promise.resolve(item);
