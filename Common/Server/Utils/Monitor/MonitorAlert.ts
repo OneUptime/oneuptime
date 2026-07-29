@@ -22,6 +22,7 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticAlertCreation } from "../../EnvironmentConfig";
 import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
+import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
 import HostService from "../../Services/HostService";
 import NetworkDeviceOwnerUserService, {
@@ -420,7 +421,33 @@ export default class MonitorAlert {
           storageMap,
         });
 
-        if (!criteriaAlert.alertSeverityId) {
+        /*
+         * A criteria severity belonging to *another* project is rejected by
+         * AlertService on create. Throwing here would fail the whole
+         * probe/telemetry ingest job for this monitor, so treat it as
+         * "missing" and fall back to this project's own default — which is
+         * also what stops the bad id spreading onto new alerts. See the same
+         * fallback in MonitorIncident.
+         */
+        const isCriteriaSeverityUsable: boolean =
+          await ProjectScopedReferenceValidator.isUsableInProject({
+            projectId: input.monitor.projectId!,
+            id: criteriaAlert.alertSeverityId,
+            service: AlertSeverityService,
+          });
+
+        if (
+          criteriaAlert.alertSeverityId?.toString() &&
+          !isCriteriaSeverityUsable
+        ) {
+          logger.error(
+            `${input.monitor.id?.toString()} - Criteria "${
+              input.criteriaInstance.data?.name
+            }" references alert severity ${criteriaAlert.alertSeverityId.toString()}, which does not belong to project ${input.monitor.projectId?.toString()}. Falling back to this project's default severity.`,
+          );
+        }
+
+        if (!isCriteriaSeverityUsable) {
           // pick the critical criteria.
 
           const severity: AlertSeverity | null =

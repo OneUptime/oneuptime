@@ -6,11 +6,11 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import ObjectID from "../../Types/ObjectID";
 import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
-import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusService from "./MonitorStatusService";
 import Dictionary from "../../Types/Dictionary";
 import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
+  resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import ScheduledMaintenanceTemplateOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
 import ScheduledMaintenanceTemplateOwnerUser from "../../Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
@@ -316,9 +316,8 @@ export class Service extends DatabaseService<Model> {
       {
         modelName: "Monitor Status",
         id:
-          (data.changeMonitorStatusToId as unknown as ObjectID | undefined) ||
-          (data.changeMonitorStatusTo as unknown as MonitorStatus | undefined)
-            ?._id,
+          resolveReferenceId(data.changeMonitorStatusToId) ||
+          resolveReferenceId(data.changeMonitorStatusTo),
         service: MonitorStatusService,
       },
     ];

@@ -13,13 +13,11 @@ import Dictionary from "../../Types/Dictionary";
 import ObjectID from "../../Types/ObjectID";
 import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
-import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
-import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentTemplateOwnerTeam from "../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "../../Models/DatabaseModels/IncidentTemplateOwnerUser";
-import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
+  resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
@@ -92,22 +90,22 @@ export class Service extends DatabaseService<Model> {
       {
         modelName: "Incident State",
         id:
-          (data.initialIncidentStateId as ObjectID | undefined) ||
-          (data.initialIncidentState as IncidentState | undefined)?._id,
+          resolveReferenceId(data.initialIncidentStateId) ||
+          resolveReferenceId(data.initialIncidentState),
         service: IncidentStateService,
       },
       {
         modelName: "Incident Severity",
         id:
-          (data.incidentSeverityId as ObjectID | undefined) ||
-          (data.incidentSeverity as IncidentSeverity | undefined)?._id,
+          resolveReferenceId(data.incidentSeverityId) ||
+          resolveReferenceId(data.incidentSeverity),
         service: IncidentSeverityService,
       },
       {
         modelName: "Monitor Status",
         id:
-          (data.changeMonitorStatusToId as ObjectID | undefined) ||
-          (data.changeMonitorStatusTo as MonitorStatus | undefined)?._id,
+          resolveReferenceId(data.changeMonitorStatusToId) ||
+          resolveReferenceId(data.changeMonitorStatusTo),
         service: MonitorStatusService,
       },
     ];

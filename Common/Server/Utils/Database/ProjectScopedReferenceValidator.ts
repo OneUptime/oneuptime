@@ -1,4 +1,5 @@
 import DatabaseService from "../../Services/DatabaseService";
+import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -38,6 +39,35 @@ export interface ProjectScopedReference {
 interface ForeignReference {
   modelName: string;
   name: string;
+}
+
+/*
+ * The same reference reaches a service hook in several shapes: the id column
+ * (`incidentSeverityId`), a relation object (`incidentSeverity: { _id }`), an
+ * ObjectID in either slot, or — on the update path — a bare uuid string in the
+ * relation slot, which DatabaseService.sanitizeCreateOrUpdate only turns into
+ * a relation entity *after* onBeforeUpdate has run. Reading `?._id` alone
+ * misses the string shape and the guard would silently pass.
+ */
+export function resolveReferenceId(
+  value: unknown,
+): ObjectID | string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (value instanceof ObjectID) {
+    return value;
+  }
+
+  const relation: { _id?: string | undefined; id?: ObjectID | undefined } =
+    value as { _id?: string | undefined; id?: ObjectID | undefined };
+
+  return relation._id || relation.id || undefined;
 }
 
 export default class ProjectScopedReferenceValidator {
@@ -138,5 +168,45 @@ export default class ProjectScopedReferenceValidator {
         data.subject || "request"
       } references records that belong to a different project: ${described}. Please pick values from this project and try again.`,
     );
+  }
+
+  /*
+   * "Can this project actually use this record?" — for callers that must not
+   * throw. The probe and telemetry ingest workers build incidents and alerts
+   * from monitor criteria, whose stored ids may still point at another
+   * project (monitorSteps repair could not always resolve them). Throwing
+   * there fails the whole ingest job for that monitor, so those callers ask
+   * this instead and fall back to their project's own default.
+   *
+   * Note the deliberate difference from validateReferencesBelongToProject: an
+   * id that matches NO record is unusable here (false), while the write guard
+   * lets it pass so a record already pointing at something deleted stays
+   * saveable.
+   */
+  public static async isUsableInProject(data: {
+    projectId: ObjectID | undefined;
+    id: ObjectID | string | undefined | null;
+    service: DatabaseService<DatabaseBaseModel>;
+  }): Promise<boolean> {
+    const id: string = data.id?.toString() || "";
+
+    if (!id || !data.projectId) {
+      return false;
+    }
+
+    const record: DatabaseBaseModel | null = await data.service.findOneBy({
+      query: {
+        _id: id,
+        projectId: data.projectId,
+      } as Query<DatabaseBaseModel>,
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(record);
   }
 }
