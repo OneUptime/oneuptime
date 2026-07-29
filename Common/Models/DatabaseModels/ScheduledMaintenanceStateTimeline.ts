@@ -414,6 +414,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )

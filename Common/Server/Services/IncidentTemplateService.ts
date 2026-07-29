@@ -1,18 +1,142 @@
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
+import IncidentSeverityService from "./IncidentSeverityService";
+import IncidentStateService from "./IncidentStateService";
+import MonitorStatusService from "./MonitorStatusService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
+import Dictionary from "../../Types/Dictionary";
 import ObjectID from "../../Types/ObjectID";
 import Typeof from "../../Types/Typeof";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
+import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentTemplateOwnerTeam from "../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "../../Models/DatabaseModels/IncidentTemplateOwnerUser";
+import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
+import ProjectScopedReferenceValidator, {
+  ProjectScopedReference,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A template is copied onto every incident created from it, so an id
+   * belonging to another project here becomes a cross-project reference on
+   * each of those incidents — and the referenced project can then no longer be
+   * deleted. Reject it where it enters instead.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId;
+
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "incident template",
+      references: this.getProjectScopedReferences(createBy.data),
+    });
+
+    return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const references: Array<ProjectScopedReference> =
+      this.getProjectScopedReferences(updateBy.data);
+
+    if (
+      references.every((reference: ProjectScopedReference) => {
+        return !reference.id;
+      })
+    ) {
+      return { updateBy, carryForward: null };
+    }
+
+    /*
+     * Root/API updates do not always carry a tenantId, so fall back to the
+     * project of each template the query actually matches.
+     */
+    const projectIds: Array<ObjectID> = updateBy.props.tenantId
+      ? [updateBy.props.tenantId]
+      : await this.getProjectIdsForUpdateQuery(updateBy);
+
+    for (const projectId of projectIds) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "incident template",
+        references: references,
+      });
+    }
+
+    return { updateBy, carryForward: null };
+  }
+
+  private getProjectScopedReferences(
+    data: Model | QueryDeepPartialEntity<Model>,
+  ): Array<ProjectScopedReference> {
+    return [
+      {
+        modelName: "Incident State",
+        id:
+          (data.initialIncidentStateId as ObjectID | undefined) ||
+          (data.initialIncidentState as IncidentState | undefined)?._id,
+        service: IncidentStateService,
+      },
+      {
+        modelName: "Incident Severity",
+        id:
+          (data.incidentSeverityId as ObjectID | undefined) ||
+          (data.incidentSeverity as IncidentSeverity | undefined)?._id,
+        service: IncidentSeverityService,
+      },
+      {
+        modelName: "Monitor Status",
+        id:
+          (data.changeMonitorStatusToId as ObjectID | undefined) ||
+          (data.changeMonitorStatusTo as MonitorStatus | undefined)?._id,
+        service: MonitorStatusService,
+      },
+    ];
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const templates: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const template of templates) {
+      if (template.projectId) {
+        projectIds[template.projectId.toString()] = template.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
   }
 
   @CaptureSpan()
