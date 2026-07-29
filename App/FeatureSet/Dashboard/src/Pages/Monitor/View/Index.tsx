@@ -172,6 +172,13 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         url: URL.fromString(APP_API_URL.toString()).addRoute(
           "/monitor/refresh-status/" + modelId.toString(),
         ),
+        /*
+         * refresh-status is a custom route, so BaseAPI.getHeaders() adds no
+         * `tenantid` — ModelAPI.getCommonHeaders() is the only thing that
+         * does. The route requires an authenticated member of the monitor's
+         * project, and without the header there is no project to check.
+         */
+        headers: ModelAPI.getCommonHeaders(),
       });
 
       const monitorStatus: ListResult<MonitorStatusTimeline> =
