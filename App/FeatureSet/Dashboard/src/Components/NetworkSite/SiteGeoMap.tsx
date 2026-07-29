@@ -18,23 +18,34 @@ import {
   countPointsInViewport,
   fitViewportToPoints,
   panViewport,
+  screenLengthToViewportLength,
   shouldUseDetailGeometry,
   viewBoxOfViewport,
   viewportsMatch,
   zoomOfViewport,
   zoomViewport,
 } from "./Geo/GeoViewport";
-import { GeoCluster, clusterPoints } from "./Geo/GeoClusterUtil";
 import {
   BuildPinsResult,
   ClusterColorKey,
+  MapMarker,
+  LABEL_FONT_SIZE,
+  LABEL_GAP,
+  LabelPlacement,
+  buildMapMarkers,
   buildPins,
+  GENERIC_SITE_TYPE_LABEL,
   clusterCellSize,
-  clusterRadius,
-  decideClusterColorKey,
+  describeMapCoverage,
   mapPinFingerprint,
+  pluralizeSiteType,
+  resolveMarkerLabels,
 } from "./SiteMapViewModel";
-import { MapSiteView } from "./SiteHierarchyTypes";
+import {
+  MapSiteView,
+  MapUnplacedSiteView,
+  SiteMapMode,
+} from "./SiteHierarchyTypes";
 
 /*
  * Inline-SVG world map of network sites: checked-in country outlines
@@ -155,6 +166,14 @@ const KEYBOARD_PAN_FRACTION: number = 0.2;
  */
 const DRAG_THRESHOLD_PX: number = 4;
 
+/*
+ * How many unplaceable children are named under the map before the rest
+ * collapse into a count. Enough to be actionable on a normal level, few
+ * enough that a hierarchy imported entirely without coordinates does not
+ * push the map off the screen.
+ */
+const UNPLACED_NAMES_SHOWN: number = 6;
+
 const dotColorForSite: (site: MapSiteView) => string = (
   site: MapSiteView,
 ): string => {
@@ -245,8 +264,125 @@ const MapControlButton: FunctionComponent<{
 
 export interface ComponentProps {
   sites: Array<MapSiteView>;
+  /*
+   * What the rows in `sites` ARE — grouped markers (one per child of the
+   * level in view) or every located site under it. This drives the drawing.
+   */
+  mode: SiteMapMode;
+  /*
+   * What the reader last ASKED for. The two differ for the moment between
+   * pressing the switch and the new payload landing, and the switch has to
+   * follow the press rather than the payload: a control that springs back
+   * under the pointer reads as a control that did not work.
+   */
+  selectedMode: SiteMapMode;
+  onModeChange: (mode: SiteMapMode) => void;
+  /*
+   * Children of this level that have no coordinates anywhere beneath them.
+   * Listed under the map instead of being silently absent — "where did
+   * Region 2100 go" is a support ticket, and the answer is actionable.
+   */
+  unplacedSites: Array<MapUnplacedSiteView>;
+  /*
+   * What the markers are, in this project's own words ("Regions",
+   * "Markets", "Sites") — used in the switch and the counts so the map
+   * never invents vocabulary the customer has not used.
+   */
+  childTypeLabel: string;
   onSiteClick: (siteId: string) => void;
 }
+
+/*
+ * The grouped/all switch. Two options, both always meaningful, so this is a
+ * segmented control rather than a dropdown: the alternative is visible
+ * without a click, which is the whole point when a customer's first
+ * reaction to the map is "this is not my network".
+ */
+const MapModeSwitch: FunctionComponent<{
+  mode: SiteMapMode;
+  childTypeLabel: string;
+  onModeChange: (mode: SiteMapMode) => void;
+}> = (props: {
+  mode: SiteMapMode;
+  childTypeLabel: string;
+  onModeChange: (mode: SiteMapMode) => void;
+}): ReactElement => {
+  /*
+   * A level whose children are all Regions gets "Regions | All sites",
+   * which says exactly what the two views are. A level that MIXES types has
+   * no name of its own to offer, and "Sites | All sites" is two labels for
+   * what reads as the same thing — so it falls back to naming the
+   * behaviour instead.
+   */
+  const isGenericLabel: boolean =
+    props.childTypeLabel.toLowerCase() === GENERIC_SITE_TYPE_LABEL;
+
+  const options: Array<{ value: SiteMapMode; label: string; hint: string }> = [
+    {
+      value: "grouped",
+      /*
+       * The button says the plural; the sentence under it says the
+       * singular. Both are built from the customer's own singular type
+       * name — pre-pluralizing at the call site is what turns the hint into
+       * "One marker per regions at this level".
+       */
+      label: isGenericLabel
+        ? "Grouped"
+        : pluralizeSiteType(props.childTypeLabel),
+      hint: `One marker per ${props.childTypeLabel.toLowerCase()} at this level`,
+    },
+    {
+      value: "all",
+      label: "All sites",
+      hint: "Every site below this level, individually",
+    },
+  ];
+
+  return (
+    <div
+      role="group"
+      aria-label="Map grouping"
+      className="inline-flex flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
+    >
+      {options.map(
+        (option: {
+          value: SiteMapMode;
+          label: string;
+          hint: string;
+        }): ReactElement => {
+          const isActive: boolean = props.mode === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              title={option.hint}
+              aria-pressed={isActive}
+              data-testid={`site-geo-map-mode-${option.value}`}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                /*
+                 * The ring is load-bearing in dark mode: the "raised" pill
+                 * (--ou-surface-primary) is actually DARKER than the track
+                 * it sits in (--ou-surface-secondary), so without a border
+                 * the selected option is a 1.1:1 edge — invisible. Every
+                 * other segmented control in the Dashboard carries the same
+                 * ring for the same reason.
+                 */
+                isActive
+                  ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+              onClick={() => {
+                props.onModeChange(option.value);
+              }}
+            >
+              {option.label}
+            </button>
+          );
+        },
+      )}
+    </div>
+  );
+};
 
 const SiteGeoMap: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -289,14 +425,65 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   /*
    * A new set of sites is a new map: re-frame it, and drop a popover that is
    * anchored to a cluster which may no longer exist.
+   *
+   * A change of MODE is not a new map, though — both modes cover the same
+   * subtree and the same ground, so switching to "All sites" to look at the
+   * stores inside the region you just zoomed into must not throw that zoom
+   * away and bounce you back out to the whole estate.
    */
+  const framedMode: React.MutableRefObject<SiteMapMode> = useRef<SiteMapMode>(
+    props.mode,
+  );
   useEffect(() => {
-    setViewport(fittedViewport);
+    const isModeChange: boolean = framedMode.current !== props.mode;
+    framedMode.current = props.mode;
+    if (!isModeChange) {
+      setViewport(fittedViewport);
+    }
     setOpenCluster(null);
     setHovered(null);
-  }, [fittedViewport]);
+  }, [fittedViewport, props.mode]);
 
   const zoom: number = zoomOfViewport(viewport);
+
+  /*
+   * Clustering depends on the zoom but NOT on where the frame sits — the
+   * grid is anchored to the world, so panning never re-buckets anything.
+   * Memoizing on the cell size rather than on the viewport keeps a drag
+   * from re-bucketing every site on every pointer move.
+   *
+   * Grouped markers are never clustered, so the cell size is pinned to 0
+   * there: without that, every zoom step would rebuild a marker set that
+   * cannot change.
+   */
+  const cellSize: number = props.mode === "all" ? clusterCellSize(viewport) : 0;
+
+  /*
+   * Keyed on the SITES, not on the pin fingerprint. The fingerprint is
+   * deliberately geometry-only — a site going down recolours its marker but
+   * does not move it, and re-framing the map or closing a popover under
+   * someone every minute would be worse than a stale colour. But a marker's
+   * colour, its rollup and its tooltip are all baked in here, so keying this
+   * memo on geometry would freeze exactly the thing the 60-second poll
+   * exists to refresh: an outage would never reach the map.
+   */
+  const markers: Array<MapMarker> = useMemo(() => {
+    return buildMapMarkers({
+      sites: props.sites,
+      mode: props.mode,
+      cellSize: cellSize,
+    });
+  }, [props.sites, props.mode, cellSize]);
+
+  /*
+   * Which names fit without landing on each other. Keyed on the zoom rather
+   * than on the whole viewport: markers keep their relative distances as the
+   * frame moves, so panning must not re-decide which names are shown — that
+   * would make labels flicker in and out under the pointer.
+   */
+  const labelPlacements: Map<string, LabelPlacement> = useMemo(() => {
+    return resolveMarkerLabels(markers, zoom);
+  }, [markers, zoom]);
 
   /*
    * Zoom changes which sites share a marker, so an open picker's list can go
@@ -376,17 +563,6 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
     }
     return map;
   }, [props.sites]);
-
-  /*
-   * Clustering depends on the zoom but NOT on where the frame sits — the
-   * grid is anchored to the world, so panning never re-buckets anything.
-   * Memoizing on the cell size rather than on the viewport keeps a drag
-   * from re-clustering every site on every pointer move.
-   */
-  const cellSize: number = clusterCellSize(viewport);
-  const clusters: Array<GeoCluster> = useMemo(() => {
-    return clusterPoints(pins, cellSize);
-  }, [pins, cellSize]);
 
   /*
    * Pan by dragging, zoom by wheel — the same interaction model, and the
@@ -573,36 +749,15 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
     event.preventDefault();
   };
 
-  const tooltipForCluster: (cluster: GeoCluster) => string = (
-    cluster: GeoCluster,
-  ): string => {
-    if (cluster.ids.length === 1) {
-      const site: MapSiteView | undefined = siteById.get(cluster.ids[0]!);
-      if (!site) {
-        return "";
-      }
-      return site.parentBreadcrumb
-        ? `${site.name} — ${site.parentBreadcrumb}`
-        : site.name;
-    }
-    const names: Array<string> = cluster.ids
-      .slice(0, 5)
-      .map((id: string): string => {
-        return siteById.get(id)?.name || "Unnamed site";
-      });
-    const more: number = cluster.ids.length - names.length;
-    return `${cluster.totalCount} sites: ${names.join(", ")}${
-      more > 0 ? `, +${more} more` : ""
-    }`;
-  };
-
   /*
-   * Nothing to draw: say so instead of shipping a blank map. Every finite
-   * coordinate has a place on this projection, so the only way to get here
-   * with sites in hand is coordinates that are not usable numbers.
+   * Nothing to draw: say so instead of shipping a blank map. With grouped
+   * markers this is a genuinely common state — a hierarchy imported without
+   * coordinates has plenty of sites and no geography — so the empty state
+   * names the sites it could not place and says what to do about it.
    */
-  if (clusters.length === 0) {
+  if (markers.length === 0) {
     const hasSites: boolean = props.sites.length > 0;
+    const unplacedCount: number = props.unplacedSites.length;
     return (
       <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm">
         <EmptyState
@@ -611,30 +766,74 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
           title={
             hasSites
               ? "No sites can be placed on the map"
-              : "No sites on the map yet"
+              : "Nothing to put on the map yet"
           }
           description={
-            hasSites
-              ? `${unmappableCount} site${
-                  unmappableCount === 1 ? " has" : "s have"
-                } coordinates the map cannot read. Check the latitude and longitude on ${
-                  unmappableCount === 1 ? "that site" : "those sites"
-                }.`
-              : "Sites with a latitude and longitude appear here. Add coordinates to a site to place it on the map."
+            hasSites ? (
+              <span className="mx-auto block max-w-md">
+                {unmappableCount} site
+                {unmappableCount === 1 ? " has" : "s have"} coordinates the map
+                cannot read. Check the latitude and longitude on{" "}
+                {unmappableCount === 1 ? "that site" : "those sites"}.
+              </span>
+            ) : (
+              <span className="mx-auto block max-w-md">
+                {unplacedCount > 0
+                  ? `${unplacedCount} ${
+                      unplacedCount === 1 ? "site has" : "sites have"
+                    } no coordinates — neither on ${
+                      unplacedCount === 1 ? "it" : "them"
+                    } nor on anything beneath. Add a latitude and longitude to the sites at the bottom of your hierarchy and everything above them lands on the map automatically.`
+                  : "Sites with a latitude and longitude appear here. Add coordinates to a site to place it on the map."}
+              </span>
+            )
           }
         />
       </div>
     );
   }
 
-  const mappedCount: number = pins.length;
-  const inViewCount: number = countPointsInViewport(pins, viewport);
+  /*
+   * Count the same thing the coverage line NAMES. In "all" mode it talks
+   * about sites, and a marker there can stand for a dozen of them — counting
+   * markers against a site total would report "40 of 1400 sites in view" for
+   * a frame holding every one of them.
+   */
+  const inViewCount: number = countPointsInViewport(
+    props.mode === "all" ? pins : markers,
+    viewport,
+  );
   const isFitted: boolean = viewportsMatch(viewport, fittedViewport);
   const isWholeWorld: boolean = viewportsMatch(viewport, WORLD_VIEWPORT);
+  const coverageLabel: string = describeMapCoverage({
+    mode: props.mode,
+    markerCount: markers.length,
+    inViewCount: inViewCount,
+    siteCount: pins.length,
+    childTypeLabel: props.childTypeLabel,
+  });
 
   return (
     <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm">
       <div className="p-3 sm:p-4">
+        {/*
+         * What the markers mean, and the one control that changes it. A
+         * customer looking at a map that does not match their network needs
+         * the answer to "what am I looking at" before anything else — so it
+         * is written above the map, not buried in a legend below it.
+         */}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <p className="text-xs text-gray-500">
+            {props.mode === "grouped"
+              ? `Each marker is one ${props.childTypeLabel.toLowerCase()} — click to open it.`
+              : "Each marker is one site. Nearby sites share a marker; zoom in to separate them."}
+          </p>
+          <MapModeSwitch
+            mode={props.selectedMode}
+            childTypeLabel={props.childTypeLabel}
+            onModeChange={props.onModeChange}
+          />
+        </div>
         {/*
          * This wrapper is exactly the SVG's box, so the percentage-anchored
          * overlays below line up with the markers they point at. It also
@@ -709,57 +908,52 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
               )}
             </g>
 
-            {/* Clustered site markers. */}
+            {/*
+             * The markers. A CONTAINER — a region, a market, "Corp" — is
+             * drawn as a rounded square, the same shape as the cards it
+             * opens into; a single site stays a round pin. The difference is
+             * a shape, not a hue, so "this is a level you can go into"
+             * survives both a color-blind reader and a grayscale print.
+             */}
             <g>
-              {clusters.map((cluster: GeoCluster): ReactElement => {
-                const members: Array<MapSiteView> = cluster.ids
-                  .map((id: string): MapSiteView | undefined => {
-                    return siteById.get(id);
-                  })
-                  .filter(
-                    (site: MapSiteView | undefined): site is MapSiteView => {
-                      return site !== undefined;
-                    },
-                  );
-                const colorKey: ClusterColorKey = decideClusterColorKey(
-                  members.map((site: MapSiteView) => {
-                    return {
-                      statusPriority: site.statusPriority,
-                      isOperational: site.isOperational,
-                    };
-                  }),
-                );
-                const color: string = CLUSTER_COLORS[colorKey];
+              {markers.map((marker: MapMarker): ReactElement => {
+                const color: string = CLUSTER_COLORS[marker.colorKey];
                 /*
                  * Sized on screen, then converted for this zoom: the marker
                  * is UI, not geography, so it must not grow with the map.
                  */
-                const screenRadius: number = clusterRadius(cluster.totalCount);
-                const radius: number = clusterRadius(
-                  cluster.totalCount,
+                const radius: number = screenLengthToViewportLength(
+                  marker.screenRadius,
                   viewport,
                 );
-                const isCluster: boolean = cluster.totalCount > 1;
-                const label: string = tooltipForCluster(cluster);
-                const key: string = `${cluster.x}:${cluster.y}:${cluster.ids[0]}`;
+                const hasCount: boolean = marker.count > 1;
+                const key: string = marker.key;
                 const activate: () => void = (): void => {
-                  if (cluster.ids.length === 1) {
+                  if (marker.ids.length === 1) {
                     setOpenCluster(null);
-                    props.onSiteClick(cluster.ids[0]!);
+                    props.onSiteClick(marker.ids[0]!);
                   } else {
                     setOpenCluster({
-                      x: cluster.x,
-                      y: cluster.y,
-                      ids: cluster.ids,
+                      x: marker.x,
+                      y: marker.y,
+                      ids: marker.ids,
                     });
                   }
                 };
+                /*
+                 * A square of side 2r covers a good deal more ink than a
+                 * circle of radius r, so containers are drawn slightly
+                 * tighter to keep the two shapes reading at one weight.
+                 */
+                const side: number = radius * 1.78;
+                const haloSide: number = side + ((hasCount ? 4 : 3) * 2) / zoom;
+
                 return (
                   <g
                     key={key}
                     role="button"
                     tabIndex={0}
-                    aria-label={label}
+                    aria-label={marker.tooltip}
                     style={{ cursor: "pointer", outline: "none" }}
                     onClick={() => {
                       // A pan that happened to end on a marker is not a click.
@@ -779,14 +973,22 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                       if (dragState.current) {
                         return;
                       }
-                      setHovered({ x: cluster.x, y: cluster.y, label: label });
+                      setHovered({
+                        x: marker.x,
+                        y: marker.y,
+                        label: marker.tooltip,
+                      });
                     }}
                     onMouseLeave={() => {
                       setHovered(null);
                     }}
                     onFocus={() => {
                       setFocusedKey(key);
-                      setHovered({ x: cluster.x, y: cluster.y, label: label });
+                      setHovered({
+                        x: marker.x,
+                        y: marker.y,
+                        label: marker.tooltip,
+                      });
                     }}
                     onBlur={() => {
                       setFocusedKey(null);
@@ -794,36 +996,74 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                     }}
                   >
                     {/*
-                     * Soft halo in the marker's own color: lifts the pin off
-                     * both a pale landmass and a dark one, and gives a
-                     * multi-site cluster visible extra weight.
+                     * Soft halo in the marker's own color: lifts the marker
+                     * off both a pale landmass and a dark one, and gives a
+                     * marker that stands for many sites visible extra weight.
                      */}
-                    <circle
-                      cx={cluster.x}
-                      cy={cluster.y}
-                      r={radius + (isCluster ? 4 : 3) / zoom}
-                      fill={color}
-                      fillOpacity={0.18}
-                    />
-                    <circle
-                      cx={cluster.x}
-                      cy={cluster.y}
-                      r={radius}
-                      fill={color}
-                      fillOpacity={0.95}
-                      stroke="var(--ou-chart-marker-ring, #ffffff)"
-                      strokeWidth={(isCluster ? 2.5 : 2) / zoom}
-                    />
-                    {isCluster ? (
+                    {marker.isContainer ? (
+                      <rect
+                        x={marker.x - haloSide / 2}
+                        y={marker.y - haloSide / 2}
+                        width={haloSide}
+                        height={haloSide}
+                        rx={haloSide * 0.28}
+                        fill={color}
+                        fillOpacity={0.18}
+                      />
+                    ) : (
+                      <circle
+                        cx={marker.x}
+                        cy={marker.y}
+                        r={radius + (hasCount ? 4 : 3) / zoom}
+                        fill={color}
+                        fillOpacity={0.18}
+                      />
+                    )}
+
+                    {marker.isContainer ? (
+                      <rect
+                        x={marker.x - side / 2}
+                        y={marker.y - side / 2}
+                        width={side}
+                        height={side}
+                        rx={side * 0.26}
+                        fill={color}
+                        fillOpacity={0.95}
+                        stroke="var(--ou-chart-marker-ring, #ffffff)"
+                        strokeWidth={(hasCount ? 2.5 : 2) / zoom}
+                        /*
+                         * An inferred position is drawn as a dashed edge —
+                         * the marker is where this region's sites average
+                         * out, not somewhere anybody pinned.
+                         */
+                        strokeDasharray={
+                          marker.isApproximate
+                            ? `${5 / zoom} ${3 / zoom}`
+                            : undefined
+                        }
+                      />
+                    ) : (
+                      <circle
+                        cx={marker.x}
+                        cy={marker.y}
+                        r={radius}
+                        fill={color}
+                        fillOpacity={0.95}
+                        stroke="var(--ou-chart-marker-ring, #ffffff)"
+                        strokeWidth={(hasCount ? 2.5 : 2) / zoom}
+                      />
+                    )}
+
+                    {hasCount ? (
                       <text
-                        x={cluster.x}
-                        y={cluster.y}
+                        x={marker.x}
+                        y={marker.y}
                         dy="0.36em"
                         textAnchor="middle"
                         fontSize={
-                          (screenRadius >= 14
+                          (marker.screenRadius >= 14
                             ? 13
-                            : screenRadius >= 10
+                            : marker.screenRadius >= 10
                               ? 11
                               : 10) / zoom
                         }
@@ -831,22 +1071,79 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                         fill="#ffffff"
                         style={{ pointerEvents: "none" }}
                       >
-                        {cluster.totalCount}
+                        {marker.count}
                       </text>
                     ) : (
                       <></>
                     )}
+
+                    {/*
+                     * The name, under the marker. This is the difference
+                     * between a map of your network and a scatter of dots:
+                     * "Region 1000" is on the map, where the customer put
+                     * it, instead of only in a tooltip.
+                     *
+                     * paint-order draws the stroke first, so the halo sits
+                     * BEHIND the glyphs and the label stays readable over a
+                     * coastline, a landmass or another marker.
+                     */}
+                    {marker.label && labelPlacements.has(key) ? (
+                      <text
+                        x={marker.x}
+                        /*
+                         * The label's CENTRE, matching the box
+                         * resolveMarkerLabels reserved for it — dy centres
+                         * the glyphs on it the same way the count inside the
+                         * marker is centred.
+                         */
+                        y={
+                          marker.y +
+                          (labelPlacements.get(key) === "above" ? -1 : 1) *
+                            ((marker.isContainer ? side / 2 : radius) +
+                              LABEL_GAP / zoom)
+                        }
+                        dy="0.36em"
+                        textAnchor="middle"
+                        fontSize={LABEL_FONT_SIZE / zoom}
+                        fontWeight={600}
+                        fill="var(--ou-text-secondary, #374151)"
+                        stroke="var(--ou-surface-primary, #ffffff)"
+                        strokeWidth={3 / zoom}
+                        strokeLinejoin="round"
+                        paintOrder="stroke"
+                        style={{ pointerEvents: "none" }}
+                      >
+                        {marker.label}
+                      </text>
+                    ) : (
+                      <></>
+                    )}
+
                     {/* Keyboard focus ring — the marker has no CSS box to outline. */}
                     {focusedKey === key ? (
-                      <circle
-                        cx={cluster.x}
-                        cy={cluster.y}
-                        r={radius + 5 / zoom}
-                        fill="none"
-                        stroke="var(--ou-link, #4f46e5)"
-                        strokeWidth={2 / zoom}
-                        style={{ pointerEvents: "none" }}
-                      />
+                      marker.isContainer ? (
+                        <rect
+                          x={marker.x - side / 2 - 5 / zoom}
+                          y={marker.y - side / 2 - 5 / zoom}
+                          width={side + 10 / zoom}
+                          height={side + 10 / zoom}
+                          rx={(side + 10 / zoom) * 0.26}
+                          fill="none"
+                          stroke="var(--ou-link, #4f46e5)"
+                          strokeWidth={2 / zoom}
+                          style={{ pointerEvents: "none" }}
+                        />
+                      ) : (
+                        <circle
+                          cx={marker.x}
+                          cy={marker.y}
+                          r={radius + 5 / zoom}
+                          fill="none"
+                          stroke="var(--ou-link, #4f46e5)"
+                          strokeWidth={2 / zoom}
+                          style={{ pointerEvents: "none" }}
+                        />
+                      )
                     ) : (
                       <></>
                     )}
@@ -997,17 +1294,52 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
           )}
         </ul>
 
+        {/*
+         * The shape key. Color says how it is doing; SHAPE says what it is —
+         * a level you can open, or a single place. Without this line the
+         * square is decoration.
+         */}
+        {props.mode === "grouped" ? (
+          <ul
+            role="list"
+            className="flex flex-wrap items-center gap-x-3 gap-y-1"
+            aria-label="Marker shape key"
+          >
+            {/*
+             * Colored inline from the marker palette, like the status
+             * swatches above: a Tailwind gray class here would be one of the
+             * steps the dark theme does not recolor, and the swatch has to
+             * be the same neutral in both themes anyway — it is standing in
+             * for a SHAPE, not for a state.
+             */}
+            <li className="flex items-center gap-1.5 text-xs text-gray-600">
+              <span
+                aria-hidden="true"
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-[3px] ring-2 ring-white"
+                style={{ backgroundColor: CLUSTER_COLORS["none"] }}
+              />
+              Group — opens
+            </li>
+            <li className="flex items-center gap-1.5 text-xs text-gray-600">
+              <span
+                aria-hidden="true"
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white"
+                style={{ backgroundColor: CLUSTER_COLORS["none"] }}
+              />
+              Single site
+            </li>
+          </ul>
+        ) : (
+          <></>
+        )}
+
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 sm:ml-auto">
           {/*
            * Once the frame no longer holds everything, say what it does hold
            * — a count that quietly shrinks as you zoom reads as sites
            * disappearing.
            */}
-          <span data-testid="site-geo-map-count">
-            {inViewCount < mappedCount
-              ? `${inViewCount} of ${mappedCount} sites in view`
-              : `${mappedCount} site${mappedCount === 1 ? "" : "s"} mapped`}
-          </span>
+          <span data-testid="site-geo-map-count">{coverageLabel}</span>
           {/* Coordinates the projection cannot read at all. */}
           {unmappableCount > 0 ? (
             <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-600">
@@ -1018,6 +1350,58 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
           )}
         </div>
       </div>
+
+      {/*
+       * What the map is NOT showing. A level whose card sits right under the
+       * map but whose marker is nowhere on it is the single most confusing
+       * thing this page can do, so the omission is stated, named, and made
+       * fixable — every one of these needs coordinates on something beneath
+       * it.
+       */}
+      {props.unplacedSites.length > 0 ? (
+        <div
+          data-testid="site-geo-map-unplaced"
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-gray-100 px-3 py-2.5 text-xs text-gray-500 sm:px-4"
+        >
+          <Icon
+            className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+            icon={IconProp.MapPin}
+          />
+          <span>
+            Not on the map — no coordinates yet
+            {props.unplacedSites.length > UNPLACED_NAMES_SHOWN
+              ? ` (${props.unplacedSites.length})`
+              : ""}
+            :
+          </span>
+          {props.unplacedSites
+            .slice(0, UNPLACED_NAMES_SHOWN)
+            .map((site: MapUnplacedSiteView): ReactElement => {
+              return (
+                <button
+                  key={site.id}
+                  type="button"
+                  title={`${site.name} — ${site.siteType}. Open it and add coordinates to a site beneath it.`}
+                  className="inline-flex max-w-full items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 font-medium text-gray-600 transition hover:border-indigo-300 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  onClick={() => {
+                    props.onSiteClick(site.id);
+                  }}
+                >
+                  <span className="truncate">{site.name}</span>
+                </button>
+              );
+            })}
+          {props.unplacedSites.length > UNPLACED_NAMES_SHOWN ? (
+            <span className="text-gray-400">
+              +{props.unplacedSites.length - UNPLACED_NAMES_SHOWN} more
+            </span>
+          ) : (
+            <></>
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
