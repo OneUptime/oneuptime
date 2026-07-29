@@ -1,43 +1,6 @@
-<!-- GA4 CTA Click Tracking -->
-<script>
-(function() {
-  // Track clicks on all CTA links (register + demo)
-  document.addEventListener('click', function(e) {
-    var link = e.target.closest('a');
-    if (!link) return;
-
-    var href = link.getAttribute('href') || '';
-    var eventName = null;
-    var eventLabel = '';
-
-    if (href.indexOf('/accounts/register') !== -1) {
-      eventName = 'cta_get_started';
-      eventLabel = link.textContent.trim();
-    } else if (href.indexOf('/enterprise/demo') !== -1) {
-      eventName = 'cta_request_demo';
-      eventLabel = link.textContent.trim();
-    }
-
-    if (eventName) {
-      // GA4 via gtag
-      if (typeof gtag !== 'undefined') {
-        gtag('event', eventName, {
-          event_category: 'conversion',
-          event_label: eventLabel,
-          link_url: href
-        });
-      }
-      // GTM dataLayer (backup)
-      if (typeof dataLayer !== 'undefined') {
-        dataLayer.push({
-          event: eventName,
-          eventCategory: 'conversion',
-          eventAction: eventName,
-          eventLabel: eventLabel,
-          linkUrl: href
-        });
-      }
-    }
-  });
-})();
-</script>
+<!--
+  CTA tracking is centralized in Home/Views/head-basic.ejs.
+  Keep this partial as a no-op while existing templates still include it so a
+  single click produces one dataLayer event instead of duplicate gtag and
+  dataLayer pushes.
+-->
