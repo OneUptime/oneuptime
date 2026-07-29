@@ -1,6 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService, { EntityManager } from "./DatabaseService";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -363,11 +364,74 @@ export class Service extends DatabaseService<MonitorProbe> {
   }
 
   /*
+   * Removing a probe from a monitor changes the same aggregate that adding one
+   * or toggling isEnabled changes - Monitor.isNoProbeEnabledOnThisMonitor and
+   * isAllProbesDisconnectedFromThisMonitor. Without these hooks, deleting the
+   * last probe left the monitor claiming it was still being watched: no
+   * "Probes Not Enabled" banner and no owner notification, even though nothing
+   * was monitoring it any more.
+   *
+   * The monitorIds have to be read before the delete, because after it the
+   * rows are gone.
+   */
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<MonitorProbe>,
+  ): Promise<OnDelete<MonitorProbe>> {
+    const itemsToDelete: Array<MonitorProbe> = await this.findBy({
+      query: deleteBy.query,
+      limit: deleteBy.limit,
+      skip: deleteBy.skip,
+      select: {
+        monitorId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      deleteBy,
+      carryForward: {
+        monitorIds: itemsToDelete
+          .map((item: MonitorProbe) => {
+            return item.monitorId;
+          })
+          .filter((monitorId: ObjectID | undefined) => {
+            return Boolean(monitorId);
+          }) as Array<ObjectID>,
+      },
+    };
+  }
+
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<MonitorProbe>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<MonitorProbe>> {
+    const monitorIds: Array<ObjectID> =
+      (onDelete.carryForward?.monitorIds as Array<ObjectID>) || [];
+
+    const refreshedMonitorIds: Set<string> = new Set();
+
+    for (const monitorId of monitorIds) {
+      // A bulk delete can touch the same monitor many times over.
+      if (refreshedMonitorIds.has(monitorId.toString())) {
+        continue;
+      }
+
+      refreshedMonitorIds.add(monitorId.toString());
+
+      await this.refreshMonitorStatusSafely(monitorId);
+    }
+
+    return onDelete;
+  }
+
+  /*
    * Refresh a single monitor's aggregate probe status without letting a
    * failure bubble up. These refreshes run in post-commit hooks
-   * (onCreateSuccess / onUpdateSuccess) after the MonitorProbe row is already
-   * persisted, so a status-refresh error must not turn a successful save into
-   * a 500 for the user — log it instead.
+   * (onCreateSuccess / onUpdateSuccess / onDeleteSuccess) after the
+   * MonitorProbe row is already persisted, so a status-refresh error must not
+   * turn a successful save into a 500 for the user — log it instead.
    */
   private async refreshMonitorStatusSafely(monitorId: ObjectID): Promise<void> {
     try {
