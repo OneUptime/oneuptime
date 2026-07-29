@@ -142,6 +142,18 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Sparkles}
+        />
+        <SideMenuItem
+          link={{
             title: "Costs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_COSTS] as Route,
