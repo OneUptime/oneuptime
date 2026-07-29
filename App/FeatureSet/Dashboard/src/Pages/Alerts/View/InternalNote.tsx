@@ -73,6 +73,7 @@ const AlertDelete: FunctionComponent<PageComponentProps> = (
         data: {
           template: data.template,
         },
+        headers: ModelAPI.getCommonHeaders(),
       });
 
     if (response instanceof HTTPErrorResponse) {

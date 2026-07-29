@@ -61,6 +61,8 @@ export default class MonitorTemplateAPI extends BaseAPI<
           const props: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+          CommonAPI.assertTenantScoped(props);
+
           const fields: Array<string> | undefined = readSyncFields(req);
 
           const result: SyncLinkedMonitorsResult =
@@ -98,6 +100,8 @@ export default class MonitorTemplateAPI extends BaseAPI<
           const props: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+          CommonAPI.assertTenantScoped(props);
+
           const fields: Array<string> | undefined = readSyncFields(req);
 
           await MonitorTemplateService.syncToMonitor({
@@ -133,6 +137,8 @@ export default class MonitorTemplateAPI extends BaseAPI<
           const props: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
 
+          CommonAPI.assertTenantScoped(props);
+
           await MonitorTemplateService.linkMonitor({
             monitorTemplateId,
             monitorId,
@@ -164,6 +170,8 @@ export default class MonitorTemplateAPI extends BaseAPI<
 
           const props: DatabaseCommonInteractionProps =
             await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          CommonAPI.assertTenantScoped(props);
 
           await MonitorTemplateService.unlinkMonitor({
             monitorTemplateId,

@@ -83,6 +83,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
           template: data.template,
           noteType: "public",
         },
+        headers: ModelAPI.getCommonHeaders(),
       });
 
     if (response instanceof HTTPErrorResponse) {

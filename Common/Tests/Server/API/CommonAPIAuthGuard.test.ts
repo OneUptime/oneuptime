@@ -315,3 +315,70 @@ describe("CommonAPI.assertAuthenticatedProjectMember", () => {
     });
   });
 });
+
+/*
+ * assertTenantScoped is the narrower sibling: routes that thread these props
+ * into a tenant-scoped read need the tenant id to be present, and a caller
+ * that forgot ModelAPI.getCommonHeaders() should be told exactly that instead
+ * of getting the read's "You do not have permissions to read <model>. You need
+ * one of these permissions: ..." — which lists permissions the caller holds
+ * and so reads as a product bug.
+ */
+describe("CommonAPI.assertTenantScoped", () => {
+  test("throws BadDataException naming the missing header when tenantId is absent", () => {
+    const props: DatabaseCommonInteractionProps = buildProps({
+      tenantId: undefined,
+      userId: ObjectID.generate(),
+    });
+
+    const thrown: unknown = captureThrown(() => {
+      CommonAPI.assertTenantScoped(props);
+    });
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect((thrown as BadDataException).message).toBe(
+      "Project ID is required. Send the tenantid header with this request.",
+    );
+  });
+
+  test("the message points at the header rather than at permissions", () => {
+    const thrown: unknown = captureThrown(() => {
+      CommonAPI.assertTenantScoped({});
+    });
+
+    /*
+     * The whole point of the guard: whatever it says must not look like the
+     * permissions error it replaces.
+     */
+    expect((thrown as BadDataException).message).toContain("tenantid");
+    expect((thrown as BadDataException).message).not.toContain("permission");
+  });
+
+  test("returns the tenantId instance when it is present", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const props: DatabaseCommonInteractionProps = buildProps({
+      tenantId: projectId,
+      userId: ObjectID.generate(),
+    });
+
+    expect(CommonAPI.assertTenantScoped(props)).toBe(projectId);
+  });
+
+  test("does not require membership — that stays with the tenant-scoped read", () => {
+    /*
+     * assertTenantScoped is a diagnostic for a missing header, not an
+     * authorization check. A caller who sends a tenant id for a project they
+     * are not a member of passes here and is rejected by the read itself, so
+     * adding this guard cannot loosen or tighten access.
+     */
+    const props: DatabaseCommonInteractionProps = buildProps({
+      tenantId: ObjectID.generate(),
+      userId: undefined,
+      userTenantAccessPermission: undefined,
+    });
+
+    expect(() => {
+      CommonAPI.assertTenantScoped(props);
+    }).not.toThrow();
+  });
+});

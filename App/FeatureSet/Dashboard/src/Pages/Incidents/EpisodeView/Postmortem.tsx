@@ -174,6 +174,7 @@ const EpisodePostmortem: FunctionComponent<
         data: {
           template: data.template,
         },
+        headers: ModelAPI.getCommonHeaders(),
       });
 
     if (response instanceof HTTPErrorResponse) {

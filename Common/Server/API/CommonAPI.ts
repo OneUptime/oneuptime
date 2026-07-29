@@ -12,6 +12,29 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 
 export default class CommonAPI {
   /*
+   * ModelAPI attaches the `tenantid` header on every request it makes, but a
+   * custom route called with a raw API.post/API.get gets no header unless the
+   * call site adds ModelAPI.getCommonHeaders() itself. Without it
+   * ProjectMiddleware.getProjectId returns null, getUserMiddleware never
+   * populates userTenantAccessPermission, and the eventual tenant-scoped read
+   * fails with "You do not have permissions to read <model>" listing
+   * permissions the caller actually holds. Call this first on any route that
+   * threads getDatabaseCommonInteractionProps into a tenant-scoped read so the
+   * real cause is reported instead.
+   */
+  public static assertTenantScoped(
+    databaseProps: DatabaseCommonInteractionProps,
+  ): ObjectID {
+    if (!databaseProps.tenantId) {
+      throw new BadDataException(
+        "Project ID is required. Send the tenantid header with this request.",
+      );
+    }
+
+    return databaseProps.tenantId;
+  }
+
+  /*
    * getUserMiddleware lets unauthenticated requests through as "public" and
    * takes the tenant id from a caller-supplied header — custom endpoints
    * that disclose project data must require an authenticated member of the
