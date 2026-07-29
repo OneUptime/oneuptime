@@ -183,9 +183,13 @@ describe("Sites table owns the CSV import", () => {
       .split("}}")[0]!;
     expect(completeBody).toContain("setRefreshToggle(Date.now().toString());");
 
-    // The same toggle has to be wired into all three consumers.
+    /*
+     * The same toggle has to be wired into all three consumers. The summary
+     * strip carries the tile drill-down props too, so match the opening tag
+     * and its toggle rather than the whole (now longer) prop list.
+     */
     expect(source).toContain(
-      "<SiteSummaryCards refreshToggle={refreshToggle} />",
+      squash("<SiteSummaryCards refreshToggle={refreshToggle}"),
     );
     expect(source).toContain(
       "<SiteHierarchyTree refreshToggle={refreshToggle} />",

@@ -1,3 +1,9 @@
+import {
+  SITE_SUMMARY_TILES,
+  SiteSummaryFilterKey,
+  SiteSummaryTile,
+  SiteSummaryTileAction,
+} from "./SiteSummaryFilter";
 import ObjectID from "Common/Types/ObjectID";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -19,10 +25,22 @@ import React, {
  * are rolling up unhealthy, and how many devices are still unassigned —
  * the number that tells you whether the hierarchy actually covers the
  * fleet.
+ *
+ * Every tile is a drill-down. Three of them narrow the sites table below;
+ * Unassigned Devices counts devices, so it hands over to the device list.
+ * SiteSummaryFilter owns that mapping.
  */
 
 export interface ComponentProps {
   refreshToggle?: string | undefined;
+  // The tile the sites table is currently drilled into, if any.
+  selectedFilterKey?: SiteSummaryFilterKey | null | undefined;
+  /*
+   * Fired with the tile the user activated. The page decides what that
+   * means — narrowing the table, clearing it, or leaving for the device
+   * list — because only the page can navigate.
+   */
+  onTileClick?: ((tile: SiteSummaryTile) => void) | undefined;
 }
 
 interface SummaryCounts {
@@ -110,55 +128,82 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  interface SummaryTile {
-    key: string;
-    label: string;
-    count: number;
-    attentionClassName: string;
-    caption: string;
-  }
+  const selectedFilterKey: SiteSummaryFilterKey | null =
+    props.selectedFilterKey || null;
 
-  const tiles: Array<SummaryTile> = [
-    {
-      key: "total-sites",
-      label: "Sites",
-      count: counts?.totalSites || 0,
-      attentionClassName: "text-gray-900",
-      caption: "Across the whole hierarchy.",
-    },
-    {
-      key: "unhealthy-sites",
-      label: "Unhealthy Sites",
-      count: counts?.unhealthySites || 0,
-      attentionClassName: "text-red-600",
-      caption: "Rolling up a non-operational status.",
-    },
-    {
-      key: "sites-no-data",
-      label: "Sites Without Data",
-      count: counts?.sitesWithNoData || 0,
-      attentionClassName: "text-gray-500",
-      caption: "No health rollup yet — no monitored devices below.",
-    },
-    {
-      key: "devices-without-site",
-      label: "Unassigned Devices",
-      count: counts?.devicesWithoutSite || 0,
-      attentionClassName: "text-amber-600",
-      caption: "Devices not assigned to any site.",
-    },
-  ];
+  type IsTileSelectedFunction = (tile: SiteSummaryTile) => boolean | undefined;
+
+  /*
+   * Only the tiles that describe the table below can be "on". The total reads
+   * as selected when nothing is filtered — it is the unfiltered list, which is
+   * what the table is showing.
+   *
+   * Unassigned Devices returns undefined rather than false: it navigates away
+   * instead of toggling, and `undefined` is what keeps InfoCard from
+   * announcing it as a toggle button that is currently off.
+   */
+  const isTileSelected: IsTileSelectedFunction = (
+    tile: SiteSummaryTile,
+  ): boolean | undefined => {
+    if (tile.action === SiteSummaryTileAction.FilterSites) {
+      return Boolean(tile.filterKey) && tile.filterKey === selectedFilterKey;
+    }
+
+    if (tile.action === SiteSummaryTileAction.ClearFilter) {
+      return selectedFilterKey === null;
+    }
+
+    return undefined;
+  };
+
+  type TileAriaLabelFunction = (
+    tile: SiteSummaryTile,
+    count: number,
+    isSelected: boolean | undefined,
+  ) => string;
+
+  const getTileAriaLabel: TileAriaLabelFunction = (
+    tile: SiteSummaryTile,
+    count: number,
+    isSelected: boolean | undefined,
+  ): string => {
+    if (tile.action === SiteSummaryTileAction.ShowUnassignedDevices) {
+      return `${tile.label}: ${count}. Activate to open these on the device list.`;
+    }
+
+    if (isSelected) {
+      return `${tile.label}: ${count}. Showing these in the list below.`;
+    }
+
+    return `${tile.label}: ${count}. Activate to show these in the list below.`;
+  };
 
   return (
     <div
       data-testid="network-site-summary-cards"
       className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
     >
-      {tiles.map((tile: SummaryTile) => {
+      {SITE_SUMMARY_TILES.map((tile: SiteSummaryTile) => {
+        const count: number = counts?.[tile.countField] || 0;
+        const isSelected: boolean | undefined = isTileSelected(tile);
+
         return (
           <InfoCard
             key={tile.key}
             title={tile.label}
+            /*
+             * The tiles stay inert until the counts land: clicking a skeleton
+             * would filter the list to a number nobody has read yet.
+             */
+            onClick={
+              props.onTileClick && !isLoading
+                ? () => {
+                    props.onTileClick?.(tile);
+                  }
+                : undefined
+            }
+            isSelected={isSelected}
+            ariaLabel={getTileAriaLabel(tile, count, isSelected)}
             value={
               isLoading ? (
                 <div className="mt-1 space-y-2">
@@ -170,10 +215,10 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
                   <div
                     data-testid={`network-site-stat-${tile.key}`}
                     className={`text-3xl font-semibold ${
-                      tile.count > 0 ? tile.attentionClassName : "text-gray-900"
+                      count > 0 ? tile.attentionClassName : "text-gray-900"
                     }`}
                   >
-                    {tile.count}
+                    {count}
                   </div>
                   <div className="mt-2 text-sm text-gray-500">
                     {tile.caption}
