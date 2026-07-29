@@ -403,6 +403,7 @@ export default class IncidentEpisodeStateTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )

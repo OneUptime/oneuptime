@@ -401,6 +401,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )
