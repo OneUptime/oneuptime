@@ -14,11 +14,14 @@ export default class CommonAPI {
   /*
    * Custom (non-CRUD) endpoints whose path carries only a resource id give
    * getUserMiddleware no way to learn the project except the `tenantid`
-   * header. When a caller forgets it, the request still reaches the handler —
-   * just with no tenant permissions — and the eventual tenant-scoped read
-   * fails as "You do not have permissions to read <model>", which reads like a
-   * missing role when it is really a missing header. Assert the scope up front
-   * so the caller gets the real cause.
+   * header. ModelAPI attaches that header to every request it makes, but a
+   * custom route reached with a raw API.post/API.get gets none unless the call
+   * site adds ModelAPI.getCommonHeaders() itself. When a caller forgets it,
+   * the request still reaches the handler — just with no tenant permissions —
+   * and the eventual tenant-scoped read fails as "You do not have permissions
+   * to read <model>", which reads like a missing role when it is really a
+   * missing header. Assert the scope up front so the caller gets the real
+   * cause.
    *
    * This deliberately checks the tenant only, not the user: API-key callers
    * are authenticated by ProjectMiddleware and carry tenant permissions

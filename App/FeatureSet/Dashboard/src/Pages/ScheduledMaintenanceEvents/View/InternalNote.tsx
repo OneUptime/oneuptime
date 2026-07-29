@@ -79,6 +79,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
           template: data.template,
           noteType: "internal",
         },
+        headers: ModelAPI.getCommonHeaders(),
       });
 
     if (response instanceof HTTPErrorResponse) {

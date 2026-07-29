@@ -416,6 +416,19 @@ describe("CommonAPI.assertTenantScoped", () => {
     expect((thrown as Exception).message).toContain("tenantid");
   });
 
+  test("the message points at the header rather than at permissions", () => {
+    const thrown: unknown = captureThrown(() => {
+      CommonAPI.assertTenantScoped({});
+    });
+
+    /*
+     * The whole point of the guard: whatever it says must not look like the
+     * permissions error it replaces.
+     */
+    expect((thrown as Exception).message).toContain("tenantid");
+    expect((thrown as Exception).message).not.toContain("permission");
+  });
+
   test("returns the tenant id when the request is project scoped", () => {
     const projectId: ObjectID = ObjectID.generate();
     const props: DatabaseCommonInteractionProps = buildProps({
@@ -441,6 +454,24 @@ describe("CommonAPI.assertTenantScoped", () => {
       tenantId: projectId,
       userId: undefined,
       userTenantAccessPermission: permissions,
+    });
+
+    expect(() => {
+      CommonAPI.assertTenantScoped(props);
+    }).not.toThrow();
+  });
+
+  test("does not require membership — that stays with the tenant-scoped read", () => {
+    /*
+     * assertTenantScoped is a diagnostic for a missing header, not an
+     * authorization check. A caller who sends a tenant id for a project they
+     * are not a member of passes here and is rejected by the read itself, so
+     * adding this guard cannot loosen or tighten access.
+     */
+    const props: DatabaseCommonInteractionProps = buildProps({
+      tenantId: ObjectID.generate(),
+      userId: undefined,
+      userTenantAccessPermission: undefined,
     });
 
     expect(() => {
