@@ -11,7 +11,7 @@ import {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import Icon, { IconType, SizeProp } from "Common/UI/Components/Icon/Icon";
+import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import API from "Common/UI/Utils/API/API";
@@ -416,8 +416,6 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
     <Modal
       title={`Failed jobs · ${props.queueName} queue`}
       description="The most recent jobs this queue's workers failed to process, with full detail. Use the failure reason, stack trace, job body and logs to diagnose what is wedging the worker."
-      icon={IconProp.Error}
-      iconType={IconType.Danger}
       modalWidth={ModalWidth.Large}
       isBodyLoading={isLoading}
       submitButtonText="Refresh"
