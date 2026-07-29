@@ -22,10 +22,11 @@ import logger from "Common/Server/Utils/Logger";
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * Floor for recurring rescans. A subnet sweep is heavy (up to 4096 hosts,
- * one probe at a time), so anything tighter than this would keep the probe
- * permanently busy. Lower stored intervals are clamped, not rejected — the
- * scan still recurs, just no faster than this.
+ * Floor for recurring rescans. A discovery sweep is heavy (up to
+ * ScanTargetUtil.MAX_SCAN_HOSTS addresses, one probe at a time), so anything
+ * tighter than this would keep the probe permanently busy. Lower stored
+ * intervals are clamped, not rejected — the scan still recurs, just no faster
+ * than this.
  */
 const MINIMUM_RESCAN_INTERVAL_IN_MINUTES: number = 15;
 
@@ -88,12 +89,16 @@ router.post(
 
       for (const scan of scans) {
         /*
-         * Claim via the hook-free single-statement write: the model and
-         * service have no update hooks, workflow, realtime, or audit
-         * decorators, so the full updateOneById pipeline (permission
-         * pre-fetch SELECT + row re-fetch + save() transaction) was pure
-         * overhead — three extra pool round-trips on a route the probe
-         * polls every minute and whose response it synchronously waits on.
+         * Claim via the hook-free single-statement write: the model has no
+         * workflow, realtime, or audit decorators, and the service's only
+         * update hook validates the scan target (`cidr`) — a column this
+         * payload does not touch. So the full updateOneById pipeline
+         * (permission pre-fetch SELECT + row re-fetch + save() transaction)
+         * is pure overhead — three extra pool round-trips on a route the
+         * probe polls every minute and whose response it synchronously
+         * waits on. Keep the payload disjoint from `cidr`; the disjointness
+         * is pinned by Common/Tests/Server/Services/
+         * DiscoveryScanClaimHookFreeSafety.test.ts.
          *
          * Plain object, NOT a model instance: a `new
          * NetworkDeviceDiscoveryScan()` payload carries non-column base

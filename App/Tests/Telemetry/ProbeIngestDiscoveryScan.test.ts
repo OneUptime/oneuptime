@@ -208,7 +208,12 @@ describe("POST /probe/discovery-scan/list", () => {
      * hook-free single-statement write. The probe synchronously waits on
      * this route every minute, so the claim must not pay the full
      * updateOneById pipeline (permission pre-fetch + row re-fetch + save()
-     * transaction) for a model with no update hooks.
+     * transaction).
+     *
+     * "and nothing else" is load-bearing, not cosmetic: the service's
+     * onBeforeUpdate validates the scan target, and skipping hooks is only
+     * safe while the claim payload stays disjoint from the `cidr` column
+     * that hook checks. Adding `cidr` here fails this assertion.
      */
     expect(scanService.updateOneById).not.toHaveBeenCalled();
     expect(scanService.updateColumnsByIdWithoutHooks).toHaveBeenCalledTimes(1);

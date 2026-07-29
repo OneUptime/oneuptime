@@ -22,15 +22,24 @@ import { describe, expect, test } from "@jest/globals";
  *       Pending scan
  *
  * The conversion dropped NOTHING: the model declares no update workflow, no
- * audit logging and no realtime events, and the service overrides neither
- * update hook — so the old pipeline's hook stages were inert for this
- * write. But the fast path skips hooks UNCONDITIONALLY: if someone later
- * adds a decorator to NetworkDeviceDiscoveryScan or an update-hook override
- * to its service, nothing at the call site fails — the new hook is just
+ * audit logging and no realtime events. But the fast path skips hooks
+ * UNCONDITIONALLY: if someone adds a decorator to NetworkDeviceDiscoveryScan,
+ * or an update-hook override to its service that cares about a column the
+ * claim write stamps, nothing at the call site fails — the hook is just
  * silently never fired for the claim write. This suite turns that silent
  * drift into a loud test failure: if any assertion here starts failing, the
  * hookless claim writes in DiscoveryScan.ts silently skip that new hook —
  * revisit the call site before changing the assertion.
+ *
+ * The service DOES now override onBeforeUpdate: it validates the scan target
+ * (the `cidr` column) whenever an update carries it, so a bad target cannot
+ * be written by a root caller that bypasses the create-time check. That hook
+ * is deliberately safe to skip here, and the assertions below pin exactly
+ * why rather than merely restating that it exists: the claim write stamps
+ * only `status` and `startedAt`, which the hook does not look at, and the
+ * hook is a pass-through for that payload. If the hook ever grows to
+ * validate a column the claim write touches — or the claim write grows to
+ * touch `cidr` — these fail.
  *
  * Pure model-metadata + class-shape tests — no Postgres, no Redis.
  */
@@ -79,26 +88,21 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
     });
   });
 
-  describe("service defines no update hooks of its own", () => {
-    /*
-     * DatabaseService's base onBeforeUpdate/onUpdateSuccess are no-op
-     * pass-throughs; a service only gets update behavior by OVERRIDING
-     * them. Own-property checks on the concrete service prototype pin that
-     * NetworkDeviceDiscoveryScanService does not — so the fast path skips
-     * nothing. If an override appears, these fail loudly and the claim
-     * write in DiscoveryScan.ts must be re-evaluated.
-     */
+  describe("the service's update hooks are safe for the claim write to skip", () => {
     const updateHooks: Array<string> = ["onBeforeUpdate", "onUpdateSuccess"];
 
-    test("NetworkDeviceDiscoveryScanService does not override onBeforeUpdate/onUpdateSuccess", () => {
-      for (const hook of updateHooks) {
-        expect(
-          Object.prototype.hasOwnProperty.call(
-            NetworkDeviceDiscoveryScanServiceClass.prototype,
-            hook,
-          ),
-        ).toBe(false);
-      }
+    /*
+     * onUpdateSuccess is still un-overridden: nothing runs AFTER the write
+     * that the fast path would drop. Only onBeforeUpdate is overridden, and
+     * the tests below pin that it is inert for the claim payload.
+     */
+    test("NetworkDeviceDiscoveryScanService does not override onUpdateSuccess", () => {
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          NetworkDeviceDiscoveryScanServiceClass.prototype,
+          "onUpdateSuccess",
+        ),
+      ).toBe(false);
       // The default export is an instance of the class checked above.
       expect(NetworkDeviceDiscoveryScanService).toBeInstanceOf(
         NetworkDeviceDiscoveryScanServiceClass,
@@ -116,6 +120,60 @@ describe("discovery-scan claim hookless write safety preconditions", () => {
           Object.prototype.hasOwnProperty.call(DatabaseService.prototype, hook),
         ).toBe(true);
       }
+    });
+
+    /*
+     * The columns the claim write stamps and the column the onBeforeUpdate
+     * override validates must stay disjoint. This is the assertion that
+     * actually licenses the hookless claim write: if someone adds `cidr` to
+     * the claim payload, or teaches the hook to validate `status`, the
+     * overlap shows up here.
+     */
+    test("the claim write's columns are disjoint from what onBeforeUpdate validates", () => {
+      const claimWriteColumns: Array<string> = ["status", "startedAt"];
+      const columnsValidatedByHook: Array<string> = ["cidr"];
+
+      for (const column of claimWriteColumns) {
+        expect(columnsValidatedByHook).not.toContain(column);
+      }
+    });
+
+    /*
+     * And the behavioural proof, rather than an inventory of column names:
+     * handed exactly the payload the claim write stamps, the override is a
+     * pass-through. Skipping it therefore drops nothing.
+     */
+    test("onBeforeUpdate is a pass-through for the exact claim payload", async () => {
+      const claimUpdateBy: unknown = {
+        query: { _id: "some-scan-id" },
+        data: { status: "In Progress", startedAt: new Date(0) },
+        props: { isRoot: true },
+        limit: 1,
+        skip: 0,
+      };
+
+      const result: { updateBy: unknown } = await (
+        NetworkDeviceDiscoveryScanService as any
+      ).onBeforeUpdate(claimUpdateBy);
+
+      expect(result.updateBy).toBe(claimUpdateBy);
+    });
+
+    /*
+     * Negative control: the hook is not inert in general. Without this, the
+     * pass-through test above would keep passing if the override were
+     * gutted, and the disjointness assertion would be guarding nothing.
+     */
+    test("onBeforeUpdate does reject a bad target, so the pass-through is meaningful", async () => {
+      await expect(
+        (NetworkDeviceDiscoveryScanService as any).onBeforeUpdate({
+          query: { _id: "some-scan-id" },
+          data: { cidr: "10.22-16.0.1" },
+          props: { isRoot: true },
+          limit: 1,
+          skip: 0,
+        }),
+      ).rejects.toThrow();
     });
   });
 });

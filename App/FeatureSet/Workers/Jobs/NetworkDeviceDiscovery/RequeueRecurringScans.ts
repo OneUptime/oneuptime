@@ -27,10 +27,12 @@ import logger from "Common/Server/Utils/Logger";
  * Clearing them here would only destroy the last good inventory.
  */
 /*
- * A subnet sweep is bounded work: 4096 hosts / 32 workers with 1s ping +
- * 2s SNMP timeouts finishes in minutes. A scan still In Progress after
- * this long means the probe that claimed it died mid-scan (crash,
- * redeploy, decommission) and will never report back.
+ * A discovery sweep is bounded work: at the ScanTargetUtil.MAX_SCAN_HOSTS
+ * ceiling (32,768 addresses) 32 workers with 1s ping + 2s SNMP timeouts
+ * finish in well under an hour even when the ICMP pre-sweep is unavailable
+ * and every address is SNMP-probed directly. A scan still In Progress after
+ * this long means the probe that claimed it died mid-scan (crash, redeploy,
+ * decommission) and will never report back.
  */
 const STALE_IN_PROGRESS_HOURS: number = 2;
 
