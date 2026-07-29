@@ -3,12 +3,16 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
+import ImportSitesFromCsvModal from "../../Components/NetworkSite/ImportSitesFromCsvModal";
 import SiteHierarchyTree from "../../Components/NetworkSite/SiteHierarchyTree";
 import SiteSummaryCards from "../../Components/NetworkSite/SiteSummaryCards";
 import Route from "Common/Types/API/Route";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -23,10 +27,13 @@ const NetworkSites: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   /*
-   * Bumped when the table creates a site so the summary cards and the
-   * hierarchy tree refetch without a page reload.
+   * Bumped when sites change — a create from the table, or a CSV import — so
+   * the table, the summary cards and the hierarchy tree all refetch without a
+   * page reload.
    */
   const [refreshToggle, setRefreshToggle] = useState<string>("");
+
+  const [showImportModal, setShowImportModal] = useState<boolean>(false);
 
   return (
     <Fragment>
@@ -35,6 +42,7 @@ const NetworkSites: FunctionComponent<
         <SiteHierarchyTree refreshToggle={refreshToggle} />
       </div>
       <ModelTable<NetworkSite>
+        refreshToggle={refreshToggle}
         onCreateSuccess={(item: NetworkSite): Promise<NetworkSite> => {
           setRefreshToggle(Date.now().toString());
           return Promise.resolve(item);
@@ -53,6 +61,22 @@ const NetworkSites: FunctionComponent<
           title: "Network Sites",
           description:
             "Group your network devices into a drill-down hierarchy — regions, franchisees, markets, units. Each site rolls up the health of everything below it.",
+          buttons: [
+            /*
+             * OUTLINE, not NORMAL/PRIMARY: BaseModelTable promotes the first
+             * NORMAL/PRIMARY button to the header slot, and bulk import
+             * belongs in the ⋯ overflow next to the other table-wide actions
+             * — the same place every other bulk import in the product lives.
+             */
+            {
+              title: "Import from CSV",
+              buttonStyle: ButtonStyleType.OUTLINE,
+              icon: IconProp.Upload,
+              onClick: () => {
+                setShowImportModal(true);
+              },
+            } as CardButtonSchema,
+          ],
         }}
         showViewIdButton={true}
         filters={[
@@ -313,6 +337,22 @@ const NetworkSites: FunctionComponent<
           );
         }}
       />
+
+      {showImportModal && (
+        <ImportSitesFromCsvModal
+          onClose={() => {
+            setShowImportModal(false);
+          }}
+          onImportComplete={() => {
+            /*
+             * Fires while the modal is still open on its results, so the
+             * table and the rollups behind it are already current when the
+             * user closes it.
+             */
+            setRefreshToggle(Date.now().toString());
+          }}
+        />
+      )}
     </Fragment>
   );
 };
