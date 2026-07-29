@@ -6,6 +6,7 @@ import {
   getClearQuery,
   getRepairQuery,
 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1785320000000-RepairCrossProjectIncidentReferences";
+import { RepairCrossProjectMonitorStatusReferences1785240000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1785240000000-RepairCrossProjectMonitorStatusReferences";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AlertEpisodeStateTimeline from "../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
@@ -178,16 +179,65 @@ describe("RepairCrossProjectIncidentReferences migration", () => {
       }
     });
 
-    test("matches by name first, then role, then nearest order", async () => {
-      const sql: string = getRepairQuery(CROSS_PROJECT_REFERENCES[0]!);
+    test("never lets a name match cross a role boundary", async () => {
+      /*
+       * A project may have a custom state literally called "Resolved" that is
+       * NOT its resolved state. If a bare name match can win, a resolved
+       * incident is silently repointed at a non-resolved state — and the
+       * migration is one-way. So every branch that can win before the bare
+       * name match must carry the role predicate.
+       */
+      for (const reference of CROSS_PROJECT_REFERENCES) {
+        if (reference.roleColumns.length === 0) {
+          continue;
+        }
 
-      const byName: number = sql.indexOf(`lower(x."name") = lower(b.ref_name)`);
-      const byRole: number = sql.indexOf(`x."isCreatedState" = b.role_`);
-      const byOrder: number = sql.indexOf(`abs(x."order" - b.ref_order)`);
+        const sql: string = getRepairQuery(reference);
+        const roleColumn: string = reference.roleColumns[0]!;
 
-      expect(byName).toBeGreaterThan(-1);
-      expect(byRole).toBeGreaterThan(byName);
-      expect(byOrder).toBeGreaterThan(byRole);
+        const nameAndRole: number = sql.indexOf(
+          `AND lower(x."name") = lower(b.ref_name)`,
+        );
+        const bareName: number = sql.indexOf(
+          `x."projectId" = b.project_id AND lower(x."name") = lower(b.ref_name)`,
+        );
+        const firstRole: number = sql.indexOf(
+          `x."${roleColumn}" = b.role_${roleColumn}`,
+        );
+
+        expect(nameAndRole).toBeGreaterThan(-1);
+        expect(firstRole).toBeGreaterThan(-1);
+        expect(bareName).toBeGreaterThan(-1);
+
+        // Both role-bearing branches are ahead of the bare name match.
+        expect(bareName).toBeGreaterThan(nameAndRole);
+        expect(bareName).toBeGreaterThan(firstRole);
+
+        // And the role predicate appears in exactly the two leading branches.
+        expect(
+          (
+            sql.match(
+              new RegExp(`x\\."${roleColumn}" = b\\.role_${roleColumn}`, "g"),
+            ) || []
+          ).length,
+        ).toBe(2);
+      }
+    });
+
+    test("falls back to nearest order only after every targeted match", async () => {
+      for (const reference of CROSS_PROJECT_REFERENCES) {
+        const sql: string = getRepairQuery(reference);
+
+        const byOrder: number = sql.indexOf(
+          `abs(x."${reference.orderColumn}" - b.ref_order)`,
+        );
+        const byName: number = sql.indexOf(
+          `lower(x."name") = lower(b.ref_name)`,
+        );
+
+        expect(byName).toBeGreaterThan(-1);
+        expect(byOrder).toBeGreaterThan(byName);
+      }
     });
 
     test("only ever repoints inside the row's own project", async () => {
@@ -198,7 +248,7 @@ describe("RepairCrossProjectIncidentReferences migration", () => {
         ).length;
 
         // One per branch of the COALESCE ladder.
-        expect(candidateFilters).toBe(reference.roleColumns.length > 0 ? 3 : 2);
+        expect(candidateFilters).toBe(reference.roleColumns.length > 0 ? 4 : 2);
       }
     });
 
@@ -257,15 +307,83 @@ describe("RepairCrossProjectIncidentReferences migration", () => {
       expect(firstAlterAt).toBeGreaterThan(lockTimeoutAt);
     });
 
+    test("drops the raised statement timeout before taking any lock", async () => {
+      /*
+       * DATABASE_QUERY_TIMEOUT_MS is a client-side deadline no SET can lift.
+       * If the client gives up while an ADD CONSTRAINT is still running, the
+       * server keeps going and the queued ROLLBACK times out too — holding
+       * ACCESS EXCLUSIVE for as long as the raised ceiling allows, long after
+       * the deploy already failed. Aborting server-side is the cheaper
+       * failure, so the ceiling must be back to default before the DDL.
+       */
+      const queries: Array<string> = await runUp();
+
+      const resetAt: number = queries.findIndex((sql: string) => {
+        return sql.includes("SET LOCAL statement_timeout = DEFAULT");
+      });
+      const firstAlterAt: number = queries.findIndex((sql: string) => {
+        return sql.includes("DROP CONSTRAINT");
+      });
+      const lastRepairAt: number = queries.reduce(
+        (last: number, sql: string, index: number) => {
+          return sql.includes("resolved r") ? index : last;
+        },
+        -1,
+      );
+
+      expect(resetAt).toBeGreaterThan(lastRepairAt);
+      expect(firstAlterAt).toBeGreaterThan(resetAt);
+    });
+
     test("repairs every reference, and clears only the nullable ones", async () => {
       const queries: Array<string> = await runUp();
 
       for (const reference of CROSS_PROJECT_REFERENCES) {
-        expect(queries).toContain(getRepairQuery(reference));
+        /*
+         * Asserted structurally rather than by comparing against
+         * getRepairQuery's own output, which would pass for any SQL the
+         * builder happened to emit.
+         */
+        const repairs: Array<string> = queries.filter((sql: string) => {
+          return (
+            sql.includes(`UPDATE "${reference.table}" c`) &&
+            sql.includes(`SET "${reference.column}" = r.good_id`) &&
+            sql.includes(`JOIN "${reference.referencedTable}" p`)
+          );
+        });
 
-        expect(queries.includes(getClearQuery(reference))).toBe(
-          reference.isNullable,
-        );
+        expect(repairs).toHaveLength(1);
+
+        const clears: Array<string> = queries.filter((sql: string) => {
+          return (
+            sql.includes(`UPDATE "${reference.table}" c`) &&
+            sql.includes(`SET "${reference.column}" = NULL`)
+          );
+        });
+
+        expect(clears).toHaveLength(reference.isNullable ? 1 : 0);
+      }
+    });
+
+    test("counts what it could not repair, for every reference", async () => {
+      /*
+       * A row survives both the repair and the clear only when its own
+       * project has nothing to point at. That keeps the project undeletable,
+       * so it must not pass silently — the user would retry the delete and
+       * see a byte-identical error with nothing to act on.
+       */
+      const queries: Array<string> = await runUp();
+
+      for (const reference of CROSS_PROJECT_REFERENCES) {
+        const counts: Array<string> = queries.filter((sql: string) => {
+          return (
+            sql.includes("count(*)::int AS remaining") &&
+            sql.includes(`FROM "${reference.table}" c`) &&
+            sql.includes(`p."_id" = c."${reference.column}"`)
+          );
+        });
+
+        expect(counts).toHaveLength(1);
       }
     });
 
@@ -391,11 +509,20 @@ describe("RepairCrossProjectIncidentReferences migration", () => {
     });
 
     test("runs after the migration it builds on", async () => {
+      /*
+       * It must land after the monitor-status repair, whose cross-project
+       * cleanup it assumes. Pinning it to the last slot instead would turn
+       * red the moment anyone appends an unrelated migration.
+       */
       expect(
         SchemaMigrations.indexOf(
           RepairCrossProjectIncidentReferences1785320000000,
         ),
-      ).toBe(SchemaMigrations.length - 1);
+      ).toBeGreaterThan(
+        SchemaMigrations.indexOf(
+          RepairCrossProjectMonitorStatusReferences1785240000000,
+        ),
+      );
     });
   });
 });

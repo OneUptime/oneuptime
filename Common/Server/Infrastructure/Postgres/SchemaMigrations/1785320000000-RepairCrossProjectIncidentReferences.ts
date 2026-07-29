@@ -1,3 +1,4 @@
+import logger from "../../../Utils/Logger";
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
@@ -34,14 +35,26 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * history stays attached to the surviving project instead of being swept up by
  * the new cascade.
  *
+ * The cascade has a second, deliberate effect: deleting a *custom* state now
+ * removes that state's timeline rows project-wide instead of failing with
+ * 23503, and does so below IncidentStateTimelineService.onBeforeDelete, so the
+ * surrounding rows' `endsAt` is not stitched over the gap. The default
+ * created / acknowledged / resolved states cannot be deleted (the dashboard
+ * blocks it) and a state any incident is currently in is still protected by
+ * Incident.currentIncidentStateId, which keeps NO ACTION.
+ *
  * Not covered on purpose:
- *   - Monitor.currentMonitorStatusId keeps NO ACTION (deleting a status that
- *     monitors are currently in should stay blocked) and its cross-project
- *     rows were already repaired by the 1785240000000 migration.
+ *   - Monitor.currentMonitorStatusId keeps NO ACTION: deleting a status that
+ *     monitors are currently in should stay blocked, and its cross-project
+ *     rows were already repaired by the 1785240000000 migration. Note that
+ *     repair was one-shot — MonitorService now validates the column on write
+ *     so the state cannot come back.
  *   - A row whose own project has no record of that kind at all cannot be
- *     repointed and, for the not-null columns, is left as is. That needs a
- *     project with zero incident states / severities, which project creation
- *     does not produce.
+ *     repointed and, for the not-null columns, is left as is. This is
+ *     reachable: nothing stops a project from deleting its last incident
+ *     severity while its only incident references another project's. Those
+ *     rows are counted and logged at the end of up() rather than skipped
+ *     silently, because the project stays undeletable until someone acts.
  */
 
 export interface CrossProjectReference {
@@ -317,8 +330,15 @@ export const TIMELINE_FOREIGN_KEYS: Array<TimelineForeignKey> = [
 
 /*
  * Repoints rows whose reference belongs to another project at the equivalent
- * record in their own project. Match order is name, then role flags, then
- * nearest order/priority — the same ladder the 1785240000000 migration used.
+ * record in their own project.
+ *
+ * The ladder is: same name AND same role, then same role, then same name, then
+ * nearest order/priority. Role outranks a bare name match on purpose — a
+ * project is free to have a custom state literally called "Resolved" that is
+ * NOT its resolved state, and matching that one would quietly un-resolve a
+ * resolved incident. The 1785240000000 migration tried name before role; that
+ * ordering is only safe for records with no role at all (severities), which is
+ * why it never bit there.
  */
 export function getRepairQuery(reference: CrossProjectReference): string {
   const roleSelect: string = reference.roleColumns
@@ -327,16 +347,23 @@ export function getRepairQuery(reference: CrossProjectReference): string {
     })
     .join("");
 
-  const roleMatch: string =
+  const rolePredicate: string = reference.roleColumns
+    .map((roleColumn: string) => {
+      return `x."${roleColumn}" = b.role_${roleColumn}`;
+    })
+    .join("\n              AND ");
+
+  const roleMatches: string =
     reference.roleColumns.length > 0
       ? `
           (SELECT x."_id" FROM "${reference.referencedTable}" x
             WHERE x."projectId" = b.project_id
-              AND ${reference.roleColumns
-                .map((roleColumn: string) => {
-                  return `x."${roleColumn}" = b.role_${roleColumn}`;
-                })
-                .join("\n              AND ")}
+              AND lower(x."name") = lower(b.ref_name)
+              AND ${rolePredicate}
+            ORDER BY x."${reference.orderColumn}" LIMIT 1),
+          (SELECT x."_id" FROM "${reference.referencedTable}" x
+            WHERE x."projectId" = b.project_id
+              AND ${rolePredicate}
             ORDER BY x."${reference.orderColumn}" LIMIT 1),`
       : "";
 
@@ -350,10 +377,10 @@ export function getRepairQuery(reference: CrossProjectReference): string {
         JOIN "${reference.referencedTable}" p ON p."_id" = c."${reference.column}"
         WHERE c."projectId" IS DISTINCT FROM p."projectId"
       ), resolved AS (
-        SELECT b.row_id, COALESCE(
+        SELECT b.row_id, COALESCE(${roleMatches}
           (SELECT x."_id" FROM "${reference.referencedTable}" x
             WHERE x."projectId" = b.project_id AND lower(x."name") = lower(b.ref_name)
-            ORDER BY x."${reference.orderColumn}" LIMIT 1),${roleMatch}
+            ORDER BY x."${reference.orderColumn}" LIMIT 1),
           (SELECT x."_id" FROM "${reference.referencedTable}" x
             WHERE x."projectId" = b.project_id
             ORDER BY abs(x."${reference.orderColumn}" - b.ref_order), x."${reference.orderColumn}" LIMIT 1)
@@ -364,6 +391,22 @@ export function getRepairQuery(reference: CrossProjectReference): string {
       SET "${reference.column}" = r.good_id
       FROM resolved r
       WHERE c."_id" = r.row_id AND r.good_id IS NOT NULL
+    `;
+}
+
+/*
+ * Counts what is still cross-project after the repair and the clear. A row
+ * only survives both when its own project has no record of that kind to point
+ * at — rare, but silent: the project stays undeletable and the user retries
+ * and sees the identical error with nothing to act on. Log it so an operator
+ * has a name to chase.
+ */
+export function getRemainingQuery(reference: CrossProjectReference): string {
+  return `
+      SELECT count(*)::int AS remaining
+      FROM "${reference.table}" c
+      JOIN "${reference.referencedTable}" p ON p."_id" = c."${reference.column}"
+      WHERE c."projectId" IS DISTINCT FROM p."projectId"
     `;
 }
 
@@ -391,11 +434,16 @@ export class RepairCrossProjectIncidentReferences1785320000000
   public async up(queryRunner: QueryRunner): Promise<void> {
     /*
      * The repairs below scan the incident/alert/timeline tables, which run to
-     * millions of rows. The connection carries the app's 30s statement_timeout
-     * (DATABASE_STATEMENT_TIMEOUT_MS) and a loaded database should not turn
-     * this into a failed deploy.
+     * millions of rows. Raising the server-side statement_timeout only helps
+     * when the operator has also raised DATABASE_QUERY_TIMEOUT_MS: that one is
+     * a client-side deadline in node-postgres (DataSourceOptions passes it as
+     * `extra.query_timeout`) and no SET can lift it. When the client gives up
+     * first the server keeps executing, so the ceiling here is deliberately
+     * reset before the DDL below rather than left in place.
      */
     await queryRunner.query(`SET LOCAL statement_timeout = '600s'`);
+
+    const unrepaired: Array<string> = [];
 
     for (const reference of CROSS_PROJECT_REFERENCES) {
       await queryRunner.query(getRepairQuery(reference));
@@ -403,14 +451,49 @@ export class RepairCrossProjectIncidentReferences1785320000000
       if (reference.isNullable) {
         await queryRunner.query(getClearQuery(reference));
       }
+
+      const remaining: Array<{ remaining: number }> = await queryRunner.query(
+        getRemainingQuery(reference),
+      );
+
+      const remainingCount: number = remaining?.[0]?.remaining || 0;
+
+      if (remainingCount > 0) {
+        unrepaired.push(
+          `${reference.table}.${reference.column} (${remainingCount})`,
+        );
+      }
     }
+
+    if (unrepaired.length > 0) {
+      /*
+       * Not fatal: these rows keep their project undeletable, but failing the
+       * deploy over them would be worse than reporting them. Each one needs a
+       * record of that kind to exist in the row's own project before it can be
+       * repointed.
+       */
+      logger.warn(
+        `RepairCrossProjectIncidentReferences: could not repoint every cross-project reference; the projects they point at stay undeletable until a matching record exists in the owning project. Remaining: ${unrepaired.join(
+          ", ",
+        )}`,
+      );
+    }
+
+    /*
+     * Back to the connection's configured ceiling before taking any lock. A
+     * slow ADD CONSTRAINT that outlives the client timeout would otherwise sit
+     * there holding ACCESS EXCLUSIVE — with the queued ROLLBACK timing out too
+     * — long after the deploy already reported failure. Aborting server-side
+     * is the cheaper failure.
+     */
+    await queryRunner.query(`SET LOCAL statement_timeout = DEFAULT`);
 
     /*
      * Swapping a foreign key needs ACCESS EXCLUSIVE on the timeline table, and
      * the lock is held until this migration commits. The server has no
      * lock_timeout, so without the line below a single slow transaction
      * holding one of these tables would make the statement queue *and* park
-     * every reader and writer behind it until the 30s statement_timeout fired.
+     * every reader and writer behind it until the statement timeout fired.
      * Failing fast and retrying the deploy is much cheaper than stalling the
      * table.
      */

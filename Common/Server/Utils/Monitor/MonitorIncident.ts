@@ -34,6 +34,7 @@ import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import ServiceService from "../../Services/ServiceService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
+import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import NetworkDeviceOwnerUserService, {
@@ -505,7 +506,35 @@ export default class MonitorIncident {
          * Use `?.toString()` truthiness so an empty/blank ObjectID is treated
          * the same as "missing" and falls through to the project-default lookup.
          */
-        if (!criteriaIncident.incidentSeverityId?.toString()) {
+        /*
+         * A criteria severity that belongs to *another* project is rejected by
+         * IncidentService on create. Throwing here would fail the whole
+         * probe/telemetry ingest job for this monitor — no incident, and no
+         * payload or monitor log persisted either, because those run after the
+         * create. Treat it as "missing" and fall back to this project's own
+         * default, which is also what stops the bad id spreading onto new
+         * incidents. monitorSteps can still hold one: the 1785240000000
+         * repair skipped ids it could not resolve.
+         */
+        const isCriteriaSeverityUsable: boolean =
+          await ProjectScopedReferenceValidator.isUsableInProject({
+            projectId: input.monitor.projectId!,
+            id: criteriaIncident.incidentSeverityId,
+            service: IncidentSeverityService,
+          });
+
+        if (
+          criteriaIncident.incidentSeverityId?.toString() &&
+          !isCriteriaSeverityUsable
+        ) {
+          logger.error(
+            `${input.monitor.id?.toString()} - Criteria "${
+              input.criteriaInstance.data?.name
+            }" references incident severity ${criteriaIncident.incidentSeverityId.toString()}, which does not belong to project ${input.monitor.projectId?.toString()}. Falling back to this project's default severity.`,
+          );
+        }
+
+        if (!isCriteriaSeverityUsable) {
           // pick the critical (first/lowest-order root) severity.
 
           const severity: IncidentSeverity | null =
@@ -550,7 +579,7 @@ export default class MonitorIncident {
 
           incident.incidentSeverityId = severity.id!;
         } else {
-          incident.incidentSeverityId = criteriaIncident.incidentSeverityId;
+          incident.incidentSeverityId = criteriaIncident.incidentSeverityId!;
         }
 
         incident.monitors = [input.monitor];

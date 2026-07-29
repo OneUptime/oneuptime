@@ -28,7 +28,9 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Typeof from "../../Types/Typeof";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
-import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
@@ -565,32 +567,16 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     const incidentStateId: ObjectID | string | undefined =
-      (updateBy.data.currentIncidentStateId as unknown as
-        | ObjectID
-        | undefined) ||
-      (
-        updateBy.data.currentIncidentState as unknown as
-          | IncidentState
-          | undefined
-      )?._id;
+      resolveReferenceId(updateBy.data.currentIncidentStateId) ||
+      resolveReferenceId(updateBy.data.currentIncidentState);
 
     const incidentSeverityId: ObjectID | string | undefined =
-      (updateBy.data.incidentSeverityId as unknown as ObjectID | undefined) ||
-      (
-        updateBy.data.incidentSeverity as unknown as
-          | IncidentSeverity
-          | undefined
-      )?._id;
+      resolveReferenceId(updateBy.data.incidentSeverityId) ||
+      resolveReferenceId(updateBy.data.incidentSeverity);
 
     const changeMonitorStatusToId: ObjectID | string | undefined =
-      (updateBy.data.changeMonitorStatusToId as unknown as
-        | ObjectID
-        | undefined) ||
-      (
-        updateBy.data.changeMonitorStatusTo as unknown as
-          | MonitorStatus
-          | undefined
-      )?._id;
+      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
+      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
 
     if (!incidentStateId && !incidentSeverityId && !changeMonitorStatusToId) {
       return;
@@ -955,17 +941,15 @@ export class Service extends DatabaseService<Model> {
         {
           modelName: "Incident Severity",
           id:
-            createBy.data.incidentSeverityId ||
-            (createBy.data.incidentSeverity as IncidentSeverity | undefined)
-              ?._id,
+            resolveReferenceId(createBy.data.incidentSeverityId) ||
+            resolveReferenceId(createBy.data.incidentSeverity),
           service: IncidentSeverityService,
         },
         {
           modelName: "Monitor Status",
           id:
-            createBy.data.changeMonitorStatusToId ||
-            (createBy.data.changeMonitorStatusTo as MonitorStatus | undefined)
-              ?._id,
+            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
+            resolveReferenceId(createBy.data.changeMonitorStatusTo),
           service: MonitorStatusService,
         },
       ],

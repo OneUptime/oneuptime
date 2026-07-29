@@ -29,9 +29,10 @@ import Model from "../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "../../Models/DatabaseModels/AlertOwnerUser";
 import AlertState from "../../Models/DatabaseModels/AlertState";
-import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusService from "./MonitorStatusService";
-import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import { IsBillingEnabled } from "../EnvironmentConfig";
@@ -277,24 +278,18 @@ export class Service extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
     const alertStateId: ObjectID | string | undefined =
-      (updateBy.data.currentAlertStateId as unknown as ObjectID | undefined) ||
-      (updateBy.data.currentAlertState as unknown as AlertState | undefined)
-        ?._id;
+      resolveReferenceId(updateBy.data.currentAlertStateId) ||
+      resolveReferenceId(updateBy.data.currentAlertState);
 
     const alertSeverityId: ObjectID | string | undefined =
-      (updateBy.data.alertSeverityId as unknown as ObjectID | undefined) ||
-      (updateBy.data.alertSeverity as unknown as AlertSeverity | undefined)
-        ?._id;
+      resolveReferenceId(updateBy.data.alertSeverityId) ||
+      resolveReferenceId(updateBy.data.alertSeverity);
 
     const monitorStatusId: ObjectID | string | undefined =
-      (updateBy.data.monitorStatusWhenThisAlertWasCreatedId as unknown as
-        | ObjectID
-        | undefined) ||
-      (
-        updateBy.data.monitorStatusWhenThisAlertWasCreated as unknown as
-          | MonitorStatus
-          | undefined
-      )?._id;
+      resolveReferenceId(
+        updateBy.data.monitorStatusWhenThisAlertWasCreatedId,
+      ) ||
+      resolveReferenceId(updateBy.data.monitorStatusWhenThisAlertWasCreated);
 
     if (!alertStateId && !alertSeverityId && !monitorStatusId) {
       return;
@@ -405,19 +400,19 @@ export class Service extends DatabaseService<Model> {
         {
           modelName: "Alert Severity",
           id:
-            createBy.data.alertSeverityId ||
-            (createBy.data.alertSeverity as AlertSeverity | undefined)?._id,
+            resolveReferenceId(createBy.data.alertSeverityId) ||
+            resolveReferenceId(createBy.data.alertSeverity),
           service: AlertSeverityService,
         },
         {
           modelName: "Monitor Status",
           id:
-            createBy.data.monitorStatusWhenThisAlertWasCreatedId ||
-            (
-              createBy.data.monitorStatusWhenThisAlertWasCreated as
-                | MonitorStatus
-                | undefined
-            )?._id,
+            resolveReferenceId(
+              createBy.data.monitorStatusWhenThisAlertWasCreatedId,
+            ) ||
+            resolveReferenceId(
+              createBy.data.monitorStatusWhenThisAlertWasCreated,
+            ),
           service: MonitorStatusService,
         },
       ],

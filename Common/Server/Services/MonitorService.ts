@@ -70,6 +70,9 @@ import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
@@ -388,7 +391,19 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    if (updateBy.data.monitorSteps) {
+    /*
+     * currentMonitorStatusId is writable by any project member and its FK is
+     * ON DELETE NO ACTION, so an id from another project here leaves that
+     * project undeletable — the same shape monitorSteps had. The
+     * 1785240000000 migration repaired the rows that existed then; this stops
+     * new ones. It stays NO ACTION on purpose: deleting a status monitors are
+     * currently in should be blocked, not cascaded.
+     */
+    const currentMonitorStatusId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
+      resolveReferenceId(updateBy.data.currentMonitorStatus);
+
+    if (updateBy.data.monitorSteps || currentMonitorStatusId) {
       /*
        * Root/API updates do not always carry a tenantId, so fall back to the
        * project of each monitor the query actually matches.
@@ -398,10 +413,30 @@ export class Service extends DatabaseService<Model> {
         : await this.getProjectIdsForUpdateQuery(updateBy);
 
       for (const projectId of projectIds) {
-        await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
-          monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
-          projectId: projectId,
-        });
+        if (updateBy.data.monitorSteps) {
+          await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject(
+            {
+              monitorSteps: updateBy.data.monitorSteps as
+                | MonitorSteps
+                | JSONObject,
+              projectId: projectId,
+            },
+          );
+        }
+
+        await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
+          {
+            projectId: projectId,
+            subject: "monitor",
+            references: [
+              {
+                modelName: "Monitor Status",
+                id: currentMonitorStatusId,
+                service: MonitorStatusService,
+              },
+            ],
+          },
+        );
       }
     }
 

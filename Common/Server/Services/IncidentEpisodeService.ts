@@ -27,6 +27,9 @@ import { Red500, Yellow500, Purple500 } from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import IncidentSeverityService from "./IncidentSeverityService";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
 import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
@@ -90,6 +93,36 @@ export class Service extends DatabaseService<Model> {
       updateBy.query,
       updateBy.props,
     );
+
+    /*
+     * An episode carries the same project-scoped state and severity an
+     * incident does, on FKs that are equally ON DELETE NO ACTION, so an id
+     * from another project here leaves that project undeletable in exactly
+     * the same way. onBeforeCreate overwrites currentIncidentStateId with
+     * this project's created state, which leaves the severity as the only
+     * create-reachable column — but an update can write either.
+     */
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: updateBy.props.tenantId,
+      subject: "incident episode",
+      references: [
+        {
+          modelName: "Incident State",
+          id:
+            resolveReferenceId(updateBy.data.currentIncidentStateId) ||
+            resolveReferenceId(updateBy.data.currentIncidentState),
+          service: IncidentStateService,
+        },
+        {
+          modelName: "Incident Severity",
+          id:
+            resolveReferenceId(updateBy.data.incidentSeverityId) ||
+            resolveReferenceId(updateBy.data.incidentSeverity),
+          service: IncidentSeverityService,
+        },
+      ],
+    });
+
     return { updateBy, carryForward: null };
   }
 
@@ -139,6 +172,20 @@ export class Service extends DatabaseService<Model> {
     }
 
     createBy.data.currentIncidentStateId = incidentState.id;
+
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "incident episode",
+      references: [
+        {
+          modelName: "Incident Severity",
+          id:
+            resolveReferenceId(createBy.data.incidentSeverityId) ||
+            resolveReferenceId(createBy.data.incidentSeverity),
+          service: IncidentSeverityService,
+        },
+      ],
+    });
 
     // Auto-generate episode number
     const episodeCounterResult: {
