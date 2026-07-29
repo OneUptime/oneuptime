@@ -1,4 +1,5 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
+import CredentialGuard from "../Utils/CredentialGuard";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { AccountsRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
@@ -191,6 +192,13 @@ router.post(
         User,
       ) as User;
 
+      /*
+       * A missing email would drop the predicate below and resolve `alreadySavedUser` to the
+       * newest user in the instance. If that user has no password yet (invited but not signed
+       * up), the update branch would hand the caller a real session for that account.
+       */
+      CredentialGuard.assertPresent(partialUser.email, "Email");
+
       if (IsBillingEnabled) {
         //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
         partialUser.isMasterAdmin = false;
@@ -367,6 +375,13 @@ router.post(
 
       const user: User = BaseModel.fromJSON(data as JSONObject, User) as User;
 
+      /*
+       * A missing email would drop the predicate and select the newest user in the instance,
+       * writing a fresh reset token onto an unrelated account (and invalidating the one that
+       * account may legitimately be using).
+       */
+      CredentialGuard.assertPresent(user.email, "Email");
+
       const alreadySavedUser: User | null = await UserService.findOneBy({
         query: { email: user.email! },
         select: {
@@ -462,6 +477,13 @@ router.post(
         data as JSONObject,
         EmailVerificationToken,
       ) as EmailVerificationToken;
+
+      /*
+       * Without this an empty body yields `token.token === undefined`, TypeORM drops the
+       * predicate, and the query returns the newest verification token in the instance --
+       * verifying an address the caller never proved they control.
+       */
+      CredentialGuard.assertPresent(token.token, "Verification token");
 
       const alreadySavedToken: EmailVerificationToken | null =
         await EmailVerificationTokenService.findOneBy({
@@ -569,6 +591,15 @@ router.post(
       const data: JSONObject = req.body["data"];
 
       const user: User = BaseModel.fromJSON(data as JSONObject, User) as User;
+
+      /*
+       * The `|| ""` below already stops the token predicate from being dropped, but an absent
+       * password would silently reset the matched account's password to `undefined`.
+       */
+      CredentialGuard.assertAllPresent([
+        { value: user.resetPasswordToken, label: "Reset password token" },
+        { value: user.password, label: "Password" },
+      ]);
 
       await user.password?.hashValue(EncryptionSecret);
 
