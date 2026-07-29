@@ -94,6 +94,29 @@ The first call gives you an ID the second one needs:
 
 If `LookupOrder` fails, its **error** output fires instead of **success**. Connect that to an Email or Slack block so failures don't go unnoticed.
 
+## Updating a variable from a workflow
+
+A common pattern is rotating a credential on a schedule: fetch a fresh token from a third party, then store it back in the variable so the next run picks it up. Do that with an **API** block calling the OneUptime API.
+
+`PUT /api/workflow-variable/<variable-id>` with an `ApiKey` header, and — this is the part that trips people up — the fields you want to change **wrapped in a `data` object**:
+
+```json
+{
+  "data": {
+    "content": "{{local.components.get-token.returnValues.response-body.access_token}}"
+  }
+}
+```
+
+A flat body without the `data` wrapper is rejected with a 400. Send only the fields you actually want to change; `name` and `description` can stay out of the payload.
+
+The API key needs **Edit Workflow Variables** to write `content`, and **Read Workflow Variables** as well, since the update is scoped by a read on the project.
+
+Two things to watch:
+
+- **Don't rename a variable you reference.** `name` is part of `{{local.variables.NAME}}`. Changing it leaves every existing reference resolving to an empty string, silently.
+- **A variable marked secret can still be written this way** — it just can't be read back. That's what makes it a safe place to park a rotating token.
+
 ## Gotchas
 
 - **Use the pickers.** They insert the exact component, return-value, and variable IDs expected by the runner and keep references independent of display labels.

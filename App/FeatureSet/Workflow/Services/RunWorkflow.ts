@@ -422,7 +422,7 @@ export default class RunWorkflow {
             stackItem.node.metadata.returnValues,
           ),
         );
-        this.log("Executing Port: " + result.executePort?.title || "<None>");
+        this.log("Executing Port: " + (result.executePort?.title || "<None>"));
 
         storageMap.local.components[stackItem.node.id] = {
           returnValues: result.returnValues,
