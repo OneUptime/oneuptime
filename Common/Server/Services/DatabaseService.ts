@@ -2239,6 +2239,107 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await repository.manager.query(sql, params);
   }
 
+  /*
+   * Atomically add to numeric columns and set literal columns for one row,
+   * in a SINGLE auto-committed UPDATE, with no hooks and no `version` bump.
+   *
+   * This is the counter-flush primitive. `updateColumnsByIdWithoutHooks`
+   * can't express it (a read-modify-write would lose concurrent writers'
+   * increments, and the value isn't known to the caller), and
+   * `getRepository().increment()` can't either: it goes through
+   * UpdateQueryBuilder, which always appends `version = version + 1`, so an
+   * ingest-driven counter bump would fight the optimistic lock on a row a
+   * human may be editing — and it can't set a second column in the same
+   * statement.
+   *
+   * `COALESCE(col, 0)` so a NULL counter starts from zero rather than
+   * staying NULL forever.
+   *
+   * Column and table identifiers come from entity metadata (never from the
+   * caller) and every value is bound as a parameter, so this is not an
+   * injection surface. Use ONLY for trusted, internal, side-effect-free
+   * column writes.
+   */
+  @CaptureSpan()
+  public async atomicAddToColumnsByIdWithoutHooks(input: {
+    id: ObjectID;
+    add: Partial<Record<keyof TBaseModel, number>>;
+    set?: PartialEntity<TBaseModel> | undefined;
+  }): Promise<void> {
+    if (!input.id) {
+      throw new BadDataException("id is required");
+    }
+
+    const repository: Repository<TBaseModel> = this.getRepository();
+    const metadata: EntityMetadata = repository.metadata;
+    const driver: Driver = repository.manager.connection.driver;
+
+    const setClauses: Array<string> = [];
+    const params: Array<unknown> = [];
+
+    const columnFor: (propertyName: string) => ColumnMetadata = (
+      propertyName: string,
+    ): ColumnMetadata => {
+      const column: ColumnMetadata | undefined =
+        metadata.findColumnWithPropertyName(propertyName);
+      if (!column) {
+        throw new BadDataException(
+          `atomicAddToColumnsByIdWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
+        );
+      }
+      return column;
+    };
+
+    for (const [propertyName, delta] of Object.entries(
+      input.add as ObjectLiteral,
+    )) {
+      if (typeof delta !== "number" || !Number.isFinite(delta)) {
+        throw new BadDataException(
+          `atomicAddToColumnsByIdWithoutHooks: "${propertyName}" delta must be a finite number`,
+        );
+      }
+
+      const column: ColumnMetadata = columnFor(propertyName);
+      params.push(delta);
+      const quoted: string = `"${column.databaseName}"`;
+      setClauses.push(`${quoted} = COALESCE(${quoted}, 0) + $${params.length}`);
+    }
+
+    for (const [propertyName, value] of Object.entries(
+      (input.set || {}) as ObjectLiteral,
+    )) {
+      if (typeof value === "function") {
+        throw new BadDataException(
+          `atomicAddToColumnsByIdWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
+        );
+      }
+
+      const column: ColumnMetadata = columnFor(propertyName);
+      params.push(driver.preparePersistentValue(value, column));
+      setClauses.push(`"${column.databaseName}" = $${params.length}`);
+    }
+
+    if (setClauses.length === 0) {
+      return;
+    }
+
+    if (metadata.updateDateColumn) {
+      setClauses.push(
+        `"${metadata.updateDateColumn.databaseName}" = CURRENT_TIMESTAMP`,
+      );
+    }
+
+    const primaryColumnName: string =
+      metadata.primaryColumns[0]?.databaseName || "_id";
+    params.push(input.id.toString());
+
+    const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
+      ", ",
+    )} WHERE "${primaryColumnName}" = $${params.length}`;
+
+    await repository.manager.query(sql, params);
+  }
+
   @CaptureSpan()
   protected async atomicIncrementColumnValueByOne(data: {
     id: ObjectID;
