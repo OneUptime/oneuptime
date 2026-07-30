@@ -16,7 +16,7 @@ import TraceDropFilterService from "Common/Server/Services/TraceDropFilterServic
  *
  * Two outputs, for two different audiences:
  *
- *   - `telemetry.ingest.dropped.count` (OTel counter) — for whoever
+ *   - `oneuptime.telemetry.ingest.dropped.count` (OTel counter) — for whoever
  *     operates the OneUptime instance. Immediate, per-signal, per-project.
  *   - `droppedCount` / `lastDroppedAt` on the filter row — for the customer,
  *     rendered in the Drop Filters list and view pages so "is this filter

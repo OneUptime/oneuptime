@@ -403,7 +403,7 @@ export default class LogDropFilter extends BaseModel {
    * record anywhere — no log line, no metric, no counter — so neither the
    * customer nor support could tell a filter from a broken pipeline. These
    * two columns are the customer-visible half of that fix (the operator
-   * half is the `telemetry.ingest.dropped.count` metric).
+   * half is the `oneuptime.telemetry.ingest.dropped.count` metric).
    *
    * Written only by the ingest path, via a throttled atomic UPDATE that
    * batches many dropped records into one statement — never once per log.

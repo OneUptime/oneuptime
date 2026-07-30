@@ -230,7 +230,7 @@ export default class AppMetrics {
   public static getIngestDroppedCounter(): TelemetryCounter {
     if (!this.ingestDroppedCounter) {
       this.ingestDroppedCounter = Telemetry.getCounter({
-        name: "telemetry.ingest.dropped.count",
+        name: "oneuptime.telemetry.ingest.dropped.count",
         description:
           "Number of telemetry records discarded by a project's drop filters, partitioned by signal, action, project and filter.",
         unit: "1",
