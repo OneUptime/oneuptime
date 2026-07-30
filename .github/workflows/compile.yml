@@ -149,6 +149,33 @@ jobs:
           command: cd App/FeatureSet/Dashboard && npm install && npm run compile && npm run dep-check
 
 
+  compile-browser-recorder:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      # The session-replay recorder deliberately does NOT depend on Common:
+      # it is bundled and served to third-party origins, so it must not carry
+      # any server dependency. No `cd Common && npm install` here.
+      #
+      # The esbuild step is not redundant with tsc. tsc alone cannot see an
+      # import that fails to resolve at bundle time, and the build additionally
+      # enforces the bundle-hygiene assertions (no process.env, no express, and
+      # the size budgets) that keep this artifact safe to put on a customer's
+      # page.
+      - name: Compile Browser Recorder
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          command: cd App/FeatureSet/BrowserRecorder && npm install && npm run compile && npm run build
+
+
   compile-e2e:
     runs-on: ubuntu-latest
     env:

@@ -1,0 +1,25 @@
+name: Browser Recorder Test
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+      - 'release'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      # No Common install: the recorder is bundled for third-party origins and
+      # must not pull server dependencies. The shared pure logic it does use
+      # (masking, sampling, URL scrubbing) is inlined by the bundler at build
+      # time and unit-tested on the Common side.
+      - run: cd App/FeatureSet/BrowserRecorder && npm install && npm run test
