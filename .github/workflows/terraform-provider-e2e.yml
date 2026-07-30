@@ -147,3 +147,18 @@ jobs:
           command: |
             chmod +x ./E2E/Terraform/e2e-tests/scripts/*.sh
             ./E2E/Terraform/e2e-tests/scripts/index.sh
+
+      # Without this, a failure here says only "App still not returning HTTP
+      # 200" after five minutes of 502s, with no indication of why. Boot
+      # failures in this job are usually a schema or migration error that the
+      # app logs clearly and nobody ever sees.
+      - name: Dump container logs on failure
+        if: failure()
+        run: |
+          echo "===== docker compose ps ====="
+          docker compose ps || true
+          for service in app worker ingress postgres clickhouse redis; do
+            echo ""
+            echo "===== ${service} (last 200 lines) ====="
+            docker compose logs --tail=200 "${service}" 2>&1 || true
+          done
