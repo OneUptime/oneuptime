@@ -47,6 +47,8 @@ import {
   DEVICE_FACET_QUERY_FIELDS,
   DEVICE_INTERFACES_FACET_KEY,
   DEVICE_INTERFACES_FACET_OPTIONS,
+  DEVICE_LAST_SEEN_FACET_KEY,
+  DEVICE_LAST_SEEN_FACET_OPERATORS,
   DEVICE_PROBE_FACET_KEY,
   DEVICE_SITE_FACET_KEY,
   DEVICE_STATUS_FACET_KEY,
@@ -54,6 +56,7 @@ import {
   DeviceStatusCutoff,
   NETWORK_DEVICES_TABLE_ID,
   buildDeviceInterfacesFacetQuery,
+  buildDeviceLastSeenFacetQuery,
   buildDeviceStatusFacetQuery,
   isTimeBasedDeviceStatus,
 } from "../../Components/NetworkDevice/DeviceFacets";
@@ -117,6 +120,12 @@ const NetworkDevices: FunctionComponent<
          */
         supportedOperators: ["is"],
         options: DEVICE_STATUS_FACET_OPTIONS,
+        /*
+         * Both chips write `lastSeenAt`, and the merged query has room for one
+         * constraint per column — so picking either clears the other rather
+         * than one quietly overwriting the other while both stay lit.
+         */
+        exclusiveWith: [DEVICE_LAST_SEEN_FACET_KEY],
         toQueryValue: (
           values: Array<string>,
           operator: FilterOperator,
@@ -126,6 +135,26 @@ const NetworkDevices: FunctionComponent<
             operator,
             statusCutoff.current.getCutoffFor(values[0] || ""),
           );
+        },
+      },
+      {
+        key: DEVICE_LAST_SEEN_FACET_KEY,
+        queryField: DEVICE_FACET_QUERY_FIELDS.lastSeen,
+        label: "Last Seen",
+        icon: IconProp.Clock,
+        type: "dateRange",
+        /*
+         * The question the Status chip cannot express: an arbitrary date rather
+         * than the fixed 15-minute freshness window. "Not polled since last
+         * Tuesday" and "polled between the 1st and the 5th" live here.
+         */
+        supportedOperators: DEVICE_LAST_SEEN_FACET_OPERATORS,
+        exclusiveWith: [DEVICE_STATUS_FACET_KEY],
+        toQueryValue: (
+          values: Array<string>,
+          operator: FilterOperator,
+        ): unknown => {
+          return buildDeviceLastSeenFacetQuery(values, operator);
         },
       },
       {
@@ -394,11 +423,11 @@ const NetworkDevices: FunctionComponent<
         /*
          * Only what the chips cannot express — free text.
          *
-         * Status, Interfaces, Site, Probe and Labels have all moved to the facet
-         * bar, and their fields have to be gone from here: BaseModelTable spreads
-         * this popup's query OVER the page's, so a popup filter on a chip's field
-         * would replace the chip's constraint silently, while the chip and the lit
-         * tile above carried on claiming it applied.
+         * Status, Last Seen, Interfaces, Site, Probe and Labels have all moved to
+         * the facet bar, and their fields have to be gone from here:
+         * BaseModelTable spreads this popup's query OVER the page's, so a popup
+         * filter on a chip's field would replace the chip's constraint silently,
+         * while the chip and the lit tile above carried on claiming it applied.
          */
         filters={[
           {

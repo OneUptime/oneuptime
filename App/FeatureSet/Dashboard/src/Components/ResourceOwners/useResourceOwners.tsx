@@ -30,9 +30,15 @@ import FilterChipDropdown, {
   FilterChipDropdownOption,
   FilterOperator,
 } from "./FilterChipDropdown";
+import FilterChipDateRange from "./FilterChipDateRange";
+import { FacetKind, OPTION_FACET_OPERATORS } from "./FilterChipDropdownTypes";
+import { buildFacetDateRangeQuery } from "./FacetDateRange";
 import { ResourceOwnerEntry } from "./OwnerEntry";
 import {
+  FacetConflictMap,
   FacetSelectionState,
+  buildFacetConflictMap,
+  isFacetActive,
   normalizeFacetValues,
   parseFacetSelectionState,
   resolveFacetOperator,
@@ -60,6 +66,16 @@ const defaultFacetQueryValue: (
   }
   if (operator === "is_not_empty") {
     return new NotNull();
+  }
+  /*
+   * Date operators against an option list have no date to compare with — the
+   * values here are option ids. Only a hand-edited URL can pair the two, and
+   * sanitizeFacetSelectionState clamps that before it reaches here; refusing it
+   * again is what keeps "cannot express this" from becoming a filter on a
+   * string that happens to parse.
+   */
+  if (operator === "before" || operator === "after" || operator === "between") {
+    return undefined;
   }
   if (isMulti) {
     return operator === "is_not"
@@ -173,6 +189,16 @@ export interface ResourceFacet {
   key: string;
   /** Chip label (e.g. "Status", "Type"). */
   label: string;
+  /**
+   * What the chip's popover holds. Defaults to "options" — a searchable option
+   * list. Use "dateRange" for a date column, where there is no option list to
+   * offer and the useful questions ("not seen since last Tuesday", "between the
+   * 1st and the 5th") are only expressible by typing a date.
+   *
+   * A "dateRange" facet stores its selection in FacetDateRange's encoding and
+   * ignores `options` / `fetchOptions` / `loadOptions`.
+   */
+  type?: FacetKind | undefined;
   /** Icon shown on the empty chip. */
   icon?: IconProp | undefined;
   /** Allow selecting multiple values. Defaults to false. */
@@ -231,9 +257,23 @@ export interface ResourceFacet {
     | undefined;
   /**
    * Which operators this facet should expose in the chip dropdown.
-   * Defaults to ["is", "is_not", "is_empty", "is_not_empty"].
+   * Defaults to ["is", "is_not", "is_empty", "is_not_empty"], or to
+   * DATE_FACET_OPERATORS for a "dateRange" facet.
    */
   supportedOperators?: Array<FilterOperator> | undefined;
+  /**
+   * Other facet keys this chip cannot be active alongside, because they write
+   * the same column.
+   *
+   * `mergeFiltersIntoQuery` builds one object, so two chips over one field do
+   * not AND — the later one simply overwrites the earlier, silently, while both
+   * chips stay lit and claim to apply. Naming the conflict here makes activating
+   * either of them clear the other, so the bar always shows the filter the table
+   * is actually running.
+   *
+   * Declaring it on one side is enough; the hook reads it symmetrically.
+   */
+  exclusiveWith?: Array<string> | undefined;
   /**
    * For facets that filter across *multiple* relationship fields with OR
    * semantics (e.g. an "Affected Resources" chip spanning monitors / hosts /
@@ -1093,7 +1133,20 @@ const useResourceOwners: <TResource extends BaseModel>(
 
       const value: unknown = facet.toQueryValue
         ? facet.toQueryValue(selected, op)
-        : defaultFacetQueryValue(selected, op, Boolean(facet.isMultiSelect));
+        : facet.type === "dateRange"
+          ? buildFacetDateRangeQuery(selected, op)
+          : defaultFacetQueryValue(selected, op, Boolean(facet.isMultiSelect));
+
+      /*
+       * `undefined` is a query builder's way of saying "do not constrain this
+       * column" — a half-entered date range, or a value this build cannot read.
+       * Writing the key anyway would leave the field present-but-undefined in
+       * the request, which is a different statement from not filtering on it.
+       */
+      if (value === undefined) {
+        continue;
+      }
+
       (merged as unknown as Record<string, unknown>)[field] = value;
     }
 
@@ -1143,11 +1196,7 @@ const useResourceOwners: <TResource extends BaseModel>(
   };
 
   const anyExtraFacetActive: boolean = extraFacets.some((f: ResourceFacet) => {
-    const op: FilterOperator = facetOperators[f.key] || "is";
-    if (op === "is_empty" || op === "is_not_empty") {
-      return true;
-    }
-    return (facetSelections[f.key] || []).length > 0;
+    return isFacetActive(f, facetSelections[f.key], facetOperators[f.key]);
   });
 
   const ownerOperatorActive: boolean =
@@ -1162,6 +1211,79 @@ const useResourceOwners: <TResource extends BaseModel>(
 
   const hasActiveFilters: boolean = Boolean(
     ownerOperatorActive || labelOperatorActive || anyExtraFacetActive,
+  );
+
+  // Facet key → the keys it cannot be active alongside.
+  const facetConflicts: FacetConflictMap = useMemo((): FacetConflictMap => {
+    return buildFacetConflictMap(extraFacets);
+  }, [extraFacets]);
+
+  const facetByKey: { [facetKey: string]: ResourceFacet } = useMemo((): {
+    [facetKey: string]: ResourceFacet;
+  } => {
+    const map: { [facetKey: string]: ResourceFacet } = {};
+    for (const facet of extraFacets) {
+      map[facet.key] = facet;
+    }
+    return map;
+  }, [extraFacets]);
+
+  /**
+   * Set one facet's values and operator together, clearing anything it conflicts
+   * with.
+   *
+   * The single write path for every facet change — the chips, the summary tiles,
+   * and deep links all land here — so the conflict rule cannot be enforced in
+   * one of them and forgotten in another.
+   */
+  const applyFacetChange: (
+    facetKey: string,
+    values: Array<string>,
+    operator: FilterOperator,
+  ) => void = useCallback(
+    (
+      facetKey: string,
+      values: Array<string>,
+      operator: FilterOperator,
+    ): void => {
+      const conflicting: Array<string> = facetConflicts[facetKey] || [];
+      const facet: ResourceFacet = facetByKey[facetKey] || {
+        key: facetKey,
+        label: facetKey,
+      };
+      /*
+       * Only an active chip displaces another. Clearing a chip, or leaving it
+       * mid-range, must not wipe the one the user set before it.
+       */
+      const displaces: boolean =
+        conflicting.length > 0 && isFacetActive(facet, values, operator);
+
+      setFacetSelections((prev: { [k: string]: Array<string> }) => {
+        const next: { [k: string]: Array<string> } = {
+          ...prev,
+          [facetKey]: values,
+        };
+        if (displaces) {
+          for (const other of conflicting) {
+            next[other] = [];
+          }
+        }
+        return next;
+      });
+      setFacetOperators((prev: { [k: string]: FilterOperator }) => {
+        const next: { [k: string]: FilterOperator } = {
+          ...prev,
+          [facetKey]: operator,
+        };
+        if (displaces) {
+          for (const other of conflicting) {
+            next[other] = "is";
+          }
+        }
+        return next;
+      });
+    },
+    [facetConflicts, facetByKey],
   );
 
   const setFacetSelection: (
@@ -1184,22 +1306,25 @@ const useResourceOwners: <TResource extends BaseModel>(
        * query that ignores the values it just chose, with a chip that claims
        * otherwise.
        */
-      const nextValues: Array<string> = normalizeFacetValues(values);
       const nextOperator: FilterOperator = resolveFacetOperator(operator);
+      /*
+       * Date facets keep their two instants inside a single value, so the
+       * set-semantics of normalizeFacetValues (dedupe, drop blanks) would be
+       * meaningless at best. The range's own encoding is what validates it.
+       */
+      const nextValues: Array<string> =
+        facetByKey[facetKey]?.type === "dateRange"
+          ? values.slice(0, 1)
+          : normalizeFacetValues(values);
 
-      setFacetSelections((prev: { [k: string]: Array<string> }) => {
-        return { ...prev, [facetKey]: nextValues };
-      });
-      setFacetOperators((prev: { [k: string]: FilterOperator }) => {
-        return { ...prev, [facetKey]: nextOperator };
-      });
+      applyFacetChange(facetKey, nextValues, nextOperator);
 
       /*
        * Resolver-based facets recompute from the effect keyed on the selections
        * above, so nothing to do for them here.
        */
     },
-    [],
+    [applyFacetChange, facetByKey],
   );
 
   const clearAllFacets: () => void = useCallback((): void => {
@@ -1532,11 +1657,7 @@ const useResourceOwners: <TResource extends BaseModel>(
       (isOwnerActive ? 1 : 0) +
       (isLabelActive ? 1 : 0) +
       extraFacets.filter((f: ResourceFacet) => {
-        const op: FilterOperator = facetOperators[f.key] || "is";
-        if (op === "is_empty" || op === "is_not_empty") {
-          return true;
-        }
-        return (facetSelections[f.key] || []).length > 0;
+        return isFacetActive(f, facetSelections[f.key], facetOperators[f.key]);
       }).length;
 
     return (
@@ -1611,9 +1732,29 @@ const useResourceOwners: <TResource extends BaseModel>(
           />
         )}
         {extraFacets.map((facet: ResourceFacet) => {
+          const selected: Array<string> = facetSelections[facet.key] || [];
+
+          if (facet.type === "dateRange") {
+            return (
+              <FilterChipDateRange
+                key={facet.key}
+                label={facet.label}
+                emptyIcon={facet.icon}
+                values={selected}
+                operator={facetOperators[facet.key] || "is"}
+                supportedOperators={facet.supportedOperators}
+                onChange={(
+                  nextValues: Array<string>,
+                  nextOperator: FilterOperator,
+                ) => {
+                  applyFacetChange(facet.key, nextValues, nextOperator);
+                }}
+              />
+            );
+          }
+
           const opts: Array<FilterChipDropdownOption> =
             facet.options || facetDynamicOptions[facet.key] || [];
-          const selected: Array<string> = facetSelections[facet.key] || [];
           const value: string | Array<string> | null = facet.isMultiSelect
             ? selected
             : selected[0] || null;
@@ -1656,30 +1797,20 @@ const useResourceOwners: <TResource extends BaseModel>(
               searchPlaceholder={facet.searchPlaceholder}
               operator={facetOperators[facet.key] || "is"}
               onOperatorChange={(op: FilterOperator) => {
-                setFacetOperators((prev: { [k: string]: FilterOperator }) => {
-                  return { ...prev, [facet.key]: op };
-                });
+                applyFacetChange(facet.key, selected, op);
               }}
               supportedOperators={
-                facet.supportedOperators || [
-                  "is",
-                  "is_not",
-                  "is_empty",
-                  "is_not_empty",
-                ]
+                facet.supportedOperators || OPTION_FACET_OPERATORS
               }
               onChange={(next: string | Array<string> | null) => {
-                setFacetSelections((prev: { [k: string]: Array<string> }) => {
-                  const updated: { [k: string]: Array<string> } = { ...prev };
-                  if (next === null) {
-                    updated[facet.key] = [];
-                  } else if (Array.isArray(next)) {
-                    updated[facet.key] = next;
-                  } else {
-                    updated[facet.key] = [next];
-                  }
-                  return updated;
-                });
+                const nextValues: Array<string> =
+                  next === null ? [] : Array.isArray(next) ? next : [next];
+
+                applyFacetChange(
+                  facet.key,
+                  nextValues,
+                  facetOperators[facet.key] || "is",
+                );
               }}
             />
           );
@@ -1713,6 +1844,7 @@ const useResourceOwners: <TResource extends BaseModel>(
     labelOperator,
     facetOperators,
     clearAllFacets,
+    applyFacetChange,
   ]);
 
   const facetSaveState: JSONObject = useMemo((): JSONObject => {
