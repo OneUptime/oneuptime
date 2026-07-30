@@ -96,6 +96,10 @@ ENV APP_VERSION=${APP_VERSION}
 ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
+# The full TypeScript type-check already ran at build time (`npm run compile`
+# above). Without this, ts-node/register redoes it on every container start,
+# delaying the cert/domain sidecar. See App/Dockerfile.tpl for the rationale.
+ENV TS_NODE_TRANSPILE_ONLY=1
 
 CMD ./run.sh
 
