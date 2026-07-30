@@ -76,6 +76,10 @@ CMD [ "npm", "run", "dev" ]
 # avoid a slow recursive `chown -R` over node_modules; deps stay root-owned and
 # world-readable.
 COPY --chown=1000:1000 ./RunbookAgent /usr/src/app
+# Bundle app source. This type-checks the package at build time, which is the
+# precondition for TS_NODE_TRANSPILE_ONLY below: without it, disabling the
+# boot-time check would leave this service's types verified nowhere at all.
+RUN npm run compile
 USER node
 # Per-build metadata last so the npm ci layers above stay cacheable across commits.
 ARG GIT_SHA
@@ -84,6 +88,10 @@ ENV GIT_SHA=${GIT_SHA}
 ENV APP_VERSION=${APP_VERSION}
 LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.version="${APP_VERSION}"
+# The full TypeScript type-check already ran at build time (`npm run compile`
+# above). Without this, ts-node/register redoes it on every container start.
+# See App/Dockerfile.tpl for the full rationale.
+ENV TS_NODE_TRANSPILE_ONLY=1
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
