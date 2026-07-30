@@ -208,6 +208,8 @@ A probe suporta as seguintes variáveis de ambiente:
 - `PROBE_MONITOR_RETRY_LIMIT` - Número de tentativas para monitores com falha (padrão: 3)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout para scripts de monitor sintético em milissegundos (padrão: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout para scripts de monitor de código personalizado em milissegundos (padrão: 60000)
+- `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Prazo limite para cada requisição que a probe envia ao OneUptime (padrão: 45000)
+- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - Registra um aviso para requisições ao OneUptime mais lentas que este valor (padrão: 10000)
 
 #### Configuração de Proxy
 
@@ -237,3 +239,28 @@ http://[username:password@]proxy.server.com:port
 ### Verificar
 
 Se a probe estiver em execução com sucesso, ela deve aparecer como `Connected` no seu painel do OneUptime. Se não aparecer como conectada, você precisa verificar os logs do contêiner. Se ainda tiver problemas, crie um problema no [GitHub](https://github.com/oneuptime/oneuptime) ou [entre em contato com o suporte](https://oneuptime.com/support).
+
+### Diagnosticando uma Probe Desconectada
+
+Uma probe é marcada como `Disconnected` quando suas requisições ao OneUptime deixam de ser bem-sucedidas. O log da probe indica onde cada requisição com falha travou, então raramente você precisa adivinhar.
+
+**1. Leia o bloco de ambiente impresso na inicialização.** Toda probe imprime um bloco JSON na inicialização com a URL do OneUptime que está usando, seu prazo limite de requisição, suas configurações de proxy, os resolvedores DNS que herdou, a versão do Node/SO e se a verificação TLS foi desabilitada. Inclua este bloco sempre que você relatar um problema.
+
+**2. Encontre o relatório de falha.** Toda requisição com falha ao OneUptime registra um bloco contendo `stalledAt` e `whatThisMeans`. `stalledAt` é a fase da qual a requisição nunca passou:
+
+| `stalledAt` | O que significa |
+| --- | --- |
+| `SocketAssignment` | Nada saiu da máquina. O pool de sockets estava saturado, ou um proxy configurado nunca completou seu túnel CONNECT. |
+| `TcpConnect` | A máquina enviou SYN e não recebeu nada de volta — um firewall ou appliance de segurança está descartando pacotes, ou o host está inacessível. |
+| `TlsHandshake` | O TCP conectou, mas o TLS nunca terminou. Normalmente um middlebox que inspeciona TLS. |
+| `RequestSend` | Conectou, mas a requisição nunca foi totalmente escrita — a outra ponta parou de ler. |
+| `WaitingForServerResponse` | A requisição foi entregue e o servidor não respondeu nada. **A rede da probe está bem** — verifique o servidor do OneUptime, seu balanceador de carga e seu proxy reverso. |
+| `ResponseBody` | O servidor começou a responder e travou no meio do caminho. |
+
+O mesmo bloco também informa `deadlineOverrunInMs`. Se um prazo limite de 45000ms levou muito mais que 45000ms de tempo real, o próprio processo da probe estava bloqueado — verifique `probeProcess.eventLoopMaxDriftInMs` no bloco antes de investigar a rede.
+
+**3. Leia o autoteste de conectividade.** Após três falhas consecutivas, a probe testa o mesmo servidor uma camada por vez — DNS, depois TCP, depois TLS e, por fim, uma requisição HTTP real de ida e volta — e registra cada etapa com seus tempos. A primeira etapa que falhar é a sua resposta. Quando um proxy está configurado, a probe testa o salto até o proxy, porque esse é o único salto que ela realmente faz.
+
+**4. Fique atento a requisições lentas antes que elas se tornem falhas.** Requisições que têm sucesso, mas demoram mais que `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS`, são registradas com o tempo decorrido. Uma probe que começa a registrar requisições de 20 segundos está a caminho de ultrapassar o prazo limite de 45 segundos.
+
+No lado do servidor do OneUptime, uma requisição de probe que é respondida lentamente — ou que a probe abandonou antes que uma resposta fosse enviada — também é registrada lá, com o id da probe. Esses dois logs em conjunto dizem qual lado da conexão é o responsável.
