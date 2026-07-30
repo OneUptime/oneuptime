@@ -161,7 +161,7 @@ Microsoft Entra ID는 Microsoft의 클라우드 기반 ID 및 액세스 관리 �
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                          |
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                            |
 
-3. **이름 식별자 형식**을 `이메일 주소`로 설정합니다
+3. **이름 식별자 형식**을 `Email address`로 설정합니다
 4. **저장**을 클릭합니다
 
 ### 5단계: 사용자 및 그룹 할당

@@ -238,7 +238,7 @@ http://[username:password@]proxy.server.com:port
 
 ### Verifica
 
-Se il probe è in esecuzione correttamente, dovrebbe mostrare `Connesso` nel dashboard di OneUptime. Se non appare come connesso, controllare i log del container. Se si hanno ancora problemi, creare un issue su [GitHub](https://github.com/oneuptime/oneuptime) o [contattare il supporto](https://oneuptime.com/support).
+Se il probe è in esecuzione correttamente, dovrebbe mostrare `Connected` nel dashboard di OneUptime. Se non appare come connesso, controllare i log del container. Se si hanno ancora problemi, creare un issue su [GitHub](https://github.com/oneuptime/oneuptime) o [contattare il supporto](https://oneuptime.com/support).
 
 ### Diagnosi di un Probe Disconnesso
 

@@ -238,7 +238,7 @@ http://[username:password@]proxy.server.com:port
 
 ### Vérification
 
-Si la sonde fonctionne correctement, elle doit apparaître comme `Connectée` sur votre tableau de bord OneUptime. Si elle n'apparaît pas comme connectée, vous devez vérifier les journaux du conteneur. Si vous avez encore des difficultés, veuillez créer un ticket sur [GitHub](https://github.com/oneuptime/oneuptime) ou [contacter le support](https://oneuptime.com/support).
+Si la sonde fonctionne correctement, elle doit apparaître comme `Connected` sur votre tableau de bord OneUptime. Si elle n'apparaît pas comme connectée, vous devez vérifier les journaux du conteneur. Si vous avez encore des difficultés, veuillez créer un ticket sur [GitHub](https://github.com/oneuptime/oneuptime) ou [contacter le support](https://oneuptime.com/support).
 
 ### Diagnostic d'une sonde déconnectée
 

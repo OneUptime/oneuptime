@@ -109,19 +109,19 @@ OneUptime resuelve el secreto en el servidor antes de entregar la configuración
 
 Agrega criterios para decidir cuándo se considera que el monitor está en línea, degradado o fuera de línea. Las siguientes comprobaciones están disponibles para un Monitor de consultas SQL:
 
-- **SQL está en línea**: si se pudo acceder a la base de datos y la consulta se realizó correctamente.
-- **Recuento de filas de la consulta SQL**: el número de filas devueltas. Compara con operadores como mayor que, menor que o igual a.
-- **Valor escalar de la consulta SQL**: la primera columna de la primera fila. Se compara numéricamente cuando ambos lados parecen numéricos y, de lo contrario, como cadenas. Esta es la comprobación que debes usar para las consultas del estilo `COUNT(*)`.
-- **Tiempo de ejecución de la consulta SQL (en ms)**: cuánto tardó la consulta. Útil para detectar una base de datos lenta.
-- **Error de la consulta SQL**: el mensaje de error de la consulta. Genera una alerta cuando está (o no está) vacío, o cuando coincide con una cadena específica.
-- **Expresión JavaScript**: evalúa una expresión JavaScript personalizada para tener control total. Consulta [Expresiones JavaScript](/docs/monitor/javascript-expression).
+- **SQL Is Online**: si se pudo acceder a la base de datos y la consulta se realizó correctamente.
+- **SQL Query Row Count**: el número de filas devueltas. Compara con operadores como mayor que, menor que o igual a.
+- **SQL Query Scalar Value**: la primera columna de la primera fila. Se compara numéricamente cuando ambos lados parecen numéricos y, de lo contrario, como cadenas. Esta es la comprobación que debes usar para las consultas del estilo `COUNT(*)`.
+- **SQL Query Execution Time (in ms)**: cuánto tardó la consulta. Útil para detectar una base de datos lenta.
+- **SQL Query Error**: el mensaje de error de la consulta. Genera una alerta cuando está (o no está) vacío, o cuando coincide con una cadena específica.
+- **JavaScript Expression**: evalúa una expresión JavaScript personalizada para tener control total. Consulta [Expresiones JavaScript](/docs/monitor/javascript-expression).
 
 ### Ejemplo: alertar cuando las cancelaciones se disparan
 
 Usando la consulta anterior:
 
-- **Criterio: Degradado**: `Valor escalar de la consulta SQL` es mayor que `10`.
-- **Criterio: Fuera de línea**: `Valor escalar de la consulta SQL` es mayor que `50`, o `SQL está en línea` es `false`.
+- **Criterio: Degradado**: `SQL Query Scalar Value` es mayor que `10`.
+- **Criterio: Fuera de línea**: `SQL Query Scalar Value` es mayor que `50`, o `SQL Is Online` es `false`.
 
 Adjunta una política de guardia a los criterios para que se avise a las personas adecuadas.
 

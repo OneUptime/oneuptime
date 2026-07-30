@@ -161,7 +161,7 @@ Microsoft Entra ID er Microsofts skybaserte identitets- og tilgangsstyringstjene
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                           |
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                             |
 
-3. Sett **Format for navneidentifikator** til `E-postadresse`
+3. Sett **Format for navneidentifikator** til `Email address`
 4. Klikk **Lagre**
 
 ### Trinn 5: Tildel brukere og grupper

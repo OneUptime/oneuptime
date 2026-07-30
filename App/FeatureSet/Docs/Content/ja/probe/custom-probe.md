@@ -238,7 +238,7 @@ http://[username:password@]proxy.server.com:port
 
 ### 確認
 
-プローブが正常に実行されている場合、OneUptime ダッシュボードに `接続済み` として表示されます。接続されていない場合は、コンテナのログを確認してください。それでも問題が解決しない場合は、[GitHub](https://github.com/oneuptime/oneuptime) でissueを作成するか、[サポートにお問い合わせください](https://oneuptime.com/support)。
+プローブが正常に実行されている場合、OneUptime ダッシュボードに `Connected` として表示されます。接続されていない場合は、コンテナのログを確認してください。それでも問題が解決しない場合は、[GitHub](https://github.com/oneuptime/oneuptime) でissueを作成するか、[サポートにお問い合わせください](https://oneuptime.com/support)。
 
 ### 切断されたプローブの診断
 

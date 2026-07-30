@@ -99,7 +99,7 @@ Okta ist eine weit verbreitete Identitätsplattform mit robusten SAML SSO-Fähig
    - **Single Sign-On URL**: Die **Antwort-URL (Assertion Consumer Service URL)** aus der OneUptime **SSO-Konfiguration anzeigen** einfügen
    - **Audience URI (SP Entity ID)**: Den **Bezeichner (Entity ID)** aus der OneUptime **SSO-Konfiguration anzeigen** einfügen
    - **Name-ID-Format**: `EmailAddress` auswählen
-   - **Anwendungsbenutzername**: `E-Mail` auswählen
+   - **Anwendungsbenutzername**: `Email` auswählen
 
 ### Fehlerbehebung Okta
 

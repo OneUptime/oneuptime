@@ -238,7 +238,7 @@ http://[username:password@]proxy.server.com:port
 
 ### Bekræftelse
 
-Hvis proben kører succesfuldt, bør den vise som `Forbundet` på dit OneUptime-dashboard. Hvis den ikke viser som forbundet, skal du kontrollere containerloggene. Hvis du stadig har problemer, bedes du oprette et issue på [GitHub](https://github.com/oneuptime/oneuptime) eller [kontakte support](https://oneuptime.com/support)
+Hvis proben kører succesfuldt, bør den vise som `Connected` på dit OneUptime-dashboard. Hvis den ikke viser som forbundet, skal du kontrollere containerloggene. Hvis du stadig har problemer, bedes du oprette et issue på [GitHub](https://github.com/oneuptime/oneuptime) eller [kontakte support](https://oneuptime.com/support)
 
 ### Diagnosticering af en frakoblet probe
 
