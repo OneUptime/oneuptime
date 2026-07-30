@@ -3,16 +3,20 @@ import {
   DEVICE_FACET_QUERY_FIELDS,
   DEVICE_INTERFACES_FACET_KEY,
   DEVICE_INTERFACES_FACET_OPTIONS,
+  DEVICE_LAST_SEEN_FACET_KEY,
+  DEVICE_LAST_SEEN_FACET_OPERATORS,
   DEVICE_PROBE_FACET_KEY,
   DEVICE_SITE_FACET_KEY,
   DEVICE_STATUS_FACET_KEY,
   DEVICE_STATUS_FACET_OPTIONS,
+  DEVICE_STATUS_LAST_SEEN_EXCLUSION,
   DeviceInterfacesFacetValue,
   DeviceStatusCutoff,
   DeviceStatusFacetValue,
   NETWORK_DEVICES_TABLE_ID,
   UNASSIGNED_DEVICES_FACET_SELECTION,
   buildDeviceInterfacesFacetQuery,
+  buildDeviceLastSeenFacetQuery,
   buildDeviceStatusFacetQuery,
   getDeviceFreshCutoff,
   isTimeBasedDeviceStatus,
@@ -23,12 +27,15 @@ import {
   FilterChipDropdownOption,
   FilterOperator,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
+import { serializeFacetDateRange } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FacetDateRange";
 import EqualTo from "Common/Types/BaseDatabase/EqualTo";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
 import CompareBase from "Common/Types/Database/CompareBase";
+import OneUptimeDate from "Common/Types/Date";
 
 /*
  * DeviceFacets is the contract between what a chip in the device list's facet
@@ -102,11 +109,37 @@ const ALL_FACET_KEYS: Array<string> = [
   DEVICE_INTERFACES_FACET_KEY,
   DEVICE_SITE_FACET_KEY,
   DEVICE_PROBE_FACET_KEY,
+  DEVICE_LAST_SEEN_FACET_KEY,
 ];
 
 const ALL_QUERY_FIELDS: Array<string> = Object.values(
   DEVICE_FACET_QUERY_FIELDS,
 );
+
+/*
+ * DEVICE_FACET_QUERY_FIELDS is keyed by the chip's role ("status"), not by its
+ * facet key ("deviceStatus"). This is the join between the two, so a test can
+ * ask "which chips write this column" rather than restating the answer.
+ */
+const FACET_KEY_BY_QUERY_FIELD_ROLE: Record<string, string> = {
+  status: DEVICE_STATUS_FACET_KEY,
+  interfaces: DEVICE_INTERFACES_FACET_KEY,
+  site: DEVICE_SITE_FACET_KEY,
+  probe: DEVICE_PROBE_FACET_KEY,
+  lastSeen: DEVICE_LAST_SEEN_FACET_KEY,
+};
+
+/*
+ * A day in the middle of the frozen "now"'s month, well clear of a month
+ * boundary so a start-of-day / end-of-day slip cannot land on a date that
+ * happens to read correctly.
+ */
+const PICKED_DAY: Date = new Date("2026-07-16T09:41:23.456Z");
+const PICKED_END_DAY: Date = new Date("2026-07-20T17:02:11.222Z");
+
+function lastSeenValues(start: Date | null, end: Date | null): Array<string> {
+  return serializeFacetDateRange({ start, end }, end ? "between" : "is");
+}
 
 /*
  * The values a hand-edited URL, a stale bookmark or a view saved by an older
@@ -168,6 +201,7 @@ describe("the facet keys", () => {
     expect(DEVICE_INTERFACES_FACET_KEY).toBe("deviceInterfaces");
     expect(DEVICE_SITE_FACET_KEY).toBe("deviceSite");
     expect(DEVICE_PROBE_FACET_KEY).toBe("deviceProbe");
+    expect(DEVICE_LAST_SEEN_FACET_KEY).toBe("deviceLastSeen");
   });
 
   test("are non-empty and distinct from one another", () => {
@@ -198,6 +232,7 @@ describe("DEVICE_FACET_QUERY_FIELDS", () => {
     expect(DEVICE_FACET_QUERY_FIELDS.interfaces).toBe("interfacesDown");
     expect(DEVICE_FACET_QUERY_FIELDS.site).toBe("siteId");
     expect(DEVICE_FACET_QUERY_FIELDS.probe).toBe("probeId");
+    expect(DEVICE_FACET_QUERY_FIELDS.lastSeen).toBe("lastSeenAt");
   });
 
   /*
@@ -215,14 +250,90 @@ describe("DEVICE_FACET_QUERY_FIELDS", () => {
     expect(DEVICE_FACET_QUERY_FIELDS.probe.endsWith("Id")).toBe(true);
   });
 
+  test("names a column for every chip", () => {
+    expect(ALL_QUERY_FIELDS).toHaveLength(ALL_FACET_KEYS.length);
+  });
+
   /*
    * The chips' constraints are merged into one query object, so two chips
    * writing the same column would have the later one silently replace the
    * earlier — one chip lit over a list it is not filtering.
+   *
+   * Status and Last Seen are the one deliberate exception: both ask about
+   * `lastSeenAt`, one against the fixed freshness window and one against a date
+   * the user picks, and no single-field query is both. They are declared
+   * mutually exclusive instead, so activating either clears the other and the
+   * merge never has two constraints to choose between.
    */
-  test("gives every chip a column of its own", () => {
-    expect(new Set(ALL_QUERY_FIELDS).size).toBe(ALL_QUERY_FIELDS.length);
-    expect(ALL_QUERY_FIELDS).toHaveLength(ALL_FACET_KEYS.length);
+  test("gives every chip a column of its own, except the pair that is declared exclusive", () => {
+    const duplicated: Array<string> = ALL_QUERY_FIELDS.filter(
+      (field: string, index: number) => {
+        return ALL_QUERY_FIELDS.indexOf(field) !== index;
+      },
+    );
+
+    expect(duplicated).toEqual([DEVICE_FACET_QUERY_FIELDS.status]);
+    expect(DEVICE_FACET_QUERY_FIELDS.lastSeen).toBe(
+      DEVICE_FACET_QUERY_FIELDS.status,
+    );
+  });
+
+  /*
+   * The exclusion is what makes a shared column safe, so it has to name exactly
+   * the chips that share one. Derived from the field map rather than restated,
+   * so a third chip pointed at `lastSeenAt` — or a second pair sharing some
+   * other column — fails here instead of silently overwriting at runtime.
+   */
+  test("every chip sharing a column is named in the exclusion", () => {
+    // The join has to cover the map, or a role could share a column unwatched.
+    expect(Object.keys(FACET_KEY_BY_QUERY_FIELD_ROLE).sort()).toEqual(
+      Object.keys(DEVICE_FACET_QUERY_FIELDS).sort(),
+    );
+
+    const facetKeysByColumn: Map<string, Array<string>> = new Map();
+
+    for (const [role, facetKey] of Object.entries(
+      FACET_KEY_BY_QUERY_FIELD_ROLE,
+    )) {
+      const column: string = (
+        DEVICE_FACET_QUERY_FIELDS as unknown as Record<string, string>
+      )[role]!;
+
+      facetKeysByColumn.set(column, [
+        ...(facetKeysByColumn.get(column) || []),
+        facetKey,
+      ]);
+    }
+
+    const sharedColumns: Array<Array<string>> = [
+      ...facetKeysByColumn.values(),
+    ].filter((facetKeys: Array<string>) => {
+      return facetKeys.length > 1;
+    });
+
+    expect(sharedColumns).toHaveLength(1);
+    expect([...sharedColumns[0]!].sort()).toEqual(
+      [...DEVICE_STATUS_LAST_SEEN_EXCLUSION].sort(),
+    );
+  });
+});
+
+describe("DEVICE_STATUS_LAST_SEEN_EXCLUSION", () => {
+  test("names the two chips that write lastSeenAt", () => {
+    expect(DEVICE_STATUS_LAST_SEEN_EXCLUSION).toEqual([
+      DEVICE_STATUS_FACET_KEY,
+      DEVICE_LAST_SEEN_FACET_KEY,
+    ]);
+  });
+
+  test("names real facet keys, and only those two", () => {
+    expect(DEVICE_STATUS_LAST_SEEN_EXCLUSION).toHaveLength(2);
+
+    for (const key of DEVICE_STATUS_LAST_SEEN_EXCLUSION) {
+      expect(ALL_FACET_KEYS).toContain(key);
+    }
+
+    expect(new Set(DEVICE_STATUS_LAST_SEEN_EXCLUSION).size).toBe(2);
   });
 });
 
@@ -435,13 +546,17 @@ describe("buildDeviceStatusFacetQuery", () => {
     );
 
     /*
-     * Derived from FILTER_OPERATOR_LABELS rather than hard-coded, so adding a
-     * fifth operator to the chip forces this list to be revisited instead of
+     * Derived from FILTER_OPERATOR_LABELS rather than hard-coded, so adding an
+     * operator to the vocabulary forces this list to be revisited instead of
      * quietly falling through to whichever branch happens to match.
+     *
+     * Seven: the four the option chips have always had, plus the three a date
+     * chip needs. Status offers only "is" and refuses every other one above —
+     * including the date operators, which have no date to compare against here.
      */
     test("covers every operator the chip can offer", () => {
-      expect(ALL_OPERATORS).toHaveLength(4);
-      expect(OPERATORS_OTHER_THAN_IS).toHaveLength(3);
+      expect(ALL_OPERATORS).toHaveLength(7);
+      expect(OPERATORS_OTHER_THAN_IS).toHaveLength(6);
       expect(OPERATORS_OTHER_THAN_IS).not.toContain("is");
     });
   });
@@ -606,6 +721,301 @@ describe("buildDeviceInterfacesFacetQuery", () => {
       expect(
         JSON.stringify(buildDeviceInterfacesFacetQuery([value], "is")),
       ).toBe(JSON.stringify(buildDeviceInterfacesFacetQuery([value], "is")));
+    }
+  });
+});
+
+describe("DEVICE_LAST_SEEN_FACET_OPERATORS", () => {
+  test("offers the four date operators the column-filter popup always did", () => {
+    expect(DEVICE_LAST_SEEN_FACET_OPERATORS).toEqual([
+      "is",
+      "before",
+      "after",
+      "between",
+    ]);
+  });
+
+  /*
+   * Over `lastSeenAt` these two ARE the Status chip's Pending and not-Pending.
+   * Offering them here would give the user two chips, in two vocabularies, for
+   * one question — and, because the two chips are mutually exclusive, picking
+   * the second would clear the first for no visible reason.
+   */
+  test("leaves the empty operators to the Status chip's Pending", () => {
+    expect(DEVICE_LAST_SEEN_FACET_OPERATORS).not.toContain("is_empty");
+    expect(DEVICE_LAST_SEEN_FACET_OPERATORS).not.toContain("is_not_empty");
+  });
+
+  /*
+   * "is not on this day" over a nullable timestamp silently drops never-polled
+   * devices — SQL fails them out of the comparison — while reading as though it
+   * included them. There is no single-field query that means what the words say.
+   */
+  test("does not offer is_not", () => {
+    expect(DEVICE_LAST_SEEN_FACET_OPERATORS).not.toContain("is_not");
+  });
+
+  test("every operator it offers is one the vocabulary knows", () => {
+    for (const operator of DEVICE_LAST_SEEN_FACET_OPERATORS) {
+      expect(ALL_OPERATORS).toContain(operator);
+    }
+  });
+});
+
+describe("buildDeviceLastSeenFacetQuery", () => {
+  /*
+   * This chip exists to ask the questions the Status chip cannot: "which
+   * devices have not been polled since last Tuesday", "which were polled
+   * between the 1st and the 5th". Both were answerable from the column-filter
+   * popup's date entry before the facet bar took `lastSeenAt` over, so the same
+   * picked dates have to keep returning the same rows — a link already pasted
+   * into a ticket does not get to change meaning.
+   */
+  describe("is", () => {
+    test("is the whole picked day, not the instant inside it", () => {
+      const query: unknown = buildDeviceLastSeenFacetQuery(
+        lastSeenValues(PICKED_DAY, null),
+        "is",
+      );
+
+      expect(query).toBeInstanceOf(InBetween);
+      expect((query as InBetween<Date>).startValue).toEqual(
+        OneUptimeDate.getStartOfDay(PICKED_DAY),
+      );
+      expect((query as InBetween<Date>).endValue).toEqual(
+        OneUptimeDate.getEndOfDay(PICKED_DAY),
+      );
+    });
+
+    /*
+     * `lastSeenAt` is a timestamp, so an equality against the picked midnight
+     * would match only a poll that landed on that exact millisecond — "last
+     * seen on the 16th" returning nothing, every time.
+     */
+    test("is a range rather than an equality", () => {
+      const query: unknown = buildDeviceLastSeenFacetQuery(
+        lastSeenValues(PICKED_DAY, null),
+        "is",
+      );
+
+      expect(query).not.toBeInstanceOf(EqualTo);
+      expect(operatorNameOf(query)).toBe("InBetween");
+    });
+  });
+
+  describe("before", () => {
+    test("is lastSeenAt < the picked date", () => {
+      const query: unknown = buildDeviceLastSeenFacetQuery(
+        lastSeenValues(PICKED_DAY, null),
+        "before",
+      );
+
+      expect(query).toBeInstanceOf(LessThan);
+      expect((query as CompareBase<Date>).value).toEqual(PICKED_DAY);
+    });
+
+    /*
+     * The question this chip was added for. A device polled long ago is
+     * "before", a device polled since is not, and a never-polled device matches
+     * neither — SQL drops NULLs from the comparison, exactly as the Status
+     * chip's Down does.
+     */
+    test("is a plain comparison, so never-polled devices do not match", () => {
+      const query: unknown = buildDeviceLastSeenFacetQuery(
+        lastSeenValues(PICKED_DAY, null),
+        "before",
+      );
+
+      expect(query).not.toBeInstanceOf(IsNull);
+      expect(operatorNameOf(query)).toBe("LessThan");
+    });
+  });
+
+  describe("after", () => {
+    test("is lastSeenAt > the picked date", () => {
+      const query: unknown = buildDeviceLastSeenFacetQuery(
+        lastSeenValues(PICKED_DAY, null),
+        "after",
+      );
+
+      expect(query).toBeInstanceOf(GreaterThan);
+      expect((query as CompareBase<Date>).value).toEqual(PICKED_DAY);
+    });
+  });
+
+  describe("between", () => {
+    test("spans from the start of the first day to the end of the last", () => {
+      const query: unknown = buildDeviceLastSeenFacetQuery(
+        lastSeenValues(PICKED_DAY, PICKED_END_DAY),
+        "between",
+      );
+
+      expect(query).toBeInstanceOf(InBetween);
+      expect((query as InBetween<Date>).startValue).toEqual(
+        OneUptimeDate.getStartOfDay(PICKED_DAY),
+      );
+      expect((query as InBetween<Date>).endValue).toEqual(
+        OneUptimeDate.getEndOfDay(PICKED_END_DAY),
+      );
+    });
+
+    /*
+     * Both ends inclusive. "Between the 1st and the 5th" that quietly excluded
+     * the 5th would be off by a day in the direction nobody checks.
+     */
+    test("includes both of the days the user named", () => {
+      const query: InBetween<Date> = buildDeviceLastSeenFacetQuery(
+        lastSeenValues(PICKED_DAY, PICKED_END_DAY),
+        "between",
+      ) as InBetween<Date>;
+
+      expect(query.startValue.getTime()).toBeLessThanOrEqual(
+        PICKED_DAY.getTime(),
+      );
+      expect(query.endValue.getTime()).toBeGreaterThanOrEqual(
+        PICKED_END_DAY.getTime(),
+      );
+    });
+
+    test("a single day is a range from its start to its end", () => {
+      const query: InBetween<Date> = buildDeviceLastSeenFacetQuery(
+        lastSeenValues(PICKED_DAY, PICKED_DAY),
+        "between",
+      ) as InBetween<Date>;
+
+      expect(query.startValue).toEqual(OneUptimeDate.getStartOfDay(PICKED_DAY));
+      expect(query.endValue).toEqual(OneUptimeDate.getEndOfDay(PICKED_DAY));
+    });
+  });
+
+  describe("refuses anything it cannot express honestly", () => {
+    test("an empty selection does not constrain the column", () => {
+      expect(buildDeviceLastSeenFacetQuery([], "is")).toBeUndefined();
+      expect(buildDeviceLastSeenFacetQuery([], "before")).toBeUndefined();
+      expect(buildDeviceLastSeenFacetQuery([], "between")).toBeUndefined();
+    });
+
+    /*
+     * The user has picked one end of the range and is on their way to the
+     * other. Filtering on half of it would empty the table under their cursor.
+     */
+    test("a half-entered range does not constrain the column", () => {
+      expect(
+        buildDeviceLastSeenFacetQuery(
+          serializeFacetDateRange({ start: PICKED_DAY, end: null }, "between"),
+          "between",
+        ),
+      ).toBeUndefined();
+
+      expect(
+        buildDeviceLastSeenFacetQuery(
+          serializeFacetDateRange({ start: null, end: PICKED_DAY }, "between"),
+          "between",
+        ),
+      ).toBeUndefined();
+    });
+
+    test.each(JUNK_VALUES)(
+      "%s does not constrain the column",
+      (_label: string, raw: string) => {
+        for (const operator of DEVICE_LAST_SEEN_FACET_OPERATORS) {
+          expect(
+            buildDeviceLastSeenFacetQuery([raw], operator),
+          ).toBeUndefined();
+        }
+      },
+    );
+
+    /*
+     * The status values live on a different chip. A URL with the two facet keys
+     * swapped hands them here, and none of them is a date.
+     */
+    test.each(ALL_STATUS_VALUES)(
+      "the other chip's %s value does not constrain the column",
+      (value: DeviceStatusFacetValue) => {
+        expect(buildDeviceLastSeenFacetQuery([value], "is")).toBeUndefined();
+      },
+    );
+
+    /*
+     * The operators this chip does not offer. `is_empty` would be a second
+     * spelling of Pending, and `is_not` has no honest single-field form over a
+     * nullable timestamp — neither may sneak in through a hand-edited URL.
+     */
+    test.each(
+      ALL_OPERATORS.filter((operator: FilterOperator) => {
+        return !DEVICE_LAST_SEEN_FACET_OPERATORS.includes(operator);
+      }),
+    )(
+      "the %s operator it does not offer does not constrain the column",
+      (operator: FilterOperator) => {
+        expect(
+          buildDeviceLastSeenFacetQuery(
+            lastSeenValues(PICKED_DAY, null),
+            operator,
+          ),
+        ).toBeUndefined();
+      },
+    );
+  });
+
+  /*
+   * ModelTable decides whether to refetch by comparing the serialised query
+   * against the previous render's. Nothing here reads the clock — the dates
+   * come from the selection — so the same selection has to serialise
+   * identically or the table refetches forever.
+   */
+  test("serialises identically every time, with no clock in it", () => {
+    for (const operator of DEVICE_LAST_SEEN_FACET_OPERATORS) {
+      const values: Array<string> = lastSeenValues(
+        PICKED_DAY,
+        operator === "between" ? PICKED_END_DAY : null,
+      );
+
+      expect(
+        JSON.stringify(buildDeviceLastSeenFacetQuery(values, operator)),
+      ).toBe(JSON.stringify(buildDeviceLastSeenFacetQuery(values, operator)));
+    }
+  });
+
+  /*
+   * Why this chip has to exist alongside Status rather than instead of it.
+   *
+   * Status only ever produces an open-ended comparison against the freshness
+   * cutoff, or a null test. A bounded range — "polled between the 1st and the
+   * 5th", or "polled on the 16th" — is a shape it cannot make at any cutoff,
+   * which is exactly the question this chip was added to restore.
+   *
+   * The overlap runs the other way and is fine: "before" at the freshness
+   * cutoff IS Down. The two chips are mutually exclusive because they write one
+   * column, not because they can never agree.
+   */
+  test("expresses a bounded range, which the Status chip cannot", () => {
+    const statusShapes: Set<string> = new Set(
+      ALL_STATUS_VALUES.map((value: DeviceStatusFacetValue): string => {
+        return operatorNameOf(
+          buildDeviceStatusFacetQuery([value], "is", PICKED_DAY),
+        );
+      }),
+    );
+
+    expect([...statusShapes].sort()).toEqual([
+      "GreaterThanOrEqual",
+      "IsNull",
+      "LessThan",
+    ]);
+
+    for (const operator of ["is", "between"] as Array<FilterOperator>) {
+      const query: unknown = buildDeviceLastSeenFacetQuery(
+        lastSeenValues(
+          PICKED_DAY,
+          operator === "between" ? PICKED_END_DAY : null,
+        ),
+        operator,
+      );
+
+      expect(operatorNameOf(query)).toBe("InBetween");
+      expect(statusShapes).not.toContain(operatorNameOf(query));
     }
   });
 });

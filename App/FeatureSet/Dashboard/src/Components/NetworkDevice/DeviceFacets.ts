@@ -1,5 +1,6 @@
 import { DEVICE_FRESH_WINDOW_MINUTES } from "./DeviceStatusUtil";
 import { FacetTileSelection } from "../ResourceOwners/FacetTileSelection";
+import { buildFacetDateRangeQuery } from "../ResourceOwners/FacetDateRange";
 import {
   FilterChipDropdownOption,
   FilterOperator,
@@ -39,6 +40,7 @@ export const DEVICE_STATUS_FACET_KEY: string = "deviceStatus";
 export const DEVICE_INTERFACES_FACET_KEY: string = "deviceInterfaces";
 export const DEVICE_SITE_FACET_KEY: string = "deviceSite";
 export const DEVICE_PROBE_FACET_KEY: string = "deviceProbe";
+export const DEVICE_LAST_SEEN_FACET_KEY: string = "deviceLastSeen";
 
 /*
  * The column each chip owns. A chip and the column-filter popup cannot both
@@ -57,6 +59,7 @@ export const DEVICE_FACET_QUERY_FIELDS: {
   interfaces: string;
   site: string;
   probe: string;
+  lastSeen: string;
 } = {
   status: "lastSeenAt",
   interfaces: "interfacesDown",
@@ -67,7 +70,25 @@ export const DEVICE_FACET_QUERY_FIELDS: {
    */
   site: "siteId",
   probe: "probeId",
+  /*
+   * Deliberately the same column as `status`. Status asks a fixed
+   * DEVICE_FRESH_WINDOW_MINUTES question of `lastSeenAt` and Last Seen asks an
+   * arbitrary-date one, and there is no single-field query that is both — so
+   * the two chips are declared mutually exclusive (see
+   * DEVICE_STATUS_LAST_SEEN_EXCLUSION) and activating either clears the other,
+   * rather than one silently overwriting the other in the merged query.
+   */
+  lastSeen: "lastSeenAt",
 };
+
+/*
+ * The two chips over `lastSeenAt`, named as a pair so the page cannot wire one
+ * side of the exclusion and forget the other.
+ */
+export const DEVICE_STATUS_LAST_SEEN_EXCLUSION: Array<string> = [
+  DEVICE_STATUS_FACET_KEY,
+  DEVICE_LAST_SEEN_FACET_KEY,
+];
 
 /**
  * The Status chip's values. Up / Down / Pending partition the fleet exactly:
@@ -260,6 +281,47 @@ export const DEVICE_INTERFACES_FACET_OPTIONS: Array<FilterChipDropdownOption> =
       sublabel: "No interface is down",
     },
   ];
+
+/**
+ * The Last Seen chip's operators.
+ *
+ * "is empty" and "is not empty" are left out on purpose: over `lastSeenAt` they
+ * are Pending and not-Pending, which the Status chip already offers in the
+ * words the rest of the page uses. Two chips spelling one thing two ways is how
+ * a user ends up believing they have applied two filters.
+ */
+export const DEVICE_LAST_SEEN_FACET_OPERATORS: Array<FilterOperator> = [
+  "is",
+  "before",
+  "after",
+  "between",
+];
+
+export type BuildDeviceLastSeenFacetQueryFunction = (
+  values: Array<string>,
+  operator: FilterOperator,
+) => unknown;
+
+/**
+ * The `lastSeenAt` constraint behind a Last Seen selection.
+ *
+ * The chip the Status one cannot be: an arbitrary date rather than the fixed
+ * freshness window, which is the only way to ask "which devices have not been
+ * polled since last Tuesday" or "which were polled between the 1st and the
+ * 5th".
+ *
+ * Day-granular, and identical to what the column-filter popup's date entry
+ * produced before the facet bar took the column over — so a question a user
+ * used to be able to ask of this list still returns the same rows.
+ */
+export const buildDeviceLastSeenFacetQuery: BuildDeviceLastSeenFacetQueryFunction =
+  (values: Array<string>, operator: FilterOperator): unknown => {
+    if (!DEVICE_LAST_SEEN_FACET_OPERATORS.includes(operator)) {
+      return undefined;
+    }
+
+    return buildFacetDateRangeQuery(values, operator);
+  };
 
 /**
  * "Devices assigned to no site at all" — the Site chip on its "is empty"

@@ -790,32 +790,108 @@ describe("useResourceOwners exposes the chips a tile moves", () => {
    * the selection.
    */
   test("setFacetSelection writes the values and the operator together", () => {
-    expect(HOOK).toContain(
+    const body: string = HOOK.split("const setFacetSelection: (")[1]!.split(
+      "const clearAllFacets",
+    )[0]!;
+
+    expect(body).toContain(
       squash(
-        "const nextValues: Array<string> = normalizeFacetValues(values); const nextOperator: FilterOperator = resolveFacetOperator(operator);",
+        "const nextOperator: FilterOperator = resolveFacetOperator(operator);",
       ),
     );
-    expect(HOOK).toContain(
-      squash(
-        "setFacetSelections((prev: { [k: string]: Array<string> }) => { return { ...prev, [facetKey]: nextValues }; }); setFacetOperators((prev: { [k: string]: FilterOperator }) => { return { ...prev, [facetKey]: nextOperator }; });",
-      ),
+    /*
+     * One call carrying both. Two calls, one per piece, would leave a render in
+     * which the chip's values and its operator disagree — and that render is
+     * the one the merged query is built from.
+     */
+    expect(body).toContain(
+      squash("applyFacetChange(facetKey, nextValues, nextOperator);"),
     );
+    expect(body).not.toContain("setFacetSelections(");
+    expect(body).not.toContain("setFacetOperators(");
+  });
+
+  /*
+   * Every facet change goes through one function, so the rules below are
+   * enforced for the chips, the summary tiles and deep links alike rather than
+   * in whichever of them was written first.
+   */
+  test("the chips and the tiles write through the same function", () => {
+    for (const caller of [
+      // The tiles and deep links, via setFacetSelection.
+      squash("applyFacetChange(facetKey, nextValues, nextOperator);"),
+      // The date chip.
+      squash("applyFacetChange(facet.key, nextValues, nextOperator);"),
+      // The option chip's operator switcher and its option list.
+      squash("applyFacetChange(facet.key, selected, op);"),
+      squash(
+        'applyFacetChange( facet.key, nextValues, facetOperators[facet.key] || "is", );',
+      ),
+    ]) {
+      expect(HOOK).toContain(caller);
+    }
   });
 
   /*
    * Spreading the previous map is what makes chips layer: drilling into a
    * status must not throw away the site the user had already picked.
+   *
+   * The one exception is deliberate and declared. Two chips over the same
+   * column cannot both apply — the merged query has room for one constraint per
+   * field, so the later one silently replaces the earlier while both stay lit —
+   * so an activating chip clears the ones it names in `exclusiveWith`.
    */
-  test("it writes only its own facet's entry", () => {
-    const body: string = HOOK.split("const setFacetSelection: (")[1]!.split(
-      "const clearAllFacets",
+  test("it writes only its own facet's entry, and the ones declared exclusive with it", () => {
+    const body: string = HOOK.split("const applyFacetChange: (")[1]!.split(
+      "const setFacetSelection: (",
     )[0]!;
 
-    expect(body).toContain("{ ...prev, [facetKey]: nextValues }");
-    expect(body).toContain("{ ...prev, [facetKey]: nextOperator }");
+    expect(body).toContain("...prev,");
+    expect(body).toContain("[facetKey]: values,");
+    expect(body).toContain("[facetKey]: operator,");
+
     // Never a wholesale replacement — that would clear every other chip.
     expect(body).not.toContain("setFacetSelections({");
     expect(body).not.toContain("setFacetOperators({");
+
+    /*
+     * Other entries are touched only under `displaces`, and only for the keys
+     * the conflict map names — never for the whole selection.
+     */
+    expect(body).toContain("if (displaces) {");
+    expect(body).toContain("for (const other of conflicting) {");
+    expect(body).toContain("next[other] = [];");
+    expect(body).toContain('next[other] = "is";');
+  });
+
+  /*
+   * Clearing a chip, or leaving one mid-range, must not displace anything: the
+   * user backing out of one filter cannot silently discard another they set
+   * first.
+   */
+  test("only an active chip displaces the one it conflicts with", () => {
+    const body: string = HOOK.split("const applyFacetChange: (")[1]!.split(
+      "const setFacetSelection: (",
+    )[0]!;
+
+    expect(body).toContain(
+      squash(
+        "const displaces: boolean = conflicting.length > 0 && isFacetActive(facet, values, operator);",
+      ),
+    );
+  });
+
+  /*
+   * The conflict map is the shared, tested rule rather than something the hook
+   * works out inline — see FacetDateRange.test.ts for its behaviour. What has to
+   * hold here is that the hook uses it, over the facets the page passed.
+   */
+  test("the exclusion comes from the shared conflict map", () => {
+    expect(HOOK).toContain(
+      squash(
+        "const facetConflicts: FacetConflictMap = useMemo((): FacetConflictMap => { return buildFacetConflictMap(extraFacets); }, [extraFacets]);",
+      ),
+    );
   });
 
   /*

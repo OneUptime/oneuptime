@@ -13,6 +13,14 @@ import {
   FilterOperator,
   FILTER_OPERATOR_LABELS,
 } from "./FilterChipDropdownTypes";
+import {
+  FILTER_CHIP_ACTIVE_CLASSES,
+  FILTER_CHIP_BASE_CLASSES,
+  FILTER_CHIP_CLEAR_CLASSES,
+  FILTER_CHIP_INACTIVE_CLASSES,
+  FILTER_CHIP_OPERATOR_SELECT_CLASSES,
+  FILTER_CHIP_POPOVER_CLASSES,
+} from "./FilterChipStyles";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -450,12 +458,9 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     setIsComponentVisible(false);
   };
 
-  const chipBaseClasses: string =
-    "group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1";
-  const chipActiveClasses: string =
-    "border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-100";
-  const chipInactiveClasses: string =
-    "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50";
+  const chipBaseClasses: string = FILTER_CHIP_BASE_CLASSES;
+  const chipActiveClasses: string = FILTER_CHIP_ACTIVE_CLASSES;
+  const chipInactiveClasses: string = FILTER_CHIP_INACTIVE_CLASSES;
 
   const clearChipFully: () => void = (): void => {
     if (isMulti) {
@@ -517,7 +522,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                   clearChipFully();
                 }
               }}
-              className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full text-indigo-400 transition-colors hover:bg-indigo-200 hover:text-indigo-900 focus:outline-none"
+              className={FILTER_CHIP_CLEAR_CLASSES}
               aria-label={`Clear ${props.label} filter`}
             >
               <Icon icon={IconProp.Close} className="h-3 w-3" />
@@ -543,7 +548,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
       {isComponentVisible && (
         <div
           ref={ref}
-          className={`absolute left-0 top-full z-20 mt-2 ${props.popoverWidthClassName || "w-72"} origin-top-left overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl ring-1 ring-black/5`}
+          className={`${FILTER_CHIP_POPOVER_CLASSES} ${props.popoverWidthClassName || "w-72"}`}
           role="dialog"
         >
           {supportedOperators.length > 1 && (
@@ -556,7 +561,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                     props.onOperatorChange(e.target.value as FilterOperator);
                   }
                 }}
-                className="cursor-pointer rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs font-medium text-gray-700 hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                className={FILTER_CHIP_OPERATOR_SELECT_CLASSES}
                 aria-label={`${props.label} operator`}
               >
                 {supportedOperators.map((op: FilterOperator) => {
