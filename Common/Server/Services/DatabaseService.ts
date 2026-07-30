@@ -1552,21 +1552,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(findBy.props);
 
-      let automaticallyAddedCreatedAtInSelect: boolean = false;
-
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
         findBy.sort = {
           createdAt: SortOrder.Descending,
         };
-
-        if (!findBy.select) {
-          findBy.select = {} as any;
-        }
-
-        if (!(findBy.select as any)["createdAt"]) {
-          (findBy.select as any)["createdAt"] = true;
-          automaticallyAddedCreatedAtInSelect = true;
-        }
       }
 
       const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
@@ -1599,6 +1588,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       onBeforeFind.query = result.query;
       onBeforeFind.select = result.select || undefined;
+
+      const sortColumnsAddedToSelect: Array<string> =
+        this.addSortColumnsToSelect(onBeforeFind);
 
       if (!(onBeforeFind.skip instanceof PositiveNumber)) {
         onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
@@ -1634,8 +1626,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       decryptedItems = this.sanitizeFindByItems(decryptedItems, onBeforeFind);
 
       for (const item of decryptedItems) {
-        if (automaticallyAddedCreatedAtInSelect) {
-          delete (item as any).createdAt;
+        for (const sortColumn of sortColumnsAddedToSelect) {
+          delete (item as any)[sortColumn];
         }
       }
 
@@ -1650,6 +1642,67 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       await this.onFindError(error as Exception);
       throw this.getException(error as Exception);
     }
+  }
+
+  /**
+   * Adds every sorted column to the select, and returns the ones it added so
+   * `_findBy` can strip them back off the results.
+   *
+   * A column can be ordered by without being selected in a plain SELECT, but
+   * not once a relation is also selected: the join sends the query down
+   * TypeORM's paginated path, which wraps it and orders the outer SELECT by a
+   * column the inner query only emits when that column was selected. The
+   * request then fails outright with `column distinctAlias.<Alias>_<column>
+   * does not exist`. Callers should not have to know that, so close the gap
+   * here for every sort rather than leaving each call site to remember.
+   *
+   * Deliberately runs *after* the read-permission check. ORDER BY is not
+   * permission-checked, so a column being sorted on is already reaching the
+   * database - adding it to the select must not be able to turn a query that
+   * worked into a permission error. The values never reach the caller.
+   */
+  private addSortColumnsToSelect(findBy: FindBy<TBaseModel>): Array<string> {
+    /*
+     * No select at all means every column is selected, so there is nothing to
+     * fill in.
+     */
+    if (!findBy.select) {
+      return [];
+    }
+
+    const sortColumnsToAdd: Array<string> = Object.keys(
+      findBy.sort || {},
+    ).filter((sortColumn: string) => {
+      if ((findBy.select as any)[sortColumn] !== undefined) {
+        return false;
+      }
+
+      /*
+       * Sorting by a relation orders through the joined table, which has its
+       * own alias - adding the relation to the select here would instead turn
+       * it into a fetched relation.
+       */
+      return (
+        this.model.hasColumn(sortColumn) &&
+        !this.model.isEntityColumn(sortColumn)
+      );
+    });
+
+    if (sortColumnsToAdd.length === 0) {
+      return [];
+    }
+
+    /*
+     * Copied rather than mutated: sanitizeSelect hands back the caller's own
+     * select object, and callers reuse those across queries.
+     */
+    findBy.select = { ...(findBy.select as any) };
+
+    for (const sortColumn of sortColumnsToAdd) {
+      (findBy.select as any)[sortColumn] = true;
+    }
+
+    return sortColumnsToAdd;
   }
 
   private sanitizeFindByItems(
