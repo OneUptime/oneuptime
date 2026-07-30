@@ -97,7 +97,7 @@ Ramifica com base em uma comparação.
 **Configurações**:
 
 - **Valor à esquerda** — geralmente um valor de um bloco anterior.
-- **Operador** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contém`, `começa com`, `termina com`.
+- **Operador** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
 - **Valor à direita** — com o que comparar.
 
 **Saídas**: **Sim** e **Não**. Conecte os próximos blocos ao ramo que você quiser.

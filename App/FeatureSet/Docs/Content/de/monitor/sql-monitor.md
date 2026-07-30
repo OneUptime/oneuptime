@@ -109,19 +109,19 @@ OneUptime löst das Geheimnis serverseitig auf, bevor die Konfiguration an die P
 
 Fügen Sie Kriterien hinzu, um zu bestimmen, wann der Monitor als online, eingeschränkt oder offline gilt. Für einen SQL-Abfrage-Monitor sind die folgenden Prüfungen verfügbar:
 
-- **SQL ist online** — ob die Datenbank erreichbar war und die Abfrage erfolgreich ausgeführt wurde.
-- **SQL-Abfrage-Zeilenanzahl** — die Anzahl der zurückgegebenen Zeilen. Vergleichen Sie mit Operatoren wie größer als, kleiner als oder gleich.
-- **SQL-Abfrage-Skalarwert** — die erste Spalte der ersten Zeile. Wird numerisch verglichen, wenn beide Seiten numerisch erscheinen, andernfalls als Zeichenketten. Dies ist die Prüfung für Abfragen im Stil von `COUNT(*)`.
-- **SQL-Abfrage-Ausführungszeit (in ms)** — die Ausführungsdauer der Abfrage. Nützlich, um eine langsame Datenbank zu erkennen.
-- **SQL-Abfrage-Fehler** — die Fehlermeldung der Abfrage. Alarmieren Sie, wenn sie (nicht) leer ist oder mit einer bestimmten Zeichenkette übereinstimmt.
-- **JavaScript-Ausdruck** — werten Sie einen benutzerdefinierten JavaScript-Ausdruck für vollständige Kontrolle aus. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression).
+- **SQL Is Online** — ob die Datenbank erreichbar war und die Abfrage erfolgreich ausgeführt wurde.
+- **SQL Query Row Count** — die Anzahl der zurückgegebenen Zeilen. Vergleichen Sie mit Operatoren wie größer als, kleiner als oder gleich.
+- **SQL Query Scalar Value** — die erste Spalte der ersten Zeile. Wird numerisch verglichen, wenn beide Seiten numerisch erscheinen, andernfalls als Zeichenketten. Dies ist die Prüfung für Abfragen im Stil von `COUNT(*)`.
+- **SQL Query Execution Time (in ms)** — die Ausführungsdauer der Abfrage. Nützlich, um eine langsame Datenbank zu erkennen.
+- **SQL Query Error** — die Fehlermeldung der Abfrage. Alarmieren Sie, wenn sie (nicht) leer ist oder mit einer bestimmten Zeichenkette übereinstimmt.
+- **JavaScript Expression** — werten Sie einen benutzerdefinierten JavaScript-Ausdruck für vollständige Kontrolle aus. Siehe [JavaScript-Ausdrücke](/docs/monitor/javascript-expression).
 
 ### Beispiel: Alarmieren, wenn Stornierungen sprunghaft ansteigen
 
 Unter Verwendung der obigen Abfrage:
 
-- **Kriterium: Eingeschränkt** — `SQL-Abfrage-Skalarwert` ist größer als `10`.
-- **Kriterium: Offline** — `SQL-Abfrage-Skalarwert` ist größer als `50`, oder `SQL ist online` ist `false`.
+- **Kriterium: Eingeschränkt** — `SQL Query Scalar Value` ist größer als `10`.
+- **Kriterium: Offline** — `SQL Query Scalar Value` ist größer als `50`, oder `SQL Is Online` ist `false`.
 
 Verknüpfen Sie eine Bereitschaftsrichtlinie mit den Kriterien, damit die richtigen Personen benachrichtigt werden.
 

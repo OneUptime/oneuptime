@@ -238,7 +238,7 @@ http://[gebruikersnaam:wachtwoord@]proxy.server.com:poort
 
 ### Verifiëren
 
-Als de probe succesvol wordt uitgevoerd, dient deze op uw OneUptime-dashboard de status `Verbonden` te tonen. Als deze niet als verbonden wordt weergegeven, moet u de logboeken van de container controleren. Als u nog steeds problemen ondervindt, maak dan een issue aan op [GitHub](https://github.com/oneuptime/oneuptime) of [neem contact op met ondersteuning](https://oneuptime.com/support).
+Als de probe succesvol wordt uitgevoerd, dient deze op uw OneUptime-dashboard de status `Connected` te tonen. Als deze niet als verbonden wordt weergegeven, moet u de logboeken van de container controleren. Als u nog steeds problemen ondervindt, maak dan een issue aan op [GitHub](https://github.com/oneuptime/oneuptime) of [neem contact op met ondersteuning](https://oneuptime.com/support).
 
 ### Een losgekoppelde probe diagnosticeren
 

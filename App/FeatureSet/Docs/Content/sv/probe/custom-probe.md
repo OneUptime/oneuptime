@@ -187,7 +187,7 @@ http://[username:password@]proxy.server.com:port
 
 ### Verifiera
 
-Om sonden körs framgångsrikt bör den visas som `Ansluten` på din OneUptime-instrumentpanel. Om den inte visas som ansluten behöver du kontrollera containerns loggar. Om du fortfarande har problem kan du skapa ett ärende på [GitHub](https://github.com/oneuptime/oneuptime) eller [kontakta supporten](https://oneuptime.com/support).
+Om sonden körs framgångsrikt bör den visas som `Connected` på din OneUptime-instrumentpanel. Om den inte visas som ansluten behöver du kontrollera containerns loggar. Om du fortfarande har problem kan du skapa ett ärende på [GitHub](https://github.com/oneuptime/oneuptime) eller [kontakta supporten](https://oneuptime.com/support).
 
 ### Diagnostisera en sond med statusen Disconnected
 

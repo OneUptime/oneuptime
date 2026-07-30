@@ -161,7 +161,7 @@ Die Probe unterstützt die folgenden Umgebungsvariablen:
 
 ### Verifizieren
 
-Wenn die Probe erfolgreich läuft, sollte sie in Ihrem OneUptime-Dashboard als `Verbunden` angezeigt werden. Falls sie nicht als verbunden angezeigt wird, müssen Sie die Container-Logs prüfen. Wenn Sie weiterhin Probleme haben, erstellen Sie bitte ein Issue auf [GitHub](https://github.com/oneuptime/oneuptime) oder [kontaktieren Sie den Support](https://oneuptime.com/support)
+Wenn die Probe erfolgreich läuft, sollte sie in Ihrem OneUptime-Dashboard als `Connected` angezeigt werden. Falls sie nicht als verbunden angezeigt wird, müssen Sie die Container-Logs prüfen. Wenn Sie weiterhin Probleme haben, erstellen Sie bitte ein Issue auf [GitHub](https://github.com/oneuptime/oneuptime) oder [kontaktieren Sie den Support](https://oneuptime.com/support)
 
 ### Eine getrennte Probe diagnostizieren
 

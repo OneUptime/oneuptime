@@ -109,19 +109,19 @@ OneUptime löser upp hemligheten på serversidan innan konfigurationen lämnas t
 
 Lägg till kriterier för att avgöra när monitorn anses vara online, degraderad eller offline. Följande kontroller är tillgängliga för en SQL-frågemonitor:
 
-- **SQL är online** – om databasen var nåbar och frågan lyckades.
-- **SQL-frågans radantal** – antalet returnerade rader. Jämför med operatorer som större än, mindre än eller lika med.
-- **SQL-frågans skalära värde** – den första kolumnen i den första raden. Jämförs numeriskt när båda sidor ser numeriska ut, annars som strängar. Detta är kontrollen att använda för frågor av typen `COUNT(*)`.
-- **SQL-frågans körtid (i ms)** – hur lång tid frågan tog. Användbart för att fånga en långsam databas.
-- **SQL-frågefel** – frågans felmeddelande. Varna när det är (eller inte är) tomt, eller matchar en specifik sträng.
-- **JavaScript-uttryck** – utvärdera ett anpassat JavaScript-uttryck för full kontroll. Se [JavaScript-uttryck](/docs/monitor/javascript-expression).
+- **SQL Is Online** – om databasen var nåbar och frågan lyckades.
+- **SQL Query Row Count** – antalet returnerade rader. Jämför med operatorer som större än, mindre än eller lika med.
+- **SQL Query Scalar Value** – den första kolumnen i den första raden. Jämförs numeriskt när båda sidor ser numeriska ut, annars som strängar. Detta är kontrollen att använda för frågor av typen `COUNT(*)`.
+- **SQL Query Execution Time (in ms)** – hur lång tid frågan tog. Användbart för att fånga en långsam databas.
+- **SQL Query Error** – frågans felmeddelande. Varna när det är (eller inte är) tomt, eller matchar en specifik sträng.
+- **JavaScript Expression** – utvärdera ett anpassat JavaScript-uttryck för full kontroll. Se [JavaScript-uttryck](/docs/monitor/javascript-expression).
 
 ### Exempel: varna när annulleringar ökar kraftigt
 
 Med hjälp av frågan ovan:
 
-- **Kriterium: Degraderad** – `SQL-frågans skalära värde` är större än `10`.
-- **Kriterium: Offline** – `SQL-frågans skalära värde` är större än `50`, eller `SQL är online` är `false`.
+- **Kriterium: Degraderad** – `SQL Query Scalar Value` är större än `10`.
+- **Kriterium: Offline** – `SQL Query Scalar Value` är större än `50`, eller `SQL Is Online` är `false`.
 
 Koppla en jourpolicy till kriterierna så att rätt personer larmas.
 

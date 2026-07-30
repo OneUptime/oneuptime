@@ -238,7 +238,7 @@ http://[username:password@]proxy.server.com:port
 
 ### Verificar
 
-Si la sonda se está ejecutando correctamente, debería aparecer como `Conectada` en tu panel de OneUptime. Si no aparece como conectada, necesitas revisar los registros del contenedor. Si aún tienes problemas, por favor crea un problema en [GitHub](https://github.com/oneuptime/oneuptime) o [contacta con soporte](https://oneuptime.com/support).
+Si la sonda se está ejecutando correctamente, debería aparecer como `Connected` en tu panel de OneUptime. Si no aparece como conectada, necesitas revisar los registros del contenedor. Si aún tienes problemas, por favor crea un problema en [GitHub](https://github.com/oneuptime/oneuptime) o [contacta con soporte](https://oneuptime.com/support).
 
 ### Diagnosticar una sonda desconectada
 

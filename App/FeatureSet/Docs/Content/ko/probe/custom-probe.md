@@ -238,7 +238,7 @@ http://[username:password@]proxy.server.com:port
 
 ### 확인
 
-프로브가 성공적으로 실행되고 있다면 OneUptime 대시보드에서 `연결됨`으로 표시되어야 합니다. 연결됨으로 표시되지 않으면 컨테이너 로그를 확인해야 합니다. 여전히 문제가 있다면 [GitHub](https://github.com/oneuptime/oneuptime)에 이슈를 생성하거나 [지원팀에 문의](https://oneuptime.com/support)하십시오.
+프로브가 성공적으로 실행되고 있다면 OneUptime 대시보드에서 `Connected`로 표시되어야 합니다. 연결됨으로 표시되지 않으면 컨테이너 로그를 확인해야 합니다. 여전히 문제가 있다면 [GitHub](https://github.com/oneuptime/oneuptime)에 이슈를 생성하거나 [지원팀에 문의](https://oneuptime.com/support)하십시오.
 
 ### 연결이 끊긴 프로브 진단
 

@@ -161,7 +161,7 @@ Microsoft Entra ID は、Microsoft のクラウドベースの ID およびア�
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                            |
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                              |
 
-3. **名前識別子の形式** を `メールアドレス` に設定します
+3. **名前識別子の形式** を `Email address` に設定します
 4. **保存** をクリックします
 
 ### ステップ 5: ユーザーとグループを割り当てる

@@ -109,19 +109,19 @@ OneUptime résout le secret côté serveur avant que la configuration ne soit tr
 
 Ajoutez des critères pour décider quand le moniteur est considéré comme en ligne, dégradé ou hors ligne. Les vérifications suivantes sont disponibles pour une Surveillance de requêtes SQL :
 
-- **SQL en ligne** — indique si la base de données était accessible et si la requête a réussi.
-- **Nombre de lignes de la requête SQL** — le nombre de lignes renvoyées. À comparer avec des opérateurs tels que supérieur à, inférieur à ou égal à.
-- **Valeur scalaire de la requête SQL** — la première colonne de la première ligne. Comparée numériquement lorsque les deux côtés semblent numériques, sinon en tant que chaînes. C'est la vérification à utiliser pour les requêtes de type `COUNT(*)`.
-- **Temps d'exécution de la requête SQL (en ms)** — la durée d'exécution de la requête. Utile pour détecter une base de données lente.
-- **Erreur de la requête SQL** — le message d'erreur de la requête. Alertez lorsqu'il est (ou n'est pas) vide, ou lorsqu'il correspond à une chaîne spécifique.
-- **Expression JavaScript** — évaluez une expression JavaScript personnalisée pour un contrôle total. Voir [Expressions JavaScript](/docs/monitor/javascript-expression).
+- **SQL Is Online** — indique si la base de données était accessible et si la requête a réussi.
+- **SQL Query Row Count** — le nombre de lignes renvoyées. À comparer avec des opérateurs tels que supérieur à, inférieur à ou égal à.
+- **SQL Query Scalar Value** — la première colonne de la première ligne. Comparée numériquement lorsque les deux côtés semblent numériques, sinon en tant que chaînes. C'est la vérification à utiliser pour les requêtes de type `COUNT(*)`.
+- **SQL Query Execution Time (in ms)** — la durée d'exécution de la requête. Utile pour détecter une base de données lente.
+- **SQL Query Error** — le message d'erreur de la requête. Alertez lorsqu'il est (ou n'est pas) vide, ou lorsqu'il correspond à une chaîne spécifique.
+- **JavaScript Expression** — évaluez une expression JavaScript personnalisée pour un contrôle total. Voir [Expressions JavaScript](/docs/monitor/javascript-expression).
 
 ### Exemple : alerter lorsque les annulations augmentent brusquement
 
 En utilisant la requête ci-dessus :
 
-- **Critère : Dégradé** — `Valeur scalaire de la requête SQL` est supérieure à `10`.
-- **Critère : Hors ligne** — `Valeur scalaire de la requête SQL` est supérieure à `50`, ou `SQL en ligne` est `false`.
+- **Critère : Dégradé** — `SQL Query Scalar Value` est supérieur à `10`.
+- **Critère : Hors ligne** — `SQL Query Scalar Value` est supérieur à `50`, ou `SQL Is Online` est `false`.
 
 Associez une politique d'astreinte aux critères afin que les bonnes personnes soient alertées.
 
