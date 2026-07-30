@@ -100,6 +100,19 @@ export const PROBE_API_REQUEST_TIMEOUT_IN_MS: number =
     min: 1000,
   });
 
+/*
+ * A control-plane request that is merely SLOW is the leading indicator of
+ * the one that eventually crosses the deadline above and gets this probe
+ * flagged Disconnected. Anything over this threshold is logged with its
+ * elapsed time so the trend is visible before the cliff.
+ */
+export const PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS"],
+    defaultValue: 10000,
+    min: 100,
+  });
+
 export const PORT: Port = new Port(
   NumberUtil.parseNumberWithDefault({
     value: process.env["PORT"],

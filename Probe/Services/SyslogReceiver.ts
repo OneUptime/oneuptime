@@ -5,7 +5,6 @@ import {
   PROBE_SYSLOG_RECEIVER_PORT,
 } from "../Config";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
-import ProxyConfig from "../Utils/ProxyConfig";
 import URL from "Common/Types/API/URL";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import { JSONObject } from "Common/Types/JSON";
@@ -431,10 +430,9 @@ export default class SyslogReceiver {
               ...ProbeAPIRequest.getDefaultRequestBody(),
               syslogMessages: batch as unknown as Array<JSONObject>,
             },
-            options: {
-              ...ProxyConfig.getRequestProxyAgents(ingestUrl),
+            options: ProbeAPIRequest.getDefaultRequestOptions(ingestUrl, {
               timeout: FLUSH_REQUEST_TIMEOUT_MS,
-            },
+            }),
           });
         } catch (err) {
           /*

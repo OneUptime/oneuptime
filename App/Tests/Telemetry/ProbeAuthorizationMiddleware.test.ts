@@ -87,8 +87,9 @@ const responseUtil: { sendErrorResponse: jest.Mock } = Response as unknown as {
   sendErrorResponse: jest.Mock;
 };
 
-const loggerMock: { error: jest.Mock } = logger as unknown as {
+const loggerMock: { error: jest.Mock; warn: jest.Mock } = logger as unknown as {
   error: jest.Mock;
+  warn: jest.Mock;
 };
 
 const mockResponse: ExpressResponse = {} as ExpressResponse;
@@ -328,5 +329,93 @@ describe("ProbeAuthorization.isAuthorizedServiceMiddleware", () => {
     expect(next).toHaveBeenCalledWith(boom);
     expect(responseUtil.sendErrorResponse).not.toHaveBeenCalled();
     expect(probeService.updateLastAlive).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The other half of diagnosing a Disconnected probe. The probe's own log can
+ * prove a request left the machine and got no answer; only the server can
+ * say whether it ever produced one. Without these two lines, "the probe timed
+ * out" is an unfalsifiable claim about whose fault it is.
+ */
+describe("server-side timing of probe requests", () => {
+  const probeId: ObjectID = ObjectID.generate();
+  const probeKey: string = "test-probe-key";
+
+  type ResponseListeners = Record<string, Array<() => void>>;
+
+  function callMiddlewareWithEmitterResponse(): {
+    listeners: ResponseListeners;
+    middlewarePromise: Promise<void>;
+  } {
+    const listeners: ResponseListeners = {};
+
+    const res: ExpressResponse = {
+      on: (event: string, listener: () => void): void => {
+        listeners[event] = [...(listeners[event] || []), listener];
+      },
+    } as unknown as ExpressResponse;
+
+    const req: ProbeExpressRequest = {
+      body: { probeId: probeId.toString(), probeKey: probeKey },
+      url: "/alive",
+    } as unknown as ProbeExpressRequest;
+
+    return {
+      listeners: listeners,
+      middlewarePromise: ProbeAuthorization.isAuthorizedServiceMiddleware(
+        req,
+        res,
+        jest.fn() as unknown as NextFunction,
+      ),
+    };
+  }
+
+  function fire(listeners: ResponseListeners, event: string): void {
+    for (const listener of listeners[event] || []) {
+      listener();
+    }
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    probeService.verifyProbeKey.mockResolvedValue(true as never);
+    probeService.updateLastAlive.mockResolvedValue(undefined as never);
+  });
+
+  test("a request answered promptly is not logged", async () => {
+    const { listeners, middlewarePromise } =
+      callMiddlewareWithEmitterResponse();
+    await middlewarePromise;
+
+    fire(listeners, "finish");
+    // 'close' always follows 'finish' on a normal response.
+    fire(listeners, "close");
+
+    expect(loggerMock.warn).not.toHaveBeenCalled();
+  });
+
+  test("a probe that hangs up before the response is sent is called out by id", async () => {
+    const { listeners, middlewarePromise } =
+      callMiddlewareWithEmitterResponse();
+    await middlewarePromise;
+
+    // 'close' with no preceding 'finish': the probe hit its own deadline.
+    fire(listeners, "close");
+
+    expect(loggerMock.warn).toHaveBeenCalledTimes(1);
+    const message: string = String(loggerMock.warn.mock.calls[0]![0]);
+    expect(message).toContain(probeId.toString());
+    expect(message).toContain("/alive");
+  });
+
+  test("a bare response object — as unit tests supply — is not listened to", async () => {
+    const { middlewarePromise } = callMiddleware({
+      probeId: probeId.toString(),
+      probeKey: probeKey,
+    });
+
+    // mockResponse has no .on; attaching listeners to it would throw.
+    await expect(middlewarePromise).resolves.toBeUndefined();
   });
 });
