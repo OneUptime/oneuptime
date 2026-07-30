@@ -28,10 +28,12 @@
 
 在沙箱化的 `isolated-vm` 中執行的一段 JavaScript。該沙箱位於你自己基礎設施中的 [Runbook Agent](/docs/runbooks/agents) 上 — 而非 OneUptime Worker 上。
 
-在 JavaScript 步驟上設定兩項內容：
+在 JavaScript 步驟上設定以下內容：
 
 - **Runbook Agent** — 從下拉選單中挑選應執行此步驟的 agent。只有選定的 agent 才能認領該工作。
 - **Script** — 要執行的 JavaScript。
+- **Execution timeout** — agent 在拆除 isolate 之前，會讓這段 JavaScript 執行多久。預設為 30 秒。
+- **Claim timeout** — Worker 等待 agent 認領工作的時間。預設為 2 分鐘。
 
 ```js
 const start = Date.now();
@@ -39,11 +41,11 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-回傳值會擷取在該步驟的執行紀錄上。`console.log` 的輸出會擷取為日誌行。預設執行逾時：30 秒。預設認領逾時（Worker 等待 agent 認領工作的時間）：2 分鐘。
+回傳值會擷取在該步驟的執行紀錄上。`console.log` 的輸出會擷取為日誌行。預設執行逾時：30 秒。預設認領逾時（Worker 等待 agent 認領工作的時間）：2 分鐘。兩者都可以在該步驟上編輯 — 請參閱腳本下方的 **Execution timeout** 與 **Claim timeout**。
 
 ### HTTP request
 
-發出對外的 HTTP 呼叫。設定方法（GET/POST/PUT/PATCH/DELETE/HEAD）、URL、選用的 JSON 標頭，以及選用的內文。回應的狀態、標頭與內文都會被擷取（總計上限 50KB）。
+發出對外的 HTTP 呼叫。設定方法（GET/POST/PUT/PATCH/DELETE/HEAD）、URL、選用的 JSON 標頭、選用的內文，以及 **Request timeout**（預設 30 秒）。回應的狀態、標頭與內文都會被擷取（總計上限 50KB）。
 
 適用於：觸發 PagerDuty 事件、貼文到 Slack、呼叫你自己的管理 API 等。HTTP 步驟直接在 OneUptime Worker 上執行；不需要 agent。
 
@@ -51,10 +53,12 @@ return { durationMs: Date.now() - start };
 
 在你自己基礎設施中的 [Runbook Agent](/docs/runbooks/agents) 上執行的 bash 腳本（`bash -c <script>`）。Bash 永遠不會在 OneUptime Worker 上執行。
 
-在 Bash 步驟上設定兩項內容：
+在 Bash 步驟上設定以下內容：
 
 - **Runbook Agent** — 從下拉選單中挑選應執行此步驟的 agent。只有選定的 agent 才能認領該工作。
 - **Script** — 要執行的 bash。輸出（stdout + stderr）最多擷取 50 KB；程序會在逾時時被終止。
+- **Execution timeout** — agent 在以 `SIGKILL` 終止腳本之前，會讓它執行多久。預設為 30 秒；對於確實需要數分鐘的步驟，請將它調高。
+- **Claim timeout** — Worker 等待 agent 認領工作的時間。預設為 2 分鐘。
 
 若 runbook 執行到此步驟時選定的 agent 處於離線狀態，該步驟最多會等待至**認領逾時**（預設 2 分鐘），然後以 `TimedOut` 失敗。在依賴 Bash 步驟之前，請先在 **Runbooks → Settings → Agents** 下新增一個 agent。
 

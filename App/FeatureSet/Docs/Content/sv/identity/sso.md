@@ -161,7 +161,7 @@ Microsoft Entra ID är Microsofts molnbaserade identitets- och åtkomsthantering
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                           |
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                             |
 
-3. Ange **Namnidentifierarformat** till `E-postadress`
+3. Ange **Namnidentifierarformat** till `Email address`
 4. Klicka på **Spara**
 
 ### Steg 5: Tilldela användare och grupper

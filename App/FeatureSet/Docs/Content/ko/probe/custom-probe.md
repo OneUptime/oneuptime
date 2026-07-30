@@ -208,6 +208,8 @@ OneUptime을 자체 호스팅하는 경우 `ONEUPTIME_URL`을 커스텀 자체 �
 - `PROBE_MONITOR_RETRY_LIMIT` - 실패한 모니터에 대한 재시도 횟수 (기본값: 3)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 합성 모니터 스크립트의 타임아웃 (밀리초 단위, 기본값: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 커스텀 코드 모니터 스크립트의 타임아웃 (밀리초 단위, 기본값: 60000)
+- `PROBE_API_REQUEST_TIMEOUT_IN_MS` - 프로브가 OneUptime으로 보내는 각 요청의 제한 시간 (기본값: 45000)
+- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - OneUptime으로 보낸 요청이 이 시간보다 느릴 때 경고를 기록 (기본값: 10000)
 
 #### 프록시 구성
 
@@ -236,4 +238,29 @@ http://[username:password@]proxy.server.com:port
 
 ### 확인
 
-프로브가 성공적으로 실행되고 있다면 OneUptime 대시보드에서 `연결됨`으로 표시되어야 합니다. 연결됨으로 표시되지 않으면 컨테이너 로그를 확인해야 합니다. 여전히 문제가 있다면 [GitHub](https://github.com/oneuptime/oneuptime)에 이슈를 생성하거나 [지원팀에 문의](https://oneuptime.com/support)하십시오.
+프로브가 성공적으로 실행되고 있다면 OneUptime 대시보드에서 `Connected`로 표시되어야 합니다. 연결됨으로 표시되지 않으면 컨테이너 로그를 확인해야 합니다. 여전히 문제가 있다면 [GitHub](https://github.com/oneuptime/oneuptime)에 이슈를 생성하거나 [지원팀에 문의](https://oneuptime.com/support)하십시오.
+
+### 연결이 끊긴 프로브 진단
+
+프로브가 OneUptime으로 보내는 요청이 더 이상 성공하지 않으면 해당 프로브는 `Disconnected`로 표시됩니다. 프로브 로그에는 실패한 각 요청이 어느 단계에서 멈췄는지 기록되므로 원인을 추측해야 하는 경우는 거의 없습니다.
+
+**1. 시작 시 출력되는 환경 블록을 확인합니다.** 모든 프로브는 부팅 시 사용 중인 OneUptime URL, 요청 제한 시간, 프록시 설정, 상속받은 DNS 리졸버, Node/OS 버전, TLS 검증 비활성화 여부를 담은 JSON 블록을 한 번 출력합니다. 문제를 보고할 때는 항상 이 블록을 함께 첨부하십시오.
+
+**2. 실패 리포트를 찾습니다.** OneUptime으로 보낸 요청이 실패할 때마다 `stalledAt`과 `whatThisMeans`가 포함된 블록이 기록됩니다. `stalledAt`은 요청이 끝내 통과하지 못한 단계를 나타냅니다:
+
+| `stalledAt` | 의미 |
+| --- | --- |
+| `SocketAssignment` | 머신에서 아무것도 나가지 않았습니다. 소켓 풀이 포화 상태였거나, 구성된 프록시가 CONNECT 터널을 완료하지 못했습니다. |
+| `TcpConnect` | 머신이 SYN을 보냈지만 아무 응답도 받지 못했습니다 — 방화벽이나 보안 장비가 패킷을 폐기하고 있거나, 호스트에 도달할 수 없습니다. |
+| `TlsHandshake` | TCP는 연결되었지만 TLS가 완료되지 않았습니다. 대개 TLS를 검사하는 중간 장비가 원인입니다. |
+| `RequestSend` | 연결은 되었지만 요청이 끝까지 전송되지 못했습니다 — 상대편이 읽기를 중단했습니다. |
+| `WaitingForServerResponse` | 요청은 전달되었지만 서버가 아무 응답도 보내지 않았습니다. **프로브의 네트워크에는 문제가 없습니다** — OneUptime 서버와 로드 밸런서, 리버스 프록시를 확인하십시오. |
+| `ResponseBody` | 서버가 응답을 시작했지만 도중에 멈췄습니다. |
+
+같은 블록에는 `deadlineOverrunInMs`도 함께 기록됩니다. 45000ms 제한 시간이 실제 경과 시간으로 45000ms보다 훨씬 오래 걸렸다면 프로브 프로세스 자체가 차단된 것이므로, 네트워크를 조사하기 전에 블록 안의 `probeProcess.eventLoopMaxDriftInMs`를 확인하십시오.
+
+**3. 연결 자체 진단 결과를 확인합니다.** 세 번 연속으로 실패하면 프로브는 동일한 서버를 DNS, TCP, TLS, 실제 HTTP 왕복 순으로 한 계층씩 테스트하고 각 단계를 소요 시간과 함께 기록합니다. 가장 먼저 실패한 단계가 원인입니다. 프록시가 구성된 경우 프로브는 프록시까지의 홉을 테스트합니다. 프로브가 실제로 수행하는 홉은 그것뿐이기 때문입니다.
+
+**4. 실패로 이어지기 전에 느린 요청을 감시합니다.** 성공했지만 `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS`보다 오래 걸린 요청은 경과 시간과 함께 기록됩니다. 20초짜리 요청이 로그에 남기 시작한 프로브는 45초 제한 시간을 넘기기 직전입니다.
+
+OneUptime 서버 쪽에서도 응답이 느렸던 프로브 요청이나 응답을 보내기 전에 프로브가 포기한 요청이 프로브 ID와 함께 기록됩니다. 이 두 로그를 함께 보면 연결의 어느 쪽에 문제가 있는지 알 수 있습니다.

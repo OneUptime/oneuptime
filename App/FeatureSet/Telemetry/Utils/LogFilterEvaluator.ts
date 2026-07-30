@@ -513,15 +513,41 @@ export type CompiledFilter =
   | { kind: "always-false" }
   | { kind: "expr"; expr: FilterExpression };
 
-export function compileFilter(filterQuery: string): CompiledFilter {
+/*
+ * How to compile a query that carries no predicate at all (empty,
+ * whitespace-only, or tokenizing to nothing).
+ *
+ * `emptyQueryMatches: true` (the default) is right for PIPELINES and
+ * severity categories: a processor with no filter is meant to apply to
+ * every record, and matching everything only transforms rows.
+ *
+ * `emptyQueryMatches: false` is mandatory for DROP FILTERS, where
+ * matching everything DELETES everything. A drop filter saved with a
+ * blank query used to silently become "discard 100% of this project's
+ * logs" — see LogDropFilterService.loadDropFilters.
+ */
+export interface CompileFilterOptions {
+  emptyQueryMatches?: boolean | undefined;
+}
+
+export function compileFilter(
+  filterQuery: string,
+  options?: CompileFilterOptions,
+): CompiledFilter {
+  const emptyQueryMatches: boolean = options?.emptyQueryMatches !== false;
+
+  const forEmptyQuery: CompiledFilter = emptyQueryMatches
+    ? { kind: "always-true" }
+    : { kind: "always-false" };
+
   if (!filterQuery || filterQuery.trim().length === 0) {
-    return { kind: "always-true" };
+    return forEmptyQuery;
   }
 
   try {
     const tokens: Array<Token> = tokenize(filterQuery);
     if (tokens.length === 0) {
-      return { kind: "always-true" };
+      return forEmptyQuery;
     }
     const parser: Parser = new Parser(tokens);
     const expr: FilterExpression = parser.parse();

@@ -1,9 +1,10 @@
+import { DEVICE_SUMMARY_TILES, DeviceSummaryTile } from "./DeviceSummaryTiles";
+import { getDeviceFreshCutoff } from "./DeviceFacets";
 import {
-  DEVICE_SUMMARY_TILES,
-  DeviceSummaryFilterKey,
-  DeviceSummaryTile,
-  getDeviceFreshCutoff,
-} from "./DeviceSummaryFilter";
+  FacetOperatorMap,
+  FacetSelectionMap,
+  isFacetTileSelectionApplied,
+} from "../ResourceOwners/FacetTileSelection";
 import ObjectID from "Common/Types/ObjectID";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
@@ -30,15 +31,18 @@ interface SummaryCounts {
 }
 
 export interface ComponentProps {
-  // The tile currently drilled into, or null when the list is unfiltered.
-  selectedFilterKey?: DeviceSummaryFilterKey | null | undefined;
   /*
-   * Clicking the selected tile again passes null — the tiles are toggles, so
-   * the same click that drilled in gets the user back out.
+   * The table's live facet selections and operators. A tile is "pressed" exactly
+   * when the bar is showing what it describes, so the strip and the chips can
+   * never disagree about which rows are on screen.
    */
-  onFilterKeyChange?:
-    | ((filterKey: DeviceSummaryFilterKey | null) => void)
-    | undefined;
+  facetSelections: FacetSelectionMap;
+  facetOperators: FacetOperatorMap;
+  /*
+   * Fired with the tile the user activated. The page owns the chips, so it is the
+   * page that applies (or toggles off) the selection the tile carries.
+   */
+  onTileClick?: ((tile: DeviceSummaryTile) => void) | undefined;
 }
 
 const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
@@ -55,9 +59,9 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
       const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
       /*
-       * Same freshness window the topology API uses to decide up vs down, and
-       * the same one DeviceSummaryFilter builds the drill-down queries from —
-       * so the rows a tile opens are the rows it counted.
+       * Same freshness window the topology API uses to decide up vs down, and the
+       * same one the Status chip builds its query from — so the rows a tile opens
+       * are the rows it counted.
        */
       const freshCutoff: Date = getDeviceFreshCutoff();
 
@@ -140,21 +144,6 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const selectedFilterKey: DeviceSummaryFilterKey | null =
-    props.selectedFilterKey || null;
-
-  type OnTileClickFunction = (tile: DeviceSummaryTile) => void;
-
-  const onTileClick: OnTileClickFunction = (tile: DeviceSummaryTile): void => {
-    if (!props.onFilterKeyChange) {
-      return;
-    }
-
-    props.onFilterKeyChange(
-      selectedFilterKey === tile.filterKey ? null : tile.filterKey,
-    );
-  };
-
   return (
     <div
       data-testid="network-device-summary-cards"
@@ -162,7 +151,11 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
     >
       {DEVICE_SUMMARY_TILES.map((tile: DeviceSummaryTile) => {
         const count: number = counts?.[tile.countField] || 0;
-        const isSelected: boolean = selectedFilterKey === tile.filterKey;
+        const isSelected: boolean = isFacetTileSelectionApplied(
+          tile.selection,
+          props.facetSelections,
+          props.facetOperators,
+        );
 
         return (
           <InfoCard
@@ -173,17 +166,22 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
              * would filter the list to a number nobody has read yet.
              */
             onClick={
-              props.onFilterKeyChange && !isLoading
+              props.onTileClick && !isLoading
                 ? () => {
-                    onTileClick(tile);
+                    props.onTileClick?.(tile);
                   }
                 : undefined
             }
             isSelected={isSelected}
+            /*
+             * Says what the tile contributes, not that the list equals it: chips
+             * layer, so two tiles can be lit at once and the rows are then the
+             * intersection — a number neither tile shows.
+             */
             ariaLabel={
               isSelected
-                ? `${tile.label}: ${count}. Showing these in the list below — activate to clear the filter.`
-                : `${tile.label}: ${count}. Activate to show these in the list below.`
+                ? `${tile.label}: ${count}. Filtering the list below — activate to remove this filter.`
+                : `${tile.label}: ${count}. Activate to filter the list below by this.`
             }
             value={
               isLoading ? (

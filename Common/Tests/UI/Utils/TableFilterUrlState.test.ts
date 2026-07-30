@@ -9,7 +9,9 @@ import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
 import ObjectID from "../../../Types/ObjectID";
+import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import {
   afterEach,
   beforeEach,
@@ -31,6 +33,8 @@ import {
  *    their own filters;
  *  - a hand-edited or truncated param degrades to "no filters", never to a
  *    crash;
+ *  - a link built elsewhere in the product (a summary count whose rows live on
+ *    another page) lands that page in the state it names;
  *  - and the URL can't grow without bound.
  */
 
@@ -85,6 +89,29 @@ describe("TableFilterUrlState", () => {
         "monitors-table-facets",
         "monitors-table-view",
       ]);
+    });
+
+    /*
+     * The link builder and the reader have to agree on the param name or a
+     * "show me these rows" link silently lands on an unfiltered table. This is
+     * the one place naming is pinned, so keep the writer in it.
+     */
+    test("the names getLinkQueryParams writes are the names read looks up", () => {
+      const params: Dictionary<string> = TableFilterUrlState.getLinkQueryParams(
+        "monitors-table",
+        {
+          filter: { name: "api" },
+          facets: { selectedLabelIds: ["a"] },
+          view: { page: 2 },
+        },
+      );
+
+      expect(Object.keys(params).sort()).toEqual(
+        [...TableFilterUrlState.getAllParamNames("monitors-table")].sort(),
+      );
+      expect(Object.keys(params)).toContain(
+        TableFilterUrlState.getParamName("monitors-table", "facets"),
+      );
     });
   });
 
@@ -400,6 +427,271 @@ describe("TableFilterUrlState", () => {
       expect(TableFilterUrlState.read("monitors-table", "view")).toEqual({
         page: 2,
       });
+    });
+  });
+
+  describe("serializeState", () => {
+    type BuildCircularStateFunction = () => JSONObject;
+
+    /*
+     * Filter data never looks like this, but a caller passing a React object
+     * with a back-reference by accident must not take the table down with it.
+     */
+    const buildCircularState: BuildCircularStateFunction = (): JSONObject => {
+      const state: JSONObject = { name: "api" };
+      state["self"] = state;
+      return state;
+    };
+
+    /*
+     * "Nothing to write" and "could not write" have to be indistinguishable to
+     * a caller, because both mean "put no param on the URL". read() treats a
+     * missing param and an object with no keys the same way, so an object with
+     * no keys must never reach the URL as a param either.
+     */
+    test("returns null for every flavour of empty", () => {
+      expect(TableFilterUrlState.serializeState(null)).toBeNull();
+      expect(TableFilterUrlState.serializeState(undefined)).toBeNull();
+      expect(TableFilterUrlState.serializeState({})).toBeNull();
+    });
+
+    test("returns a JSON string for a plain object", () => {
+      const serialized: string | null = TableFilterUrlState.serializeState({
+        name: "api",
+        disableActiveMonitoring: false,
+        count: 12,
+      });
+
+      expect(typeof serialized).toBe("string");
+      expect(JSON.parse(serialized as string)).toEqual({
+        name: "api",
+        disableActiveMonitoring: false,
+        count: 12,
+      });
+    });
+
+    /*
+     * Serialization goes through JSONFunctions rather than plain stringify for
+     * exactly one reason: type fidelity. A bare JSON.stringify would flatten an
+     * Includes to `{}` and the restored query would mean "no constraint"
+     * instead of "one of these ids" — a table showing every row instead of
+     * three.
+     */
+    test("keeps typed query values recoverable as class instances", () => {
+      const ids: Array<string> = buildIds(2);
+
+      const serialized: string | null = TableFilterUrlState.serializeState({
+        name: new Search("api gateway"),
+        labels: new Includes(ids),
+        deletedAt: new IsNull(),
+      });
+
+      expect(serialized).not.toBeNull();
+
+      const restored: JSONObject = JSONFunctions.deserialize(
+        JSONFunctions.parseJSONObject(serialized as string),
+      );
+
+      expect(restored["name"]).toBeInstanceOf(Search);
+      expect((restored["name"] as Search<string>).toString()).toBe(
+        "api gateway",
+      );
+      expect(restored["labels"]).toBeInstanceOf(Includes);
+      expect(
+        (restored["labels"] as Includes).values.map((v: unknown) => {
+          return v!.toString();
+        }),
+      ).toEqual(ids);
+      expect(restored["deletedAt"]).toBeInstanceOf(IsNull);
+    });
+
+    test("returns null and warns instead of throwing on state it cannot serialize", () => {
+      const warn: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(console, "warn")
+        .mockImplementation(() => {});
+
+      expect(
+        TableFilterUrlState.serializeState(buildCircularState()),
+      ).toBeNull();
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0]?.[0])).toContain(
+        "could not serialize state",
+      );
+    });
+
+    /*
+     * write/writeMany share this serializer, so a slice that will not
+     * serialize has to drop its param rather than leave the previous one behind
+     * describing an older view.
+     */
+    test("a slice that will not serialize drops its param instead of going stale", () => {
+      jest.spyOn(console, "warn").mockImplementation(() => {});
+
+      TableFilterUrlState.write("monitors-table", "filter", { name: "api" });
+
+      TableFilterUrlState.write(
+        "monitors-table",
+        "filter",
+        buildCircularState(),
+      );
+
+      expect(readParam("monitors-table-filter")).toBeNull();
+      expect(TableFilterUrlState.read("monitors-table", "filter")).toBeNull();
+    });
+  });
+
+  describe("getLinkQueryParams", () => {
+    type NavigateWithFunction = (params: Dictionary<string>) => void;
+
+    /*
+     * What Route.addQueryParams plus a real navigation do with these params:
+     * the values are concatenated into the route exactly as handed over.
+     */
+    const navigateWith: NavigateWithFunction = (
+      params: Dictionary<string>,
+    ): void => {
+      const query: string = Object.keys(params)
+        .map((name: string): string => {
+          return `${name}=${params[name]!}`;
+        })
+        .join("&");
+
+      setUrl(`/dashboard/monitors?${query}`);
+    };
+
+    test("names each param under the table id and slice", () => {
+      const params: Dictionary<string> = TableFilterUrlState.getLinkQueryParams(
+        "monitors-table",
+        { facets: { selectedLabelIds: ["a"] } },
+      );
+
+      expect(Object.keys(params)).toEqual(["monitors-table-facets"]);
+    });
+
+    /*
+     * Route.addQueryParams pastes values into the route verbatim while read()
+     * pulls them back out of URLSearchParams, which decodes. Serialized state
+     * is JSON — full of `{`, `"` and, in any search text, `&` — so an
+     * unencoded value would truncate at the first `&` and arrive as a param the
+     * reader cannot parse: a link that lands on an unfiltered table.
+     */
+    test("percent-encodes the value so the reader gets back what was written", () => {
+      const state: JSONObject = { name: new Search("api & gateway") };
+
+      const params: Dictionary<string> = TableFilterUrlState.getLinkQueryParams(
+        "monitors-table",
+        { facets: state },
+      );
+
+      const value: string = params["monitors-table-facets"]!;
+
+      expect(value).not.toContain("{");
+      expect(value).not.toContain('"');
+      expect(value).not.toContain("&");
+      expect(value).toContain("%7B");
+      expect(decodeURIComponent(value)).toBe(
+        TableFilterUrlState.serializeState(state),
+      );
+    });
+
+    /*
+     * An empty slice has to vanish, not become `monitors-table-facets=`. The
+     * absence of the param is already how read() spells "no state", and an
+     * empty one would ride along in every bookmark claiming the link carries
+     * state it does not.
+     */
+    test("omits empty slices entirely", () => {
+      const params: Dictionary<string> = TableFilterUrlState.getLinkQueryParams(
+        "monitors-table",
+        { filter: { name: "api" }, facets: null, view: {} },
+      );
+
+      expect(Object.keys(params)).toEqual(["monitors-table-filter"]);
+      expect(params["monitors-table-facets"]).toBeUndefined();
+      expect(params["monitors-table-view"]).toBeUndefined();
+    });
+
+    test("carries several slices in one link", () => {
+      const filter: JSONObject = { name: new Search("api") };
+      const facets: JSONObject = { selectedLabelIds: ["a", "b"] };
+      const view: JSONObject = { page: 3 };
+
+      const params: Dictionary<string> = TableFilterUrlState.getLinkQueryParams(
+        "monitors-table",
+        { filter, facets, view },
+      );
+
+      expect(decodeURIComponent(params["monitors-table-filter"]!)).toBe(
+        TableFilterUrlState.serializeState(filter),
+      );
+      expect(decodeURIComponent(params["monitors-table-facets"]!)).toBe(
+        TableFilterUrlState.serializeState(facets),
+      );
+      expect(decodeURIComponent(params["monitors-table-view"]!)).toBe(
+        TableFilterUrlState.serializeState(view),
+      );
+    });
+
+    test("asked for nothing, adds nothing to the link", () => {
+      expect(
+        TableFilterUrlState.getLinkQueryParams("monitors-table", {}),
+      ).toEqual({});
+    });
+
+    /*
+     * The property the whole feature rests on: a summary tile builds a link,
+     * the browser follows it, and the target table mounts already in that
+     * state — chip set, values typed, nothing lost to the URL round trip.
+     */
+    test("a link built from these params lands the table in that state", () => {
+      const ids: Array<string> = buildIds(2);
+      const state: JSONObject = {
+        name: new Search("api & gateway"),
+        labels: new Includes(ids),
+        deletedAt: new IsNull(),
+      };
+
+      navigateWith(
+        TableFilterUrlState.getLinkQueryParams("monitors-table", {
+          facets: state,
+        }),
+      );
+
+      const restored: JSONObject | null = TableFilterUrlState.read(
+        "monitors-table",
+        "facets",
+      );
+
+      expect(restored?.["name"]).toBeInstanceOf(Search);
+      expect((restored?.["name"] as Search<string>).toString()).toBe(
+        "api & gateway",
+      );
+      expect(restored?.["labels"]).toBeInstanceOf(Includes);
+      expect(
+        (restored?.["labels"] as Includes).values.map((v: unknown) => {
+          return v!.toString();
+        }),
+      ).toEqual(ids);
+      expect(restored?.["deletedAt"]).toBeInstanceOf(IsNull);
+    });
+
+    /*
+     * A link only carries the slices it names; the arriving table must not be
+     * told anything about the others.
+     */
+    test("a link's slices do not leak into another table or slice", () => {
+      navigateWith(
+        TableFilterUrlState.getLinkQueryParams("monitors-table", {
+          facets: { selectedLabelIds: ["a"] },
+        }),
+      );
+
+      expect(TableFilterUrlState.read("monitors-table", "facets")).toEqual({
+        selectedLabelIds: ["a"],
+      });
+      expect(TableFilterUrlState.read("monitors-table", "filter")).toBeNull();
+      expect(TableFilterUrlState.read("incidents-table", "facets")).toBeNull();
     });
   });
 

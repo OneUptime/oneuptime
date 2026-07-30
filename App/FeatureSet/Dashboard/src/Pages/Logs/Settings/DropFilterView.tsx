@@ -14,6 +14,14 @@ import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
 import LogFilterConfig from "../../../Components/FilterQueryBuilder/LogFilterConfig";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
+import {
+  isSamplePercentageConfigured,
+  MAX_SAMPLE_PERCENTAGE,
+  MIN_SAMPLE_PERCENTAGE,
+  resolveSamplePercentage,
+} from "Common/Types/Telemetry/DropFilterSampling";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const LogDropFilterView: FunctionComponent<PageComponentProps> = (
@@ -134,9 +142,20 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
             },
             title: "Sample Percentage",
             fieldType: FormFieldSchemaType.Number,
-            required: false,
+            /*
+             * Required only while the Sample action is selected. Saving a
+             * sample filter with no percentage used to be allowed, and the
+             * engine read the blank as "throw away half".
+             */
+            required: (values: FormValues<LogDropFilter>): boolean => {
+              return values.action === LogDropFilterAction.Sample;
+            },
+            validation: {
+              minValue: MIN_SAMPLE_PERCENTAGE,
+              maxValue: MAX_SAMPLE_PERCENTAGE,
+            },
             description:
-              "Only applies when Action is Sample. Percentage of matching logs to keep (e.g. 10 = keep 10%, discard 90%).",
+              "Required when Action is Sample. Percentage of matching logs to keep, between 1 and 99 (e.g. 10 = keep 10%, discard 90%).",
             placeholder: "e.g. 10",
           },
         ]}
@@ -188,7 +207,30 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                 return item.action === "sample";
               },
               getElement: (item: LogDropFilter): ReactElement => {
-                const pct: number = item.samplePercentage || 0;
+                /*
+                 * `|| 0` used to render an unset percentage as "0% kept /
+                 * 100% discarded" while the engine actually kept half — the
+                 * display and the behaviour disagreed, and both were wrong.
+                 * Show what the engine will really do instead.
+                 */
+                if (!isSamplePercentageConfigured(item.samplePercentage)) {
+                  return (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-400">
+                        Not configured
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        — no logs are being sampled away. Set a percentage
+                        between {MIN_SAMPLE_PERCENTAGE} and{" "}
+                        {MAX_SAMPLE_PERCENTAGE} to start sampling.
+                      </span>
+                    </div>
+                  );
+                }
+
+                const pct: number = resolveSamplePercentage(
+                  item.samplePercentage,
+                );
                 const discardPct: number = 100 - pct;
 
                 return (
@@ -217,6 +259,63 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
                   </div>
                 );
               },
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
+      {/*
+       * Section 2b: Drop activity.
+       *
+       * A drop filter used to discard logs with no record anywhere, so
+       * "is this filter the reason my logs are missing?" could not be
+       * answered from the product at all. These two counters are written by
+       * the ingest path and are the first place to look.
+       */}
+      <CardModelDetail<LogDropFilter>
+        name="Drop Filter Activity"
+        cardProps={{
+          title: "Activity",
+          description:
+            "How much this filter has actually discarded. Updated by the ingest pipeline within a minute of a drop.",
+        }}
+        isEditable={false}
+        formFields={[]}
+        modelDetailProps={{
+          modelType: LogDropFilter,
+          id: "model-detail-log-drop-filter-activity",
+          fields: [
+            {
+              field: {
+                droppedCount: true,
+              },
+              title: "Logs Dropped",
+              getElement: (item: LogDropFilter): ReactElement => {
+                const dropped: number = item.droppedCount || 0;
+
+                if (dropped === 0) {
+                  return (
+                    <span className="text-sm text-gray-400">
+                      This filter has never matched a log.
+                    </span>
+                  );
+                }
+
+                return (
+                  <span className="text-lg font-semibold text-gray-900">
+                    {dropped.toLocaleString()}
+                  </span>
+                );
+              },
+            },
+            {
+              field: {
+                lastDroppedAt: true,
+              },
+              title: "Last Dropped",
+              fieldType: FieldType.DateTime,
+              placeholder: "Never",
             },
           ],
           modelId: modelId,

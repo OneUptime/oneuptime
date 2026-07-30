@@ -84,9 +84,16 @@ Twee timeouts gelden voor elke Bash- of JavaScript-stap:
 | Timeout             | Standaard   | Wat het regelt                                                                                                                                                                                                 |
 | ------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim-timeout**   | 2 minuten   | Hoe lang de Worker wacht tot de gekozen agent de job claimt. Pakt de agent hem niet op tijd op, dan faalt de stap met `TimedOut` en gaat het runbook verder (of stopt, afhankelijk van **Doorgaan bij fout**). |
-| **Uitvoer-timeout** | 30 seconden | Hoe lang de agent het script laat draaien voordat hij het beëindigt. Per stap configureerbaar. (Bash krijgt `SIGKILL`; het JavaScript-isolate wordt afgebroken.)                                               |
+| **Uitvoer-timeout** | 30 seconden | Hoe lang de agent het script laat draaien voordat hij het beëindigt. (Bash krijgt `SIGKILL`; het JavaScript-isolate wordt afgebroken.)                                                                         |
+
+Beide zijn per stap configureerbaar. Open **Runbooks &rsaquo; je runbook &rsaquo; Steps**, klap een Bash- of JavaScript-stap uit en stel onder het script **Uitvoer-timeout** en **Claim-timeout** (in seconden) in. Laat een veld leeg om de standaardwaarde te gebruiken. Elk veld accepteert 1 seconde tot 1 uur; waarden daarbuiten worden bij het draaien van de stap tot dat bereik begrensd.
 
 Het totale wachtvenster van de Worker is `claim-timeout + uitvoer-timeout + een paar seconden`. Kies waarden die bij de stap passen.
+
+Twee dingen om in gedachten te houden wanneer je de claim-timeout verlaagt:
+
+- De agent vraagt volgens een pollcyclus om werk (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, standaard 5 seconden). Een claim-timeout die korter is dan één pollcyclus kan verstrijken voordat een volkomen gezonde agent de job zelfs maar gezien heeft, en de stap faalt dan met dezelfde "geen agent heeft de job geclaimd"-melding die je van een offline agent zou krijgen.
+- Een agent voert standaard één job tegelijk uit (`RUNBOOK_AGENT_CONCURRENCY`). Terwijl een lange stap hem bezet houdt, zitten andere stappen die op dezelfde agent gericht zijn hun eigen claim-timeout uit. Verhoog je een uitvoer-timeout naar minuten, verhoog dan ook de claim-timeout van de stappen die dezelfde agent delen — of geef ze een andere agent.
 
 ### Lease en heartbeat
 

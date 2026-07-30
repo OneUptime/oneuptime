@@ -254,7 +254,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
-      <SideMenuSection title="Authentication Security">
+      <SideMenuSection title="Security">
         <SideMenuItem
           link={{
             title: "Private Users",

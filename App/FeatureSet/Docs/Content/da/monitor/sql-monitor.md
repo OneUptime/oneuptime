@@ -109,19 +109,19 @@ OneUptime opløser hemmeligheden på serversiden, før konfigurationen overdrage
 
 Tilføj kriterier for at afgøre, hvornår monitoren betragtes som online, forringet eller offline. Følgende kontroller er tilgængelige for en SQL-forespørgselsmonitor:
 
-- **SQL er online** — hvorvidt databasen kunne nås, og forespørgslen lykkedes.
-- **SQL-forespørgsel rækkeantal** — antallet af returnerede rækker. Sammenlign med operatorer som større end, mindre end eller lig med.
-- **SQL-forespørgsel skalarværdi** — den første kolonne i den første række. Sammenlignes numerisk, når begge sider ser numeriske ud, ellers som strenge. Dette er den kontrol, du skal bruge til forespørgsler af typen `COUNT(*)`.
-- **SQL-forespørgsel eksekveringstid (i ms)** — hvor lang tid forespørgslen tog. Nyttig til at fange en langsom database.
-- **SQL-forespørgsel fejl** — forespørgslens fejlmeddelelse. Advar, når den er (eller ikke er) tom, eller matcher en bestemt streng.
-- **JavaScript-udtryk** — evaluer et brugerdefineret JavaScript-udtryk for fuld kontrol. Se [JavaScript-udtryk](/docs/monitor/javascript-expression).
+- **SQL Is Online** — hvorvidt databasen kunne nås, og forespørgslen lykkedes.
+- **SQL Query Row Count** — antallet af returnerede rækker. Sammenlign med operatorer som større end, mindre end eller lig med.
+- **SQL Query Scalar Value** — den første kolonne i den første række. Sammenlignes numerisk, når begge sider ser numeriske ud, ellers som strenge. Dette er den kontrol, du skal bruge til forespørgsler af typen `COUNT(*)`.
+- **SQL Query Execution Time (in ms)** — hvor lang tid forespørgslen tog. Nyttig til at fange en langsom database.
+- **SQL Query Error** — forespørgslens fejlmeddelelse. Advar, når den er (eller ikke er) tom, eller matcher en bestemt streng.
+- **JavaScript Expression** — evaluer et brugerdefineret JavaScript-udtryk for fuld kontrol. Se [JavaScript-udtryk](/docs/monitor/javascript-expression).
 
 ### Eksempel: advar, når annulleringer stiger kraftigt
 
 Ved brug af forespørgslen ovenfor:
 
-- **Kriterium: Forringet** — `SQL-forespørgsel skalarværdi` er større end `10`.
-- **Kriterium: Offline** — `SQL-forespørgsel skalarværdi` er større end `50`, eller `SQL er online` er `false`.
+- **Kriterium: Forringet** — `SQL Query Scalar Value` er større end `10`.
+- **Kriterium: Offline** — `SQL Query Scalar Value` er større end `50`, eller `SQL Is Online` er `false`.
 
 Tilknyt en vagtplan til kriterierne, så de rette personer tilkaldes.
 

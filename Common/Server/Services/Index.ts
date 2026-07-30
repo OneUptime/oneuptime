@@ -139,6 +139,7 @@ import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import EnterpriseLicenseInstanceService from "./EnterpriseLicenseInstanceService";
 import MarketingConversionService from "./MarketingConversionService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
+import RecommendationDismissalService from "./RecommendationDismissalService";
 import ResellerPlanService from "./ResellerPlanService";
 import ResellerService from "./ResellerService";
 import ScheduledMaintenanceCustomFieldService from "./ScheduledMaintenanceCustomFieldService";
@@ -291,6 +292,7 @@ const services: Array<BaseService> = [
 
   ResellerService,
   ResellerPlanService,
+  RecommendationDismissalService,
   // Import all services in current folder here.
   AccessTokenService,
   ApiKeyPermissionService,

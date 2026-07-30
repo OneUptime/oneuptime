@@ -84,9 +84,16 @@ Deux timeouts s'appliquent à chaque étape Bash ou JavaScript :
 | Timeout               | Défaut      | Effet                                                                                                                                                                                                                  |
 | --------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim timeout**     | 2 minutes   | Combien de temps le Worker attend que l'agent sélectionné réclame le job. Si l'agent ne le prend pas à temps, l'étape échoue avec `TimedOut` et le runbook continue (ou s'arrête, selon **Continuer en cas d'échec**). |
-| **Execution timeout** | 30 secondes | Combien de temps l'agent laisse tourner le script avant de le terminer. Configurable par étape. (Bash reçoit `SIGKILL` ; l'isolate JavaScript est démantelé.)                                                          |
+| **Execution timeout** | 30 secondes | Combien de temps l'agent laisse tourner le script avant de le terminer. (Bash reçoit `SIGKILL` ; l'isolate JavaScript est démantelé.)                                                                                  |
+
+Les deux sont configurables par étape. Ouvrez **Runbooks &rsaquo; votre runbook &rsaquo; Étapes**, dépliez une étape Bash ou JavaScript et renseignez **Execution timeout** et **Claim timeout** (en secondes) sous le script. Laissez un champ vide pour utiliser la valeur par défaut. Chacun accepte de 1 seconde à 1 heure ; toute valeur en dehors de cette plage est ramenée dans ces bornes quand l'étape s'exécute.
 
 La fenêtre d'attente totale du Worker est `claim timeout + execution timeout + quelques secondes de marge`. Choisissez des valeurs qui correspondent à l'étape.
+
+Deux points à garder en tête quand vous réduisez le claim timeout :
+
+- L'agent demande de nouveaux jobs à intervalles réguliers (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 secondes par défaut). Un claim timeout plus court que cet intervalle peut expirer avant même qu'un agent en parfaite santé ait vu le job, et l'étape échoue alors avec le même message (« no agent claimed the job ») que pour un agent hors ligne.
+- Un agent traite un job à la fois par défaut (`RUNBOOK_AGENT_CONCURRENCY`). Pendant qu'une longue étape l'occupe, les autres étapes dirigées vers ce même agent voient leur propre claim timeout s'écouler. Si vous portez un execution timeout à plusieurs minutes, augmentez en conséquence le claim timeout des étapes qui partagent cet agent — ou dirigez-les vers un autre agent.
 
 ### Lease et heartbeat
 

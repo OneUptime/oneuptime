@@ -146,6 +146,10 @@ RUN npm run compile
 # so no extra chown is needed for non-root runtimes.)
 ARG IS_ENTERPRISE_EDITION=false
 ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
+# The full TypeScript type-check already ran at build time (`npm run compile`
+# above). Without this, ts-node/register redoes it on every container start
+# before the probe comes up. See App/Dockerfile.tpl for the full rationale.
+ENV TS_NODE_TRANSPILE_ONLY=1
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

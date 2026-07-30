@@ -32,6 +32,22 @@ export interface ComponentProps {
   ariaLabelledby?: string | undefined;
 }
 
+/*
+ * Callers hand us `any` through Form's currentValues, so a non-string can
+ * still reach a prop typed as string.
+ */
+function toEditorText(value: string | undefined): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  if (typeof value !== "string") {
+    return JSON.stringify(value, null, 4);
+  }
+
+  return value;
+}
+
 const CodeEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -42,15 +58,25 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
   const editorRef: React.MutableRefObject<any> = useRef<any>(null);
   const theme: Theme = useTheme();
 
+  /*
+   * `value` is the controlled prop; `initialValue` only seeds an uncontrolled
+   * editor. Both used to be synced from their own useEffect, and because
+   * effects run in declaration order the `initialValue` one ran last on mount
+   * and reset the state to "" - so a caller that passed only `value` mounted
+   * an empty editor even though it had text to show. Seed the state on the
+   * first render and keep the precedence in a single effect.
+   */
+  const [value, setValue] = useState<string>(() => {
+    return toEditorText(props.value ?? props.initialValue);
+  });
+
   useEffect(() => {
-    let value: string | undefined = props.value;
-
-    if (value && typeof value !== "string") {
-      value = JSON.stringify(value, null, 4);
-    }
-
-    setValue(value || "");
-  }, [props.value]);
+    setValue(
+      toEditorText(
+        props.value === undefined ? props.initialValue : props.value,
+      ),
+    );
+  }, [props.value, props.initialValue]);
 
   useEffect(() => {
     if (props.placeholder) {
@@ -95,8 +121,6 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       "block w-full rounded-md border bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-red-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 sm:text-sm border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
   }
 
-  const [value, setValue] = useState<string>("");
-
   // Handle spell check configuration for Monaco Editor
   useEffect(() => {
     if (editorRef.current && props.type === CodeType.Markdown) {
@@ -111,16 +135,6 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
       }
     }
   }, [props.disableSpellCheck, props.type]);
-
-  useEffect(() => {
-    let initialValue: string | undefined = props.initialValue;
-
-    if (initialValue && typeof initialValue !== "string") {
-      initialValue = JSON.stringify(initialValue, null, 4);
-    }
-
-    setValue(initialValue || "");
-  }, [props.initialValue]);
 
   return (
     <div

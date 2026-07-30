@@ -28,10 +28,12 @@ Use this for things only a human can verify: "Confirmed traffic has moved to the
 
 A snippet of JavaScript run in a sandboxed `isolated-vm`. The sandbox lives on a [Runbook Agent](/docs/runbooks/agents) inside your own infrastructure — not on the OneUptime Worker.
 
-Configure two things on a JavaScript step:
+Configure these on a JavaScript step:
 
 - **Runbook Agent** — pick the agent that should run this step from the dropdown. Only the selected agent may claim the job.
 - **Script** — the JavaScript to run.
+- **Execution timeout** — how long the agent lets the snippet run before tearing the isolate down. Defaults to 30 seconds.
+- **Claim timeout** — how long the Worker waits for the agent to pick the job up. Defaults to 2 minutes.
 
 ```js
 const start = Date.now();
@@ -39,11 +41,11 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-The returned value is captured on the step execution. `console.log` output is captured as log lines. Default execution timeout: 30 seconds. Default claim timeout (how long the Worker waits for the agent to pick the job up): 2 minutes.
+The returned value is captured on the step execution. `console.log` output is captured as log lines. Default execution timeout: 30 seconds. Default claim timeout (how long the Worker waits for the agent to pick the job up): 2 minutes. Both are editable on the step — see **Execution timeout** and **Claim timeout** below the script.
 
 ### HTTP request
 
-Make an outbound HTTP call. Configure method (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optional JSON headers, and optional body. Response status, headers, and body are captured (capped at 50KB total).
+Make an outbound HTTP call. Configure method (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optional JSON headers, optional body, and a **Request timeout** (default 30 seconds). Response status, headers, and body are captured (capped at 50KB total).
 
 Useful for: kicking off a PagerDuty incident, posting to Slack, calling your own admin API, etc. HTTP steps run on the OneUptime Worker directly; no agent required.
 
@@ -51,10 +53,12 @@ Useful for: kicking off a PagerDuty incident, posting to Slack, calling your own
 
 A bash script (`bash -c <script>`) run on a [Runbook Agent](/docs/runbooks/agents) in your own infrastructure. Bash never executes on the OneUptime Worker.
 
-Configure two things on a Bash step:
+Configure these on a Bash step:
 
 - **Runbook Agent** — pick the agent that should run this step from the dropdown. Only the selected agent may claim the job.
 - **Script** — the bash to run. Output (stdout + stderr) is captured up to 50 KB; the process is killed on timeout.
+- **Execution timeout** — how long the agent lets the script run before killing it with `SIGKILL`. Defaults to 30 seconds; raise it for steps that legitimately take minutes.
+- **Claim timeout** — how long the Worker waits for the agent to pick the job up. Defaults to 2 minutes.
 
 If the selected agent is offline when the runbook reaches this step, the step waits up to the **claim timeout** (default 2 minutes) and then fails with `TimedOut`. Add an agent under **Runbooks → Settings → Agents** before relying on a Bash step.
 

@@ -142,6 +142,13 @@ RUN npm run compile
 ARG IS_ENTERPRISE_EDITION=false
 ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 USER node
+# The full TypeScript type-check already ran at build time (`npm run compile`
+# above). Without this, ts-node/register redoes that entire check on every
+# container start before the HTTP listener binds — minutes of boot on every pod,
+# which is what turns a rolling update into a capacity hole and makes recovery
+# from a node failure just as slow. transpile-only strips types without
+# re-checking them; type errors are caught at build and in CI, not at boot.
+ENV TS_NODE_TRANSPILE_ONLY=1
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

@@ -207,6 +207,9 @@ import EnterpriseLicenseInstance from "./EnterpriseLicenseInstance";
 import OpenSourceDeployment from "./OpenSourceDeployment";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
+
+import RecommendationDismissal from "./RecommendationDismissal";
+
 // ScheduledMaintenances
 import ScheduledMaintenance from "./ScheduledMaintenance";
 import ScheduledMaintenanceCustomField from "./ScheduledMaintenanceCustomField";
@@ -686,6 +689,8 @@ const AllModelTypes: Array<{
 
   Reseller,
   ResellerPlan,
+
+  RecommendationDismissal,
 
   PromoCode,
   EnterpriseLicense,

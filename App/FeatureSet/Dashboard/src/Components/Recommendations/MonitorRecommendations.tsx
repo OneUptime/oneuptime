@@ -10,9 +10,12 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import TextArea from "Common/UI/Components/TextArea/TextArea";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -26,14 +29,17 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import Team from "Common/Models/DatabaseModels/Team";
 import Label from "Common/Models/DatabaseModels/Label";
 
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import MonitorRecommendationCatalog, {
   MonitorRecommendationResourceTypeDefinition,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
+import { MonitorRecommendationSeverityOption } from "Common/Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
@@ -41,12 +47,25 @@ import {
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
-import MonitorRecommendationsList from "./MonitorRecommendationsList";
+import RecommendationsList from "./RecommendationsList";
+import RecommendationToolbar from "./RecommendationToolbar";
+import RecommendationFilterUtil from "./RecommendationFilterUtil";
+import RecommendationDismissalUtil from "./RecommendationDismissalUtil";
 import MonitorRecommendationCreateSideOver from "./MonitorRecommendationCreateSideOver";
 import MonitorRecommendationCreateUtil, {
   MonitorRecommendationCreatePlanItem,
 } from "./MonitorRecommendationCreateUtil";
+import {
+  RecommendationCategoryGroup,
+  RecommendationCounts,
+  RecommendationFilterState,
+  RecommendationSeverityFilter,
+  RecommendationStatusFilter,
+  RecommendationViewModel,
+} from "./RecommendationViewModel";
 import ProjectUser from "../../Utils/ProjectUser";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 
 export interface ComponentProps {
   resourceType: MonitorRecommendationResourceType;
@@ -59,6 +78,8 @@ export interface ComponentProps {
   resourceIdentifier: string;
   // Used to name created monitors, e.g. "prod-cluster - Node Not Ready".
   resourceDisplayName: string;
+  // The resource's own row id. Dismissals are scoped to it.
+  resourceId: ObjectID;
 }
 
 interface ProjectDefaults {
@@ -74,16 +95,32 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [createError, setCreateError] = useState<string>("");
+  const [actionError, setActionError] = useState<string>("");
 
   const [projectDefaults, setProjectDefaults] =
     useState<ProjectDefaults | null>(null);
-  const [coveredRecommendationIds, setCoveredRecommendationIds] = useState<
-    Set<string>
-  >(new Set<string>());
+
+  const [coveredMonitorIds, setCoveredMonitorIds] = useState<
+    Map<string, ObjectID>
+  >(new Map<string, ObjectID>());
+  const [dismissals, setDismissals] = useState<Array<RecommendationDismissal>>(
+    [],
+  );
   const [selectedRecommendationIds, setSelectedRecommendationIds] = useState<
     Set<string>
   >(new Set<string>());
+
+  const [filterState, setFilterState] = useState<RecommendationFilterState>({
+    searchText: "",
+    /*
+     * Opens on the not-yet-set-up subset. This page's job is "what still needs
+     * doing here"; opening on All means a cluster with every monitor already
+     * created renders eighteen greyed-out cards and the user has to work out
+     * that there is nothing to do.
+     */
+    status: RecommendationStatusFilter.Available,
+    severity: RecommendationSeverityFilter.All,
+  });
 
   const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
     useState<Array<DropdownOption>>([]);
@@ -96,14 +133,21 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   const [labelDropdownOptions, setLabelDropdownOptions] = useState<
     Array<DropdownOption>
   >([]);
-  const [incidentSeverityDropdownOptions, setIncidentSeverityDropdownOptions] =
-    useState<Array<DropdownOption>>([]);
-  const [alertSeverityDropdownOptions, setAlertSeverityDropdownOptions] =
-    useState<Array<DropdownOption>>([]);
+  const [incidentSeverityOptions, setIncidentSeverityOptions] = useState<
+    Array<MonitorRecommendationSeverityOption>
+  >([]);
+  const [alertSeverityOptions, setAlertSeverityOptions] = useState<
+    Array<MonitorRecommendationSeverityOption>
+  >([]);
 
   const [showCreateSideOver, setShowCreateSideOver] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [createdCount, setCreatedCount] = useState<number>(0);
+
+  const [dismissTarget, setDismissTarget] =
+    useState<RecommendationViewModel | null>(null);
+  const [dismissalReason, setDismissalReason] = useState<string>("");
+  const [isDismissing, setIsDismissing] = useState<boolean>(false);
 
   const definition: MonitorRecommendationResourceTypeDefinition | undefined =
     MonitorRecommendationCatalog.getResourceTypeDefinition(props.resourceType);
@@ -221,14 +265,22 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
       setProjectDefaults(defaults);
 
-      setIncidentSeverityDropdownOptions(
+      setIncidentSeverityOptions(
         incidentSeverityList.data.map((item: IncidentSeverity) => {
-          return { value: item._id!, label: item.name! };
+          return {
+            id: new ObjectID(item._id!),
+            name: item.name!,
+            order: item.order,
+          };
         }),
       );
-      setAlertSeverityDropdownOptions(
+      setAlertSeverityOptions(
         alertSeverityList.data.map((item: AlertSeverity) => {
-          return { value: item._id!, label: item.name! };
+          return {
+            id: new ObjectID(item._id!),
+            name: item.name!,
+            order: item.order,
+          };
         }),
       );
 
@@ -285,7 +337,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
         );
       }
 
-      await loadCoverage(defaults);
+      await Promise.all([loadCoverage(defaults), loadDismissals()]);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -313,48 +365,85 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       select: { name: true, monitorSteps: true },
-      sort: {},
+      sort: { name: SortOrder.Ascending },
     });
 
-    setCoveredRecommendationIds(
-      MonitorRecommendationUtil.getCoveredRecommendationIds({
+    setCoveredMonitorIds(
+      MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
         recommendations: recommendations,
-        existingMonitorSteps:
-          MonitorRecommendationCreateUtil.getExistingMonitorSteps(
-            monitorList.data,
-          ) as Array<MonitorStep>,
+        existingMonitors: monitorList.data
+          .filter((monitor: Monitor) => {
+            return Boolean(monitor.id);
+          })
+          .map((monitor: Monitor) => {
+            return {
+              monitorId: monitor.id!,
+              monitorSteps:
+                MonitorRecommendationCreateUtil.getExistingMonitorSteps([
+                  monitor,
+                ]) as Array<MonitorStep>,
+            };
+          }),
         args: buildArgs(defaults),
+      }),
+    );
+  };
+
+  type LoadDismissalsFunction = () => Promise<void>;
+
+  const loadDismissals: LoadDismissalsFunction = async (): Promise<void> => {
+    setDismissals(
+      await RecommendationDismissalUtil.getDismissals({
+        resourceType: props.resourceType,
+        resourceId: props.resourceId,
+        recommendationType: RecommendationType.Monitor,
       }),
     );
   };
 
   useAsyncEffect(async () => {
     await load();
-  }, [props.resourceType, props.resourceIdentifier]);
+    /*
+     * `resourceId` belongs here alongside the identifier because dismissals
+     * are scoped by id, not by identifier — deliberately, so that renaming a
+     * resource keeps its dismissals. Two resources of the same type reporting
+     * the same identifier string (a cloned host, a restored cluster) would
+     * otherwise show each other's dismissed cards.
+     */
+  }, [
+    props.resourceType,
+    props.resourceIdentifier,
+    props.resourceId.toString(),
+  ]);
 
+  /*
+   * Takes the ids explicitly rather than reading the derived
+   * `selectedRecommendations` below it. Both would work — the handler only
+   * fires from a render that got past the early returns — but a create path
+   * that silently depends on where in the function body a `const` happens to
+   * sit is one refactor away from creating the wrong monitors.
+   */
   type CreateFunction = (
     notificationSettings: MonitorRecommendationNotificationSettings,
+    creatableRecommendationIds: Array<string>,
   ) => Promise<void>;
 
   const createMonitors: CreateFunction = async (
     notificationSettings: MonitorRecommendationNotificationSettings,
+    creatableRecommendationIds: Array<string>,
   ): Promise<void> => {
     if (!projectDefaults) {
       return;
     }
 
     setIsCreating(true);
-    setCreateError("");
+    setActionError("");
     setCreatedCount(0);
 
     const plan: Array<MonitorRecommendationCreatePlanItem> =
       MonitorRecommendationCreateUtil.buildCreatePlan({
         recommendations: recommendations,
-        selectedRecommendationIds:
-          MonitorRecommendationCreateUtil.getCreatableSelection({
-            selectedRecommendationIds: Array.from(selectedRecommendationIds),
-            coveredRecommendationIds: coveredRecommendationIds,
-          }),
+        selectedRecommendationIds: creatableRecommendationIds,
         args: buildArgs(projectDefaults),
         resourceDisplayName: props.resourceDisplayName,
         defaultMonitorStatusId: projectDefaults.defaultMonitorStatusId,
@@ -386,7 +475,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       setShowCreateSideOver(false);
       setSelectedRecommendationIds(new Set<string>());
     } catch (err) {
-      setCreateError(
+      setActionError(
         `${API.getFriendlyMessage(err)} (${created} of ${
           plan.length
         } monitors were created.)`,
@@ -399,6 +488,64 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       await loadCoverage(projectDefaults);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
+    }
+  };
+
+  type DismissFunction = () => Promise<void>;
+
+  const confirmDismiss: DismissFunction = async (): Promise<void> => {
+    if (!dismissTarget) {
+      return;
+    }
+
+    setIsDismissing(true);
+    setActionError("");
+
+    try {
+      await RecommendationDismissalUtil.dismiss({
+        recommendationId: dismissTarget.recommendation.recommendationId,
+        recommendationType: dismissTarget.recommendation.recommendationType,
+        resourceType: props.resourceType,
+        resourceId: props.resourceId,
+        dismissalReason: dismissalReason,
+      });
+
+      /*
+       * A dismissed recommendation cannot also be pending creation. Leaving it
+       * selected would keep it in the batch the Create button counts, and the
+       * user would be told they are about to create a monitor for something
+       * they just hid.
+       */
+      const selected: Set<string> = new Set<string>(selectedRecommendationIds);
+      selected.delete(dismissTarget.recommendation.recommendationId);
+      setSelectedRecommendationIds(selected);
+
+      await loadDismissals();
+      setDismissTarget(null);
+      setDismissalReason("");
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
+
+    setIsDismissing(false);
+  };
+
+  type RestoreFunction = (viewModel: RecommendationViewModel) => Promise<void>;
+
+  const restore: RestoreFunction = async (
+    viewModel: RecommendationViewModel,
+  ): Promise<void> => {
+    if (!viewModel.dismissalId) {
+      return;
+    }
+
+    setActionError("");
+
+    try {
+      await RecommendationDismissalUtil.restore(viewModel.dismissalId);
+      await loadDismissals();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
     }
   };
 
@@ -429,19 +576,81 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const selectableCount: number = recommendations.filter(
-    (recommendation: MonitorRecommendation) => {
-      return !coveredRecommendationIds.has(recommendation.recommendationId);
-    },
-  ).length;
-
-  const selectedRecommendations: Array<MonitorRecommendation> =
-    recommendations.filter((recommendation: MonitorRecommendation) => {
-      return (
-        selectedRecommendationIds.has(recommendation.recommendationId) &&
-        !coveredRecommendationIds.has(recommendation.recommendationId)
-      );
+  const viewModels: Array<RecommendationViewModel> =
+    RecommendationFilterUtil.buildViewModels({
+      recommendations: recommendations,
+      coveredMonitorIds: coveredMonitorIds,
+      dismissals: dismissals,
     });
+
+  const counts: RecommendationCounts =
+    RecommendationFilterUtil.getCounts(viewModels);
+
+  const groups: Array<RecommendationCategoryGroup> =
+    RecommendationFilterUtil.groupByCategory({
+      viewModels: RecommendationFilterUtil.filter({
+        viewModels: viewModels,
+        filterState: filterState,
+      }),
+      categories: categories,
+    });
+
+  const selectedRecommendations: Array<RecommendationViewModel> =
+    RecommendationFilterUtil.getSelectableViewModels({
+      viewModels: viewModels,
+      selectedRecommendationIds: selectedRecommendationIds,
+    });
+
+  type GetMonitorRouteFunction = (monitorId: ObjectID) => Route;
+
+  const getMonitorRoute: GetMonitorRouteFunction = (
+    monitorId: ObjectID,
+  ): Route => {
+    return RouteUtil.populateRouteParams(
+      RouteMap[PageMap.MONITOR_VIEW] as Route,
+      { modelId: monitorId },
+    );
+  };
+
+  type GetEmptyStateFunction = () => ReactElement;
+
+  const getEmptyState: GetEmptyStateFunction = (): ReactElement => {
+    if (counts.total === 0) {
+      return (
+        <EmptyState
+          id="monitor-recommendations-none"
+          icon={IconProp.Sparkles}
+          title="No recommendations for this resource type yet"
+          description="OneUptime does not ship a recommended monitor library for this resource type. You can still create monitors by hand."
+        />
+      );
+    }
+
+    if (
+      counts.available === 0 &&
+      filterState.status === RecommendationStatusFilter.Available &&
+      !filterState.searchText &&
+      filterState.severity === RecommendationSeverityFilter.All
+    ) {
+      return (
+        <EmptyState
+          id="monitor-recommendations-all-handled"
+          icon={IconProp.CheckCircle}
+          title="Nothing left to set up here"
+          description={`All ${counts.total} recommended monitors for this ${definition.resourceLabel.toLowerCase()} have been created or dismissed. Use the tiles above to review them.`}
+        />
+      );
+    }
+
+    return (
+      <EmptyState
+        id="monitor-recommendations-no-match"
+        icon={IconProp.Search}
+        title="No recommendations match these filters"
+        description="Try a different search term, or switch the severity and status filters back to show everything."
+      />
+    );
+  };
 
   return (
     <Fragment>
@@ -455,54 +664,78 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             buttonStyle: ButtonStyleType.PRIMARY,
             disabled: selectedRecommendations.length === 0,
             onClick: () => {
-              setCreateError("");
+              setActionError("");
               setShowCreateSideOver(true);
             },
           },
         ]}
       >
-        <Fragment>
-          {createError ? (
-            <div className="mb-4">
-              <ErrorMessage message={createError} />
-            </div>
-          ) : (
-            <></>
-          )}
+        <div className="space-y-6">
+          {actionError ? <ErrorMessage message={actionError} /> : <></>}
 
-          {selectableCount === 0 ? (
-            <EmptyState
-              id="monitor-recommendations-all-created"
-              icon={IconProp.CheckCircle}
-              title="Every recommended monitor already exists"
-              description={`All ${recommendations.length} recommended monitors for this ${definition.resourceLabel.toLowerCase()} have been created. Nothing left to set up here.`}
-            />
+          <RecommendationToolbar
+            counts={counts}
+            filterState={filterState}
+            isDisabled={isCreating}
+            onFilterStateChange={setFilterState}
+          />
+
+          {groups.length === 0 ? (
+            getEmptyState()
           ) : (
-            <MonitorRecommendationsList
-              recommendations={recommendations}
-              categories={categories}
-              coveredRecommendationIds={coveredRecommendationIds}
+            <RecommendationsList
+              groups={groups}
               selectedRecommendationIds={selectedRecommendationIds}
               onSelectionChange={setSelectedRecommendationIds}
+              getMonitorRoute={getMonitorRoute}
               isDisabled={isCreating}
+              onDismiss={(viewModel: RecommendationViewModel) => {
+                setDismissalReason("");
+                setDismissTarget(viewModel);
+              }}
+              onRestore={(viewModel: RecommendationViewModel) => {
+                restore(viewModel).catch((err: Error) => {
+                  setActionError(API.getFriendlyMessage(err));
+                });
+              }}
             />
           )}
-        </Fragment>
+        </div>
       </Card>
 
-      {selectableCount > 0 && selectedRecommendations.length > 0 ? (
-        <div className="flex justify-end mb-5">
-          <Button
-            title={`Create ${selectedRecommendations.length} Selected ${
-              selectedRecommendations.length === 1 ? "Monitor" : "Monitors"
-            }`}
-            icon={IconProp.Add}
-            buttonStyle={ButtonStyleType.PRIMARY}
-            onClick={() => {
-              setCreateError("");
-              setShowCreateSideOver(true);
-            }}
-          />
+      {/*
+       * A second Create button pinned under the list. The card header button
+       * scrolls out of view on a cluster with eighteen recommendations across
+       * five categories, and the moment a user has finished choosing is
+       * exactly when they are at the bottom of the page.
+       */}
+      {selectedRecommendations.length > 0 ? (
+        <div className="sticky bottom-4 z-10 mb-5 flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
+          <span className="text-sm text-gray-600">
+            {selectedRecommendations.length}{" "}
+            {selectedRecommendations.length === 1 ? "monitor" : "monitors"}{" "}
+            selected
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              title="Clear"
+              buttonStyle={ButtonStyleType.NORMAL}
+              onClick={() => {
+                setSelectedRecommendationIds(new Set<string>());
+              }}
+            />
+            <Button
+              title={`Create ${selectedRecommendations.length} Selected ${
+                selectedRecommendations.length === 1 ? "Monitor" : "Monitors"
+              }`}
+              icon={IconProp.Add}
+              buttonStyle={ButtonStyleType.PRIMARY}
+              onClick={() => {
+                setActionError("");
+                setShowCreateSideOver(true);
+              }}
+            />
+          </div>
         </div>
       ) : (
         <></>
@@ -510,16 +743,21 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
       {showCreateSideOver ? (
         <MonitorRecommendationCreateSideOver
-          selectedRecommendations={selectedRecommendations}
+          selectedRecommendations={selectedRecommendations.map(
+            (viewModel: RecommendationViewModel) => {
+              return viewModel.recommendation;
+            },
+          )}
           resourceLabel={definition.resourceLabel}
           onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
           teamDropdownOptions={teamDropdownOptions}
           userDropdownOptions={userDropdownOptions}
           labelDropdownOptions={labelDropdownOptions}
-          incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
-          alertSeverityDropdownOptions={alertSeverityDropdownOptions}
+          incidentSeverityOptions={incidentSeverityOptions}
+          alertSeverityOptions={alertSeverityOptions}
           isCreating={isCreating}
-          error={
+          error={actionError || undefined}
+          progressMessage={
             isCreating && createdCount > 0
               ? `Created ${createdCount} of ${selectedRecommendations.length}...`
               : undefined
@@ -532,10 +770,56 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
           onSubmit={(
             notificationSettings: MonitorRecommendationNotificationSettings,
           ) => {
-            createMonitors(notificationSettings).catch((err: Error) => {
-              setCreateError(API.getFriendlyMessage(err));
+            createMonitors(
+              notificationSettings,
+              selectedRecommendations.map(
+                (viewModel: RecommendationViewModel) => {
+                  return viewModel.recommendation.recommendationId;
+                },
+              ),
+            ).catch((err: Error) => {
+              setActionError(API.getFriendlyMessage(err));
               setIsCreating(false);
             });
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {dismissTarget ? (
+        <ConfirmModal
+          title={`Dismiss "${dismissTarget.recommendation.name}"?`}
+          description={
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500">
+                This hides the recommendation for everyone on the project. It
+                does not delete anything, and you can restore it at any time
+                from the Dismissed tile.
+              </p>
+              <TextArea
+                value={dismissalReason}
+                placeholder="Why? (optional) e.g. we already alert on this from Prometheus"
+                onChange={(value: string) => {
+                  setDismissalReason(value);
+                }}
+              />
+            </div>
+          }
+          submitButtonText="Dismiss"
+          submitButtonType={ButtonStyleType.DANGER}
+          isLoading={isDismissing}
+          onSubmit={() => {
+            confirmDismiss().catch((err: Error) => {
+              setActionError(API.getFriendlyMessage(err));
+              setIsDismissing(false);
+            });
+          }}
+          onClose={() => {
+            if (!isDismissing) {
+              setDismissTarget(null);
+              setDismissalReason("");
+            }
           }}
         />
       ) : (

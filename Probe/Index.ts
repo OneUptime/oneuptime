@@ -18,6 +18,7 @@ import SnmpTrapReceiver from "./Services/SnmpTrapReceiver";
 import SyslogReceiver from "./Services/SyslogReceiver";
 import MetricsAPI from "./API/Metrics";
 import IncomingRequestIngressAPI from "./API/IncomingRequestIngress";
+import ProbeApiDiagnostics from "./Utils/ProbeApiDiagnostics";
 import ProxyConfig from "./Utils/ProxyConfig";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
@@ -69,6 +70,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     logger.info(
       `Probe Service - Monitoring workers: ${PROBE_MONITORING_WORKERS}, Monitor fetch limit: ${PROBE_MONITOR_FETCH_LIMIT}, Script timeout: ${PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms / ${PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS}ms, Retry limit: ${PROBE_MONITOR_RETRY_LIMIT}`,
     );
+
+    /*
+     * Print the whole connectivity-relevant environment once, and start
+     * watching for event-loop stalls — a probe that cannot talk to the
+     * server is nearly always explained by one of the two, and asking a
+     * customer for this after the fact costs a support round trip each time.
+     */
+    ProbeApiDiagnostics.logStartupEnvironment();
+    ProbeApiDiagnostics.startProcessMonitor();
 
     // init the app
     await App.init({

@@ -62,20 +62,20 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         />
       </SideMenuSection>
 
-      {/* Trials only exist on the hosted (billing enabled) edition. */}
+      {/* Subscriptions only exist on the hosted (billing enabled) edition. */}
       {BILLING_ENABLED ? (
         <SideMenuSection title={t("sideMenu.billing")}>
           <SideMenuItem
             link={{
-              title: t("sideMenu.trial"),
+              title: t("sideMenu.subscription"),
               to: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.PROJECT_TRIAL] as Route,
+                RouteMap[PageMap.PROJECT_SUBSCRIPTION] as Route,
                 {
                   modelId: props.modelId,
                 },
               ),
             }}
-            icon={IconProp.Clock}
+            icon={IconProp.CreditCard}
           />
         </SideMenuSection>
       ) : (

@@ -1,6 +1,7 @@
 import MonitorStep from "../MonitorStep";
 import MonitorType from "../MonitorType";
 import IconProp from "../../Icon/IconProp";
+import RecommendationType from "../../Recommendation/RecommendationType";
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
@@ -92,6 +93,7 @@ function normalize(data: {
       data.resourceType,
       data.template.id,
     ),
+    recommendationType: RecommendationType.Monitor,
     resourceType: data.resourceType,
     monitorType: data.monitorType,
     templateId: data.template.id,

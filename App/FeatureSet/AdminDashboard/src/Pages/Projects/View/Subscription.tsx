@@ -8,13 +8,12 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import BasicForm from "Common/UI/Components/Forms/BasicForm";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
@@ -37,7 +36,7 @@ import { useTranslation } from "react-i18next";
  */
 const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
 
-const ProjectTrial: FunctionComponent = (): ReactElement => {
+const ProjectSubscription: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
 
   const modelIdString: string = Navigation.getLastParamAsString(1);
@@ -53,6 +52,8 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
   }, [modelIdString]);
 
   const [project, setProject] = useState<Project | null>(null);
+  const [showExtendTrialModal, setShowExtendTrialModal] =
+    useState<boolean>(false);
   const [isExtending, setIsExtending] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
@@ -97,14 +98,16 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
       }
 
       if (response.isFailure()) {
-        throw new Error(t("pages.projectTrial.extendFailure"));
+        throw new Error(t("pages.projectSubscription.extendFailure"));
       }
 
       setSuccess(
-        t("pages.projectTrial.extendSuccess", {
+        t("pages.projectSubscription.extendSuccess", {
           date: OneUptimeDate.getDateAsLocalFormattedString(trialEndsAt),
         }),
       );
+
+      setShowExtendTrialModal(false);
 
       // Pull the project back down so the card shows the trial date Stripe now has.
       setRefresher(!refresher);
@@ -113,6 +116,61 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
     } finally {
       setIsExtending(false);
     }
+  };
+
+  type OnExtendTrialSubmitFunction = (values: JSONObject) => Promise<void>;
+
+  /*
+   * Validation lives here rather than in the form schema because every rule
+   * below is about the date the admin picked as a moment in time, not about
+   * the shape of the field. Failing one only sets the error - the modal has to
+   * stay open with the form mounted, which is why isExtending is left alone.
+   */
+  const onExtendTrialSubmit: OnExtendTrialSubmitFunction = async (
+    values: JSONObject,
+  ): Promise<void> => {
+    const trialEndsAtValue: string = String(values["trialEndsAt"] || "").trim();
+
+    if (!trialEndsAtValue) {
+      setError(t("pages.projectSubscription.dateRequired"));
+      return;
+    }
+
+    const pickedDate: Date = OneUptimeDate.fromString(trialEndsAtValue);
+
+    if (isNaN(pickedDate.getTime())) {
+      setError(t("pages.projectSubscription.dateInvalid"));
+      return;
+    }
+
+    /*
+     * The picker yields a date with no time, which would otherwise parse as
+     * midnight - ending the trial at the START of the day the admin picked,
+     * and putting "today" in the past. An admin who picks a date means the
+     * trial runs through the end of that day, in their own timezone rather
+     * than the browser's.
+     */
+    const trialEndsAt: Date = OneUptimeDate.getEndOfDay(
+      pickedDate,
+      OneUptimeDate.getCurrentTimezone(),
+    );
+
+    if (!OneUptimeDate.isInTheFuture(trialEndsAt)) {
+      setError(t("pages.projectSubscription.dateInPast"));
+      return;
+    }
+
+    if (
+      OneUptimeDate.isAfter(
+        trialEndsAt,
+        OneUptimeDate.getSomeDaysAfter(MAX_TRIAL_LENGTH_IN_DAYS),
+      )
+    ) {
+      setError(t("pages.projectSubscription.dateTooFar"));
+      return;
+    }
+
+    await extendTrial(trialEndsAt);
   };
 
   const breadcrumbLinks: Array<{ title: string; to: Route }> = [
@@ -132,9 +190,9 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
       ),
     },
     {
-      title: t("breadcrumbs.projectTrial"),
+      title: t("breadcrumbs.projectSubscription"),
       to: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.PROJECT_TRIAL] as Route,
+        RouteMap[PageMap.PROJECT_SUBSCRIPTION] as Route,
         { modelId: modelId },
       ),
     },
@@ -147,13 +205,13 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
         modelNameField="name"
         modelType={Project}
         modelAPI={AdminModelAPI}
-        title={t("pages.projectTrial.title")}
+        title={t("pages.projectSubscription.title")}
         breadcrumbLinks={breadcrumbLinks}
         sideMenu={<SideMenuComponent modelId={modelId} />}
       >
         <Alert
           type={AlertType.INFO}
-          title={t("pages.projectTrial.billingDisabled")}
+          title={t("pages.projectSubscription.billingDisabled")}
         />
       </ModelPage>
     );
@@ -165,23 +223,58 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
       modelNameField="name"
       modelType={Project}
       modelAPI={AdminModelAPI}
-      title={t("pages.projectTrial.title")}
+      title={t("pages.projectSubscription.title")}
       breadcrumbLinks={breadcrumbLinks}
       sideMenu={<SideMenuComponent modelId={modelId} />}
     >
       <div>
+        {success ? (
+          <Alert type={AlertType.SUCCESS} title={success} className="mb-5" />
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * Usage-based billing is not subject to proration, so moving the
+         * billing cycle closes the metered subscription's current period and
+         * invoices whatever usage it holds. A project that is still trialing
+         * has none. One that has moved on to paying does, and the customer
+         * would get that bill the moment staff tell them their trial was
+         * extended - so say so before the admin opens the form.
+         */}
+        {project && !isCurrentlyTrialing ? (
+          <Alert
+            type={AlertType.WARNING}
+            title={t("pages.projectSubscription.notTrialingWarning")}
+            className="mb-5"
+          />
+        ) : (
+          <></>
+        )}
+
         <CardModelDetail<Project>
-          name="Project Trial"
+          name="Project Subscription"
           modelAPI={AdminModelAPI}
           refresher={refresher}
           cardProps={{
-            title: t("pages.projectTrial.cardTitle"),
-            description: t("pages.projectTrial.cardDescription"),
+            title: t("pages.projectSubscription.cardTitle"),
+            description: t("pages.projectSubscription.cardDescription"),
+            buttons: [
+              {
+                title: t("pages.projectSubscription.extendTitle"),
+                icon: IconProp.Clock,
+                onClick: () => {
+                  setError("");
+                  setSuccess("");
+                  setShowExtendTrialModal(true);
+                },
+              },
+            ],
           }}
           isEditable={false}
           modelDetailProps={{
             modelType: Project,
-            id: "model-detail-project-trial",
+            id: "model-detail-project-subscription",
             onItemLoaded: (item: Project) => {
               setProject(item);
             },
@@ -191,7 +284,7 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
                 field: {
                   planName: true,
                 },
-                title: t("pages.projectTrial.fieldPlan"),
+                title: t("pages.projectSubscription.fieldPlan"),
                 fieldType: FieldType.Text,
                 placeholder: "-",
               },
@@ -199,15 +292,15 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
                 field: {
                   trialEndsAt: true,
                 },
-                title: t("pages.projectTrial.fieldTrialEndsAt"),
+                title: t("pages.projectSubscription.fieldTrialEndsAt"),
                 fieldType: FieldType.DateTime,
-                placeholder: t("pages.projectTrial.noTrial"),
+                placeholder: t("pages.projectSubscription.noTrial"),
               },
               {
                 field: {
                   paymentProviderSubscriptionStatus: true,
                 },
-                title: t("pages.projectTrial.fieldSubscriptionStatus"),
+                title: t("pages.projectSubscription.fieldSubscriptionStatus"),
                 fieldType: FieldType.Text,
                 placeholder: "-",
               },
@@ -215,7 +308,9 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
                 field: {
                   paymentProviderMeteredSubscriptionStatus: true,
                 },
-                title: t("pages.projectTrial.fieldMeteredSubscriptionStatus"),
+                title: t(
+                  "pages.projectSubscription.fieldMeteredSubscriptionStatus",
+                ),
                 fieldType: FieldType.Text,
                 placeholder: "-",
               },
@@ -223,7 +318,7 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
                 field: {
                   paymentProviderSubscriptionId: true,
                 },
-                title: t("pages.projectTrial.fieldSubscriptionId"),
+                title: t("pages.projectSubscription.fieldSubscriptionId"),
                 fieldType: FieldType.Text,
                 placeholder: "-",
                 opts: {
@@ -234,7 +329,9 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
                 field: {
                   paymentProviderMeteredSubscriptionId: true,
                 },
-                title: t("pages.projectTrial.fieldMeteredSubscriptionId"),
+                title: t(
+                  "pages.projectSubscription.fieldMeteredSubscriptionId",
+                ),
                 fieldType: FieldType.Text,
                 placeholder: "-",
                 opts: {
@@ -246,136 +343,62 @@ const ProjectTrial: FunctionComponent = (): ReactElement => {
           }}
         />
 
-        <Card
-          title={t("pages.projectTrial.extendCardTitle")}
-          description={t("pages.projectTrial.extendCardDescription")}
-        >
-          {success ? (
-            <Alert type={AlertType.SUCCESS} title={success} className="mb-4" />
-          ) : (
-            <></>
-          )}
-
-          {/*
-           * Usage-based billing is not subject to proration, so moving the
-           * billing cycle closes the metered subscription's current period and
-           * invoices whatever usage it holds. A project that is still trialing
-           * has none. One that has moved on to paying does, and the customer
-           * would get that bill the moment staff tell them their trial was
-           * extended - so say so before the admin submits.
-           */}
-          {project && !isCurrentlyTrialing ? (
-            <Alert
-              type={AlertType.WARNING}
-              title={t("pages.projectTrial.notTrialingWarning")}
-              className="mb-4"
-            />
-          ) : (
-            <></>
-          )}
-
-          {/*
-           * BasicForm freezes initialValues on mount, so the form only goes up
-           * once the project is loaded - otherwise the current trial end date
-           * never makes it into the field. The key remounts it after a
-           * successful extension so the field shows the new date.
-           */}
-          {!project ? (
-            <ComponentLoader />
-          ) : (
-            <BasicForm
-              key={project.trialEndsAt?.toString() || "no-trial"}
-              id="extend-trial-form"
-              name="Extend Trial"
-              isLoading={isExtending}
-              error={error || ""}
-              submitButtonText={t("pages.projectTrial.extendSubmitButton")}
-              maxPrimaryButtonWidth={true}
-              initialValues={{
+        {showExtendTrialModal ? (
+          /*
+           * BasicForm freezes initialValues on mount, so the modal is keyed on
+           * the trial date it opened with - otherwise a project that finishes
+           * loading while the modal is already up would keep the empty field
+           * it started with.
+           */
+          <BasicFormModal
+            key={project?.trialEndsAt?.toString() || "no-trial"}
+            title={t("pages.projectSubscription.extendTitle")}
+            description={t("pages.projectSubscription.extendDescription")}
+            isLoading={isExtending}
+            submitButtonText={t("pages.projectSubscription.extendSubmitButton")}
+            onClose={() => {
+              setShowExtendTrialModal(false);
+              setError("");
+            }}
+            onSubmit={onExtendTrialSubmit}
+            formProps={{
+              id: "extend-trial-form",
+              name: "Extend Trial",
+              /*
+               * The error rides on the form and not on the modal: the modal
+               * renders its own copy above the form's, so putting it here
+               * leaves a single message.
+               */
+              error: error,
+              initialValues: {
                 /*
                  * The raw Date, not a formatted string: BasicForm runs Date
                  * fields through asDateForDatabaseQuery itself, so formatting
                  * here would add a second timezone conversion on top.
                  */
-                trialEndsAt: project.trialEndsAt || "",
-              }}
-              fields={[
+                trialEndsAt: project?.trialEndsAt || "",
+              },
+              fields: [
                 {
                   field: {
                     trialEndsAt: true,
                   },
-                  title: t("pages.projectTrial.newTrialEndDate"),
+                  title: t("pages.projectSubscription.newTrialEndDate"),
                   description: t(
-                    "pages.projectTrial.newTrialEndDateDescription",
+                    "pages.projectSubscription.newTrialEndDateDescription",
                   ),
                   required: true,
                   fieldType: FormFieldSchemaType.Date,
                 },
-              ]}
-              onSubmit={async (
-                values: JSONObject,
-                onSubmitSuccessful?: () => void,
-              ) => {
-                const trialEndsAtValue: string = String(
-                  values["trialEndsAt"] || "",
-                ).trim();
-
-                if (!trialEndsAtValue) {
-                  setSuccess("");
-                  setError(t("pages.projectTrial.dateRequired"));
-                  return;
-                }
-
-                const pickedDate: Date =
-                  OneUptimeDate.fromString(trialEndsAtValue);
-
-                if (isNaN(pickedDate.getTime())) {
-                  setSuccess("");
-                  setError(t("pages.projectTrial.dateInvalid"));
-                  return;
-                }
-
-                /*
-                 * The picker yields a date with no time, which would otherwise
-                 * parse as midnight - ending the trial at the START of the day
-                 * the admin picked, and putting "today" in the past. An admin
-                 * who picks a date means the trial runs through the end of
-                 * that day, in their own timezone rather than the browser's.
-                 */
-                const trialEndsAt: Date = OneUptimeDate.getEndOfDay(
-                  pickedDate,
-                  OneUptimeDate.getCurrentTimezone(),
-                );
-
-                if (!OneUptimeDate.isInTheFuture(trialEndsAt)) {
-                  setSuccess("");
-                  setError(t("pages.projectTrial.dateInPast"));
-                  return;
-                }
-
-                if (
-                  OneUptimeDate.isAfter(
-                    trialEndsAt,
-                    OneUptimeDate.getSomeDaysAfter(MAX_TRIAL_LENGTH_IN_DAYS),
-                  )
-                ) {
-                  setSuccess("");
-                  setError(t("pages.projectTrial.dateTooFar"));
-                  return;
-                }
-
-                await extendTrial(trialEndsAt);
-
-                if (onSubmitSuccessful) {
-                  onSubmitSuccessful();
-                }
-              }}
-            />
-          )}
-        </Card>
+              ],
+            }}
+          />
+        ) : (
+          <></>
+        )}
       </div>
     </ModelPage>
   );
 };
 
-export default ProjectTrial;
+export default ProjectSubscription;

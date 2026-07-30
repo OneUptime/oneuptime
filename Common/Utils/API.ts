@@ -24,6 +24,30 @@ import Sleep from "../Types/Sleep";
 import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
 
+/*
+ * Diagnostic summary of one settled fetch() call, retries included. Handed
+ * to RequestOptions.onRequestComplete so a caller can log WHERE a request
+ * went wrong without having to wrap every one of its call sites.
+ */
+export interface RequestOutcome {
+  method: HTTPMethod;
+  url: string;
+  elapsedInMs: number;
+  attempts: number;
+  timeoutInMs?: number | undefined;
+  // Set whenever the server answered at all — including 4xx/5xx.
+  statusCode?: number | undefined;
+  // Set when the request failed without a usable response.
+  error?: Error | undefined;
+  /*
+   * The raw axios error, when there was one. It carries the ClientRequest
+   * and its socket, which is what tells "we never got a socket" apart from
+   * "we connected and the server never replied" — the difference between a
+   * client-side and a server-side timeout.
+   */
+  axiosError?: AxiosError | undefined;
+}
+
 export interface RequestOptions {
   retries?: number | undefined;
   exponentialBackoff?: boolean | undefined;
@@ -35,6 +59,12 @@ export interface RequestOptions {
   skipAuthRefresh?: boolean | undefined;
   hasAttemptedAuthRefresh?: boolean | undefined;
   onUploadProgress?: ((event: AxiosProgressEvent) => void) | undefined;
+  /*
+   * Purely diagnostic observer, called once after the request settles. It
+   * cannot change the result and anything it throws is swallowed, so a
+   * broken logger can never break a request.
+   */
+  onRequestComplete?: ((outcome: RequestOutcome) => void) | undefined;
 }
 
 export interface APIRequestOptions {
@@ -366,6 +396,9 @@ export default class API {
       url.addQueryParams(params);
     }
 
+    const requestStartedAtInMs: number = Date.now();
+    let attempts: number = 0;
+
     try {
       const finalHeaders: Dictionary<string> = {
         ...apiHeaders,
@@ -392,6 +425,7 @@ export default class API {
 
       while (currentRetry <= maxRetries) {
         currentRetry++;
+        attempts++;
         try {
           const axiosOptions: AxiosRequestConfig = {
             method: method,
@@ -451,15 +485,63 @@ export default class API {
         result.headers as Dictionary<string>,
       );
 
+      this.notifyRequestComplete(options, {
+        method: method,
+        url: url.toString(),
+        elapsedInMs: Date.now() - requestStartedAtInMs,
+        attempts: attempts,
+        ...(options?.timeout === undefined
+          ? {}
+          : { timeoutInMs: options.timeout }),
+        statusCode: result.status,
+      });
+
       return response;
     } catch (e) {
       const error: Error | AxiosError = e as Error | AxiosError;
 
+      const elapsedInMs: number = Date.now() - requestStartedAtInMs;
+
+      const baseOutcome: RequestOutcome = {
+        method: method,
+        url: url.toString(),
+        elapsedInMs: elapsedInMs,
+        attempts: attempts,
+        ...(options?.timeout === undefined
+          ? {}
+          : { timeoutInMs: options.timeout }),
+      };
+
       if (!axios.isAxiosError(error)) {
-        throw new APIException(error.message);
+        const apiException: APIException = new APIException(error.message);
+
+        this.notifyRequestComplete(options, {
+          ...baseOutcome,
+          error: apiException,
+        });
+
+        throw apiException;
       }
 
-      const errorResponse: HTTPErrorResponse = this.getErrorResponse(error);
+      let errorResponse: HTTPErrorResponse;
+
+      /*
+       * getErrorResponse THROWS for a request that never produced a
+       * response (timeout, DNS failure, connection refused) — which is
+       * precisely the case worth reporting, so it has to be observed here
+       * rather than on the return path below.
+       */
+      try {
+        errorResponse = this.getErrorResponse(error);
+      } catch (thrownError) {
+        this.notifyRequestComplete(options, {
+          ...baseOutcome,
+          error: thrownError as Error,
+          axiosError: error,
+        });
+
+        throw thrownError;
+      }
 
       if (
         error.response?.status === 401 &&
@@ -512,7 +594,29 @@ export default class API {
       }
 
       this.handleError(errorResponse);
+
+      this.notifyRequestComplete(options, {
+        ...baseOutcome,
+        statusCode: errorResponse.statusCode,
+        axiosError: error,
+      });
+
       return errorResponse;
+    }
+  }
+
+  private static notifyRequestComplete(
+    options: RequestOptions | undefined,
+    outcome: RequestOutcome,
+  ): void {
+    if (!options?.onRequestComplete) {
+      return;
+    }
+
+    try {
+      options.onRequestComplete(outcome);
+    } catch {
+      // Diagnostics must never change the fate of the request they describe.
     }
   }
 
