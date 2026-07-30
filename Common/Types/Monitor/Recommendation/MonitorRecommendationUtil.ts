@@ -7,10 +7,13 @@ import MonitorSteps from "../MonitorSteps";
 import MonitorCriteriaInstance from "../MonitorCriteriaInstance";
 import { CriteriaIncident } from "../CriteriaIncident";
 import { CriteriaAlert } from "../CriteriaAlert";
+import MonitorRecommendationSeverityMapper from "./MonitorRecommendationSeverityMapper";
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
+  MonitorRecommendationNotificationMode,
   MonitorRecommendationNotificationSettings,
+  MonitorRecommendationSeverity,
 } from "./MonitorRecommendationTypes";
 
 /*
@@ -36,13 +39,54 @@ interface InfrastructureMonitorStepConfig {
  * Name matching was the obvious alternative and is wrong: renaming a monitor
  * would make an already-created recommendation reappear as un-created, and
  * two different templates on the same resource can be renamed into collision.
- * The metric set plus the resource identifier is what actually determines
- * what a step watches, and both are deterministic per template.
+ * What a step actually WATCHES is the right identity, and every component
+ * below is deterministic per template.
+ *
+ * The first version of this used only (resourceIdentifier, metricNames,
+ * formulas), which turned out to be far too coarse: thirteen groups of
+ * genuinely different templates fingerprinted identically. Eight of the Ceph
+ * templates all query the single metric `ceph_health_detail` and differ only
+ * by the health-check name they filter on, so creating "Ceph Daemon Crash"
+ * marked four unrelated recommendations — clock skew, OSD nearfull,
+ * backfillfull, full — as "already created" and silently hid four real
+ * monitoring gaps. "Cluster Near Full" hid "Cluster Full" the same way. The
+ * failure is invisible by construction: the cards render as handled.
+ *
+ * So the fingerprint now carries everything that distinguishes one shipped
+ * template from another:
+ *
+ *   configKind        which infrastructure config the step carries. Docker,
+ *                     Docker Swarm and Podman ship byte-identical metric sets
+ *                     ("container.cpu.utilization"), and while the page never
+ *                     mixes resource types today, nothing in this function
+ *                     enforced that.
+ *   metricAliases     the per-query variable name. Author-chosen per template
+ *                     ("recent_crash", "mon_clock_skew"), and the thing the
+ *                     criteria filters actually reference.
+ *   queryAttributes   the attribute filter on each query, e.g.
+ *                     { name: "PG_DAMAGED" } — the only difference between
+ *                     several Ceph health-detail templates.
+ *   criteriaFilters   the thresholds. The last resort, and the only thing that
+ *                     separates "near full" (85%) from "full" (95%).
+ *
+ * Including thresholds has a cost worth stating: retuning a created monitor
+ * from 90% to 85% makes its recommendation resurface as not-yet-created. That
+ * is the correct reading — the monitor no longer watches what the
+ * recommendation describes — it is visible, and it is dismissable. Silently
+ * hiding a Critical recommendation is neither.
+ *
+ * Existing monitors keep matching: none of these components is touched by the
+ * notification settings the create flow writes, so a monitor created before
+ * this change still fingerprints to its own template.
  */
 export interface MonitorRecommendationFingerprint {
   resourceIdentifier: string;
+  configKind: string;
   metricNames: Array<string>;
   formulas: Array<string>;
+  metricAliases: Array<string>;
+  queryAttributes: Array<string>;
+  criteriaFilters: Array<string>;
 }
 
 export default class MonitorRecommendationUtil {
@@ -66,14 +110,18 @@ export default class MonitorRecommendationUtil {
   }
 
   /*
-   * Push the user's chosen on-call policies, owners, labels and severity
-   * overrides into every incident and alert of every criteria instance in a
-   * step.
+   * Push the user's chosen on-call policies, owners, labels, severities and
+   * incident-vs-alert choice into every criteria instance in a step.
    *
    * This is the whole reason the create form asks for on-call policies: every
    * shipped template hardcodes `onCallPolicyIds: []`, so a template-created
    * monitor would open incidents that page nobody. Templates are the source
-   * of the thresholds; this is the source of "who hears about it".
+   * of the thresholds; this is the source of "who hears about it, how loudly,
+   * and through which record".
+   *
+   * `severity` is the RECOMMENDATION's severity (`Critical` / `Warning`), not
+   * a project severity. It selects which project severity to write, via the
+   * caller's mapping — see `MonitorRecommendationSeverityMapper`.
    *
    * Mutates and returns the step (the step was just built by the template and
    * is not shared with anything else).
@@ -81,9 +129,22 @@ export default class MonitorRecommendationUtil {
   public static applyNotificationSettingsToMonitorStep(data: {
     monitorStep: MonitorStep;
     notificationSettings: MonitorRecommendationNotificationSettings;
+    severity: MonitorRecommendationSeverity;
   }): MonitorStep {
     const settings: MonitorRecommendationNotificationSettings =
       data.notificationSettings;
+
+    const incidentSeverityId: ObjectID | undefined =
+      MonitorRecommendationSeverityMapper.resolveSeverityId({
+        severity: data.severity,
+        severityMap: settings.incidentSeverityIdBySeverity,
+      });
+
+    const alertSeverityId: ObjectID | undefined =
+      MonitorRecommendationSeverityMapper.resolveSeverityId({
+        severity: data.severity,
+        severityMap: settings.alertSeverityIdBySeverity,
+      });
 
     const criteriaInstances: Array<MonitorCriteriaInstance> =
       data.monitorStep.data?.monitorCriteria?.data
@@ -95,20 +156,71 @@ export default class MonitorRecommendationUtil {
       }
 
       for (const incident of criteriaInstance.data.incidents || []) {
-        this.applyToCriteriaIncident(incident, settings);
+        this.applyToCriteriaIncident(incident, settings, incidentSeverityId);
       }
 
       for (const alert of criteriaInstance.data.alerts || []) {
-        this.applyToCriteriaAlert(alert, settings);
+        this.applyToCriteriaAlert(alert, settings, alertSeverityId);
       }
+
+      this.applyNotificationModeToCriteriaInstance(
+        criteriaInstance,
+        settings.notificationMode,
+      );
     }
 
     return data.monitorStep;
   }
 
+  /*
+   * Turn the user's Alert / Incident / Both choice into the two flags the
+   * monitor evaluator actually reads (`MonitorIncident.ts` and
+   * `MonitorAlert.ts` both early-return unless the flag is true).
+   *
+   * Two things this deliberately does NOT do:
+   *
+   *   1. It never flips a flag on a criteria instance whose corresponding
+   *      array is empty. Every template ships a "Healthy" recovery criteria
+   *      with `incidents: []` and `createIncidents: false`; setting the flag
+   *      there would mark it as incident-creating, which the auto-resolve path
+   *      reads as "this criteria contributes breaches" and would stop
+   *      recovered monitors from resolving their own incidents.
+   *
+   *   2. It never empties the arrays of the mode that was NOT chosen. The
+   *      config stays on the monitor, inert, exactly like the monitor criteria
+   *      form's own toggles behave — so a user who later decides they do want
+   *      incidents flips one switch on the monitor instead of re-authoring the
+   *      incident title, description and severity.
+   */
+  private static applyNotificationModeToCriteriaInstance(
+    criteriaInstance: MonitorCriteriaInstance,
+    notificationMode: MonitorRecommendationNotificationMode | undefined,
+  ): void {
+    if (!notificationMode || !criteriaInstance.data) {
+      return;
+    }
+
+    const shouldCreateIncidents: boolean =
+      notificationMode === MonitorRecommendationNotificationMode.Incident ||
+      notificationMode === MonitorRecommendationNotificationMode.Both;
+
+    const shouldCreateAlerts: boolean =
+      notificationMode === MonitorRecommendationNotificationMode.Alert ||
+      notificationMode === MonitorRecommendationNotificationMode.Both;
+
+    if ((criteriaInstance.data.incidents || []).length > 0) {
+      criteriaInstance.data.createIncidents = shouldCreateIncidents;
+    }
+
+    if ((criteriaInstance.data.alerts || []).length > 0) {
+      criteriaInstance.data.createAlerts = shouldCreateAlerts;
+    }
+  }
+
   private static applyToCriteriaIncident(
     incident: CriteriaIncident,
     settings: MonitorRecommendationNotificationSettings,
+    incidentSeverityId: ObjectID | undefined,
   ): void {
     if (settings.onCallPolicyIds && settings.onCallPolicyIds.length > 0) {
       incident.onCallPolicyIds = [...settings.onCallPolicyIds];
@@ -126,14 +238,15 @@ export default class MonitorRecommendationUtil {
       incident.ownerUserIds = [...settings.ownerUserIds];
     }
 
-    if (settings.incidentSeverityId) {
-      incident.incidentSeverityId = settings.incidentSeverityId;
+    if (incidentSeverityId) {
+      incident.incidentSeverityId = incidentSeverityId;
     }
   }
 
   private static applyToCriteriaAlert(
     alert: CriteriaAlert,
     settings: MonitorRecommendationNotificationSettings,
+    alertSeverityId: ObjectID | undefined,
   ): void {
     if (settings.onCallPolicyIds && settings.onCallPolicyIds.length > 0) {
       alert.onCallPolicyIds = [...settings.onCallPolicyIds];
@@ -151,8 +264,8 @@ export default class MonitorRecommendationUtil {
       alert.ownerUserIds = [...settings.ownerUserIds];
     }
 
-    if (settings.alertSeverityId) {
-      alert.alertSeverityId = settings.alertSeverityId;
+    if (alertSeverityId) {
+      alert.alertSeverityId = alertSeverityId;
     }
   }
 
@@ -180,6 +293,7 @@ export default class MonitorRecommendationUtil {
       this.applyNotificationSettingsToMonitorStep({
         monitorStep: monitorStep,
         notificationSettings: data.notificationSettings,
+        severity: data.recommendation.severity,
       });
     }
 
@@ -194,20 +308,28 @@ export default class MonitorRecommendationUtil {
   }
 
   /*
-   * Reduce a monitor step to the (resource, metrics) pair that determines
-   * what it watches. Returns undefined for steps that carry no
-   * infrastructure config (an HTTP monitor step, say) — those can never
-   * match a recommendation.
+   * Reduce a monitor step to what it watches. Returns undefined for steps that
+   * carry no infrastructure config (an HTTP monitor step, say) — those can
+   * never match a recommendation.
+   *
+   * See `MonitorRecommendationFingerprint` for why each component is here.
    */
   public static getFingerprintFromMonitorStep(
     monitorStep: MonitorStep,
   ): MonitorRecommendationFingerprint | undefined {
-    const config: InfrastructureMonitorStepConfig | undefined =
-      this.getInfrastructureConfig(monitorStep);
+    const configKind: string | undefined =
+      this.getInfrastructureConfigKind(monitorStep);
 
-    if (!config) {
+    if (!configKind) {
       return undefined;
     }
+
+    const config: InfrastructureMonitorStepConfig = (
+      monitorStep.data as unknown as Record<
+        string,
+        InfrastructureMonitorStepConfig
+      >
+    )[configKind]!;
 
     const resourceIdentifier: string =
       config.clusterIdentifier ||
@@ -216,6 +338,8 @@ export default class MonitorRecommendationUtil {
       "";
 
     const metricNames: Array<string> = [];
+    const metricAliases: Array<string> = [];
+    const queryAttributes: Array<string> = [];
     const formulas: Array<string> = [];
 
     for (const queryConfig of config.metricViewConfig?.queryConfigs || []) {
@@ -225,6 +349,15 @@ export default class MonitorRecommendationUtil {
       if (metricName) {
         metricNames.push(metricName);
       }
+
+      const metricAlias: string | undefined =
+        queryConfig.metricAliasData?.metricVariable;
+
+      if (metricAlias) {
+        metricAliases.push(metricAlias);
+      }
+
+      queryAttributes.push(this.getQueryAttributeKey(queryConfig));
     }
 
     for (const formulaConfig of config.metricViewConfig?.formulaConfigs || []) {
@@ -238,30 +371,120 @@ export default class MonitorRecommendationUtil {
 
     return {
       resourceIdentifier: resourceIdentifier,
-      // Sorted so that query order is not part of the identity.
+      configKind: configKind,
+      /*
+       * Every list is sorted so that declaration order inside a template is
+       * not part of the identity — a template author reordering two queries
+       * must not orphan every monitor already created from it.
+       */
       metricNames: metricNames.sort(),
       formulas: formulas.sort(),
+      metricAliases: metricAliases.sort(),
+      queryAttributes: queryAttributes.sort(),
+      criteriaFilters: this.getCriteriaFilterKeys(monitorStep).sort(),
     };
   }
 
-  private static getInfrastructureConfig(
+  /*
+   * Which infrastructure config the step carries, as the property name.
+   *
+   * Returned instead of the config object itself because the NAME is part of
+   * the fingerprint: Docker, Docker Swarm and Podman ship structurally
+   * identical metric configs, so a Docker monitor and a Podman monitor
+   * watching container CPU are indistinguishable by contents alone.
+   */
+  private static getInfrastructureConfigKind(
     monitorStep: MonitorStep,
-  ): InfrastructureMonitorStepConfig | undefined {
+  ): string | undefined {
     if (!monitorStep.data) {
       return undefined;
     }
 
-    return (
-      monitorStep.data.kubernetesMonitor ||
-      monitorStep.data.hostMonitor ||
-      monitorStep.data.dockerMonitor ||
-      monitorStep.data.dockerSwarmMonitor ||
-      monitorStep.data.podmanMonitor ||
-      monitorStep.data.proxmoxMonitor ||
-      monitorStep.data.cephMonitor ||
-      monitorStep.data.iotMonitor ||
-      undefined
-    );
+    const kinds: Array<string> = [
+      "kubernetesMonitor",
+      "hostMonitor",
+      "dockerMonitor",
+      "dockerSwarmMonitor",
+      "podmanMonitor",
+      "proxmoxMonitor",
+      "cephMonitor",
+      "iotMonitor",
+    ];
+
+    const data: Record<string, unknown> = monitorStep.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    return kinds.find((kind: string) => {
+      return Boolean(data[kind]);
+    });
+  }
+
+  /*
+   * The attribute filter on one query, as a stable string.
+   *
+   * Keys are sorted before serializing: `{ name: "X", severity: "Y" }` and
+   * `{ severity: "Y", name: "X" }` describe the same query, and JSON.stringify
+   * alone would call them different.
+   */
+  private static getQueryAttributeKey(
+    queryConfig: MetricQueryConfigData,
+  ): string {
+    const attributes: unknown =
+      queryConfig.metricQueryData?.filterData?.["attributes"];
+
+    if (!attributes || typeof attributes !== "object") {
+      return "";
+    }
+
+    const record: Record<string, unknown> = attributes as Record<
+      string,
+      unknown
+    >;
+
+    return Object.keys(record)
+      .sort()
+      .map((key: string) => {
+        return `${key}=${String(record[key])}`;
+      })
+      .join(",");
+  }
+
+  /*
+   * Every threshold the step evaluates, as stable strings.
+   *
+   * Covers all criteria instances, healthy and unhealthy alike: the recovery
+   * criteria's own threshold is equally part of what the step watches, and two
+   * templates that differ only in their recovery bound are still two different
+   * monitors.
+   *
+   * `metricAlias` is included because a multi-query step's filters are only
+   * meaningful against the series they name.
+   */
+  private static getCriteriaFilterKeys(
+    monitorStep: MonitorStep,
+  ): Array<string> {
+    const keys: Array<string> = [];
+
+    const criteriaInstances: Array<MonitorCriteriaInstance> =
+      monitorStep.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray ||
+      [];
+
+    for (const criteriaInstance of criteriaInstances) {
+      for (const filter of criteriaInstance.data?.filters || []) {
+        keys.push(
+          [
+            String(filter.checkOn ?? ""),
+            String(filter.filterType ?? ""),
+            String(filter.value ?? ""),
+            String(filter.metricMonitorOptions?.metricAlias ?? ""),
+          ].join("|"),
+        );
+      }
+    }
+
+    return keys;
   }
 
   private static getMetricNameFromQueryConfig(
@@ -291,13 +514,25 @@ export default class MonitorRecommendationUtil {
     return undefined;
   }
 
+  /*
+   * A positional array rather than the object, so the serialization is stable
+   * regardless of the order the fields were written in. Every component of
+   * `MonitorRecommendationFingerprint` must appear here — a field added to the
+   * interface but forgotten below is invisible: the type checker is satisfied
+   * and the fingerprint silently keeps ignoring it, which is exactly the class
+   * of bug the interface's own comment describes.
+   */
   public static serializeFingerprint(
     fingerprint: MonitorRecommendationFingerprint,
   ): string {
     return JSON.stringify([
       fingerprint.resourceIdentifier,
+      fingerprint.configKind,
       fingerprint.metricNames,
       fingerprint.formulas,
+      fingerprint.metricAliases,
+      fingerprint.queryAttributes,
+      fingerprint.criteriaFilters,
     ]);
   }
 
@@ -346,26 +581,122 @@ export default class MonitorRecommendationUtil {
     }
 
     for (const recommendation of data.recommendations) {
-      const fingerprint: MonitorRecommendationFingerprint | undefined =
-        this.getFingerprintFromMonitorStep(
-          recommendation.getMonitorStep({
-            ...data.args,
-            monitorName: this.getMonitorName({
-              recommendation: recommendation,
-              resourceDisplayName: data.args.monitorName,
-            }),
-          }),
-        );
+      const fingerprint: string | undefined =
+        this.getSerializedFingerprintForRecommendation({
+          recommendation: recommendation,
+          args: data.args,
+        });
 
-      if (
-        fingerprint &&
-        existingFingerprints.has(this.serializeFingerprint(fingerprint))
-      ) {
+      if (fingerprint && existingFingerprints.has(fingerprint)) {
         covered.add(recommendation.recommendationId);
       }
     }
 
     return covered;
+  }
+
+  /*
+   * Same diff as `getCoveredRecommendationIds`, but keeps WHICH monitor
+   * covers each recommendation instead of only that one does.
+   *
+   * The set-only version is enough to grey a card out, and that is all the
+   * page could do with it: a user looking at "Already created" had no way to
+   * get from the card to the monitor to check its thresholds, its on-call
+   * policy, or whether it is even enabled. Returning the id lets the card link
+   * there.
+   *
+   * When several monitors fingerprint identically — which happens when someone
+   * creates the same recommendation twice by hand — the FIRST is kept, matching
+   * the order the caller passed them in (the API sorts monitors, so this is
+   * stable across loads rather than whichever row Postgres returned first).
+   */
+  public static getCoveredRecommendationMonitorIds(data: {
+    recommendations: Array<MonitorRecommendation>;
+    existingMonitors: Array<{
+      monitorId: ObjectID;
+      monitorSteps: Array<MonitorStep>;
+    }>;
+    args: MonitorRecommendationArgs;
+  }): Map<string, ObjectID> {
+    const monitorIdByFingerprint: Map<string, ObjectID> = new Map<
+      string,
+      ObjectID
+    >();
+
+    for (const existingMonitor of data.existingMonitors) {
+      for (const monitorStep of existingMonitor.monitorSteps) {
+        const fingerprint: MonitorRecommendationFingerprint | undefined =
+          this.getFingerprintFromMonitorStep(monitorStep);
+
+        if (!fingerprint) {
+          continue;
+        }
+
+        const serialized: string = this.serializeFingerprint(fingerprint);
+
+        if (!monitorIdByFingerprint.has(serialized)) {
+          monitorIdByFingerprint.set(serialized, existingMonitor.monitorId);
+        }
+      }
+    }
+
+    const covered: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    if (monitorIdByFingerprint.size === 0) {
+      return covered;
+    }
+
+    for (const recommendation of data.recommendations) {
+      const fingerprint: string | undefined =
+        this.getSerializedFingerprintForRecommendation({
+          recommendation: recommendation,
+          args: data.args,
+        });
+
+      if (!fingerprint) {
+        continue;
+      }
+
+      const monitorId: ObjectID | undefined =
+        monitorIdByFingerprint.get(fingerprint);
+
+      if (monitorId) {
+        covered.set(recommendation.recommendationId, monitorId);
+      }
+    }
+
+    return covered;
+  }
+
+  /*
+   * Build a recommendation's step exactly as the create flow would, and reduce
+   * it to its serialized fingerprint.
+   *
+   * The `monitorName` recomputation matters: templates interpolate the monitor
+   * name into incident titles, and while the name is not part of the
+   * fingerprint, building the step with a different name than the create flow
+   * uses would be an easy way for the two paths to drift apart later.
+   */
+  private static getSerializedFingerprintForRecommendation(data: {
+    recommendation: MonitorRecommendation;
+    args: MonitorRecommendationArgs;
+  }): string | undefined {
+    const fingerprint: MonitorRecommendationFingerprint | undefined =
+      this.getFingerprintFromMonitorStep(
+        data.recommendation.getMonitorStep({
+          ...data.args,
+          monitorName: this.getMonitorName({
+            recommendation: data.recommendation,
+            resourceDisplayName: data.args.monitorName,
+          }),
+        }),
+      );
+
+    if (!fingerprint) {
+      return undefined;
+    }
+
+    return this.serializeFingerprint(fingerprint);
   }
 
   /*

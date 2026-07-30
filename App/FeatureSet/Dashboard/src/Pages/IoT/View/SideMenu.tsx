@@ -11,6 +11,8 @@ import ObjectID from "Common/Types/ObjectID";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -118,7 +120,7 @@ const IoTFleetSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Info}
         />
-        <SideMenuItem
+        <RecommendationsSideMenuItem
           link={{
             title: "Recommendations",
             to: RouteUtil.populateRouteParams(
@@ -126,7 +128,8 @@ const IoTFleetSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Sparkles}
+          resourceType={MonitorRecommendationResourceType.IoTDevice}
+          resourceId={props.modelId}
         />
         <SideMenuItem
           link={{
