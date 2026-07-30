@@ -37,8 +37,7 @@ import MonitorType, {
 import MonitorTypeUtil from "../../../Utils/MonitorType";
 import MonitorStepsForm from "../../../Components/Form/Monitor/MonitorSteps";
 import MonitorStepsViewer from "../../../Components/Monitor/MonitorSteps/MonitorSteps";
-import MonitoringInterval from "../../../Utils/MonitorIntervalDropdownOptions";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { getMonitoringIntervalOptions } from "../../../Utils/MonitorIntervalDropdownOptions";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import React, {
@@ -766,22 +765,9 @@ const MonitorTemplatesView: FunctionComponent<
                 fieldType: FormFieldSchemaType.Dropdown,
                 required: true,
                 fetchDropdownOptions: () => {
-                  let interval: Array<DropdownOption> = [...MonitoringInterval];
-
-                  if (
-                    monitorType === MonitorType.SyntheticMonitor ||
-                    monitorType === MonitorType.CustomJavaScriptCode ||
-                    monitorType === MonitorType.SSLCertificate
-                  ) {
-                    interval = interval.filter((option: DropdownOption) => {
-                      return (
-                        option.value !== "* * * * *" &&
-                        option.value !== "*/2 * * * *"
-                      );
-                    });
-                  }
-
-                  return Promise.resolve(interval);
+                  return Promise.resolve(
+                    getMonitoringIntervalOptions(monitorType),
+                  );
                 },
                 placeholder: "Select Monitoring Interval",
               },

@@ -1,6 +1,10 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import MonitoringIntervalElement from "../../../Components/Monitor/MonitoringIntervalElement";
-import MonitoringInterval from "../../../Utils/MonitorIntervalDropdownOptions";
+import { getMonitoringIntervalOptions } from "../../../Utils/MonitorIntervalDropdownOptions";
+import {
+  DropdownOption,
+  DropdownOptionGroup,
+} from "Common/UI/Components/Dropdown/Dropdown";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -132,7 +136,17 @@ const MonitorCriteria: FunctionComponent<
 
             title: "Monitoring Interval",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: MonitoringInterval,
+            /*
+             * Which intervals are offered depends on the monitor type - and,
+             * for sub-minute intervals, on whether this is a self-hosted
+             * instance. Both are only known once the monitor has loaded, so
+             * the options are fetched rather than declared statically.
+             */
+            fetchDropdownOptions: (): Promise<
+              Array<DropdownOption | DropdownOptionGroup>
+            > => {
+              return Promise.resolve(getMonitoringIntervalOptions(monitorType));
+            },
             required: true,
             placeholder: "Monitoring Interval",
           },

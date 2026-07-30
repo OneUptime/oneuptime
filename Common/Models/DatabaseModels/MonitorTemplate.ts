@@ -479,7 +479,8 @@ export default class MonitorTemplate extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Monitoring Interval",
     description:
-      "Default monitoring interval for monitors created from this template",
+      'Default monitoring interval for monitors created from this template. A cron expression - five fields for a minute or coarser ("*/5 * * * *"), or six with a leading seconds field for the sub-minute intervals ("*/10 * * * * *", "*/20 * * * * *", "*/30 * * * * *"). Sub-minute intervals are only available on self-hosted installations, and only for monitor types a probe actively polls.',
+    example: "*/5 * * * *",
   })
   @Column({
     nullable: true,

@@ -8,6 +8,12 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/MonitorTemplate";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { IsBillingEnabled } from "../EnvironmentConfig";
+import MonitorType from "../../Types/Monitor/MonitorType";
+import MonitoringIntervalUtil from "../../Utils/Monitor/MonitoringIntervalUtil";
 
 export interface SyncLinkedMonitorsResult {
   totalLinkedMonitors: number;
@@ -35,6 +41,102 @@ const ALL_SYNCABLE_FIELDS: ReadonlyArray<SyncableTemplateField> = [
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * MonitorService.onBeforeUpdate would reject a bad interval when the
+   * template is pushed onto its linked monitors, but by then the value is
+   * already stored on the template and the operator sees the failure at sync
+   * time rather than at save time. Reject it where it is typed.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const validationError: string | null =
+      MonitoringIntervalUtil.getValidationError({
+        monitoringInterval: createBy.data.monitoringInterval,
+        monitorType: createBy.data.monitorType,
+        isBillingEnabled: IsBillingEnabled,
+      });
+
+    if (validationError) {
+      throw new BadDataException(validationError);
+    }
+
+    return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const monitoringInterval: string | undefined = updateBy.data
+      .monitoringInterval as string | undefined;
+
+    if (!monitoringInterval) {
+      return { updateBy, carryForward: null };
+    }
+
+    const monitorType: MonitorType | undefined = updateBy.data.monitorType as
+      | MonitorType
+      | undefined;
+
+    const validationError: string | null =
+      MonitoringIntervalUtil.getValidationError({
+        monitoringInterval: monitoringInterval,
+        monitorType: monitorType,
+        isBillingEnabled: IsBillingEnabled,
+      });
+
+    if (validationError) {
+      throw new BadDataException(validationError);
+    }
+
+    /*
+     * The interval is edited on its own tab, so the type is not in the
+     * payload and the type-eligibility half of the check needs the rows the
+     * query actually matches. Only sub-minute values need it, and those are
+     * rare enough that the extra read does not matter.
+     */
+    if (
+      !MonitoringIntervalUtil.isSubMinuteInterval(monitoringInterval) ||
+      monitorType
+    ) {
+      return { updateBy, carryForward: null };
+    }
+
+    const templates: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        monitorType: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    for (const template of templates) {
+      if (!template.monitorType) {
+        continue;
+      }
+
+      const templateError: string | null =
+        MonitoringIntervalUtil.getValidationError({
+          monitoringInterval: monitoringInterval,
+          monitorType: template.monitorType,
+          isBillingEnabled: IsBillingEnabled,
+        });
+
+      if (templateError) {
+        throw new BadDataException(templateError);
+      }
+    }
+
+    return { updateBy, carryForward: null };
   }
 
   /**

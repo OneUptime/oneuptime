@@ -18,13 +18,12 @@ import MonitorType, {
 } from "Common/Types/Monitor/MonitorType";
 import MonitorStepsForm from "../../../Components/Form/Monitor/MonitorSteps";
 import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
-import MonitoringInterval from "../../../Utils/MonitorIntervalDropdownOptions";
+import { getMonitoringIntervalOptions } from "../../../Utils/MonitorIntervalDropdownOptions";
 import {
   CustomElementProps,
   FormFieldStyleType,
 } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
@@ -209,23 +208,9 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             fetchDropdownOptions: (item: FormValues<MonitorTemplate>) => {
-              let interval: Array<DropdownOption> = [...MonitoringInterval];
-
-              if (
-                item &&
-                (item.monitorType === MonitorType.SyntheticMonitor ||
-                  item.monitorType === MonitorType.CustomJavaScriptCode ||
-                  item.monitorType === MonitorType.SSLCertificate)
-              ) {
-                interval = interval.filter((option: DropdownOption) => {
-                  return (
-                    option.value !== "* * * * *" &&
-                    option.value !== "*/2 * * * *"
-                  );
-                });
-              }
-
-              return Promise.resolve(interval);
+              return Promise.resolve(
+                getMonitoringIntervalOptions(item?.monitorType),
+              );
             },
             placeholder: "Select Monitoring Interval",
           },

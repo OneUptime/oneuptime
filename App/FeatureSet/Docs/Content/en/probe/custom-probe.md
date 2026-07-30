@@ -205,6 +205,7 @@ The probe supports the following environment variables:
 - `PROBE_DESCRIPTION` - Description for the probe
 - `PROBE_MONITORING_WORKERS` - Number of monitoring workers (default: 1)
 - `PROBE_MONITOR_FETCH_LIMIT` - Number of monitors to fetch at once (default: 10)
+- `PROBE_MONITOR_FETCH_INTERVAL_IN_SECONDS` - How often the probe asks the server for monitors that are due (default: 10). This is the ceiling on how fast any monitor can be checked, so it has to be at least as fast as your shortest monitoring interval. Supported values: 10, 12, 15, 20, 30, 60. See [Monitoring Interval](/docs/monitor/monitoring-interval)
 - `PROBE_MONITOR_RETRY_LIMIT` - Number of retries for failed monitors (default: 3)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout for synthetic monitor scripts in milliseconds (default: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout for custom code monitor scripts in milliseconds (default: 60000)

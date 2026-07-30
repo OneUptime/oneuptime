@@ -1002,6 +1002,11 @@ probes:
     enabled: true
     monitoringWorkers: 3
     monitorFetchLimit: 10
+    # How often this probe asks the server for monitors that are due, in seconds.
+    # This is the ceiling on how fast any monitor can be checked. Supported
+    # values: 10, 12, 15, 20, 30, 60. Set it to 60 to restore the once-a-minute
+    # behaviour probes had before sub-minute monitoring intervals existed.
+    monitorFetchIntervalInSeconds: 10
     monitorRetryLimit: 3
     key:
     replicaCount: 1
@@ -1082,6 +1087,7 @@ probes:
 #   description: "Probe 2"
 #   monitoringWorkers: 3
 #   monitorFetchLimit: 10
+#   monitorFetchIntervalInSeconds: 10
 #   key:
 #   replicaCount: 1
 #   ports:

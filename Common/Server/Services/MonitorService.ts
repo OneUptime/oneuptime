@@ -34,6 +34,7 @@ import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../Types/Monitor/MonitorType";
+import MonitoringIntervalUtil from "../../Utils/Monitor/MonitoringIntervalUtil";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
@@ -403,6 +404,14 @@ export class Service extends DatabaseService<Model> {
       resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
       resolveReferenceId(updateBy.data.currentMonitorStatus);
 
+    /*
+     * Every write path that can change the interval funnels through here -
+     * the dashboard, the API, and MonitorTemplateService.syncLinkedMonitors,
+     * which pushes the template's interval onto its linked monitors with a
+     * plain updateBy. The dropdown is not a control.
+     */
+    await this.validateMonitoringIntervalForUpdate(updateBy);
+
     if (updateBy.data.monitorSteps || currentMonitorStatusId) {
       /*
        * Root/API updates do not always carry a tenantId, so fall back to the
@@ -441,6 +450,76 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * An update carries the new interval but not, usually, the monitor type -
+   * so the type-eligibility half of the check needs the rows the query
+   * actually matches. That read only happens for sub-minute values, which are
+   * rare and self-hosted-only; every existing minute-or-coarser interval
+   * short-circuits on the first check and costs nothing.
+   */
+  private async validateMonitoringIntervalForUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const monitoringInterval: string | undefined = updateBy.data
+      .monitoringInterval as string | undefined;
+
+    if (!monitoringInterval) {
+      return;
+    }
+
+    const monitorType: MonitorType | undefined = updateBy.data.monitorType as
+      | MonitorType
+      | undefined;
+
+    const validationError: string | null =
+      MonitoringIntervalUtil.getValidationError({
+        monitoringInterval: monitoringInterval,
+        monitorType: monitorType,
+        isBillingEnabled: IsBillingEnabled,
+      });
+
+    if (validationError) {
+      throw new BadDataException(validationError);
+    }
+
+    if (
+      !MonitoringIntervalUtil.isSubMinuteInterval(monitoringInterval) ||
+      monitorType
+    ) {
+      return;
+    }
+
+    const monitors: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        monitorType: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    for (const monitor of monitors) {
+      if (!monitor.monitorType) {
+        continue;
+      }
+
+      const monitorTypeError: string | null =
+        MonitoringIntervalUtil.getValidationError({
+          monitoringInterval: monitoringInterval,
+          monitorType: monitor.monitorType,
+          isBillingEnabled: IsBillingEnabled,
+        });
+
+      if (monitorTypeError) {
+        throw new BadDataException(monitorTypeError);
+      }
+    }
   }
 
   private async getProjectIdsForUpdateQuery(
@@ -637,6 +716,17 @@ export class Service extends DatabaseService<Model> {
           createBy.data.monitorType
         }". Valid monitor types are ${Object.values(MonitorType).join(", ")}.`,
       );
+    }
+
+    const monitoringIntervalError: string | null =
+      MonitoringIntervalUtil.getValidationError({
+        monitoringInterval: createBy.data.monitoringInterval,
+        monitorType: createBy.data.monitorType,
+        isBillingEnabled: IsBillingEnabled,
+      });
+
+    if (monitoringIntervalError) {
+      throw new BadDataException(monitoringIntervalError);
     }
 
     if (IsBillingEnabled && createBy.props.tenantId) {
