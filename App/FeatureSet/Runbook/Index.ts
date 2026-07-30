@@ -54,7 +54,30 @@ const RunbookFeatureSet: FeatureSet = {
               runbookExecutionId: new ObjectID(runbookExecutionId),
             });
           },
-          { concurrency: 25 },
+          {
+            concurrency: 25,
+            /*
+             * A runbook execution occupies its job for the whole run, and a
+             * single step may now be configured to wait up to an hour for an
+             * agent and run for another hour. BullMQ renews the lock while the
+             * process is alive, so this is not a cap on job length — it is how
+             * long after a Worker dies before the job is treated as stalled and
+             * handed to another Worker. Kept short deliberately: redelivery is
+             * how an interrupted execution resumes, and the dispatcher
+             * re-attaches to an in-flight agent job instead of dispatching a
+             * second one, so recovering quickly is safe.
+             */
+            lockDuration: 30_000,
+            /*
+             * Default is 1, which spends the execution's only recovery on the
+             * first restart — a rolling deploy that bounces this pod twice
+             * during an hour-long step would drop the run on the floor. Three
+             * covers an ordinary deploy while still bounding a job that stalls
+             * because of something about the job itself. Past that the
+             * TimeoutStuckExecutions sweep fails the execution with a reason.
+             */
+            maxStalledCount: 3,
+          },
         );
       }
     } catch (err) {

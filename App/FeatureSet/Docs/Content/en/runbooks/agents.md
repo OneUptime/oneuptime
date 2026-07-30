@@ -101,6 +101,15 @@ When an agent claims a job, it gets a short lease (30 seconds by default). While
 
 Bash child processes are **not** automatically cancelled when the lease expires (a JavaScript isolate is also left to finish if it ever does) — but the Worker stops waiting for them, and the agent will not be able to submit a result once another claim has taken over. Design scripts to be safe to re-run if you care about exactly-once.
 
+### If the OneUptime Worker restarts mid-step
+
+A runbook execution runs on one Worker from start to finish, so a deploy or a crash can interrupt it while a step is in flight. What happens next depends on whether the execution gets picked back up:
+
+- **It resumes.** The Worker that picks it up finds the job row your step already created and **re-attaches to it** — it waits on that job rather than sending your agent a second copy of the script. If the agent had already finished, the recorded result is used as-is. A step is dispatched to an agent at most once per execution.
+- **It does not resume.** If the execution is never picked back up, a sweep marks it `Failed` once it has outlived the claim + execution window its current step was configured for, with a message naming that step. An execution never hangs in `Running`.
+
+The one thing this cannot tell you is how far a script got before the Worker vanished. A step that was mid-run is reported as failed with a note that it may have partially run — check the target system before running the runbook again.
+
 ### No agent online
 
 If the selected agent is offline at the moment the step runs, the job sits `Pending` until the claim timeout elapses, then fails with a clear "no agent claimed the job" message. The agents page is where you confirm coverage before running a runbook in anger.
@@ -111,7 +120,7 @@ Combined stdout + stderr is capped at **50 KB** per step. Larger output is trunc
 
 ### Cancellation
 
-Cancelling a runbook execution (from the execution view or the API) immediately marks all of its `Pending`/`Claimed`/`Running` Bash and JavaScript jobs as `Cancelled`. An agent that's already mid-script will finish its work, but its result will not be accepted by the server.
+Cancelling a runbook execution (from the execution view or the API) immediately marks all of its `Pending`/`Claimed`/`Running` Bash and JavaScript jobs as `Cancelled`. An agent that's already mid-script will finish its work, but its result will not be accepted by the server, and no later step in the runbook is dispatched.
 
 ### Concurrency
 
