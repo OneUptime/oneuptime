@@ -4,6 +4,7 @@ import NetworkDeviceLabelRule from "../../Models/DatabaseModels/NetworkDeviceLab
 import NetworkDeviceLabelRuleService from "./NetworkDeviceLabelRuleService";
 import NetworkDeviceService from "./NetworkDeviceService";
 import ObjectID from "../../Types/ObjectID";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -159,24 +160,18 @@ class NetworkDeviceLabelRuleEngineServiceClass {
 
     if (
       rule.networkDeviceNamePattern &&
-      (!networkDevice.name ||
-        !this.testRegex(
-          rule.networkDeviceNamePattern,
-          networkDevice.name,
-          rule,
-        ))
+      !this.testPattern(rule.networkDeviceNamePattern, networkDevice.name, rule)
     ) {
       return false;
     }
 
     if (
       rule.networkDeviceDescriptionPattern &&
-      (!networkDevice.description ||
-        !this.testRegex(
-          rule.networkDeviceDescriptionPattern,
-          networkDevice.description,
-          rule,
-        ))
+      !this.testPattern(
+        rule.networkDeviceDescriptionPattern,
+        networkDevice.description,
+        rule,
+      )
     ) {
       return false;
     }
@@ -184,20 +179,24 @@ class NetworkDeviceLabelRuleEngineServiceClass {
     return true;
   }
 
-  private testRegex(
+  /*
+   * Patterns are regexes, with a '*' wildcard fallback so the glob syntax the
+   * neighbouring site assignment rules use does not silently match nothing.
+   * See Common/Utils/Rules/RulePatternMatchUtil.
+   */
+  private testPattern(
     pattern: string,
-    value: string,
+    value: string | undefined,
     rule: NetworkDeviceLabelRule,
   ): boolean {
-    try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
-    } catch {
+    if (!RulePatternMatchUtil.isSupportedPattern(pattern)) {
       logger.warn(
-        `Invalid regex in network device label rule ${rule.id}: ${pattern}`,
+        `Invalid pattern in network device label rule ${rule.id}: ${pattern}. It is neither a valid regular expression nor a wildcard pattern, so it will never match.`,
       );
       return false;
     }
+
+    return RulePatternMatchUtil.matches(value, pattern);
   }
 }
 

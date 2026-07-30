@@ -505,6 +505,71 @@ describe("NetworkSiteService.onBeforeUpdate (cycle rejection)", () => {
     expect(findOneByIdSpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * The dashboard's site form posts the `parentSite` RELATION, not the
+   * `parentSiteId` column. A hook that watched only the column let a
+   * re-parent done from the UI skip cycle detection, the same-project guard
+   * and the subtree path rebase entirely - see RelationIdUtil.
+   */
+  it("rejects a cycle introduced through the `parentSite` relation key", async () => {
+    const childId: ObjectID = new ObjectID(
+      "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    );
+
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([
+        fakeSite({ materializedPath: `/${SITE_ID.toString()}/` }),
+      ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: childId,
+        _id: childId.toString(),
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${SITE_ID.toString()}/${childId.toString()}/`);
+
+    await expect(
+      (NetworkSiteService as any).onBeforeUpdate({
+        query: { _id: SITE_ID.toString() },
+        data: { parentSite: { _id: childId.toString() } },
+        props: { isRoot: true },
+      } as unknown as UpdateBy<NetworkSite>),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("carries a legal move made through the `parentSite` relation key", async () => {
+    jest
+      .spyOn(NetworkSiteService, "findBy")
+      .mockResolvedValue([
+        fakeSite({ materializedPath: `/${SITE_ID.toString()}/` }),
+      ]);
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+      }),
+    );
+    jest
+      .spyOn(NetworkSiteService, "getMaterializedPathForSite")
+      .mockResolvedValue(`/${PARENT_SITE_ID.toString()}/`);
+
+    const result: any = await (NetworkSiteService as any).onBeforeUpdate({
+      query: { _id: SITE_ID.toString() },
+      data: { parentSite: { _id: PARENT_SITE_ID.toString() } },
+      props: { isRoot: true },
+    } as unknown as UpdateBy<NetworkSite>);
+
+    expect(result.carryForward.newParentId.toString()).toBe(
+      PARENT_SITE_ID.toString(),
+    );
+    expect(result.carryForward.newParentPath).toBe(
+      `/${PARENT_SITE_ID.toString()}/`,
+    );
+  });
+
   it("does nothing when the update does not touch parentSiteId", async () => {
     const findBySpy: jest.SpyInstance = jest.spyOn(
       NetworkSiteService,
@@ -631,6 +696,26 @@ describe("NetworkSiteService.onBeforeCreate (cross-project parent guard)", () =>
         data: {
           projectId: PROJECT_ID,
           parentSiteId: PARENT_SITE_ID,
+        },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("rejects a foreign parent given as the `parentSite` relation", async () => {
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(
+      fakeSite({
+        id: PARENT_SITE_ID,
+        _id: PARENT_SITE_ID.toString(),
+        projectId: OTHER_PROJECT_ID,
+      }),
+    );
+
+    await expect(
+      (NetworkSiteService as any).onBeforeCreate({
+        data: {
+          projectId: PROJECT_ID,
+          parentSite: { _id: PARENT_SITE_ID.toString() },
         },
         props: { tenantId: PROJECT_ID },
       }),
