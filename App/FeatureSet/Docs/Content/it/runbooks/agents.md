@@ -84,9 +84,16 @@ A ogni passo Bash o JavaScript si applicano due timeout:
 | Timeout               | Default    | Cosa controlla                                                                                                                                                                                                       |
 | --------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim timeout**     | 2 minuti   | Quanto tempo il Worker aspetta che l'agente selezionato reclami il job. Se non lo prende in tempo, il passo fallisce con `TimedOut` e il runbook prosegue (o si ferma, a seconda di **Continua in caso di errore**). |
-| **Execution timeout** | 30 secondi | Quanto tempo l'agente lascia girare lo script prima di terminarlo. Configurabile per passo. (Bash riceve `SIGKILL`; l'isolate di JavaScript viene smontato.)                                                         |
+| **Execution timeout** | 30 secondi | Quanto tempo l'agente lascia girare lo script prima di terminarlo. (Bash riceve `SIGKILL`; l'isolate di JavaScript viene smontato.)                                                                                  |
+
+Entrambi sono configurabili per passo. Apri **Runbook &rsaquo; il tuo runbook &rsaquo; Passi**, espandi un passo Bash o JavaScript e imposta **Execution timeout** e **Claim timeout** (in secondi) sotto lo script. Lascia un campo vuoto per usare il valore predefinito. Ognuno accetta da 1 secondo a 1 ora; i valori fuori da questo intervallo vengono riportati entro i limiti quando il passo viene eseguito.
 
 La finestra di attesa complessiva del Worker è `claim timeout + execution timeout + qualche secondo`. Scegli numeri che si adattino al passo.
+
+Due cose da tenere a mente quando abbassi il claim timeout:
+
+- L'agente chiede lavoro a ogni ciclo di polling (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 secondi di default). Un claim timeout più breve di un ciclo di polling può scadere prima che un agente perfettamente sano abbia anche solo visto il job, e il passo fallisce con lo stesso messaggio "nessun agente ha reclamato il job" che otterresti da un agente offline.
+- Un agente esegue di default un job alla volta (`RUNBOOK_AGENT_CONCURRENCY`). Mentre un passo lungo lo occupa, gli altri passi puntati sullo stesso agente stanno aspettando lo scadere dei propri claim timeout. Se alzi un execution timeout a qualche minuto, alza di conseguenza anche il claim timeout dei passi che condividono quell'agente — oppure assegna loro un agente diverso.
 
 ### Lease e heartbeat
 

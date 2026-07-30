@@ -84,9 +84,16 @@ Två timeouts gäller varje Bash- eller JavaScript-steg:
 | Timeout              | Standard    | Vad det styr                                                                                                                                                                                                           |
 | -------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim-timeout**    | 2 minuter   | Hur länge Worker'n väntar på att den valda agenten claim:ar jobbet. Om agenten inte plockar upp det i tid misslyckas steget med `TimedOut` och runbooket går vidare (eller stannar, beroende på **Fortsätt vid fel**). |
-| **Körnings-timeout** | 30 sekunder | Hur länge agenten låter skriptet köra innan den avslutar det. Konfigurerbart per steg. (Bash får `SIGKILL`; JavaScript-isolatet rivs ner.)                                                                             |
+| **Körnings-timeout** | 30 sekunder | Hur länge agenten låter skriptet köra innan den avslutar det. (Bash får `SIGKILL`; JavaScript-isolatet rivs ner.)                                                                                                      |
+
+Båda är konfigurerbara per steg. Öppna **Runbooks &rsaquo; ditt runbook &rsaquo; Steps**, expandera ett Bash- eller JavaScript-steg och sätt **Körnings-timeout** och **Claim-timeout** (i sekunder) under skriptet. Lämna ett fält tomt för att använda standardvärdet. Var och en accepterar 1 sekund till 1 timme; värden utanför det intervallet begränsas till närmaste tillåtna värde när steget körs.
 
 Worker'ns totala väntefönster är `claim-timeout + körnings-timeout + några sekunder`. Välj tal som matchar steget.
+
+Två saker att tänka på när du sänker claim-timeouten:
+
+- Agenten frågar efter nya jobb en gång per poll-cykel (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim-timeout som är kortare än en poll-cykel kan löpa ut innan en fullt fungerande agent ens har sett jobbet, och steget misslyckas då med samma "ingen agent claim:ade jobbet"-meddelande som du skulle få från en agent som är offline.
+- En agent kör ett jobb i taget som standard (`RUNBOOK_AGENT_CONCURRENCY`). Medan ett långt steg håller den upptagen väntar andra steg som är riktade mot samma agent ut sina egna claim-timeouts. Om du höjer en körnings-timeout till flera minuter, höj claim-timeouten på de steg som delar den agenten i motsvarande grad — eller ge dem en annan agent.
 
 ### Lease och heartbeat
 

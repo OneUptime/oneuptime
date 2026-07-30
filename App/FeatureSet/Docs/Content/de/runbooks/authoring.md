@@ -28,10 +28,12 @@ Verwenden Sie dies für Dinge, die nur ein Mensch verifizieren kann: „Bestäti
 
 Ein JavaScript-Snippet, das in einer `isolated-vm`-Sandbox läuft. Die Sandbox lebt auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur — nicht auf dem OneUptime-Worker.
 
-Konfigurieren Sie zwei Dinge an einem JavaScript-Schritt:
+Konfigurieren Sie an einem JavaScript-Schritt:
 
 - **Runbook-Agent** — wählen Sie aus dem Dropdown den Agent aus, der diesen Schritt ausführen soll. Nur der ausgewählte Agent darf den Job beanspruchen.
 - **Skript** — das auszuführende JavaScript.
+- **Ausführungs-Timeout** — wie lange der Agent das Snippet laufen lässt, bevor er das Isolate abreißt. Standardmäßig 30 Sekunden.
+- **Claim-Timeout** — wie lange der Worker darauf wartet, dass der Agent den Job aufnimmt. Standardmäßig 2 Minuten.
 
 ```js
 const start = Date.now();
@@ -39,11 +41,11 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-Der Rückgabewert wird auf der Schrittausführung festgehalten. `console.log`-Ausgaben werden als Logzeilen festgehalten. Standard-Ausführungs-Timeout: 30 Sekunden. Standard-Claim-Timeout (wie lange der Worker darauf wartet, dass der Agent den Job aufnimmt): 2 Minuten.
+Der Rückgabewert wird auf der Schrittausführung festgehalten. `console.log`-Ausgaben werden als Logzeilen festgehalten. Standard-Ausführungs-Timeout: 30 Sekunden. Standard-Claim-Timeout (wie lange der Worker darauf wartet, dass der Agent den Job aufnimmt): 2 Minuten. Beide sind am Schritt einstellbar — siehe **Ausführungs-Timeout** und **Claim-Timeout** unter dem Skript.
 
 ### HTTP-Anfrage
 
-Einen ausgehenden HTTP-Aufruf machen. Konfigurieren Sie Methode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optionale JSON-Header und optionalen Body. Response-Status, -Header und -Body werden festgehalten (insgesamt auf 50 KB begrenzt).
+Einen ausgehenden HTTP-Aufruf machen. Konfigurieren Sie Methode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optionale JSON-Header, optionalen Body und einen **Anfrage-Timeout** (Standard 30 Sekunden). Response-Status, -Header und -Body werden festgehalten (insgesamt auf 50 KB begrenzt).
 
 Nützlich für: einen PagerDuty-Vorfall anstoßen, in Slack posten, Ihr eigenes Admin-API aufrufen usw. HTTP-Schritte laufen direkt auf dem OneUptime-Worker; kein Agent nötig.
 
@@ -51,10 +53,12 @@ Nützlich für: einen PagerDuty-Vorfall anstoßen, in Slack posten, Ihr eigenes 
 
 Ein Bash-Skript (`bash -c <Skript>`), das auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur läuft. Bash wird niemals auf dem OneUptime-Worker ausgeführt.
 
-Konfigurieren Sie zwei Dinge an einem Bash-Schritt:
+Konfigurieren Sie an einem Bash-Schritt:
 
 - **Runbook-Agent** — wählen Sie aus dem Dropdown den Agent aus, der diesen Schritt ausführen soll. Nur der ausgewählte Agent darf den Job beanspruchen.
 - **Skript** — die auszuführende Bash. Ausgaben (stdout + stderr) werden bis zu 50 KB festgehalten; der Prozess wird beim Timeout beendet.
+- **Ausführungs-Timeout** — wie lange der Agent das Skript laufen lässt, bevor er es mit `SIGKILL` beendet. Standardmäßig 30 Sekunden; erhöhen Sie ihn für Schritte, die tatsächlich Minuten brauchen.
+- **Claim-Timeout** — wie lange der Worker darauf wartet, dass der Agent den Job aufnimmt. Standardmäßig 2 Minuten.
 
 Wenn der ausgewählte Agent offline ist, wenn das Runbook diesen Schritt erreicht, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann mit `TimedOut` fehl. Fügen Sie unter **Runbooks → Settings → Agents** einen Agent hinzu, bevor Sie sich auf einen Bash-Schritt verlassen.
 

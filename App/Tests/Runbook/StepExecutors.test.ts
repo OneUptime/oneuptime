@@ -11,6 +11,14 @@ import {
   JavaScriptStepConfig,
   RunbookStep,
 } from "Common/Types/Runbook/RunbookStep";
+import {
+  DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
+  DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
+  MAX_AGENT_CLAIM_TIMEOUT_IN_MS,
+  MAX_STEP_EXECUTION_TIMEOUT_IN_MS,
+  MIN_AGENT_CLAIM_TIMEOUT_IN_MS,
+  MIN_STEP_EXECUTION_TIMEOUT_IN_MS,
+} from "Common/Types/Runbook/RunbookStepTimeout";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import {
   runBashStep,
@@ -403,5 +411,357 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
 
     expect(result.success).toBe(false);
     expect(result.errorMessage).toContain("queue unavailable");
+  });
+});
+
+describe("per-step timeouts", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function stubAgentDispatch(): {
+    enqueueSpy: jest.SpyInstance;
+    pollSpy: jest.SpyInstance;
+  } {
+    return {
+      enqueueSpy: jest
+        .spyOn(RunbookAgentJobService, "enqueue")
+        .mockResolvedValue(makeTerminalJob()),
+      pollSpy: jest
+        .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+        .mockResolvedValue(makeTerminalJob()),
+    };
+  }
+
+  function firstCallArgs(spy: jest.SpyInstance): Record<string, unknown> {
+    return spy.mock.calls[0]![0] as Record<string, unknown>;
+  }
+
+  describe("HTTP steps", () => {
+    test("an unset timeout uses the documented 30 second default", async () => {
+      const requestSpy: jest.SpyInstance = jest
+        .spyOn(axios, "request")
+        .mockResolvedValue({
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          data: "",
+        } as never);
+
+      await runHttpStep(makeHttpStep());
+
+      expect(firstCallArgs(requestSpy)["timeout"]).toBe(
+        DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+    });
+
+    test("a configured timeout is handed to the HTTP client", async () => {
+      const requestSpy: jest.SpyInstance = jest
+        .spyOn(axios, "request")
+        .mockResolvedValue({
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          data: "",
+        } as never);
+
+      await runHttpStep(makeHttpStep({ timeoutInMs: 90_000 }));
+
+      expect(firstCallArgs(requestSpy)["timeout"]).toBe(90_000);
+    });
+
+    test("a zero timeout falls back to the default instead of waiting forever", async () => {
+      const requestSpy: jest.SpyInstance = jest
+        .spyOn(axios, "request")
+        .mockResolvedValue({
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          data: "",
+        } as never);
+
+      await runHttpStep(makeHttpStep({ timeoutInMs: 0 }));
+
+      expect(firstCallArgs(requestSpy)["timeout"]).toBe(
+        DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+    });
+
+    test("an absurd timeout is capped at the maximum", async () => {
+      const requestSpy: jest.SpyInstance = jest
+        .spyOn(axios, "request")
+        .mockResolvedValue({
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          data: "",
+        } as never);
+
+      await runHttpStep(makeHttpStep({ timeoutInMs: Number.MAX_SAFE_INTEGER }));
+
+      expect(firstCallArgs(requestSpy)["timeout"]).toBe(
+        MAX_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+    });
+
+    test("a sub-second timeout is raised to the minimum", async () => {
+      const requestSpy: jest.SpyInstance = jest
+        .spyOn(axios, "request")
+        .mockResolvedValue({
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          data: "",
+        } as never);
+
+      await runHttpStep(makeHttpStep({ timeoutInMs: 5 }));
+
+      expect(firstCallArgs(requestSpy)["timeout"]).toBe(
+        MIN_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+    });
+  });
+
+  describe("Bash steps", () => {
+    test("unset timeouts dispatch with the documented defaults", async () => {
+      const { enqueueSpy, pollSpy } = stubAgentDispatch();
+
+      await runBashStep(makeBashStep(), makeCtx());
+
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(
+        DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(enqueueSpy)["claimTimeoutInMs"]).toBe(
+        DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(pollSpy)["executionTimeoutInMs"]).toBe(
+        DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(pollSpy)["claimTimeoutInMs"]).toBe(
+        DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
+      );
+    });
+
+    test("configured timeouts reach both the enqueued job and the poll window", async () => {
+      const { enqueueSpy, pollSpy } = stubAgentDispatch();
+
+      await runBashStep(
+        makeBashStep({ timeoutInMs: 600_000, claimTimeoutInMs: 900_000 }),
+        makeCtx(),
+      );
+
+      /*
+       * The job row carries the execution timeout to the agent; the poll
+       * window has to cover both. If these ever diverge, a long step would be
+       * abandoned by the Worker while the agent was still running it.
+       */
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(600_000);
+      expect(firstCallArgs(enqueueSpy)["claimTimeoutInMs"]).toBe(900_000);
+      expect(firstCallArgs(pollSpy)["executionTimeoutInMs"]).toBe(600_000);
+      expect(firstCallArgs(pollSpy)["claimTimeoutInMs"]).toBe(900_000);
+    });
+
+    test("a long-running step keeps a timeout well past the default", async () => {
+      /*
+       * The reason this feature exists: a database restore or a log sweep
+       * takes longer than 30 seconds and must not be killed at 30 seconds.
+       */
+      const { enqueueSpy } = stubAgentDispatch();
+
+      await runBashStep(makeBashStep({ timeoutInMs: 45 * 60_000 }), makeCtx());
+
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(2_700_000);
+    });
+
+    test("an out-of-range execution timeout is clamped, not passed through", async () => {
+      const { enqueueSpy, pollSpy } = stubAgentDispatch();
+
+      await runBashStep(
+        makeBashStep({ timeoutInMs: 24 * 60 * 60_000 }),
+        makeCtx(),
+      );
+
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(
+        MAX_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+      /*
+       * The poll window has to be clamped too. If only the job row were, the
+       * agent would give up at the cap while the Worker kept waiting out the
+       * unclamped value — holding a Runbook queue slot for a day, which is the
+       * exact harm the clamp exists to prevent.
+       */
+      expect(firstCallArgs(pollSpy)["executionTimeoutInMs"]).toBe(
+        MAX_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+    });
+
+    test("an out-of-range claim timeout is clamped, not passed through", async () => {
+      const { enqueueSpy, pollSpy } = stubAgentDispatch();
+
+      await runBashStep(makeBashStep({ claimTimeoutInMs: 1 }), makeCtx());
+
+      expect(firstCallArgs(enqueueSpy)["claimTimeoutInMs"]).toBe(
+        MIN_AGENT_CLAIM_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(pollSpy)["claimTimeoutInMs"]).toBe(
+        MIN_AGENT_CLAIM_TIMEOUT_IN_MS,
+      );
+    });
+
+    test("a negative timeout falls back to the default rather than disabling the timeout", async () => {
+      const { enqueueSpy, pollSpy } = stubAgentDispatch();
+
+      await runBashStep(
+        makeBashStep({ timeoutInMs: -1, claimTimeoutInMs: -1 }),
+        makeCtx(),
+      );
+
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(
+        DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(enqueueSpy)["claimTimeoutInMs"]).toBe(
+        DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(pollSpy)["executionTimeoutInMs"]).toBe(
+        DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(pollSpy)["claimTimeoutInMs"]).toBe(
+        DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
+      );
+    });
+
+    test("a timeout stored as a string still resolves — step configs are untyped JSON at rest", async () => {
+      const { enqueueSpy, pollSpy } = stubAgentDispatch();
+
+      await runBashStep(
+        makeBashStep({ timeoutInMs: "120000" as unknown as number }),
+        makeCtx(),
+      );
+
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(120_000);
+      expect(firstCallArgs(pollSpy)["executionTimeoutInMs"]).toBe(120_000);
+    });
+
+    test("the job row and the poll window always agree, whatever the input", async () => {
+      /*
+       * Stated as an invariant over the whole input space rather than one case
+       * at a time: the Worker must never wait on a different number than the
+       * one the agent was told to honour.
+       */
+      const inputs: Array<Partial<Record<string, unknown>>> = [
+        {},
+        { timeoutInMs: 5_000, claimTimeoutInMs: 9_000 },
+        { timeoutInMs: 0, claimTimeoutInMs: 0 },
+        { timeoutInMs: -1, claimTimeoutInMs: -1 },
+        { timeoutInMs: 1, claimTimeoutInMs: 1 },
+        { timeoutInMs: 24 * 60 * 60_000, claimTimeoutInMs: 24 * 60 * 60_000 },
+        { timeoutInMs: "600000", claimTimeoutInMs: "600000" },
+        { timeoutInMs: NaN, claimTimeoutInMs: NaN },
+      ];
+
+      for (const input of inputs) {
+        jest.restoreAllMocks();
+        jest.spyOn(logger, "error").mockImplementation((): void => {
+          return undefined;
+        });
+        const { enqueueSpy, pollSpy } = stubAgentDispatch();
+
+        await runBashStep(
+          makeBashStep(input as Partial<BashStepConfig>),
+          makeCtx(),
+        );
+
+        const enqueued: Record<string, unknown> = firstCallArgs(enqueueSpy);
+        const polled: Record<string, unknown> = firstCallArgs(pollSpy);
+
+        expect(polled["executionTimeoutInMs"]).toBe(enqueued["timeoutInMs"]);
+        expect(polled["claimTimeoutInMs"]).toBe(enqueued["claimTimeoutInMs"]);
+        // And both are always inside the documented bounds.
+        expect(enqueued["timeoutInMs"]).toBeGreaterThanOrEqual(
+          MIN_STEP_EXECUTION_TIMEOUT_IN_MS,
+        );
+        expect(enqueued["timeoutInMs"]).toBeLessThanOrEqual(
+          MAX_STEP_EXECUTION_TIMEOUT_IN_MS,
+        );
+        expect(enqueued["claimTimeoutInMs"]).toBeGreaterThanOrEqual(
+          MIN_AGENT_CLAIM_TIMEOUT_IN_MS,
+        );
+        expect(enqueued["claimTimeoutInMs"]).toBeLessThanOrEqual(
+          MAX_AGENT_CLAIM_TIMEOUT_IN_MS,
+        );
+      }
+    });
+
+    test("the two timeouts stay independent of one another", async () => {
+      const { enqueueSpy } = stubAgentDispatch();
+
+      await runBashStep(
+        makeBashStep({ timeoutInMs: 5_000, claimTimeoutInMs: 600_000 }),
+        makeCtx(),
+      );
+
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(5_000);
+      expect(firstCallArgs(enqueueSpy)["claimTimeoutInMs"]).toBe(600_000);
+    });
+  });
+
+  describe("JavaScript steps", () => {
+    test("unset timeouts dispatch with the documented defaults", async () => {
+      const { enqueueSpy } = stubAgentDispatch();
+
+      await runJavaScriptStep(makeJsStep(), makeCtx());
+
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(
+        DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(enqueueSpy)["claimTimeoutInMs"]).toBe(
+        DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
+      );
+    });
+
+    test("configured timeouts reach the enqueued job", async () => {
+      const { enqueueSpy, pollSpy } = stubAgentDispatch();
+
+      await runJavaScriptStep(
+        makeJsStep({ timeoutInMs: 180_000, claimTimeoutInMs: 300_000 }),
+        makeCtx(),
+      );
+
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(180_000);
+      expect(firstCallArgs(enqueueSpy)["claimTimeoutInMs"]).toBe(300_000);
+      expect(firstCallArgs(pollSpy)["executionTimeoutInMs"]).toBe(180_000);
+      expect(firstCallArgs(pollSpy)["claimTimeoutInMs"]).toBe(300_000);
+    });
+
+    test("out-of-range timeouts are clamped on both axes", async () => {
+      const { enqueueSpy, pollSpy } = stubAgentDispatch();
+
+      await runJavaScriptStep(
+        makeJsStep({
+          timeoutInMs: Number.MAX_SAFE_INTEGER,
+          claimTimeoutInMs: Number.MAX_SAFE_INTEGER,
+        }),
+        makeCtx(),
+      );
+
+      expect(firstCallArgs(enqueueSpy)["timeoutInMs"]).toBe(
+        MAX_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(enqueueSpy)["claimTimeoutInMs"]).toBe(
+        MAX_AGENT_CLAIM_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(pollSpy)["executionTimeoutInMs"]).toBe(
+        MAX_STEP_EXECUTION_TIMEOUT_IN_MS,
+      );
+      expect(firstCallArgs(pollSpy)["claimTimeoutInMs"]).toBe(
+        MAX_AGENT_CLAIM_TIMEOUT_IN_MS,
+      );
+    });
   });
 });

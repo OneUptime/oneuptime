@@ -28,10 +28,12 @@ Bruk det for noe bare et menneske kan verifisere: "Trafikken er flyttet til seku
 
 En JavaScript-snutt som kjøres i en `isolated-vm`-sandkasse. Sandkassen lever på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur — ikke på OneUptime-Worker'en.
 
-Konfigurer to ting på et JavaScript-trinn:
+Konfigurer på et JavaScript-trinn:
 
 - **Runbook-agent** — velg agenten som skal kjøre dette trinnet, fra nedtrekksmenyen. Bare den valgte agenten kan claime jobben.
 - **Skript** — JavaScript-koden som skal kjøres.
+- **Execution timeout** — hvor lenge agenten lar snutten kjøre før isolaten rives ned. Standard er 30 sekunder.
+- **Claim timeout** — hvor lenge Worker'en venter på at agenten plukker opp jobben. Standard er 2 minutter.
 
 ```js
 const start = Date.now();
@@ -39,11 +41,11 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-Returverdien lagres på trinn-kjøringen. `console.log`-output fanges som loglinjer. Standard execution timeout: 30 sekunder. Standard claim timeout (hvor lenge Worker'en venter på at agenten plukker opp jobben): 2 minutter.
+Returverdien lagres på trinn-kjøringen. `console.log`-output fanges som loglinjer. Standard execution timeout: 30 sekunder. Standard claim timeout (hvor lenge Worker'en venter på at agenten plukker opp jobben): 2 minutter. Begge kan redigeres på trinnet — se **Execution timeout** og **Claim timeout** under skriptet.
 
 ### HTTP-forespørsel
 
-Et utgående HTTP-kall. Konfigurer metode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, valgfrie JSON-headere og valgfri body. Status, headere og body på svaret lagres (totalt opp til 50 KB).
+Et utgående HTTP-kall. Konfigurer metode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, valgfrie JSON-headere, valgfri body og en **Request timeout** (standard 30 sekunder). Status, headere og body på svaret lagres (totalt opp til 50 KB).
 
 Nyttig for: åpne en PagerDuty-hendelse, poste på Slack, kalle din egen admin-API osv. HTTP-trinn kjører direkte på OneUptime-Worker'en; ingen agent påkrevd.
 
@@ -51,10 +53,12 @@ Nyttig for: åpne en PagerDuty-hendelse, poste på Slack, kalle din egen admin-A
 
 Et bash-skript (`bash -c <skript>`) som kjøres på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash kjøres aldri på OneUptime-Worker'en.
 
-Konfigurer to ting på et Bash-trinn:
+Konfigurer på et Bash-trinn:
 
 - **Runbook-agent** — velg agenten som skal kjøre dette trinnet, fra nedtrekksmenyen. Bare den valgte agenten kan claime jobben.
 - **Skript** — bash'en som skal kjøres. Output (stdout + stderr) fanges opp til 50 KB; prosessen drepes ved timeout.
+- **Execution timeout** — hvor lenge agenten lar skriptet kjøre før den dreper det med `SIGKILL`. Standard er 30 sekunder; øk den for trinn som faktisk trenger flere minutter.
+- **Claim timeout** — hvor lenge Worker'en venter på at agenten plukker opp jobben. Standard er 2 minutter.
 
 Hvis den valgte agenten er offline når runbook'et når dette trinnet, venter trinnet opp til **claim timeout** (standard 2 minutter) og feiler så med `TimedOut`. Legg til en agent under **Runbooks → Innstillinger → Agents** før du baserer deg på et Bash-trinn.
 

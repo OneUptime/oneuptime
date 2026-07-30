@@ -28,10 +28,12 @@ Gebruik dit voor dingen die alleen een mens kan verifiëren: "Bevestigd dat het 
 
 Een snippet JavaScript dat in een `isolated-vm`-sandbox draait. De sandbox leeft op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur — niet op de OneUptime Worker.
 
-Configureer twee dingen op een JavaScript-stap:
+Configureer op een JavaScript-stap:
 
 - **Runbook-agent** — kies uit de dropdown de agent die deze stap moet uitvoeren. Alleen de gekozen agent mag de job claimen.
 - **Script** — het uit te voeren JavaScript.
+- **Uitvoer-timeout** — hoe lang de agent de snippet laat draaien voordat hij het isolate afbreekt. Standaard 30 seconden.
+- **Claim-timeout** — hoe lang de Worker wacht tot de agent de job oppakt. Standaard 2 minuten.
 
 ```js
 const start = Date.now();
@@ -39,11 +41,11 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-De teruggegeven waarde wordt vastgelegd op de stapuitvoering. `console.log`-output wordt vastgelegd als logregels. Standaard uitvoer-timeout: 30 seconden. Standaard claim-timeout (hoe lang de Worker wacht tot de agent de job oppakt): 2 minuten.
+De teruggegeven waarde wordt vastgelegd op de stapuitvoering. `console.log`-output wordt vastgelegd als logregels. Standaard uitvoer-timeout: 30 seconden. Standaard claim-timeout (hoe lang de Worker wacht tot de agent de job oppakt): 2 minuten. Beide zijn op de stap aan te passen — zie **Uitvoer-timeout** en **Claim-timeout** onder het script.
 
 ### HTTP-verzoek
 
-Een uitgaande HTTP-aanroep doen. Configureer methode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optionele JSON-headers en optionele body. Responsstatus, -headers en -body worden vastgelegd (totaal beperkt tot 50KB).
+Een uitgaande HTTP-aanroep doen. Configureer methode (GET/POST/PUT/PATCH/DELETE/HEAD), URL, optionele JSON-headers, optionele body en een **Verzoek-timeout** (standaard 30 seconden). Responsstatus, -headers en -body worden vastgelegd (totaal beperkt tot 50KB).
 
 Handig voor: een PagerDuty-incident triggeren, naar Slack posten, je eigen admin-API aanroepen, enz. HTTP-stappen draaien rechtstreeks op de OneUptime Worker; geen agent nodig.
 
@@ -51,10 +53,12 @@ Handig voor: een PagerDuty-incident triggeren, naar Slack posten, je eigen admin
 
 Een bash-script (`bash -c <script>`) dat draait op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur. Bash draait nooit op de OneUptime Worker.
 
-Configureer twee dingen op een Bash-stap:
+Configureer op een Bash-stap:
 
 - **Runbook-agent** — kies uit de dropdown de agent die deze stap moet uitvoeren. Alleen de gekozen agent mag de job claimen.
 - **Script** — de uit te voeren bash. Output (stdout + stderr) wordt tot 50 KB vastgelegd; het proces wordt bij timeout afgebroken.
+- **Uitvoer-timeout** — hoe lang de agent het script laat draaien voordat hij het met `SIGKILL` afbreekt. Standaard 30 seconden; verhoog deze voor stappen die daadwerkelijk minuten duren.
+- **Claim-timeout** — hoe lang de Worker wacht tot de agent de job oppakt. Standaard 2 minuten.
 
 Als de gekozen agent offline is wanneer het runbook deze stap bereikt, wacht de stap tot de **claim-timeout** (standaard 2 minuten) en faalt dan met `TimedOut`. Voeg een agent toe via **Runbooks → Settings → Agents** voordat je op een Bash-stap leunt.
 

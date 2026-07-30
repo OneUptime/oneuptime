@@ -84,9 +84,16 @@ Two timeouts apply to every Bash or JavaScript step:
 | Timeout               | Default    | What it controls                                                                                                                                                                                                      |
 | --------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim timeout**     | 2 minutes  | How long the Worker waits for the selected agent to claim the job. If the agent doesn't pick it up in time, the step fails with `TimedOut` and the runbook moves on (or stops, depending on **Continue on failure**). |
-| **Execution timeout** | 30 seconds | How long the agent will let the script run before terminating it. Configurable per step. (Bash gets `SIGKILL`; JavaScript's isolate is torn down.)                                                                    |
+| **Execution timeout** | 30 seconds | How long the agent will let the script run before terminating it. (Bash gets `SIGKILL`; JavaScript's isolate is torn down.)                                                                                           |
+
+Both are configurable per step. Open **Runbooks &rsaquo; your runbook &rsaquo; Steps**, expand a Bash or JavaScript step, and set **Execution timeout** and **Claim timeout** (in seconds) below the script. Leave a field blank to use the default. Each accepts 1 second to 1 hour; values outside that range are clamped when the step runs.
 
 The Worker's overall wait window is `claim timeout + execution timeout + a few seconds`. Pick numbers that match the step.
+
+Two things to keep in mind when you lower the claim timeout:
+
+- The agent asks for work on a poll cycle (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 seconds by default). A claim timeout shorter than one poll cycle can expire before a perfectly healthy agent has even seen the job, and the step then fails with the same "no agent claimed the job" message you would get from an offline agent.
+- An agent runs one job at a time by default (`RUNBOOK_AGENT_CONCURRENCY`). While a long step occupies it, other steps pointed at the same agent are waiting out their own claim timeouts. If you raise an execution timeout to minutes, raise the claim timeout on the steps that share that agent to match — or give them a different agent.
 
 ### Lease and heartbeat
 
