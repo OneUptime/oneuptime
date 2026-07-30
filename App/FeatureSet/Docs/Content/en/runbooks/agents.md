@@ -90,6 +90,11 @@ Both are configurable per step. Open **Runbooks &rsaquo; your runbook &rsaquo; S
 
 The Worker's overall wait window is `claim timeout + execution timeout + a few seconds`. Pick numbers that match the step.
 
+Two things to keep in mind when you lower the claim timeout:
+
+- The agent asks for work on a poll cycle (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 seconds by default). A claim timeout shorter than one poll cycle can expire before a perfectly healthy agent has even seen the job, and the step then fails with the same "no agent claimed the job" message you would get from an offline agent.
+- An agent runs one job at a time by default (`RUNBOOK_AGENT_CONCURRENCY`). While a long step occupies it, other steps pointed at the same agent are waiting out their own claim timeouts. If you raise an execution timeout to minutes, raise the claim timeout on the steps that share that agent to match — or give them a different agent.
+
 ### Lease and heartbeat
 
 When an agent claims a job, it gets a short lease (30 seconds by default). While the script runs, the agent renews the lease every 10 seconds. If the agent dies or loses network mid-script, the lease expires and the Worker marks the job `TimedOut` rather than waiting forever.

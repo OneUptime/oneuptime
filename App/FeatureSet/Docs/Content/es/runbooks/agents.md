@@ -84,9 +84,16 @@ A cada paso Bash o JavaScript se le aplican dos timeouts:
 | Timeout               | Por defecto | Qué controla                                                                                                                                                                                                        |
 | --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim timeout**     | 2 minutos   | Cuánto espera el Worker a que el agente seleccionado reclame el job. Si el agente no lo recoge a tiempo, el paso falla con `TimedOut` y el runbook continúa (o se detiene, dependiendo de **Continuar al fallar**). |
-| **Execution timeout** | 30 segundos | Cuánto deja el agente correr el script antes de terminarlo. Configurable por paso. (Bash recibe `SIGKILL`; el aislamiento de JavaScript se desmonta.)                                                               |
+| **Execution timeout** | 30 segundos | Cuánto deja el agente correr el script antes de terminarlo. (Bash recibe `SIGKILL`; el aislamiento de JavaScript se desmonta.)                                                                                      |
+
+Ambos son configurables por paso. Abre **Runbooks &rsaquo; tu runbook &rsaquo; Pasos**, despliega un paso Bash o JavaScript y define **Execution timeout** y **Claim timeout** (en segundos) debajo del script. Deja un campo en blanco para usar el valor por defecto. Cada uno acepta de 1 segundo a 1 hora; los valores fuera de ese rango se ajustan a los límites cuando el paso se ejecuta.
 
 La ventana total de espera del Worker es `claim timeout + execution timeout + unos segundos`. Elige números que casen con el paso.
+
+Dos cosas a tener en cuenta cuando bajas el claim timeout:
+
+- El agente pide trabajo en ciclos de sondeo (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 segundos por defecto). Un claim timeout más corto que un ciclo de sondeo puede caducar antes de que un agente perfectamente sano haya visto siquiera el job, y entonces el paso falla con el mismo mensaje "ningún agente reclamó el job" que obtendrías de un agente offline.
+- Cada agente ejecuta un job a la vez por defecto (`RUNBOOK_AGENT_CONCURRENCY`). Mientras un paso largo lo ocupa, los otros pasos que apuntan a ese mismo agente están agotando sus propios claim timeouts. Si subes un execution timeout a minutos, sube también el claim timeout de los pasos que comparten ese agente para que cuadre — o dales un agente distinto.
 
 ### Lease y heartbeat
 

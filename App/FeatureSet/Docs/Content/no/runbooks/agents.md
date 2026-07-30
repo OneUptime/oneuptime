@@ -84,9 +84,16 @@ To timeouts gjelder for hvert Bash- eller JavaScript-steg:
 | Timeout               | Standard    | Hva det styrer                                                                                                                                                                                                   |
 | --------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim timeout**     | 2 minutter  | Hvor lenge Worker'en venter på at den valgte agenten claimer jobben. Hvis agenten ikke tar den i tide, feiler steget med `TimedOut` og runbook'et fortsetter (eller stopper, avhengig av **Fortsett ved feil**). |
-| **Execution timeout** | 30 sekunder | Hvor lenge agenten lar skriptet kjøre før den avslutter det. Konfigurerbar per steg. (Bash får `SIGKILL`; JavaScript-isolaten rives ned.)                                                                        |
+| **Execution timeout** | 30 sekunder | Hvor lenge agenten lar skriptet kjøre før den avslutter det. (Bash får `SIGKILL`; JavaScript-isolaten rives ned.)                                                                                                |
+
+Begge er konfigurerbare per steg. Åpne **Runbooks → runbook'et ditt → Trinn**, utvid et Bash- eller JavaScript-steg og sett **Execution timeout** og **Claim timeout** (i sekunder) under skriptet. La feltet stå tomt for å bruke standardverdien. Hver av dem godtar fra 1 sekund til 1 time; verdier utenfor dette området begrenses til intervallet når steget kjøres.
 
 Worker'ens totale ventevindu er `claim timeout + execution timeout + et par sekunders margin`. Velg tall som passer steget.
+
+To ting å ha i mente når du senker claim timeout:
+
+- Agenten spør etter nye jobber med et fast intervall (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim timeout som er kortere enn dette intervallet kan gå ut før en helt velfungerende agent i det hele tatt har sett jobben, og steget feiler da med samme melding ("no agent claimed the job") som du ville fått fra en agent som er offline.
+- En agent kjører én jobb om gangen som standard (`RUNBOOK_AGENT_CONCURRENCY`). Mens et langt steg legger beslag på den, må andre steg som peker mot samme agent vente ut sine egne claim timeouts. Hvis du øker en execution timeout til flere minutter, øk claim timeout tilsvarende på stegene som deler den agenten — eller gi dem en annen agent.
 
 ### Lease og heartbeat
 

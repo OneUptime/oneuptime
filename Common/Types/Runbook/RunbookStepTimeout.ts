@@ -113,8 +113,26 @@ export function secondsInputValueToTimeoutInMs(
     return undefined;
   }
 
-  return Math.round(seconds * 1000);
+  const inMs: number = Math.round(seconds * 1000);
+
+  /*
+   * Sub-half-millisecond input rounds to zero. Zero is not a timeout, so it
+   * reports as unset like any other unusable value — storing a literal 0 would
+   * put a number in the step config that means nothing.
+   */
+  if (inMs <= 0) {
+    return undefined;
+  }
+
+  return inMs;
 }
+
+/*
+ * Shown when the field holds something that is not a number at all. Lives here
+ * rather than in the editor so the message the browser's own parse failure
+ * produces is the same one this validator produces.
+ */
+export const NON_NUMERIC_TIMEOUT_MESSAGE: string = "Enter a number of seconds.";
 
 /*
  * Validation message for the step editor. Returns null when the input is
@@ -135,14 +153,19 @@ export function getTimeoutValidationError(
   const seconds: number = Number(trimmed);
 
   if (!isFinite(seconds)) {
-    return "Enter a number of seconds.";
-  }
-
-  if (seconds <= 0) {
-    return "Timeout must be greater than 0 seconds.";
+    return NON_NUMERIC_TIMEOUT_MESSAGE;
   }
 
   const inMs: number = Math.round(seconds * 1000);
+
+  /*
+   * Zero, negatives, and anything that rounds down to zero milliseconds are
+   * not timeouts. They fall back to the default rather than being clamped up,
+   * so they get the same message.
+   */
+  if (seconds <= 0 || inMs <= 0) {
+    return "Timeout must be greater than 0 seconds.";
+  }
 
   if (inMs < bounds.minInMs) {
     return `Minimum is ${bounds.minInMs / 1000} second${
@@ -157,4 +180,23 @@ export function getTimeoutValidationError(
   }
 
   return null;
+}
+
+/*
+ * True when the input is a usable number that sits outside the bounds — the
+ * only case where run time will clamp it. Unusable input (blank, zero, junk)
+ * falls back to the default instead, which is the opposite end of the range,
+ * so the editor must not promise clamping there.
+ */
+export function willTimeoutBeClamped(
+  value: string,
+  bounds: TimeoutBounds,
+): boolean {
+  const inMs: number | undefined = secondsInputValueToTimeoutInMs(value);
+
+  if (inMs === undefined) {
+    return false;
+  }
+
+  return inMs < bounds.minInMs || inMs > bounds.maxInMs;
 }

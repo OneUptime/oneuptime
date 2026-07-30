@@ -28,10 +28,12 @@ Use this for things only a human can verify: "Confirmed traffic has moved to the
 
 A snippet of JavaScript run in a sandboxed `isolated-vm`. The sandbox lives on a [Runbook Agent](/docs/runbooks/agents) inside your own infrastructure — not on the OneUptime Worker.
 
-Configure two things on a JavaScript step:
+Configure these on a JavaScript step:
 
 - **Runbook Agent** — pick the agent that should run this step from the dropdown. Only the selected agent may claim the job.
 - **Script** — the JavaScript to run.
+- **Execution timeout** — how long the agent lets the snippet run before tearing the isolate down. Defaults to 30 seconds.
+- **Claim timeout** — how long the Worker waits for the agent to pick the job up. Defaults to 2 minutes.
 
 ```js
 const start = Date.now();
