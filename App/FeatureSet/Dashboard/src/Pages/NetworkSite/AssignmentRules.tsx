@@ -27,7 +27,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
         cardProps={{
           title: "Assignment Rules",
           description:
-            "Automatically assign discovered devices and endpoints to a site by subnet CIDR or hostname pattern. The higher priority number wins; ties are broken by the older rule. Rules apply to NEW or CHANGED devices only — existing devices are never retroactively reassigned.",
+            "Automatically assign discovered devices to a site by subnet CIDR or hostname pattern. The higher priority number wins; ties are broken by the older rule. Rules are evaluated when a device is created, when its hostname / name / SNMP system name changes, and on the next poll of any device that has no site yet. A device you assigned to a site by hand is never moved unless its identity changes.",
         }}
         noItemsMessage="No assignment rules yet. Add one to route newly discovered devices into the right site automatically."
         filters={[
@@ -93,7 +93,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
             },
             title: "Hostname Pattern",
             description:
-              "Devices with a hostname matching this wildcard pattern match.",
+              "Wildcard pattern ('*' matches any run of characters, case-insensitive). It is matched against the device's hostname, its SNMP system name and its display name — a match on any of them assigns the device. Example: *0664* matches UN0664LANSWI03.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "unit-1042-*",

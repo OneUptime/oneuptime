@@ -13,11 +13,19 @@ export interface AssignmentRuleCandidate {
   createdAt?: Date | null | undefined;
 }
 
-// The device attributes a rule is evaluated against.
+/*
+ * The device attributes a rule is evaluated against. A hostname pattern is
+ * tried against every name-ish attribute because "the hostname" means
+ * different things depending on how the device got here: a discovery import
+ * stores the responding IP in `hostname` and the SNMP sysName in `name`, so a
+ * pattern like `*0664*` would never see the string the user is looking at in
+ * the device list if we only tried `hostname`.
+ */
 export interface RuleMatchTarget {
   ip?: string | null | undefined;
   hostname?: string | null | undefined;
   sysName?: string | null | undefined;
+  name?: string | null | undefined;
 }
 
 export class CidrMatchUtil {
@@ -176,8 +184,9 @@ export class CidrMatchUtil {
 
   /*
    * True when the rule's populated criteria all match the target. A CIDR
-   * criterion matches the target's ip; a hostname pattern matches either the
-   * hostname or the SNMP sysName. A rule with no criteria never matches.
+   * criterion matches the target's ip; a hostname pattern matches the
+   * hostname, the SNMP sysName, or the device's display name — see
+   * RuleMatchTarget. A rule with no criteria never matches.
    */
   public static ruleMatches(
     rule: AssignmentRuleCandidate,
@@ -201,21 +210,25 @@ export class CidrMatchUtil {
     }
 
     if (hasPattern) {
-      const matchesHostname: boolean = Boolean(
-        target.hostname &&
-          CidrMatchUtil.hostnameMatchesWildcard(
-            target.hostname,
-            rule.hostnamePattern!,
-          ),
+      const candidates: Array<string | null | undefined> = [
+        target.hostname,
+        target.sysName,
+        target.name,
+      ];
+
+      const matchesAnyName: boolean = candidates.some(
+        (candidate: string | null | undefined) => {
+          return Boolean(
+            candidate &&
+              CidrMatchUtil.hostnameMatchesWildcard(
+                candidate,
+                rule.hostnamePattern!,
+              ),
+          );
+        },
       );
-      const matchesSysName: boolean = Boolean(
-        target.sysName &&
-          CidrMatchUtil.hostnameMatchesWildcard(
-            target.sysName,
-            rule.hostnamePattern!,
-          ),
-      );
-      if (!matchesHostname && !matchesSysName) {
+
+      if (!matchesAnyName) {
         return false;
       }
     }
