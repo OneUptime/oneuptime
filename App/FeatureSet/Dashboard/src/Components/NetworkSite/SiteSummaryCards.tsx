@@ -1,9 +1,15 @@
 import {
   SITE_SUMMARY_TILES,
-  SiteSummaryFilterKey,
   SiteSummaryTile,
   SiteSummaryTileAction,
-} from "./SiteSummaryFilter";
+  getSiteFacetSelectionForTile,
+} from "./SiteSummaryTiles";
+import {
+  FacetOperatorMap,
+  FacetSelectionMap,
+  FacetTileSelection,
+  isFacetTileSelectionApplied,
+} from "../ResourceOwners/FacetTileSelection";
 import ObjectID from "Common/Types/ObjectID";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -21,26 +27,32 @@ import React, {
 } from "react";
 
 /*
- * Fleet-health strip for the Sites page: how many sites exist, how many
- * are rolling up unhealthy, and how many devices are still unassigned —
- * the number that tells you whether the hierarchy actually covers the
- * fleet.
+ * Fleet-health strip for the Sites page: how many sites exist, how many are
+ * rolling up unhealthy, and how many devices are still unassigned — the number
+ * that tells you whether the hierarchy actually covers the fleet.
  *
- * Every tile is a drill-down. Three of them narrow the sites table below;
+ * Every tile is a drill-down. Three of them move a chip on the sites table below;
  * Unassigned Devices counts devices, so it hands over to the device list.
- * SiteSummaryFilter owns that mapping.
+ * SiteSummaryTiles owns that mapping.
  */
 
 export interface ComponentProps {
   refreshToggle?: string | undefined;
-  // The tile the sites table is currently drilled into, if any.
-  selectedFilterKey?: SiteSummaryFilterKey | null | undefined;
   /*
-   * Fired with the tile the user activated. The page decides what that
-   * means — narrowing the table, clearing it, or leaving for the device
-   * list — because only the page can navigate.
+   * The table's live facet selections and operators. A tile is "pressed" exactly
+   * when the bar is showing what it describes.
    */
-  onTileClick?: ((tile: SiteSummaryTile) => void) | undefined;
+  facetSelections: FacetSelectionMap;
+  facetOperators: FacetOperatorMap;
+  /*
+   * Fired with the tile the user activated and the chip it stands for (`null` when
+   * it has none on this page). The page decides what that means — moving a chip,
+   * clearing them all, or leaving for the device list — because only the page can
+   * navigate.
+   */
+  onTileClick?:
+    | ((tile: SiteSummaryTile, selection: FacetTileSelection | null) => void)
+    | undefined;
 }
 
 interface SummaryCounts {
@@ -50,10 +62,42 @@ interface SummaryCounts {
   devicesWithoutSite: number;
 }
 
+type GetMonitorStatusIdFunction = (site: NetworkSite) => string | null;
+
+/*
+ * The API hands back `_id` as a raw string on nested relations and a real
+ * ObjectID once the model getter has seen it, depending on how the response was
+ * hydrated. Both spellings have to produce the same id, or the chip would select
+ * "[object Object]" and quietly match nothing.
+ */
+const getMonitorStatusId: GetMonitorStatusIdFunction = (
+  site: NetworkSite,
+): string | null => {
+  const fromGetter: string | undefined =
+    site.currentMonitorStatus?.id?.toString();
+
+  if (fromGetter) {
+    return fromGetter;
+  }
+
+  const raw: unknown = site.currentMonitorStatus?._id;
+
+  return typeof raw === "string" && raw.length > 0 ? raw : null;
+};
+
 const SiteSummaryCards: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [counts, setCounts] = useState<SummaryCounts | null>(null);
+  /*
+   * The non-operational statuses the counted sites are actually rolling up.
+   * Derived from the very response the unhealthy count came out of, so the chip
+   * the tile sets selects exactly the statuses behind the number on it — rather
+   * than every non-operational status the project happens to define.
+   */
+  const [unhealthyStatusIds, setUnhealthyStatusIds] = useState<Array<string>>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
 
@@ -77,6 +121,7 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
           select: {
             _id: true,
             currentMonitorStatus: {
+              _id: true,
               isOperationalState: true,
             },
           },
@@ -94,12 +139,22 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
 
       let unhealthySites: number = 0;
       let sitesWithNoData: number = 0;
+      const unhealthyIds: Set<string> = new Set<string>();
 
       for (const site of siteResult.data) {
         if (!site.currentMonitorStatus) {
           sitesWithNoData++;
-        } else if (!site.currentMonitorStatus.isOperationalState) {
+          continue;
+        }
+
+        if (!site.currentMonitorStatus.isOperationalState) {
           unhealthySites++;
+
+          const statusId: string | null = getMonitorStatusId(site);
+
+          if (statusId) {
+            unhealthyIds.add(statusId);
+          }
         }
       }
 
@@ -109,6 +164,7 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
         sitesWithNoData: sitesWithNoData,
         devicesWithoutSite: devicesWithoutSite,
       });
+      setUnhealthyStatusIds(Array.from(unhealthyIds));
       setHasError(false);
     } catch {
       // The summary row is supplementary — hide it instead of breaking the page.
@@ -128,32 +184,37 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const selectedFilterKey: SiteSummaryFilterKey | null =
-    props.selectedFilterKey || null;
-
-  type IsTileSelectedFunction = (tile: SiteSummaryTile) => boolean | undefined;
+  type IsTileSelectedFunction = (
+    tile: SiteSummaryTile,
+    selection: FacetTileSelection | null,
+  ) => boolean | undefined;
 
   /*
-   * Only the tiles that describe the table below can be "on". The total reads
-   * as selected when nothing is filtered — it is the unfiltered list, which is
-   * what the table is showing.
+   * Only the tiles that describe the table below can be "on". The total reads as
+   * selected when nothing is filtered — it is the unfiltered list, which is what
+   * the table is showing.
    *
    * Unassigned Devices returns undefined rather than false: it navigates away
-   * instead of toggling, and `undefined` is what keeps InfoCard from
-   * announcing it as a toggle button that is currently off.
+   * instead of toggling, and `undefined` is what keeps InfoCard from announcing it
+   * as a toggle button that is currently off.
    */
   const isTileSelected: IsTileSelectedFunction = (
     tile: SiteSummaryTile,
+    selection: FacetTileSelection | null,
   ): boolean | undefined => {
-    if (tile.action === SiteSummaryTileAction.FilterSites) {
-      return Boolean(tile.filterKey) && tile.filterKey === selectedFilterKey;
+    if (tile.action === SiteSummaryTileAction.ShowUnassignedDevices) {
+      return undefined;
     }
 
-    if (tile.action === SiteSummaryTileAction.ClearFilter) {
-      return selectedFilterKey === null;
+    if (!selection) {
+      return false;
     }
 
-    return undefined;
+    return isFacetTileSelectionApplied(
+      selection,
+      props.facetSelections,
+      props.facetOperators,
+    );
   };
 
   type TileAriaLabelFunction = (
@@ -162,6 +223,12 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
     isSelected: boolean | undefined,
   ) => string;
 
+  /*
+   * Says what the tile contributes, not that the list equals it: chips layer, so
+   * more than one filter can be on at once and the rows are then the intersection —
+   * a number no tile shows. The total tile is the exception; it really is the whole
+   * list, because it is only "on" when nothing else is.
+   */
   const getTileAriaLabel: TileAriaLabelFunction = (
     tile: SiteSummaryTile,
     count: number,
@@ -171,11 +238,17 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
       return `${tile.label}: ${count}. Activate to open these on the device list.`;
     }
 
-    if (isSelected) {
-      return `${tile.label}: ${count}. Showing these in the list below.`;
+    if (tile.action === SiteSummaryTileAction.ClearFilters) {
+      return isSelected
+        ? `${tile.label}: ${count}. The list below is unfiltered.`
+        : `${tile.label}: ${count}. Activate to clear the filters on the list below.`;
     }
 
-    return `${tile.label}: ${count}. Activate to show these in the list below.`;
+    if (isSelected) {
+      return `${tile.label}: ${count}. Filtering the list below — activate to remove this filter.`;
+    }
+
+    return `${tile.label}: ${count}. Activate to filter the list below by this.`;
   };
 
   return (
@@ -185,20 +258,34 @@ const SiteSummaryCards: FunctionComponent<ComponentProps> = (
     >
       {SITE_SUMMARY_TILES.map((tile: SiteSummaryTile) => {
         const count: number = counts?.[tile.countField] || 0;
-        const isSelected: boolean | undefined = isTileSelected(tile);
+        const selection: FacetTileSelection | null =
+          getSiteFacetSelectionForTile(tile, {
+            unhealthyStatusIds: unhealthyStatusIds,
+          });
+        const isSelected: boolean | undefined = isTileSelected(tile, selection);
+
+        /*
+         * Inert until the counts land — clicking a skeleton would filter the list
+         * to a number nobody has read yet — and inert for a tile with no chip to
+         * move and nowhere to go, which is the Unhealthy tile before its statuses
+         * are known. Selecting nothing there would clear the chip and show every
+         * site under a lit "Unhealthy" tile.
+         */
+        const isActivatable: boolean = Boolean(
+          props.onTileClick &&
+            !isLoading &&
+            (selection ||
+              tile.action === SiteSummaryTileAction.ShowUnassignedDevices),
+        );
 
         return (
           <InfoCard
             key={tile.key}
             title={tile.label}
-            /*
-             * The tiles stay inert until the counts land: clicking a skeleton
-             * would filter the list to a number nobody has read yet.
-             */
             onClick={
-              props.onTileClick && !isLoading
+              isActivatable
                 ? () => {
-                    props.onTileClick?.(tile);
+                    props.onTileClick?.(tile, selection);
                   }
                 : undefined
             }

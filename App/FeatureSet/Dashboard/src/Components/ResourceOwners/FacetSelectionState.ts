@@ -65,6 +65,55 @@ const toStringArray: ToStringArrayFunction = (
   });
 };
 
+export type NormalizeFacetValuesFunction = (
+  values: Array<string> | null | undefined,
+) => Array<string>;
+
+/**
+ * Clean a selection handed to the bar from outside it — a summary tile, a deep
+ * link, a bulk "show me these" affordance.
+ *
+ * Duplicates are dropped because the selection is spread into an `Includes(...)`
+ * verbatim, and blanks because an empty string is a value the option lists can
+ * never produce but a hand-built caller easily can.
+ */
+export const normalizeFacetValues: NormalizeFacetValuesFunction = (
+  values: Array<string> | null | undefined,
+): Array<string> => {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  const seen: Set<string> = new Set<string>();
+  const normalized: Array<string> = [];
+
+  for (const value of values) {
+    if (typeof value !== "string" || value.length === 0 || seen.has(value)) {
+      continue;
+    }
+
+    seen.add(value);
+    normalized.push(value);
+  }
+
+  return normalized;
+};
+
+export type ResolveFacetOperatorFunction = (
+  operator: FilterOperator | null | undefined,
+) => FilterOperator;
+
+/**
+ * The operator a facet should end up with. "is" is the default the whole bar
+ * assumes when a facet has no entry, so an unrecognised value has to land there
+ * rather than reach the query builder.
+ */
+export const resolveFacetOperator: ResolveFacetOperatorFunction = (
+  operator: FilterOperator | null | undefined,
+): FilterOperator => {
+  return isFilterOperator(operator) ? operator : "is";
+};
+
 export type ParseFacetSelectionStateFunction = (
   state: JSONObject | null | undefined,
 ) => FacetSelectionState;
@@ -129,6 +178,83 @@ export const parseFacetSelectionState: ParseFacetSelectionStateFunction = (
 
   return parsed;
 };
+
+/**
+ * The bits of a facet definition that constrain what a selection may hold.
+ * `ResourceFacet` satisfies this structurally; kept minimal so this module stays
+ * free of React.
+ */
+export interface FacetSelectionConstraint {
+  key: string;
+  isMultiSelect?: boolean | undefined;
+  supportedOperators?: Array<FilterOperator> | undefined;
+}
+
+const DEFAULT_SUPPORTED_OPERATORS: Array<FilterOperator> = [
+  "is",
+  "is_not",
+  "is_empty",
+  "is_not_empty",
+];
+
+export type SanitizeFacetSelectionStateFunction = (
+  state: FacetSelectionState,
+  facets: Array<FacetSelectionConstraint>,
+) => FacetSelectionState;
+
+/**
+ * Clamp a restored selection to what its chips can actually express.
+ *
+ * Selections come back from a URL param anyone can edit and from views saved by
+ * older builds, so a facet can arrive holding an operator it never offered or more
+ * values than it can display. Left alone, both produce a chip that claims a filter
+ * the table is not applying — and a facet offering a single operator renders no
+ * operator switcher, so the user cannot even see what to correct.
+ *
+ * Clamping here rather than at the query builder is what keeps the chip and the
+ * request in agreement: everything downstream reads this one state.
+ *
+ * The user's *values* are kept wherever possible — an unsupported operator falls
+ * back to the facet's first offered one rather than dropping the selection.
+ */
+export const sanitizeFacetSelectionState: SanitizeFacetSelectionStateFunction =
+  (
+    state: FacetSelectionState,
+    facets: Array<FacetSelectionConstraint>,
+  ): FacetSelectionState => {
+    if (facets.length === 0) {
+      return state;
+    }
+
+    const sanitized: FacetSelectionState = {
+      ...state,
+      facetSelections: { ...state.facetSelections },
+      facetOperators: { ...state.facetOperators },
+    };
+
+    for (const facet of facets) {
+      const operator: FilterOperator | undefined =
+        sanitized.facetOperators[facet.key];
+      const supported: Array<FilterOperator> =
+        facet.supportedOperators && facet.supportedOperators.length > 0
+          ? facet.supportedOperators
+          : DEFAULT_SUPPORTED_OPERATORS;
+
+      if (operator !== undefined && !supported.includes(operator)) {
+        sanitized.facetOperators[facet.key] = supported[0]!;
+      }
+
+      const values: Array<string> | undefined =
+        sanitized.facetSelections[facet.key];
+
+      if (!facet.isMultiSelect && values && values.length > 1) {
+        // The chip shows only the first value, so only the first may filter.
+        sanitized.facetSelections[facet.key] = [values[0]!];
+      }
+    }
+
+    return sanitized;
+  };
 
 export type IsFacetSelectionActiveFunction = (
   state: FacetSelectionState,

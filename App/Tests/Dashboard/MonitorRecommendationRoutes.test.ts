@@ -42,7 +42,7 @@ const ALL_RESOURCE_TYPES: Array<MonitorRecommendationResourceType> =
  * Common/UI/Config reads `window` the moment it loads, and RouteMap pulls it in
  * transitively via ProjectUtil, so the browser stub has to exist before either
  * of them does — hence the deferred imports. A static import would be hoisted
- * above the stub and throw. Same approach as DeviceSummaryFilterRoute.test.ts.
+ * above the stub and throw. Same approach as DeviceListFacetRoute.test.ts.
  */
 beforeAll(async () => {
   (globalThis as Record<string, unknown>)["window"] = {

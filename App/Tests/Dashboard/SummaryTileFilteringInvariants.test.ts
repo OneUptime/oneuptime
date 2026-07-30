@@ -1,12 +1,21 @@
 import { describe, expect, test } from "@jest/globals";
+import {
+  DEVICE_FACET_QUERY_FIELDS,
+  NETWORK_DEVICES_TABLE_ID,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceFacets";
+import {
+  NETWORK_SITES_TABLE_ID,
+  SITE_FACET_QUERY_FIELDS,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteFacets";
 import fs from "fs";
 import path from "path";
 
 /*
- * Clicking a summary tile narrows the table under it. The query mapping is
- * pure and unit-tested (DeviceSummaryFilter.test.ts, SiteSummaryFilter.test.ts);
- * what is left is the wiring — a prop, a hook dependency, an early return —
- * and the App suite runs in a plain Node environment with no renderer.
+ * Clicking a summary tile moves a chip on the facet bar under it, and the chips
+ * are what narrow the table. The tile-to-chip mapping is pure and unit-tested
+ * (DeviceSummaryTiles, SiteSummaryTiles, FacetTileSelection); what is left is
+ * the wiring — a prop, a memo dependency, a ref, an early return — and the App
+ * suite runs in a plain Node environment with no renderer.
  *
  * So these read the sources and assert the exact expressions, the same way
  * NetworkSitePageInvariants.test.ts pins the Network Site pages. Every
@@ -42,6 +51,29 @@ function readSource(root: string, ...relativeParts: Array<string>): string {
   return squash(fs.readFileSync(path.join(root, ...relativeParts), "utf8"));
 }
 
+/**
+ * Every way a chip's column can be spelled in a `filters` entry: the query
+ * field itself, plus the relation the foreign key points at (`siteId` →
+ * `site`), which is the spelling a column filter would naturally use. The
+ * trailing colon keeps this matching a field key rather than any prose that
+ * happens to contain the word.
+ *
+ * Derived from the facet modules so adding a chip extends the check for free.
+ */
+function chipOwnedFieldSpellings(queryFields: Array<string>): Array<string> {
+  const spellings: Set<string> = new Set<string>();
+
+  for (const field of queryFields) {
+    spellings.add(`${field}:`);
+
+    if (field.endsWith("Id")) {
+      spellings.add(`${field.slice(0, -2)}:`);
+    }
+  }
+
+  return Array.from(spellings);
+}
+
 const DEVICES_PAGE: string = readSource(
   DASHBOARD_SRC,
   "Pages",
@@ -66,11 +98,17 @@ const SITE_CARDS: string = readSource(
   "NetworkSite",
   "SiteSummaryCards.tsx",
 );
-const CHIP: string = readSource(
+const SNAPSHOT_NOTE: string = readSource(
   DASHBOARD_SRC,
   "Components",
   "Network",
-  "SummaryFilterChip.tsx",
+  "FacetSnapshotNote.tsx",
+);
+const HOOK: string = readSource(
+  DASHBOARD_SRC,
+  "Components",
+  "ResourceOwners",
+  "useResourceOwners.tsx",
 );
 const INFO_CARD: string = readSource(
   COMMON_UI,
@@ -79,349 +117,484 @@ const INFO_CARD: string = readSource(
   "InfoCard.tsx",
 );
 
-describe("the Devices page turns a tile click into a filtered list", () => {
+/**
+ * The names a page destructures off useResourceOwners. Everything the facet bar
+ * and the tiles need has to come from the hook — a locally re-declared
+ * `facetSelections` would leave the strip reading state the bar never writes.
+ */
+function hookDestructuring(page: string, modelName: string): string {
+  return page
+    .split(`} = useResourceOwners<${modelName}>({`)[0]!
+    .split("const {")
+    .pop()!;
+}
+
+describe("the Devices page wires its table to the facet bar", () => {
+  const destructured: string = hookDestructuring(DEVICES_PAGE, "NetworkDevice");
+
   /*
-   * The whole feature. Without the callback the tiles render inert and the
-   * click does nothing at all — which is the bug this change fixes.
+   * The bar is the only visible record of why the list is short, and the only
+   * control that widens it again. Rendering it anywhere but inside the table
+   * card, or building it locally instead of taking the hook's, decouples the
+   * chips from the query the hook merges.
    */
-  test("the summary strip is handed the selection and a way to change it", () => {
+  test("the bar comes from the hook and is rendered as the table's topContent", () => {
+    expect(destructured).toContain("filterBar,");
     expect(DEVICES_PAGE).toContain(
       squash(
-        "<DeviceSummaryCards selectedFilterKey={summaryFilterKey} onFilterKeyChange={changeSummaryFilter} />",
+        'topContent={ <Fragment> {filterBar} {statusSnapshotDetail ? ( <FacetSnapshotNote testIdSuffix="network-devices" detail={statusSnapshotDetail} /> ) : ( <></> )} </Fragment> }',
       ),
     );
   });
 
   /*
-   * The table has to read the memoised query. An inline literal here would
-   * rebuild the cutoff Date on every render, and BaseModelTable decides
-   * whether to refetch by JSON-comparing this prop with the previous render's
-   * — so every render would look like a change and refetch forever.
+   * The whole point: the chips have to reach the request. A query prop that
+   * skipped the merge would leave the bar decorative — chips set, list
+   * unchanged.
    */
-  test("the table reads the memoised query, not an inline literal", () => {
-    expect(DEVICES_PAGE).toContain("query={tableQuery}");
-    expect(DEVICES_PAGE).not.toContain(squash("query={{ isArchived: false }}"));
-  });
-
-  test("the memo is keyed on the selected tile and nothing else", () => {
+  test("the table's query is the merged one", () => {
+    expect(destructured).toContain("mergeFiltersIntoQuery,");
     expect(DEVICES_PAGE).toContain(
-      squash(
-        "const tableQuery: Query<NetworkDevice> = useMemo(() => { return { isArchived: false, ...getDeviceSummaryFilterQuery(summaryFilterKey), }; }, [summaryFilterKey]);",
-      ),
+      "query={mergeFiltersIntoQuery(BASE_DEVICE_QUERY)}",
     );
   });
 
   /*
-   * Archived devices are excluded from every count on the strip, so they have
-   * to stay excluded from the rows a tile opens. The filter fragment is
-   * spread AFTER the base, but no fragment names isArchived — pinned in
-   * DeviceSummaryFilter.test.ts.
+   * ModelTable decides whether to refetch by comparing this prop against the
+   * previous render's, so the base has to be one stable object. An inline
+   * literal would be a new object every render — an endless refetch loop.
    */
-  test("the base query still hides archived devices", () => {
+  test("the base query is a module-level constant, not an inline literal", () => {
+    expect(DEVICES_PAGE).toContain(
+      "const BASE_DEVICE_QUERY: Query<NetworkDevice> =",
+    );
+    expect(DEVICES_PAGE.indexOf("const BASE_DEVICE_QUERY")).toBeLessThan(
+      DEVICES_PAGE.indexOf("const NetworkDevices: FunctionComponent<"),
+    );
+    expect(DEVICES_PAGE).not.toContain("mergeFiltersIntoQuery({");
+  });
+
+  /*
+   * Every count on the strip excludes archived devices, so the rows a tile opens
+   * have to exclude them too — otherwise the tile says 3 and opens 5. No chip
+   * writes isArchived, so the base query is the only place it can live.
+   */
+  test("the base query hides archived devices, as every count does", () => {
     expect(DEVICES_PAGE).toContain("isArchived: false");
+
+    const countQueries: number = DEVICE_CARDS.split("query: {").length - 1;
+    expect(countQueries).toBeGreaterThan(0);
+    expect(DEVICE_CARDS.split("isArchived: false").length - 1).toBe(
+      countQueries,
+    );
   });
 
   /*
-   * Read synchronously in the useState initializer. Restoring in an effect
-   * instead would fire the first fetch against the whole fleet and throw that
-   * response away — a visible flash of the wrong rows plus a wasted request.
+   * A saved table view that captured the column filters but not the chips would
+   * reopen showing different rows than the ones that were saved, with the bar
+   * claiming otherwise.
+   *
+   * Wired but dormant on this page: BaseModelTable only offers saved views when
+   * the page passes `saveFilterProps`, which neither network table does yet (same
+   * as several other pages that adopted this bar). These stay so the chips are
+   * captured the day it is turned on rather than being silently dropped from every
+   * view saved before then.
    */
-  test("the selection is seeded from the URL during the first render", () => {
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        "useState<DeviceSummaryFilterKey | null>(() => { return parseDeviceSummaryFilterKey( Navigation.getQueryStringByName(DEVICE_SUMMARY_FILTER_URL_PARAM), ); });",
-      ),
-    );
-  });
-
-  // The raw parameter is user-editable; only a parsed key may reach the query.
-  test("the raw parameter never reaches the query builder", () => {
-    expect(DEVICES_PAGE).toContain("parseDeviceSummaryFilterKey(");
-    expect(DEVICES_PAGE).not.toContain(
-      squash("getDeviceSummaryFilterQuery( Navigation.getQueryStringByName("),
-    );
-  });
-
-  test("changing the filter updates the state and the URL together", () => {
-    const body: string = DEVICES_PAGE.split(
-      "const changeSummaryFilter: ChangeSummaryFilterFunction = (",
-    )[1]!.split("};")[0]!;
-
-    expect(body).toContain("setSummaryFilterKey(filterKey);");
-    expect(body).toContain(
-      squash(
-        "Navigation.setQueryString({ [DEVICE_SUMMARY_FILTER_URL_PARAM]: filterKey, });",
-      ),
-    );
+  test("a saved view is wired to capture and restore the chips", () => {
+    expect(destructured).toContain("facetSaveState,");
+    expect(destructured).toContain("restoreFacetState,");
+    expect(DEVICES_PAGE).toContain("currentFacetState={facetSaveState}");
+    expect(DEVICES_PAGE).toContain("onFacetStateRestored={restoreFacetState}");
   });
 
   /*
-   * A tile filter and a column filter over the same field cannot both apply.
-   * BaseModelTable builds its request as `{...props.query, ...columnFilter}`,
-   * so a "Last Seen At" filter the user had already set silently replaces the
-   * tile's `lastSeenAt` constraint while the chip and the lit tile carry on
-   * claiming it — the table then shows Up devices under a "Devices down"
-   * chip. Three things together make the two exclusive in both orders.
+   * One constant for the table id, its user-preferences key and the facet URL
+   * namespace. A drifting literal would have the bar write chips into a
+   * namespace the table never reads back — and it is the same namespace a link
+   * built elsewhere in the product addresses (DeviceListFacetRoute).
    */
-  describe("a drill-down cannot be silently overridden by a column filter", () => {
-    test("selecting a tile drops the column filter and page the table was holding", () => {
-      const body: string = DEVICES_PAGE.split(
-        "const changeSummaryFilter: ChangeSummaryFilterFunction = (",
-      )[1]!.split("};")[0]!;
-
-      expect(body).toContain(
-        "TableFilterUrlState.clear(NETWORK_DEVICES_TABLE_ID);",
-      );
-    });
-
-    /*
-     * Clearing the persisted state is only half of it: the mounted table
-     * keeps its own live filter state, and re-reads the URL only on mount.
-     */
-    test("the table is remounted on the selection so it re-reads that state", () => {
-      expect(DEVICES_PAGE).toContain(
-        squash(
-          'key={`${NETWORK_DEVICES_TABLE_ID}-${summaryFilterKey || "all"}`}',
-        ),
-      );
-    });
-
-    /*
-     * And the other order: while the drill-down is active the popup must not
-     * offer the filter that would overwrite it. `filters` is also what
-     * BaseModelTable sanitises URL-restored filter data against, so dropping
-     * an entry here drops a stale value for it out of a shared link too.
-     */
-    test("the popup stops offering the fields the active tile owns", () => {
-      expect(DEVICES_PAGE).toContain("].filter(isFilterOffered)}");
-      expect(DEVICES_PAGE).toContain(
-        squash(
-          "const conflictingFilterFields: Array<string> = getDeviceSummaryFilterConflictingFilterFields(summaryFilterKey);",
-        ),
-      );
-      expect(DEVICES_PAGE).toContain(
-        squash("return !field || !conflictingFilterFields.includes(field);"),
-      );
-    });
-
-    /*
-     * The table id is the URL namespace its filter/sort/page state lives
-     * under. If the literal drifted from the one passed to the table, the
-     * clear above would silently wipe nothing.
-     */
-    test("the cleared namespace is the one the table actually uses", () => {
-      expect(DEVICES_PAGE).toContain(
-        squash(
-          'const NETWORK_DEVICES_TABLE_ID: string = "network-devices-table";',
-        ),
-      );
-      expect(DEVICES_PAGE).toContain("id={NETWORK_DEVICES_TABLE_ID}");
-      expect(DEVICES_PAGE).toContain(
-        "userPreferencesKey={NETWORK_DEVICES_TABLE_ID}",
-      );
-    });
+  test("the persisted namespace is the one the table uses", () => {
+    expect(DEVICES_PAGE).toContain("id={NETWORK_DEVICES_TABLE_ID}");
+    expect(DEVICES_PAGE).toContain(
+      "userPreferencesKey={NETWORK_DEVICES_TABLE_ID}",
+    );
+    expect(DEVICES_PAGE).toContain("persistKey: NETWORK_DEVICES_TABLE_ID,");
+    // Named through the shared constant, never re-spelled as a literal.
+    expect(DEVICES_PAGE).not.toContain(`"${NETWORK_DEVICES_TABLE_ID}"`);
   });
 
   /*
-   * The up/down window is a snapshot: the cutoff is built when the tile is
-   * activated and frozen by the memo (rebuilding it on a timer would send
-   * anyone reading page 3 back to page 1 every tick and drop their bulk
-   * selection). The Status column recomputes the same window live, so without
-   * a label a long-lived page shows Down pills inside the "up" list with
-   * nothing to explain it.
-   */
-  test("a time-based drill-down says when its snapshot was taken", () => {
-    expect(DEVICES_PAGE).toContain("detail={summaryFilterDetail}");
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        "const summaryFilterDetail: string | undefined = useMemo(() => { if (!isDeviceSummaryFilterTimeBased(summaryFilterKey)) { return undefined; }",
-      ),
-    );
-    // Re-taken exactly when the cutoff is, so the two can never disagree.
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        "return `as of ${OneUptimeDate.getLocalHourAndMinuteFromDate( OneUptimeDate.getCurrentDate(), )}`; }, [summaryFilterKey]);",
-      ),
-    );
-  });
-
-  /*
-   * A short table with no explanation is the failure mode this chip exists to
-   * prevent — and its clear button is the only way back out for someone who
-   * cannot find the tile they clicked.
-   */
-  test("a filtered table says so, and offers a way out", () => {
-    expect(DEVICES_PAGE).toContain(
-      squash(
-        'topContent={ summaryFilterDefinition ? ( <SummaryFilterChip testIdSuffix="network-devices" label={summaryFilterDefinition.chipLabel} detail={summaryFilterDetail} onClear={() => { changeSummaryFilter(null); }} /> ) : undefined }',
-      ),
-    );
-  });
-
-  /*
-   * "No devices found" under a filter that matched nothing reads as an empty
-   * project. The filter-specific copy is what tells the user their fleet is
-   * fine rather than missing.
+   * "No network device" under a filter that matched nothing reads as an empty
+   * project. The gate is what makes the copy honest in both states.
    */
   test("an empty filtered table explains itself", () => {
+    expect(destructured).toContain("hasActiveFilters,");
     expect(DEVICES_PAGE).toContain(
-      "noItemsMessage={summaryFilterDefinition?.emptyMessage}",
+      squash(
+        'noItemsMessage={ hasActiveFilters ? "No network device matches the filters above." : undefined }',
+      ),
     );
   });
 });
 
-describe("the Sites page turns a tile click into a filtered list", () => {
-  test("the summary strip is handed the selection and a click handler", () => {
-    expect(SITES_PAGE).toContain(
+describe("the Devices page turns a tile click into a moved chip", () => {
+  /*
+   * Without the click handler the tiles render inert — which is the bug this
+   * whole change exists to fix — and without the live selections the strip
+   * cannot tell which tile is the one the table is showing.
+   */
+  test("the strip is handed the live chips and a click handler", () => {
+    expect(DEVICES_PAGE).toContain(
       squash(
-        "<SiteSummaryCards refreshToggle={refreshToggle} selectedFilterKey={summaryFilterKey} onTileClick={onSummaryTileClick} />",
+        "<DeviceSummaryCards facetSelections={facetSelections} facetOperators={facetOperators} onTileClick={onSummaryTileClick} />",
       ),
     );
   });
 
-  test("the table reads the memoised query", () => {
-    expect(SITES_PAGE).toContain("query={tableQuery}");
+  /*
+   * The shared helper is what makes a tile a toggle (click the lit tile and the
+   * chip clears) and what routes the "everything" tile to clearAllFacets. Doing
+   * it by hand here would fork that behaviour away from its own unit tests, and
+   * the setters have to be the hook's real ones or the click updates nothing.
+   */
+  test("the click goes through applyFacetTileSelection with the hook's setters", () => {
+    const destructured: string = hookDestructuring(
+      DEVICES_PAGE,
+      "NetworkDevice",
+    );
+    expect(destructured).toContain("setFacetSelection,");
+    expect(destructured).toContain("clearAllFacets,");
+
+    expect(DEVICES_PAGE).toContain(
+      squash(
+        "applyFacetTileSelection({ selection: tile.selection, facetSelections: facetSelections, facetOperators: facetOperators, setFacetSelection: setFacetSelection, clearAllFacets: clearAllFacets, });",
+      ),
+    );
+  });
+});
+
+/*
+ * A chip and a column filter cannot both own a field. BaseModelTable builds its
+ * request as `{...props.query, ...columnFilterQuery}`, so a popup filter on a
+ * chip's field replaces the chip's constraint silently while the chip — and the
+ * lit tile above it — carry on claiming it applies. Where the two spell one
+ * column differently (`site` vs `siteId`) they instead survive as an AND that
+ * can never match, emptying the table.
+ *
+ * `filters` is also what BaseModelTable sanitises URL-restored filter data
+ * against, so an entry here is a value a shared link can carry too.
+ */
+describe("no Devices column filter collides with a chip", () => {
+  const filters: string =
+    DEVICES_PAGE.split("filters={[")[1]!.split("cardProps={")[0]!;
+
+  test("the popup offers none of the fields the chips own", () => {
+    const forbidden: Array<string> = [
+      ...chipOwnedFieldSpellings(Object.values(DEVICE_FACET_QUERY_FIELDS)),
+      // The Labels chip is the hook's, so its column is not in the map above.
+      "labels:",
+    ];
+
+    expect(
+      forbidden.filter((spelling: string) => {
+        return filters.includes(spelling);
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * ...and the popup is still the only home for what no chip can express, so
+   * emptying it in the name of the rule above would cost the user free-text
+   * search over the columns nothing else filters.
+   */
+  test("the popup still offers the free-text filters it alone provides", () => {
+    expect(filters).toContain("name: true");
+    expect(filters).toContain("hostname: true");
+    expect(filters).toContain("vendor: true");
+  });
+});
+
+describe("the Devices page dates its status window", () => {
+  /*
+   * The Status chip's cutoff is a snapshot taken when the value was picked,
+   * while the Status column recomputes the same window on every render — leave
+   * the page open long enough and a row inside the "Up" list paints a Down
+   * pill. This note is the only thing on screen that could explain that.
+   */
+  test("the note renders only when a time-based status is selected", () => {
+    expect(DEVICES_PAGE).toContain(
+      squash(
+        "const selectedDeviceStatus: string | null = facetSelections[DEVICE_STATUS_FACET_KEY]?.[0] || null;",
+      ),
+    );
+    expect(DEVICES_PAGE).toContain(
+      squash(
+        "const statusSnapshotDetail: string | undefined = useMemo(() => { if (!isTimeBasedDeviceStatus(selectedDeviceStatus)) { return undefined; }",
+      ),
+    );
+    expect(DEVICES_PAGE).toContain("{statusSnapshotDetail ? (");
+  });
+
+  /*
+   * The note names the cutoff the QUERY was built against, not "now".
+   *
+   * Deriving it from the current time instead is how the two come to name
+   * different moments: the memo re-runs on any selection change, while the
+   * snapshot only moves when the window is actually re-taken. Reading the same
+   * Date the chip filters on makes them unable to disagree — and puts
+   * `statusWindowCutoff` in the dependency list, which is the observable trace of
+   * that.
+   */
+  test("the note is derived from the cutoff the query uses", () => {
+    const memoDeps: string = DEVICES_PAGE.split(
+      "const statusSnapshotDetail: string | undefined = useMemo(() => {",
+    )[1]!
+      .split("}, [")[1]!
+      .split("]);")[0]!;
+
+    /*
+     * Both names, in whatever order prettier leaves them — React does not care
+     * about the order, so neither should this.
+     */
+    expect(memoDeps).toContain("selectedDeviceStatus");
+    expect(memoDeps).toContain("statusWindowCutoff");
+
+    const noteBody: string = DEVICES_PAGE.split(
+      "const statusSnapshotDetail: string | undefined = useMemo(() => {",
+    )[1]!.split("}, [")[0]!;
+
+    expect(noteBody).toContain("statusWindowCutoff");
+    // Never from the clock — that is the bug this shape prevents.
+    expect(noteBody).not.toContain("OneUptimeDate.getCurrentDate()");
+
+    /*
+     * And it says which side of the boundary is down. Inverting the sentence would
+     * tell the user the opposite of what the query does, and nothing else here
+     * reads the copy.
+     */
+    expect(noteBody).toContain("count as down");
+  });
+
+  /*
+   * The cutoff lives in a ref-held DeviceStatusCutoff, not in a fresh
+   * getDeviceFreshCutoff() per render: the merged query goes to ModelTable,
+   * which refetches when it differs from the previous render's, so a new Date
+   * every render is an endless refetch loop.
+   */
+  test("the cutoff is snapshotted in a ref, not rebuilt per render", () => {
+    expect(DEVICES_PAGE).toContain(
+      squash(
+        "const statusCutoff: React.MutableRefObject<DeviceStatusCutoff> = useRef<DeviceStatusCutoff>(new DeviceStatusCutoff());",
+      ),
+    );
+    expect(DEVICES_PAGE).toContain(
+      'statusCutoff.current.getCutoffFor(values[0] || "")',
+    );
+    expect(DEVICES_PAGE).not.toContain("getDeviceFreshCutoff()");
+  });
+
+  /*
+   * Synced with the live selection every render, `null` included.
+   *
+   * Without being told about the clear, the snapshot stays keyed on "down", so
+   * "pick Down, clear the chip, pick Down an hour later" reuses the first hour's
+   * window: a device that went stale in between is missing from the Down list
+   * while its own Status pill says Down.
+   */
+  test("the snapshot is told when the chip is cleared", () => {
+    expect(DEVICES_PAGE).toContain(
+      squash(
+        "const statusWindowCutoff: Date = statusCutoff.current.getCutoffFor(selectedDeviceStatus);",
+      ),
+    );
+
+    /*
+     * And it happens before the render reads it: the merged query is built in the
+     * JSX below, so a sync placed after that would be a render behind.
+     */
+    expect(
+      DEVICES_PAGE.indexOf("const statusWindowCutoff: Date ="),
+    ).toBeLessThan(DEVICES_PAGE.indexOf("query={mergeFiltersIntoQuery("));
+  });
+});
+
+describe("the Sites page wires its table to the facet bar", () => {
+  const destructured: string = hookDestructuring(SITES_PAGE, "NetworkSite");
+
+  test("the bar comes from the hook and is rendered as the table's topContent", () => {
+    expect(destructured).toContain("filterBar,");
+    expect(SITES_PAGE).toContain("topContent={filterBar}");
+  });
+
+  test("the table's query is the merged one", () => {
+    expect(destructured).toContain("mergeFiltersIntoQuery,");
+    expect(SITES_PAGE).toContain(
+      "query={mergeFiltersIntoQuery(BASE_SITE_QUERY)}",
+    );
+  });
+
+  test("the base query is a module-level constant, not an inline literal", () => {
+    expect(SITES_PAGE).toContain(
+      "const BASE_SITE_QUERY: Query<NetworkSite> = {};",
+    );
+    expect(SITES_PAGE.indexOf("const BASE_SITE_QUERY")).toBeLessThan(
+      SITES_PAGE.indexOf("const NetworkSites: FunctionComponent<"),
+    );
+    expect(SITES_PAGE).not.toContain("mergeFiltersIntoQuery({");
+  });
+
+  test("a saved view captures and restores the chips", () => {
+    expect(destructured).toContain("facetSaveState,");
+    expect(destructured).toContain("restoreFacetState,");
+    expect(SITES_PAGE).toContain("currentFacetState={facetSaveState}");
+    expect(SITES_PAGE).toContain("onFacetStateRestored={restoreFacetState}");
+  });
+
+  test("the persisted namespace is the one the table uses", () => {
+    expect(SITES_PAGE).toContain("id={NETWORK_SITES_TABLE_ID}");
+    expect(SITES_PAGE).toContain("userPreferencesKey={NETWORK_SITES_TABLE_ID}");
+    expect(SITES_PAGE).toContain("persistKey: NETWORK_SITES_TABLE_ID,");
+    expect(SITES_PAGE).not.toContain(`"${NETWORK_SITES_TABLE_ID}"`);
+  });
+
+  test("an empty filtered table explains itself", () => {
+    expect(destructured).toContain("hasActiveFilters,");
     expect(SITES_PAGE).toContain(
       squash(
-        "const tableQuery: Query<NetworkSite> = useMemo(() => { return getSiteSummaryFilterQuery(summaryFilterKey); }, [summaryFilterKey]);",
+        'noItemsMessage={ hasActiveFilters ? "No network site matches the filters above." : undefined }',
       ),
     );
   });
 
   /*
    * A CSV import bumps refreshToggle to refetch the table, the strip and the
-   * hierarchy tree. Losing it while adding the query prop would leave the
+   * hierarchy tree. Losing it while reworking the query prop would leave the
    * user staring at a table that does not contain what they just imported.
    */
   test("the import refresh still reaches the table", () => {
-    expect(SITES_PAGE).toContain("refreshToggle={refreshToggle}");
-    expect(SITES_PAGE).toContain(
-      "<SiteHierarchyTree refreshToggle={refreshToggle} />",
-    );
-  });
-
-  test("the selection is seeded from the URL during the first render", () => {
     expect(SITES_PAGE).toContain(
       squash(
-        "useState<SiteSummaryFilterKey | null>(() => { return parseSiteSummaryFilterKey( Navigation.getQueryStringByName(SITE_SUMMARY_FILTER_URL_PARAM), ); });",
+        "<ModelTable<NetworkSite> refreshToggle={refreshToggle} query={mergeFiltersIntoQuery(BASE_SITE_QUERY)}",
+      ),
+    );
+  });
+});
+
+describe("the Sites page turns a tile click into a moved chip", () => {
+  const handler: string = SITES_PAGE.split(
+    "const onSummaryTileClick: OnSummaryTileClickFunction = (",
+  )[1]!.split("return (")[0]!;
+
+  test("the strip is handed the live chips and a click handler", () => {
+    expect(SITES_PAGE).toContain(
+      squash(
+        "<SiteSummaryCards refreshToggle={refreshToggle} facetSelections={facetSelections} facetOperators={facetOperators} onTileClick={onSummaryTileClick} />",
       ),
     );
   });
 
-  test("changing the filter updates the state and the URL together", () => {
-    const body: string = SITES_PAGE.split(
-      "const changeSummaryFilter: ChangeSummaryFilterFunction = (",
-    )[1]!.split("};")[0]!;
+  test("the click goes through applyFacetTileSelection with the hook's setters", () => {
+    const destructured: string = hookDestructuring(SITES_PAGE, "NetworkSite");
+    expect(destructured).toContain("setFacetSelection,");
+    expect(destructured).toContain("clearAllFacets,");
 
-    expect(body).toContain("setSummaryFilterKey(filterKey);");
-    expect(body).toContain(
+    expect(handler).toContain(
       squash(
-        "Navigation.setQueryString({ [SITE_SUMMARY_FILTER_URL_PARAM]: filterKey, });",
+        "applyFacetTileSelection({ selection: selection, facetSelections: facetSelections, facetOperators: facetOperators, setFacetSelection: setFacetSelection, clearAllFacets: clearAllFacets, });",
       ),
     );
   });
 
-  test("a filtered table says so, and offers a way out", () => {
-    expect(SITES_PAGE).toContain(
-      squash(
-        'topContent={ summaryFilterDefinition ? ( <SummaryFilterChip testIdSuffix="network-sites" label={summaryFilterDefinition.chipLabel} onClear={() => { changeSummaryFilter(null); }} /> ) : undefined }',
-      ),
-    );
-    expect(SITES_PAGE).toContain(
-      "noItemsMessage={summaryFilterDefinition?.emptyMessage}",
-    );
+  /*
+   * A tile with no chip to move and nowhere to go — the Unhealthy tile before
+   * its status ids are known — must not fall through: applying an empty
+   * selection would clear the chip and show every site under a lit tile.
+   */
+  test("a tile with no chip does nothing", () => {
+    expect(handler).toContain(squash("if (!selection) { return; }"));
   });
 
   describe("the tile that counts devices", () => {
-    const handler: string = SITES_PAGE.split(
-      "const onSummaryTileClick: OnSummaryTileClickFunction = (",
-    )[1]!.split("const tableQuery")[0]!;
-
     /*
-     * "Unassigned Devices" counts devices; this page lists sites. Filtering
-     * the sites table by a device predicate would empty it with no
-     * explanation, so the tile leaves for the device list instead.
+     * "Unassigned Devices" counts devices; this page lists sites. Narrowing the
+     * sites table by a device predicate would empty it with no explanation, so
+     * the tile leaves for the device list with the equivalent chip already set.
      */
-    test("navigates to the device list rather than filtering sites", () => {
+    test("navigates to the device list rather than moving a site chip", () => {
       expect(handler).toContain(
         squash(
-          "if (tile.action === SiteSummaryTileAction.ShowUnassignedDevices) { Navigation.navigate( getDeviceListRouteForFilter(UNASSIGNED_DEVICES_FILTER_KEY), ); return; }",
+          "if (tile.action === SiteSummaryTileAction.ShowUnassignedDevices) { Navigation.navigate( getDeviceListRouteForFacet(UNASSIGNED_DEVICES_FACET_SELECTION), ); return; }",
         ),
       );
     });
 
     /*
-     * The early return is load-bearing: without it the click would also fall
-     * through to changeSummaryFilter and leave a site filter mirrored into
-     * the URL of a page the user is walking away from.
+     * The early return is load-bearing: without it the click would also move a
+     * chip — and mirror it into the URL — on a page the user is walking away
+     * from.
      */
-    test("returns before the filter branches run", () => {
+    test("returns before the facet branches run", () => {
       const navigateBranch: string = handler.split(
         "SiteSummaryTileAction.ShowUnassignedDevices",
       )[1]!;
+
       expect(navigateBranch.indexOf("return;")).toBeLessThan(
-        navigateBranch.indexOf("changeSummaryFilter"),
+        navigateBranch.indexOf("applyFacetTileSelection"),
       );
     });
 
-    test("names the filter through the shared constant, not a literal", () => {
-      expect(handler).toContain("UNASSIGNED_DEVICES_FILTER_KEY");
-      expect(handler).not.toContain('"no-site"');
+    /*
+     * Named through the shared constant, because the device page has to come up
+     * showing exactly the rows behind the count on this tile — a chip spelled
+     * out again here is a second definition of "unassigned" free to drift.
+     */
+    test("names the selection through the shared constant, not a literal", () => {
+      expect(handler).toContain("UNASSIGNED_DEVICES_FACET_SELECTION");
+      // The two halves an inline selection would have to spell out.
+      expect(handler).not.toContain("facetKey:");
+      expect(handler).not.toContain('"is_empty"');
     });
   });
+});
 
-  test("the total tile clears the filter", () => {
-    expect(SITES_PAGE).toContain(
-      squash(
-        "if (tile.action === SiteSummaryTileAction.ClearFilter) { changeSummaryFilter(null); return; }",
-      ),
-    );
-  });
+describe("no Sites column filter collides with a chip", () => {
+  const filters: string =
+    SITES_PAGE.split("filters={[")[1]!.split("formSteps={[")[0]!;
 
   /*
-   * Clicking the tile the table is already showing has to toggle back to
-   * every site. Without the equality check the click is a no-op and the tile
-   * becomes a one-way door.
+   * Same collision as on the device list, and the site chips make the AND case
+   * concrete: the popup would spell the column `networkSiteType` while the chip
+   * writes `networkSiteTypeId`, and a row cannot satisfy both.
    */
-  test("clicking the active tile toggles the filter off", () => {
-    expect(SITES_PAGE).toContain(
-      squash(
-        "changeSummaryFilter( tile.filterKey && tile.filterKey !== summaryFilterKey ? tile.filterKey : null, );",
-      ),
+  test("the popup offers none of the fields the chips own", () => {
+    const forbidden: Array<string> = chipOwnedFieldSpellings(
+      Object.values(SITE_FACET_QUERY_FIELDS),
     );
+
+    expect(
+      forbidden.filter((spelling: string) => {
+        return filters.includes(spelling);
+      }),
+    ).toEqual([]);
   });
 
-  /*
-   * The Devices page has to disarm its "Last Seen At" column filter while a
-   * tile filter is active, because both name `lastSeenAt` and the column
-   * filter is spread over the page's query. The Sites table needs none of
-   * that machinery only because it offers no filter over the columns its
-   * tiles constrain — Name, Site Type and Created.
-   *
-   * This is the tripwire. Adding a Status filter to the sites table would
-   * reintroduce exactly the collision the Devices page has to work around,
-   * and would do it silently.
-   */
-  test("no site column filter collides with what the tiles constrain", () => {
-    const filters: string =
-      SITES_PAGE.split("filters={[")[1]!.split("formSteps={[")[0]!;
-
+  test("the popup still offers the filters it alone provides", () => {
     expect(filters).toContain("name: true");
-    expect(filters).not.toContain("currentMonitorStatus");
-    expect(filters).not.toContain("currentMonitorStatusId");
+    expect(filters).toContain("address: true");
+    expect(filters).toContain("createdAt: true");
   });
 });
 
 describe("DeviceSummaryCards", () => {
   /*
    * One source of truth for the tiles. A second, local list here is how the
-   * strip and the drill-down queries would drift apart.
+   * numbers on the strip and the chips their clicks set would drift apart.
    */
   test("renders the shared tile definitions", () => {
     expect(DEVICE_CARDS).toContain(
       "DEVICE_SUMMARY_TILES.map((tile: DeviceSummaryTile) => {",
     );
-    expect(DEVICE_CARDS).not.toContain("const tiles: Array<SummaryTile>");
+    expect(DEVICE_CARDS).not.toContain("const tiles");
   });
 
   test("each tile reads its own count off the shared definition", () => {
@@ -431,29 +604,27 @@ describe("DeviceSummaryCards", () => {
   });
 
   /*
-   * Clicking a skeleton would filter the list by a number nobody has read.
-   * The counts and the rows would then disagree with no way to tell why.
+   * Clicking a skeleton would filter the list by a number nobody has read. The
+   * counts and the rows would then disagree with no way to tell why.
    */
   test("tiles are inert until the counts land", () => {
     expect(DEVICE_CARDS).toContain(
       squash(
-        "onClick={ props.onFilterKeyChange && !isLoading ? () => { onTileClick(tile); } : undefined }",
+        "onClick={ props.onTileClick && !isLoading ? () => { props.onTileClick?.(tile); } : undefined }",
       ),
     );
   });
 
-  test("clicking the selected tile clears the filter", () => {
+  /*
+   * The pressed state is computed from the bar's own state, not from a copy the
+   * strip keeps: the tiles and the chips must not be able to disagree about
+   * which rows are on screen. It is also what makes the second click a toggle
+   * off, since applyFacetTileSelection asks the same question.
+   */
+  test("the pressed state is the bar's state, asked through the shared helper", () => {
     expect(DEVICE_CARDS).toContain(
       squash(
-        "props.onFilterKeyChange( selectedFilterKey === tile.filterKey ? null : tile.filterKey, );",
-      ),
-    );
-  });
-
-  test("the selected tile is marked as such", () => {
-    expect(DEVICE_CARDS).toContain(
-      squash(
-        "const isSelected: boolean = selectedFilterKey === tile.filterKey;",
+        "const isSelected: boolean = isFacetTileSelectionApplied( tile.selection, props.facetSelections, props.facetOperators, );",
       ),
     );
     expect(DEVICE_CARDS).toContain("isSelected={isSelected}");
@@ -461,12 +632,22 @@ describe("DeviceSummaryCards", () => {
 
   /*
    * The card is a div, so its label is the only thing a screen reader gets
-   * beyond the number. It has to say what activating it does.
+   * beyond the number. It has to say what activating it does — and say
+   * something different once it is the tile being shown.
+   *
+   * And it must claim only that the tile *contributes* a filter: chips layer, so
+   * two tiles can be lit at once and the rows are then the intersection — a number
+   * neither tile shows. "Showing these in the list below" would be false there.
    */
   test("each tile announces what activating it does", () => {
     expect(DEVICE_CARDS).toContain("ariaLabel={");
-    expect(DEVICE_CARDS).toContain("Activate to show these in the list below.");
-    expect(DEVICE_CARDS).toContain("activate to clear the filter.");
+    expect(DEVICE_CARDS).toContain(
+      "Activate to filter the list below by this.",
+    );
+    expect(DEVICE_CARDS).toContain(
+      "Filtering the list below — activate to remove this filter.",
+    );
+    expect(DEVICE_CARDS).not.toContain("Showing these in the list below");
   });
 
   // Existing selectors in the wild.
@@ -485,7 +666,7 @@ describe("SiteSummaryCards", () => {
     expect(SITE_CARDS).toContain(
       "SITE_SUMMARY_TILES.map((tile: SiteSummaryTile) => {",
     );
-    expect(SITE_CARDS).not.toContain("const tiles: Array<SummaryTile>");
+    expect(SITE_CARDS).not.toContain("const tiles");
   });
 
   test("each tile reads its own count off the shared definition", () => {
@@ -494,45 +675,46 @@ describe("SiteSummaryCards", () => {
     );
   });
 
-  test("tiles are inert until the counts land", () => {
+  /*
+   * Inert until the counts land, and inert for a tile with no chip to move and
+   * nowhere to go — the Unhealthy tile before its status ids are known.
+   * Activating that one would clear the chip and show every site under a lit
+   * "Unhealthy" tile.
+   */
+  test("tiles are inert until they have a count and somewhere to go", () => {
     expect(SITE_CARDS).toContain(
       squash(
-        "onClick={ props.onTileClick && !isLoading ? () => { props.onTileClick?.(tile); } : undefined }",
+        "const isActivatable: boolean = Boolean( props.onTileClick && !isLoading && (selection || tile.action === SiteSummaryTileAction.ShowUnassignedDevices), );",
+      ),
+    );
+    expect(SITE_CARDS).toContain(
+      squash(
+        "onClick={ isActivatable ? () => { props.onTileClick?.(tile, selection); } : undefined }",
       ),
     );
   });
 
   /*
-   * The card reports which tile was activated and lets the page decide what
-   * that means — it is the page, not the strip, that can navigate.
+   * The strip reports which tile was activated and the chip it stands for, and
+   * lets the page decide what that means — it is the page, not the strip, that
+   * can navigate.
    */
-  test("hands the whole tile to the page rather than deciding itself", () => {
+  test("hands the tile and its selection to the page rather than deciding itself", () => {
     expect(SITE_CARDS).toContain(
-      "onTileClick?: ((tile: SiteSummaryTile) => void) | undefined;",
+      squash(
+        "onTileClick?: | ((tile: SiteSummaryTile, selection: FacetTileSelection | null) => void) | undefined;",
+      ),
     );
     expect(SITE_CARDS).not.toContain("Navigation.navigate");
   });
 
-  /*
-   * The total is the unfiltered list, so it reads as selected when nothing is
-   * filtered; the device tile leaves the page and can never be the state the
-   * table is in.
-   */
-  test("only the tiles that describe the table can look selected", () => {
-    const body: string = SITE_CARDS.split(
-      "const isTileSelected: IsTileSelectedFunction = (",
-    )[1]!.split("type TileAriaLabelFunction")[0]!;
-
-    expect(body).toContain(
+  test("the pressed state is the bar's state, asked through the shared helper", () => {
+    expect(SITE_CARDS).toContain(
       squash(
-        "if (tile.action === SiteSummaryTileAction.FilterSites) { return Boolean(tile.filterKey) && tile.filterKey === selectedFilterKey; }",
+        "return isFacetTileSelectionApplied( selection, props.facetSelections, props.facetOperators, );",
       ),
     );
-    expect(body).toContain(
-      squash(
-        "if (tile.action === SiteSummaryTileAction.ClearFilter) { return selectedFilterKey === null; }",
-      ),
-    );
+    expect(SITE_CARDS).toContain("isSelected={isSelected}");
   });
 
   /*
@@ -545,10 +727,14 @@ describe("SiteSummaryCards", () => {
       "const isTileSelected: IsTileSelectedFunction = (",
     )[1]!.split("type TileAriaLabelFunction")[0]!;
 
-    expect(body).toContain("return undefined;");
-    expect(body).not.toContain("return false;");
+    expect(body).toContain(
+      squash(
+        "if (tile.action === SiteSummaryTileAction.ShowUnassignedDevices) { return undefined; }",
+      ),
+    );
+    // The `| undefined` is what lets that answer through to InfoCard.
     expect(SITE_CARDS).toContain(
-      "const isSelected: boolean | undefined = isTileSelected(tile);",
+      "const isSelected: boolean | undefined = isTileSelected(tile, selection);",
     );
   });
 
@@ -558,6 +744,33 @@ describe("SiteSummaryCards", () => {
    */
   test("the tile that leaves the page says so", () => {
     expect(SITE_CARDS).toContain("Activate to open these on the device list.");
+    expect(SITE_CARDS).toContain(
+      "ariaLabel={getTileAriaLabel(tile, count, isSelected)}",
+    );
+  });
+
+  /*
+   * The unhealthy chip selects exactly the statuses behind the number on the
+   * tile, because both come out of the same response: the count is incremented
+   * and the status id collected in one branch. Deriving the ids from "every
+   * non-operational status the project defines" instead would open rows the
+   * tile never counted.
+   */
+  test("the unhealthy chip is built from the response the count came from", () => {
+    expect(SITE_CARDS).toContain("for (const site of siteResult.data) {");
+    expect(SITE_CARDS).toContain(
+      squash(
+        "if (!site.currentMonitorStatus.isOperationalState) { unhealthySites++; const statusId: string | null = getMonitorStatusId(site); if (statusId) { unhealthyIds.add(statusId); } }",
+      ),
+    );
+    expect(SITE_CARDS).toContain(
+      "setUnhealthyStatusIds(Array.from(unhealthyIds));",
+    );
+    expect(SITE_CARDS).toContain(
+      squash(
+        "const selection: FacetTileSelection | null = getSiteFacetSelectionForTile(tile, { unhealthyStatusIds: unhealthyStatusIds, });",
+      ),
+    );
   });
 
   test("keeps its test ids", () => {
@@ -568,41 +781,108 @@ describe("SiteSummaryCards", () => {
   });
 });
 
-describe("SummaryFilterChip", () => {
-  test("names what the table is narrowed to", () => {
-    expect(CHIP).toContain("{props.label}");
-    expect(CHIP).toContain("Filtered by");
-  });
-
+describe("useResourceOwners exposes the chips a tile moves", () => {
   /*
-   * A real <button>, not another click handler on a div — this is the escape
-   * hatch from a filtered view and has to be reachable by keyboard.
+   * Values and operator are written together, always both. A caller that moved
+   * the values but left a stale "is empty" behind would produce a query that
+   * ignores the values it just chose, under a chip claiming otherwise —
+   * mergeFiltersIntoQuery returns on the empty operators before it ever reads
+   * the selection.
    */
-  test("the clear control is a labelled button", () => {
-    expect(CHIP).toContain('<button type="button"');
-    expect(CHIP).toContain("aria-label={`Clear the ${props.label} filter`}");
-    expect(CHIP).toContain("onClick={props.onClear}");
-  });
-
-  test("both pages can be told apart in the DOM", () => {
-    expect(CHIP).toContain(
-      "data-testid={`summary-filter-chip-${props.testIdSuffix}`}",
+  test("setFacetSelection writes the values and the operator together", () => {
+    expect(HOOK).toContain(
+      squash(
+        "const nextValues: Array<string> = normalizeFacetValues(values); const nextOperator: FilterOperator = resolveFacetOperator(operator);",
+      ),
     );
-    expect(CHIP).toContain(
-      "data-testid={`summary-filter-chip-clear-${props.testIdSuffix}`}",
+    expect(HOOK).toContain(
+      squash(
+        "setFacetSelections((prev: { [k: string]: Array<string> }) => { return { ...prev, [facetKey]: nextValues }; }); setFacetOperators((prev: { [k: string]: FilterOperator }) => { return { ...prev, [facetKey]: nextOperator }; });",
+      ),
     );
   });
 
   /*
-   * The qualifier is what lets the Devices page say its up/down window is a
-   * snapshot. It has to stay optional — the Sites page passes none, and an
-   * empty span next to every chip would read as a missing value.
+   * Spreading the previous map is what makes chips layer: drilling into a
+   * status must not throw away the site the user had already picked.
    */
-  test("the snapshot qualifier is optional and rendered only when given", () => {
-    expect(CHIP).toContain("detail?: string | undefined;");
-    expect(CHIP).toContain("{props.detail ? (");
-    expect(CHIP).toContain(
-      "data-testid={`summary-filter-chip-detail-${props.testIdSuffix}`}",
+  test("it writes only its own facet's entry", () => {
+    const body: string = HOOK.split("const setFacetSelection: (")[1]!.split(
+      "const clearAllFacets",
+    )[0]!;
+
+    expect(body).toContain("{ ...prev, [facetKey]: nextValues }");
+    expect(body).toContain("{ ...prev, [facetKey]: nextOperator }");
+    // Never a wholesale replacement — that would clear every other chip.
+    expect(body).not.toContain("setFacetSelections({");
+    expect(body).not.toContain("setFacetOperators({");
+  });
+
+  /*
+   * "Clear everything" has to mean everything: a leftover operator map keeps
+   * an is_empty constraint on the query with no chip left showing it, and a
+   * leftover resolver cache keeps narrowing on `_id`.
+   */
+  test("clearAllFacets resets every piece of chip state", () => {
+    const body: string = HOOK.split(
+      "const clearAllFacets: () => void = useCallback((): void => {",
+    )[1]!.split("}, []);")[0]!;
+
+    // Order is irrelevant to React; the set of resets is what matters.
+    for (const reset of [
+      "setSelectedOwnerKeys([]);",
+      "setSelectedLabelIds([]);",
+      "setFacetSelections({});",
+      'setOwnerOperator("is");',
+      'setLabelOperator("is");',
+      "setFacetOperators({});",
+      "setFacetMatchingIds({});",
+    ]) {
+      expect(body).toContain(reset);
+    }
+  });
+
+  /*
+   * The bar's own "Clear all" is the same function the total tile reaches
+   * through applyFacetTileSelection, so the two cannot drift into clearing
+   * different things.
+   */
+  test("the bar's Clear all button calls that same function", () => {
+    expect(HOOK).toContain(
+      squash(
+        '{hasActiveFilters && ( <button type="button" onClick={clearAllFacets}',
+      ),
+    );
+  });
+
+  test("the hook returns what the tiles and the strip read", () => {
+    const returned: string = HOOK.split(
+      "return { ownersByResourceId,",
+    )[1]!.split("};")[0]!;
+
+    expect(returned).toContain("facetSelections,");
+    expect(returned).toContain("facetOperators,");
+    expect(returned).toContain("setFacetSelection,");
+    expect(returned).toContain("clearAllFacets,");
+  });
+});
+
+describe("FacetSnapshotNote", () => {
+  /*
+   * It says nothing of its own — the page that knows what its chip means
+   * supplies the sentence. A note that composed its own copy would have to know
+   * about the device status window, which is the one thing keeping this shared.
+   */
+  test("renders the detail it is given", () => {
+    expect(SNAPSHOT_NOTE).toContain("detail: string;");
+    expect(SNAPSHOT_NOTE).toContain("<span>{props.detail}</span>");
+  });
+
+  // Several tables can show a note; the tests in the wild have to tell them apart.
+  test("keeps a per-table test id", () => {
+    expect(SNAPSHOT_NOTE).toContain("testIdSuffix: string;");
+    expect(SNAPSHOT_NOTE).toContain(
+      "data-testid={`facet-snapshot-note-${props.testIdSuffix}`}",
     );
   });
 });
