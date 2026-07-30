@@ -133,7 +133,9 @@ describe("Masking", () => {
        * so a whole-string comparison would miss real card fields.
        */
       expect(
-        Masking.isStickySensitiveAutocomplete("section-payment billing cc-number"),
+        Masking.isStickySensitiveAutocomplete(
+          "section-payment billing cc-number",
+        ),
       ).toBe(true);
       expect(Masking.isStickySensitiveAutocomplete("shipping cc-csc")).toBe(
         true,

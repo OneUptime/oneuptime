@@ -46,13 +46,17 @@ describe("UrlScrubber", () => {
 
     it("redacts a 24-character object id path segment", () => {
       expect(
-        UrlScrubber.scrub("https://app.example.com/users/6512f3a9b7c4d2e108f5a3b9"),
+        UrlScrubber.scrub(
+          "https://app.example.com/users/6512f3a9b7c4d2e108f5a3b9",
+        ),
       ).toBe("https://app.example.com/users/[redacted]");
     });
 
     it("redacts an email in a path segment, percent-encoded or not", () => {
       expect(
-        UrlScrubber.scrub("https://app.example.com/u/someone@example.com/profile"),
+        UrlScrubber.scrub(
+          "https://app.example.com/u/someone@example.com/profile",
+        ),
       ).toBe("https://app.example.com/u/[redacted]/profile");
 
       expect(
@@ -80,7 +84,9 @@ describe("UrlScrubber", () => {
       ).toBe("https://app.example.com/s/[redacted]");
 
       expect(
-        UrlScrubber.scrub("https://app.example.com/blog/how-we-scaled-clickhouse"),
+        UrlScrubber.scrub(
+          "https://app.example.com/blog/how-we-scaled-clickhouse",
+        ),
       ).toBe("https://app.example.com/blog/how-we-scaled-clickhouse");
     });
 

@@ -31,9 +31,7 @@ function fullText(statement: Statement | string): string {
   return statement.query + " :: " + JSON.stringify(statement.query_params);
 }
 
-function createStatementFor(modelType: {
-  new (): AnalyticsBaseModel;
-}): string {
+function createStatementFor(modelType: { new (): AnalyticsBaseModel }): string {
   const generator: StatementGenerator<AnalyticsBaseModel> =
     new StatementGenerator<AnalyticsBaseModel>({
       modelType: modelType,

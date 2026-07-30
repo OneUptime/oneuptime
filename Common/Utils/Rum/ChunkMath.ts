@@ -201,7 +201,9 @@ export default class ChunkMath {
   ): number {
     return entries.reduce(
       (total: number, entry: SessionReplayChunkManifestEntry): number => {
-        return total + Math.max(0, entry.chunkEndOffsetMs - entry.chunkStartOffsetMs);
+        return (
+          total + Math.max(0, entry.chunkEndOffsetMs - entry.chunkStartOffsetMs)
+        );
       },
       0,
     );

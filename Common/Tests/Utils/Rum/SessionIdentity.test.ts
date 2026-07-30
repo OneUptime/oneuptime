@@ -7,15 +7,18 @@ const NOW: number = 1_700_000_000_000;
 const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
 
-const makeState: (overrides?: Partial<StoredSessionState>) => StoredSessionState =
-  (overrides?: Partial<StoredSessionState>): StoredSessionState => {
-    return {
-      sessionId: "3f1a9c7e5b2d4801f6a3c9e7b1d5028f",
-      sessionStartUnixMs: NOW - 5 * MINUTE,
-      lastActivityUnixMs: NOW - MINUTE,
-      ...overrides,
-    };
+const makeState: (
+  overrides?: Partial<StoredSessionState>,
+) => StoredSessionState = (
+  overrides?: Partial<StoredSessionState>,
+): StoredSessionState => {
+  return {
+    sessionId: "3f1a9c7e5b2d4801f6a3c9e7b1d5028f",
+    sessionStartUnixMs: NOW - 5 * MINUTE,
+    lastActivityUnixMs: NOW - MINUTE,
+    ...overrides,
   };
+};
 
 describe("SessionIdentity", () => {
   describe("shouldRotateSession", () => {
@@ -56,9 +59,9 @@ describe("SessionIdentity", () => {
         lastActivityUnixMs: NOW - (30 * MINUTE - 1),
       });
 
-      expect(
-        SessionIdentity.shouldRotateSession(state, NOW).shouldRotate,
-      ).toBe(false);
+      expect(SessionIdentity.shouldRotateSession(state, NOW).shouldRotate).toBe(
+        false,
+      );
     });
 
     it("rotates exactly at the idle boundary", () => {
@@ -136,9 +139,9 @@ describe("SessionIdentity", () => {
         lastActivityUnixMs: NOW + 30 * 1000,
       });
 
-      expect(
-        SessionIdentity.shouldRotateSession(state, NOW).shouldRotate,
-      ).toBe(false);
+      expect(SessionIdentity.shouldRotateSession(state, NOW).shouldRotate).toBe(
+        false,
+      );
     });
   });
 
@@ -238,7 +241,9 @@ describe("SessionIdentity", () => {
     it("falls back for non-positive or non-finite input", () => {
       expect(SessionIdentity.clampRetentionDays(0, allowed, 7)).toBe(7);
       expect(SessionIdentity.clampRetentionDays(-5, allowed, 7)).toBe(7);
-      expect(SessionIdentity.clampRetentionDays(Number.NaN, allowed, 7)).toBe(7);
+      expect(SessionIdentity.clampRetentionDays(Number.NaN, allowed, 7)).toBe(
+        7,
+      );
     });
 
     it("falls back when the allowed set is empty", () => {

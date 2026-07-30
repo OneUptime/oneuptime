@@ -82,7 +82,9 @@ describe("SessionSampling", () => {
         let sampled: number = 0;
 
         for (let i: number = 0; i < population; i++) {
-          if (SessionSampling.isSampled(`sess-${percentage}-${i}`, percentage)) {
+          if (
+            SessionSampling.isSampled(`sess-${percentage}-${i}`, percentage)
+          ) {
             sampled++;
           }
         }

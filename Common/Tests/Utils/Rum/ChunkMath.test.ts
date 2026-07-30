@@ -151,7 +151,9 @@ describe("ChunkMath", () => {
 
   describe("findMissingChunkIndexes", () => {
     it("finds the set difference against a contiguous run", () => {
-      expect(ChunkMath.findMissingChunkIndexes([0, 1, 3, 5], 5)).toEqual([2, 4]);
+      expect(ChunkMath.findMissingChunkIndexes([0, 1, 3, 5], 5)).toEqual([
+        2, 4,
+      ]);
     });
 
     it("returns nothing when the run is complete", () => {
@@ -163,9 +165,9 @@ describe("ChunkMath", () => {
        * At-least-once delivery means the same chunk can arrive twice. A
        * counter-based implementation would drift; a set difference cannot.
        */
-      expect(
-        ChunkMath.findMissingChunkIndexes([0, 0, 1, 1, 1, 3], 3),
-      ).toEqual([2]);
+      expect(ChunkMath.findMissingChunkIndexes([0, 0, 1, 1, 1, 3], 3)).toEqual([
+        2,
+      ]);
     });
 
     it("reports everything missing when nothing arrived", () => {
