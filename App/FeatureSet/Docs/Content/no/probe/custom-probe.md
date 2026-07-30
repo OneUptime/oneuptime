@@ -208,6 +208,8 @@ Proben støtter følgende miljøvariabler:
 - `PROBE_MONITOR_RETRY_LIMIT` – Antall nye forsøk for mislykkede monitorer (standard: 3)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Tidsavbrudd for syntetiske monitorskript i millisekunder (standard: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Tidsavbrudd for egendefinerte kode-monitorskript i millisekunder (standard: 60000)
+- `PROBE_API_REQUEST_TIMEOUT_IN_MS` – Tidsfrist for hver forespørsel proben sender til OneUptime (standard: 45000)
+- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` – Logg en advarsel for forespørsler til OneUptime som er tregere enn dette (standard: 10000)
 
 #### Proxy-konfigurasjon
 
@@ -237,3 +239,28 @@ http://[username:password@]proxy.server.com:port
 ### Verifisere
 
 Hvis proben kjører vellykket, skal den vises som `Connected` på OneUptime-dashbordet. Hvis den ikke vises som tilkoblet, må du sjekke loggene til containeren. Hvis du fortsatt har problemer, vennligst opprett en sak på [GitHub](https://github.com/oneuptime/oneuptime) eller [kontakt støtte](https://oneuptime.com/support).
+
+### Diagnostisere en frakoblet probe
+
+En probe merkes som `Disconnected` når forespørslene den sender til OneUptime slutter å lykkes. Probeloggen forteller hvor hver mislykkede forespørsel satte seg fast, så du trenger sjelden å gjette.
+
+**1. Les miljøblokken som skrives ut ved oppstart.** Hver probe skriver ut én JSON-blokk ved oppstart med OneUptime-URL-en den bruker, tidsfristen for forespørsler, proxy-innstillingene, DNS-resolverne den har arvet, Node/OS-versjonen, og om TLS-verifisering er deaktivert. Ta med denne blokken hver gang du rapporterer et problem.
+
+**2. Finn feilrapporten.** Hver mislykkede forespørsel til OneUptime logger en blokk som inneholder `stalledAt` og `whatThisMeans`. `stalledAt` er fasen forespørselen aldri kom forbi:
+
+| `stalledAt` | Hva det betyr |
+| --- | --- |
+| `SocketAssignment` | Ingenting forlot maskinen. Socket-poolen var mettet, eller en konfigurert proxy fullførte aldri CONNECT-tunnelen sin. |
+| `TcpConnect` | Maskinen sendte SYN og fikk ingenting tilbake – en brannmur eller sikkerhetsenhet forkaster pakker, eller verten er utilgjengelig. |
+| `TlsHandshake` | TCP koblet til, men TLS ble aldri fullført. Vanligvis en mellomboks som inspiserer TLS. |
+| `RequestSend` | Tilkoblet, men forespørselen ble aldri skrevet ferdig – motparten sluttet å lese. |
+| `WaitingForServerResponse` | Forespørselen ble levert, og serveren sendte ingenting tilbake. **Probens nettverk er i orden** – sjekk OneUptime-serveren, lastbalansereren og den omvendte proxyen. |
+| `ResponseBody` | Serveren begynte å svare og stoppet opp underveis. |
+
+Den samme blokken rapporterer også `deadlineOverrunInMs`. Hvis en tidsfrist på 45000 ms tok betydelig lengre tid enn 45000 ms målt i faktisk tid, var selve probeprosessen blokkert – sjekk `probeProcess.eventLoopMaxDriftInMs` i blokken før du undersøker nettverket.
+
+**3. Les selvtesten av tilkoblingen.** Etter tre påfølgende feil tester proben den samme serveren ett lag om gangen – DNS, deretter TCP, deretter TLS, og til slutt en ekte HTTP-rundtur – og logger hvert trinn med tidsbruken. Det første trinnet som feiler, er svaret ditt. Når en proxy er konfigurert, tester proben hoppet til proxyen, fordi det er det eneste hoppet den faktisk gjør.
+
+**4. Følg med på trege forespørsler før de blir til feil.** Forespørsler som lykkes, men som tar lengre tid enn `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS`, logges med tiden de brukte. En probe som begynner å logge forespørsler på 20 sekunder, er på vei mot å overskride tidsfristen på 45 sekunder.
+
+På OneUptime-serversiden logges også en probeforespørsel som besvares sakte – eller som proben ga opp før et svar ble sendt – med probens ID. Til sammen forteller disse to loggene deg hvilken side av forbindelsen som er årsaken.

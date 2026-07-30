@@ -208,6 +208,8 @@ De probe ondersteunt de volgende omgevingsvariabelen:
 - `PROBE_MONITOR_RETRY_LIMIT` - Aantal nieuwe pogingen voor mislukte monitors (standaard: 3)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Time-out voor synthetische monitorscripts in milliseconden (standaard: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Time-out voor aangepaste code-monitorscripts in milliseconden (standaard: 60000)
+- `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Deadline voor elk verzoek dat de probe naar OneUptime stuurt (standaard: 45000)
+- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - Log een waarschuwing voor verzoeken aan OneUptime die trager zijn dan deze waarde (standaard: 10000)
 
 #### Proxyconfiguratie
 
@@ -237,3 +239,28 @@ http://[gebruikersnaam:wachtwoord@]proxy.server.com:poort
 ### Verifiëren
 
 Als de probe succesvol wordt uitgevoerd, dient deze op uw OneUptime-dashboard de status `Verbonden` te tonen. Als deze niet als verbonden wordt weergegeven, moet u de logboeken van de container controleren. Als u nog steeds problemen ondervindt, maak dan een issue aan op [GitHub](https://github.com/oneuptime/oneuptime) of [neem contact op met ondersteuning](https://oneuptime.com/support).
+
+### Een losgekoppelde probe diagnosticeren
+
+Een probe wordt gemarkeerd als `Disconnected` wanneer de verzoeken aan OneUptime niet langer slagen. Het logboek van de probe vermeldt waar elk mislukt verzoek is vastgelopen, zodat u zelden hoeft te gissen.
+
+**1. Lees het omgevingsblok dat bij het opstarten wordt afgedrukt.** Elke probe drukt bij het opstarten één JSON-blok af met de OneUptime-URL die hij gebruikt, zijn deadline voor verzoeken, zijn proxyinstellingen, de overgenomen DNS-resolvers, de Node-/OS-versie en of TLS-verificatie is uitgeschakeld. Voeg dit blok altijd toe wanneer u een probleem meldt.
+
+**2. Zoek het foutrapport op.** Elk mislukt verzoek aan OneUptime logt een blok met `stalledAt` en `whatThisMeans`. `stalledAt` is de fase waar het verzoek nooit voorbij is gekomen:
+
+| `stalledAt` | Wat het betekent |
+| --- | --- |
+| `SocketAssignment` | Er heeft niets de machine verlaten. De socketpool was verzadigd, of een geconfigureerde proxy heeft zijn CONNECT-tunnel nooit voltooid. |
+| `TcpConnect` | De machine heeft een SYN verstuurd en kreeg niets terug — een firewall of beveiligingsapparaat laat pakketten vallen, of de host is onbereikbaar. |
+| `TlsHandshake` | TCP is verbonden, TLS is nooit voltooid. Meestal een TLS-inspecterende middlebox. |
+| `RequestSend` | Verbonden, maar het verzoek is nooit volledig weggeschreven — de andere kant is gestopt met lezen. |
+| `WaitingForServerResponse` | Het verzoek is afgeleverd en de server heeft niets teruggestuurd. **Het netwerk van de probe is in orde** — controleer de OneUptime-server, de load balancer en de reverse proxy. |
+| `ResponseBody` | De server begon te antwoorden en liep halverwege vast. |
+
+Hetzelfde blok rapporteert ook `deadlineOverrunInMs`. Als een deadline van 45000 ms veel langer duurde dan 45000 ms kloktijd, was het probeproces zelf geblokkeerd — controleer `probeProcess.eventLoopMaxDriftInMs` in het blok voordat u het netwerk gaat onderzoeken.
+
+**3. Lees de zelftest voor connectiviteit.** Na drie opeenvolgende mislukkingen test de probe dezelfde server laag voor laag — eerst DNS, dan TCP, dan TLS en ten slotte een echte HTTP-round-trip — en logt elke fase met de bijbehorende timing. De eerste fase die mislukt, is uw antwoord. Wanneer er een proxy is geconfigureerd, test de probe de hop naar de proxy, omdat dat de enige hop is die hij daadwerkelijk maakt.
+
+**4. Let op trage verzoeken voordat ze mislukken.** Verzoeken die wel slagen maar langer duren dan `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` worden gelogd met hun verstreken tijd. Een probe die verzoeken van 20 seconden begint te loggen, is op weg om de deadline van 45 seconden te overschrijden.
+
+Aan de kant van de OneUptime-server wordt een probeverzoek dat traag wordt beantwoord — of dat de probe heeft opgegeven voordat er een antwoord was verzonden — daar eveneens gelogd, met het ID van de probe. Die twee logboeken samen vertellen u aan welke kant van de verbinding het probleem ligt.
