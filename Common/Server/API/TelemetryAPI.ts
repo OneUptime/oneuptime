@@ -5,6 +5,7 @@ import Express, {
   ExpressRouter,
   NextFunction,
   RequestHandler,
+  getClientIp,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -69,7 +70,14 @@ import ProfileSample from "../../Models/AnalyticsModels/ProfileSample";
 import ProfileService from "../Services/ProfileService";
 import ProfileSampleService from "../Services/ProfileSampleService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import Permission from "../../Types/Permission";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+} from "../../Types/Permission";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -77,6 +85,23 @@ import ResourceFacetResolver, {
   ResolvedFacetValue,
   ResourceFacetSpec,
 } from "../Utils/Telemetry/ResourceFacetResolver";
+import Label from "../../Models/DatabaseModels/Label";
+import RumApplication from "../../Models/DatabaseModels/RumApplication";
+import RumApplicationService from "../Services/RumApplicationService";
+import RumSessionReplayView from "../../Models/DatabaseModels/RumSessionReplayView";
+import RumSessionReplayViewService from "../Services/RumSessionReplayViewService";
+import SessionReplayReadService, {
+  DEFAULT_SESSION_REPLAY_LIST_LIMIT,
+  MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT,
+  SessionReplayChunkPayload,
+  SessionReplayExceptionSession,
+  SessionReplayListCursor,
+  SessionReplayListFilters,
+  SessionReplayListResult,
+  SessionReplayManifest,
+  SessionReplaySessionHeader,
+} from "../Utils/SessionReplay/SessionReplayReadService";
+import { MAX_SESSION_REPLAY_CHUNKS_PER_READ } from "../../Types/Rum/SessionReplay";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -2707,6 +2732,950 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         items: result.items as unknown as JSONObject,
         totalSampleCount: result.totalSampleCount,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * ---------------------------------------------------------------------
+ * Session replay playback
+ * ---------------------------------------------------------------------
+ *
+ * These five routes are the ONLY reader of RumSessionV1 / RumSessionChunkV1:
+ * both analytics models deliberately omit `crudApiPath`, so there is no
+ * generic CRUD surface for them and ModelPermission is NEVER invoked on
+ * this path.
+ *
+ * That has a consequence which is easy to get wrong and expensive to get
+ * wrong: the `payload` column's own read ACL and the narrower ACL on
+ * `identifiedUserLabel` are, on their own, decorative here. Nothing
+ * enforces them unless this file does. Hence a dedicated guard rather
+ * than createTelemetryReadAccessGuard above, whose OR-list already
+ * contains ProjectMember, Viewer and TelemetryViewer - reusing it would
+ * let every read-only member of a project watch recordings of that
+ * project's real end users, which is precisely the outcome the design
+ * rejected.
+ *
+ * Declared before the route registrations below for the same
+ * temporal-dead-zone reason the guards at the top of this file are.
+ */
+
+/*
+ * Listing sessions. Mirrors RumSession's table-level read ACL exactly:
+ * knowing WHICH sessions errored is triage.
+ */
+const requireSessionReplayListAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.TelemetryAdmin,
+      Permission.ReadRumSessionReplay,
+    ],
+  }),
+];
+
+/*
+ * Watching a session. Deliberately a strict subset of the list guard's
+ * audience: reading a recording of a real person's screen is a further
+ * disclosure over knowing that their session went wrong. Mirrors the
+ * `payload` column ACL on RumSessionChunk.
+ */
+const requireSessionReplayPayloadAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.TelemetryAdmin,
+      Permission.ReadRumSessionReplayPayload,
+    ],
+  }),
+];
+
+/* The permission list each guard above enforces, reused for label scope. */
+const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.TelemetryAdmin,
+  Permission.ReadRumSessionReplay,
+];
+
+const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.TelemetryAdmin,
+  Permission.ReadRumSessionReplayPayload,
+];
+
+/*
+ * The raw end-user identifier carries its own narrower ACL on the model
+ * (no TelemetryAdmin): knowing that *a* user had a bad session is triage,
+ * knowing *which named person* is a further disclosure again.
+ */
+const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ReadRumSessionReplayPayload,
+];
+
+/*
+ * Label scope for a set of permissions, mirroring the private
+ * AccessControlPermission.getAccessControlIdsByPermissions.
+ *
+ * An EMPTY result means "no label restriction" - either because the
+ * caller holds one of the permissions unscoped, or because they hold none
+ * of them with labels (in which case the route guard has already rejected
+ * them). A non-empty result is the set of labels at least one of which
+ * the RUM application must carry.
+ *
+ * Reimplemented here rather than routed through RumApplicationService
+ * with the caller's props on purpose: RumApplication's own read ACL
+ * requires ReadRumApplication / ProjectMember / Viewer, none of which a
+ * narrowly-scoped session-replay reviewer necessarily holds, so going
+ * through it would deny legitimate callers.
+ */
+type SessionReplayLabelScopeFunction = (
+  databaseProps: DatabaseCommonInteractionProps,
+  permissions: Array<Permission>,
+) => Array<ObjectID>;
+
+const getSessionReplayLabelScope: SessionReplayLabelScopeFunction = (
+  databaseProps: DatabaseCommonInteractionProps,
+  permissions: Array<Permission>,
+): Array<ObjectID> => {
+  if (databaseProps.isRoot || databaseProps.isMasterAdmin) {
+    return [];
+  }
+
+  const userPermissions: Array<UserPermission> =
+    DatabaseCommonInteractionPropsUtil.getUserPermissions(
+      databaseProps,
+      PermissionType.Allow,
+    );
+
+  const unscopedPermissions: Array<Permission> =
+    PermissionHelper.getNonAccessControlPermissions(userPermissions);
+
+  if (
+    PermissionHelper.doesPermissionsIntersect(permissions, unscopedPermissions)
+  ) {
+    return [];
+  }
+
+  const scopedPermissions: Array<UserPermission> =
+    PermissionHelper.getAccessControlPermissions(userPermissions);
+
+  const labelIds: Array<ObjectID> = [];
+
+  for (const permission of permissions) {
+    for (const scopedPermission of scopedPermissions) {
+      if (
+        scopedPermission.permission === permission &&
+        scopedPermission.labelIds.length > 0
+      ) {
+        labelIds.push(...scopedPermission.labelIds);
+      }
+    }
+  }
+
+  return labelIds;
+};
+
+/*
+ * Ceiling on the RUM applications scanned when resolving a label-scoped
+ * caller's reachable set. RUM is keyed by application (service.name), not
+ * by end-user device, so a project has tens of these, not millions.
+ */
+const MAX_RUM_APPLICATIONS_SCANNED: number = 1000;
+
+/* Does the caller hold any of these permissions on the current tenant? */
+type DoesCallerHavePermissionFunction = (
+  databaseProps: DatabaseCommonInteractionProps,
+  permissions: Array<Permission>,
+) => boolean;
+
+const doesCallerHavePermission: DoesCallerHavePermissionFunction = (
+  databaseProps: DatabaseCommonInteractionProps,
+  permissions: Array<Permission>,
+): boolean => {
+  if (databaseProps.isRoot || databaseProps.isMasterAdmin) {
+    return true;
+  }
+
+  const userPermissions: Array<Permission> =
+    DatabaseCommonInteractionPropsUtil.getUserPermissions(
+      databaseProps,
+      PermissionType.Allow,
+    ).map((userPermission: UserPermission): Permission => {
+      return userPermission.permission;
+    });
+
+  return PermissionHelper.doesPermissionsIntersect(
+    permissions,
+    userPermissions,
+  );
+};
+
+/* Label ids carried by a RUM application, read as root. */
+type GetRumApplicationLabelIdsFunction = (
+  application: RumApplication,
+) => Array<string>;
+
+const getRumApplicationLabelIds: GetRumApplicationLabelIdsFunction = (
+  application: RumApplication,
+): Array<string> => {
+  return (application.labels || [])
+    .filter((label: Label): boolean => {
+      return Boolean(label.id);
+    })
+    .map((label: Label): string => {
+      return label.id!.toString();
+    });
+};
+
+/*
+ * Confirm the caller may reach this RUM application.
+ *
+ * `rumApplicationId` must always be the value resolved from the session
+ * header server-side, never one taken from the request body - taking it
+ * from the body would make the check circular and let anyone name an
+ * application they do happen to have access to while reading a session
+ * from one they do not.
+ *
+ * The application is loaded as root and the label intersection is done
+ * here rather than pushed into the query, because the caller may
+ * legitimately hold no RumApplication read permission at all (see the
+ * note on getSessionReplayLabelScope) and because the many-to-many label
+ * predicate has no typed form on the ORM query surface. Project scope is
+ * already guaranteed: the header row was fetched with
+ * `WHERE projectId = <tenantId>`, so the id cannot come from another
+ * project.
+ */
+type AssertSessionReplayApplicationAccessFunction = (data: {
+  projectId: ObjectID;
+  rumApplicationId: ObjectID;
+  databaseProps: DatabaseCommonInteractionProps;
+  permissions: Array<Permission>;
+}) => Promise<void>;
+
+const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccessFunction =
+  async (data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    databaseProps: DatabaseCommonInteractionProps;
+    permissions: Array<Permission>;
+  }): Promise<void> => {
+    const labelIds: Array<ObjectID> = getSessionReplayLabelScope(
+      data.databaseProps,
+      data.permissions,
+    );
+
+    const application: RumApplication | null =
+      await RumApplicationService.findOneBy({
+        query: {
+          _id: data.rumApplicationId.toString(),
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          labels: {
+            _id: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    /*
+     * An application that does not exist in this project is refused the
+     * same way an out-of-scope one is, so the endpoint cannot be used to
+     * probe which application ids exist elsewhere.
+     */
+    if (!application) {
+      throw new NotAuthorizedException(
+        "You do not have access to session replays for this application.",
+      );
+    }
+
+    if (labelIds.length === 0) {
+      return;
+    }
+
+    const applicationLabelIds: Array<string> =
+      getRumApplicationLabelIds(application);
+
+    const isInScope: boolean = labelIds.some((labelId: ObjectID): boolean => {
+      return applicationLabelIds.includes(labelId.toString());
+    });
+
+    if (!isInScope) {
+      throw new NotAuthorizedException(
+        "You do not have access to session replays for this application.",
+      );
+    }
+  };
+
+/*
+ * The set of applications a label-scoped caller may reach, for the
+ * project-wide exception lookup which has no single application to
+ * resolve. null means unrestricted; an empty array means the caller can
+ * reach none, which must return no rows rather than everything.
+ */
+type ResolveAccessibleRumApplicationIdsFunction = (data: {
+  projectId: ObjectID;
+  databaseProps: DatabaseCommonInteractionProps;
+  permissions: Array<Permission>;
+}) => Promise<Array<ObjectID> | null>;
+
+const resolveAccessibleRumApplicationIds: ResolveAccessibleRumApplicationIdsFunction =
+  async (data: {
+    projectId: ObjectID;
+    databaseProps: DatabaseCommonInteractionProps;
+    permissions: Array<Permission>;
+  }): Promise<Array<ObjectID> | null> => {
+    const labelIds: Array<ObjectID> = getSessionReplayLabelScope(
+      data.databaseProps,
+      data.permissions,
+    );
+
+    if (labelIds.length === 0) {
+      return null;
+    }
+
+    const applications: Array<RumApplication> =
+      await RumApplicationService.findBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: {
+          _id: true,
+          labels: {
+            _id: true,
+          },
+        },
+        skip: 0,
+        limit: MAX_RUM_APPLICATIONS_SCANNED,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const accessibleIds: Array<ObjectID> = [];
+
+    for (const application of applications) {
+      const applicationLabelIds: Array<string> =
+        getRumApplicationLabelIds(application);
+
+      const isInScope: boolean = labelIds.some((labelId: ObjectID): boolean => {
+        return applicationLabelIds.includes(labelId.toString());
+      });
+
+      if (isInScope && application.id) {
+        accessibleIds.push(application.id);
+      }
+    }
+
+    return accessibleIds;
+  };
+
+/*
+ * Resolve a caller-supplied sessionId to its header, scoped strictly to
+ * the tenant, and authorize the owning application. Every payload-bearing
+ * route funnels through this so the authorization decision exists in
+ * exactly one place.
+ */
+type ResolveAuthorizedSessionFunction = (data: {
+  projectId: ObjectID;
+  sessionId: string;
+  databaseProps: DatabaseCommonInteractionProps;
+}) => Promise<SessionReplaySessionHeader>;
+
+const resolveAuthorizedSession: ResolveAuthorizedSessionFunction =
+  async (data: {
+    projectId: ObjectID;
+    sessionId: string;
+    databaseProps: DatabaseCommonInteractionProps;
+  }): Promise<SessionReplaySessionHeader> => {
+    const header: SessionReplaySessionHeader | null =
+      await SessionReplayReadService.getSessionHeader({
+        projectId: data.projectId,
+        sessionId: data.sessionId,
+      });
+
+    if (!header) {
+      throw new BadDataException("Session replay not found.");
+    }
+
+    await assertSessionReplayApplicationAccess({
+      projectId: data.projectId,
+      rumApplicationId: new ObjectID(header.rumApplicationId),
+      databaseProps: data.databaseProps,
+      permissions: SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+    });
+
+    return header;
+  };
+
+/*
+ * Object ids arrive as untrusted strings. They are always bound as query
+ * parameters rather than interpolated, so a bad value cannot inject SQL -
+ * but an object or a number would silently stringify to something like
+ * "[object Object]" and match nothing, turning a client bug into a
+ * confusing empty result instead of an error.
+ */
+type ReadObjectIdFromBodyFunction = (body: JSONObject, key: string) => ObjectID;
+
+const readObjectIdFromBody: ReadObjectIdFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+): ObjectID => {
+  const value: unknown = body[key];
+
+  if (typeof value !== "string" || value.length === 0) {
+    throw new BadDataException(`${key} is required`);
+  }
+
+  return new ObjectID(value);
+};
+
+type ReadSessionIdFromBodyFunction = (body: JSONObject) => string;
+
+const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
+  body: JSONObject,
+): string => {
+  const sessionId: unknown = body["sessionId"];
+
+  if (typeof sessionId !== "string" || sessionId.length === 0) {
+    throw new BadDataException("sessionId is required");
+  }
+
+  return sessionId;
+};
+
+type ReadStringArrayFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+) => Array<string> | undefined;
+
+const readStringArrayFromBody: ReadStringArrayFromBodyFunction = (
+  body: JSONObject,
+  key: string,
+): Array<string> | undefined => {
+  const value: unknown = body[key];
+
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const strings: Array<string> = value.filter(
+    (item: unknown): item is string => {
+      return typeof item === "string" && item.length > 0;
+    },
+  );
+
+  return strings.length > 0 ? strings : undefined;
+};
+
+// --- Session Replay List Endpoint ---
+
+router.post(
+  "/telemetry/rum/session-replay/list",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+
+      const rumApplicationId: ObjectID = readObjectIdFromBody(
+        body,
+        "rumApplicationId",
+      );
+
+      /*
+       * The application id is caller-supplied here, which is safe only
+       * because it is the thing being authorized rather than a lookup key
+       * for something already authorized: a caller outside the label
+       * scope is refused, and the query is tenant-pinned regardless.
+       */
+      await assertSessionReplayApplicationAccess({
+        projectId: projectId,
+        rumApplicationId: rumApplicationId,
+        databaseProps: databaseProps,
+        permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+      });
+
+      const startTime: Date = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7);
+
+      const endTime: Date = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : OneUptimeDate.getCurrentDate();
+
+      const rawFilters: JSONObject = (body["filters"] as JSONObject) || {};
+
+      const filters: SessionReplayListFilters = {
+        ...(typeof rawFilters["hasError"] === "boolean" && {
+          hasError: rawFilters["hasError"],
+        }),
+        ...(typeof rawFilters["isFinalized"] === "boolean" && {
+          isFinalized: rawFilters["isFinalized"],
+        }),
+        ...(readStringArrayFromBody(rawFilters, "triggerReasons") && {
+          triggerReasons: readStringArrayFromBody(rawFilters, "triggerReasons"),
+        }),
+        ...(readStringArrayFromBody(rawFilters, "browserNames") && {
+          browserNames: readStringArrayFromBody(rawFilters, "browserNames"),
+        }),
+        ...(readStringArrayFromBody(rawFilters, "osNames") && {
+          osNames: readStringArrayFromBody(rawFilters, "osNames"),
+        }),
+        ...(readStringArrayFromBody(rawFilters, "deviceTypes") && {
+          deviceTypes: readStringArrayFromBody(rawFilters, "deviceTypes"),
+        }),
+        ...(readStringArrayFromBody(rawFilters, "countryCodes") && {
+          countryCodes: readStringArrayFromBody(rawFilters, "countryCodes"),
+        }),
+        ...(typeof rawFilters["identifiedUserKey"] === "string" && {
+          identifiedUserKey: rawFilters["identifiedUserKey"],
+        }),
+        ...(typeof rawFilters["route"] === "string" && {
+          route: rawFilters["route"],
+        }),
+        ...(typeof rawFilters["minDurationMs"] === "number" && {
+          minDurationMs: rawFilters["minDurationMs"],
+        }),
+      };
+
+      const rawCursor: JSONObject | undefined = body["cursor"]
+        ? (body["cursor"] as JSONObject)
+        : undefined;
+
+      const cursor: SessionReplayListCursor | undefined =
+        rawCursor &&
+        typeof rawCursor["startTimeUnixMs"] === "number" &&
+        typeof rawCursor["sessionId"] === "string"
+          ? {
+              startTimeUnixMs: rawCursor["startTimeUnixMs"],
+              sessionId: rawCursor["sessionId"],
+            }
+          : undefined;
+
+      /*
+       * The narrower identity ACL is enforced by simply not naming the
+       * column in the SELECT. There is no ModelPermission on this path to
+       * strip it after the fact.
+       */
+      const includeIdentifiedUserLabel: boolean = doesCallerHavePermission(
+        databaseProps,
+        SESSION_REPLAY_IDENTITY_PERMISSIONS,
+      );
+
+      const result: SessionReplayListResult =
+        await SessionReplayReadService.listSessions({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          startTime: startTime,
+          endTime: endTime,
+          filters: filters,
+          limit:
+            typeof body["limit"] === "number"
+              ? (body["limit"] as number)
+              : DEFAULT_SESSION_REPLAY_LIST_LIMIT,
+          ...(cursor !== undefined && { cursor }),
+          includeIdentifiedUserLabel: includeIdentifiedUserLabel,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sessions: result.sessions as unknown as JSONObject,
+        nextCursor: result.nextCursor as unknown as JSONObject,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Manifest Endpoint ---
+
+router.post(
+  "/telemetry/rum/session-replay/manifest",
+  ...requireSessionReplayPayloadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+      const sessionId: string = readSessionIdFromBody(body);
+
+      const header: SessionReplaySessionHeader = await resolveAuthorizedSession(
+        {
+          projectId: projectId,
+          sessionId: sessionId,
+          databaseProps: databaseProps,
+        },
+      );
+
+      /*
+       * The audit row is written BEFORE the manifest is built, not after.
+       * A read that fails halfway through still happened, and an audit
+       * that only records successful reads is an audit an attacker can
+       * evade by aborting the request.
+       */
+      const view: RumSessionReplayView =
+        await RumSessionReplayViewService.recordView({
+          projectId: projectId,
+          rumApplicationId: new ObjectID(header.rumApplicationId),
+          sessionId: sessionId,
+          viewedByUserId: databaseProps.userId,
+          ipAddress: getClientIp(req),
+          userAgent:
+            typeof req.headers["user-agent"] === "string"
+              ? req.headers["user-agent"]
+              : undefined,
+          accessReason:
+            typeof body["accessReason"] === "string"
+              ? (body["accessReason"] as string)
+              : undefined,
+          linkedIncidentId:
+            typeof body["linkedIncidentId"] === "string" &&
+            body["linkedIncidentId"].length > 0
+              ? new ObjectID(body["linkedIncidentId"])
+              : undefined,
+          linkedExceptionFingerprint:
+            typeof body["linkedExceptionFingerprint"] === "string"
+              ? (body["linkedExceptionFingerprint"] as string)
+              : undefined,
+        });
+
+      const manifest: SessionReplayManifest =
+        await SessionReplayReadService.getManifest({
+          header: header,
+          projectId: projectId,
+          sessionId: sessionId,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        /*
+         * viewId is echoed back so the player's heartbeat can advance the
+         * very row this read created, instead of guessing at one.
+         */
+        viewId: view.id ? view.id.toString() : null,
+        header: manifest.header as unknown as JSONObject,
+        tabs: manifest.tabs as unknown as JSONObject,
+        isChunkIndexTruncated: manifest.isChunkIndexTruncated,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Chunk Endpoint ---
+
+router.post(
+  "/telemetry/rum/session-replay/chunks",
+  ...requireSessionReplayPayloadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+      const sessionId: string = readSessionIdFromBody(body);
+
+      const tabId: unknown = body["tabId"];
+
+      if (typeof tabId !== "string" || tabId.length === 0) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("tabId is required"),
+        );
+      }
+
+      const rawChunkIndexes: unknown = body["chunkIndexes"];
+
+      if (!Array.isArray(rawChunkIndexes) || rawChunkIndexes.length === 0) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("chunkIndexes is required"),
+        );
+      }
+
+      const chunkIndexes: Array<number> = rawChunkIndexes.filter(
+        (index: unknown): index is number => {
+          return (
+            typeof index === "number" && Number.isInteger(index) && index >= 0
+          );
+        },
+      );
+
+      if (chunkIndexes.length !== rawChunkIndexes.length) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "chunkIndexes must contain only non-negative integers",
+          ),
+        );
+      }
+
+      /*
+       * Checked here as well as inside the read service: the route should
+       * refuse an abusive request before it authorizes and queries
+       * anything, and the service must refuse it for any future caller
+       * that does not come through this route.
+       */
+      if (chunkIndexes.length > MAX_SESSION_REPLAY_CHUNKS_PER_READ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            `A maximum of ${MAX_SESSION_REPLAY_CHUNKS_PER_READ} chunks may be requested at a time.`,
+          ),
+        );
+      }
+
+      await resolveAuthorizedSession({
+        projectId: projectId,
+        sessionId: sessionId,
+        databaseProps: databaseProps,
+      });
+
+      const chunks: Array<SessionReplayChunkPayload> =
+        await SessionReplayReadService.getChunks({
+          projectId: projectId,
+          sessionId: sessionId,
+          tabId: tabId,
+          chunkIndexes: chunkIndexes,
+        });
+
+      /*
+       * Concatenated binary frames: [u32 chunkIndex][u32 byteLength][bytes]
+       * repeated, little-endian, application/octet-stream.
+       *
+       * Not JSON: the payload is already a JSON document, so a JSON
+       * envelope would force the server to re-escape and the browser to
+       * double-parse several megabytes per page. The length prefix lets
+       * the player slice the response without scanning it.
+       */
+      const frames: Array<Buffer> = [];
+
+      for (const chunk of chunks) {
+        const payloadBuffer: Buffer = Buffer.from(chunk.payload, "utf8");
+        const headerBuffer: Buffer = Buffer.alloc(8);
+        headerBuffer.writeUInt32LE(chunk.chunkIndex, 0);
+        headerBuffer.writeUInt32LE(payloadBuffer.length, 4);
+        frames.push(headerBuffer, payloadBuffer);
+      }
+
+      const responseBody: Buffer = Buffer.concat(frames);
+
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Length", responseBody.length.toString());
+      /*
+       * A recording is personal data. Nothing about it may sit in a
+       * shared cache, and the browser should not keep it on disk either.
+       */
+      res.setHeader("Cache-Control", "no-store");
+      res.send(responseBody);
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Heartbeat Endpoint ---
+
+router.post(
+  "/telemetry/rum/session-replay/heartbeat",
+  ...requireSessionReplayPayloadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+
+      const viewId: ObjectID = readObjectIdFromBody(body, "viewId");
+
+      const secondsWatched: unknown = body["secondsWatched"];
+
+      if (
+        typeof secondsWatched !== "number" ||
+        !Number.isFinite(secondsWatched)
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("secondsWatched must be a number"),
+        );
+      }
+
+      /*
+       * Floored to the 15s heartbeat cadence. recordSecondsWatched is
+       * monotonic and returns without writing when the value does not
+       * advance, so flooring here turns a chatty client into at most one
+       * UPDATE per 15 seconds watched without any server-side timer or
+       * cross-pod throttle state.
+       */
+      const throttledSeconds: number =
+        Math.floor(Math.max(0, secondsWatched) / 15) * 15;
+
+      /*
+       * Scoped by projectId inside the service, so a viewId from another
+       * tenant simply matches nothing.
+       */
+      await RumSessionReplayViewService.recordSecondsWatched({
+        viewId: viewId,
+        projectId: projectId,
+        secondsWatched: throttledSeconds,
+      });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        secondsWatched: throttledSeconds,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay For Exception Endpoint ---
+
+router.post(
+  "/telemetry/rum/session-replay/for-exception",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+
+      const fingerprint: unknown = body["fingerprint"];
+
+      if (typeof fingerprint !== "string" || fingerprint.length === 0) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("fingerprint is required"),
+        );
+      }
+
+      /*
+       * An exception is not scoped to a RUM application, so there is no
+       * single application to authorize against. Restrict the query to
+       * the applications the caller's labels reach instead.
+       */
+      const accessibleRumApplicationIds: Array<ObjectID> | null =
+        await resolveAccessibleRumApplicationIds({
+          projectId: projectId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+        });
+
+      const startTime: Date | undefined = body["startTime"]
+        ? OneUptimeDate.fromString(body["startTime"] as string)
+        : undefined;
+
+      const endTime: Date | undefined = body["endTime"]
+        ? OneUptimeDate.fromString(body["endTime"] as string)
+        : undefined;
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: fingerprint,
+          accessibleRumApplicationIds: accessibleRumApplicationIds,
+          ...(startTime !== undefined && { startTime }),
+          ...(endTime !== undefined && { endTime }),
+          limit:
+            typeof body["limit"] === "number"
+              ? (body["limit"] as number)
+              : MAX_SESSION_REPLAY_FOR_EXCEPTION_LIMIT,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sessions: sessions as unknown as JSONObject,
       });
     } catch (err: unknown) {
       next(err);

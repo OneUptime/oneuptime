@@ -1,0 +1,742 @@
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { EventEmitter } from "events";
+import fs from "fs";
+import path from "path";
+import ObjectID from "Common/Types/ObjectID";
+import StatusCode from "Common/Types/API/StatusCode";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  MAX_SESSION_REPLAY_CHUNK_BYTES,
+  SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_WIRE_VERSION,
+  SessionReplayChunkEnvelope,
+} from "Common/Types/Rum/SessionReplay";
+import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
+import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
+import {
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "Common/Server/Utils/Express";
+import zlib from "zlib";
+
+/*
+ * Capture every handler registered per route so the middleware ORDER can be
+ * asserted, not just the terminal handler. The order matters: the byte cap
+ * has to run before auth (so an oversized unauthenticated body is still
+ * bounded) and auth has to run before the gate (which needs req.projectId).
+ */
+const registeredPostHandlers: Record<string, Array<unknown>> = {};
+const registeredGetHandlers: Record<string, Array<unknown>> = {};
+
+jest.mock("Common/Server/Utils/Express", () => {
+  return {
+    __esModule: true,
+    default: {
+      getRouter: () => {
+        return {
+          post: (uri: string, ...handlers: Array<unknown>) => {
+            registeredPostHandlers[uri] = handlers;
+          },
+          get: (uri: string, ...handlers: Array<unknown>) => {
+            registeredGetHandlers[uri] = handlers;
+          },
+        };
+      },
+    },
+    headerValueToString: (value: unknown): string | undefined => {
+      if (typeof value === "string") {
+        return value;
+      }
+      if (Array.isArray(value)) {
+        return value[0] as string | undefined;
+      }
+      return undefined;
+    },
+  };
+});
+
+const authMiddleware: unknown = jest.fn();
+
+jest.mock("Common/Server/Middleware/TelemetryIngest", () => {
+  return {
+    __esModule: true,
+    default: {
+      isAuthorizedServiceMiddleware: authMiddleware,
+    },
+  };
+});
+
+const ingestionDisabledMiddleware: unknown = jest.fn();
+
+jest.mock("Common/Server/Middleware/TelemetryIngestionDisabled", () => {
+  return {
+    __esModule: true,
+    default: {
+      middleware: ingestionDisabledMiddleware,
+      isDisabled: jest.fn().mockReturnValue(false),
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Response", () => {
+  return {
+    __esModule: true,
+    default: {
+      sendEmptySuccessResponse: jest.fn(),
+      sendErrorResponse: jest.fn(),
+      sendJsonObjectResponse: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Logger", () => {
+  return {
+    __esModule: true,
+    default: {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+    getLogAttributesFromRequest: jest.fn(),
+  };
+});
+
+jest.mock("Common/Server/Utils/Telemetry/CaptureSpan", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return (): void => {
+        // No-op decorator: the real one needs a live tracer provider.
+      };
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/Telemetry/AppMetrics", () => {
+  const counter: { add: unknown } = { add: jest.fn() };
+  const histogram: { record: unknown } = { record: jest.fn() };
+
+  return {
+    __esModule: true,
+    default: {
+      getIngestCounter: () => {
+        return counter;
+      },
+      getIngestDuration: () => {
+        return histogram;
+      },
+      getIngestPayloadBytes: () => {
+        return histogram;
+      },
+    },
+  };
+});
+
+jest.mock("Common/Server/Utils/SessionReplay/SessionReplayGateCache", () => {
+  return {
+    __esModule: true,
+    default: {
+      getPolicy: jest.fn(),
+      isOriginAllowed: jest.fn().mockReturnValue(true),
+      markProjectDisabled: jest.fn(),
+      clearCache: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getProjectIdFromSecretKey: jest.fn(),
+    },
+  };
+});
+
+jest.mock(
+  "../../FeatureSet/Telemetry/Services/SessionReplayIngestService",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        gateChunkRequest: jest.fn(),
+        getInlineStagingMaxBytes: () => {
+          return 65536;
+        },
+        isUnprocessableParseError: (error: string): boolean => {
+          return error === "snapshot-too-large";
+        },
+      },
+      SessionReplayGateOutcome: {
+        Accepted: "accepted",
+        Stop: "stop",
+        OriginRefused: "origin-refused",
+        RateLimited: "rate-limited",
+        StorageUnavailable: "storage-unavailable",
+      },
+    };
+  },
+);
+
+jest.mock(
+  "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        addSessionReplayIngestJob: jest.fn(),
+      },
+    };
+  },
+);
+
+import Response from "Common/Server/Utils/Response";
+import SessionReplayIngestService, {
+  SessionReplayGateOutcome,
+} from "../../FeatureSet/Telemetry/Services/SessionReplayIngestService";
+import TelemetryQueueService from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
+import SessionReplayRequestMiddleware from "../../FeatureSet/Telemetry/Middleware/SessionReplayRequestMiddleware";
+// Importing the router module registers the routes on the mocked router.
+import "../../FeatureSet/Telemetry/API/SessionReplayIngest";
+
+type MockedFn = jest.Mock;
+
+const gateMock: MockedFn =
+  SessionReplayIngestService.gateChunkRequest as unknown as MockedFn;
+const addJobMock: MockedFn =
+  TelemetryQueueService.addSessionReplayIngestJob as unknown as MockedFn;
+const sendJsonMock: MockedFn =
+  Response.sendJsonObjectResponse as unknown as MockedFn;
+
+const PROJECT_ID: ObjectID = ObjectID.generate();
+const APP_IDENTIFIER: string = "checkout-web";
+
+const CHUNK_ROUTE: string = "/session-replay/v1/chunk";
+
+interface FakeResponse {
+  statusCode: number;
+  headers: Record<string, string>;
+  ended: boolean;
+  body: unknown;
+  setHeader: (name: string, value: string) => void;
+  status: (code: number) => FakeResponse;
+  end: () => void;
+  json: (body: unknown) => void;
+  on: (event: string, listener: () => void) => void;
+  headersSent: boolean;
+}
+
+function buildResponse(): FakeResponse {
+  const res: FakeResponse = {
+    statusCode: 0,
+    headers: {},
+    ended: false,
+    body: undefined,
+    headersSent: false,
+    setHeader: (name: string, value: string): void => {
+      res.headers[name] = value;
+    },
+    status: (code: number): FakeResponse => {
+      res.statusCode = code;
+      return res;
+    },
+    end: (): void => {
+      res.ended = true;
+      res.headersSent = true;
+    },
+    json: (body: unknown): void => {
+      res.body = body;
+      res.headersSent = true;
+    },
+    on: (): void => {
+      // Metric listeners are not exercised here.
+    },
+  };
+
+  return res;
+}
+
+function buildEnvelope(
+  overrides?: Partial<SessionReplayChunkEnvelope>,
+): SessionReplayChunkEnvelope {
+  return {
+    v: SESSION_REPLAY_WIRE_VERSION,
+    appIdentifier: APP_IDENTIFIER,
+    sessionId: "a".repeat(32),
+    tabId: "b".repeat(16),
+    chunkIndex: 0,
+    sessionStartUnixMs: 1_800_000_000_000,
+    clientSendUnixMs: 1_800_000_015_000,
+    chunkStartOffsetMs: 0,
+    chunkEndOffsetMs: 15_000,
+    eventCount: 4,
+    hasFullSnapshot: true,
+    isFinal: false,
+    recorderKind: "dom",
+    schemaVersion: 1,
+    rrwebVersion: "2.1.0",
+    recorderVersion: "1.0.0",
+    maskingMode: SessionReplayMaskingMode.MaskAllText,
+    consentState: "Granted",
+    triggerReason: SessionReplayTriggerReason.Error,
+    payloadEncoding: "gzip",
+    payloadBytes: 0,
+    url: "https://shop.example.com/checkout",
+    signals: {
+      errorCount: 0,
+      rageClickCount: 0,
+      deadClickCount: 0,
+      errorClickCount: 0,
+      refreshRageCount: 0,
+      routeCount: 0,
+    },
+    fidelityNotices: [],
+    droppedEvents: 0,
+    flushFailures: 0,
+    ...overrides,
+  };
+}
+
+function buildBody(overrides?: Partial<SessionReplayChunkEnvelope>): Buffer {
+  const payload: Buffer = zlib.gzipSync(
+    new Uint8Array(Buffer.from(JSON.stringify([{ type: 2, data: {} }]))),
+  );
+
+  const envelope: SessionReplayChunkEnvelope = buildEnvelope({
+    ...overrides,
+    payloadBytes: payload.length,
+  });
+
+  return Buffer.concat([
+    new Uint8Array(Buffer.from(`${JSON.stringify(envelope)}\n`)),
+    new Uint8Array(payload),
+  ]);
+}
+
+async function invokeChunkRoute(data: {
+  body: unknown;
+  headers?: Record<string, string>;
+}): Promise<{ res: FakeResponse; nextError: Error | undefined }> {
+  const handlers: Array<unknown> = registeredPostHandlers[CHUNK_ROUTE]!;
+
+  const handler: (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void> = handlers[handlers.length - 1] as (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ) => Promise<void>;
+
+  const res: FakeResponse = buildResponse();
+
+  let nextError: Error | undefined = undefined;
+
+  const next: NextFunction = ((err?: Error): void => {
+    nextError = err;
+  }) as NextFunction;
+
+  await handler(
+    {
+      body: data.body,
+      projectId: PROJECT_ID,
+      headers: {
+        [SESSION_REPLAY_APP_IDENTIFIER_HEADER]: APP_IDENTIFIER,
+        origin: "https://shop.example.com",
+        ...(data.headers || {}),
+      },
+      query: {},
+    } as unknown as ExpressRequest,
+    res as unknown as ExpressResponse,
+    next,
+  );
+
+  return { res, nextError };
+}
+
+/* Status code as observed through either response path. */
+function getStatus(res: FakeResponse): number {
+  if (res.statusCode) {
+    return res.statusCode;
+  }
+
+  const call: Array<unknown> | undefined = sendJsonMock.mock.calls[
+    sendJsonMock.mock.calls.length - 1
+  ] as Array<unknown> | undefined;
+
+  if (!call) {
+    return 0;
+  }
+
+  const options: { statusCode?: StatusCode } | undefined = call[3] as
+    | { statusCode?: StatusCode }
+    | undefined;
+
+  return options?.statusCode ? options.statusCode.toNumber() : 200;
+}
+
+describe("POST /session-replay/v1/chunk", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    addJobMock.mockResolvedValue(undefined as never);
+    gateMock.mockResolvedValue({
+      outcome: SessionReplayGateOutcome.Accepted,
+      directive: "continue",
+      configEpoch: 99,
+      reason: "accepted",
+      policy: { samplePercentage: 100 },
+    } as never);
+  });
+
+  test("registers the chunk route behind the shared auth middleware, verbatim", () => {
+    const handlers: Array<unknown> = registeredPostHandlers[CHUNK_ROUTE]!;
+
+    expect(handlers).toBeDefined();
+    /*
+     * The auth middleware must be the shared one, not a hand-rolled key
+     * lookup: it is what reads the token from headers only and resolves it
+     * behind the bounded positive/negative cache.
+     */
+    expect(handlers).toContain(authMiddleware);
+    expect(handlers).toContain(ingestionDisabledMiddleware);
+    expect(handlers).toContain(SessionReplayRequestMiddleware.parseBody);
+
+    /* Byte cap before auth; auth before the terminal gate handler. */
+    expect(
+      handlers.indexOf(SessionReplayRequestMiddleware.parseBody),
+    ).toBeLessThan(handlers.indexOf(authMiddleware));
+    expect(handlers.indexOf(authMiddleware)).toBe(handlers.length - 2);
+  });
+
+  test("answers 202 only AFTER the enqueue succeeds", async () => {
+    let enqueuedBeforeResponse: boolean = false;
+
+    addJobMock.mockImplementation(async (): Promise<void> => {
+      enqueuedBeforeResponse = sendJsonMock.mock.calls.length === 0;
+    });
+
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(addJobMock).toHaveBeenCalledTimes(1);
+    expect(enqueuedBeforeResponse).toBe(true);
+    expect(getStatus(res)).toBe(202);
+  });
+
+  test("answers 503 and never 202 when staging fails", async () => {
+    addJobMock.mockRejectedValue(new Error("redis down") as never);
+
+    const { res, nextError } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(getStatus(res)).toBe(503);
+    expect(nextError).toBeUndefined();
+
+    const payload: JSONObject = sendJsonMock.mock
+      .calls[0]![2] as unknown as JSONObject;
+
+    expect(payload["directive"]).toBe("throttle");
+    expect(payload["retryAfterSeconds"]).toBeDefined();
+  });
+
+  test("answers 204 with a stop directive when the gate says stop", async () => {
+    gateMock.mockResolvedValue({
+      outcome: SessionReplayGateOutcome.Stop,
+      directive: "stop",
+      configEpoch: 7,
+      reason: "not-enabled",
+    } as never);
+
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(res.statusCode).toBe(204);
+    expect(res.ended).toBe(true);
+    /* 204 carries no body, so the directive rides in a header. */
+    expect(res.headers["x-oneuptime-replay-directive"]).toBe("stop");
+    expect(res.headers["x-oneuptime-replay-config-epoch"]).toBe("7");
+    expect(addJobMock).not.toHaveBeenCalled();
+  });
+
+  test("answers 403 for an origin that is not on the allowlist", async () => {
+    gateMock.mockResolvedValue({
+      outcome: SessionReplayGateOutcome.OriginRefused,
+      directive: "stop",
+      configEpoch: 7,
+      reason: "origin-not-allowed",
+    } as never);
+
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(getStatus(res)).toBe(403);
+    expect(addJobMock).not.toHaveBeenCalled();
+  });
+
+  test("answers 429 with Retry-After past the rate limit", async () => {
+    gateMock.mockResolvedValue({
+      outcome: SessionReplayGateOutcome.RateLimited,
+      directive: "throttle",
+      configEpoch: 7,
+      retryAfterSeconds: 23,
+      reason: "rate-limited",
+    } as never);
+
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(getStatus(res)).toBe(429);
+    expect(res.headers["Retry-After"]).toBe("23");
+    expect(addJobMock).not.toHaveBeenCalled();
+  });
+
+  test("rejects a request with no app identifier header", async () => {
+    const { res } = await invokeChunkRoute({
+      body: buildBody(),
+      headers: { [SESSION_REPLAY_APP_IDENTIFIER_HEADER]: "" },
+    });
+
+    expect(getStatus(res)).toBe(400);
+    expect(gateMock).not.toHaveBeenCalled();
+  });
+
+  test("rejects a frame whose appIdentifier disagrees with the header", async () => {
+    /*
+     * Otherwise a client could pass the gate for a permissive application
+     * and write rows attributed to a different one.
+     */
+    const { res } = await invokeChunkRoute({
+      body: buildBody({ appIdentifier: "some-other-app" }),
+    });
+
+    expect(getStatus(res)).toBe(400);
+    expect(gateMock).not.toHaveBeenCalled();
+  });
+
+  test("a parsed (non-Buffer) body is refused rather than silently accepted", async () => {
+    /*
+     * This is what an accidental StartServer bypass regression looks like
+     * from in here: the global JSON parser turns a binary body into {}.
+     */
+    const { res } = await invokeChunkRoute({ body: {} });
+
+    expect(getStatus(res)).toBe(400);
+    expect(addJobMock).not.toHaveBeenCalled();
+  });
+
+  test("an oversized indivisible snapshot answers 422, not 413", async () => {
+    const envelope: SessionReplayChunkEnvelope = buildEnvelope({
+      payloadBytes: MAX_SESSION_REPLAY_CHUNK_BYTES + 1,
+    });
+
+    const body: Buffer = Buffer.from(`${JSON.stringify(envelope)}\n`);
+
+    const { res } = await invokeChunkRoute({ body });
+
+    /*
+     * 422 keeps the session alive with a fidelity notice instead of making
+     * the whole recording vanish behind a size error.
+     */
+    expect(getStatus(res)).toBe(422);
+  });
+
+  test("stages the raw request body, unchanged", async () => {
+    const body: Buffer = buildBody();
+
+    await invokeChunkRoute({ body });
+
+    const args: JSONObject = addJobMock.mock.calls[0]![0] as JSONObject;
+
+    expect(args["projectId"]).toBe(PROJECT_ID);
+    expect(args["appIdentifier"]).toBe(APP_IDENTIFIER);
+    expect((args["body"] as Buffer).toString("base64")).toBe(
+      body.toString("base64"),
+    );
+    expect(args["serverReceiveUnixMs"]).toBeGreaterThan(0);
+  });
+});
+
+describe("GET /session-replay/v1/config and /validate", () => {
+  test("both routes are registered", () => {
+    expect(registeredGetHandlers["/session-replay/v1/config"]).toBeDefined();
+    expect(registeredGetHandlers["/session-replay/v1/validate"]).toBeDefined();
+  });
+
+  test("the config route is authenticated and the validate route is not", () => {
+    /*
+     * validate deliberately runs without the auth middleware: its entire
+     * job is to answer "is this token accepted?", which a 401 from the auth
+     * middleware could not express as a body.
+     */
+    expect(registeredGetHandlers["/session-replay/v1/config"]).toContain(
+      authMiddleware,
+    );
+    expect(registeredGetHandlers["/session-replay/v1/validate"]).not.toContain(
+      authMiddleware,
+    );
+  });
+});
+
+describe("SessionReplayRequestMiddleware.parseBody", () => {
+  interface FakeRequest extends EventEmitter {
+    body?: unknown;
+    headers: Record<string, string>;
+    destroy: () => void;
+    resume: () => void;
+    destroyed: boolean;
+    resumed: boolean;
+  }
+
+  function buildRequest(headers?: Record<string, string>): FakeRequest {
+    const req: FakeRequest = new EventEmitter() as FakeRequest;
+
+    req.headers = headers || {};
+    req.destroyed = false;
+    req.resumed = false;
+    req.destroy = (): void => {
+      req.destroyed = true;
+    };
+    req.resume = (): void => {
+      req.resumed = true;
+    };
+
+    return req;
+  }
+
+  test("reads a well-sized body into a Buffer and continues", async () => {
+    const req: FakeRequest = buildRequest();
+    const res: FakeResponse = buildResponse();
+
+    let called: boolean = false;
+
+    const promise: Promise<void> = SessionReplayRequestMiddleware.parseBody(
+      req as unknown as ExpressRequest,
+      res as unknown as ExpressResponse,
+      ((): void => {
+        called = true;
+      }) as NextFunction,
+    );
+
+    req.emit("data", Buffer.from("hello"));
+    req.emit("end");
+
+    await promise;
+
+    expect(called).toBe(true);
+    expect(Buffer.isBuffer(req.body)).toBe(true);
+    expect((req.body as Buffer).toString()).toBe("hello");
+  });
+
+  test("rejects an over-cap Content-Length before reading a byte", async () => {
+    const req: FakeRequest = buildRequest({
+      "content-length": String(MAX_SESSION_REPLAY_CHUNK_BYTES + 1),
+    });
+    const res: FakeResponse = buildResponse();
+
+    let called: boolean = false;
+
+    await SessionReplayRequestMiddleware.parseBody(
+      req as unknown as ExpressRequest,
+      res as unknown as ExpressResponse,
+      ((): void => {
+        called = true;
+      }) as NextFunction,
+    );
+
+    expect(res.statusCode).toBe(413);
+    expect(called).toBe(false);
+  });
+
+  test("sends 413 BEFORE it stops consuming, and never destroys the socket", async () => {
+    const req: FakeRequest = buildRequest();
+    const res: FakeResponse = buildResponse();
+
+    let called: boolean = false;
+
+    const promise: Promise<void> = SessionReplayRequestMiddleware.parseBody(
+      req as unknown as ExpressRequest,
+      res as unknown as ExpressResponse,
+      ((): void => {
+        called = true;
+      }) as NextFunction,
+    );
+
+    /* Two chunks that together exceed the cap. */
+    const half: Buffer = Buffer.alloc(
+      Math.ceil(MAX_SESSION_REPLAY_CHUNK_BYTES / 2) + 1,
+    );
+
+    req.emit("data", half);
+    req.emit("data", half);
+
+    await promise;
+
+    expect(res.statusCode).toBe(413);
+    /*
+     * req.destroy() would tear down the socket, so the recorder would see a
+     * network error instead of a status code - and it classifies network
+     * errors as retryable, so it would retry the same oversized chunk
+     * forever while never learning what was wrong.
+     */
+    expect(req.destroyed).toBe(false);
+    /* The remainder is drained so the keep-alive connection stays usable. */
+    expect(req.resumed).toBe(true);
+    expect(called).toBe(false);
+  });
+
+  test("an already-parsed body short-circuits rather than double-reading", async () => {
+    const req: FakeRequest = buildRequest();
+    req.body = { alreadyParsed: true };
+
+    const res: FakeResponse = buildResponse();
+
+    let called: boolean = false;
+
+    await SessionReplayRequestMiddleware.parseBody(
+      req as unknown as ExpressRequest,
+      res as unknown as ExpressResponse,
+      ((): void => {
+        called = true;
+      }) as NextFunction,
+    );
+
+    expect(called).toBe(true);
+    expect(res.statusCode).toBe(0);
+  });
+});
+
+/*
+ * Source-level assertions on StartServer's body-parser bypass.
+ *
+ * A jest test cannot exercise the real Express stack here, and the failure
+ * this guards against is silent: if the predicate were `startsWith`, the
+ * /telemetry-prefixed path would fall into the global gzip fast-path, which
+ * has no size limit and hands the router an already-decompressed body -
+ * defeating the byte cap entirely, with no visible symptom.
+ */
+describe("StartServer body-parser bypass covers session replay", () => {
+  const startServerSource: string = fs.readFileSync(
+    path.join(__dirname, "../../../Common/Server/Utils/StartServer.ts"),
+    "utf-8",
+  );
+
+  test("both bypass predicates use .includes with the session-replay path", () => {
+    const matches: Array<string> =
+      startServerSource.match(
+        /req\.path\.includes\("\/session-replay\/v1\/"\)/g,
+      ) || [];
+
+    /* One in the json/gzip predicate, one in its urlencoded twin. */
+    expect(matches).toHaveLength(2);
+  });
+
+  test("the session-replay bypass is never written as startsWith", () => {
+    expect(startServerSource).not.toContain(
+      'req.path.startsWith("/session-replay',
+    );
+  });
+
+  test("CORS allows the ingest headers and caches the preflight", () => {
+    expect(startServerSource).toContain("x-oneuptime-token");
+    expect(startServerSource).toContain(SESSION_REPLAY_APP_IDENTIFIER_HEADER);
+    expect(startServerSource).toContain("Access-Control-Max-Age");
+  });
+});

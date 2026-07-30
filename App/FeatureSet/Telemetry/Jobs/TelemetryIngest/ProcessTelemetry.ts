@@ -28,11 +28,14 @@ import ObjectID from "Common/Types/ObjectID";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import {
+  SESSION_REPLAY_WORKER_CONCURRENCY,
   TELEMETRY_CONCURRENCY,
   TELEMETRY_LOCK_DURATION_MS,
 } from "../../Config";
 import OtelPayloadDecoder from "../../Utils/OtelPayloadDecoder";
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
+import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
+import SessionReplayIngestService from "../../Services/SessionReplayIngestService";
 import { JSONObject } from "Common/Types/JSON";
 
 /*
@@ -62,6 +65,52 @@ async function resolveOtelBody(
     encoding: jobData.bodyEncoding ?? "none",
     bodyKey: jobData.bodyKey,
   });
+}
+
+/*
+ * Per-pod concurrency gate for session replay.
+ *
+ * The replay path deliberately reuses QueueName.Telemetry (a new queue name
+ * would mean a new worker deployment plus a KEDA scaler), which means a
+ * replay backlog could otherwise occupy all TELEMETRY_CONCURRENCY slots and
+ * starve trace and log ingest behind recordings.
+ *
+ * In-process rather than the distributed Redis Semaphore on purpose:
+ * TELEMETRY_CONCURRENCY is itself a per-pod number, so a per-pod cap is the
+ * right unit, and a Redis round trip per chunk would be a significant share
+ * of a path whose entire budget is a few milliseconds. FIFO so a queued job
+ * cannot be starved indefinitely.
+ */
+let sessionReplayInFlight: number = 0;
+const sessionReplayWaiters: Array<() => void> = [];
+
+async function withSessionReplaySlot(fn: () => Promise<void>): Promise<void> {
+  if (sessionReplayInFlight >= SESSION_REPLAY_WORKER_CONCURRENCY) {
+    /*
+     * Wait for a slot to be HANDED to us. The releaser deliberately does
+     * not decrement when it wakes a waiter: transferring the slot instead
+     * of freeing it closes the window in which a third caller could see a
+     * free slot between the wake-up and the woken job resuming, which would
+     * let the cap be exceeded.
+     */
+    await new Promise<void>((resolve: () => void) => {
+      sessionReplayWaiters.push(resolve);
+    });
+  } else {
+    sessionReplayInFlight++;
+  }
+
+  try {
+    await fn();
+  } finally {
+    const next: (() => void) | undefined = sessionReplayWaiters.shift();
+
+    if (next) {
+      next();
+    } else {
+      sessionReplayInFlight--;
+    }
+  }
 }
 
 /*
@@ -103,6 +152,16 @@ if (DisableQueueWorkers) {
        * rows from several jobs — a retry would then reuse a token for a
        * differently-composed block and ClickHouse would drop it (tokens
        * dedup by token, not content), losing other jobs' rows.
+       *
+       * SessionReplay is excluded for a different reason again, and must
+       * stay excluded: TelemetryFanInWriter.dispatchInsert inserts TOKENED
+       * submissions individually, one statement each, so adding replay here
+       * would produce one INSERT per chunk on the fattest table in the
+       * system. Untokened submissions merge into one batch per flush window
+       * instead. Replay gets its idempotency from the chunk table being a
+       * ReplacingMergeTree keyed on (projectId, sessionId, tabId,
+       * chunkIndex) plus LIMIT 1 BY chunkIndex at read time, so a
+       * re-delivered chunk collapses at merge rather than double-writing.
        */
       const useInsertDedup: boolean = [
         TelemetryType.Logs,
@@ -279,6 +338,23 @@ if (DisableQueueWorkers) {
               logger.debug(`Successfully processed kubernetes cost ingest job`);
               break;
 
+            case TelemetryType.SessionReplay:
+              if (jobData.sessionReplayIngest) {
+                /*
+                 * Held behind the per-pod replay slot gate so a replay
+                 * backlog cannot consume every worker slot and starve the
+                 * other telemetry signals.
+                 */
+                await withSessionReplaySlot(async (): Promise<void> => {
+                  await SessionReplayIngestService.processFromQueue(
+                    jobData.sessionReplayIngest!,
+                    jobData.bodyKey,
+                  );
+                });
+              }
+              logger.debug(`Successfully processed session replay ingest job`);
+              break;
+
             default:
               throw new Error(`Unknown telemetry type: ${jobData.type}`);
           }
@@ -308,10 +384,16 @@ if (DisableQueueWorkers) {
        * out-of-band OTLP body is now fully consumed, so reclaim it — it is
        * deliberately NOT deleted at read time (see TelemetryBodyStore.readBody)
        * so a transient-failure retry can re-read it. Best-effort; the TTL
-       * backstops a missed delete. Only OTel-type jobs carry a bodyKey.
+       * backstops a missed delete. Only OTel-type and session-replay jobs
+       * carry a bodyKey — and session replay stages into its own keyspace
+       * with its own TTL, so it must be reclaimed through its own store.
        */
       if (jobData.bodyKey) {
-        await TelemetryBodyStore.deleteBody(jobData.bodyKey);
+        if (jobData.type === TelemetryType.SessionReplay) {
+          await SessionReplayChunkStore.deleteBody(jobData.bodyKey);
+        } else {
+          await TelemetryBodyStore.deleteBody(jobData.bodyKey);
+        }
       }
     },
     {

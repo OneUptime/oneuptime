@@ -123,6 +123,9 @@ import ProfileService from "./ProfileService";
 import ProfileSampleService from "./ProfileSampleService";
 import RumSessionService from "./RumSessionService";
 import RumSessionChunkService from "./RumSessionChunkService";
+import RumSessionReplayViewService from "./RumSessionReplayViewService";
+import RumSessionErasureRequestService from "./RumSessionErasureRequestService";
+import RumSessionPinService from "./RumSessionPinService";
 // Project SMTP Config.
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
@@ -546,6 +549,11 @@ const services: Array<BaseService> = [
 
   ProjectSCIMLogService,
   StatusPageSCIMLogService,
+
+  // Session replay control tables (the recordings themselves are in ClickHouse).
+  RumSessionReplayViewService,
+  RumSessionErasureRequestService,
+  RumSessionPinService,
 ];
 
 export const AnalyticsServices: Array<

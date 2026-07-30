@@ -1,0 +1,351 @@
+import {
+  SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SessionReplayConfigResponse,
+} from "Common/Types/Rum/SessionReplay";
+import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
+import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
+import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
+
+/*
+ * Init options and the policy fetch.
+ *
+ * The recorder holds NO defaults of its own for anything privacy-relevant.
+ * Every masking, consent and sampling decision comes from the config
+ * endpoint, and a config fetch that fails for any reason means no
+ * recording at all. That is the whole reason the endpoint exists: without
+ * it, a customer flipping "mask everything" in the Dashboard would never
+ * reach a browser that had already loaded the script.
+ */
+
+/*
+ * Replaced by esbuild's define. The typeof guard is what keeps unit tests
+ * (which run the TypeScript directly, with no define applied) working.
+ */
+declare const __ONEUPTIME_RECORDER_VERSION__: string;
+
+export const RECORDER_VERSION: string =
+  typeof __ONEUPTIME_RECORDER_VERSION__ === "string"
+    ? __ONEUPTIME_RECORDER_VERSION__
+    : "0.0.0-dev";
+
+/* Pinned by package.json. Reported on every chunk so playback can branch. */
+export const RRWEB_VERSION: string = "2.1.1";
+
+export const AUTH_TOKEN_HEADER: string = "x-oneuptime-token";
+
+export const CONFIG_PATH: string = "/session-replay/v1/config";
+export const CHUNK_PATH: string = "/session-replay/v1/chunk";
+
+/* Where the pinned, immutable artifact lives. */
+export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
+
+/*
+ * A config fetch that hangs must not hang the recorder's startup forever.
+ * Deliberately short: no recording is a better outcome than a pending
+ * request held open on the customer's page.
+ */
+export const CONFIG_FETCH_TIMEOUT_MS: number = 5000;
+
+/*
+ * The policy snapshot as the recorder consumes it.
+ *
+ * recorderIntegrity is additive on top of the shared wire type: the loader
+ * needs an SRI hash to put on the injected script tag, and a server that does
+ * not send one simply gets a script tag without an integrity attribute rather
+ * than no recording. Additive-only is the rule for this whole contract,
+ * because a customer's browser may run an older recorder than the server it
+ * posts to for as long as the pinned artifact stays cached.
+ */
+export interface LoaderConfig extends SessionReplayConfigResponse {
+  recorderIntegrity?: string;
+}
+
+export interface RecorderInitOptions {
+  /* Ingest origin, e.g. "https://oneuptime.com". No trailing slash needed. */
+  host: string;
+
+  /* OneUptime telemetry ingestion key. */
+  token: string;
+
+  /* RumApplication identifier. Travels as a header so ingest can gate pre-decode. */
+  appIdentifier: string;
+
+  /*
+   * Opaque end-user reference from the host page. Only ever stored when the
+   * application has user-identity capture switched on; otherwise the server
+   * keeps a one-way HMAC of it.
+   */
+  userRef?: string;
+
+  /*
+   * The one override that can turn off DNT/GPC honouring locally, for a
+   * customer whose lawful basis does not depend on it. Defaults to true,
+   * and the server's own respectDoNotTrack still applies on top.
+   */
+  respectDoNotTrack?: boolean;
+}
+
+export default class Config {
+  /*
+   * Read init options from the page.
+   *
+   * Two supported shapes, both of which a customer can paste without a
+   * build step: data-* attributes on the script tag, or a global object
+   * set before the script loads. Returns null when required fields are
+   * missing — the recorder then does nothing at all rather than guessing
+   * an endpoint to post end-user screen content to.
+   */
+  public static readInitOptions(
+    documentRef: Document = document,
+    windowRef: Window = window,
+  ): RecorderInitOptions | null {
+    const fromGlobal: RecorderInitOptions | null = Config.readGlobalOptions(
+      windowRef as unknown as Record<string, unknown>,
+    );
+
+    if (fromGlobal) {
+      return fromGlobal;
+    }
+
+    return Config.readScriptTagOptions(documentRef);
+  }
+
+  private static readGlobalOptions(
+    windowRecord: Record<string, unknown>,
+  ): RecorderInitOptions | null {
+    const raw: unknown = windowRecord["__ONEUPTIME_SESSION_REPLAY__"];
+
+    if (!raw || typeof raw !== "object") {
+      return null;
+    }
+
+    return Config.normaliseOptions(raw as Record<string, unknown>);
+  }
+
+  private static readScriptTagOptions(
+    documentRef: Document,
+  ): RecorderInitOptions | null {
+    /*
+     * document.currentScript is null for a dynamically injected script by
+     * the time it executes asynchronously, so the tag is located by a
+     * marker attribute instead.
+     */
+    const tag: Element | null = documentRef.querySelector(
+      "script[data-oneuptime-token]",
+    );
+
+    if (!tag) {
+      return null;
+    }
+
+    const dataset: Record<string, unknown> = {
+      host: tag.getAttribute("data-oneuptime-host"),
+      token: tag.getAttribute("data-oneuptime-token"),
+      appIdentifier: tag.getAttribute("data-oneuptime-app-identifier"),
+      userRef: tag.getAttribute("data-oneuptime-user-ref"),
+      respectDoNotTrack:
+        tag.getAttribute("data-oneuptime-respect-do-not-track") !== "false",
+    };
+
+    return Config.normaliseOptions(dataset);
+  }
+
+  private static normaliseOptions(
+    raw: Record<string, unknown>,
+  ): RecorderInitOptions | null {
+    const host: unknown = raw["host"];
+    const token: unknown = raw["token"];
+    const appIdentifier: unknown = raw["appIdentifier"];
+    const userRef: unknown = raw["userRef"];
+    const respectDoNotTrack: unknown = raw["respectDoNotTrack"];
+
+    if (
+      typeof host !== "string" ||
+      typeof token !== "string" ||
+      typeof appIdentifier !== "string" ||
+      !host ||
+      !token ||
+      !appIdentifier
+    ) {
+      return null;
+    }
+
+    const options: RecorderInitOptions = {
+      host: host.replace(/\/+$/, ""),
+      token: token,
+      appIdentifier: appIdentifier,
+      respectDoNotTrack: respectDoNotTrack !== false,
+    };
+
+    /*
+     * Assigned conditionally rather than as `userRef: undefined`, because
+     * exactOptionalPropertyTypes makes those two different types.
+     */
+    if (typeof userRef === "string" && userRef) {
+      options.userRef = userRef;
+    }
+
+    return options;
+  }
+
+  public static getConfigUrl(options: RecorderInitOptions): string {
+    return `${options.host}${CONFIG_PATH}`;
+  }
+
+  public static getChunkUrl(options: RecorderInitOptions): string {
+    return `${options.host}${CHUNK_PATH}`;
+  }
+
+  public static getArtifactUrl(
+    options: RecorderInitOptions,
+    recorderVersion: string,
+  ): string {
+    return `${options.host}${ARTIFACT_PATH_PREFIX}/v${recorderVersion}/recorder.js`;
+  }
+
+  public static getIngestHeaders(
+    options: RecorderInitOptions,
+  ): Record<string, string> {
+    const headers: Record<string, string> = {};
+
+    headers[AUTH_TOKEN_HEADER] = options.token;
+    headers[SESSION_REPLAY_APP_IDENTIFIER_HEADER] = options.appIdentifier;
+
+    return headers;
+  }
+
+  /*
+   * Fetch the policy snapshot. Resolves to null on ANY failure — network
+   * error, timeout, non-2xx, unparseable body, or a body missing required
+   * fields. Failing closed is the point; a recorder that guesses its
+   * masking policy is a data breach with extra steps.
+   */
+  public static async fetchConfig(
+    options: RecorderInitOptions,
+  ): Promise<LoaderConfig | null> {
+    const controller: AbortController = new AbortController();
+
+    const timeout: ReturnType<typeof setTimeout> = setTimeout((): void => {
+      controller.abort();
+    }, CONFIG_FETCH_TIMEOUT_MS);
+
+    try {
+      const response: Response = await fetch(Config.getConfigUrl(options), {
+        method: "GET",
+        headers: Config.getIngestHeaders(options),
+        signal: controller.signal,
+
+        /*
+         * credentials omitted so the recorder never sends the customer's
+         * end-user cookies to the OneUptime origin, and never relies on
+         * them for auth.
+         */
+        credentials: "omit",
+        mode: "cors",
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const body: unknown = await response.json();
+
+      return Config.validateConfig(body);
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  /*
+   * Validate and normalise a config body.
+   *
+   * Every unrecognised or missing value resolves to the SAFE option, not
+   * the useful one: unknown masking mode becomes MaskAllText, unknown
+   * consent mode becomes RequireExplicit, a missing sample percentage
+   * becomes 0.
+   */
+  public static validateConfig(body: unknown): LoaderConfig | null {
+    if (!body || typeof body !== "object") {
+      return null;
+    }
+
+    const raw: Record<string, unknown> = body as Record<string, unknown>;
+
+    if (raw["enabled"] !== true) {
+      return null;
+    }
+
+    const recorderVersion: unknown = raw["recorderVersion"];
+
+    if (typeof recorderVersion !== "string" || !recorderVersion) {
+      return null;
+    }
+
+    const maskingMode: SessionReplayMaskingMode =
+      raw["maskingMode"] === SessionReplayMaskingMode.MaskInputsOnly
+        ? SessionReplayMaskingMode.MaskInputsOnly
+        : SessionReplayMaskingMode.MaskAllText;
+
+    const consentMode: SessionReplayConsentMode =
+      raw["consentMode"] === SessionReplayConsentMode.NotRequired
+        ? SessionReplayConsentMode.NotRequired
+        : SessionReplayConsentMode.RequireExplicit;
+
+    const captureTrigger: string =
+      raw["captureTrigger"] === SessionReplayCaptureTrigger.Always
+        ? SessionReplayCaptureTrigger.Always
+        : SessionReplayCaptureTrigger.OnErrorOrFrustration;
+
+    const integrity: unknown = raw["recorderIntegrity"];
+
+    const config: LoaderConfig = {
+      enabled: true,
+      recorderVersion: recorderVersion,
+      maskingMode: maskingMode,
+      captureTrigger: captureTrigger,
+      consentMode: consentMode,
+      samplePercentage: Config.readNumber(raw["samplePercentage"], 0),
+      maskSelectors: Config.readStringArray(raw["maskSelectors"]),
+      blockSelectors: Config.readStringArray(raw["blockSelectors"]),
+      urlAllowlist: Config.readStringArray(raw["urlAllowlist"]),
+      recordCanvas: raw["recordCanvas"] === true,
+      captureUserIdentity: raw["captureUserIdentity"] === true,
+
+      /* Absent means honour DNT. Only an explicit false turns it off. */
+      respectDoNotTrack: raw["respectDoNotTrack"] !== false,
+      configEpoch: Config.readNumber(raw["configEpoch"], 0),
+      directive:
+        raw["directive"] === "stop"
+          ? "stop"
+          : raw["directive"] === "throttle"
+            ? "throttle"
+            : "continue",
+    };
+
+    if (typeof integrity === "string" && integrity) {
+      config.recorderIntegrity = integrity;
+    }
+
+    return config;
+  }
+
+  private static readNumber(value: unknown, fallback: number): number {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return fallback;
+    }
+
+    return value;
+  }
+
+  private static readStringArray(value: unknown): Array<string> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.filter((entry: unknown): entry is string => {
+      return typeof entry === "string" && entry.length > 0;
+    });
+  }
+}

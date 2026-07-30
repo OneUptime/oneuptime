@@ -375,10 +375,21 @@ export const RumRoutePath: Dictionary<string> = {
   [PageMap.RUM_APPLICATION_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.RUM_APPLICATION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.RUM_APPLICATION_VIEW_CLIENTS]: `${RouteParams.ModelID}/clients`,
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY]: `${RouteParams.ModelID}/session-replay`,
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW]: `${RouteParams.ModelID}/session-replay/${RouteParams.SubModelID}`,
+  /*
+   * Deliberately NOT nested under session-replay/. React Router would
+   * resolve "session-replay/audit" ahead of "session-replay/:subModelId"
+   * only because static segments win, which means a session whose id
+   * happened to be "audit" would silently open the audit tab instead of
+   * that recording. A sibling path cannot collide at all.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT]: `${RouteParams.ModelID}/session-replay-audit`,
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.RUM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.RUM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.RUM_SETTINGS_SESSION_REPLAY]: `settings/session-replay`,
   [PageMap.RUM_ARCHIVED]: `archived`,
 };
 
@@ -3868,6 +3879,24 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT]
+    }`,
+  ),
+
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]
@@ -3894,6 +3923,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_SETTINGS_OWNER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.RUM_SETTINGS_SESSION_REPLAY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_SETTINGS_SESSION_REPLAY]
     }`,
   ),
 

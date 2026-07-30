@@ -99,10 +99,26 @@ const setDefaultHeaders: RequestHandler = (
   res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  /*
+   * x-oneuptime-token and x-oneuptime-app-identifier are listed explicitly
+   * because the session-replay recorder runs on a customer's own origin and
+   * so its POSTs are genuinely cross-origin and preflighted. Browser ingest
+   * has worked so far only because `app.use(cors())` runs before this
+   * handler; relying on that ordering for a required custom header would be
+   * a silent, hard-to-diagnose failure the first time it changed.
+   */
   res.header(
     "Access-Control-Allow-Headers",
-    "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Authorization, DNT, X-CustomHeader, Keep-Alive, User-Agent, If-Modified-Since, Cache-Control, Content-Type",
+    "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Authorization, DNT, X-CustomHeader, Keep-Alive, User-Agent, If-Modified-Since, Cache-Control, Content-Type, x-oneuptime-token, x-oneuptime-app-identifier",
   );
+
+  /*
+   * Without this the browser applies its own default preflight cache (5
+   * seconds in Chrome), which would preflight very nearly every replay
+   * chunk flush — doubling the request count on the highest-volume browser
+   * endpoint we have. 24 hours is the maximum Chrome honours.
+   */
+  res.header("Access-Control-Max-Age", "86400");
 
   next();
 };
@@ -140,7 +156,20 @@ const protobufBodyParserMiddleware: RequestHandler = ExpressRaw({
 });
 
 app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
-  if (req.path.includes("/otlp/v1/")) {
+  /*
+   * `includes`, not `startsWith`. Both of these routers are mounted on
+   * several prefixes, so /telemetry/otlp/v1/... and
+   * /telemetry/session-replay/v1/... are equally live. A prefix-anchored
+   * test would let the prefixed path fall into the gzip fast-path below,
+   * which has NO size limit and no content-length pre-check (a zip-bomb
+   * vector on a public browser endpoint) and which sets req.body to the
+   * DECOMPRESSED buffer — that in turn trips the ingest middleware's
+   * "already parsed" early-out, so its byte cap would never run at all.
+   */
+  if (
+    req.path.includes("/otlp/v1/") ||
+    req.path.includes("/session-replay/v1/")
+  ) {
     return next();
   }
 
@@ -190,8 +219,17 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
 });
 
 app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+  /*
+   * The urlencoded twin of the bypass above. It must carry the same
+   * session-replay exemption: a chunk POST carries a
+   * vnd.oneuptime.session-replay content type but the recorder's identity
+   * fallback path sends no Content-Encoding, so without this predicate the
+   * urlencoded parser would consume the stream before the replay body
+   * reader ever saw it.
+   */
   if (
     req.path.includes("/otlp/v1/") ||
+    req.path.includes("/session-replay/v1/") ||
     headerValueToString(req.headers["content-encoding"])?.includes("gzip")
   ) {
     next();

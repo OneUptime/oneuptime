@@ -1,0 +1,642 @@
+import TelemetryIngest, {
+  TelemetryRequest,
+} from "Common/Server/Middleware/TelemetryIngest";
+import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
+import Express, {
+  ExpressRequest,
+  ExpressResponse,
+  ExpressRouter,
+  NextFunction,
+  headerValueToString,
+} from "Common/Server/Utils/Express";
+import Response from "Common/Server/Utils/Response";
+import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
+import SessionReplayGateCache, {
+  SessionReplayGatePolicy,
+} from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
+import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import logger from "Common/Server/Utils/Logger";
+import StatusCode from "Common/Types/API/StatusCode";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SessionReplayChunkResponse,
+  SessionReplayConfigResponse,
+} from "Common/Types/Rum/SessionReplay";
+import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
+import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
+import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  SESSION_REPLAY_ENABLED_BY_DEFAULT,
+  SESSION_REPLAY_INGEST_ENABLED,
+  SESSION_REPLAY_RECORDER_VERSION,
+} from "../Config";
+import SessionReplayRequestMiddleware from "../Middleware/SessionReplayRequestMiddleware";
+import SessionReplayIngestService, {
+  SessionReplayGateDecision,
+  SessionReplayGateOutcome,
+} from "../Services/SessionReplayIngestService";
+import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
+import SessionReplayEnvelopeParser, {
+  ParsedSessionReplayFrame,
+  SessionReplayParseResult,
+} from "../Utils/SessionReplayEnvelopeParser";
+
+const router: ExpressRouter = Express.getRouter();
+
+/*
+ * Session replay ingest.
+ *
+ * Mounted under TELEMETRY_PREFIXES, so both /session-replay/v1/... and
+ * /telemetry/session-replay/v1/... are live. That is precisely why the
+ * body-parser bypass predicates in StartServer test `.includes()` rather
+ * than `.startsWith()`: the prefixed path would otherwise fall into the
+ * global gzip fast-path, which has no size limit at all and would hand this
+ * router an already-decompressed body, silently skipping the byte cap.
+ *
+ * Response vocabulary, and why each one:
+ *
+ *   202 - staged and enqueued. Only ever sent AFTER the enqueue succeeds.
+ *   204 - deliberately not recording (disabled, unsampled, over budget),
+ *         with a directive telling the recorder to stand down. Not an error.
+ *   400 - malformed frame. Terminal for the recorder.
+ *   401 - bad or missing ingestion key (from the shared auth middleware).
+ *   403 - origin not on the application's allowlist. Terminal.
+ *   413 - body over the cap (sent from the middleware, before it stops
+ *         reading, and without destroying the socket).
+ *   422 - an indivisible full snapshot that will not fit. The session
+ *         survives with a fidelity notice instead of vanishing.
+ *   429 - over the per-minute rate. Carries Retry-After.
+ *   503 - our storage could not accept it. Retryable, and never 202.
+ */
+
+/*
+ * Ingest metric for the replay signal. A local copy rather than a shared
+ * helper because the one in OTelIngest.ts is keyed to a closed union of the
+ * four OTel signals and is not exported.
+ */
+type ReplayMetricsMiddleware = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => void;
+
+const replayIngestMetricsMiddleware: ReplayMetricsMiddleware = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+): void => {
+  const startNs: bigint = process.hrtime.bigint();
+
+  const body: unknown = (req as { body?: unknown }).body;
+  let payloadBytes: number = 0;
+
+  if (Buffer.isBuffer(body)) {
+    payloadBytes = body.length;
+  } else if (body instanceof Uint8Array) {
+    payloadBytes = body.byteLength;
+  }
+
+  if (payloadBytes > 0) {
+    AppMetrics.getIngestPayloadBytes().record(payloadBytes, {
+      "telemetry.signal": "session-replay",
+    });
+  }
+
+  let recorded: boolean = false;
+
+  const recordOnce: () => void = (): void => {
+    if (recorded) {
+      return;
+    }
+    recorded = true;
+
+    const elapsedNs: bigint = process.hrtime.bigint() - startNs;
+    const statusCode: number = res.statusCode || 0;
+
+    /*
+     * 204 is counted as "refused" rather than "accepted": it means we chose
+     * not to record, and conflating it with a stored chunk would make the
+     * accept rate meaningless.
+     */
+    const outcome: string =
+      statusCode === 202
+        ? "accepted"
+        : statusCode === 204
+          ? "refused"
+          : statusCode >= 400 && statusCode < 500
+            ? "rejected"
+            : statusCode >= 500
+              ? "error"
+              : "other";
+
+    const attributes: Record<string, string> = {
+      "telemetry.signal": "session-replay",
+      outcome,
+    };
+
+    AppMetrics.getIngestCounter().add(1, attributes);
+    AppMetrics.getIngestDuration().record(Number(elapsedNs) / 1e6, attributes);
+  };
+
+  res.on("finish", recordOnce);
+  res.on("close", recordOnce);
+
+  next();
+};
+
+function readAppIdentifier(req: ExpressRequest): string {
+  return (
+    headerValueToString(
+      req.headers[SESSION_REPLAY_APP_IDENTIFIER_HEADER],
+    )?.trim() || ""
+  );
+}
+
+/*
+ * Country from a CDN-supplied header only.
+ *
+ * There is no IP-geolocation database in this deployment, and adding one to
+ * satisfy a nice-to-have column would be a poor trade. When the ingress
+ * supplies a country (Cloudflare and most CDNs do) we keep the two letters;
+ * otherwise the column stays empty. The client IP itself is never stored.
+ */
+const TWO_LETTER_COUNTRY_CODE: RegExp = new RegExp("^[A-Z]{2}$");
+
+function readCountryCode(req: ExpressRequest): string {
+  const candidates: Array<string | undefined> = [
+    headerValueToString(req.headers["cf-ipcountry"]),
+    headerValueToString(req.headers["x-vercel-ip-country"]),
+    headerValueToString(req.headers["x-country-code"]),
+  ];
+
+  for (const candidate of candidates) {
+    const trimmed: string = (candidate || "").trim().toUpperCase();
+
+    /*
+     * Cloudflare sends "XX" for an unknown country and "T1" for Tor exits;
+     * neither is a country, so only real two-letter codes are kept.
+     */
+    if (
+      TWO_LETTER_COUNTRY_CODE.test(trimmed) &&
+      trimmed !== "XX" &&
+      trimmed !== "T1"
+    ) {
+      return trimmed;
+    }
+  }
+
+  return "";
+}
+
+function sendChunkDirective(
+  req: ExpressRequest,
+  res: ExpressResponse,
+  statusCode: number,
+  decision: SessionReplayGateDecision,
+): void {
+  const payload: SessionReplayChunkResponse = {
+    directive: decision.directive,
+    configEpoch: decision.configEpoch,
+  };
+
+  if (decision.retryAfterSeconds !== undefined) {
+    payload.retryAfterSeconds = decision.retryAfterSeconds;
+    res.setHeader("Retry-After", String(decision.retryAfterSeconds));
+  }
+
+  /*
+   * 204 must not carry a body, so the directive rides in a header for that
+   * one case. The recorder reads the header when the body is empty.
+   */
+  if (statusCode === 204) {
+    res.setHeader("x-oneuptime-replay-directive", decision.directive);
+    res.setHeader(
+      "x-oneuptime-replay-config-epoch",
+      String(decision.configEpoch),
+    );
+    res.status(204).end();
+    return;
+  }
+
+  Response.sendJsonObjectResponse(req, res, payload as unknown as JSONObject, {
+    statusCode: new StatusCode(statusCode),
+  });
+}
+
+router.post(
+  "/session-replay/v1/chunk",
+  TelemetryIngestionDisabled.middleware,
+  SessionReplayRequestMiddleware.parseBody,
+  replayIngestMetricsMiddleware,
+  TelemetryIngest.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const serverReceiveUnixMs: number = Date.now();
+
+      const projectId: ObjectID = (req as TelemetryRequest).projectId;
+
+      const body: unknown = req.body;
+
+      if (!Buffer.isBuffer(body)) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            error: "malformed-body",
+            message:
+              "Session replay chunks must be posted as a raw body. Received a parsed value instead, which means the request did not reach the replay body reader.",
+          },
+          { statusCode: new StatusCode(400) },
+        );
+        return;
+      }
+
+      const appIdentifier: string = readAppIdentifier(req);
+
+      if (!appIdentifier) {
+        /*
+         * The identifier has to be a header: all three gates below need the
+         * RumApplication while the body is still an undecoded gzip Buffer.
+         * Moving the gates to the worker instead would mean the client has
+         * already been told 202 and can never learn it was dropped.
+         */
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            error: "missing-app-identifier",
+            message: `Send the RUM application identifier in the ${SESSION_REPLAY_APP_IDENTIFIER_HEADER} header.`,
+          },
+          { statusCode: new StatusCode(400) },
+        );
+        return;
+      }
+
+      const parsed: SessionReplayParseResult =
+        SessionReplayEnvelopeParser.parse(body, appIdentifier);
+
+      if (!parsed.isValid) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            error: parsed.error,
+            message: parsed.message,
+          },
+          {
+            statusCode: new StatusCode(
+              SessionReplayIngestService.isUnprocessableParseError(parsed.error)
+                ? 422
+                : 400,
+            ),
+          },
+        );
+        return;
+      }
+
+      const sessionIds: Array<string> = Array.from(
+        new Set(
+          parsed.frames.map((frame: ParsedSessionReplayFrame): string => {
+            return frame.envelope.sessionId;
+          }),
+        ),
+      );
+
+      const maxChunkIndex: number = parsed.frames.reduce(
+        (highest: number, frame: ParsedSessionReplayFrame): number => {
+          return Math.max(highest, frame.envelope.chunkIndex);
+        },
+        0,
+      );
+
+      const decision: SessionReplayGateDecision =
+        await SessionReplayIngestService.gateChunkRequest({
+          projectId: projectId,
+          appIdentifier: appIdentifier,
+          origin: headerValueToString(req.headers["origin"]),
+          sessionIds: sessionIds,
+          maxChunkIndex: maxChunkIndex,
+          chunkCount: parsed.frames.length,
+          payloadBytes: body.length,
+        });
+
+      switch (decision.outcome) {
+        case SessionReplayGateOutcome.Stop:
+          sendChunkDirective(req, res, 204, decision);
+          return;
+
+        case SessionReplayGateOutcome.OriginRefused:
+          sendChunkDirective(req, res, 403, decision);
+          return;
+
+        case SessionReplayGateOutcome.RateLimited:
+          sendChunkDirective(req, res, 429, decision);
+          return;
+
+        case SessionReplayGateOutcome.StorageUnavailable:
+          sendChunkDirective(req, res, 503, decision);
+          return;
+
+        case SessionReplayGateOutcome.Accepted:
+          break;
+
+        default:
+          sendChunkDirective(req, res, 503, decision);
+          return;
+      }
+
+      /*
+       * ENQUEUE FIRST, THEN RESPOND. The trace path sends 200 and awaits the
+       * enqueue afterwards, which loses the payload behind a success
+       * response when Redis is down - StartServer's error handler bails out
+       * once headersSent. A recording cannot be re-derived, and the recorder
+       * releases its buffer on success, so it has to be able to learn that
+       * its chunk did not land.
+       */
+      try {
+        await TelemetryQueueService.addSessionReplayIngestJob({
+          projectId: projectId,
+          appIdentifier: appIdentifier,
+          body: body,
+          serverReceiveUnixMs: serverReceiveUnixMs,
+          samplePercentageAtCapture: decision.policy?.samplePercentage ?? 0,
+          countryCode: readCountryCode(req),
+          inlineStagingMaxBytes:
+            SessionReplayIngestService.getInlineStagingMaxBytes(),
+        });
+      } catch (err) {
+        logger.error("Error staging a session replay chunk:");
+        logger.error(err);
+
+        sendChunkDirective(req, res, 503, {
+          outcome: SessionReplayGateOutcome.StorageUnavailable,
+          directive: "throttle",
+          configEpoch: decision.configEpoch,
+          retryAfterSeconds: 30,
+          reason: "staging-failed",
+        });
+        return;
+      }
+
+      sendChunkDirective(req, res, 202, decision);
+      return;
+    } catch (err) {
+      logger.error("Error in /session-replay/v1/chunk:");
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Policy snapshot for a live recorder.
+ *
+ * This endpoint is what makes every server-side privacy control actually
+ * reachable: without it, changing a masking mode or a block selector would
+ * never take effect in a browser that had already loaded the recorder. It
+ * also carries the pinned artifact version, which is the staged-rollout and
+ * instant-rollback mechanism, and a directive so a disabled application
+ * stops recording rather than merely stopping ingest.
+ *
+ * Cached privately for 5 minutes. The gate's Redis kill key is what closes
+ * the resulting window on the server side within ~5 seconds.
+ */
+router.get(
+  "/session-replay/v1/config",
+  TelemetryIngest.isAuthorizedServiceMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const projectId: ObjectID = (req as TelemetryRequest).projectId;
+      const appIdentifier: string = readAppIdentifier(req);
+
+      if (!appIdentifier) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            error: "missing-app-identifier",
+            message: `Send the RUM application identifier in the ${SESSION_REPLAY_APP_IDENTIFIER_HEADER} header.`,
+          },
+          { statusCode: new StatusCode(400) },
+        );
+        return;
+      }
+
+      /*
+       * The disabled response is a complete, well-formed config with
+       * enabled=false rather than a 404. A recorder that cannot parse the
+       * config must refuse to record, so handing it something it understands
+       * and that says "no" is strictly safer than handing it an error it
+       * might treat as transient and retry past.
+       */
+      const disabledResponse: SessionReplayConfigResponse = {
+        enabled: false,
+        recorderVersion: SESSION_REPLAY_RECORDER_VERSION,
+        maskingMode: SessionReplayMaskingMode.MaskAllText,
+        captureTrigger: SessionReplayCaptureTrigger.OnErrorOrFrustration,
+        consentMode: SessionReplayConsentMode.RequireExplicit,
+        samplePercentage: 0,
+        maskSelectors: [],
+        blockSelectors: [],
+        urlAllowlist: [],
+        recordCanvas: false,
+        captureUserIdentity: false,
+        respectDoNotTrack: true,
+        configEpoch: 0,
+        directive: "stop",
+      };
+
+      if (
+        !SESSION_REPLAY_INGEST_ENABLED ||
+        !SESSION_REPLAY_ENABLED_BY_DEFAULT
+      ) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          disabledResponse as unknown as JSONObject,
+        );
+        return;
+      }
+
+      let policy: SessionReplayGatePolicy | null = null;
+
+      try {
+        policy = await SessionReplayGateCache.getPolicy({
+          projectId: projectId,
+          appIdentifier: appIdentifier,
+        });
+      } catch (err) {
+        /*
+         * Fail CLOSED even here. A recorder told "enabled" by mistake starts
+         * recording real people; a recorder told "disabled" by mistake loses
+         * five minutes of coverage.
+         */
+        logger.error("Error resolving the session replay config policy:");
+        logger.error(err);
+
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          disabledResponse as unknown as JSONObject,
+        );
+        return;
+      }
+
+      if (!policy) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          disabledResponse as unknown as JSONObject,
+        );
+        return;
+      }
+
+      const config: SessionReplayConfigResponse = {
+        enabled: true,
+        recorderVersion: SESSION_REPLAY_RECORDER_VERSION,
+        maskingMode: policy.maskingMode,
+        captureTrigger: policy.captureTrigger,
+        consentMode: policy.consentMode,
+        samplePercentage: policy.samplePercentage,
+        maskSelectors: policy.maskSelectors,
+        blockSelectors: policy.blockSelectors,
+        /*
+         * No query parameter survives scrubbing by default. Per-application
+         * allowlisting is a settings-page concern; shipping an empty list
+         * here means the default cannot leak a reset token or a magic link.
+         */
+        urlAllowlist: [],
+        recordCanvas: policy.recordCanvas,
+        captureUserIdentity: policy.captureUserIdentity,
+        respectDoNotTrack: true,
+        configEpoch: policy.configEpoch,
+        directive: "continue",
+      };
+
+      res.setHeader("Cache-Control", "private, max-age=300");
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        config as unknown as JSONObject,
+      );
+      return;
+    } catch (err) {
+      logger.error("Error in /session-replay/v1/config:");
+      logger.error(err);
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Key-validity probe, mirroring /otlp/v1/validate.
+ *
+ * The chunk endpoint answers 401 for a bad key, but a recorder embedded in a
+ * customer's page has nowhere useful to surface that. This gives an install
+ * script or a "Test your installation" panel a real answer. It ingests
+ * nothing and writes nothing, and reads the token from headers only so it
+ * cannot leak into access logs.
+ */
+router.get(
+  "/session-replay/v1/validate",
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const token: string | undefined =
+        headerValueToString(req.headers["x-oneuptime-token"]) ||
+        headerValueToString(req.headers["x-oneuptime-service-token"]) ||
+        headerValueToString(req.headers["x-oneuptime-ingestion-key"]);
+
+      if (!token) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            tokenProvided: false,
+            valid: false,
+            message:
+              "No ingestion token provided. Send it in the x-oneuptime-token header.",
+          },
+          { statusCode: new StatusCode(401) },
+        );
+        return;
+      }
+
+      const projectId: ObjectID | null =
+        await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
+          token.toString(),
+        );
+
+      if (!projectId) {
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          {
+            tokenProvided: true,
+            valid: false,
+            message:
+              "This ingestion token is unknown or has been revoked. Create or copy a live key from Project Settings > Telemetry Ingestion Keys, then update the recorder snippet.",
+          },
+          { statusCode: new StatusCode(401) },
+        );
+        return;
+      }
+
+      const appIdentifier: string = readAppIdentifier(req);
+
+      /*
+       * When an app identifier is supplied we also report whether replay is
+       * actually enabled for it. A valid key against a disabled application
+       * is the single most common "why are there no recordings?" case, and
+       * without this the customer has no way to tell the two apart.
+       */
+      let isSessionReplayEnabled: boolean = false;
+
+      if (appIdentifier) {
+        try {
+          const policy: SessionReplayGatePolicy | null =
+            await SessionReplayGateCache.getPolicy({
+              projectId: projectId,
+              appIdentifier: appIdentifier,
+            });
+
+          isSessionReplayEnabled = Boolean(policy);
+        } catch (err) {
+          logger.warn(
+            "Error resolving the session replay policy during validation:",
+          );
+          logger.warn(err);
+        }
+      }
+
+      Response.sendJsonObjectResponse(req, res, {
+        tokenProvided: true,
+        valid: true,
+        projectId: projectId.toString(),
+        appIdentifierProvided: Boolean(appIdentifier),
+        isSessionReplayEnabled: isSessionReplayEnabled,
+        isIngestEnabledOnThisInstance: SESSION_REPLAY_INGEST_ENABLED,
+        message: "Ingestion token is valid.",
+      });
+      return;
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+export default router;

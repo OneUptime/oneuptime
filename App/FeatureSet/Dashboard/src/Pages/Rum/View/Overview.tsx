@@ -46,6 +46,10 @@ import {
   SpanMetrics,
   WebVital,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
+import {
+  fetchSessionReplayList,
+  SessionReplayListResult,
+} from "../../../Components/SessionReplay/SessionReplayTable";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -60,6 +64,9 @@ const RumApplicationOverview: FunctionComponent<
     null,
   );
   const [clientCount, setClientCount] = useState<number | null>(null);
+  const [sessionReplayCount, setSessionReplayCount] = useState<number | null>(
+    null,
+  );
   const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
@@ -193,6 +200,35 @@ const RumApplicationOverview: FunctionComponent<
         setWebVitalsLoading(false);
       });
 
+    /*
+     * Recorded-session count for the tile. limit 1 because only the count is
+     * wanted; the endpoint dedupes ReplacingMergeTree versions itself, so a
+     * plain row count would over-report the newest sessions. Failure resolves
+     * to 0 rather than erroring the page - replay is off by default and a
+     * project that never enabled it must not see a broken overview.
+     */
+    setSessionReplayCount(null);
+    fetchSessionReplayList({
+      rumApplicationId: modelId,
+      signal: "all",
+      startTime: start,
+      endTime: end,
+      limit: 1,
+      skip: 0,
+    })
+      .then((result: SessionReplayListResult) => {
+        if (ignore) {
+          return;
+        }
+        setSessionReplayCount(result.count);
+      })
+      .catch(() => {
+        if (ignore) {
+          return;
+        }
+        setSessionReplayCount(0);
+      });
+
     return () => {
       ignore = true;
     };
@@ -268,6 +304,16 @@ const RumApplicationOverview: FunctionComponent<
       sublabel: "platforms seen",
       to: populate(PageMap.RUM_APPLICATION_VIEW_CLIENTS),
     },
+    {
+      title: "Sessions recorded",
+      value:
+        sessionReplayCount === null ? "—" : formatCompact(sessionReplayCount),
+      icon: IconProp.Film,
+      iconColor: "sky",
+      loading: sessionReplayCount === null,
+      sublabel: "selected range",
+      to: populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
+    },
   ];
 
   const charts: ReactElement = (
@@ -310,6 +356,12 @@ const RumApplicationOverview: FunctionComponent<
   );
 
   const quickLinks: Array<ResourceOverviewQuickLink> = [
+    {
+      title: "Session Replay",
+      description: "Watch what real users saw",
+      to: populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
+      icon: IconProp.Film,
+    },
     {
       title: "Traces",
       description: "Page loads, interactions and fetches",

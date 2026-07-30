@@ -1,0 +1,634 @@
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { APP_API_URL } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
+import Route from "Common/Types/API/Route";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Card from "Common/UI/Components/Card/Card";
+import Table from "Common/UI/Components/Table/Table";
+import Column from "Common/UI/Components/Table/Types/Column";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
+import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import Navigation from "Common/UI/Utils/Navigation";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+
+/*
+ * The session list is a bespoke table over POST /telemetry/rum/session-replay/list
+ * rather than an AnalyticsModelTable.
+ *
+ * RumSessionV1 is a ReplacingMergeTree and there is no FINAL support anywhere
+ * in this repo, so duplicate versions of a row are visible until a background
+ * merge collapses them - worst for the newest sessions, which are exactly the
+ * ones that sort first here. The endpoint deduplicates with
+ * argMax(col, version) ... GROUP BY (projectId, rumApplicationId, sessionId);
+ * a generic model table would show the same session two or three times with
+ * different aggregate counts.
+ */
+
+/* One deduplicated header row. Mirrors the /list projection. */
+export interface SessionReplaySummary {
+  sessionId: string;
+  startTime: string;
+  endTime: string;
+  durationMs: number;
+  chunkCount: number;
+  missingChunkCount: number;
+  eventCount: number;
+  payloadBytes: number;
+  isFinalized: boolean;
+  sealedReason: string;
+  hasError: boolean;
+  errorCount: number;
+  rageClickCount: number;
+  deadClickCount: number;
+  errorClickCount: number;
+  refreshRageCount: number;
+  pageCount: number;
+  triggerReason: string;
+  entryUrl: string;
+  exitUrl: string;
+  browserName: string;
+  browserVersion: string;
+  osName: string;
+  deviceType: string;
+  countryCode: string;
+  identifiedUserLabel: string;
+  maskingMode: string;
+  fidelityNotices: Array<string>;
+}
+
+export interface SessionReplayListFilter {
+  /* "all" | "errors" | "frustration" - the three questions people ask. */
+  signal: string;
+  startTime: Date;
+  endTime: Date;
+}
+
+export interface SessionReplayListResult {
+  sessions: Array<SessionReplaySummary>;
+  count: number;
+  /*
+   * True when the endpoint hit its LIMIT_PER_PROJECT clamp, so `count` is a
+   * lower bound. Pagination degrades to prev/next rather than claiming a
+   * total it cannot prove.
+   */
+  hasMore: boolean;
+}
+
+const SESSION_REPLAY_LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
+
+const DEFAULT_ITEMS_ON_PAGE: number = 20;
+
+const DEFAULT_RANGE: RangeStartAndEndDateTime = {
+  range: TimeRange.PAST_ONE_DAY,
+};
+
+/*
+ * Reads a field off an untyped JSON row. The endpoint's projection is a hand
+ * written ClickHouse statement, not a model serialisation, so every field is
+ * coerced here rather than trusted.
+ */
+function readString(row: JSONObject, key: string): string {
+  const value: unknown = row[key];
+
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value);
+}
+
+function readNumber(row: JSONObject, key: string): number {
+  const value: unknown = row[key];
+  const parsed: number = Number(value);
+
+  return isFinite(parsed) ? parsed : 0;
+}
+
+function readBoolean(row: JSONObject, key: string): boolean {
+  const value: unknown = row[key];
+
+  // ClickHouse UInt8 booleans arrive as 0/1, sometimes as the strings "0"/"1".
+  return value === true || value === 1 || value === "1";
+}
+
+function readStringArray(row: JSONObject, key: string): Array<string> {
+  const value: unknown = row[key];
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((entry: unknown): string => {
+    return String(entry);
+  });
+}
+
+export function parseSessionReplaySummary(
+  row: JSONObject,
+): SessionReplaySummary {
+  return {
+    sessionId: readString(row, "sessionId"),
+    startTime: readString(row, "startTime"),
+    endTime: readString(row, "endTime"),
+    durationMs: readNumber(row, "durationMs"),
+    chunkCount: readNumber(row, "chunkCount"),
+    missingChunkCount: readNumber(row, "missingChunkCount"),
+    eventCount: readNumber(row, "eventCount"),
+    payloadBytes: readNumber(row, "payloadBytes"),
+    isFinalized: readBoolean(row, "isFinalized"),
+    sealedReason: readString(row, "sealedReason"),
+    hasError: readBoolean(row, "hasError"),
+    errorCount: readNumber(row, "errorCount"),
+    rageClickCount: readNumber(row, "rageClickCount"),
+    deadClickCount: readNumber(row, "deadClickCount"),
+    errorClickCount: readNumber(row, "errorClickCount"),
+    refreshRageCount: readNumber(row, "refreshRageCount"),
+    pageCount: readNumber(row, "pageCount"),
+    triggerReason: readString(row, "triggerReason"),
+    entryUrl: readString(row, "entryUrl"),
+    exitUrl: readString(row, "exitUrl"),
+    browserName: readString(row, "browserName"),
+    browserVersion: readString(row, "browserVersion"),
+    osName: readString(row, "osName"),
+    deviceType: readString(row, "deviceType"),
+    countryCode: readString(row, "countryCode"),
+    identifiedUserLabel: readString(row, "identifiedUserLabel"),
+    maskingMode: readString(row, "maskingMode"),
+    fidelityNotices: readStringArray(row, "fidelityNotices"),
+  };
+}
+
+export async function fetchSessionReplayList(request: {
+  rumApplicationId: ObjectID;
+  signal: string;
+  startTime: Date;
+  endTime: Date;
+  limit: number;
+  skip: number;
+}): Promise<SessionReplayListResult> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        SESSION_REPLAY_LIST_ROUTE,
+      ),
+      data: {
+        rumApplicationId: request.rumApplicationId.toString(),
+        signal: request.signal,
+        startTime: OneUptimeDate.toString(request.startTime),
+        endTime: OneUptimeDate.toString(request.endTime),
+        limit: request.limit,
+        skip: request.skip,
+      },
+      headers: {
+        ...ModelAPI.getCommonHeaders(),
+      },
+    },
+  );
+
+  if (response instanceof HTTPErrorResponse) {
+    throw response;
+  }
+
+  const rows: JSONArray = (response.data["sessions"] as JSONArray) || [];
+
+  return {
+    sessions: rows.map((row: JSONObject): SessionReplaySummary => {
+      return parseSessionReplaySummary(row);
+    }),
+    count: Number(response.data["count"] ?? rows.length) || 0,
+    hasMore: Boolean(response.data["hasMore"]),
+  };
+}
+
+export function formatSessionDuration(durationMs: number): string {
+  if (!isFinite(durationMs) || durationMs <= 0) {
+    return "—";
+  }
+
+  const totalSeconds: number = Math.round(durationMs / 1000);
+  const minutes: number = Math.floor(totalSeconds / 60);
+  const seconds: number = totalSeconds % 60;
+
+  if (minutes === 0) {
+    return `${seconds}s`;
+  }
+
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+}
+
+export interface SessionReplayTableProps {
+  rumApplicationId: ObjectID;
+  /* Overrides the default "Sessions" card copy on embedded uses. */
+  title?: string | undefined;
+  description?: string | undefined;
+}
+
+const SIGNAL_FILTERS: Array<{ label: string; value: string }> = [
+  { label: "All sessions", value: "all" },
+  { label: "With errors", value: "errors" },
+  { label: "With frustration", value: "frustration" },
+];
+
+const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
+  props: SessionReplayTableProps,
+): ReactElement => {
+  const [rows, setRows] = useState<Array<SessionReplaySummary>>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+  const [signal, setSignal] = useState<string>("all");
+  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [itemsOnPage, setItemsOnPage] = useState<number>(DEFAULT_ITEMS_ON_PAGE);
+  const [timeRange, setTimeRange] =
+    useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
+
+  /*
+   * Generation counter guards every fetch - including manual retries - so a
+   * slow stale response can never overwrite a newer one. Copied from
+   * Components/Profiles/ProfileFlamegraph.tsx.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  const load: (generation: number) => Promise<void> = useCallback(
+    async (generation: number): Promise<void> => {
+      try {
+        setIsLoading(true);
+        setError("");
+
+        const range: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+        const result: SessionReplayListResult = await fetchSessionReplayList({
+          rumApplicationId: props.rumApplicationId,
+          signal: signal,
+          startTime: range.startValue,
+          endTime: range.endValue,
+          limit: itemsOnPage,
+          skip: (pageNumber - 1) * itemsOnPage,
+        });
+
+        if (generation !== loadGenerationRef.current) {
+          return;
+        }
+
+        setRows(result.sessions);
+        setTotalCount(result.count);
+        setHasMore(result.hasMore);
+      } catch (err) {
+        if (generation === loadGenerationRef.current) {
+          setError(API.getFriendlyMessage(err));
+        }
+      } finally {
+        if (generation === loadGenerationRef.current) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [props.rumApplicationId, signal, timeRange, pageNumber, itemsOnPage],
+  );
+
+  useEffect(() => {
+    loadGenerationRef.current += 1;
+    void load(loadGenerationRef.current);
+    return () => {
+      // Invalidate in-flight responses when scope changes or we unmount.
+      loadGenerationRef.current += 1;
+    };
+  }, [load]);
+
+  const routeForSession: (row: SessionReplaySummary) => Route | null =
+    useCallback(
+      (row: SessionReplaySummary): Route | null => {
+        if (!row.sessionId) {
+          return null;
+        }
+
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW] as Route,
+          {
+            modelId: props.rumApplicationId,
+            subModelId: row.sessionId,
+          },
+        );
+      },
+      [props.rumApplicationId],
+    );
+
+  const columns: Array<Column<SessionReplaySummary>> = useMemo(() => {
+    return [
+      {
+        title: "Session",
+        type: FieldType.Element,
+        key: "startTime",
+        disableSort: true,
+        getElement: (row: SessionReplaySummary): ReactElement => {
+          const startedAt: Date | null = row.startTime
+            ? OneUptimeDate.fromString(row.startTime)
+            : null;
+
+          return (
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium text-gray-900">
+                {row.entryUrl || "Unknown page"}
+              </div>
+              <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
+                <span className="font-mono">
+                  {row.sessionId.slice(0, 12) || "—"}
+                </span>
+                {startedAt && !isNaN(startedAt.getTime()) && (
+                  <span>{OneUptimeDate.fromNow(startedAt)}</span>
+                )}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        title: "User & device",
+        type: FieldType.Element,
+        key: "browserName",
+        disableSort: true,
+        hideOnMobile: true,
+        getElement: (row: SessionReplaySummary): ReactElement => {
+          const device: Array<string> = [
+            [row.browserName, row.browserVersion].filter(Boolean).join(" "),
+            row.osName,
+            row.deviceType,
+          ].filter((part: string): boolean => {
+            return Boolean(part);
+          });
+
+          return (
+            <div className="min-w-0">
+              {/*
+               * identifiedUserLabel is only ever populated when the
+               * application explicitly enabled identity capture. An empty
+               * value means pseudonymous, which is the default, so it says
+               * so rather than rendering a blank cell.
+               */}
+              <div className="truncate text-sm text-gray-900">
+                {row.identifiedUserLabel || "Anonymous"}
+              </div>
+              <div className="truncate text-xs text-gray-500">
+                {device.length > 0 ? device.join(" · ") : "Unknown device"}
+                {row.countryCode ? ` · ${row.countryCode}` : ""}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        title: "Duration",
+        type: FieldType.Element,
+        key: "durationMs",
+        disableSort: true,
+        getElement: (row: SessionReplaySummary): ReactElement => {
+          return (
+            <div className="min-w-0">
+              <div className="font-mono text-sm tabular-nums text-gray-900">
+                {formatSessionDuration(row.durationMs)}
+              </div>
+              <div className="text-xs text-gray-500">
+                {row.pageCount || 0} page
+                {row.pageCount === 1 ? "" : "s"}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        title: "Signals",
+        type: FieldType.Element,
+        key: "errorCount",
+        disableSort: true,
+        getElement: (row: SessionReplaySummary): ReactElement => {
+          const badges: Array<ReactElement> = [];
+
+          if (row.errorCount > 0) {
+            badges.push(
+              <span
+                key="errors"
+                className="rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium text-rose-700 ring-1 ring-inset ring-rose-200"
+              >
+                {row.errorCount} error{row.errorCount === 1 ? "" : "s"}
+              </span>,
+            );
+          }
+
+          if (row.rageClickCount > 0) {
+            badges.push(
+              <span
+                key="rage"
+                className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200"
+              >
+                {row.rageClickCount} rage
+              </span>,
+            );
+          }
+
+          if (row.deadClickCount > 0) {
+            badges.push(
+              <span
+                key="dead"
+                className="rounded bg-gray-50 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
+              >
+                {row.deadClickCount} dead
+              </span>,
+            );
+          }
+
+          if (row.refreshRageCount > 0) {
+            badges.push(
+              <span
+                key="refresh"
+                className="rounded bg-violet-50 px-1.5 py-0.5 text-[11px] font-medium text-violet-700 ring-1 ring-inset ring-violet-200"
+              >
+                {row.refreshRageCount} refresh rage
+              </span>,
+            );
+          }
+
+          if (badges.length === 0) {
+            return <span className="text-xs text-gray-400">Clean</span>;
+          }
+
+          return <div className="flex flex-wrap gap-1">{badges}</div>;
+        },
+      },
+      {
+        title: "Recording",
+        type: FieldType.Element,
+        key: "isFinalized",
+        disableSort: true,
+        hideOnMobile: true,
+        getElement: (row: SessionReplaySummary): ReactElement => {
+          /*
+           * Completeness is stated on the list, not hidden until playback.
+           * A viewer choosing between two sessions needs to know one of them
+           * is missing footage before they spend a minute watching it.
+           */
+          const notes: Array<string> = [];
+
+          if (!row.isFinalized) {
+            notes.push("Still recording");
+          }
+
+          if (row.missingChunkCount > 0) {
+            notes.push(
+              `${row.missingChunkCount} chunk${
+                row.missingChunkCount === 1 ? "" : "s"
+              } missing`,
+            );
+          }
+
+          if (row.fidelityNotices.length > 0) {
+            notes.push(
+              `${row.fidelityNotices.length} fidelity notice${
+                row.fidelityNotices.length === 1 ? "" : "s"
+              }`,
+            );
+          }
+
+          return (
+            <div className="min-w-0">
+              <div className="text-xs capitalize text-gray-600">
+                {row.triggerReason || "unknown"}
+              </div>
+              {notes.length > 0 && (
+                <div className="truncate text-xs text-amber-700">
+                  {notes.join(" · ")}
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        title: "",
+        type: FieldType.Actions,
+        key: null,
+        disableSort: true,
+      },
+    ];
+  }, []);
+
+  const actionButtons: Array<ActionButtonSchema<SessionReplaySummary>> = [
+    {
+      title: "Watch",
+      buttonStyleType: ButtonStyleType.NORMAL,
+      icon: IconProp.Play,
+      isVisible: (row: SessionReplaySummary): boolean => {
+        return routeForSession(row) !== null;
+      },
+      onClick: (
+        row: SessionReplaySummary,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): void => {
+        try {
+          const route: Route | null = routeForSession(row);
+
+          if (route) {
+            Navigation.navigate(route);
+          }
+
+          onCompleteAction();
+        } catch (err) {
+          onError(err as Error);
+        }
+      },
+    },
+  ];
+
+  return (
+    <Card
+      title={props.title || "Session Replay"}
+      description={
+        props.description ||
+        "Recordings of real end-user sessions for this application. Content is masked at capture in the end user's browser; what you see here is what the recorder was allowed to send."
+      }
+      rightElement={
+        <TelemetryTimeRangePicker
+          value={timeRange}
+          onChange={(value: RangeStartAndEndDateTime): void => {
+            setPageNumber(1);
+            setTimeRange(value);
+          }}
+        />
+      }
+    >
+      <div className="mb-4">
+        <FilterButtons
+          options={SIGNAL_FILTERS}
+          selectedValue={signal}
+          onSelect={(value: string): void => {
+            setPageNumber(1);
+            setSignal(value);
+          }}
+        />
+      </div>
+
+      <Table<SessionReplaySummary>
+        id="rum-session-replay-table"
+        columns={columns}
+        actionButtons={actionButtons}
+        data={rows}
+        singularLabel="Session"
+        pluralLabel="Sessions"
+        isLoading={isLoading}
+        error={error}
+        onRefreshClick={(): void => {
+          loadGenerationRef.current += 1;
+          void load(loadGenerationRef.current);
+        }}
+        currentPageNumber={pageNumber}
+        totalItemsCount={totalCount}
+        hasMore={hasMore}
+        itemsOnPage={itemsOnPage}
+        onNavigateToPage={(page: number, onPage: number): void => {
+          setPageNumber(page);
+          setItemsOnPage(onPage);
+        }}
+        sortOrder={SortOrder.Descending}
+        sortBy={null}
+        onSortChanged={() => {
+          /*
+           * Sorting is fixed to newest-first at the endpoint. The header's
+           * sort key already starts with startTime DESC, so any other order
+           * would be a full sort of the result set for no product benefit.
+           */
+        }}
+        noItemsMessage="No recorded sessions in this window. Session replay is off by default: enable it per application under Session Replay settings, then confirm the recorder is loading with the installation check in Documentation."
+      />
+    </Card>
+  );
+};
+
+export default SessionReplayTable;
