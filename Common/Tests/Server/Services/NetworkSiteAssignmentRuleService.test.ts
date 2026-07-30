@@ -1,4 +1,6 @@
 import NetworkSiteAssignmentRuleService from "../../../Server/Services/NetworkSiteAssignmentRuleService";
+import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
+import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteAssignmentRule from "../../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -11,12 +13,29 @@ import { describe, expect, it, afterEach } from "@jest/globals";
  * one usable criterion (subnetCidr or hostnamePattern), and a provided CIDR
  * must be well-formed - on create AND on any update, including updates that
  * clear one criterion while the other only exists on the stored row.
+ *
+ * Plus the site the rule points at must belong to the rule's own project,
+ * under either spelling of the reference: the dashboard's form posts the
+ * `site` relation, not the `siteId` column. A rule aimed at a foreign site
+ * renders that site's name in the rules table and can never assign anything,
+ * because NetworkDeviceService rejects the device update it would drive.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 const SITE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
+
+function mockSiteInProject(projectId: ObjectID): jest.SpyInstance {
+  return jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue({
+    id: SITE_ID,
+    _id: SITE_ID.toString(),
+    projectId: projectId,
+  } as unknown as NetworkSite);
+}
 
 function makeCreateBy(data: {
   subnetCidr?: string | undefined;
@@ -72,6 +91,8 @@ describe("NetworkSiteAssignmentRuleService.onBeforeCreate", () => {
   });
 
   it("accepts a CIDR-only rule", async () => {
+    mockSiteInProject(PROJECT_ID);
+
     await expect(
       (NetworkSiteAssignmentRuleService as any).onBeforeCreate(
         makeCreateBy({ subnetCidr: "10.0.0.0/24" }),
@@ -80,11 +101,53 @@ describe("NetworkSiteAssignmentRuleService.onBeforeCreate", () => {
   });
 
   it("accepts a hostname-pattern-only rule", async () => {
+    mockSiteInProject(PROJECT_ID);
+
     await expect(
       (NetworkSiteAssignmentRuleService as any).onBeforeCreate(
         makeCreateBy({ hostnamePattern: "unit-*" }),
       ),
     ).resolves.toBeDefined();
+  });
+
+  it("rejects a rule that points at another project's site", async () => {
+    mockSiteInProject(OTHER_PROJECT_ID);
+
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeCreate(
+        makeCreateBy({ hostnamePattern: "unit-*" }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("rejects a rule whose site does not resolve to a row", async () => {
+    jest.spyOn(NetworkSiteService, "findOneById").mockResolvedValue(null);
+
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeCreate(
+        makeCreateBy({ hostnamePattern: "unit-*" }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  /*
+   * The dashboard posts `{ site: { _id } }`; a guard that reads only `siteId`
+   * would wave this straight through.
+   */
+  it("checks the site given as the dashboard's `site` relation", async () => {
+    mockSiteInProject(OTHER_PROJECT_ID);
+
+    const rule: NetworkSiteAssignmentRule = new NetworkSiteAssignmentRule();
+    rule.projectId = PROJECT_ID;
+    rule.hostnamePattern = "unit-*";
+    (rule as any).site = { _id: SITE_ID.toString() };
+
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeCreate({
+        data: rule,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(BadDataException);
   });
 });
 
@@ -168,7 +231,7 @@ describe("NetworkSiteAssignmentRuleService.onBeforeUpdate", () => {
     ).resolves.toBeDefined();
   });
 
-  it("skips validation entirely when neither criterion is touched", async () => {
+  it("skips validation entirely when neither criterion nor site is touched", async () => {
     const findBySpy: jest.SpyInstance = jest.spyOn(
       NetworkSiteAssignmentRuleService,
       "findBy",
@@ -181,5 +244,35 @@ describe("NetworkSiteAssignmentRuleService.onBeforeUpdate", () => {
     ).resolves.toBeDefined();
 
     expect(findBySpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects re-pointing a rule at another project's site", async () => {
+    jest
+      .spyOn(NetworkSiteAssignmentRuleService, "findBy")
+      .mockResolvedValue([
+        { projectId: PROJECT_ID } as unknown as NetworkSiteAssignmentRule,
+      ]);
+    mockSiteInProject(OTHER_PROJECT_ID);
+
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ site: { _id: SITE_ID.toString() } }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("accepts re-pointing a rule at a site in its own project", async () => {
+    jest
+      .spyOn(NetworkSiteAssignmentRuleService, "findBy")
+      .mockResolvedValue([
+        { projectId: PROJECT_ID } as unknown as NetworkSiteAssignmentRule,
+      ]);
+    mockSiteInProject(PROJECT_ID);
+
+    await expect(
+      (NetworkSiteAssignmentRuleService as any).onBeforeUpdate(
+        makeUpdateBy({ siteId: SITE_ID }),
+      ),
+    ).resolves.toBeDefined();
   });
 });

@@ -18,7 +18,55 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import CidrMatchUtil from "../../Utils/NetworkSite/CidrMatchUtil";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { EntityManager } from "typeorm";
+
+/*
+ * Columns a NetworkSiteAssignmentRule's hostname pattern is matched against.
+ * A write to any of them can change which rule wins for the device, so
+ * onUpdateSuccess re-evaluates the rules. `sysName` matters most in practice:
+ * a discovery import stores the responding IP in `hostname` and only the SNMP
+ * walk fills `sysName` in later, so a device's real identity usually lands
+ * AFTER creation.
+ */
+const SITE_RULE_IDENTITY_COLUMNS: Array<string> = [
+  "hostname",
+  "name",
+  "sysName",
+];
+
+/*
+ * Both spellings of "the device's site" in a write payload - see
+ * RelationIdUtil for why a hook has to watch for both.
+ */
+const SITE_KEYS: Array<string> = ["siteId", "site"];
+
+/*
+ * Null, undefined and "  Core-SW " all mean the same thing to a
+ * case-insensitive wildcard match, so compare identity values normalised -
+ * otherwise a no-op rewrite of sysName on every SNMP walk would look like a
+ * change and re-run the rules for the whole fleet every polling cycle.
+ */
+function normalizeIdentityValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value).trim().toLowerCase();
+}
+
+// True when the payload sets the device's site, under either spelling.
+function isSiteWrite(dataKeys: Array<string>): boolean {
+  return RelationIdUtil.isWritten(dataKeys, SITE_KEYS);
+}
+
+/*
+ * The site a payload moves the device to, or null when it clears the site (or
+ * carries no resolvable id).
+ */
+function readSiteIdFromData(data: Record<string, unknown>): ObjectID | null {
+  return RelationIdUtil.read(data, SITE_KEYS);
+}
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -88,9 +136,18 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    if (createBy.data.siteId) {
+    /*
+     * Read both spellings: the dashboard posts the `site` relation, not the
+     * `siteId` column, so guarding only `siteId` let a UI-created device
+     * point at another project's site.
+     */
+    const siteId: ObjectID | null = readSiteIdFromData(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (siteId) {
       await this.assertSiteBelongsToProject({
-        siteId: createBy.data.siteId,
+        siteId: siteId,
         projectId: createBy.data.projectId,
       });
     }
@@ -124,9 +181,16 @@ export class Service extends DatabaseService<Model> {
           );
         })
         .then(async () => {
-          if (createdItem.siteId) {
+          /*
+           * `site` (relation) or `siteId` (column) - a device created from
+           * the dashboard carries only the former.
+           */
+          const createdSiteId: ObjectID | null =
+            createdItem.siteId || createdItem.site?.id || null;
+
+          if (createdSiteId) {
             await NetworkSiteService.recomputeRollupForSiteAndAncestors(
-              createdItem.siteId,
+              createdSiteId,
             );
           } else {
             await this.applySiteAssignmentRulesToDevice(createdItem.id!);
@@ -146,9 +210,11 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Capture the previous site of every matched device when an update
-   * touches siteId, so onUpdateSuccess can refresh the OLD site's rollup
-   * as well as the new one.
+   * Capture the previous state of every matched device when an update
+   * touches siteId (so onUpdateSuccess can refresh the OLD site's rollup as
+   * well as the new one) or touches one of the columns site assignment rules
+   * match on (so onUpdateSuccess can tell a real rename from the identical
+   * sysName the SNMP walk rewrites on every poll).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -156,7 +222,14 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnUpdate<Model>> {
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
 
-    if (!dataKeys.includes("siteId")) {
+    const isSiteChange: boolean = isSiteWrite(dataKeys);
+    const isIdentityChange: boolean = SITE_RULE_IDENTITY_COLUMNS.some(
+      (column: string) => {
+        return dataKeys.includes(column);
+      },
+    );
+
+    if (!isSiteChange && !isIdentityChange) {
       return { updateBy, carryForward: null };
     }
 
@@ -166,6 +239,9 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         projectId: true,
         siteId: true,
+        hostname: true,
+        name: true,
+        sysName: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -174,10 +250,11 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    const newSiteIdValue: unknown = (updateBy.data as any)["siteId"];
+    const newSiteId: ObjectID | null = readSiteIdFromData(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
-    if (newSiteIdValue) {
-      const newSiteId: ObjectID = new ObjectID(newSiteIdValue.toString());
+    if (newSiteId) {
       const checkedProjectIds: Set<string> = new Set();
 
       for (const previousDevice of previousDevices) {
@@ -216,7 +293,7 @@ export class Service extends DatabaseService<Model> {
     try {
       const dataKeys: Array<string> = Object.keys(onUpdate.updateBy.data || {});
 
-      if (dataKeys.includes("siteId")) {
+      if (isSiteWrite(dataKeys)) {
         // Manual or rule-driven site change: refresh old + new site chains.
         const affectedSiteIds: Map<string, ObjectID> = new Map();
 
@@ -250,23 +327,55 @@ export class Service extends DatabaseService<Model> {
           }
         }
 
-        const newSiteIdValue: unknown = (onUpdate.updateBy.data as any)[
-          "siteId"
-        ];
-        if (newSiteIdValue && updatedItemIds.length > 0) {
-          const newSiteId: ObjectID = new ObjectID(newSiteIdValue.toString());
+        const newSiteId: ObjectID | null = readSiteIdFromData(
+          onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        );
+        if (newSiteId && updatedItemIds.length > 0) {
           affectedSiteIds.set(newSiteId.toString(), newSiteId);
         }
 
         for (const siteId of affectedSiteIds.values()) {
           await NetworkSiteService.recomputeRollupForSiteAndAncestors(siteId);
         }
-      } else if (dataKeys.includes("hostname")) {
+      } else if (
+        SITE_RULE_IDENTITY_COLUMNS.some((column: string) => {
+          return dataKeys.includes(column);
+        })
+      ) {
         /*
-         * The device's address changed, so subnet/hostname rules may now
-         * resolve differently — re-evaluate each updated device.
+         * The device's address or name changed, so subnet/hostname rules may
+         * now resolve differently — re-evaluate each updated device whose
+         * identity actually moved (or that has no site yet).
          */
+        const previousDevicesById: Map<string, Model> = new Map();
+
+        const previousDevices: Array<Model> =
+          (onUpdate.carryForward?.previousDevices as Array<Model>) || [];
+
+        for (const previousDevice of previousDevices) {
+          if (previousDevice.id) {
+            previousDevicesById.set(
+              previousDevice.id.toString(),
+              previousDevice,
+            );
+          }
+        }
+
         for (const deviceId of updatedItemIds) {
+          const previousDevice: Model | undefined = previousDevicesById.get(
+            deviceId.toString(),
+          );
+
+          if (
+            previousDevice &&
+            !this.shouldReapplySiteAssignmentRules(
+              previousDevice,
+              onUpdate.updateBy.data as Record<string, unknown>,
+            )
+          ) {
+            continue;
+          }
+
           await this.applySiteAssignmentRulesToDevice(deviceId);
         }
       }
@@ -277,6 +386,43 @@ export class Service extends DatabaseService<Model> {
     }
 
     return onUpdate;
+  }
+
+  /*
+   * True when an update that touched an identity column is worth re-running
+   * the assignment rules for.
+   *
+   * A device with no site is always re-evaluated: rules are usually written
+   * (or corrected) after the devices were imported, and the SNMP walk is the
+   * only thing that ever touches such a device again — without this, a
+   * matching rule would never reach it. Assigning a site to a device that has
+   * none cannot undo a human's choice.
+   *
+   * A device that already sits in a site is only re-evaluated when its
+   * identity really changed, so the sysName the walk rewrites verbatim every
+   * polling cycle does not keep dragging a manually placed device back to
+   * whatever a rule prefers.
+   */
+  private shouldReapplySiteAssignmentRules(
+    previousDevice: Model,
+    data: Record<string, unknown>,
+  ): boolean {
+    if (!previousDevice.siteId) {
+      return true;
+    }
+
+    const dataKeys: Array<string> = Object.keys(data || {});
+
+    return SITE_RULE_IDENTITY_COLUMNS.some((column: string) => {
+      if (!dataKeys.includes(column)) {
+        return false;
+      }
+
+      return (
+        normalizeIdentityValue(data[column]) !==
+        normalizeIdentityValue((previousDevice as any)[column])
+      );
+    });
   }
 
   /*
@@ -297,6 +443,7 @@ export class Service extends DatabaseService<Model> {
         siteId: true,
         hostname: true,
         sysName: true,
+        name: true,
       },
       props: {
         isRoot: true,
@@ -333,7 +480,10 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * The device's hostname column stores an IP address or a DNS name; pass
-     * it as both — ipInCidr safely rejects non-IP strings.
+     * it as both — ipInCidr safely rejects non-IP strings. `name` is passed
+     * too because a discovery import puts the responding IP in `hostname`
+     * and the device's real identity in `name`, so a hostname pattern that
+     * only ever saw `hostname` could not match anything a user recognises.
      */
     const winner: NetworkSiteAssignmentRule | null = CidrMatchUtil.pickRule(
       rules,
@@ -341,6 +491,7 @@ export class Service extends DatabaseService<Model> {
         ip: device.hostname,
         hostname: device.hostname,
         sysName: device.sysName,
+        name: device.name,
       },
     );
 
