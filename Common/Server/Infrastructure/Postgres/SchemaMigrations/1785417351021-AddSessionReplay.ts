@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddSessionReplay1785417351021 implements MigrationInterface {
-  name = "AddSessionReplay1785417351021";
+  public name = "AddSessionReplay1785417351021";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
