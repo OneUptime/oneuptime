@@ -1309,6 +1309,12 @@ jobs:
           "ai-agent"
         ]
     steps:
+      # Needed for ./Scripts/GHA/docker_login.sh below — without a checkout the
+      # login step fails with "No such file or directory" (exit 127).
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
