@@ -1,18 +1,13 @@
 import "@testing-library/jest-dom/extend-expect";
 import { fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 /*
- * The Dashboard resolves its own copy of react, which would give the
- * component a different hook dispatcher than the one react-dom renders with.
- * See ReplayStage.test.tsx for the same note.
+ * The Dashboard resolves its own copy of react, which would give the component
+ * a different hook dispatcher than the one react-dom renders with. Pinned in
+ * Common's jest moduleNameMapper rather than mocked by absolute path here -
+ * see ReplayStage.test.tsx for why the path-based version broke CI.
  */
-jest.mock(
-  "../../../../App/FeatureSet/Dashboard/node_modules/react",
-  (): unknown => {
-    return jest.requireActual("react");
-  },
-);
 import ReplayScrubber, {
   ReplayScrubberProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayScrubber";

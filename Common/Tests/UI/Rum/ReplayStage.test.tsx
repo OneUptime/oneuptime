@@ -1,17 +1,18 @@
 import "@testing-library/jest-dom/extend-expect";
 import { act, render } from "@testing-library/react";
 /*
- * The Dashboard has its own copy of react in node_modules, so a component
- * imported from there would call hooks on a DIFFERENT React than the one
- * react-dom is rendering with, and every useRef throws "Cannot read
- * properties of null". Point that copy at the one this test renders with.
+ * The Dashboard has its own copy of react, so a component imported from there
+ * would otherwise call hooks on a DIFFERENT React instance than the one
+ * react-dom renders with, and every useRef throws "Cannot read properties of
+ * null".
+ *
+ * That is resolved in Common's jest moduleNameMapper, which pins react and
+ * react-dom to this project's single copy for every importer. It deliberately
+ * is NOT a jest.mock of an absolute path into
+ * App/FeatureSet/Dashboard/node_modules: that path only exists once the
+ * Dashboard has been installed, so it worked locally and broke the Common Test
+ * CI job, which installs Common alone.
  */
-jest.mock(
-  "../../../../App/FeatureSet/Dashboard/node_modules/react",
-  (): unknown => {
-    return jest.requireActual("react");
-  },
-);
 import * as React from "react";
 import {
   afterEach,
