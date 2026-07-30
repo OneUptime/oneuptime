@@ -161,7 +161,7 @@ Microsoft Entra ID est le service de gestion des identités et des accès basé 
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                        |
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                          |
 
-3. Définissez le **Format d'identifiant de nom** sur `Adresse e-mail`
+3. Définissez le **Format d'identifiant de nom** sur `Email address`
 4. Cliquez sur **Enregistrer**
 
 ### Étape 5 : Affecter des utilisateurs et des groupes
@@ -219,7 +219,7 @@ Okta est une plateforme d'identité largement utilisée qui offre des capacités
    - **URL d'authentification unique** : Collez l'**URL de réponse (URL du service consommateur d'assertion)** depuis la **Vue de la configuration SSO** de OneUptime
    - **URI d'audience (SP Entity ID)** : Collez l'**Identifiant (Entity ID)** depuis la **Vue de la configuration SSO** de OneUptime
    - **Format d'ID de nom** : Sélectionnez `EmailAddress`
-   - **Nom d'utilisateur de l'application** : Sélectionnez `E-mail`
+   - **Nom d'utilisateur de l'application** : Sélectionnez `Email`
 7. Cliquez sur **Suivant**, puis sélectionnez **Je suis un client Okta ajoutant une application interne** et cliquez sur **Terminer**
 
 ### Étape 3 : Copier les métadonnées SAML Okta vers OneUptime
@@ -268,7 +268,7 @@ Okta est une plateforme d'identité largement utilisée qui offre des capacités
 - **Incompatibilité d'audience** : Assurez-vous que l'**URI d'audience** dans Okta correspond exactement à l'**Identifiant (Entity ID)** de OneUptime
 - **Erreur de certificat** : Assurez-vous d'avoir téléchargé le certificat du certificat de signature **actif**, pas un inactif
 - **Utilisateur non affecté** : Les utilisateurs doivent être affectés à l'application Okta avant de pouvoir se connecter via SSO
-- **Erreur d'ID de nom** : Vérifiez que le **Format d'ID de nom** est défini sur `EmailAddress` et que le **Nom d'utilisateur de l'application** est défini sur `E-mail`
+- **Erreur d'ID de nom** : Vérifiez que le **Format d'ID de nom** est défini sur `EmailAddress` et que le **Nom d'utilisateur de l'application** est défini sur `Email`
 
 ---
 

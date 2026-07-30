@@ -201,6 +201,8 @@ Probe निम्नलिखित environment variables का समर्�
 - `PROBE_MONITOR_RETRY_LIMIT` - failed monitors के लिए retries की संख्या (default: 3)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - milliseconds में synthetic monitor scripts का Timeout (default: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - milliseconds में custom code monitor scripts का Timeout (default: 60000)
+- `PROBE_API_REQUEST_TIMEOUT_IN_MS` - probe द्वारा OneUptime को भेजी जाने वाली प्रत्येक request की deadline (default: 45000)
+- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - इससे धीमी OneUptime की requests के लिए warning log करें (default: 10000)
 
 #### Proxy Configuration
 
@@ -230,3 +232,28 @@ http://[username:password@]proxy.server.com:port
 ### सत्यापन
 
 यदि probe successfully चल रहा है। यह आपके OneUptime dashboard पर `Connected` दिखाई देना चाहिए। यदि यह connected नहीं दिखता। आपको container के logs जांचने होंगे। यदि आप अभी भी trouble में हैं। कृपया [GitHub](https://github.com/oneuptime/oneuptime) पर एक issue बनाएं या [support से संपर्क करें](https://oneuptime.com/support)
+
+### Disconnected Probe का निदान
+
+जब OneUptime को भेजी जाने वाली probe की requests सफल होना बंद कर देती हैं, तब probe को `Disconnected` चिह्नित किया जाता है। probe का log बताता है कि हर failed request कहां अटकी, इसलिए आपको शायद ही कभी अनुमान लगाना पड़ता है।
+
+**1. startup पर print किए गए environment block को पढ़ें।** हर probe boot के समय एक JSON block print करता है जिसमें वह OneUptime URL जिसका वह उपयोग कर रहा है, उसकी request deadline, उसकी proxy settings, उसे विरासत में मिले DNS resolvers, Node/OS version, और क्या TLS verification disabled है — यह सब होता है। जब भी आप कोई समस्या report करें, यह block शामिल करें।
+
+**2. failure report ढूंढें।** OneUptime को भेजी गई हर failed request एक ऐसा block log करती है जिसमें `stalledAt` और `whatThisMeans` होते हैं। `stalledAt` वह phase है जिससे request कभी आगे नहीं बढ़ पाई:
+
+| `stalledAt` | इसका क्या अर्थ है |
+| --- | --- |
+| `SocketAssignment` | machine से कुछ भी बाहर नहीं गया। या तो socket pool saturated था, या configure किए गए proxy ने अपना CONNECT tunnel कभी पूरा नहीं किया। |
+| `TcpConnect` | machine ने SYN भेजा और बदले में कुछ नहीं मिला — कोई firewall या security appliance packets drop कर रहा है, या host unreachable है। |
+| `TlsHandshake` | TCP connect हो गया, लेकिन TLS कभी पूरा नहीं हुआ। आमतौर पर इसका कारण TLS-inspecting middlebox होता है। |
+| `RequestSend` | connection बन गया, लेकिन request कभी पूरी तरह लिखी नहीं गई — दूसरे छोर ने पढ़ना बंद कर दिया। |
+| `WaitingForServerResponse` | request पहुंच गई और server ने बदले में कुछ नहीं भेजा। **probe का network ठीक है** — OneUptime server, उसके load balancer और उसके reverse proxy की जांच करें। |
+| `ResponseBody` | server ने जवाब देना शुरू किया और बीच में ही रुक गया। |
+
+यही block `deadlineOverrunInMs` भी report करता है। यदि 45000ms की deadline में wall clock के हिसाब से 45000ms से काफी अधिक समय लगा, तो probe process स्वयं block था — network की जांच करने से पहले इसी block में `probeProcess.eventLoopMaxDriftInMs` देखें।
+
+**3. connectivity self-test पढ़ें।** लगातार तीन failures के बाद probe उसी server को एक-एक layer करके test करता है — पहले DNS, फिर TCP, फिर TLS, फिर एक वास्तविक HTTP round trip — और हर stage को उसकी timing के साथ log करता है। जो पहला stage fail होता है, वही आपका उत्तर है। जब proxy configure किया गया हो, तो probe proxy तक के hop को test करता है, क्योंकि वास्तव में वही एकमात्र hop है जो वह करता है।
+
+**4. slow requests पर नजर रखें, इससे पहले कि वे failures बन जाएं।** जो requests सफल तो होती हैं लेकिन `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` से अधिक समय लेती हैं, उन्हें उनके elapsed time के साथ log किया जाता है। जो probe 20-second की requests log करने लगे, वह 45-second की deadline पार करने की राह पर है।
+
+OneUptime server की तरफ भी, ऐसी probe request जिसका जवाब धीरे दिया गया — या जिसे response भेजे जाने से पहले ही probe ने छोड़ दिया — probe की id के साथ वहां भी log की जाती है। ये दोनों logs मिलकर बताते हैं कि connection के किस तरफ गड़बड़ी है।

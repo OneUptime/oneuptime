@@ -161,7 +161,7 @@ Microsoft Entra ID 是 Microsoft 基于云的身份和访问管理服务。按�
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                        |
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                          |
 
-3. 将 **名称标识符格式** 设置为 `电子邮件地址`
+3. 将 **名称标识符格式** 设置为 `Email address`
 4. 点击 **保存**
 
 ### 第五步：分配用户和组

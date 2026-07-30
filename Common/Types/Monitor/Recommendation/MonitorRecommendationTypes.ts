@@ -1,4 +1,5 @@
 import ObjectID from "../../ObjectID";
+import RecommendationType from "../../Recommendation/RecommendationType";
 import MonitorStep from "../MonitorStep";
 import MonitorType from "../MonitorType";
 
@@ -65,6 +66,13 @@ export interface MonitorRecommendationArgs {
  */
 export interface MonitorRecommendation {
   recommendationId: string;
+  /*
+   * Always `RecommendationType.Monitor` for everything in this catalog. It is
+   * carried on the record rather than hardcoded at the call sites so that the
+   * dismissal write, the count query and the page shell — all of which are
+   * kind-agnostic — read it off the recommendation instead of assuming.
+   */
+  recommendationType: RecommendationType;
   resourceType: MonitorRecommendationResourceType;
   monitorType: MonitorType;
   templateId: string;
@@ -95,19 +103,73 @@ export function buildRecommendationId(
 }
 
 /*
+ * What a created monitor should open when its condition is met.
+ *
+ * Every shipped template sets BOTH `createIncidents: true` and
+ * `createAlerts: true` on its unhealthy criteria, so today one threshold
+ * breach opens an incident AND an alert describing the same thing — two
+ * records, two notification fan-outs, two things to resolve. That is almost
+ * never what anyone wants, and there is no way to say so from the
+ * recommendations page. This is that choice.
+ *
+ * The distinction the product draws (see the monitor criteria form's own
+ * tooltips): an alert notifies the team; an incident notifies the team AND
+ * shows on the status page.
+ */
+export enum MonitorRecommendationNotificationMode {
+  Alert = "Alert",
+  Incident = "Incident",
+  Both = "Both",
+}
+
+/*
+ * A project severity to use for each recommendation severity.
+ *
+ * Recommendation severities are a fixed two-member vocabulary the templates
+ * declare (`Critical` / `Warning`); project incident and alert severities are
+ * user-defined rows with an `order`. This maps one onto the other, and it is
+ * the fix for a real mis-signal: `MonitorRecommendationArgs` carries a single
+ * `defaultIncidentSeverityId`, which the UI fills with the project's
+ * FIRST severity, so a Warning-severity recommendation like "Deployment
+ * Replica Mismatch" opened a Critical Incident exactly like "Node Not Ready"
+ * did. Everything paged at the same level and the severity column stopped
+ * meaning anything.
+ *
+ * Both members are optional so a partially-configured project (one severity
+ * only) still produces a usable mapping — see
+ * `MonitorRecommendationSeverityMapper.getDefaultSeverityMapping`.
+ */
+export type MonitorRecommendationSeverityMap = {
+  [key in MonitorRecommendationSeverity]?: ObjectID | undefined;
+};
+
+/*
  * What the user chose in the create form, applied to every criteria instance
  * of every monitor being created.
  *
- * This is the field that fixes the long-standing gap where every shipped
- * template hardcodes `onCallPolicyIds: []` — a template-created monitor could
- * fire an incident that paged nobody. See
+ * `onCallPolicyIds` is the field that fixes the long-standing gap where every
+ * shipped template hardcodes `onCallPolicyIds: []` — a template-created
+ * monitor could fire an incident that paged nobody. See
  * `MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep`.
  */
 export interface MonitorRecommendationNotificationSettings {
+  /*
+   * Undefined means "leave the templates alone", which is both-incident-and-
+   * alert. Kept as a distinct state from an explicit `Both` so that callers
+   * that never learned about this field (older tests, any future programmatic
+   * caller) keep their previous behaviour rather than silently acquiring a
+   * default someone else picked.
+   */
+  notificationMode?: MonitorRecommendationNotificationMode | undefined;
   onCallPolicyIds?: Array<ObjectID> | undefined;
   ownerTeamIds?: Array<ObjectID> | undefined;
   ownerUserIds?: Array<ObjectID> | undefined;
   labelIds?: Array<ObjectID> | undefined;
-  incidentSeverityId?: ObjectID | undefined;
-  alertSeverityId?: ObjectID | undefined;
+  /*
+   * Severity per recommendation severity. Takes precedence over the template's
+   * own choice. A missing entry for a given severity leaves that
+   * recommendation on whatever the template picked.
+   */
+  incidentSeverityIdBySeverity?: MonitorRecommendationSeverityMap | undefined;
+  alertSeverityIdBySeverity?: MonitorRecommendationSeverityMap | undefined;
 }

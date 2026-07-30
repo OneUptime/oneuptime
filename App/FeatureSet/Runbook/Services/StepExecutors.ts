@@ -7,6 +7,10 @@ import {
   RunbookStep,
 } from "Common/Types/Runbook/RunbookStep";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import {
+  resolveAgentClaimTimeoutInMs,
+  resolveStepExecutionTimeoutInMs,
+} from "Common/Types/Runbook/RunbookStepTimeout";
 import ObjectID from "Common/Types/ObjectID";
 import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
 import RunbookAgentJobStatus from "Common/Types/Runbook/RunbookAgentJobStatus";
@@ -36,9 +40,6 @@ export interface StepExecutionContext {
 }
 
 const MAX_OUTPUT_BYTES: number = 50_000;
-const DEFAULT_SCRIPT_TIMEOUT_MS: number = 30_000;
-const DEFAULT_HTTP_TIMEOUT_MS: number = 30_000;
-const DEFAULT_AGENT_CLAIM_TIMEOUT_MS: number = 2 * 60_000;
 
 export function truncate(s: string): string {
   if (Buffer.byteLength(s, "utf8") <= MAX_OUTPUT_BYTES) {
@@ -145,8 +146,8 @@ export async function runJavaScriptStep(
     step,
     ctx,
     script: config.script || "",
-    timeoutInMs: config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS,
-    claimTimeoutInMs: config.claimTimeoutInMs || DEFAULT_AGENT_CLAIM_TIMEOUT_MS,
+    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
+    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
     missingAgentError:
       "JavaScript step is missing a Runbook Agent. Pick an agent under Runbooks → Agents. JavaScript no longer runs on the OneUptime Worker.",
@@ -155,7 +156,7 @@ export async function runJavaScriptStep(
 
 export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
   const config: HttpRequestStepConfig = step.config as HttpRequestStepConfig;
-  const timeout: number = config.timeoutInMs || DEFAULT_HTTP_TIMEOUT_MS;
+  const timeout: number = resolveStepExecutionTimeoutInMs(config.timeoutInMs);
 
   let headers: Record<string, string> = {};
   if (config.headersJson) {
@@ -232,8 +233,8 @@ export async function runBashStep(
     step,
     ctx,
     script: config.script || "",
-    timeoutInMs: config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS,
-    claimTimeoutInMs: config.claimTimeoutInMs || DEFAULT_AGENT_CLAIM_TIMEOUT_MS,
+    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
+    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
     missingAgentError:
       "Bash step is missing a Runbook Agent. Pick an agent under Runbooks → Agents.",

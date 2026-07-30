@@ -51,7 +51,7 @@ import UserView from "./Pages/Users/View/Index";
 import UserDelete from "./Pages/Users/View/Delete";
 import UserSettings from "./Pages/Users/View/Settings";
 import ProjectView from "./Pages/Projects/View/Index";
-import ProjectTrial from "./Pages/Projects/View/Trial";
+import ProjectSubscription from "./Pages/Projects/View/Subscription";
 import ProjectDelete from "./Pages/Projects/View/Delete";
 import ProjectUsers from "./Pages/Projects/View/Users";
 import ProjectUserView from "./Pages/Projects/View/UserView";
@@ -181,8 +181,8 @@ const App: () => JSX.Element = () => {
         />
 
         <PageRoute
-          path={RouteMap[PageMap.PROJECT_TRIAL]?.toString() || ""}
-          element={<ProjectTrial />}
+          path={RouteMap[PageMap.PROJECT_SUBSCRIPTION]?.toString() || ""}
+          element={<ProjectSubscription />}
         />
 
         <PageRoute

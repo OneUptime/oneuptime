@@ -161,7 +161,7 @@ Microsoft Entra ID es el servicio de gestión de identidades y accesos en la nub
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                       |
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                         |
 
-3. Establece el **Formato del identificador de nombre** en `Dirección de correo electrónico`
+3. Establece el **Formato del identificador de nombre** en `Email address`
 4. Haz clic en **Guardar**
 
 ### Paso 5: Asignar usuarios y grupos
