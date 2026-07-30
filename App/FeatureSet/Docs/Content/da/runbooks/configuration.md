@@ -16,8 +16,9 @@ Der er ikke længere et `RUNBOOK_BASH_ENABLED`-environment-flag. Om Bash- eller 
 ## Output-lofter og timeouts
 
 - Output per trin: **50&nbsp;KB**. Større output afkortes med en markør.
-- Standard execution timeout per trin: **30 sekunder** for JavaScript, Bash og HTTP. Konfigurerbar per trin.
-- Per-trin **claim timeout** for Bash- og JavaScript-trin: **2 minutter** — hvor længe Worker'en venter på, at den valgte agent samler jobbet op, før det fejler.
+- Standard execution timeout per trin: **30 sekunder** for JavaScript, Bash og HTTP. Sæt den per trin på runbook'ets **Trin**-side — lad feltet stå tomt for at beholde standarden.
+- Per-trin **claim timeout** for Bash- og JavaScript-trin: **2 minutter** — hvor længe Worker'en venter på, at den valgte agent samler jobbet op, før det fejler. Sættes også per trin.
+- Begge timeouts accepterer **1 sekund til 1 time**. En værdi uden for det interval begrænses, når trinnet kører, så en fejlindtastet konfiguration hverken kan slå timeout'en fra eller holde en Worker-plads åben i det uendelige.
 
 ## Rettigheder
 

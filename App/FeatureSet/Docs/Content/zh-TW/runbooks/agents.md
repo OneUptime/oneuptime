@@ -84,9 +84,16 @@ docker run --name oneuptime-runbook-agent --restart unless-stopped \
 | 逾時                  | 預設值 | 控制的內容                                                                                                                                                                |
 | --------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim timeout**     | 2 分鐘 | Worker 等待所選代理程式認領該作業的時間長度。如果代理程式未能及時接手，該步驟會以 `TimedOut` 失敗，而 runbook 會繼續往下執行（或停止，視 **Continue on failure** 而定）。 |
-| **Execution timeout** | 30 秒  | 代理程式在終止指令碼之前，會讓它執行多久。可依步驟個別設定。（Bash 會收到 `SIGKILL`；JavaScript 的 isolate 會被拆除。）                                                   |
+| **Execution timeout** | 30 秒  | 代理程式在終止指令碼之前，會讓它執行多久。（Bash 會收到 `SIGKILL`；JavaScript 的 isolate 會被拆除。）                                                                     |
+
+兩者都可依步驟個別設定。開啟 **Runbooks &rsaquo; 您的 runbook &rsaquo; Steps**，展開一個 Bash 或 JavaScript 步驟，並在指令碼下方設定 **Execution timeout** 與 **Claim timeout**（以秒為單位）。將欄位留空即會使用預設值。每個欄位皆可接受 1 秒到 1 小時；超出該範圍的值會在步驟執行時被限制在範圍內。
 
 Worker 的整體等待時間區間為 `claim timeout + execution timeout + a few seconds`。請挑選符合該步驟的數值。
+
+當您調低 claim timeout 時，有兩件事要留意：
+
+- 代理程式是依輪詢週期來索取作業（`RUNBOOK_AGENT_POLL_INTERVAL_MS`，預設為 5 秒）。比一個輪詢週期還短的 claim timeout，可能在一個完全正常的代理程式甚至還沒看到該作業之前就已經到期，該步驟接著便會以與離線代理程式相同的那則「no agent claimed the job」訊息失敗。
+- 代理程式預設一次只執行一筆作業（`RUNBOOK_AGENT_CONCURRENCY`）。當某個耗時較久的步驟佔用著它時，其他指向同一個代理程式的步驟就只能等著自己的 claim timeout 耗盡。如果您將某個 execution timeout 調高到數分鐘，請將共用該代理程式的那些步驟的 claim timeout 一併調高到相符的程度，或是為它們指定另一個代理程式。
 
 ### 租約與心跳
 

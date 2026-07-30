@@ -22,6 +22,25 @@ interface RenderedInput {
   rerenderWithValue: (value: number | undefined) => void;
 }
 
+/*
+ * JSDOM does not implement number-input value sanitization, so
+ * validity.badInput never becomes true on its own. Stub it to reproduce what a
+ * real browser reports for text like "1e" or "-".
+ */
+function markUnparseable(input: HTMLInputElement): void {
+  Object.defineProperty(input, "validity", {
+    configurable: true,
+    value: { badInput: true },
+  });
+}
+
+function clearUnparseable(input: HTMLInputElement): void {
+  Object.defineProperty(input, "validity", {
+    configurable: true,
+    value: { badInput: false },
+  });
+}
+
 function renderInput(args: RenderArgs = {}): RenderedInput {
   const onChange: MockFunction = getJestMockFunction();
   const bounds: TimeoutBounds = args.bounds || BOUNDS;
@@ -203,12 +222,110 @@ describe("StepTimeoutInput", () => {
     );
   });
 
+  test("text the browser cannot parse does NOT discard the saved timeout", () => {
+    /*
+     * A number input hands back an empty string for text it cannot parse — a
+     * dangling exponent, a lone minus — while still showing that text. Treating
+     * that as "the author cleared the field" would report undefined and
+     * silently drop a configured timeout back to the 30 second default, which
+     * is the exact failure issue #2920 was filed about.
+     */
+    const { input, onChange } = renderInput({ value: 600_000 });
+
+    markUnparseable(input);
+    fireEvent.change(input, { target: { value: "" } });
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test("unparseable text is flagged, and the author is told the saved value is intact", () => {
+    const { input } = renderInput({ value: 600_000 });
+
+    markUnparseable(input);
+    fireEvent.change(input, { target: { value: "" } });
+
+    const alert: HTMLElement = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Enter a number of seconds.");
+    expect(alert.textContent).toContain("saved value is unchanged");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  test("a genuinely emptied field still reports undefined — it is not confused with unparseable text", () => {
+    const { input, onChange } = renderInput({ value: 600_000 });
+
+    // No badInput: the field really is empty.
+    fireEvent.change(input, { target: { value: "" } });
+
+    expect(onChange).toHaveBeenCalledWith(undefined);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("recovering from unparseable text clears the error and resumes reporting", () => {
+    const { input, onChange } = renderInput({ value: 600_000 });
+
+    markUnparseable(input);
+    fireEvent.change(input, { target: { value: "" } });
+    expect(screen.getByRole("alert")).not.toBeNull();
+
+    clearUnparseable(input);
+    fireEvent.change(input, { target: { value: "90" } });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(onChange).toHaveBeenCalledWith(90_000);
+  });
+
   test("out-of-range input still reports a value, so the author's intent is saved and clamped later", () => {
     const { input, onChange } = renderInput({ value: undefined });
 
     fireEvent.change(input, { target: { value: "99999" } });
 
     expect(onChange).toHaveBeenCalledWith(99_999_000);
+  });
+
+  test("the error is part of the field's description, not only a live region", () => {
+    /*
+     * A screen reader landing on an already-invalid field reads its
+     * description, not a live region that fired before focus. Without the error
+     * in aria-describedby the user hears "invalid" and no reason.
+     */
+    const { input } = renderInput({ value: undefined });
+
+    fireEvent.change(input, { target: { value: "99999" } });
+
+    const describedBy: string = input.getAttribute("aria-describedby") || "";
+    const alert: HTMLElement = screen.getByRole("alert");
+
+    expect(alert.id).not.toBe("");
+    expect(describedBy.split(" ")).toContain(alert.id);
+    // The range help stays in the description alongside the error.
+    expect(describedBy.split(" ").length).toBe(2);
+  });
+
+  test("a valid field describes only the help text", () => {
+    const { input } = renderInput({ value: 45_000 });
+
+    const describedBy: string = input.getAttribute("aria-describedby") || "";
+
+    expect(describedBy.split(" ").length).toBe(1);
+    expect(document.getElementById(describedBy)?.textContent).toContain(
+      "Leave blank to use the default",
+    );
+  });
+
+  test("a zero is not advertised as clamped — it falls back to the default", () => {
+    /*
+     * Clamping and defaulting land at opposite ends of the range. Promising
+     * "clamped" for a value that actually defaults would tell a fail-fast
+     * author their 0 became 1 second when it really became 30.
+     */
+    const { input } = renderInput({ value: undefined });
+
+    fireEvent.change(input, { target: { value: "0" } });
+
+    const alert: HTMLElement = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Timeout must be greater than 0");
+    expect(alert.textContent).toContain("blank to use the default");
+    expect(alert.textContent).not.toContain("clamped");
   });
 
   test("the native min/max mirror the bounds so browser spinners agree with validation", () => {

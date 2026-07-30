@@ -702,7 +702,10 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           description={
             <>
               How long the Worker waits for the selected agent to pick this job
-              up before failing the step as timed out.
+              up before failing the step as timed out. Leave room for at least
+              one of the agent&rsquo;s poll cycles (5 seconds by default) and
+              for any step already running on it &mdash; an agent runs one job
+              at a time.
             </>
           }
           onChange={(claimTimeoutInMs: number | undefined) => {

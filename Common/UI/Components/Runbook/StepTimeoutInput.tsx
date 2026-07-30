@@ -7,10 +7,12 @@ import React, {
   useState,
 } from "react";
 import {
+  NON_NUMERIC_TIMEOUT_MESSAGE,
   TimeoutBounds,
   getTimeoutValidationError,
   secondsInputValueToTimeoutInMs,
   timeoutInMsToSecondsInputValue,
+  willTimeoutBeClamped,
 } from "../../../Types/Runbook/RunbookStepTimeout";
 
 export interface ComponentProps {
@@ -39,10 +41,20 @@ const StepTimeoutInput: FunctionComponent<ComponentProps> = (
   const uniqueId: string = useId();
   const inputId: string = `step-timeout-${uniqueId}`;
   const describedById: string = `step-timeout-help-${uniqueId}`;
+  const errorId: string = `step-timeout-error-${uniqueId}`;
 
   const [text, setText] = useState<string>(
     timeoutInMsToSecondsInputValue(props.value),
   );
+
+  /*
+   * A number input reports an empty string for text it cannot parse — a
+   * dangling exponent ("1e"), a lone "-" — while still showing that text to
+   * the author. Tracked separately from `text` so an unparseable keystroke
+   * does not read as "the author cleared the field".
+   */
+  const [hasUnparseableInput, setHasUnparseableInput] =
+    useState<boolean>(false);
 
   /*
    * Re-sync when the step being edited changes underneath us (collapse /
@@ -58,17 +70,42 @@ const StepTimeoutInput: FunctionComponent<ComponentProps> = (
     });
   }, [props.value]);
 
-  const validationError: string | null = getTimeoutValidationError(
-    text,
-    props.bounds,
-  );
+  const validationError: string | null = hasUnparseableInput
+    ? NON_NUMERIC_TIMEOUT_MESSAGE
+    : getTimeoutValidationError(text, props.bounds);
 
   const defaultInSeconds: number = props.bounds.defaultInMs / 1000;
 
-  const handleChange: (value: string) => void = (value: string): void => {
+  const handleChange: (value: string, isUnparseable: boolean) => void = (
+    value: string,
+    isUnparseable: boolean,
+  ): void => {
+    if (isUnparseable) {
+      /*
+       * Hold the stored value. Reporting undefined here would discard a
+       * timeout the author had already saved, without them touching a digit —
+       * the field would look edited, save cleanly, and the step would silently
+       * drop back to the default.
+       */
+      setHasUnparseableInput(true);
+      return;
+    }
+
+    setHasUnparseableInput(false);
     setText(value);
     props.onChange(secondsInputValueToTimeoutInMs(value));
   };
+
+  /*
+   * Only a usable-but-out-of-range value gets clamped at run time. Anything
+   * unusable falls back to the default instead, so the two cases need
+   * different copy.
+   */
+  const consequence: string = hasUnparseableInput
+    ? "The saved value is unchanged."
+    : willTimeoutBeClamped(text, props.bounds)
+      ? "Values outside the range are clamped when the step runs."
+      : "Leave the field blank to use the default.";
 
   let inputClassName: string =
     "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm";
@@ -99,16 +136,23 @@ const StepTimeoutInput: FunctionComponent<ComponentProps> = (
         inputMode="decimal"
         min={props.bounds.minInMs / 1000}
         max={props.bounds.maxInMs / 1000}
-        step="1"
+        step="any"
         disabled={props.disabled}
         className={inputClassName}
         value={text}
         placeholder={`${defaultInSeconds}`}
-        aria-describedby={describedById}
+        /*
+         * The error is part of the field's description, not only a live region:
+         * a screen reader that reaches an already-invalid field on focus still
+         * hears why.
+         */
+        aria-describedby={
+          validationError ? `${describedById} ${errorId}` : describedById
+        }
         aria-invalid={validationError ? true : undefined}
         data-testid={props.dataTestId}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          handleChange(e.target.value);
+          handleChange(e.target.value, e.target.validity?.badInput === true);
         }}
       />
       <p id={describedById} className="text-xs text-gray-500 mt-1.5">
@@ -118,9 +162,8 @@ const StepTimeoutInput: FunctionComponent<ComponentProps> = (
         seconds.
       </p>
       {validationError ? (
-        <p role="alert" className="text-xs text-red-600 mt-1">
-          {validationError} Values outside the range are clamped when the step
-          runs.
+        <p id={errorId} role="alert" className="text-xs text-red-600 mt-1">
+          {validationError} {consequence}
         </p>
       ) : null}
     </div>

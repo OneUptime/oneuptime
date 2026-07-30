@@ -28,10 +28,12 @@
 
 `isolated-vm` सैंडबॉक्स में चलने वाला JavaScript स्निपेट। sandbox आपकी अपनी इन्फ्रास्ट्रक्चर के [Runbook एजेंट](/docs/runbooks/agents) पर रहता है — OneUptime Worker पर नहीं।
 
-JavaScript चरण पर दो चीज़ें कॉन्फ़िगर करें:
+JavaScript चरण पर कॉन्फ़िगर करें:
 
 - **Runbook Agent** — ड्रॉपडाउन से वह एजेंट चुनें जिसे यह चरण चलाना है। केवल चुना हुआ एजेंट ही job को claim कर सकता है।
 - **Script** — चलाने के लिए JavaScript।
+- **Execution timeout** — एजेंट isolate तोड़ने से पहले स्निपेट को कितनी देर चलने देता है। डिफ़ॉल्ट 30 सेकंड।
+- **Claim timeout** — Worker कितनी देर एजेंट के job लेने का इंतज़ार करता है। डिफ़ॉल्ट 2 मिनट।
 
 ```js
 const start = Date.now();
@@ -39,11 +41,11 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-लौटाया गया मान चरण execution पर कैप्चर होता है। `console.log` आउटपुट लॉग लाइनों के रूप में सहेजा जाता है। डिफ़ॉल्ट execution timeout: 30 सेकंड। डिफ़ॉल्ट claim timeout (Worker कितनी देर एजेंट के job लेने का इंतज़ार करता है): 2 मिनट।
+लौटाया गया मान चरण execution पर कैप्चर होता है। `console.log` आउटपुट लॉग लाइनों के रूप में सहेजा जाता है। डिफ़ॉल्ट execution timeout: 30 सेकंड। डिफ़ॉल्ट claim timeout (Worker कितनी देर एजेंट के job लेने का इंतज़ार करता है): 2 मिनट। दोनों को चरण पर संपादित किया जा सकता है — स्क्रिप्ट के नीचे **Execution timeout** और **Claim timeout** देखें।
 
 ### HTTP रिक्वेस्ट
 
-एक आउटबाउंड HTTP कॉल। विधि (GET/POST/PUT/PATCH/DELETE/HEAD), URL, वैकल्पिक JSON हेडर और वैकल्पिक body कॉन्फ़िगर करें। रिस्पॉन्स स्थिति, हेडर और body कैप्चर होते हैं (कुल 50KB तक)।
+एक आउटबाउंड HTTP कॉल। विधि (GET/POST/PUT/PATCH/DELETE/HEAD), URL, वैकल्पिक JSON हेडर, वैकल्पिक body और एक **Request timeout** (डिफ़ॉल्ट 30 सेकंड) कॉन्फ़िगर करें। रिस्पॉन्स स्थिति, हेडर और body कैप्चर होते हैं (कुल 50KB तक)।
 
 उपयोगी: PagerDuty incident खोलना, Slack पर पोस्ट करना, अपनी एडमिन API बुलाना आदि। HTTP चरण सीधे OneUptime Worker पर चलते हैं; किसी एजेंट की आवश्यकता नहीं।
 
@@ -51,10 +53,12 @@ return { durationMs: Date.now() - start };
 
 एक bash स्क्रिप्ट (`bash -c <script>`) जो आपकी अपनी इन्फ्रास्ट्रक्चर के [Runbook एजेंट](/docs/runbooks/agents) पर चलती है। Bash कभी भी OneUptime Worker पर नहीं चलता।
 
-Bash चरण पर दो चीज़ें कॉन्फ़िगर करें:
+Bash चरण पर कॉन्फ़िगर करें:
 
 - **Runbook Agent** — ड्रॉपडाउन से वह एजेंट चुनें जिसे यह चरण चलाना है। केवल चुना हुआ एजेंट ही job को claim कर सकता है।
 - **Script** — चलाने के लिए bash। आउटपुट (stdout + stderr) 50 KB तक कैप्चर होता है; टाइमआउट पर प्रक्रिया मार दी जाती है।
+- **Execution timeout** — एजेंट स्क्रिप्ट को `SIGKILL` से मारने से पहले कितनी देर चलने देता है। डिफ़ॉल्ट 30 सेकंड; जिन चरणों में सचमुच मिनटों का समय लगता है, उनके लिए इसे बढ़ाएँ।
+- **Claim timeout** — Worker कितनी देर एजेंट के job लेने का इंतज़ार करता है। डिफ़ॉल्ट 2 मिनट।
 
 यदि Runbook इस चरण पर पहुँचने पर चुना हुआ एजेंट offline है, चरण **claim timeout** (डिफ़ॉल्ट 2 मिनट) तक प्रतीक्षा करता है और फिर `TimedOut` के साथ fail हो जाता है। Bash चरण पर निर्भर होने से पहले **Runbooks → Settings → Agents** के तहत एक एजेंट जोड़ें।
 

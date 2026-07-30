@@ -28,10 +28,12 @@ Usalo per cose che solo un umano può verificare: "Confermato che il traffico è
 
 Uno snippet di JavaScript eseguito in un sandbox `isolated-vm`. Il sandbox vive su un [Agente Runbook](/docs/runbooks/agents) nella tua infrastruttura — non sul Worker OneUptime.
 
-Configura due cose in un passo JavaScript:
+Configura in un passo JavaScript:
 
 - **Agente Runbook** — scegli dal dropdown l'agente che deve eseguire questo passo. Solo l'agente selezionato può reclamare il job.
 - **Script** — il JavaScript da eseguire.
+- **Execution timeout** — quanto tempo l'agente lascia girare lo snippet prima di smontare l'isolate. Il valore predefinito è 30 secondi.
+- **Claim timeout** — quanto tempo il Worker aspetta che l'agente prenda il job. Il valore predefinito è 2 minuti.
 
 ```js
 const start = Date.now();
@@ -39,11 +41,11 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-Il valore restituito viene catturato sull'esecuzione del passo. L'output di `console.log` è catturato come righe di log. Timeout di esecuzione predefinito: 30 secondi. Claim timeout predefinito (quanto il Worker aspetta che l'agente prenda il job): 2 minuti.
+Il valore restituito viene catturato sull'esecuzione del passo. L'output di `console.log` è catturato come righe di log. Timeout di esecuzione predefinito: 30 secondi. Claim timeout predefinito (quanto il Worker aspetta che l'agente prenda il job): 2 minuti. Entrambi sono modificabili sul passo — vedi **Execution timeout** e **Claim timeout** sotto lo script.
 
 ### Richiesta HTTP
 
-Effettua una chiamata HTTP in uscita. Configura metodo (GET/POST/PUT/PATCH/DELETE/HEAD), URL, header JSON opzionali e body opzionale. Status, header e body della risposta sono catturati (fino a 50KB complessivi).
+Effettua una chiamata HTTP in uscita. Configura metodo (GET/POST/PUT/PATCH/DELETE/HEAD), URL, header JSON opzionali, body opzionale e un **Request timeout** (default 30 secondi). Status, header e body della risposta sono catturati (fino a 50KB complessivi).
 
 Utile per: aprire un incidente PagerDuty, pubblicare su Slack, chiamare la tua API admin, ecc. I passi HTTP girano direttamente sul Worker OneUptime; non serve alcun agente.
 
@@ -51,10 +53,12 @@ Utile per: aprire un incidente PagerDuty, pubblicare su Slack, chiamare la tua A
 
 Uno script bash (`bash -c <script>`) eseguito su un [Agente Runbook](/docs/runbooks/agents) nella tua infrastruttura. Bash non viene mai eseguito sul Worker OneUptime.
 
-Configura due cose in un passo Bash:
+Configura in un passo Bash:
 
 - **Agente Runbook** — scegli dal dropdown l'agente che deve eseguire questo passo. Solo l'agente selezionato può reclamare il job.
 - **Script** — il bash da eseguire. L'output (stdout + stderr) è catturato fino a 50&nbsp;KB; il processo viene ucciso allo scadere del timeout.
+- **Execution timeout** — quanto tempo l'agente lascia girare lo script prima di terminarlo con `SIGKILL`. Il valore predefinito è 30 secondi; alzalo per i passi che richiedono legittimamente qualche minuto.
+- **Claim timeout** — quanto tempo il Worker aspetta che l'agente prenda il job. Il valore predefinito è 2 minuti.
 
 Se l'agente selezionato è offline quando il runbook arriva a questo passo, il passo attende fino al **claim timeout** (default 2 minuti) e poi fallisce con `TimedOut`. Aggiungi un agente in **Runbook → Impostazioni → Agenti** prima di affidarti a un passo Bash.
 

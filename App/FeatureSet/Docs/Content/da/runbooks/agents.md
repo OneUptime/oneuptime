@@ -84,9 +84,16 @@ To timeouts gælder for hvert Bash- eller JavaScript-trin:
 | Timeout               | Standard    | Hvad den styrer                                                                                                                                                                                                     |
 | --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim timeout**     | 2 minutter  | Hvor længe Worker'en venter på, at den valgte agent claimer jobbet. Hvis agenten ikke tager det i tide, fejler trinnet med `TimedOut`, og runbook'et fortsætter (eller stopper, afhængigt af **Fortsæt ved fejl**). |
-| **Execution timeout** | 30 sekunder | Hvor længe agenten lader scriptet køre, før den afslutter det. Konfigurerbar per trin. (Bash får `SIGKILL`; JavaScript-isolaten rives ned.)                                                                         |
+| **Execution timeout** | 30 sekunder | Hvor længe agenten lader scriptet køre, før den afslutter det. (Bash får `SIGKILL`; JavaScript-isolaten rives ned.)                                                                                                 |
+
+Begge er konfigurerbare per trin. Åbn **Runbooks &rsaquo; dit runbook &rsaquo; Trin**, udfold et Bash- eller JavaScript-trin og sæt **Execution timeout** og **Claim timeout** (i sekunder) under scriptet. Lad et felt stå tomt for at bruge standarden. Hvert felt accepterer fra 1 sekund til 1 time; værdier uden for det interval begrænses, når trinnet kører.
 
 Worker'ens samlede ventevindue er `claim timeout + execution timeout + et par sekunders margen`. Vælg tal, der passer til trinnet.
+
+To ting du skal huske på, når du sætter claim timeout ned:
+
+- Agenten spørger efter arbejde i en fast poll-cyklus (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim timeout, der er kortere end én poll-cyklus, kan udløbe, før en helt sund agent overhovedet har set jobbet, og trinnet fejler så med den samme besked ("no agent claimed the job"), som du ville få fra en offline agent.
+- En agent kører ét job ad gangen som standard (`RUNBOOK_AGENT_CONCURRENCY`). Mens et langt trin optager den, venter andre trin, der peger mod den samme agent, deres egen claim timeout ud. Hæver du en execution timeout til minutter, så hæv claim timeout tilsvarende på de trin, der deler den agent — eller giv dem en anden agent.
 
 ### Lease og heartbeat
 

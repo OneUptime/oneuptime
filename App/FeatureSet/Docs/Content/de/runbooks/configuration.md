@@ -16,8 +16,9 @@ Es gibt kein `RUNBOOK_BASH_ENABLED`-Umgebungsflag mehr. Ob Bash- oder JavaScript
 ## Ausgabe-Limits und Timeouts
 
 - Ausgabe pro Schritt: **50&nbsp;KB**. Größere Ausgaben werden mit einer Markierung abgeschnitten.
-- Standard-Ausführungs-Timeout pro Schritt: **30 Sekunden** für JavaScript, Bash und HTTP. Pro Schritt konfigurierbar.
-- **Claim-Timeout** pro Schritt für Bash- und JavaScript-Schritte: **2 Minuten** — wie lange der Worker darauf wartet, dass der ausgewählte Agent den Job aufnimmt, bevor er fehlschlägt.
+- Standard-Ausführungs-Timeout pro Schritt: **30 Sekunden** für JavaScript, Bash und HTTP. Setzen Sie ihn pro Schritt auf der **Steps**-Seite des Runbooks — lassen Sie das Feld leer, um den Standard zu behalten.
+- **Claim-Timeout** pro Schritt für Bash- und JavaScript-Schritte: **2 Minuten** — wie lange der Worker darauf wartet, dass der ausgewählte Agent den Job aufnimmt, bevor er fehlschlägt. Ebenfalls pro Schritt einstellbar.
+- Beide Timeouts akzeptieren **1 Sekunde bis 1 Stunde**. Ein Wert außerhalb dieses Bereichs wird beim Ausführen des Schritts auf diesen Bereich begrenzt, sodass ein Tippfehler in der Konfiguration den Timeout weder abschalten noch einen Worker-Slot unbegrenzt offen halten kann.
 
 ## Berechtigungen
 

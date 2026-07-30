@@ -28,10 +28,12 @@
 
 在沙箱 `isolated-vm` 中运行的 JavaScript 片段。沙箱住在你自己的基础设施内的 [Runbook 代理](/docs/runbooks/agents) 上——而不在 OneUptime Worker 上。
 
-JavaScript 步骤上需要配置两件事：
+JavaScript 步骤上可配置：
 
 - **Runbook 代理** — 从下拉列表中选定应运行此步骤的代理。只有被选定的代理才能领取任务。
 - **脚本** — 要运行的 JavaScript。
+- **执行超时** — 代理允许该片段运行多久，到时会销毁 isolate。默认 30 秒。
+- **领取超时** — Worker 等待代理领任务的时长。默认 2 分钟。
 
 ```js
 const start = Date.now();
@@ -39,11 +41,11 @@ const start = Date.now();
 return { durationMs: Date.now() - start };
 ```
 
-返回值会被记录到步骤执行上。`console.log` 输出会作为日志行被捕获。默认执行超时：30 秒。默认领取超时（Worker 等待代理领任务的时长）：2 分钟。
+返回值会被记录到步骤执行上。`console.log` 输出会作为日志行被捕获。默认执行超时：30 秒。默认领取超时（Worker 等待代理领任务的时长）：2 分钟。两者都可以在步骤上修改——见脚本下方的 **执行超时** 与 **领取超时**。
 
 ### HTTP 请求
 
-发起一次出站 HTTP 调用。配置方法（GET/POST/PUT/PATCH/DELETE/HEAD）、URL、可选 JSON 头部以及可选请求体。响应状态、头部和正文都会被捕获（总计上限 50KB）。
+发起一次出站 HTTP 调用。配置方法（GET/POST/PUT/PATCH/DELETE/HEAD）、URL、可选 JSON 头部、可选请求体，以及 **请求超时**（默认 30 秒）。响应状态、头部和正文都会被捕获（总计上限 50KB）。
 
 适用场景：触发 PagerDuty 事件、向 Slack 发消息、调用自己的管理 API 等。HTTP 步骤直接在 OneUptime Worker 上运行；不需要代理。
 
@@ -51,10 +53,12 @@ return { durationMs: Date.now() - start };
 
 bash 脚本（`bash -c <script>`）在你自己的基础设施内的 [Runbook 代理](/docs/runbooks/agents) 上运行。Bash 绝不会在 OneUptime Worker 上执行。
 
-Bash 步骤上需要配置两件事：
+Bash 步骤上可配置：
 
 - **Runbook 代理** — 从下拉列表中选定应运行此步骤的代理。只有被选定的代理才能领取任务。
 - **脚本** — 要运行的 bash。输出（stdout + stderr）会被捕获，最多 50 KB；超时时进程会被 kill。
+- **执行超时** — 代理允许脚本运行多久，到时用 `SIGKILL` 杀掉它。默认 30 秒；对确实需要跑几分钟的步骤请调大。
+- **领取超时** — Worker 等待代理领任务的时长。默认 2 分钟。
 
 如果 Runbook 到达此步骤时所选代理离线，步骤会等待至 **领取超时**（默认 2 分钟）然后以 `TimedOut` 失败。在依赖 Bash 步骤之前，请先在 **Runbooks → 设置 → 代理** 中添加代理。
 

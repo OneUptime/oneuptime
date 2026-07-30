@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   AGENT_CLAIM_TIMEOUT_BOUNDS,
+  NON_NUMERIC_TIMEOUT_MESSAGE,
+  willTimeoutBeClamped,
   DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
   DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
   MAX_AGENT_CLAIM_TIMEOUT_IN_MS,
@@ -208,7 +210,40 @@ describe("secondsInputValueToTimeoutInMs", () => {
   test("decimals are converted to whole milliseconds", () => {
     expect(secondsInputValueToTimeoutInMs("0.5")).toBe(500);
     expect(secondsInputValueToTimeoutInMs("1.25")).toBe(1_250);
-    expect(secondsInputValueToTimeoutInMs("0.0004")).toBe(0);
+    expect(secondsInputValueToTimeoutInMs("0.001")).toBe(1);
+  });
+
+  test("input that rounds down to zero milliseconds reports as unset, not as 0", () => {
+    /*
+     * A literal 0 in the step config would mean nothing — every consumer
+     * treats it as "unset" anyway, so it must not be written in the first
+     * place.
+     */
+    expect(secondsInputValueToTimeoutInMs("0.0004")).toBeUndefined();
+    expect(secondsInputValueToTimeoutInMs("0.00001")).toBeUndefined();
+  });
+
+  test("never returns a value that resolution would treat as unusable", () => {
+    const inputs: Array<string> = [
+      "",
+      "0",
+      "-1",
+      "abc",
+      "0.0004",
+      "0.5",
+      "1",
+      "30",
+      "99999",
+    ];
+
+    for (const input of inputs) {
+      const result: number | undefined = secondsInputValueToTimeoutInMs(input);
+      if (result !== undefined) {
+        expect(result).toBeGreaterThan(0);
+        expect(isFinite(result)).toBe(true);
+        expect(Number.isInteger(result)).toBe(true);
+      }
+    }
   });
 
   test("surrounding whitespace is tolerated", () => {
@@ -245,12 +280,25 @@ describe("getTimeoutValidationError", () => {
   });
 
   test("non-numeric input is rejected", () => {
-    expect(getTimeoutValidationError("abc", bounds)).toContain("number");
+    expect(getTimeoutValidationError("abc", bounds)).toBe(
+      NON_NUMERIC_TIMEOUT_MESSAGE,
+    );
   });
 
   test("zero and negatives are rejected", () => {
     expect(getTimeoutValidationError("0", bounds)).toContain("greater than 0");
     expect(getTimeoutValidationError("-3", bounds)).toContain("greater than 0");
+  });
+
+  test("input that rounds down to zero milliseconds is rejected as zero, not as below-minimum", () => {
+    /*
+     * It falls back to the default rather than being clamped up to the
+     * minimum, so telling the author "minimum is 1 second" would describe the
+     * wrong outcome.
+     */
+    expect(getTimeoutValidationError("0.0004", bounds)).toContain(
+      "greater than 0",
+    );
   });
 
   test("below-minimum values report the minimum", () => {
@@ -289,6 +337,61 @@ describe("getTimeoutValidationError", () => {
       const inMs: number | undefined = secondsInputValueToTimeoutInMs(input);
       expect(resolveTimeoutInMs(inMs, bounds)).toBe(inMs);
     }
+  });
+
+  test("the clamp predicate agrees with what resolution actually does", () => {
+    /*
+     * The editor tells the author which of two things will happen to a rejected
+     * value: clamped into range, or dropped for the default. That copy is only
+     * trustworthy if the predicate matches the resolver, so check both against
+     * the resolver's real output.
+     */
+    const inputs: Array<string> = [
+      "",
+      "0",
+      "-5",
+      "abc",
+      "0.0004",
+      "0.5",
+      "1",
+      "30",
+      "3600",
+      "3601",
+      "99999",
+    ];
+
+    for (const input of inputs) {
+      const inMs: number | undefined = secondsInputValueToTimeoutInMs(input);
+      const resolved: number = resolveTimeoutInMs(inMs, bounds);
+      const clampPredicted: boolean = willTimeoutBeClamped(input, bounds);
+
+      if (clampPredicted) {
+        // Claimed clamped: the value was usable and moved to a bound.
+        expect(inMs).not.toBeUndefined();
+        expect(resolved).not.toBe(inMs);
+        expect([bounds.minInMs, bounds.maxInMs]).toContain(resolved);
+      } else if (inMs === undefined) {
+        // Claimed default: resolution really does hand back the default.
+        expect(resolved).toBe(bounds.defaultInMs);
+      } else {
+        // Neither: the value was in range and survived untouched.
+        expect(resolved).toBe(inMs);
+      }
+    }
+  });
+
+  test("in-range and unusable values are not advertised as clamped", () => {
+    expect(willTimeoutBeClamped("", bounds)).toBe(false);
+    expect(willTimeoutBeClamped("0", bounds)).toBe(false);
+    expect(willTimeoutBeClamped("abc", bounds)).toBe(false);
+    expect(willTimeoutBeClamped("0.0004", bounds)).toBe(false);
+    expect(willTimeoutBeClamped("30", bounds)).toBe(false);
+  });
+
+  test("usable out-of-range values are advertised as clamped", () => {
+    expect(willTimeoutBeClamped("0.5", bounds)).toBe(true);
+    expect(willTimeoutBeClamped("3601", bounds)).toBe(true);
+    expect(willTimeoutBeClamped("99999", bounds)).toBe(true);
   });
 
   test("anything the validator rejects is still made safe by resolution", () => {
